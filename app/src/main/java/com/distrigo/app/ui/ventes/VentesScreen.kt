@@ -589,7 +589,7 @@ fun VenteDetailScreen(
             ) {
                 Icon(Icons.Default.Print, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Aperçu & Imprimer", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Aperçu & Imprimer", fontSize = 10.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
             }
             OutlinedButton(
                 onClick  = { showShareOptions = true },

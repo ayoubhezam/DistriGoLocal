@@ -82,4 +82,5 @@ dependencies {
 
     // QR code generation
     implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }

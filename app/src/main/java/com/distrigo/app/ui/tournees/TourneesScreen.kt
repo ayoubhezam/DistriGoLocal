@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.combinedClickable
 @Composable
 fun TourneesScreen(
     viewModel          : TourneeViewModel = viewModel(),
@@ -61,6 +64,7 @@ fun TourneesScreen(
     var showNewTourneeVente     by remember { mutableStateOf(false) }
     var showAddClientsScreen    by remember { mutableStateOf(false) }
     var pendingSaleClientId     by remember { mutableStateOf<Int?>(null) }
+    var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var transientMessage        by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
@@ -121,6 +125,29 @@ fun TourneesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCloseDialog = null; actionError = "" }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+
+    confirmReopenSaleClient?.let { info ->
+        AlertDialog(
+            onDismissRequest = { confirmReopenSaleClient = null },
+            title = { Text("Créer une vente ?") },
+            text  = { Text("Voulez-vous effectuer une vente pour ${info.client.name} ?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cid = info.client.id
+                    confirmReopenSaleClient = null
+                    pendingSaleClientId = cid
+                    showNewTourneeVente = true
+                }) {
+                    Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReopenSaleClient = null }) {
                     Text("Annuler")
                 }
             }
@@ -238,6 +265,7 @@ fun TourneesScreen(
                         .clip(DsShapes.large)
                         .background(DsColors.PrimaryLight)
                         .clickable {
+                            selectedTourneeId = open.id
                             viewModel.loadTourneeDetail(open.id)
                             viewModel.loadTourneeClients(open.id)
                         }
@@ -534,35 +562,7 @@ fun TourneesScreen(
                     }
 
                     item {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                        ) {
-                            TourneeIconStatBox(
-                                modifier = Modifier.weight(1f),
-                                icon     = Icons.Default.People,
-                                iconBg   = DsColors.PrimaryLight,
-                                iconTint = DsColors.Primary,
-                                value    = "${current.clients_count ?: 0}",
-                                label    = "Clients visités"
-                            )
-                            TourneeIconStatBox(
-                                modifier = Modifier.weight(1f),
-                                icon     = Icons.Default.AccountBalanceWallet,
-                                iconBg   = if ((current.reste_total ?: 0.0) > 0) DsColors.DangerLight else DsColors.SuccessLight,
-                                iconTint = if ((current.reste_total ?: 0.0) > 0) DsColors.Danger else DsColors.Success,
-                                value    = "${"%.0f".format(current.reste_total ?: 0.0)} DA",
-                                label    = "Reste à encaisser"
-                            )
-                            TourneeIconStatBox(
-                                modifier = Modifier.weight(1f),
-                                icon     = Icons.Default.Payments,
-                                iconBg   = DsColors.WarningLight,
-                                iconTint = DsColors.Warning,
-                                value    = "${"%.0f".format(current.total_ventes ?: 0.0)} DA",
-                                label    = "Total ventes"
-                            )
-                        }
+                        TourneeStatsCarousel(current = current, tourneeClients = tourneeClients)
                         Spacer(Modifier.height(DsSpacing.md))
                     }
 
@@ -571,14 +571,17 @@ fun TourneesScreen(
                             tourneeClients      = tourneeClients,
                             tourneeVentes       = current.ventes ?: emptyList(),
                             isOpen              = current.status == "ouverte",
-                            onSelectCurrent     = { cid -> viewModel.setCurrentTourneeClient(id, cid, onSuccess = {}, onError = {}) },
                             onCreateSale        = { cid -> pendingSaleClientId = cid; showNewTourneeVente = true },
                             onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(id, cid, onSuccess = {}, onError = {}) },
-                            onOpenVente         = { vente ->
+                            onNavigateToVente   = { vente ->
                                 selectedVenteInTournee = vente
                                 venteViewModel.loadVenteDetail(vente.id)
                             },
-                            onNoVenteTap        = { msg -> transientMessage = msg }
+                            onNoVenteTap        = { msg -> transientMessage = msg },
+                            onAddClient         = { showAddClientsScreen = true },
+                            onReopenSaleForVisited = { cid ->
+                                confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
+                            }
                         )
                         Spacer(Modifier.height(DsSpacing.md))
                     }
@@ -650,13 +653,28 @@ fun TourneesScreen(
     }
     }
 }
+
+
+//TourneeClientQuickActionsCard بطاقة البيع الجديدة
 @Composable
-private fun TourneeCurrentClientCard(
-    info         : com.distrigo.app.data.model.TourneeClientInfo,
-    onCreateSale : () -> Unit,
-    onMarkVisited: () -> Unit
+private fun TourneeClientQuickActionsCard(
+    info          : com.distrigo.app.data.model.TourneeClientInfo,
+    hasVente      : Boolean,
+    isOpen        : Boolean,
+    onCreateSale  : () -> Unit,
+    onMarkVisited : () -> Unit,
+    onOpenVente   : () -> Unit,
+    onShowMessage : (String) -> Unit
 ) {
     val client = info.client
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val hasLocation = client.latitude != null && client.longitude != null
+    val hasPhone = !client.phone.isNullOrBlank()
+
+    val isPending      = info.status == "a_visiter"
+    val isVisitedNoSale = info.status == "visite" && !hasVente
+    val isVisitedWithSale = info.status == "visite" && hasVente
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -665,38 +683,120 @@ private fun TourneeCurrentClientCard(
             .border(1.dp, DsColors.Primary, DsShapes.large)
             .padding(DsSpacing.lg)
     ) {
-        Text("PROCHAIN CLIENT", fontSize = DsTextSize.caption, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
-        Spacer(Modifier.height(4.dp))
         Text(client.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         val address = listOfNotNull(client.address, client.commune_name, client.wilaya_name).joinToString(", ")
         if (address.isNotEmpty()) {
             Spacer(Modifier.height(2.dp))
             Text(address, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
         }
+
         Spacer(Modifier.height(DsSpacing.md))
-        Button(
-            onClick  = onCreateSale,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            Text("Créer une vente", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold)
+
+        // ── Naviguer + Appeler (communes aux 3 cas) ──
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            if (hasLocation) {
+                Button(
+                    onClick = {
+                        try {
+                            val uri = android.net.Uri.parse("google.navigation:q=${client.latitude},${client.longitude}")
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri).apply {
+                                setPackage("com.google.android.apps.maps")
+                            }
+                            context.startActivity(intent)
+                        } catch (e: android.content.ActivityNotFoundException) {
+                            onShowMessage("Google Maps n'est pas installé sur cet appareil")
+                        }
+                    },
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                ) {
+                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Naviguer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+            }
+            OutlinedButton(
+                onClick = {
+                    if (hasPhone) {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:${client.phone}"))
+                        context.startActivity(intent)
+                    } else {
+                        onShowMessage("Ce client n'a pas de numéro de téléphone enregistré")
+                    }
+                },
+                modifier = Modifier.weight(1f).height(44.dp),
+                shape    = DsShapes.medium
+            ) {
+                Icon(Icons.Default.Call, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Appeler", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            }
         }
-        Spacer(Modifier.height(DsSpacing.xs))
-        TextButton(onClick = onMarkVisited, modifier = Modifier.fillMaxWidth()) {
-            Text("Marquer visité (sans vente)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+
+        Spacer(Modifier.height(DsSpacing.sm))
+
+        when {
+            // ── Cas 1 : Pas encore visité ──
+            isPending -> {
+                Button(
+                    onClick  = onCreateSale,
+                    enabled  = isOpen,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                ) {
+                    Text("Créer une vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+                Spacer(Modifier.height(DsSpacing.xs))
+                TextButton(
+                    onClick  = onMarkVisited,
+                    enabled  = isOpen,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Marquer visité (sans vente)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                }
+            }
+
+            // ── Cas 2 : Visité, sans vente ──
+            isVisitedNoSale -> {
+                Button(
+                    onClick  = onCreateSale,
+                    enabled  = isOpen,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.TextPrimary)
+                ) {
+                    Text("Créer une vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+            }
+
+            // ── Cas 3 : Visité + vente ──
+            isVisitedWithSale -> {
+                OutlinedButton(
+                    onClick  = onOpenVente,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape    = DsShapes.medium
+                ) {
+                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Présenter le reçu de vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                }
+            }
         }
     }
 }
 
 
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun TourneeClientAvatarItem(
-    info     : com.distrigo.app.data.model.TourneeClientInfo,
-    hasVente : Boolean,
-    enabled  : Boolean,
-    onTap    : () -> Unit
+    info        : com.distrigo.app.data.model.TourneeClientInfo,
+    hasVente    : Boolean,
+    enabled     : Boolean,
+    onTap       : () -> Unit,
+    onLongTap   : () -> Unit
 ) {
     val client = info.client
     val isPending = info.status == "a_visiter"
@@ -731,8 +831,12 @@ private fun TourneeClientAvatarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(72.dp)
-            .clickable(enabled = enabled) { onTap() }
-    ) {
+            .combinedClickable(
+                enabled     = enabled,
+                onClick     = onTap,
+                onLongClick = onLongTap
+            )
+    )  {
         Box {
             Box(
                 modifier = Modifier
@@ -801,6 +905,37 @@ private fun TourneeClientAvatarItem(
 }
 
 @Composable
+private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(72.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(DsShapes.pill)
+                .background(DsColors.PrimaryLight)
+                .border(1.5.dp, DsColors.Primary, DsShapes.pill),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Ajouter un client",
+            fontSize = DsTextSize.caption,
+            fontWeight = FontWeight.Bold,
+            color = DsColors.Primary,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            lineHeight = 12.sp
+        )
+    }
+}
+
+@Composable
 private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
@@ -818,15 +953,16 @@ private fun TourneeTrackingSection(
     tourneeClients      : List<com.distrigo.app.data.model.TourneeClientInfo>,
     tourneeVentes       : List<Vente>,
     isOpen              : Boolean,
-    onSelectCurrent     : (Int) -> Unit,
     onCreateSale        : (Int) -> Unit,
     onMarkVisitedNoSale : (Int) -> Unit,
-    onOpenVente         : (Vente) -> Unit,
-    onNoVenteTap        : (String) -> Unit
+    onNavigateToVente   : (Vente) -> Unit,
+    onNoVenteTap        : (String) -> Unit,
+    onAddClient         : () -> Unit,
+    onReopenSaleForVisited : (Int) -> Unit
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
-    val current = tourneeClients.find { it.status == "en_cours" }
     val total   = tourneeClients.size
+    var expandedClientId by remember { mutableStateOf<Int?>(null) }
     if (total == 0) return
     val percent = (visited.size * 100) / total
 
@@ -853,24 +989,53 @@ private fun TourneeTrackingSection(
                     hasVente  = info.client.id in clientIdsWithVente,
                     enabled   = isOpen,
                     onTap     = {
+                        expandedClientId = if (expandedClientId == info.client.id) null else info.client.id
+                    },
+                    onLongTap = {
+                        val hasVenteAlready = info.client.id in clientIdsWithVente
                         when {
-                            info.status == "visite" && info.client.id in clientIdsWithVente -> {
+                            info.status == "visite" && hasVenteAlready -> {
                                 val vente = tourneeVentes.filter { it.client_id == info.client.id }
                                     .maxByOrNull { it.created_at ?: "" }
-                                if (vente != null) onOpenVente(vente)
+                                if (vente != null) onNavigateToVente(vente)
                             }
-                            info.status == "visite" -> {
+                            info.status == "visite" && !hasVenteAlready -> {
                                 onNoVenteTap("${info.client.name} : aucune vente enregistrée")
                             }
-                            info.status == "a_visiter" -> onSelectCurrent(info.client.id)
-                            info.status == "en_cours"  -> Unit
+                            else -> Unit
                         }
                     }
                 )
             }
+            if (isOpen) {
+                item(key = "add_client") {
+                    TourneeAddClientAvatarItem(onClick = onAddClient)
+                }
+            }
         }
 
         Spacer(Modifier.height(DsSpacing.sm))
+
+        expandedClientId?.let { expId ->
+            val expandedInfo = tourneeClients.find { it.client.id == expId }
+            if (expandedInfo != null) {
+                Spacer(Modifier.height(DsSpacing.md))
+                val hasVenteAlready = expId in clientIdsWithVente
+                TourneeClientQuickActionsCard(
+                    info          = expandedInfo,
+                    hasVente      = hasVenteAlready,
+                    isOpen        = isOpen,
+                    onCreateSale  = { onCreateSale(expId) },
+                    onMarkVisited = { onMarkVisitedNoSale(expId); expandedClientId = null },
+                    onOpenVente   = {
+                        val vente = tourneeVentes.filter { it.client_id == expId }
+                            .maxByOrNull { it.created_at ?: "" }
+                        if (vente != null) onNavigateToVente(vente)
+                    },
+                    onShowMessage = onNoVenteTap
+                )
+            }
+        }
 
         Row(
             modifier = Modifier
@@ -887,13 +1052,6 @@ private fun TourneeTrackingSection(
 
         Spacer(Modifier.height(DsSpacing.md))
 
-        if (isOpen && current != null) {
-            TourneeCurrentClientCard(
-                info          = current,
-                onCreateSale  = { onCreateSale(current.client.id) },
-                onMarkVisited = { onMarkVisitedNoSale(current.client.id) }
-            )
-        }
     }
 }
 
@@ -1075,6 +1233,106 @@ private fun TourneeIconStatBox(
         Text(value, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary, maxLines = 1)
         Spacer(Modifier.height(2.dp))
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, maxLines = 1)
+    }
+}
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun TourneeStatsCarousel(
+    current        : Tournee,
+    tourneeClients : List<com.distrigo.app.data.model.TourneeClientInfo>
+) {
+    val visited = tourneeClients.filter { it.status == "visite" }
+    val pending = tourneeClients.filter { it.status == "a_visiter" }
+    val total   = tourneeClients.size
+    val percent = if (total > 0) (visited.size * 100) / total else 0
+
+    val clientIdsWithVente = (current.ventes ?: emptyList()).map { it.client_id }.toSet()
+    val avecVente = visited.count { it.client.id in clientIdsWithVente }
+    val sansVente = visited.size - avecVente
+
+    val pagerState = rememberPagerState(pageCount = { 2 })
+
+    Column {
+        HorizontalPager(
+            state    = pagerState,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            Row(
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                if (page == 0) {
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.TrendingUp,
+                        iconBg   = DsColors.PrimaryLight,
+                        iconTint = DsColors.Primary,
+                        value    = "$percent%",
+                        label    = "Progression"
+                    )
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.Payments,
+                        iconBg   = DsColors.WarningLight,
+                        iconTint = DsColors.Warning,
+                        value    = "${"%.0f".format(current.total_ventes ?: 0.0)} DA",
+                        label    = "Vente totale"
+                    )
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.AccountBalanceWallet,
+                        iconBg   = if ((current.reste_total ?: 0.0) > 0) DsColors.DangerLight else DsColors.SuccessLight,
+                        iconTint = if ((current.reste_total ?: 0.0) > 0) DsColors.Danger else DsColors.Success,
+                        value    = "${"%.0f".format(current.reste_total ?: 0.0)} DA",
+                        label    = "Le reste"
+                    )
+                } else {
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.Check,
+                        iconBg   = DsColors.SuccessLight,
+                        iconTint = DsColors.Success,
+                        value    = "$avecVente",
+                        label    = "Avec vente"
+                    )
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.ShoppingCart,
+                        iconBg   = DsColors.WarningLight,
+                        iconTint = DsColors.Warning,
+                        value    = "$sansVente",
+                        label    = "Sans vente"
+                    )
+                    TourneeIconStatBox(
+                        modifier = Modifier.weight(1f),
+                        icon     = Icons.Default.Schedule,
+                        iconBg   = DsColors.SurfaceMuted,
+                        iconTint = DsColors.TextTertiary,
+                        value    = "${pending.size}",
+                        label    = "À visiter"
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(DsSpacing.sm))
+
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(2) { index ->
+                val selected = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(if (selected) 8.dp else 6.dp)
+                        .clip(DsShapes.pill)
+                        .background(if (selected) DsColors.Primary else DsColors.Border)
+                )
+            }
+        }
     }
 }
 

@@ -34,6 +34,14 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Map
 
 @Composable
 fun ClientFormScreen(
@@ -53,9 +61,13 @@ fun ClientFormScreen(
     var note         by remember { mutableStateOf(client?.note ?: "") }
     var customerType by remember { mutableStateOf(client?.customer_type ?: "retail") }
     var imageBase64  by remember { mutableStateOf<String?>(client?.image_uri) }
-
+    var latitudeStr  by remember { mutableStateOf(client?.latitude?.toString() ?: "") }
+    var longitudeStr by remember { mutableStateOf(client?.longitude?.toString() ?: "") }
+    var isLocating by remember { mutableStateOf(false) }
+    var locationError by remember { mutableStateOf("") }
     var nameError by remember { mutableStateOf("") }
     var isSaving  by remember { mutableStateOf(false) }
+    var showLocationPicker by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -77,6 +89,10 @@ fun ClientFormScreen(
                     Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
         }
     }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+
+
 
     fun save() {
         if (name.isBlank()) {
@@ -94,7 +110,9 @@ fun ClientFormScreen(
             "address"       to address.trim().ifEmpty { null },
             "note"          to note.trim().ifEmpty { null },
             "customer_type" to customerType,
-            "image_uri"     to imageBase64
+            "image_uri"     to imageBase64,
+            "latitude"      to latitudeStr.trim().toDoubleOrNull(),
+            "longitude"     to longitudeStr.trim().toDoubleOrNull()
         )
 
         if (isEdit) {
@@ -118,6 +136,20 @@ fun ClientFormScreen(
 
     BackHandler { onBack() }
 
+    //اضافة جديدة
+    if (showLocationPicker) {
+        ClientLocationPickerScreen(
+            initialLatitude  = latitudeStr.toDoubleOrNull(),
+            initialLongitude = longitudeStr.toDoubleOrNull(),
+            onBack = { showLocationPicker = false },
+            onLocationSelected = { lat, lng ->
+                latitudeStr  = lat.toString()
+                longitudeStr = lng.toString()
+                showLocationPicker = false
+            }
+        )
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -268,6 +300,59 @@ fun ClientFormScreen(
         )
 
         Spacer(Modifier.height(DsSpacing.md))
+
+        // ── Localisation (pour navigation GPS) ──
+        Text(
+            "Localisation (optionnel)",
+            fontSize   = DsTextSize.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color      = DsColors.TextSecondary
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            Box(modifier = Modifier.weight(1f)) {
+                DsFormField(
+                    label         = "Latitude",
+                    value         = latitudeStr,
+                    onValueChange = { latitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
+                    placeholder   = "Ex: 36.7538",
+                    keyboardType  = KeyboardType.Number
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                DsFormField(
+                    label         = "Longitude",
+                    value         = longitudeStr,
+                    onValueChange = { longitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
+                    placeholder   = "Ex: 3.0588",
+                    keyboardType  = KeyboardType.Number
+                )
+            }
+        }
+        Spacer(Modifier.height(DsSpacing.sm))
+
+
+        Spacer(Modifier.height(DsSpacing.xs))
+
+        OutlinedButton(
+            onClick  = { showLocationPicker = true },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            shape    = DsShapes.medium
+        ) {
+            Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Choisir sur la carte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
+
+        if (locationError.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
+        }
+        if (locationError.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
+        }
+
 
         // ── Note ──
         DsFormField(
