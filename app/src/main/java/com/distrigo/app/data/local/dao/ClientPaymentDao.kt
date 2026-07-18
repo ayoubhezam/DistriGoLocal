@@ -19,4 +19,7 @@ interface ClientPaymentDao {
 
     @Query("DELETE FROM client_payments WHERE id = :id")
     suspend fun deletePaymentById(id: Int)
+
+    @Query("SELECT * FROM client_payments WHERE created_at >= :start AND created_at < :end")
+    suspend fun getPaymentsBetween(start: String, end: String): List<ClientPaymentEntity>
 }

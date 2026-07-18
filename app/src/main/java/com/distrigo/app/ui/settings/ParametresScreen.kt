@@ -1,34 +1,21 @@
 package com.distrigo.app.ui.settings
 
-import android.graphics.BitmapFactory
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.BusinessSettingsStore
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -36,37 +23,29 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 
 @Composable
 fun ParametresScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-
-    var name        by remember { mutableStateOf(BusinessSettingsStore.getBusinessName(context)) }
-    var logoFile    by remember { mutableStateOf(BusinessSettingsStore.getLogoFile(context)) }
-    var logoVersion by remember { mutableStateOf(0) }
-    var isSaving    by remember { mutableStateOf(false) }
-
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            logoFile = BusinessSettingsStore.saveLogo(context, it)
-            logoVersion++
-        }
-    }
-
-    fun save() {
-        isSaving = true
-        BusinessSettingsStore.saveBusinessName(context, name.trim())
-        Toast.makeText(context, "Paramètres enregistrés", Toast.LENGTH_SHORT).show()
-        isSaving = false
-        onBack()
-    }
+    var showReceiptSettings   by remember { mutableStateOf(false) }
+    var showCommissionPolicy  by remember { mutableStateOf(false) }
 
     BackHandler { onBack() }
+
+    if (showReceiptSettings) {
+        com.distrigo.app.ui.settings.receipt.ReceiptSettingsScreen(
+            onBack = { showReceiptSettings = false }
+        )
+        return
+    }
+
+    if (showCommissionPolicy) {
+        com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen(
+            onBack = { showCommissionPolicy = false }
+        )
+        return
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
             .padding(DsSpacing.lg)
     ) {
         // ── Header ──
@@ -83,91 +62,58 @@ fun ParametresScreen(onBack: () -> Unit) {
             )
         }
 
-        Spacer(Modifier.height(DsSpacing.md))
+        Spacer(Modifier.height(DsSpacing.lg))
 
-        // ── Logo ──
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            SettingsNavCard(
+                icon     = Icons.Default.Receipt,
+                iconBg   = DsColors.SuccessLight,
+                iconTint = DsColors.Success,
+                title    = "Paramètres du reçu",
+                subtitle = "Logo, nom du commerce et informations affichées sur le reçu",
+                onClick  = { showReceiptSettings = true }
+            )
+            SettingsNavCard(
+                icon     = Icons.Default.Percent,
+                iconBg   = DsColors.PrimaryLight,
+                iconTint = DsColors.Primary,
+                title    = "Politique de commission",
+                subtitle = "Définir l'objectif et le mode de calcul des primes",
+                onClick  = { showCommissionPolicy = true }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsNavCard(
+    icon     : androidx.compose.ui.graphics.vector.ImageVector,
+    iconBg   : androidx.compose.ui.graphics.Color,
+    iconTint : androidx.compose.ui.graphics.Color,
+    title    : String,
+    subtitle : String,
+    onClick  : () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.SurfaceMuted)
+            .clickable { onClick() }
+            .padding(DsSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(DsShapes.large)
-                .background(DsColors.SurfaceMuted)
-                .clickable { imagePicker.launch("image/*") },
+            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(iconBg),
             contentAlignment = Alignment.Center
         ) {
-            if (logoFile != null) {
-                key(logoVersion) {
-                    val bitmap = BitmapFactory.decodeFile(logoFile!!.absolutePath)
-                    bitmap?.let {
-                        Image(
-                            bitmap             = it.asImageBitmap(),
-                            contentDescription = null,
-                            modifier           = Modifier.fillMaxSize(),
-                            contentScale       = ContentScale.Crop
-                        )
-                    }
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        tint     = DsColors.Primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text("Ajouter un logo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                }
-            }
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
         }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Nom du commerce ──
-        Column {
-            Text(
-                "Nom du commerce",
-                fontSize = DsTextSize.bodySmall,
-                color    = DsColors.TextSecondary,
-                modifier = Modifier.padding(bottom = DsSpacing.xs)
-            )
-            OutlinedTextField(
-                value           = name,
-                onValueChange   = { name = it },
-                placeholder     = { Text("Ex: DISTRIGO", fontSize = DsTextSize.body) },
-                singleLine      = true,
-                modifier        = Modifier.fillMaxWidth(),
-                shape           = DsShapes.medium,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
-            )
+        Spacer(Modifier.width(DsSpacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
-
-        Spacer(Modifier.height(DsSpacing.xxl))
-
-        // ── Enregistrer ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            } else {
-                Text(
-                    "Enregistrer",
-                    fontSize   = DsTextSize.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color.White
-                )
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.lg))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
     }
 }

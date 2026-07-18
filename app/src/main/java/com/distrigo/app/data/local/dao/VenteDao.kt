@@ -48,4 +48,11 @@ interface VenteDao {
 
     @Query("SELECT COUNT(*) FROM vente_items WHERE vente_id = :venteId")
     suspend fun getItemsCountForVente(venteId: Int): Int
+
+    @Query("""
+    SELECT * FROM ventes 
+    WHERE source = :source AND created_at >= :start AND created_at < :end 
+    ORDER BY created_at ASC
+""")
+    suspend fun getVentesBySourceBetween(source: String, start: String, end: String): List<VenteEntity>
 }

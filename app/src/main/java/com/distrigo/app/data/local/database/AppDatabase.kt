@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.distrigo.app.data.local.dao.ProductDao
 import com.distrigo.app.data.local.dao.CategoryDao
 import com.distrigo.app.data.local.dao.SupplierDao
@@ -20,6 +21,11 @@ import com.distrigo.app.data.local.entity.PriceHistoryEntity
 import com.distrigo.app.data.local.dao.PurchaseDao
 import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.local.entity.*
+import com.distrigo.app.data.local.entity.incentive.TargetPolicyEntity
+import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
+import com.distrigo.app.data.local.dao.incentive.TargetPolicyDao
+import com.distrigo.app.data.local.dao.mouvement.StockMovementDao
+import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 
 @Database(
     entities = [
@@ -32,21 +38,29 @@ import com.distrigo.app.data.local.entity.*
         PurchaseOrderEntity::class,
         PurchaseOrderItemEntity::class,
         PriceHistoryEntity::class,
-        SupplierPaymentEntity::class ,
-        ClientEntity::class ,
+        SupplierPaymentEntity::class,
+        ClientEntity::class,
         VenteEntity::class,
         VenteItemEntity::class,
         TourneeEntity::class,
         ClientPaymentEntity::class,
-        TourneeClientEntity::class
-
-
+        TourneeClientEntity::class,
+        ChargeTypeEntity::class,
+        ChargeSubTypeEntity::class,
+        ChargeEntity::class,
+        TargetPolicyEntity::class,
+        PolicyTierEntity::class,
+        PerteTypeEntity::class,
+        PerteEntity::class,
+        InventorySessionEntity::class,
+        InventoryItemEntity::class,
+        StockMovementEntity::class
     ],
-    version = 13,
+    version = 20,
     exportSchema = false
 )
 
-
+@TypeConverters(IncentiveConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun categoryDao(): CategoryDao
@@ -63,7 +77,13 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tourneeDao(): TourneeDao
 
     abstract fun tourneeClientDao(): TourneeClientDao
+    abstract fun targetPolicyDao(): TargetPolicyDao
 
+    abstract fun chargeDao(): ChargeDao
+    abstract fun perteDao(): PerteDao
+    abstract fun inventoryDao(): InventoryDao
+
+    abstract fun stockMovementDao(): StockMovementDao
 
 
 
@@ -85,5 +105,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
     }
+
 
 }

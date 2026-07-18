@@ -238,6 +238,12 @@ class TourneeViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun refreshAfterVenteChange(tourneeId: Int) {
+        loadTournees()
+        loadTourneeDetail(tourneeId)
+        loadTourneeClients(tourneeId)
+    }
+
 
 }
 

@@ -55,6 +55,7 @@ fun VentesScreen(
     var editingVenteId   by remember { mutableStateOf<Int?>(null) }
     var deleteError      by remember { mutableStateOf("") }
 
+    LaunchedEffect(Unit) { viewModel.loadVentes() }
     // ── New Vente Screen ──
     if (showNewVente) {
         onFullScreenChange(true)

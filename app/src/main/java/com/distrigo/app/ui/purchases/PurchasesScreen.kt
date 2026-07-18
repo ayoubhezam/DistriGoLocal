@@ -55,6 +55,7 @@ fun PurchasesScreen(
     val collapsed = rawCollapsed && orders.size >= 10
     val fabBottomPadding by rememberFabBottomPadding(collapsed)
 
+    LaunchedEffect(Unit) { viewModel.loadOrders() }
     // ── New Order Screen ──
     if (showNewOrder) {
         onFullScreenChange(true)

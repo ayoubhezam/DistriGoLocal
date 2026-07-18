@@ -8,6 +8,7 @@ object BusinessSettingsStore {
     private const val PREFS_NAME = "business_settings"
     private const val KEY_NAME = "business_name"
     private const val LOGO_FILENAME = "business_logo.jpg"
+    private const val KEY_INCLUDE_CHARGES_IN_REPORT = "include_charges_in_report"
 
     fun getBusinessName(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -34,5 +35,15 @@ object BusinessSettingsStore {
 
     fun clearLogo(context: Context) {
         File(context.filesDir, LOGO_FILENAME).let { if (it.exists()) it.delete() }
+    }
+
+    fun getIncludeChargesInReport(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_INCLUDE_CHARGES_IN_REPORT, true)
+    }
+
+    fun saveIncludeChargesInReport(context: Context, include: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_INCLUDE_CHARGES_IN_REPORT, include).apply()
     }
 }

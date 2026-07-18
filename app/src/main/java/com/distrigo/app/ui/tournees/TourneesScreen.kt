@@ -39,10 +39,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.combinedClickable
 @Composable
 fun TourneesScreen(
-    viewModel          : TourneeViewModel = viewModel(),
-    modifier           : Modifier = Modifier,
-    onFullScreenChange : (Boolean) -> Unit = {},
-    venteViewModel     : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel             : TourneeViewModel = viewModel(),
+    modifier              : Modifier = Modifier,
+    onFullScreenChange    : (Boolean) -> Unit = {},
+    venteViewModel        : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    productViewModel      : com.distrigo.app.ui.products.ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onNavigateToChargement: () -> Unit = {}
 ) {
     val tournees     by viewModel.tournees.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
@@ -68,6 +70,7 @@ fun TourneesScreen(
     var transientMessage        by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
+    LaunchedEffect(Unit) { productViewModel.loadProducts() }
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
@@ -332,6 +335,7 @@ fun TourneesScreen(
             val tournee   by viewModel.selectedTournee.collectAsState()
             val current   = tournee
             val tourneeClients by viewModel.tourneeClients.collectAsState()
+            val products by productViewModel.products.collectAsState()
 
             if (current == null || current.id != id) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -360,9 +364,13 @@ fun TourneesScreen(
                             showNewTourneeVente = false
                             pendingSaleClientId = null
                             onFullScreenChange(false)
-                            viewModel.loadTourneeDetail(id)
+                            viewModel.refreshAfterVenteChange(id)
                             if (cid != null) {
-                                viewModel.markTourneeClientVisited(id, cid, onSuccess = {}, onError = {})
+                                viewModel.markTourneeClientVisited(
+                                    id, cid,
+                                    onSuccess = { viewModel.refreshAfterVenteChange(id) },
+                                    onError   = {}
+                                )
                             } else {
                                 viewModel.loadTourneeClients(id)
                             }
@@ -383,11 +391,13 @@ fun TourneesScreen(
                             selectedVenteInTournee = null
                             onFullScreenChange(false)
                             viewModel.loadTourneeDetail(id)
+                            viewModel.refreshAfterVenteChange(id)
                         },
                         onDeleted = {
                             selectedVenteInTournee = null
                             onFullScreenChange(false)
                             viewModel.loadTourneeDetail(id)
+                            viewModel.refreshAfterVenteChange(id)
                         }
                     )
                     return
@@ -415,6 +425,8 @@ fun TourneesScreen(
                                             longPressVenteInTournee  = null
                                             deleteVenteError         = ""
                                             viewModel.loadTourneeDetail(id)
+                                            viewModel.refreshAfterVenteChange(id)
+
                                         },
                                         onError = { error -> deleteVenteError = error }
                                     )
@@ -527,6 +539,49 @@ fun TourneesScreen(
                             }
                         }
                     }
+                    if (current.status == "ouverte") {
+                        val totalCamionStock = products.sumOf { it.camion_stock }
+                        if (totalCamionStock <= 0) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = DsSpacing.lg)
+                                        .clip(DsShapes.large)
+                                        .background(DsColors.DangerLight)
+                                        .padding(DsSpacing.lg)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(DsSpacing.sm))
+                                        Text(
+                                            "Camion vide",
+                                            fontSize = DsTextSize.body,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DsColors.Danger
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
+                                        fontSize = DsTextSize.caption,
+                                        color = DsColors.Danger
+                                    )
+                                    Spacer(Modifier.height(DsSpacing.sm))
+                                    Button(
+                                        onClick = { onNavigateToChargement() },
+                                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                                        shape = DsShapes.medium,
+                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
+                                    ) {
+                                        Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                    }
+                                }
+                                Spacer(Modifier.height(DsSpacing.md))
+                            }
+                        }
+                    }
+
 
                     if (current.status == "ouverte") {
                         item {

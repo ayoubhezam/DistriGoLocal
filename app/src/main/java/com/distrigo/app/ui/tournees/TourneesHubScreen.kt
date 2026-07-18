@@ -21,7 +21,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 @Composable
 fun TourneesHubScreen(
     tourneeViewModel   : TourneeViewModel = viewModel(),
@@ -34,7 +35,10 @@ fun TourneesHubScreen(
 
     if (currentScreen == "tournees") {
         BackHandler { currentScreen = "hub" }
-        TourneesScreen(onFullScreenChange = onFullScreenChange)
+        TourneesScreen(
+            onFullScreenChange = onFullScreenChange,
+            onNavigateToChargement = { currentScreen = "chargement" }
+        )
         return
     }
 
@@ -49,6 +53,13 @@ fun TourneesHubScreen(
         com.distrigo.app.ui.chargements.ChargementSessionsScreen(onFullScreenChange = onFullScreenChange)
         return
     }
+    if (currentScreen == "rapport") {
+        BackHandler { currentScreen = "hub" }
+        com.distrigo.app.ui.screens.rapport.RapportTourneesScreen(
+            onBack = { currentScreen = "hub" }
+        )
+        return
+    }
 
     val activeTournees = tournees.count { it.status == "ouverte" }
     val closedTournees = tournees.count { it.status == "fermée" }
@@ -58,6 +69,7 @@ fun TourneesHubScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
+            .verticalScroll(rememberScrollState())
             .padding(DsSpacing.lg)
     ) {
         // ── Header ──
@@ -138,11 +150,11 @@ fun TourneesHubScreen(
             )
             HubNavCard(
                 icon        = Icons.Default.PieChart,
-                iconBg      = DsColors.SurfaceMuted,
-                iconTint    = DsColors.TextTertiary,
+                iconBg      = DsColors.PrimaryLight,
+                iconTint    = DsColors.Primary,
                 title       = "Rapport des tournées",
-                subtitle    = "Bientôt disponible",
-                onClick     = null
+                subtitle    = "Analysez vos performances de vente",
+                onClick     = { currentScreen = "rapport" }
             )
         }
     }

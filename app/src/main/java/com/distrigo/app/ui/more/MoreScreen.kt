@@ -18,7 +18,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 private data class MoreMenuEntry(
     val icon       : ImageVector,
     val title      : String,
@@ -33,8 +34,11 @@ private val MORE_MENU_ENTRIES = listOf(
     MoreMenuEntry(Icons.Default.Business, "Fournisseurs", "Gérer vos fournisseurs", Color(0xFF4CAF50), "fournisseurs"),
     MoreMenuEntry(Icons.Default.BarChart, "Rapports", "Statistiques et performances", Color(0xFFE91E63), "rapports"),
     MoreMenuEntry(Icons.Default.Inventory2, "Stock & Inventaire", "Stock dépôt et camion", Color(0xFF9C27B0), "stock_inventaire"),
-    MoreMenuEntry(Icons.Default.Settings, "Paramètres", "Configuration de l'application", Color(0xFF009688), "parametres")
-)
+    MoreMenuEntry(Icons.Default.Settings, "Paramètres", "Configuration de l'application", Color(0xFF009688), "parametres"),
+    MoreMenuEntry(Icons.Default.Payments, "Charges", "Suivi des dépenses de l'activité", Color(0xFF3F51B5), "charges"),
+    MoreMenuEntry(Icons.Default.DeleteSweep, "Pertes", "Suivi des pertes et casses", Color(0xFFF04438), "pertes"),
+    MoreMenuEntry(Icons.Default.Inventory2, "Inventaire", "Comptage physique du stock par scan", Color(0xFF12B76A), "inventaire"),
+    )
 
 @Composable
 fun MoreScreen(
@@ -44,6 +48,7 @@ fun MoreScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             "Plus",

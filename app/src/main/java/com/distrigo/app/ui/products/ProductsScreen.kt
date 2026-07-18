@@ -85,6 +85,7 @@ fun ProductsScreen(
     var showSortSheet        by remember { mutableStateOf(false) }
     val sheetState           = rememberModalBottomSheetState()
 
+        LaunchedEffect(Unit) { viewModel.loadProducts() }
     if (showAddScreen) {
         onFullScreenChange(true)
         BackHandler { showAddScreen = false; onFullScreenChange(false) }

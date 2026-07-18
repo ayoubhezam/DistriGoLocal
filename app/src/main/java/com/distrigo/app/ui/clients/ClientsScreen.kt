@@ -50,6 +50,8 @@ fun ClientsScreen(
     var showDeleteDialog by remember { mutableStateOf<Client?>(null) }
     var longPressClient  by remember { mutableStateOf<Client?>(null) }
 
+    LaunchedEffect(Unit) { viewModel.loadClients() }
+
     if (showAddScreen) {
         onFullScreenChange(true)
         BackHandler { showAddScreen = false; onFullScreenChange(false) }

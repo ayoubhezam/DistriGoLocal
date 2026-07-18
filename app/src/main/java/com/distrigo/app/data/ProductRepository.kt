@@ -670,6 +670,41 @@ class ProductRepository(
         return mapOf("message" to "Vente supprimée avec succès")
     }
 
+    // ── Rapports Tournée (Tableau de bord) ──
+
+    suspend fun getTourneeVentesStats(
+        startIso: String, endIso: String,
+        previousStartIso: String, previousEndIso: String
+    ): com.distrigo.app.data.model.report.TourneeVentesStats {
+        val currentVentes = db.venteDao().getVentesBySourceBetween("camion", startIso, endIso)
+        val previousVentes = db.venteDao().getVentesBySourceBetween("camion", previousStartIso, previousEndIso)
+
+        val totalVentes = currentVentes.sumOf { it.total }
+        val ticketsCount = currentVentes.size
+        val panierMoyen = if (ticketsCount == 0) 0.0 else totalVentes / ticketsCount
+
+        val previousTotalVentes = previousVentes.sumOf { it.total }
+        val previousTicketsCount = previousVentes.size
+        val previousPanierMoyen = if (previousTicketsCount == 0) 0.0 else previousTotalVentes / previousTicketsCount
+
+        val dailyBreakdown = currentVentes
+            .groupBy { it.created_at.substring(0, 10) } // "YYYY-MM-DD"
+            .map { (date, ventesDuJour) ->
+                com.distrigo.app.data.model.report.DailySalesAmount(date, ventesDuJour.sumOf { it.total })
+            }
+            .sortedBy { it.dateIso }
+
+        return com.distrigo.app.data.model.report.TourneeVentesStats(
+            totalVentes = totalVentes,
+            ticketsCount = ticketsCount,
+            panierMoyen = panierMoyen,
+            previousTotalVentes = previousTotalVentes,
+            previousTicketsCount = previousTicketsCount,
+            previousPanierMoyen = previousPanierMoyen,
+            dailyBreakdown = dailyBreakdown
+        )
+    }
+
     // Supplier transactions
     // ── Supplier transactions (محلي بالكامل) ──
 
