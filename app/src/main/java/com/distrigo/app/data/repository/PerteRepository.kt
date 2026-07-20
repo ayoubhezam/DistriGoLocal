@@ -6,7 +6,7 @@ import com.distrigo.app.data.local.entity.PerteEntity
 import com.distrigo.app.data.local.entity.PerteTypeEntity
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.data.model.PerteType
-
+import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 class PerteRepository(
     private val db: AppDatabase
 ) {
@@ -98,7 +98,8 @@ class PerteRepository(
         source    : String,   // "depot" | "camion"
         dateTime  : String,
         motif     : String?,
-        photoPath : String?
+        photoPath : String?,
+        userName  : String? = null
     ): Map<String, Any> {
         val type = perteDao.getPerteTypeById(typeId) ?: return mapOf("error" to "Type introuvable")
         val product = productDao.getProductById(productId) ?: return mapOf("error" to "Produit introuvable")
@@ -110,24 +111,48 @@ class PerteRepository(
         }
 
         val valeurTotale = product.purchase_price * quantity
+        val now = java.time.Instant.now().toString()
 
         db.withTransaction {
-            perteDao.insertPerte(
+            val perteId = perteDao.insertPerte(
                 PerteEntity(
                     type_id = type.id, type_name = type.name,
                     product_id = product.id, product_name = product.name, product_image_uri = product.image_uri,
                     quantity = quantity, unit = product.unit_type, source = source,
                     purchase_price_snapshot = product.purchase_price, valeur_totale = valeurTotale,
                     date_time = dateTime, motif = motif, photo_path = photoPath,
-                    created_at = java.time.Instant.now().toString()
+                    created_at = now
                 )
-            )
+            ).toInt()
+
             val updatedProduct = if (source == "camion") {
-                product.copy(camion_stock = product.camion_stock - quantity)
+                product.copy(
+                    stock        = product.stock - quantity,
+                    camion_stock = product.camion_stock - quantity
+                )
             } else {
                 product.copy(stock = product.stock - quantity)
             }
             productDao.updateProduct(updatedProduct)
+
+            db.stockMovementDao().insert(
+                StockMovementEntity(
+                    product_id   = product.id,
+                    product_name = product.name,
+                    type         = "perte",
+                    direction    = "sortie",
+                    quantity     = quantity,
+                    emplacement  = source,
+                    source_label = type.name,
+                    source_type  = "perte",
+                    source_id    = perteId,
+                    unit_price   = product.purchase_price,
+                    total_value  = valeurTotale,
+                    user_name    = userName,
+                    note         = motif,
+                    created_at   = now
+                )
+            )
         }
         return mapOf("message" to "Perte enregistrée avec succès")
     }
@@ -137,17 +162,20 @@ class PerteRepository(
         db.withTransaction {
             productDao.getProductById(perte.product_id)?.let { product ->
                 val restored = if (perte.source == "camion") {
-                    product.copy(camion_stock = product.camion_stock + perte.quantity)
+                    product.copy(
+                        stock        = product.stock + perte.quantity,
+                        camion_stock = product.camion_stock + perte.quantity
+                    )
                 } else {
                     product.copy(stock = product.stock + perte.quantity)
                 }
                 productDao.updateProduct(restored)
             }
             perteDao.deletePerteById(id)
+            db.stockMovementDao().deleteBySource("perte", id)   // ← جديد
         }
         return mapOf("message" to "Perte supprimée, stock restauré")
     }
-
     suspend fun updatePerte(
         id        : Int,
         productId : Int,
@@ -155,7 +183,8 @@ class PerteRepository(
         source    : String,
         dateTime  : String,
         motif     : String?,
-        photoPath : String?
+        photoPath : String?,
+        userName  : String? = null
     ): Map<String, Any> {
         val existing = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
         if (quantity <= 0) return mapOf("error" to "Quantité invalide")
@@ -165,7 +194,10 @@ class PerteRepository(
                 // 1) إعادة الكمية القديمة إلى مصدرها ومنتجها الأصليين
                 productDao.getProductById(existing.product_id)?.let { oldProduct ->
                     val reverted = if (existing.source == "camion") {
-                        oldProduct.copy(camion_stock = oldProduct.camion_stock + existing.quantity)
+                        oldProduct.copy(
+                            stock        = oldProduct.stock + existing.quantity,
+                            camion_stock = oldProduct.camion_stock + existing.quantity
+                        )
                     } else {
                         oldProduct.copy(stock = oldProduct.stock + existing.quantity)
                     }
@@ -181,6 +213,7 @@ class PerteRepository(
                 }
 
                 val valeurTotale = product.purchase_price * quantity
+                val type = perteDao.getPerteTypeById(existing.type_id)
 
                 perteDao.updatePerte(
                     existing.copy(
@@ -192,12 +225,37 @@ class PerteRepository(
                 )
 
                 // 3) خصم الكمية الجديدة من المصدر الجديد
+                // 3) خصم الكمية الجديدة من المصدر الجديد
                 val updatedProduct = if (source == "camion") {
-                    product.copy(camion_stock = product.camion_stock - quantity)
+                    product.copy(
+                        stock        = product.stock - quantity,
+                        camion_stock = product.camion_stock - quantity
+                    )
                 } else {
                     product.copy(stock = product.stock - quantity)
                 }
                 productDao.updateProduct(updatedProduct)
+
+                // 4) تحديث حركة المخزون: حذف القديمة وإدراج جديدة
+                db.stockMovementDao().deleteBySource("perte", id)
+                db.stockMovementDao().insert(
+                    StockMovementEntity(
+                        product_id   = product.id,
+                        product_name = product.name,
+                        type         = "perte",
+                        direction    = "sortie",
+                        quantity     = quantity,
+                        emplacement  = source,
+                        source_label = type?.name ?: existing.type_name,
+                        source_type  = "perte",
+                        source_id    = id,
+                        unit_price   = product.purchase_price,
+                        total_value  = valeurTotale,
+                        user_name    = userName,
+                        note         = motif,
+                        created_at   = java.time.Instant.now().toString()
+                    )
+                )
             }
             mapOf("message" to "Perte mise à jour avec succès")
         } catch (e: IllegalStateException) {

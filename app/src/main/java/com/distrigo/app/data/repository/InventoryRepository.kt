@@ -9,6 +9,7 @@ import com.distrigo.app.data.model.InventorySession
 import com.distrigo.app.data.model.InventorySessionSummary
 import kotlin.math.abs
 import com.distrigo.app.data.model.InventorySessionHistory
+import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 class InventoryRepository(
     private val db: AppDatabase
 ) {
@@ -55,7 +56,7 @@ class InventoryRepository(
         return inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null
     }
 
-    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Int): Map<String, Any> {
+    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Int, userName: String? = null): Map<String, Any> {
         if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
 
         if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
@@ -67,18 +68,40 @@ class InventoryRepository(
         val qteSysteme  = product.stock
         val ecart       = qtePhysique - qteSysteme
         val valeurEcart = ecart * product.purchase_price
+        val now = java.time.Instant.now().toString()
 
         db.withTransaction {
-            inventoryDao.insertItem(
+            val itemId = inventoryDao.insertItem(
                 InventoryItemEntity(
                     session_id = sessionId, product_id = product.id, product_name = product.name,
                     product_image_uri = product.image_uri,
                     qte_systeme = qteSysteme, qte_physique = qtePhysique, ecart = ecart,
                     purchase_price_snapshot = product.purchase_price, valeur_ecart = valeurEcart,
-                    created_at = java.time.Instant.now().toString()
+                    created_at = now
                 )
-            )
+            ).toInt()
             productDao.updateProduct(product.copy(stock = qtePhysique))
+
+            if (ecart != 0) {
+                db.stockMovementDao().insert(
+                    StockMovementEntity(
+                        product_id   = product.id,
+                        product_name = product.name,
+                        type         = "ajustement",
+                        direction    = if (ecart > 0) "entree" else "sortie",
+                        quantity     = abs(ecart),
+                        emplacement  = "depot",
+                        source_label = "Inventaire session #$sessionId",
+                        source_type  = "inventory_item",
+                        source_id    = itemId,
+                        unit_price   = product.purchase_price,
+                        total_value  = abs(valeurEcart),
+                        user_name    = userName,
+                        note         = null,
+                        created_at   = now
+                    )
+                )
+            }
         }
 
         return mapOf(
@@ -88,7 +111,7 @@ class InventoryRepository(
             "valeur_ecart" to valeurEcart
         )
     }
-    suspend fun updateScan(itemId: Int, newQtePhysique: Int): Map<String, Any> {
+    suspend fun updateScan(itemId: Int, newQtePhysique: Int, userName: String? = null): Map<String, Any> {
         if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
 
@@ -100,8 +123,31 @@ class InventoryRepository(
                 item.copy(qte_physique = newQtePhysique, ecart = newEcart, valeur_ecart = newValeurEcart)
             )
             // ── Set direct (pas de delta) — même logique que recordScan ──
-            productDao.getProductById(item.product_id)?.let { product ->
-                productDao.updateProduct(product.copy(stock = newQtePhysique))
+            val product = productDao.getProductById(item.product_id)
+            product?.let {
+                productDao.updateProduct(it.copy(stock = newQtePhysique))
+            }
+
+            db.stockMovementDao().deleteBySource("inventory_item", itemId)
+            if (newEcart != 0 && product != null) {
+                db.stockMovementDao().insert(
+                    StockMovementEntity(
+                        product_id   = item.product_id,
+                        product_name = item.product_name,
+                        type         = "ajustement",
+                        direction    = if (newEcart > 0) "entree" else "sortie",
+                        quantity     = abs(newEcart),
+                        emplacement  = "depot",
+                        source_label = "Inventaire session #${item.session_id}",
+                        source_type  = "inventory_item",
+                        source_id    = itemId,
+                        unit_price   = item.purchase_price_snapshot,
+                        total_value  = abs(newValeurEcart),
+                        user_name    = userName,
+                        note         = null,
+                        created_at   = java.time.Instant.now().toString()
+                    )
+                )
             }
         }
         return mapOf("message" to "Modifié avec succès")
@@ -116,6 +162,7 @@ class InventoryRepository(
                 productDao.updateProduct(product.copy(stock = item.qte_systeme))
             }
             inventoryDao.deleteItem(itemId)
+            db.stockMovementDao().deleteBySource("inventory_item", itemId)   // ← جديد
         }
         return mapOf("message" to "Supprimé, stock restauré")
     }

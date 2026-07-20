@@ -63,6 +63,7 @@ fun VenteFormScreen(
     val selectedSource   = "depot"
     var cartItems         by remember { mutableStateOf<List<VenteCartItem>>(emptyList()) }
     var note              by remember { mutableStateOf(vente?.note ?: "") }
+    var userName          by remember { mutableStateOf("") }
     var montantPaye       by remember { mutableStateOf(if (isEdit) (vente?.montant_paye ?: 0.0).toString() else "") }
     var isSaving          by remember { mutableStateOf(false) }
     var saveError          by remember { mutableStateOf("") }
@@ -146,6 +147,7 @@ fun VenteFormScreen(
                 items       = items,
                 note        = note.trim().ifEmpty { null },
                 montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                userName    = userName.trim().ifEmpty { null },
                 onSuccess   = {
                     productViewModel.loadProducts()
                     clientViewModel.loadClients()
@@ -161,6 +163,7 @@ fun VenteFormScreen(
                 items       = items,
                 note        = note.trim().ifEmpty { null },
                 montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                userName    = userName.trim().ifEmpty { null },
                 onSuccess   = {
                     productViewModel.loadProducts()
                     onSaved()
@@ -589,7 +592,7 @@ fun VenteFormScreen(
                                             color    = DsColors.TextSecondary
                                         )
                                         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                                            Text("Dépôt: ${product.stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                            Text("Dépôt: ${product.stock - product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                             Text("Camion: ${product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                         }
                                     }
@@ -679,6 +682,8 @@ fun VenteFormScreen(
                 onMontantPayeChange = { montantPaye = it },
                 note                = note,
                 onNoteChange        = { note = it },
+                userName            = userName,
+                onUserNameChange    = { userName = it },
                 isSaving            = isSaving,
                 saveError           = saveError,
                 onBack              = { currentStep = 2 },
@@ -880,11 +885,13 @@ private fun Step3Validation(
     onMontantPayeChange : (String) -> Unit,
     note                : String,
     onNoteChange        : (String) -> Unit,
+    userName            : String,
+    onUserNameChange    : (String) -> Unit,
     isSaving            : Boolean,
     saveError           : String,
     onBack              : () -> Unit,
     onConfirm           : () -> Unit
-)  {
+)    {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
@@ -1068,6 +1075,22 @@ private fun Step3Validation(
                     }
                 }
             }
+            // ── Effectué par ──
+            item {
+                OutlinedTextField(
+                    value         = userName,
+                    onValueChange = onUserNameChange,
+                    placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
+                    leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
+                    modifier      = Modifier.fillMaxWidth(),
+                    shape         = DsShapes.medium,
+                    singleLine    = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+            }
 
             // ── Note ──
             item {
@@ -1142,7 +1165,7 @@ private fun VenteCartRow(
     var priceStr    by remember(item.unitPrice) { mutableStateOf("%.2f".format(item.unitPrice)) }
     val context = LocalContext.current
 
-    val availableStock = item.product.stock
+    val availableStock = item.product.stock - item.product.camion_stock   // dépôt uniquement (stock = total)
     val remainingAfter = availableStock - item.quantity
     val isNegative     = remainingAfter < 0
     val isLow          = !isNegative && remainingAfter <= item.product.min_stock

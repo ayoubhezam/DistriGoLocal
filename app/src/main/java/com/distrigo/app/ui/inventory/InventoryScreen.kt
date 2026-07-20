@@ -120,6 +120,7 @@ private fun InventorySessionScreen(
     }
 
     var step             by remember { mutableStateOf<InvStep>(InvStep.Scan) }
+    var userName          by remember { mutableStateOf("") }
     var qtePhysiqueText   by remember { mutableStateOf("") }
     var showScanner        by remember { mutableStateOf(false) }
     var showSearchDialog     by remember { mutableStateOf(false) }
@@ -178,6 +179,8 @@ private fun InventorySessionScreen(
                 scanError         = scanError,
                 canFinish         = sessionItems.isNotEmpty(),
                 isSaving          = false,
+                userName          = userName,
+                onUserNameChange  = { userName = it },
                 onBack            = onExit,
                 onScan            = { showScanner = true },
                 onSearch          = { showSearchDialog = true },
@@ -198,6 +201,7 @@ private fun InventorySessionScreen(
                     isSaving = true
                     viewModel.recordScan(
                         productId = current.product.id, qtePhysique = qte,
+                        userName  = userName.trim().ifEmpty { null },
                         onSuccess = { qteSysteme, ecart, valeurEcart ->
                             isSaving = false; saveError = ""
                             step = InvStep.Confirmed(current.product, qteSysteme, qte, ecart, valeurEcart)
@@ -219,8 +223,7 @@ private fun InventorySessionScreen(
                 items    = sessionItems,
                 isSaving = false,
                 onBack   = { step = InvStep.Scan },
-                onEdit   = { item, newQte -> viewModel.updateScan(item.id, newQte, onSuccess = {}, onError = { scanError = it }) },
-                onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = {}, onError = { scanError = it }) },
+                onEdit   = { item, newQte -> viewModel.updateScan(item.id, newQte, userName = userName.trim().ifEmpty { null }, onSuccess = {}, onError = { scanError = it }) },                onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = {}, onError = { scanError = it }) },
                 onFinish = { step = InvStep.ReadyToFinish }
             )
 
@@ -279,6 +282,8 @@ private fun ColumnScope.InventoryScanStep(
     scanError         : String,
     canFinish         : Boolean,
     isSaving          : Boolean,
+    userName          : String,
+    onUserNameChange  : (String) -> Unit,
     onBack            : () -> Unit,
     onScan            : () -> Unit,
     onSearch          : () -> Unit,
@@ -302,6 +307,16 @@ private fun ColumnScope.InventoryScanStep(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        OutlinedTextField(
+            value         = userName,
+            onValueChange = onUserNameChange,
+            placeholder   = { Text("Effectué par (optionnel)") },
+            leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
+            singleLine    = true,
+            modifier      = Modifier.fillMaxWidth(),
+            shape         = DsShapes.medium
+        )
+
         Spacer(Modifier.height(DsSpacing.xl))
         Box(
             modifier = Modifier.size(140.dp).clip(DsShapes.pill).background(DsColors.PrimaryLight).clickable { onScan() },

@@ -50,7 +50,9 @@ data class CartItem(
     val quantity      : Int,      // final quantity sent to API
     val unitCost      : Double,
     val nbColis       : Int = 1,
-    val uniteParColis : Int = 1   // only used for pièce
+    val uniteParColis : Int = 1,  // only used for pièce
+    val hasExpiry     : Boolean = false,
+    val expiryDate    : String? = null   // "yyyy-MM-dd"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -798,6 +800,89 @@ fun PurchaseFormScreen(
                                                             )
                                                         }
                                                     }
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(12.dp))
+
+                                        // ── Date d'expiration (optionnelle) ──
+                                        var showExpiryPicker by remember { mutableStateOf(false) }
+                                        val expiryDateState = rememberDatePickerState(
+                                            initialSelectedDateMillis = item.expiryDate?.let {
+                                                runCatching {
+                                                    java.time.LocalDate.parse(it).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+                                                }.getOrNull()
+                                            }
+                                        )
+
+                                        if (showExpiryPicker) {
+                                            DatePickerDialog(
+                                                onDismissRequest = { showExpiryPicker = false },
+                                                confirmButton = {
+                                                    TextButton(onClick = {
+                                                        expiryDateState.selectedDateMillis?.let { millis ->
+                                                            val date = java.time.Instant.ofEpochMilli(millis)
+                                                                .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
+                                                            cartItems = cartItems.map { ci ->
+                                                                if (ci.product.id == item.product.id) ci.copy(expiryDate = date) else ci
+                                                            }
+                                                        }
+                                                        showExpiryPicker = false
+                                                    }) { Text("OK") }
+                                                },
+                                                dismissButton = { TextButton(onClick = { showExpiryPicker = false }) { Text("Annuler") } }
+                                            ) { DatePicker(state = expiryDateState) }
+                                        }
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(MutedGray)
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier              = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment     = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Icon(Icons.Default.Info, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                                    Column {
+                                                        Text("Date d'expiration", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                                                        Text("Le produit a une date d'expiration", fontSize = 10.sp, color = TextMuted)
+                                                    }
+                                                }
+                                                Switch(
+                                                    checked         = item.hasExpiry,
+                                                    onCheckedChange = { checked ->
+                                                        cartItems = cartItems.map { ci ->
+                                                            if (ci.product.id == item.product.id) ci.copy(hasExpiry = checked) else ci
+                                                        }
+                                                    },
+                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = PrimaryBlue)
+                                                )
+                                            }
+
+                                            AnimatedVisibility(visible = item.hasExpiry) {
+                                                Column(modifier = Modifier.padding(top = 8.dp)) {
+                                                    OutlinedTextField(
+                                                        value         = item.expiryDate ?: "",
+                                                        onValueChange = {},
+                                                        readOnly      = true,
+                                                        label         = { Text("Date d'expiration", fontSize = 12.sp) },
+                                                        trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                                                        modifier      = Modifier.fillMaxWidth().clickable { showExpiryPicker = true },
+                                                        shape         = RoundedCornerShape(10.dp),
+                                                        enabled       = false,
+                                                        colors = OutlinedTextFieldDefaults.colors(
+                                                            disabledBorderColor = BorderGray,
+                                                            disabledTextColor   = TextPrimary,
+                                                            disabledLabelColor  = TextMuted,
+                                                            disabledTrailingIconColor = PrimaryBlue
+                                                        )
+                                                    )
                                                 }
                                             }
                                         }

@@ -46,6 +46,8 @@ import com.distrigo.app.data.model.Perte
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import androidx.compose.material.icons.filled.Person
+
 @Composable
 fun PerteFormScreen(
     typeId    : Int,
@@ -68,6 +70,7 @@ fun PerteFormScreen(
     var source            by remember { mutableStateOf(perte?.source ?: "depot") }
     var selectedDate      by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     var motif              by remember { mutableStateOf(perte?.motif ?: "") }
+    var userName by remember { mutableStateOf("") }
     var photoBase64         by remember { mutableStateOf(perte?.photo_path) }
     var showProductPicker   by remember { mutableStateOf(false) }
     var showDatePicker       by remember { mutableStateOf(false) }
@@ -215,12 +218,25 @@ fun PerteFormScreen(
                 }
 
                 // ── Motif ──
+                // ── Motif ──
                 Column {
                     Text("Motif (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                     OutlinedTextField(
                         value = motif, onValueChange = { motif = it },
                         placeholder = { Text("Ex: Cartons abîmés, chute, casse...") },
                         modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium, minLines = 2, maxLines = 3,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                    )
+                }
+
+                Spacer(Modifier.height(DsSpacing.md))
+                Column {
+                    Text("Effectué par (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                    OutlinedTextField(
+                        value = userName, onValueChange = { userName = it },
+                        placeholder = { Text("Nom du responsable") },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
                 }

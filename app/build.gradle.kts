@@ -70,11 +70,13 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
     // Barcode scanning
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
-    implementation("androidx.camera:camera-core:1.3.4")
-    implementation("androidx.camera:camera-camera2:1.3.4")
-    implementation("androidx.camera:camera-lifecycle:1.3.4")
-    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("androidx.camera:camera-core:1.6.1")
+    implementation("androidx.camera:camera-camera2:1.6.1")
+    implementation("androidx.camera:camera-lifecycle:1.6.1")
+    implementation("androidx.camera:camera-view:1.6.1")
+    // Transitively pulled in by androidx.compose.ui:ui-graphics (still on 1.0.1 as of Compose BOM 2026.06.01) — force the 16KB-aligned release
+    implementation("androidx.graphics:graphics-path:1.1.0")
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

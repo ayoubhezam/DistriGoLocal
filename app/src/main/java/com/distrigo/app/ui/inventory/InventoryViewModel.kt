@@ -99,12 +99,13 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     fun recordScan(
         productId   : Int,
         qtePhysique : Int,
+        userName    : String? = null,
         onSuccess   : (qteSysteme: Int, ecart: Int, valeurEcart: Double) -> Unit,
         onError     : (String) -> Unit
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = repository.recordScan(sessionId, productId, qtePhysique)
+            val result = repository.recordScan(sessionId, productId, qtePhysique, userName)
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
@@ -157,10 +158,10 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun updateScan(itemId: Int, newQtePhysique: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun updateScan(itemId: Int, newQtePhysique: Int, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = repository.updateScan(itemId, newQtePhysique)
+            val result = repository.updateScan(itemId, newQtePhysique, userName)
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
@@ -170,7 +171,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-
     fun deleteScan(itemId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {

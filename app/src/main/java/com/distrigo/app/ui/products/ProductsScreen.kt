@@ -75,6 +75,7 @@ fun ProductsScreen(
     var showEditScreen       by remember { mutableStateOf<Product?>(null) }
     var search               by remember { mutableStateOf("") }
     var selectedProduct      by remember { mutableStateOf<Product?>(null) }
+        var showMovements        by remember { mutableStateOf<Product?>(null) }
     var showDeleteDialog     by remember { mutableStateOf<Product?>(null) }
     var showAddScreen        by remember { mutableStateOf(false) }
     var showCategoriesScreen by remember { mutableStateOf(false) }
@@ -212,20 +213,31 @@ fun ProductsScreen(
         return
     }
 
-    selectedProduct?.let { product ->
-        BackHandler { showEditScreen = null }
-        ProductDetailScreen(
-            product  = product,
-            onBack   = { selectedProduct = null },
-            onDelete = { showDeleteDialog = product },
-            onEdit = {
-                showEditScreen  = product
-                selectedProduct = null
-            }        )
-        return
-    }
+        showMovements?.let { product ->
+            BackHandler { showMovements = null }
+            com.distrigo.app.ui.mouvements.MouvementsScreen(
+                product = product,
+                onBack  = { showMovements = null }
+            )
+            return
+        }
 
-    if (showSortSheet) {
+        selectedProduct?.let { product ->
+            BackHandler { showEditScreen = null }
+            ProductDetailScreen(
+                product  = product,
+                onBack   = { selectedProduct = null },
+                onDelete = { showDeleteDialog = product },
+                onEdit = {
+                    showEditScreen  = product
+                    selectedProduct = null
+                },
+                onViewMovements = { showMovements = product }
+            )
+            return
+        }
+
+        if (showSortSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSortSheet = false },
             sheetState       = sheetState,
@@ -317,22 +329,7 @@ fun ProductsScreen(
                     }
                 }
 
-                // ── Sort button ──
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MutedGray)
-                        .clickable { showSortSheet = true }
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Sort,
-                        contentDescription = "Trier",
-                        tint = if (sortOption != SortOption.NAME_ASC) PrimaryBlue else TextMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+
 
                 // ── Add button ──
                 FloatingActionButton(
@@ -446,12 +443,40 @@ fun ProductsScreen(
             }
         }
 
-        Text(
-            text = "${sorted.size} produit(s)",
-            fontSize = 12.sp,
-            color = TextMuted,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "${sorted.size} produit(s)",
+                fontSize = 12.sp,
+                color = TextMuted
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MutedGray)
+                    .clickable { showSortSheet = true }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Sort,
+                        contentDescription = "Trier",
+                        tint = if (sortOption != SortOption.NAME_ASC) PrimaryBlue else TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Trier",
+                        fontSize = 12.sp,
+                        color = if (sortOption != SortOption.NAME_ASC) PrimaryBlue else TextMuted
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(8.dp))
 
@@ -536,7 +561,7 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier         = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(BlueLight),
+                modifier         = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = remember(product.image_uri) {
@@ -555,22 +580,54 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 }
             }
             Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary, maxLines = 1,    modifier   = Modifier.basicMarquee()
+                // ── السطر 1 : الاسم لوحده ──
+                Text(
+                    product.name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize   = 13.sp,
+                    color      = TextPrimary,
+                    maxLines   = 1,
+                    overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
+
+                Spacer(Modifier.height(3.dp))
+
+                // ── السطر 2 : Catégorie · Fournisseur ──
                 Text(
                     "${product.category_name ?: "—"} · ${product.supplier_name ?: "—"}",
-                    fontSize = 12.sp,
-                    color = TextMuted
-                )            }
-            Spacer(Modifier.width(8.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${product.selling_price} DA", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryBlue)
-                Text("${product.stock} ${product.unit_type}", fontSize = 12.sp,
-                    fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Normal,
-                    color      = if (isLow) DestructiveRed else TextMuted)
+                    fontSize = 11.sp,
+                    color    = TextMuted,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // ── السطر 3 : Prix ──
+                Text(
+                    "${product.selling_price} DA",
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 14.sp,
+                    color      = PrimaryBlue
+                )
             }
+
             Spacer(Modifier.width(8.dp))
+
+            // ── Stock : عمود منفصل على اليمين ──
+            Text(
+                "${product.stock} ${product.unit_type}",
+                fontSize   = 11.sp,
+                fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
+                color      = if (isLow) DestructiveRed else TextMuted,
+                textAlign  = androidx.compose.ui.text.style.TextAlign.End,
+                maxLines   = 1,
+                softWrap   = false
+            )
+
+            Spacer(Modifier.width(6.dp))
             Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
         }
     }

@@ -89,12 +89,13 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
 
     fun receiveOrder(
         id        : Int,
+        userName  : String? = null,
         onSuccess : () -> Unit,
         onError   : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.receivePurchaseOrder(id)
+                repository.receivePurchaseOrder(id, userName)
                 loadOrders()
                 onSuccess()
             } catch (e: Exception) {

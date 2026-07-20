@@ -78,12 +78,13 @@ class VenteViewModel(application: Application) : AndroidViewModel(application) {
         items       : List<Map<String, Any?>>,
         note        : String?,
         montantPaye : Double,
+        userName    : String? = null,
         onSuccess   : () -> Unit,
         onError     : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.createVente(clientId, tourneeId, source, items, note, montantPaye)
+                repository.createVente(clientId, tourneeId, source, items, note, montantPaye, userName)
                 loadVentes()
                 onSuccess()
             } catch (e: Exception) {
@@ -97,12 +98,13 @@ class VenteViewModel(application: Application) : AndroidViewModel(application) {
         items       : List<Map<String, Any?>>,
         note        : String?,
         montantPaye : Double,
+        userName    : String? = null,
         onSuccess   : () -> Unit,
         onError     : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.updateVente(id, clientId, items, note, montantPaye)
+                repository.updateVente(id, clientId, items, note, montantPaye, userName)
                 loadVentes()
                 loadVenteDetail(id)
                 onSuccess()

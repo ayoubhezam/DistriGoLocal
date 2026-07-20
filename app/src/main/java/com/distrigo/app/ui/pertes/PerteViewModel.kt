@@ -132,11 +132,12 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
         dateTime  : String,
         motif     : String?,
         photoPath : String?,
+        userName  : String? = null,
         onSuccess : () -> Unit,
         onError   : (String) -> Unit
     ) {
         viewModelScope.launch {
-            val result = repository.addPerte(typeId, productId, quantity, source, dateTime, motif, photoPath)
+            val result = repository.addPerte(typeId, productId, quantity, source, dateTime, motif, photoPath, userName)
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
@@ -176,11 +177,12 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
         dateTime  : String,
         motif     : String?,
         photoPath : String?,
+        userName  : String? = null,
         onSuccess : () -> Unit,
         onError   : (String) -> Unit
     ) {
         viewModelScope.launch {
-            val result = repository.updatePerte(id, productId, quantity, source, dateTime, motif, photoPath)
+            val result = repository.updatePerte(id, productId, quantity, source, dateTime, motif, photoPath, userName)
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {

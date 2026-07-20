@@ -45,6 +45,7 @@ fun ChargementFormScreen(
     var search     by remember { mutableStateOf("") }
     var cartItems  by remember { mutableStateOf<List<ChargementCartItem>>(emptyList()) }
     var note       by remember { mutableStateOf("") }
+    var userName   by remember { mutableStateOf("") }
     var isSaving   by remember { mutableStateOf(false) }
     var showCart   by remember { mutableStateOf(false) }
 
@@ -89,6 +90,7 @@ fun ChargementFormScreen(
         }
         viewModel.createChargement(
             note      = note.trim().ifEmpty { null },
+            userName  = userName.trim().ifEmpty { null },
             items     = items,
             onSuccess = {
                 productViewModel.loadProducts()
@@ -168,6 +170,22 @@ fun ChargementFormScreen(
                             onRemove = {
                                 cartItems = cartItems.filter { it.product.id != item.product.id }
                             }
+                        )
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value         = userName,
+                            onValueChange = { userName = it },
+                            placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
+                            leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
+                            modifier      = Modifier.fillMaxWidth(),
+                            shape         = DsShapes.medium,
+                            singleLine    = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = DsColors.Border,
+                                focusedBorderColor   = DsColors.Primary
+                            )
                         )
                     }
 
@@ -307,7 +325,7 @@ fun ChargementFormScreen(
                             maxLines   = 1
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                            Text("Dépôt: ${product.stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("Dépôt: ${product.stock - product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             Text("Camion: ${product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
                     }
@@ -396,8 +414,7 @@ private fun ChargementCartRow(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val delta         = item.targetCamion - item.product.camion_stock
-    val maxAllowed    = item.product.stock + item.product.camion_stock
-    val depotPreview  = maxAllowed - item.targetCamion
+    val depotPreview  = item.product.stock - item.targetCamion   // stock = total désormais
     val subtitle = when {
         delta > 0 -> "+$delta vers le camion"
         delta < 0 -> "${-delta} vers le dépôt"

@@ -60,13 +60,14 @@ class ChargementViewModel(application: Application) : AndroidViewModel(applicati
 
     fun createChargement(
         note      : String?,
+        userName  : String? = null,
         items     : List<Map<String, Any?>>,
         onSuccess : () -> Unit,
         onError   : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.createChargement(note, items)
+                repository.createChargement(note, items, userName)
                 loadChargements()
                 onSuccess()
             } catch (e: Exception) {

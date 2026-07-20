@@ -6,7 +6,7 @@ import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
 import com.distrigo.app.data.local.entity.*
-
+import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 
 
 class ProductRepository(
@@ -86,7 +86,10 @@ class ProductRepository(
         val updated = if (source == "depot")
             product.copy(stock = product.stock + delta)
         else
-            product.copy(camion_stock = product.camion_stock + delta)
+            product.copy(
+                stock        = product.stock + delta,        // ← stock = total, impacté aussi côté camion
+                camion_stock = product.camion_stock + delta
+            )
         productDao.updateProduct(updated)
     }
 
@@ -423,17 +426,39 @@ class ProductRepository(
         return mapOf("message" to "Bon créé avec succès")
     }
 
-    suspend fun receivePurchaseOrder(id: Int): Map<String, Any> {
+    suspend fun receivePurchaseOrder(id: Int, userName: String? = null): Map<String, Any> {
         db.withTransaction {
             val order = db.purchaseDao().getOrderById(id)
                 ?: throw IllegalStateException("Bon introuvable: $id")
             if (order.status == "received") return@withTransaction
 
+            val supplierName = supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur inconnu"
+            val now = java.time.Instant.now().toString()
             val items = db.purchaseDao().getItemsForOrder(id)
+            val movementEntities = mutableListOf<StockMovementEntity>()
+
             for (item in items) {
                 val product = productDao.getProductById(item.product_id) ?: continue
                 productDao.updateProduct(product.copy(stock = product.stock + item.quantity))
+
+                movementEntities += StockMovementEntity(
+                    product_id   = item.product_id,
+                    product_name = item.product_name,
+                    type         = "achat",
+                    direction    = "entree",
+                    quantity     = item.quantity,
+                    emplacement  = "depot",
+                    source_label = supplierName,
+                    source_type  = "purchase_order",
+                    source_id    = id,
+                    unit_price   = item.unit_cost,
+                    total_value  = item.total_cost,
+                    user_name    = userName,
+                    note         = order.note,
+                    created_at   = now
+                )
             }
+            db.stockMovementDao().insertAll(movementEntities)
             db.purchaseDao().updateOrderStatus(id, "received")
         }
         return mapOf("message" to "Bon marqué comme reçu")
@@ -487,6 +512,7 @@ class ProductRepository(
                 productDao.updateProduct(product.copy(stock = product.stock - item.quantity))
             }
             db.purchaseDao().updateOrderStatus(id, "pending")
+            db.stockMovementDao().deleteBySource("purchase_order", id)   // ← جديد
         }
         return mapOf("message" to "Bon rouvert avec succès")
     }
@@ -502,6 +528,7 @@ class ProductRepository(
                     val product = productDao.getProductById(item.product_id) ?: continue
                     productDao.updateProduct(product.copy(stock = product.stock - item.quantity))
                 }
+                db.stockMovementDao().deleteBySource("purchase_order", id)   // ← جديد
             }
             db.purchaseDao().deleteItemsForOrder(id)
             db.purchaseDao().deleteOrderById(id)
@@ -545,7 +572,8 @@ class ProductRepository(
 
     suspend fun createVente(
         clientId: Int, tourneeId: Int?, source: String,
-        items: List<Map<String, Any?>>, note: String?, montantPaye: Double
+        items: List<Map<String, Any?>>, note: String?, montantPaye: Double,
+        userName: String? = null
     ): Map<String, Any> {
         db.withTransaction {
             val total = items.sumOf { (it["quantity"] as Number).toInt() * (it["unit_price"] as Number).toDouble() }
@@ -575,6 +603,9 @@ class ProductRepository(
                 )
             ).toInt()
 
+            val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
+            val movementEntities = mutableListOf<StockMovementEntity>()
+
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity = (map["quantity"] as Number).toInt()
@@ -584,6 +615,23 @@ class ProductRepository(
 
                 applyStockDelta(source, productId, -quantity)
 
+                movementEntities += StockMovementEntity(
+                    product_id   = productId,
+                    product_name = product.name,
+                    type         = "vente",
+                    direction    = "sortie",
+                    quantity     = quantity,
+                    emplacement  = source,
+                    source_label = clientName,
+                    source_type  = "vente",
+                    source_id    = venteId,
+                    unit_price   = unitPrice,
+                    total_value  = quantity * unitPrice,
+                    user_name    = userName,
+                    note         = note,
+                    created_at   = now
+                )
+
                 VenteItemEntity(
                     vente_id = venteId, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
@@ -591,6 +639,7 @@ class ProductRepository(
                 )
             }
             db.venteDao().insertItems(itemEntities)
+            db.stockMovementDao().insertAll(movementEntities)
             recalculateClientBalance(clientId)
         }
         return mapOf("message" to "Vente créée avec succès")
@@ -598,7 +647,8 @@ class ProductRepository(
 
     suspend fun updateVente(
         id: Int, clientId: Int, items: List<Map<String, Any?>>,
-        note: String?, montantPaye: Double
+        note: String?, montantPaye: Double,
+        userName: String? = null
     ): Map<String, Any> {
         db.withTransaction {
             val existing = db.venteDao().getVenteById(id)
@@ -626,6 +676,11 @@ class ProductRepository(
                 }
             }
             db.venteDao().deleteItemsForVente(id)
+            db.stockMovementDao().deleteBySource("vente", id)   // ← جديد: إزالة الحركات القديمة
+
+            val now = java.time.Instant.now().toString()
+            val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
+            val movementEntities = mutableListOf<StockMovementEntity>()
 
             val total = items.sumOf { (it["quantity"] as Number).toInt() * (it["unit_price"] as Number).toDouble() }
             val itemEntities = items.map { map ->
@@ -637,6 +692,23 @@ class ProductRepository(
 
                 applyStockDelta(existing.source, productId, -quantity)
 
+                movementEntities += StockMovementEntity(
+                    product_id   = productId,
+                    product_name = product.name,
+                    type         = "vente",
+                    direction    = "sortie",
+                    quantity     = quantity,
+                    emplacement  = existing.source,
+                    source_label = clientName,
+                    source_type  = "vente",
+                    source_id    = id,
+                    unit_price   = unitPrice,
+                    total_value  = quantity * unitPrice,
+                    user_name    = userName,
+                    note         = note,
+                    created_at   = now
+                )
+
                 VenteItemEntity(
                     vente_id = id, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
@@ -644,6 +716,7 @@ class ProductRepository(
                 )
             }
             db.venteDao().insertItems(itemEntities)
+            db.stockMovementDao().insertAll(movementEntities)
             db.venteDao().updateVenteFields(id, note, montantPaye, total)
             recalculateClientBalance(clientId)
         }
@@ -665,6 +738,7 @@ class ProductRepository(
             }
             db.venteDao().deleteItemsForVente(id)
             db.venteDao().deleteVenteById(id)
+            db.stockMovementDao().deleteBySource("vente", id)
             recalculateClientBalance(existing.client_id)
         }
         return mapOf("message" to "Vente supprimée avec succès")
@@ -832,7 +906,11 @@ class ProductRepository(
         return entity.toChargement(items)
     }
 
-    suspend fun createChargement(note: String?, items: List<Map<String, Any?>>): Map<String, Any> {
+    suspend fun createChargement(
+        note: String?,
+        items: List<Map<String, Any?>>,
+        userName: String? = null
+    ): Map<String, Any> {
         db.withTransaction {
             val today = java.time.LocalDate.now().toString()
             val now   = java.time.Instant.now().toString()
@@ -847,6 +925,8 @@ class ProductRepository(
             ).toInt()
 
             val itemEntities = mutableListOf<ChargementItemEntity>()
+            val movementEntities = mutableListOf<StockMovementEntity>()
+
             for (map in items) {
                 val productId = map["product_id"] as Int
                 val quantity  = map["quantity"] as Int
@@ -855,16 +935,11 @@ class ProductRepository(
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
 
+                // Chargement = transfert interne pur (dépôt ↔ camion) : ne touche jamais au total (stock)
                 val updatedProduct = if (direction == "vers_camion") {
-                    product.copy(
-                        stock        = product.stock - quantity,
-                        camion_stock = product.camion_stock + quantity
-                    )
+                    product.copy(camion_stock = product.camion_stock + quantity)
                 } else {
-                    product.copy(
-                        stock        = product.stock + quantity,
-                        camion_stock = product.camion_stock - quantity
-                    )
+                    product.copy(camion_stock = product.camion_stock - quantity)
                 }
                 productDao.updateProduct(updatedProduct)
 
@@ -878,8 +953,46 @@ class ProductRepository(
                         unit_type     = product.unit_type
                     )
                 )
+
+                // ── Mouvement de stock : écriture double (sortie source + entrée destination) ──
+                val (sourceEmplacement, destEmplacement) =
+                    if (direction == "vers_camion") "depot" to "camion" else "camion" to "depot"
+
+                movementEntities += StockMovementEntity(
+                    product_id   = productId,
+                    product_name = product.name,
+                    type         = "chargement",
+                    direction    = "sortie",
+                    quantity     = quantity,
+                    emplacement  = sourceEmplacement,
+                    source_label = "Chargement #$chargementId",
+                    source_type  = "chargement",
+                    source_id    = chargementId,
+                    unit_price   = product.purchase_price,
+                    total_value  = quantity * product.purchase_price,
+                    user_name    = userName,
+                    note         = note,
+                    created_at   = now
+                )
+                movementEntities += StockMovementEntity(
+                    product_id   = productId,
+                    product_name = product.name,
+                    type         = "chargement",
+                    direction    = "entree",
+                    quantity     = quantity,
+                    emplacement  = destEmplacement,
+                    source_label = "Chargement #$chargementId",
+                    source_type  = "chargement",
+                    source_id    = chargementId,
+                    unit_price   = product.purchase_price,
+                    total_value  = quantity * product.purchase_price,
+                    user_name    = userName,
+                    note         = note,
+                    created_at   = now
+                )
             }
             db.chargementDao().insertItems(itemEntities)
+            db.stockMovementDao().insertAll(movementEntities)
         }
         return mapOf("message" to "Chargement créé avec succès")
     }
@@ -891,20 +1004,16 @@ class ProductRepository(
                 val product = productDao.getProductById(item.product_id) ?: continue
                 // عكس التأثير: عودة الكمية لمصدرها الأصلي
                 val reverted = if (item.direction == "vers_camion") {
-                    product.copy(
-                        stock        = product.stock + item.quantity,
-                        camion_stock = product.camion_stock - item.quantity
-                    )
+                    product.copy(camion_stock = product.camion_stock - item.quantity)
                 } else {
-                    product.copy(
-                        stock        = product.stock - item.quantity,
-                        camion_stock = product.camion_stock + item.quantity
-                    )
+                    product.copy(camion_stock = product.camion_stock + item.quantity)
                 }
                 productDao.updateProduct(reverted)
             }
             db.chargementDao().deleteItemsForChargement(id)
             db.chargementDao().deleteChargementById(id)
+            db.stockMovementDao().deleteBySource("chargement", id)
+
         }
         return mapOf("message" to "Chargement supprimé avec succès")
     }
@@ -932,6 +1041,40 @@ class ProductRepository(
     suspend fun updateChargementSessionNote(id: Int, note: String?): Map<String, Any> {
         db.chargementDao().updateSessionNote(id, note)
         return mapOf("message" to "Note mise à jour")
+    }
+
+    // ── Mouvements de stock (lecture) ──
+    private fun StockMovementEntity.toStockMovement() = StockMovement(
+        id = this.id, product_id = this.product_id, product_name = this.product_name,
+        type = this.type, direction = this.direction, quantity = this.quantity,
+        emplacement = this.emplacement, source_label = this.source_label,
+        source_type = this.source_type, source_id = this.source_id,
+        unit_price = this.unit_price, total_value = this.total_value,
+        user_name = this.user_name, note = this.note, created_at = this.created_at
+    )
+
+    suspend fun getMovementsForProduct(productId: Int): List<StockMovement> {
+        return db.stockMovementDao().getMovementsForProduct(productId).map { it.toStockMovement() }
+    }
+
+    suspend fun getMovementById(id: Int): StockMovement? {
+        return db.stockMovementDao().getMovementById(id)?.toStockMovement()
+    }
+
+    suspend fun getFilteredMovements(
+        productId: Int? = null,
+        dateFrom: String? = null,
+        dateTo: String? = null,
+        direction: String? = null,
+        sourceLabel: String? = null
+    ): List<StockMovement> {
+        return db.stockMovementDao()
+            .getFilteredMovements(productId, dateFrom, dateTo, direction, sourceLabel)
+            .map { it.toStockMovement() }
+    }
+
+    suspend fun getDistinctSourcesForProduct(productId: Int): List<String> {
+        return db.stockMovementDao().getDistinctSourcesForProduct(productId)
     }
 
 

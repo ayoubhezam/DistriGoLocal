@@ -42,6 +42,8 @@ fun PurchaseOrderDetailScreen(
     val displayOrder  = selectedOrder ?: order
     val isReceived    = displayOrder.status == "received"
     var isLoading     by remember { mutableStateOf(false) }
+    var showReceiveDialog by remember { mutableStateOf(false) }
+    var receiveUserName   by remember { mutableStateOf("") }
     var showReopenDialog  by remember { mutableStateOf(false) }
     var showEditScreen    by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
@@ -441,15 +443,7 @@ fun PurchaseOrderDetailScreen(
             if (!isReceived) {
                 item {
                     Button(
-                        onClick  = {
-                            isLoading = true
-                            viewModel.receiveOrder(
-                                id        = displayOrder.id,
-                                onSuccess = {  productViewModel.loadProducts()
-                                    onReceived() },
-                                onError   = { isLoading = false }
-                            )
-                        },
+                        onClick  = { showReceiveDialog = true },
                         enabled  = !isLoading,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape    = RoundedCornerShape(16.dp),
@@ -466,6 +460,53 @@ fun PurchaseOrderDetailScreen(
                 }
             }
 
+
+
+        }
+        if (showReceiveDialog) {
+            AlertDialog(
+                onDismissRequest = { showReceiveDialog = false },
+                title = { Text("Confirmer la réception", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        Text(
+                            "Le stock du dépôt sera mis à jour pour tous les articles de ce bon.",
+                            fontSize = 13.sp,
+                            color = Color.Gray
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value         = receiveUserName,
+                            onValueChange = { receiveUserName = it },
+                            placeholder   = { Text("Effectué par (optionnel)") },
+                            leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
+                            singleLine    = true,
+                            modifier      = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showReceiveDialog = false
+                            isLoading = true
+                            viewModel.receiveOrder(
+                                id        = displayOrder.id,
+                                userName  = receiveUserName.trim().ifEmpty { null },
+                                onSuccess = {
+                                    productViewModel.loadProducts()
+                                    onReceived()
+                                },
+                                onError   = { isLoading = false }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                    ) { Text("Confirmer") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReceiveDialog = false }) { Text("Annuler") }
+                }
+            )
         }
     }
 }
