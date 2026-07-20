@@ -64,7 +64,7 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
     fun createOrder(
         supplierId : Int,
         date       : String,
-        items      : List<Map<String, Any>>,
+        items      : List<Map<String, Any?>>,
         note       : String?,
         montantPaye : Double = 0.0,
         onSuccess  : () -> Unit,
@@ -106,7 +106,7 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
     fun updateOrder(
         id         : Int,
         supplierId : Int,
-        items      : List<Map<String, Any>>,
+        items      : List<Map<String, Any?>>,
         note       : String?,
         montantPaye : Double = 0.0,
         onSuccess  : () -> Unit,

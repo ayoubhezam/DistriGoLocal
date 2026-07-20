@@ -409,7 +409,9 @@ class ProductRepository(
                         unit_cost = unitCost, total_cost = quantity * unitCost,
                         product_name = product.name, unit_type = product.unit_type,
                         nb_colis = (map["nb_colis"] as? Number)?.toInt() ?: 1,
-                        unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1
+                        unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
+                        has_expiry = (map["has_expiry"] as? Boolean) ?: false,
+                        expiry_date = map["expiry_date"] as? String
                     )
                 )
                 historyEntities.add(
@@ -439,7 +441,23 @@ class ProductRepository(
 
             for (item in items) {
                 val product = productDao.getProductById(item.product_id) ?: continue
-                productDao.updateProduct(product.copy(stock = product.stock + item.quantity))
+
+                // ── Date d'expiration : on garde toujours la plus proche (la plus urgente à vendre) ──
+                val shouldUpdateExpiry = item.has_expiry && item.expiry_date != null && (
+                        product.has_expiry == 0 ||
+                                product.expiry_date.isNullOrEmpty() ||
+                                item.expiry_date < product.expiry_date
+                        )
+                val updatedProduct = if (shouldUpdateExpiry) {
+                    product.copy(
+                        stock       = product.stock + item.quantity,
+                        has_expiry  = 1,
+                        expiry_date = item.expiry_date
+                    )
+                } else {
+                    product.copy(stock = product.stock + item.quantity)
+                }
+                productDao.updateProduct(updatedProduct)
 
                 movementEntities += StockMovementEntity(
                     product_id   = item.product_id,
@@ -489,7 +507,9 @@ class ProductRepository(
                     unit_cost = unitCost, total_cost = quantity * unitCost,
                     product_name = product.name, unit_type = product.unit_type,
                     nb_colis = (map["nb_colis"] as? Number)?.toInt() ?: 1,
-                    unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1
+                    unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
+                    has_expiry = (map["has_expiry"] as? Boolean) ?: false,
+                    expiry_date = map["expiry_date"] as? String
                 )
             }
             db.purchaseDao().insertItems(itemEntities)

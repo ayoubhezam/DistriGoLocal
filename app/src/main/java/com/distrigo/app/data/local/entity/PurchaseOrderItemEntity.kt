@@ -15,5 +15,7 @@ data class PurchaseOrderItemEntity(
     val product_name: String,
     val unit_type: String,
     val nb_colis: Int = 1,
-    val unite_par_colis: Int = 1
+    val unite_par_colis: Int = 1,
+    val has_expiry: Boolean = false,
+    val expiry_date: String? = null   // "yyyy-MM-dd"
 )

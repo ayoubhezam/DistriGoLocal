@@ -154,7 +154,9 @@ fun PurchaseFormScreen(
                 "quantity"   to ci.quantity,
                 "unit_cost"  to ci.unitCost,
                 "nb_colis" to ci.nbColis,
-                "unite_par_colis" to ci.uniteParColis
+                "unite_par_colis" to ci.uniteParColis,
+                "has_expiry" to ci.hasExpiry,
+                "expiry_date" to ci.expiryDate
             )
         }
         if (isEdit) {
@@ -437,10 +439,11 @@ fun PurchaseFormScreen(
                 ) {
                     // ── Expandable cart item cards ──
                     items(cartItems, key = { it.product.id }) { item ->
-                        var isExpanded       by remember { mutableStateOf(false) }
-                        var nbColisStr       by remember(item.nbColis)       { mutableStateOf(item.nbColis.toString()) }
-                        var uniteParColisStr by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
-                        var unitCostStr      by remember(item.unitCost)      { mutableStateOf("%.2f".format(item.unitCost)) }
+                        var isExpanded        by remember { mutableStateOf(false) }
+                        var nbColisStr        by remember(item.nbColis)       { mutableStateOf(item.nbColis.toString()) }
+                        var uniteParColisStr  by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
+                        var unitCostStr       by remember(item.unitCost)      { mutableStateOf("%.2f".format(item.unitCost)) }
+                        var nbColisManualStr  by remember(item.nbColis)       { mutableStateOf(item.nbColis.toString()) }
 
                         val subtitle = if (item.product.unit_type == "pièce")
                             "${item.nbColis} colis × ${item.uniteParColis} = ${item.quantity} pièces"
@@ -632,56 +635,71 @@ fun PurchaseFormScreen(
                                                 }
                                             }
                                         } else {
+                                            Text("Nombre de cartons", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                            Spacer(Modifier.height(6.dp))
                                             Row(
-                                                modifier              = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment     = Alignment.CenterVertically
+                                                verticalAlignment     = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Text("Nombre de cartons", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                                                Row(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(10.dp))
-                                                        .background(MutedGray)
-                                                        .padding(2.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
+                                                IconButton(
+                                                    onClick  = {
+                                                        val newNb = maxOf(1, item.nbColis - 1)
+                                                        nbColisManualStr = newNb.toString()
+                                                        cartItems = cartItems.map { ci ->
+                                                            if (ci.product.id == item.product.id)
+                                                                ci.copy(nbColis = newNb, quantity = newNb)
+                                                            else ci
+                                                        }
+                                                    },
+                                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(MutedGray)
                                                 ) {
-                                                    IconButton(
-                                                        onClick  = {
-                                                            val newNb = maxOf(1, item.nbColis - 1)
+                                                    Icon(Icons.Default.Remove, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                                                }
+
+                                                OutlinedTextField(
+                                                    value         = nbColisManualStr,
+                                                    onValueChange = { raw ->
+                                                        val digits = raw.filter { it.isDigit() }
+                                                        nbColisManualStr = digits
+                                                        val nb = digits.toIntOrNull()
+                                                        if (nb != null && nb >= 1) {
                                                             cartItems = cartItems.map { ci ->
                                                                 if (ci.product.id == item.product.id)
-                                                                    ci.copy(nbColis = newNb, quantity = newNb)
+                                                                    ci.copy(nbColis = nb, quantity = nb)
                                                                 else ci
                                                             }
-                                                        },
-                                                        modifier = Modifier.size(32.dp)
-                                                    ) {
-                                                        Icon(Icons.Default.Remove, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
-                                                    }
-                                                    Text(
-                                                        item.nbColis.toString(),
-                                                        fontSize   = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color      = PrimaryBlue,
-                                                        modifier   = Modifier.padding(horizontal = 12.dp)
+                                                        }
+                                                    },
+                                                    modifier        = Modifier.weight(1f),
+                                                    singleLine      = true,
+                                                    textStyle       = androidx.compose.ui.text.TextStyle(
+                                                        fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                                                        textAlign = TextAlign.Center, color = PrimaryBlue
+                                                    ),
+                                                    shape           = RoundedCornerShape(10.dp),
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    colors          = OutlinedTextFieldDefaults.colors(
+                                                        unfocusedBorderColor = BorderGray,
+                                                        focusedBorderColor   = PrimaryBlue
                                                     )
-                                                    IconButton(
-                                                        onClick  = {
-                                                            val newNb = item.nbColis + 1
-                                                            cartItems = cartItems.map { ci ->
-                                                                if (ci.product.id == item.product.id)
-                                                                    ci.copy(nbColis = newNb, quantity = newNb)
-                                                                else ci
-                                                            }
-                                                        },
-                                                        modifier = Modifier.size(32.dp)
-                                                    ) {
-                                                        Icon(Icons.Default.Add, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
-                                                    }
+                                                )
+
+                                                IconButton(
+                                                    onClick  = {
+                                                        val newNb = item.nbColis + 1
+                                                        nbColisManualStr = newNb.toString()
+                                                        cartItems = cartItems.map { ci ->
+                                                            if (ci.product.id == item.product.id)
+                                                                ci.copy(nbColis = newNb, quantity = newNb)
+                                                            else ci
+                                                        }
+                                                    },
+                                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(MutedGray)
+                                                ) {
+                                                    Icon(Icons.Default.Add, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
                                                 }
                                             }
                                         }
-
                                         Spacer(Modifier.height(12.dp))
 
                                         Row(

@@ -26,7 +26,15 @@ import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
 import com.distrigo.app.data.local.dao.incentive.TargetPolicyDao
 import com.distrigo.app.data.local.dao.mouvement.StockMovementDao
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE purchase_order_items ADD COLUMN has_expiry INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE purchase_order_items ADD COLUMN expiry_date TEXT")
+    }
+}
 @Database(
     entities = [
         ProductEntity::class,
@@ -56,7 +64,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         InventoryItemEntity::class,
         StockMovementEntity::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = false
 )
 
@@ -98,6 +106,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
+                    .addMigrations(MIGRATION_20_21)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
