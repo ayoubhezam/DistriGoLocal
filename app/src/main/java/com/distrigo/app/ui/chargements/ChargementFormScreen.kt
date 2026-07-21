@@ -29,7 +29,7 @@ import com.distrigo.app.ui.products.ProductViewModel
 
 data class ChargementCartItem(
     val product      : Product,
-    val targetCamion : Int  // desired final quantity in camion (not a delta)
+    val targetCamion : Double  // desired final quantity in camion (not a delta)
 )
 
 @Composable
@@ -71,19 +71,18 @@ fun ChargementFormScreen(
                 product.name.contains(search, ignoreCase = true) ||
                 (product.barcode?.contains(search, ignoreCase = true) == true)
     }
-
-    fun save() {
-        isSaving = true
-        val items = cartItems.mapNotNull { ci ->
-            val delta = ci.targetCamion - ci.product.camion_stock
-            if (delta == 0) return@mapNotNull null
-            val direction = if (delta > 0) "vers_camion" else "vers_depot"
-            mapOf(
-                "product_id" to ci.product.id,
-                "quantity"   to kotlin.math.abs(delta),
-                "direction"  to direction
-            )
-        }
+        fun save() {
+            isSaving = true
+            val items = cartItems.mapNotNull { ci ->
+                val delta = ci.targetCamion - ci.product.camion_stock
+                if (delta == 0.0) return@mapNotNull null
+                val direction = if (delta > 0) "vers_camion" else "vers_depot"
+                mapOf(
+                    "product_id" to ci.product.id,
+                    "quantity"   to kotlin.math.abs(delta),
+                    "direction"  to direction
+                )
+            }
         if (items.isEmpty()) {
             isSaving = false
             return
@@ -164,7 +163,7 @@ fun ChargementFormScreen(
                             item             = item,
                             onQuantityChange = { newTarget ->
                                 cartItems = cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0)) else it
+                                    if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0.0)) else it
                                 }
                             },
                             onRemove = {
@@ -325,8 +324,8 @@ fun ChargementFormScreen(
                             maxLines   = 1
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                            Text("Dépôt: ${product.stock - product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                            Text("Camion: ${product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("Dépôt: ${formatQty(product.stock - product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("Camion: ${formatQty(product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
                     }
 
@@ -406,10 +405,13 @@ fun ChargementFormScreen(
     }
 }
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 @Composable
 private fun ChargementCartRow(
     item             : ChargementCartItem,
-    onQuantityChange : (Int) -> Unit,
+    onQuantityChange : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -486,18 +488,18 @@ private fun ChargementCartRow(
                 ) {
                     IconButton(
                         onClick  = { onQuantityChange(item.targetCamion - 1) },
-                        enabled  = item.targetCamion > 0,
+                        enabled  = item.targetCamion > 0.0,
                         modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
                     ) {
                         Icon(
                             Icons.Default.Remove,
                             contentDescription = null,
-                            tint = if (item.targetCamion > 0) DsColors.TextPrimary else DsColors.TextTertiary,
+                            tint = if (item.targetCamion > 0.0) DsColors.TextPrimary else DsColors.TextTertiary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Text(
-                        item.targetCamion.toString(),
+                        formatQty(item.targetCamion),
                         fontSize   = DsTextSize.display,
                         fontWeight = FontWeight.Medium,
                         color      = DsColors.Primary,
@@ -535,7 +537,7 @@ private fun ChargementCartRow(
                             color    = if (depotPreview < 0) DsColors.Danger else DsColors.TextSecondary
                         )
                         Text(
-                            "$depotPreview",
+                            formatQty(depotPreview),
                             fontSize   = DsTextSize.headline,
                             fontWeight = FontWeight.Medium,
                             color      = if (depotPreview < 0) DsColors.Danger else DsColors.TextPrimary
@@ -550,7 +552,7 @@ private fun ChargementCartRow(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("Camion", fontSize = DsTextSize.caption, color = DsColors.Primary)
-                        Text("${item.targetCamion}", fontSize = DsTextSize.headline, fontWeight = FontWeight.Medium, color = DsColors.Primary)
+                        Text(formatQty(item.targetCamion), fontSize = DsTextSize.headline, fontWeight = FontWeight.Medium, color = DsColors.Primary)
                     }
                 }
 
@@ -577,7 +579,7 @@ private fun ChargementCartRow(
                             Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(DsSpacing.xs))
                             Text(
-                                "$delta unité(s) envoyée(s) vers le camion",
+                                "${formatQty(delta)} unité(s) envoyée(s) vers le camion",
                                 fontSize = DsTextSize.bodySmall,
                                 color    = DsColors.Primary,
                                 fontWeight = FontWeight.Medium
@@ -587,7 +589,7 @@ private fun ChargementCartRow(
                             Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(DsSpacing.xs))
                             Text(
-                                "${-delta} unité(s) ramenée(s) au dépôt",
+                                "${formatQty(-delta)} unité(s) ramenée(s) au dépôt",
                                 fontSize = DsTextSize.bodySmall,
                                 color    = DsColors.Warning,
                                 fontWeight = FontWeight.Medium

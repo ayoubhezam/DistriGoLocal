@@ -175,7 +175,7 @@ private fun StockCamionProductRow(product: Product) {
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "${product.camion_stock} ${product.unit_type}",
+                "${formatQty(product.camion_stock)} ${product.unit_type}",
                 fontSize = DsTextSize.caption,
                 color    = Color.Black
             )

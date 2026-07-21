@@ -127,7 +127,7 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
     fun addPerte(
         typeId    : Int,
         productId : Int,
-        quantity  : Int,
+        quantity  : Double,
         source    : String,
         dateTime  : String,
         motif     : String?,
@@ -172,7 +172,7 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
         id        : Int,
         typeId    : Int,
         productId : Int,
-        quantity  : Int,
+        quantity  : Double,
         source    : String,
         dateTime  : String,
         motif     : String?,

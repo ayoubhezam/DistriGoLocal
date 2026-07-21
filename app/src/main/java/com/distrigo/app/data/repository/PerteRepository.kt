@@ -14,7 +14,7 @@ class PerteRepository(
     private val productDao = db.productDao()
 
     // ── Mapping ──
-    private fun PerteTypeEntity.toPerteType(count: Int = 0, totalValue: Double = 0.0, totalQty: Int = 0) = PerteType(
+    private fun PerteTypeEntity.toPerteType(count: Int = 0, totalValue: Double = 0.0, totalQty: Double = 0.0) = PerteType(
         id = this.id, name = this.name, icon = this.icon, color_hex = this.color_hex,
         description = this.description,   // ← السطر الوحيد المضاف هنا
         is_default = this.is_default, count = count, total_value = totalValue, total_qty = totalQty
@@ -94,7 +94,7 @@ class PerteRepository(
     suspend fun addPerte(
         typeId    : Int,
         productId : Int,
-        quantity  : Int,
+        quantity  : Double,
         source    : String,   // "depot" | "camion"
         dateTime  : String,
         motif     : String?,
@@ -179,7 +179,7 @@ class PerteRepository(
     suspend fun updatePerte(
         id        : Int,
         productId : Int,
-        quantity  : Int,
+        quantity  : Double,
         source    : String,
         dateTime  : String,
         motif     : String?,

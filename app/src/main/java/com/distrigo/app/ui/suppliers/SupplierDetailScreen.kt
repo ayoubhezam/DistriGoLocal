@@ -29,6 +29,9 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 
+private fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SupplierDetailScreen(
@@ -601,7 +604,7 @@ fun SupplierDetailScreen(
                                         fontSize = 11.sp, color = TextMuted)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("${product.stock} ${product.unit_type}",
+                                    Text("${formatQty(product.stock)} ${product.unit_type}",
                                         fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PrimaryBlue)
                                     if (product.is_default == 1) {
                                         Text("Principal", fontSize = 10.sp, color = AccentGreen)

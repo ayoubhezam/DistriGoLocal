@@ -136,7 +136,7 @@ private fun receiptAsPlainText(receipt: ReceiptData): String {
     sb.appendLine("—".repeat(20))
     receipt.items.forEach { item ->
         sb.appendLine("${item.name}")
-        sb.appendLine("  ${item.quantity} ${item.unitLabel} × ${"%.2f".format(item.unitPrice)} DA = ${"%.2f".format(item.totalPrice)} DA")
+        sb.appendLine("  ${formatQty(item.quantity)} ${item.unitLabel} × ${"%.2f".format(item.unitPrice)} DA = ${"%.2f".format(item.totalPrice)} DA")
     }
     sb.appendLine("—".repeat(20))
     sb.appendLine("TOTAL: ${"%.2f".format(receipt.total)} DA")

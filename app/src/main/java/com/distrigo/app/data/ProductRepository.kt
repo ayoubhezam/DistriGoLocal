@@ -81,7 +81,7 @@ class ProductRepository(
         val newBalance = ventesTotal - ventesPaid - separatePayments
         clientDao.updateClient(client.copy(balance = newBalance))
     }
-    private suspend fun applyStockDelta(source: String, productId: Int, delta: Int) {
+    private suspend fun applyStockDelta(source: String, productId: Int, delta: Double) {
         val product = productDao.getProductById(productId) ?: return
         val updated = if (source == "depot")
             product.copy(stock = product.stock + delta)
@@ -186,7 +186,7 @@ class ProductRepository(
             barcode = product["barcode"] as? String,
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: 0.0,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: 0.0,
-            stock = (product["stock"] as? Number)?.toInt() ?: 0,
+            stock = (product["stock"] as? Number)?.toDouble() ?: 0.0,
             min_stock = (product["min_stock"] as? Number)?.toInt() ?: 10,
             unit_type = product["unit_type"] as? String ?: "pièce",
             packages = (product["packages"] as? Number)?.toInt() ?: 0,
@@ -217,7 +217,7 @@ class ProductRepository(
             barcode = if (product.containsKey("barcode")) product["barcode"] as? String else existing.barcode,
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: existing.selling_price,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: existing.purchase_price,
-            stock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toInt() ?: existing.stock else existing.stock,
+            stock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() ?: existing.stock else existing.stock,
             min_stock = if (product.containsKey("min_stock")) (product["min_stock"] as? Number)?.toInt() ?: existing.min_stock else existing.min_stock,
             unit_type = product["unit_type"] as? String ?: existing.unit_type,
             packages = if (product.containsKey("packages")) (product["packages"] as? Number)?.toInt() ?: existing.packages else existing.packages,
@@ -383,7 +383,7 @@ class ProductRepository(
             val itemsList = order["items"] as List<Map<String, Any?>>
 
             val now = java.time.Instant.now().toString()
-            val total = itemsList.sumOf { (it["quantity"] as Number).toInt() * (it["unit_cost"] as Number).toDouble() }
+            val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
 
             val orderId = db.purchaseDao().insertOrder(
                 PurchaseOrderEntity(
@@ -398,7 +398,7 @@ class ProductRepository(
 
             for (map in itemsList) {
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toInt()
+                val quantity = (map["quantity"] as Number).toDouble()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -408,7 +408,7 @@ class ProductRepository(
                         purchase_order_id = orderId, product_id = productId, quantity = quantity,
                         unit_cost = unitCost, total_cost = quantity * unitCost,
                         product_name = product.name, unit_type = product.unit_type,
-                        nb_colis = (map["nb_colis"] as? Number)?.toInt() ?: 1,
+                        nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
                         unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
                         has_expiry = (map["has_expiry"] as? Boolean) ?: false,
                         expiry_date = map["expiry_date"] as? String
@@ -494,11 +494,11 @@ class ProductRepository(
             val supplierName = supplierDao.getSupplierById(existing.supplier_id)?.name ?: ""
 
             db.purchaseDao().deleteItemsForOrder(id)
-            val total = itemsList.sumOf { (it["quantity"] as Number).toInt() * (it["unit_cost"] as Number).toDouble() }
+            val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
 
             val itemEntities = itemsList.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toInt()
+                val quantity = (map["quantity"] as Number).toDouble()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -506,7 +506,7 @@ class ProductRepository(
                     purchase_order_id = id, product_id = productId, quantity = quantity,
                     unit_cost = unitCost, total_cost = quantity * unitCost,
                     product_name = product.name, unit_type = product.unit_type,
-                    nb_colis = (map["nb_colis"] as? Number)?.toInt() ?: 1,
+                    nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
                     unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
                     has_expiry = (map["has_expiry"] as? Boolean) ?: false,
                     expiry_date = map["expiry_date"] as? String
@@ -596,14 +596,14 @@ class ProductRepository(
         userName: String? = null
     ): Map<String, Any> {
         db.withTransaction {
-            val total = items.sumOf { (it["quantity"] as Number).toInt() * (it["unit_price"] as Number).toDouble() }
+            val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
             val now = java.time.Instant.now().toString()
 
 // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) — Dépôt يسمح بمخزون سالب ──
             if (source == "camion") {
                 for (map in items) {
                     val productId = (map["product_id"] as Number).toInt()
-                    val quantity = (map["quantity"] as Number).toInt()
+                    val quantity = (map["quantity"] as Number).toDouble()
                     val product = productDao.getProductById(productId)
                         ?: throw IllegalStateException("Produit introuvable: $productId")
 
@@ -628,7 +628,7 @@ class ProductRepository(
 
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toInt()
+                val quantity = (map["quantity"] as Number).toDouble()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -684,7 +684,7 @@ class ProductRepository(
             if (existing.source == "camion") {
                 for (map in items) {
                     val productId = (map["product_id"] as Number).toInt()
-                    val quantity = (map["quantity"] as Number).toInt()
+                    val quantity = (map["quantity"] as Number).toDouble()
                     val product = productDao.getProductById(productId)
                         ?: throw IllegalStateException("Produit introuvable: $productId")
 
@@ -702,10 +702,10 @@ class ProductRepository(
             val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
             val movementEntities = mutableListOf<StockMovementEntity>()
 
-            val total = items.sumOf { (it["quantity"] as Number).toInt() * (it["unit_price"] as Number).toDouble() }
+            val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toInt()
+                val quantity = (map["quantity"] as Number).toDouble()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -949,7 +949,7 @@ class ProductRepository(
 
             for (map in items) {
                 val productId = map["product_id"] as Int
-                val quantity  = map["quantity"] as Int
+                val quantity  = (map["quantity"] as Number).toDouble()
                 val direction = map["direction"] as String
 
                 val product = productDao.getProductById(productId)

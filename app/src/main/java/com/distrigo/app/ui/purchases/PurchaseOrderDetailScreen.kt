@@ -323,7 +323,7 @@ fun PurchaseOrderDetailScreen(
                                 }
                                 Column {
                                     Text(item.product_name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                    Text("${item.quantity} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA", fontSize = 11.sp, color = TextMuted)
+                                    Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA", fontSize = 11.sp, color = TextMuted)
                                 }
                             }
                             Text("${"%.2f".format(item.total_cost)} DA", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)

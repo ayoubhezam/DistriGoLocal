@@ -19,7 +19,7 @@ data class Chargement(
 data class ChargementItem(
     val id           : Int,
     val product_id   : Int,
-    val quantity     : Int,
+    val quantity     : Double,
     val direction    : String,
     val product_name : String,
     val unit_type    : String

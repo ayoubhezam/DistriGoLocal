@@ -13,9 +13,9 @@ data class InventoryItem(
     val product_id              : Int,
     val product_name            : String,
     val product_image_uri       : String?,
-    val qte_systeme              : Int,
-    val qte_physique              : Int,
-    val ecart                      : Int,     // + surplus, - manque
+    val qte_systeme              : Double,
+    val qte_physique              : Double,
+    val ecart                      : Double,     // + surplus, - manque
     val purchase_price_snapshot    : Double,
     val valeur_ecart                 : Double,   // signé
     val created_at                    : String

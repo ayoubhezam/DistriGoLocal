@@ -90,7 +90,7 @@ fun PerteListScreen(
                         Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
                     Column {
-                        Text("$totalQty", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Text("Qté totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
                     Column {
@@ -155,7 +155,7 @@ fun PerteListScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title            = { Text("Supprimer cette perte ?") },
-            text             = { Text("La quantité (${longPressPerte!!.quantity} ${longPressPerte!!.unit}) sera restaurée au stock.") },
+            text             = { Text("La quantité (${formatQty(longPressPerte!!.quantity)} ${longPressPerte!!.unit}) sera restaurée au stock.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deletePerte(
@@ -216,7 +216,7 @@ private fun PerteRow(perte: Perte, onClick: () -> Unit, onLongClick: () -> Unit)
 
             Column(horizontalAlignment = Alignment.End) {
                 Text("${"%,.0f".format(perte.valeur_totale)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                Text("${perte.quantity} ${perte.unit}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+                Text("${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }
     }

@@ -244,7 +244,7 @@ fun ChargementsScreen(
                                     maxLines   = 1
                                 )
                                 Text(
-                                    "${item.quantity} ${item.unit_type}",
+                                    "${formatQty(item.quantity)} ${item.unit_type}",
                                     fontSize = DsTextSize.caption,
                                     color    = DsColors.TextSecondary
                                 )

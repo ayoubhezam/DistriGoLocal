@@ -1,12 +1,14 @@
 package com.distrigo.app.data.model
 
 data class Wilaya(
-    val id   : Int,
-    val name : String
+    val wilayaCode : Int,
+    val nameFr      : String,
+    val nameAr      : String,
+    val communes    : List<Commune>
 )
 
 data class Commune(
-    val id         : Int,
-    val wilaya_id  : Int,
-    val name       : String
+    val id     : Int,
+    val nameFr : String,
+    val nameAr : String
 )

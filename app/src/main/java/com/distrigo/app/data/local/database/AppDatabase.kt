@@ -64,7 +64,7 @@ val MIGRATION_20_21 = object : Migration(20, 21) {
         InventoryItemEntity::class,
         StockMovementEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = false
 )
 

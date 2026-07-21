@@ -9,11 +9,11 @@ import java.util.Locale
 
 data class ReceiptLineItem(
     val name       : String,
-    val quantity   : Int,
+    val quantity   : Double,
     val unitLabel  : String,
     val unitPrice  : Double,
     val totalPrice : Double,
-    val nbColis      : Int? = null,
+    val nbColis      : Double? = null,
     val unitePerColis: Int? = null
 )
 

@@ -48,7 +48,10 @@ private fun badgeLabel(documentTitle: String) = if (isVenteReceipt(documentTitle
 private fun referenceNumber(documentTitle: String) =
     documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
-private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.toString() ?: "-"
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
+private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.let { formatQty(it) } ?: "-"
 private fun unitePerColisText(item: ReceiptLineItem): String =
     if (item.unitLabel == "pièce") item.unitePerColis?.toString() ?: "-" else "-"
 

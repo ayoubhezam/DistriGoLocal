@@ -38,6 +38,7 @@ import com.distrigo.app.ui.ventes.VentesScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.distrigo.app.data.geo.GeoRepository.init(this)
         setContent {
             MaterialTheme {
                 Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {

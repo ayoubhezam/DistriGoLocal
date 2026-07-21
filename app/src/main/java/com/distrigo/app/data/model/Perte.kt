@@ -8,7 +8,7 @@ data class PerteType(
     val is_default   : Boolean,
     val count        : Int = 0,
     val total_value  : Double = 0.0,
-    val total_qty    : Int = 0,
+    val total_qty    : Double = 0.0,
     val description : String?
 )
 
@@ -19,7 +19,7 @@ data class Perte(
     val product_id             : Int,
     val product_name           : String,
     val product_image_uri      : String?,
-    val quantity                : Int,
+    val quantity                : Double,
     val unit                    : String,
     val source                  : String,
     val purchase_price_snapshot : Double,

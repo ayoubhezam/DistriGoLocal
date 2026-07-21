@@ -499,7 +499,7 @@ private fun StockPrixDetailScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Stock actuel", fontSize = 14.sp, color = TextMuted)
                         Text(
-                            "${product.stock} ${product.unit_type}",
+                            "${formatQty(product.stock)} ${product.unit_type}",
                             fontSize = 22.sp, fontWeight = FontWeight.ExtraBold,
                             color = if (isLow) DestructiveRed else AccentGreen
                         )
@@ -522,7 +522,7 @@ private fun StockPrixDetailScreen(
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Camion", fontSize = 13.sp, color = TextMuted)
-                        Text("${product.camion_stock} ${product.unit_type}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                        Text("${formatQty(product.camion_stock)} ${product.unit_type}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
                     }
                 }
             }

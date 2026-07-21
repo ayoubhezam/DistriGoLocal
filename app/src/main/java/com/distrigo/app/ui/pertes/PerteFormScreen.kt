@@ -48,6 +48,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import androidx.compose.material.icons.filled.Person
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 @Composable
 fun PerteFormScreen(
     typeId    : Int,
@@ -66,7 +69,7 @@ fun PerteFormScreen(
 
     var currentStep     by remember { mutableStateOf(1) }
     var selectedProduct by remember { mutableStateOf<Product?>(products.find { it.id == perte?.product_id }) }
-    var quantity         by remember { mutableStateOf(perte?.quantity ?: 0) }
+    var quantity         by remember { mutableStateOf(perte?.quantity ?: 0.0) }
     var source            by remember { mutableStateOf(perte?.source ?: "depot") }
     var selectedDate      by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     var motif              by remember { mutableStateOf(perte?.motif ?: "") }
@@ -190,7 +193,7 @@ fun PerteFormScreen(
                             IconButton(onClick = { if (quantity > 0) { quantity--; quantityError = "" } }) {
                                 Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary)
                             }
-                            Text("$quantity", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                            Text(formatQty(quantity), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             IconButton(onClick = { quantity++; quantityError = "" }) {
                                 Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.TextPrimary)
                             }
@@ -269,7 +272,7 @@ fun PerteFormScreen(
                 Text("Vérifiez les informations", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 SummaryRow("Type de perte", type?.name ?: "")
                 SummaryRow("Produit", selectedProduct?.name ?: "")
-                SummaryRow("Quantité", "$quantity ${selectedProduct?.unit_type ?: ""}")
+                SummaryRow("Quantité", "${formatQty(quantity)} ${selectedProduct?.unit_type ?: ""}")
                 SummaryRow("Source", if (source == "camion") "Camion" else "Dépôt")
                 SummaryRow("Valeur totale", "${"%,.0f".format(valeurEstimee)} DA", highlight = true)
                 SummaryRow("Date", formatOrderDate(isoDateTime))
@@ -442,13 +445,13 @@ private fun ProductPickerRow(product: Product, onClick: () -> Unit) {
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    "${product.stock} ${product.unit_type}",
+                    "${formatQty(product.stock)} ${product.unit_type}",
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                     color      = if (isLow) DsColors.Danger else DsColors.TextPrimary
                 )
                 Text(
-                    "${product.camion_stock} en camion",
+                    "${formatQty(product.camion_stock)} en camion",
                     fontSize = DsTextSize.caption, color = DsColors.TextTertiary
                 )
             }

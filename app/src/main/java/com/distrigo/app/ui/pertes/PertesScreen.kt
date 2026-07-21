@@ -111,7 +111,7 @@ fun PertesScreen(
                             Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
                         Column {
-                            Text("$totalQty", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Text("Qté totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
                         Column {
@@ -237,7 +237,7 @@ private fun PerteTypeRow(type: PerteType, onClick: () -> Unit, onLongClick: () -
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${"%,.0f".format(type.total_value)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = PerteIconMapper.colorFor(type.color_hex))
-                Text("${type.total_qty}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+                Text(formatQty(type.total_qty), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }
     }

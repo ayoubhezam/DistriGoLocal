@@ -12,7 +12,7 @@ data class PerteEntity(
     val product_id: Int,
     val product_name: String,            // denormalized
     val product_image_uri: String?,      // denormalized
-    val quantity: Int,
+    val quantity: Double,
     val unit: String,
     val source: String,                  // "depot" | "camion"
     val purchase_price_snapshot: Double, // سعر الشراء وقت التسجيل (لا يتأثر لو تغيّر السعر لاحقاً)

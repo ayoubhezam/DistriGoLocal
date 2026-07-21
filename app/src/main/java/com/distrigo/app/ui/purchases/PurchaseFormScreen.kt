@@ -45,11 +45,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import com.distrigo.app.ui.components.rememberScrollCollapsed
 import com.distrigo.app.ui.components.CollapsibleHeader
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 data class CartItem(
     val product       : Product,
-    val quantity      : Int,      // final quantity sent to API
+    val quantity      : Double,   // final quantity sent to API
     val unitCost      : Double,
-    val nbColis       : Int = 1,
+    val nbColis       : Double = 1.0,
     val uniteParColis : Int = 1,  // only used for pièce
     val hasExpiry     : Boolean = false,
     val expiryDate    : String? = null   // "yyyy-MM-dd"
@@ -110,7 +113,7 @@ fun PurchaseFormScreen(
                         barcode        = null,
                         selling_price  = 0.0,
                         purchase_price = item.unit_cost,
-                        stock          = 0,
+                        stock          = 0.0,
                         min_stock      = 0,
                         unit_type      = item.unit_type,
                         packages       = 0,
@@ -122,7 +125,7 @@ fun PurchaseFormScreen(
                         category_id    = null,
                         supplier_name  = null,
                         supplier_id    = null,
-                        camion_stock   = 0
+                        camion_stock   = 0.0
                     )
                 CartItem(
                     product       = product,
@@ -373,7 +376,7 @@ fun PurchaseFormScreen(
                 if (newProduct != null) {
                     cartItems = cartItems + CartItem(
                         product  = newProduct,
-                        quantity = 1,
+                        quantity = 1.0,
                         unitCost = newProduct.purchase_price
                     )
                 }
@@ -440,15 +443,15 @@ fun PurchaseFormScreen(
                     // ── Expandable cart item cards ──
                     items(cartItems, key = { it.product.id }) { item ->
                         var isExpanded        by remember { mutableStateOf(false) }
-                        var nbColisStr        by remember(item.nbColis)       { mutableStateOf(item.nbColis.toString()) }
+                        var nbColisStr        by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
                         var uniteParColisStr  by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
                         var unitCostStr       by remember(item.unitCost)      { mutableStateOf("%.2f".format(item.unitCost)) }
-                        var nbColisManualStr  by remember(item.nbColis)       { mutableStateOf(item.nbColis.toString()) }
+                        var nbColisManualStr  by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
 
                         val subtitle = if (item.product.unit_type == "pièce")
-                            "${item.nbColis} colis × ${item.uniteParColis} = ${item.quantity} pièces"
+                            "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                         else
-                            "${item.nbColis} cartons · ${"%.2f".format(item.unitCost)} DA/u"
+                            "${formatQty(item.nbColis)} cartons · ${"%.2f".format(item.unitCost)} DA/u"
 
                         Card(
                             modifier  = Modifier.fillMaxWidth(),
@@ -539,13 +542,13 @@ fun PurchaseFormScreen(
                                             StatBox(
                                                 modifier = Modifier.weight(1f),
                                                 label    = "Stock actuel",
-                                                value    = "${item.product.stock} ${item.product.unit_type}",
+                                                value    = "${formatQty(item.product.stock)} ${item.product.unit_type}",
                                                 color    = TextPrimary
                                             )
                                             StatBox(
                                                 modifier = Modifier.weight(1f),
                                                 label    = "Après réception",
-                                                value    = "${item.product.stock + item.quantity} ${item.product.unit_type}",
+                                                value    = "${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
                                                 color    = AccentGreen
                                             )
                                         }
@@ -560,9 +563,13 @@ fun PurchaseFormScreen(
                                                 OutlinedTextField(
                                                     value         = nbColisStr,
                                                     onValueChange = { raw ->
-                                                        val digits = raw.filter { it.isDigit() }
-                                                        nbColisStr = digits
-                                                        val nb = digits.toIntOrNull()
+                                                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                                                            val dot = s.indexOf('.')
+                                                            if (dot < 0) s
+                                                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
+                                                        }
+                                                        nbColisStr = filtered
+                                                        val nb = filtered.toDoubleOrNull()
                                                         if (nb != null && nb >= 1) {
                                                             cartItems = cartItems.map { ci ->
                                                                 if (ci.product.id == item.product.id)
@@ -575,7 +582,7 @@ fun PurchaseFormScreen(
                                                     label           = { Text("Nb colis", fontSize = 12.sp) },
                                                     singleLine      = true,
                                                     shape           = RoundedCornerShape(10.dp),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                     colors          = OutlinedTextFieldDefaults.colors(
                                                         unfocusedBorderColor = BorderGray,
                                                         focusedBorderColor   = PrimaryBlue
@@ -627,7 +634,7 @@ fun PurchaseFormScreen(
                                                 ) {
                                                     Text("Total pièces à acheter", fontSize = 12.sp, color = PrimaryBlue)
                                                     Text(
-                                                        "${item.quantity} pièces",
+                                                        "${formatQty(item.quantity)} pièces",
                                                         fontSize   = 14.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color      = PrimaryBlue
@@ -643,8 +650,8 @@ fun PurchaseFormScreen(
                                             ) {
                                                 IconButton(
                                                     onClick  = {
-                                                        val newNb = maxOf(1, item.nbColis - 1)
-                                                        nbColisManualStr = newNb.toString()
+                                                        val newNb = maxOf(1.0, item.nbColis - 1)
+                                                        nbColisManualStr = formatQty(newNb)
                                                         cartItems = cartItems.map { ci ->
                                                             if (ci.product.id == item.product.id)
                                                                 ci.copy(nbColis = newNb, quantity = newNb)
@@ -659,9 +666,13 @@ fun PurchaseFormScreen(
                                                 OutlinedTextField(
                                                     value         = nbColisManualStr,
                                                     onValueChange = { raw ->
-                                                        val digits = raw.filter { it.isDigit() }
-                                                        nbColisManualStr = digits
-                                                        val nb = digits.toIntOrNull()
+                                                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                                                            val dot = s.indexOf('.')
+                                                            if (dot < 0) s
+                                                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
+                                                        }
+                                                        nbColisManualStr = filtered
+                                                        val nb = filtered.toDoubleOrNull()
                                                         if (nb != null && nb >= 1) {
                                                             cartItems = cartItems.map { ci ->
                                                                 if (ci.product.id == item.product.id)
@@ -677,7 +688,7 @@ fun PurchaseFormScreen(
                                                         textAlign = TextAlign.Center, color = PrimaryBlue
                                                     ),
                                                     shape           = RoundedCornerShape(10.dp),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                     colors          = OutlinedTextFieldDefaults.colors(
                                                         unfocusedBorderColor = BorderGray,
                                                         focusedBorderColor   = PrimaryBlue
@@ -687,7 +698,7 @@ fun PurchaseFormScreen(
                                                 IconButton(
                                                     onClick  = {
                                                         val newNb = item.nbColis + 1
-                                                        nbColisManualStr = newNb.toString()
+                                                        nbColisManualStr = formatQty(newNb)
                                                         cartItems = cartItems.map { ci ->
                                                             if (ci.product.id == item.product.id)
                                                                 ci.copy(nbColis = newNb, quantity = newNb)
@@ -1201,7 +1212,7 @@ fun PurchaseFormScreen(
                                         color    = TextMuted
                                     )
                                     Text(
-                                        "Stock : ${product.stock} ${product.unit_type}",
+                                        "Stock : ${formatQty(product.stock)} ${product.unit_type}",
                                         fontSize = 11.sp,
                                         color    = if (isLow) DestructiveRed else TextMuted
                                     )
@@ -1212,9 +1223,9 @@ fun PurchaseFormScreen(
                                         onClick = {
                                             cartItems = cartItems + CartItem(
                                                 product       = product,
-                                                quantity      = 1,
+                                                quantity      = 1.0,
                                                 unitCost      = product.purchase_price,
-                                                nbColis       = 1,
+                                                nbColis       = 1.0,
                                                 uniteParColis = 1
                                             )
                                         },
@@ -1609,9 +1620,9 @@ private fun Step3Validation(
 // ── Articles list (read-only) ──
             items(cartItems, key = { it.product.id }) { item ->
                 val quantityLine = if (item.product.unit_type == "pièce")
-                    "${item.nbColis} colis × ${item.uniteParColis} = ${item.quantity} pièces"
+                    "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                 else
-                    "${item.nbColis} cartons"
+                    "${formatQty(item.nbColis)} cartons"
 
                 Card(
                     modifier  = Modifier.fillMaxWidth(),

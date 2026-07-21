@@ -23,7 +23,16 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.ArrowDropDown
+import com.distrigo.app.data.geo.GeoRepository
+import com.distrigo.app.ui.common.SearchableSelectSheet
 @Composable
 fun TourneeFormScreen(
     tournee      : Tournee? = null,
@@ -39,6 +48,11 @@ fun TourneeFormScreen(
     var note              by remember { mutableStateOf(tournee?.note ?: "") }
     var wilayaName        by remember { mutableStateOf(tournee?.wilaya_name ?: "") }
     var communeName       by remember { mutableStateOf(tournee?.commune_name ?: "") }
+    var showWilayaSheet    by remember { mutableStateOf(false) }
+    var showCommuneSheet   by remember { mutableStateOf(false) }
+    var selectedWilayaCode by remember(wilayaName) {
+        mutableStateOf(GeoRepository.findWilayaByFrName(wilayaName)?.wilayaCode)
+    }
     var nomError          by remember { mutableStateOf("") }
     var isSaving          by remember { mutableStateOf(false) }
 
@@ -115,21 +129,45 @@ fun TourneeFormScreen(
         // ── Wilaya + Commune ──
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Wilaya",
-                    value         = wilayaName,
-                    onValueChange = { wilayaName = it },
-                    placeholder   = "Ex: Alger"
+                DsSelectorField(
+                    label       = "Wilaya",
+                    value       = wilayaName,
+                    placeholder = "Sélectionner une wilaya",
+                    onClick     = { showWilayaSheet = true }
                 )
             }
             Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Commune",
-                    value         = communeName,
-                    onValueChange = { communeName = it },
-                    placeholder   = "Ex: Bab Ezzouar"
+                DsSelectorField(
+                    label       = "Commune",
+                    value       = communeName,
+                    placeholder = "Sélectionner une commune",
+                    onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                 )
             }
+        }
+
+        if (showWilayaSheet) {
+            SearchableSelectSheet(
+                title      = "Sélectionner une wilaya",
+                items      = GeoRepository.getWilayas(),
+                itemLabel  = { it.nameFr },
+                onDismiss  = { showWilayaSheet = false },
+                onSelect   = { wilaya ->
+                    wilayaName         = wilaya.nameFr
+                    selectedWilayaCode = wilaya.wilayaCode
+                    communeName        = ""
+                }
+            )
+        }
+
+        if (showCommuneSheet && selectedWilayaCode != null) {
+            SearchableSelectSheet(
+                title      = "Sélectionner une commune",
+                items      = GeoRepository.getCommunes(selectedWilayaCode!!),
+                itemLabel  = { it.nameFr },
+                onDismiss  = { showCommuneSheet = false },
+                onSelect   = { commune -> communeName = commune.nameFr }
+            )
         }
 
         Spacer(Modifier.height(DsSpacing.md))
@@ -237,3 +275,38 @@ private fun DsFormField(
         }
     }
 }
+
+@Composable
+private fun DsSelectorField(
+    label       : String,
+    value       : String,
+    placeholder : String,
+    onClick     : () -> Unit
+) {
+    Column {
+        Text(
+            label,
+            fontSize = DsTextSize.bodySmall,
+            color    = DsColors.TextSecondary,
+            modifier = Modifier.padding(bottom = DsSpacing.xs)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, DsColors.Border, DsShapes.medium)
+                .clip(DsShapes.medium)
+                .clickable(onClick = onClick)
+                .padding(horizontal = DsSpacing.md, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text     = value.ifBlank { placeholder },
+                fontSize = DsTextSize.body,
+                color    = if (value.isBlank()) DsColors.TextTertiary else DsColors.TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DsColors.TextSecondary)
+        }
+    }
+}
+

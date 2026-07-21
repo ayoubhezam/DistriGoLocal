@@ -37,9 +37,12 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 data class TourneeVenteCartItem(
     val product   : Product,
-    val quantity  : Int = 1,
+    val quantity  : Double = 1.0,
     val unitPrice : Double
 )
 
@@ -291,7 +294,7 @@ fun TourneeVenteFormScreen(
                             item             = item,
                             onQuantityChange = { newQty ->
                                 cartItems = cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1, newQty)) else it
+                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
                                 }
                             },
                             onPriceChange = { newPrice ->
@@ -538,7 +541,7 @@ fun TourneeVenteFormScreen(
                                             color    = DsColors.TextSecondary
                                         )
                                         Text(
-                                            "Camion: ${product.camion_stock}",
+                                            "Camion: ${formatQty(product.camion_stock)}",
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
@@ -551,7 +554,7 @@ fun TourneeVenteFormScreen(
                                             onClick = {
                                                 cartItems = cartItems + TourneeVenteCartItem(
                                                     product   = product,
-                                                    quantity  = 1,
+                                                    quantity  = 1.0,
                                                     unitPrice = product.selling_price
                                                 )
                                             },
@@ -922,7 +925,7 @@ private fun Step3Validation(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                        Text("${item.quantity} × ${"%.2f".format(item.unitPrice)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text("${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
@@ -1065,7 +1068,7 @@ private fun Step3Validation(
 @Composable
 private fun TourneeVenteCartRow(
     item             : TourneeVenteCartItem,
-    onQuantityChange : (Int) -> Unit,
+    onQuantityChange : (Double) -> Unit,
     onPriceChange    : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
@@ -1106,12 +1109,12 @@ private fun TourneeVenteCartRow(
                     maxLines   = 1
                 )
                 Text(
-                    "${item.quantity} × ${"%.2f".format(item.unitPrice)} DA",
+                    "${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA",
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextSecondary
                 )
                 Text(
-                    "Disponible : $availableStock ${item.product.unit_type}",
+                    "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}",
                     fontSize = DsTextSize.caption,
                     color    = if (isLow) DsColors.Warning else DsColors.TextSecondary
                 )
@@ -1156,7 +1159,7 @@ private fun TourneeVenteCartRow(
                         Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                     }
                     Text(
-                        item.quantity.toString(),
+                        formatQty(item.quantity),
                         fontSize   = DsTextSize.headline,
                         fontWeight = FontWeight.Medium,
                         color      = DsColors.TextPrimary,

@@ -36,9 +36,12 @@ import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import androidx.compose.ui.platform.LocalContext
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 data class VenteCartItem(
     val product   : Product,
-    val quantity  : Int = 1,
+    val quantity  : Double = 1.0,
     val unitPrice : Double
 )
 
@@ -96,7 +99,7 @@ fun VenteFormScreen(
                         barcode        = null,
                         selling_price  = item.unit_price,
                         purchase_price = 0.0,
-                        stock          = 0,
+                        stock          = 0.0,
                         min_stock      = 0,
                         unit_type      = item.unit_type,
                         packages       = 0,
@@ -108,7 +111,7 @@ fun VenteFormScreen(
                         category_id    = null,
                         supplier_name  = null,
                         supplier_id    = null,
-                        camion_stock   = 0
+                        camion_stock   = 0.0
                     )
                 VenteCartItem(
                     product   = product,
@@ -358,7 +361,7 @@ fun VenteFormScreen(
                             item             = item,
                             onQuantityChange = { newQty ->
                                 cartItems = cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1, newQty)) else it
+                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
                                 }
                             },
                             onPriceChange = { newPrice ->
@@ -592,8 +595,8 @@ fun VenteFormScreen(
                                             color    = DsColors.TextSecondary
                                         )
                                         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                                            Text("Dépôt: ${product.stock - product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                            Text("Camion: ${product.camion_stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                            Text("Dépôt: ${formatQty(product.stock - product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                            Text("Camion: ${formatQty(product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                         }
                                     }
 
@@ -604,7 +607,7 @@ fun VenteFormScreen(
                                             onClick = {
                                                 cartItems = cartItems + VenteCartItem(
                                                     product   = product,
-                                                    quantity  = 1,
+                                                    quantity  = 1.0,
                                                     unitPrice = product.selling_price
                                                 )
                                             },
@@ -981,7 +984,7 @@ private fun Step3Validation(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                        Text("${item.quantity} × ${"%.2f".format(item.unitPrice)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text("${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
@@ -1157,7 +1160,7 @@ private fun Step3Validation(
 @Composable
 private fun VenteCartRow(
     item             : VenteCartItem,
-    onQuantityChange : (Int) -> Unit,
+    onQuantityChange : (Double) -> Unit,
     onPriceChange    : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
@@ -1223,7 +1226,7 @@ private fun VenteCartRow(
                     maxLines   = 1
                 )
                 Text(
-                    "${item.quantity} × ${"%.2f".format(item.unitPrice)} DA",
+                    "${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA",
                     fontSize = DsTextSize.caption,
                     color    = mutedColor
                 )
@@ -1258,12 +1261,12 @@ private fun VenteCartRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Stock avant : $availableStock",
+                    "Stock avant : ${formatQty(availableStock)}",
                     fontSize = DsTextSize.caption,
                     color = mutedColor
                 )
                 Text(
-                    "Vendu : ${item.quantity}",
+                    "Vendu : ${formatQty(item.quantity)}",
                     fontSize = DsTextSize.caption,
                     color = mutedColor
                 )
@@ -1295,7 +1298,7 @@ private fun VenteCartRow(
                     color = mutedColor
                 )
                 Text(
-                    "$remainingAfter ${item.product.unit_type}",
+                    "${formatQty(remainingAfter)} ${item.product.unit_type}",
                     fontSize = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
                     color = progressColor
@@ -1319,7 +1322,7 @@ private fun VenteCartRow(
             {
                 Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(14.dp))
                 Text(
-                    "Stock négatif : $remainingAfter ${item.product.unit_type} disponible",
+                    "Stock négatif : ${formatQty(remainingAfter)} ${item.product.unit_type} disponible",
                     fontSize = DsTextSize.caption,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFFDC2626)
@@ -1355,7 +1358,7 @@ private fun VenteCartRow(
                         Icon(Icons.Default.Remove, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
                     }
                     Text(
-                        item.quantity.toString(),
+                        formatQty(item.quantity),
                         fontSize   = DsTextSize.headline,
                         fontWeight = FontWeight.Medium,
                         color      = accentColor,

@@ -13,7 +13,7 @@ data class StockMovementEntity(
 
     val type: String,              // "achat" | "vente" | "chargement" | "perte" | "ajustement"
     val direction: String,         // "entree" | "sortie"
-    val quantity: Int,             // موجب دائماً
+    val quantity: Double,           // موجب دائماً
     val emplacement: String,       // "depot" | "camion"
 
     val source_label: String,      // fournisseur / "VENTE COMPTOIR" / client / إلخ

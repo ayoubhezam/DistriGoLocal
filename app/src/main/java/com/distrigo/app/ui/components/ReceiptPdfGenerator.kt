@@ -19,13 +19,16 @@ object ReceiptPdfGenerator {
 
     private fun formatAmount(value: Double): String = "%.2f".format(value)
 
+    private fun formatQty(v: Double): String =
+        if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
     private fun badgeLabel(documentTitle: String) =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
 
     private fun referenceNumber(documentTitle: String) =
         documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
-    private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.toString() ?: "-"
+    private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.let { formatQty(it) } ?: "-"
     private fun unitePerColisText(item: ReceiptLineItem): String =
         if (item.unitLabel == "pièce") item.unitePerColis?.toString() ?: "-" else "-"
 

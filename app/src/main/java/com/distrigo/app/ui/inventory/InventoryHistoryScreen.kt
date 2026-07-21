@@ -199,9 +199,9 @@ fun InventorySessionDetailScreen(
                         Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(Modifier.weight(1f)) {
                                 Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                Text("Système: ${item.qte_systeme} → Physique: ${item.qte_physique}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
-                            Text((if (item.ecart > 0) "+" else "") + "${item.ecart}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
+                            Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
                         }
                     }
                 }

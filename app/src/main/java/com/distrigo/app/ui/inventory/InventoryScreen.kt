@@ -36,10 +36,13 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 private sealed class InvStep {
     data object Scan : InvStep()
     data class Quantity(val product: Product) : InvStep()
-    data class Confirmed(val product: Product, val qteSysteme: Int, val qtePhysique: Int, val ecart: Int, val valeurEcart: Double) : InvStep()
+    data class Confirmed(val product: Product, val qteSysteme: Double, val qtePhysique: Double, val ecart: Double, val valeurEcart: Double) : InvStep()
     data object Review : InvStep()
     data object ReadyToFinish : InvStep()
     data object Summary : InvStep()
@@ -174,7 +177,7 @@ private fun InventorySessionScreen(
             is InvStep.Scan -> InventoryScanStep(
                 numero            = activeSession?.let { inventoryNumero(it.id) } ?: "",
                 sessionItemsCount = sessionItems.size,
-                ecartsCount       = sessionItems.count { it.ecart != 0 },
+                ecartsCount       = sessionItems.count { it.ecart != 0.0 },
                 totalValueEcarts  = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) },
                 scanError         = scanError,
                 canFinish         = sessionItems.isNotEmpty(),
@@ -191,12 +194,15 @@ private fun InventorySessionScreen(
             is InvStep.Quantity -> InventoryQuantityStep(
                 product           = current.product,
                 qtePhysiqueText   = qtePhysiqueText,
-                onQuantityChange  = { qtePhysiqueText = it.filter { c -> c.isDigit() } },
+                onQuantityChange  = { raw ->
+                    val filtered = raw.filter { c -> c.isDigit() || c == '.' }
+                    qtePhysiqueText = if (filtered.count { it == '.' } > 1) qtePhysiqueText else filtered
+                },
                 saveError         = saveError,
                 isSaving          = isSaving,
                 onCancel          = { step = InvStep.Scan },
                 onSave            = {
-                    val qte = qtePhysiqueText.toIntOrNull()
+                    val qte = qtePhysiqueText.toDoubleOrNull()
                     if (qte == null || qte < 0) { saveError = "Quantité invalide"; return@InventoryQuantityStep }
                     isSaving = true
                     viewModel.recordScan(
@@ -236,7 +242,7 @@ private fun InventorySessionScreen(
             is InvStep.Summary -> {
                 val summaryPreview = InventorySessionSummary(
                     total_products     = sessionItems.size,
-                    total_ecarts       = sessionItems.count { it.ecart != 0 },
+                    total_ecarts       = sessionItems.count { it.ecart != 0.0 },
                     total_value_ecarts = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) }
                 )
                 InventorySummaryStep(
@@ -390,7 +396,7 @@ private fun ColumnScope.InventoryQuantityStep(
     onCancel          : () -> Unit,
     onSave            : () -> Unit
 ) {
-    val qtePhysique = qtePhysiqueText.toIntOrNull()
+    val qtePhysique = qtePhysiqueText.toDoubleOrNull()
     val ecart = qtePhysique?.let { it - product.stock }
 
     Row(
@@ -428,7 +434,7 @@ private fun ColumnScope.InventoryQuantityStep(
         Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(DsSpacing.md)) {
                 Text("Qté système", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                Text("${product.stock}", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+                Text(formatQty(product.stock), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
                 Text(product.unit_type, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }
@@ -438,7 +444,7 @@ private fun ColumnScope.InventoryQuantityStep(
             OutlinedTextField(
                 value = qtePhysiqueText, onValueChange = onQuantityChange,
                 placeholder = { Text("0") }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium,
                 trailingIcon = { Text(product.unit_type, fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary, modifier = Modifier.padding(end = DsSpacing.sm)) }
             )
@@ -454,7 +460,7 @@ private fun ColumnScope.InventoryQuantityStep(
                 Column(Modifier.padding(DsSpacing.md)) {
                     Text("Écart", fontSize = DsTextSize.bodySmall, color = ecartColor)
                     Text(
-                        (if (ecart > 0) "+" else "") + "$ecart",
+                        (if (ecart > 0) "+" else "") + formatQty(ecart),
                         fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = ecartColor
                     )
                     Text(product.unit_type, fontSize = DsTextSize.caption, color = ecartColor.copy(alpha = 0.7f))
@@ -488,9 +494,9 @@ private fun ColumnScope.InventoryQuantityStep(
 @Composable
 private fun ColumnScope.InventoryConfirmedStep(
     product     : Product,
-    qteSysteme  : Int,
-    qtePhysique : Int,
-    ecart       : Int,
+    qteSysteme  : Double,
+    qtePhysique : Double,
+    ecart       : Double,
     onScanNext  : () -> Unit
 ) {
     val ecartColor = when {
@@ -515,9 +521,9 @@ private fun ColumnScope.InventoryConfirmedStep(
 
         Surface(shape = DsShapes.large, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(DsSpacing.lg)) {
-                InventorySummaryRow("Qté système", "$qteSysteme")
-                InventorySummaryRow("Qté physique", "$qtePhysique")
-                InventorySummaryRow("Écart", (if (ecart > 0) "+" else "") + "$ecart", ecartColor)
+                InventorySummaryRow("Qté système", formatQty(qteSysteme))
+                InventorySummaryRow("Qté physique", formatQty(qtePhysique))
+                InventorySummaryRow("Écart", (if (ecart > 0) "+" else "") + formatQty(ecart), ecartColor)
             }
         }
 
@@ -561,7 +567,7 @@ private fun ColumnScope.InventoryReviewStep(
     items      : List<com.distrigo.app.data.model.InventoryItem>,
     isSaving   : Boolean,
     onBack     : () -> Unit,
-    onEdit     : (com.distrigo.app.data.model.InventoryItem, Int) -> Unit,
+    onEdit     : (com.distrigo.app.data.model.InventoryItem, Double) -> Unit,
     onDelete   : (com.distrigo.app.data.model.InventoryItem) -> Unit,
     onFinish   : () -> Unit
 ) {
@@ -597,14 +603,14 @@ private fun ColumnScope.InventoryReviewStep(
                     Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                            Text("Système: ${item.qte_systeme} → Physique: ${item.qte_physique}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
                         Text(
-                            (if (item.ecart > 0) "+" else "") + "${item.ecart}",
+                            (if (item.ecart > 0) "+" else "") + formatQty(item.ecart),
                             fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor,
                             modifier = Modifier.padding(end = DsSpacing.sm)
                         )
-                        IconButton(onClick = { editingItem = item; editQtyText = "${item.qte_physique}" }, modifier = Modifier.size(32.dp)) {
+                        IconButton(onClick = { editingItem = item; editQtyText = formatQty(item.qte_physique) }, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = { deletingItem = item }, modifier = Modifier.size(32.dp)) {
@@ -637,15 +643,19 @@ private fun ColumnScope.InventoryReviewStep(
             title = { Text(item.product_name) },
             text = {
                 OutlinedTextField(
-                    value = editQtyText, onValueChange = { editQtyText = it.filter { c -> c.isDigit() } },
+                    value = editQtyText,
+                    onValueChange = { raw ->
+                        val filtered = raw.filter { c -> c.isDigit() || c == '.' }
+                        editQtyText = if (filtered.count { it == '.' } > 1) editQtyText else filtered
+                    },
                     label = { Text("Qté physique") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = DsShapes.medium
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    editQtyText.toIntOrNull()?.let { onEdit(item, it) }
+                    editQtyText.toDoubleOrNull()?.let { onEdit(item, it) }
                     editingItem = null
                 }) { Text("Enregistrer") }
             },
@@ -657,7 +667,7 @@ private fun ColumnScope.InventoryReviewStep(
         AlertDialog(
             onDismissRequest = { deletingItem = null },
             title = { Text("Supprimer \"${item.product_name}\" ?") },
-            text  = { Text("Le stock sera restauré à ${item.qte_systeme}.") },
+            text  = { Text("Le stock sera restauré à ${formatQty(item.qte_systeme)}.") },
             confirmButton = {
                 TextButton(onClick = { onDelete(item); deletingItem = null }) {
                     Text("Supprimer", color = DsColors.Danger)
@@ -856,7 +866,7 @@ private fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Pro
                             Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(product.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("Stock: ${product.stock} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text("Stock: ${formatQty(product.stock)} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                             }
                         }
@@ -890,9 +900,9 @@ private fun InventoryDetailDialog(items: List<com.distrigo.app.data.model.Invent
                             Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("Système: ${item.qte_systeme} → Physique: ${item.qte_physique}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
-                                Text((if (item.ecart > 0) "+" else "") + "${item.ecart}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
+                                Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
                             }
                         }
                     }

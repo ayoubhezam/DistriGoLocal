@@ -56,8 +56,7 @@ class InventoryRepository(
         return inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null
     }
 
-    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Int, userName: String? = null): Map<String, Any> {
-        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
+    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Double, userName: String? = null): Map<String, Any> {        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
 
         if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
             return mapOf("error" to "Ce produit a déjà été scanné dans cette session")
@@ -82,7 +81,7 @@ class InventoryRepository(
             ).toInt()
             productDao.updateProduct(product.copy(stock = qtePhysique))
 
-            if (ecart != 0) {
+            if (ecart != 0.0) {
                 db.stockMovementDao().insert(
                     StockMovementEntity(
                         product_id   = product.id,
@@ -111,7 +110,7 @@ class InventoryRepository(
             "valeur_ecart" to valeurEcart
         )
     }
-    suspend fun updateScan(itemId: Int, newQtePhysique: Int, userName: String? = null): Map<String, Any> {
+    suspend fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null): Map<String, Any> {
         if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
 
@@ -129,7 +128,7 @@ class InventoryRepository(
             }
 
             db.stockMovementDao().deleteBySource("inventory_item", itemId)
-            if (newEcart != 0 && product != null) {
+            if (newEcart != 0.0 && product != null) {
                 db.stockMovementDao().insert(
                     StockMovementEntity(
                         product_id   = item.product_id,
@@ -172,7 +171,7 @@ class InventoryRepository(
         val items = inventoryDao.getItemsForSession(sessionId)
         return InventorySessionSummary(
             total_products     = items.size,
-            total_ecarts       = items.count { it.ecart != 0 },
+            total_ecarts       = items.count { it.ecart != 0.0 },
             total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
         )
     }
@@ -184,7 +183,7 @@ class InventoryRepository(
                 session = session.toInventorySession(),
                 summary = InventorySessionSummary(
                     total_products     = items.size,
-                    total_ecarts       = items.count { it.ecart != 0 },
+                    total_ecarts       = items.count { it.ecart != 0.0 },
                     total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
                 )
             )
@@ -199,7 +198,7 @@ class InventoryRepository(
                 session = session.toInventorySession(),
                 summary = InventorySessionSummary(
                     total_products     = items.size,
-                    total_ecarts       = items.count { it.ecart != 0 },
+                    total_ecarts       = items.count { it.ecart != 0.0 },
                     total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
                 )
             )

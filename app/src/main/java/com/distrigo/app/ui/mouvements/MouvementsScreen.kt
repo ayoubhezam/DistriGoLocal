@@ -27,6 +27,9 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 
+private fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 data class MovementFilters(
     val dateFrom    : String? = null,   // "yyyy-MM-dd"
     val dateTo      : String? = null,
@@ -127,7 +130,7 @@ fun MouvementsScreen(
             Spacer(Modifier.width(DsSpacing.sm))
             Column {
                 Text(product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                Text("Stock actuel : ${product.stock}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text("Stock actuel : ${formatQty(product.stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
 
@@ -140,8 +143,8 @@ fun MouvementsScreen(
             modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            StatCard(modifier = Modifier.weight(1f), label = "Entrées",    value = "$entrees",        color = DsColors.Success)
-            StatCard(modifier = Modifier.weight(1f), label = "Sorties",    value = "$sorties",         color = DsColors.Danger)
+            StatCard(modifier = Modifier.weight(1f), label = "Entrées",    value = formatQty(entrees),  color = DsColors.Success)
+            StatCard(modifier = Modifier.weight(1f), label = "Sorties",    value = formatQty(sorties),  color = DsColors.Danger)
             StatCard(modifier = Modifier.weight(1f), label = "Mouvements", value = "${movements.size}", color = DsColors.Primary)
         }
 
@@ -232,7 +235,7 @@ private fun MovementRow(movement: StockMovement, onClick: () -> Unit) {
             Text(movement.source_label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
         }
         Text(
-            "${if (isEntree) "+" else "-"}${movement.quantity}",
+            "${if (isEntree) "+" else "-"}${formatQty(movement.quantity)}",
             fontSize   = DsTextSize.bodyLarge,
             fontWeight = FontWeight.Bold,
             color      = if (isEntree) DsColors.Success else DsColors.Danger
@@ -511,7 +514,7 @@ private fun MovementDetailView(
             ) {
                 Text("Quantité", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                 Text(
-                    "${if (isEntree) "+" else "-"}${movement.quantity}",
+                    "${if (isEntree) "+" else "-"}${formatQty(movement.quantity)}",
                     fontSize   = DsTextSize.display,
                     fontWeight = FontWeight.ExtraBold,
                     color      = if (isEntree) DsColors.Success else DsColors.Danger

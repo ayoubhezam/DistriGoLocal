@@ -98,9 +98,9 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun recordScan(
         productId   : Int,
-        qtePhysique : Int,
+        qtePhysique : Double,
         userName    : String? = null,
-        onSuccess   : (qteSysteme: Int, ecart: Int, valeurEcart: Double) -> Unit,
+        onSuccess   : (qteSysteme: Double, ecart: Double, valeurEcart: Double) -> Unit,
         onError     : (String) -> Unit
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
@@ -112,8 +112,8 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
                 loadSessionItems(sessionId)
                 loadProducts()   // les stocks affichés (product.stock) ont changé
                 onSuccess(
-                    result["qte_systeme"] as Int,
-                    result["ecart"] as Int,
+                    result["qte_systeme"] as Double,
+                    result["ecart"] as Double,
                     result["valeur_ecart"] as Double
                 )
             }
@@ -158,7 +158,7 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun updateScan(itemId: Int, newQtePhysique: Int, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
             val result = repository.updateScan(itemId, newQtePhysique, userName)

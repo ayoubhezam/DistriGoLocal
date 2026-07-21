@@ -34,6 +34,9 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 
+internal fun formatQty(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+
 val PrimaryBlue    = Color(0xFF1565C0)
 val BlueLight      = Color(0xFFE3F2FD)
 val RedLight       = Color(0xFFFFEBEE)
@@ -618,7 +621,7 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
 
             // ── Stock : عمود منفصل على اليمين ──
             Text(
-                "${product.stock} ${product.unit_type}",
+                "${formatQty(product.stock)} ${product.unit_type}",
                 fontSize   = 11.sp,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                 color      = if (isLow) DestructiveRed else TextMuted,
@@ -693,7 +696,7 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text(
-                        text       = "${product.stock} ${product.unit_type}",
+                        text       = "${formatQty(product.stock)} ${product.unit_type}",
                         fontSize   = 11.sp,
                         fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Normal,
                         color      = if (isLow) DestructiveRed else TextMuted

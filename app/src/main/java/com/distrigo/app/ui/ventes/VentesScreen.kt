@@ -499,7 +499,7 @@ fun VenteDetailScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(item.product_name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1)
                                 Text(
-                                    "${item.quantity} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
+                                    "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
                                     fontSize = 11.sp,
                                     color    = TextMuted
                                 )

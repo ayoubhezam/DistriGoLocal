@@ -6,7 +6,7 @@ data class Product(
     val barcode     : String?,
     val selling_price  : Double,
     val purchase_price : Double,
-    val stock       : Int,
+    val stock       : Double,
     val min_stock   : Int,
     val unit_type   : String,
     val packages    : Int,
@@ -18,7 +18,7 @@ data class Product(
     val category_id    : Int?,
     val supplier_name  : String?,
     val supplier_id    : Int?,
-    val camion_stock: Int = 0
+    val camion_stock: Double = 0.0
 
 
 
