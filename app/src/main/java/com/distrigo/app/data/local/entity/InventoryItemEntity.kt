@@ -11,9 +11,9 @@ data class InventoryItemEntity(
     val product_id: Int,
     val product_name: String,           // denormalized
     val product_image_uri: String?,     // denormalized
-    val qte_systeme: Int,               // snapshot de product.stock au moment du scan
-    val qte_physique: Int,              // saisi par l'utilisateur
-    val ecart: Int,                     // qte_physique - qte_systeme (signé : + surplus, - manque)
+    val qte_systeme: Double,
+    val qte_physique: Double,
+    val ecart: Double,
     val purchase_price_snapshot: Double,
     val valeur_ecart: Double,           // ecart × purchase_price_snapshot (signé)
     val created_at: String

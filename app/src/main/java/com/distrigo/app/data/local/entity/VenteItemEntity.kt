@@ -11,7 +11,7 @@ data class VenteItemEntity(
     val product_id: Int,
     val product_name: String,
     val unit_type: String,
-    val quantity: Int,
+    val quantity: Double,
     val unit_price: Double,
     val total_price: Double
 )

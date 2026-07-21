@@ -6,7 +6,7 @@ data class StockMovement(
     val product_name: String,
     val type: String,          // "achat" | "vente" | "chargement" | "perte" | "ajustement"
     val direction: String,     // "entree" | "sortie"
-    val quantity: Int,
+    val quantity: Double,
     val emplacement: String,   // "depot" | "camion"
     val source_label: String,
     val source_type: String,
