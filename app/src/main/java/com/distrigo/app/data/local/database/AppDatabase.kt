@@ -35,6 +35,7 @@ val MIGRATION_20_21 = object : Migration(20, 21) {
         db.execSQL("ALTER TABLE purchase_order_items ADD COLUMN expiry_date TEXT")
     }
 }
+
 @Database(
     entities = [
         ProductEntity::class,
@@ -62,7 +63,8 @@ val MIGRATION_20_21 = object : Migration(20, 21) {
         PerteEntity::class,
         InventorySessionEntity::class,
         InventoryItemEntity::class,
-        StockMovementEntity::class
+        StockMovementEntity::class,
+        SecteurEntity::class,
     ],
     version = 24,
     exportSchema = false
@@ -92,6 +94,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inventoryDao(): InventoryDao
 
     abstract fun stockMovementDao(): StockMovementDao
+
+    abstract fun secteurDao(): SecteurDao
 
 
 

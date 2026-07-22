@@ -14,7 +14,7 @@ data class TourneeEntity(
     val nom: String,
     val wilaya_name: String?,
     val commune_name: String?,
-    val chauffeur: String?,
-    val vehicule: String?,
+    val secteur_id: Int?,
+    val secteur_name: String?,
     val created_at: String
 )

@@ -26,12 +26,12 @@ interface TourneeDao {
     @Query("""
         UPDATE tournees
         SET nom = :nom, wilaya_name = :wilayaName, commune_name = :communeName,
-            chauffeur = :chauffeur, vehicule = :vehicule, note = :note
+            secteur_id = :secteurId, secteur_name = :secteurName, note = :note
         WHERE id = :id
     """)
     suspend fun updateTourneeFields(
         id: Int, nom: String, wilayaName: String?, communeName: String?,
-        chauffeur: String?, vehicule: String?, note: String?
+        secteurId: Int?, secteurName: String?, note: String?
     )
 
     @Query("DELETE FROM tournees WHERE id = :id")

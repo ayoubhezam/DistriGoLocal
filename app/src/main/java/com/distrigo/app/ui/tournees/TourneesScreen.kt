@@ -37,6 +37,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.filled.GridView
+
 @Composable
 fun TourneesScreen(
     viewModel             : TourneeViewModel = viewModel(),
@@ -482,8 +484,7 @@ fun TourneesScreen(
                                     Spacer(Modifier.height(2.dp))
                                     TourneeStatusBadge(status = current.status)
                                     val details = listOfNotNull(
-                                        current.chauffeur,
-                                        current.vehicule,
+                                        current.secteur_name,
                                         listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ").ifEmpty { null }
                                     ).joinToString(" · ")
                                     if (details.isNotEmpty()) {
@@ -1184,11 +1185,11 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                     fontSize = DsTextSize.caption,
                     color = DsColors.TextSecondary
                 )
-                if (!tournee.chauffeur.isNullOrBlank()) {
+                if (!tournee.secteur_name.isNullOrBlank()) {
                     Spacer(Modifier.width(DsSpacing.md))
-                    Icon(Icons.Default.Person, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Default.GridView, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(tournee.chauffeur, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(tournee.secteur_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
             }
 

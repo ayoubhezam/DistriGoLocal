@@ -11,6 +11,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.TourneeClientInfo
+import com.distrigo.app.data.model.Secteur
 
 class TourneeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -40,6 +41,9 @@ class TourneeViewModel(application: Application) : AndroidViewModel(application)
 
     private val _tourneeClients = MutableStateFlow<List<TourneeClientInfo>>(emptyList())
     val tourneeClients: StateFlow<List<TourneeClientInfo>> = _tourneeClients
+
+    private val _secteurs = MutableStateFlow<List<Secteur>>(emptyList())
+    val secteurs: StateFlow<List<Secteur>> = _secteurs
 
     init { loadTournees() }
 
@@ -143,15 +147,15 @@ class TourneeViewModel(application: Application) : AndroidViewModel(application)
         nom          : String,
         wilayaName   : String?,
         communeName  : String?,
-        chauffeur    : String?,
-        vehicule     : String?,
+        secteurId    : Int?,
+        secteurName  : String?,
         note         : String?,
         onSuccess    : () -> Unit,
         onError      : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.createTournee(nom, wilayaName, communeName, chauffeur, vehicule, note)
+                repository.createTournee(nom, wilayaName, communeName, secteurId, secteurName, note)
                 loadTournees()
                 loadOpenTournee()
                 onSuccess()
@@ -200,18 +204,46 @@ class TourneeViewModel(application: Application) : AndroidViewModel(application)
         nom          : String,
         wilayaName   : String?,
         communeName  : String?,
-        chauffeur    : String?,
-        vehicule     : String?,
+        secteurId    : Int?,
+        secteurName  : String?,
         note         : String?,
         onSuccess    : () -> Unit,
         onError      : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.updateTournee(id, nom, wilayaName, communeName, chauffeur, vehicule, note)
+                repository.updateTournee(id, nom, wilayaName, communeName, secteurId, secteurName, note)
                 loadTournees()
                 loadTourneeDetail(id)
                 onSuccess()
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
+
+    fun loadSecteurs(communeName: String) {
+        viewModelScope.launch {
+            try {
+                _secteurs.value = repository.getSecteursForCommune(communeName)
+            } catch (e: Exception) {
+                android.util.Log.e("DISTRIGO", "secteurs error: ${e.message}")
+            }
+        }
+    }
+
+    fun createSecteur(
+        nom          : String,
+        communeName  : String,
+        wilayaName   : String?,
+        onSuccess    : (Secteur) -> Unit,
+        onError      : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val secteur = repository.createSecteur(nom, communeName, wilayaName)
+                loadSecteurs(communeName)
+                onSuccess(secteur)
             } catch (e: Exception) {
                 onError(extractErrorMessage(e))
             }

@@ -7,7 +7,8 @@ import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
 import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
-
+import com.distrigo.app.data.local.entity.SecteurEntity
+import com.distrigo.app.data.model.Secteur
 
 class ProductRepository(
     private val productDao: ProductDao,
@@ -130,7 +131,7 @@ class ProductRepository(
             date_debut = this.date_debut, date_fin = this.date_fin, note = this.note,
             nom = this.nom, wilaya_id = null, commune_id = null,
             wilaya_name = this.wilaya_name, commune_name = this.commune_name,
-            chauffeur = this.chauffeur, vehicule = this.vehicule,
+            secteur_id = this.secteur_id, secteur_name = this.secteur_name,
             clients_count = clientsCount, ventes_count = ventesEntities.size,
             total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
         )
@@ -1166,14 +1167,14 @@ class ProductRepository(
 
     suspend fun createTournee(
         nom: String, wilayaName: String?, communeName: String?,
-        chauffeur: String?, vehicule: String?, note: String?
+        secteurId: Int?, secteurName: String?, note: String?
     ): Map<String, Any> {
         val now = java.time.Instant.now().toString()
         db.tourneeDao().insertTournee(
             TourneeEntity(
                 status = "ouverte", date_debut = now, date_fin = null, note = note,
                 nom = nom, wilaya_name = wilayaName, commune_name = communeName,
-                chauffeur = chauffeur, vehicule = vehicule, created_at = now
+                secteur_id = secteurId, secteur_name = secteurName, created_at = now
             )
         )
         return mapOf("message" to "Tournée créée avec succès")
@@ -1191,9 +1192,9 @@ class ProductRepository(
 
     suspend fun updateTournee(
         id: Int, nom: String, wilayaName: String?, communeName: String?,
-        chauffeur: String?, vehicule: String?, note: String?
+        secteurId: Int?, secteurName: String?, note: String?
     ): Map<String, Any> {
-        db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, chauffeur, vehicule, note)
+        db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, secteurId, secteurName, note)
         return mapOf("message" to "Tournée mise à jour avec succès")
     }
 
@@ -1205,6 +1206,22 @@ class ProductRepository(
         db.tourneeDao().deleteTourneeById(id)
         return mapOf("message" to "Tournée supprimée avec succès")
     }
+
+    suspend fun getSecteursForCommune(communeName: String): List<Secteur> =
+        db.secteurDao().getSecteursForCommune(communeName).map { it.toSecteur() }
+
+    suspend fun createSecteur(nom: String, communeName: String, wilayaName: String?): Secteur {
+        val now = java.time.Instant.now().toString()
+        val entity = SecteurEntity(
+            nom = nom, commune_name = communeName, wilaya_name = wilayaName, created_at = now
+        )
+        val newId = db.secteurDao().insertSecteur(entity)
+        return entity.copy(id = newId.toInt()).toSecteur()
+    }
+
+    private fun SecteurEntity.toSecteur() = Secteur(
+        id = this.id, nom = this.nom, communeName = this.commune_name, wilayaName = this.wilaya_name
+    )
 
     suspend fun addClientsToTournee(tourneeId: Int, clientIds: List<Int>): Map<String, Any> {
         val existing = db.tourneeClientDao().getClientIdsForTournee(tourneeId).toSet()

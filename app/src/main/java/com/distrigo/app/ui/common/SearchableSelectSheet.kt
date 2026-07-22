@@ -13,7 +13,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 /**
  * Bottom sheet عام لاختيار عنصر واحد من قائمة مع بحث نصي.
  * قابل لإعادة الاستخدام: الولاية، البلدية، ولاحقًا القطاع (Secteur).
@@ -31,6 +33,13 @@ fun <T> SearchableSelectSheet(
     val filtered = remember(query, items) {
         if (query.isBlank()) items
         else items.filter { itemLabel(it).contains(query, ignoreCase = true) }
+    }
+
+    var isFieldFocused by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    BackHandler(enabled = isFieldFocused) {
+        focusManager.clearFocus()
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -54,7 +63,9 @@ fun <T> SearchableSelectSheet(
                 placeholder   = { Text("Rechercher...") },
                 singleLine    = true,
                 shape         = DsShapes.medium,
-                modifier      = Modifier.fillMaxWidth()
+                modifier      = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { isFieldFocused = it.isFocused }
             )
             Spacer(Modifier.height(DsSpacing.sm))
 
