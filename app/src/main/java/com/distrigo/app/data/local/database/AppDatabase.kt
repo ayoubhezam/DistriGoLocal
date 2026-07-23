@@ -29,10 +29,10 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-val MIGRATION_20_21 = object : Migration(20, 21) {
+val MIGRATION_24_25 = object : Migration(24, 25) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE purchase_order_items ADD COLUMN has_expiry INTEGER NOT NULL DEFAULT 0")
-        db.execSQL("ALTER TABLE purchase_order_items ADD COLUMN expiry_date TEXT")
+        db.execSQL("ALTER TABLE clients ADD COLUMN secteur_id INTEGER")
+        db.execSQL("ALTER TABLE clients ADD COLUMN secteur_name TEXT")
     }
 }
 
@@ -66,7 +66,7 @@ val MIGRATION_20_21 = object : Migration(20, 21) {
         StockMovementEntity::class,
         SecteurEntity::class,
     ],
-    version = 24,
+    version = 26,
     exportSchema = false
 )
 
@@ -110,7 +110,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    .addMigrations(MIGRATION_20_21)
+                    .addMigrations(MIGRATION_24_25)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

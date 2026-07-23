@@ -67,6 +67,7 @@ class ProductRepository(
             id = this.id, name = this.name, phone = this.phone,
             wilaya_id = null, commune_id = null,
             wilaya_name = this.wilaya_name, commune_name = this.commune_name,
+            secteur_id = this.secteur_id, secteur_name = this.secteur_name,
             address = this.address, note = this.note, balance = this.balance,
             customer_type = this.customer_type, image_uri = this.image_uri,
             latitude = this.latitude, longitude = this.longitude
@@ -131,7 +132,6 @@ class ProductRepository(
             date_debut = this.date_debut, date_fin = this.date_fin, note = this.note,
             nom = this.nom, wilaya_id = null, commune_id = null,
             wilaya_name = this.wilaya_name, commune_name = this.commune_name,
-            secteur_id = this.secteur_id, secteur_name = this.secteur_name,
             clients_count = clientsCount, ventes_count = ventesEntities.size,
             total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
         )
@@ -876,6 +876,8 @@ class ProductRepository(
             phone = client["phone"] as? String,
             wilaya_name = client["wilaya_name"] as? String,
             commune_name = client["commune_name"] as? String,
+            secteur_id = (client["secteur_id"] as? Number)?.toInt(),
+            secteur_name = client["secteur_name"] as? String,
             address = client["address"] as? String,
             note = client["note"] as? String,
             balance = (client["balance"] as? Number)?.toDouble() ?: 0.0,
@@ -895,6 +897,8 @@ class ProductRepository(
             phone = if (client.containsKey("phone")) client["phone"] as? String else existing.phone,
             wilaya_name = if (client.containsKey("wilaya_name")) client["wilaya_name"] as? String else existing.wilaya_name,
             commune_name = if (client.containsKey("commune_name")) client["commune_name"] as? String else existing.commune_name,
+            secteur_id = if (client.containsKey("secteur_id")) (client["secteur_id"] as? Number)?.toInt() else existing.secteur_id,
+            secteur_name = if (client.containsKey("secteur_name")) client["secteur_name"] as? String else existing.secteur_name,
             address = if (client.containsKey("address")) client["address"] as? String else existing.address,
             note = if (client.containsKey("note")) client["note"] as? String else existing.note,
             customer_type = client["customer_type"] as? String ?: existing.customer_type,
@@ -1166,15 +1170,13 @@ class ProductRepository(
     suspend fun getOpenTournee(): Tournee? = db.tourneeDao().getOpenTournee()?.toTournee()
 
     suspend fun createTournee(
-        nom: String, wilayaName: String?, communeName: String?,
-        secteurId: Int?, secteurName: String?, note: String?
+        nom: String, wilayaName: String?, communeName: String?, note: String?
     ): Map<String, Any> {
         val now = java.time.Instant.now().toString()
         db.tourneeDao().insertTournee(
             TourneeEntity(
                 status = "ouverte", date_debut = now, date_fin = null, note = note,
-                nom = nom, wilaya_name = wilayaName, commune_name = communeName,
-                secteur_id = secteurId, secteur_name = secteurName, created_at = now
+                nom = nom, wilaya_name = wilayaName, commune_name = communeName, created_at = now
             )
         )
         return mapOf("message" to "Tournée créée avec succès")
@@ -1191,10 +1193,9 @@ class ProductRepository(
     }
 
     suspend fun updateTournee(
-        id: Int, nom: String, wilayaName: String?, communeName: String?,
-        secteurId: Int?, secteurName: String?, note: String?
+        id: Int, nom: String, wilayaName: String?, communeName: String?, note: String?
     ): Map<String, Any> {
-        db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, secteurId, secteurName, note)
+        db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, note)
         return mapOf("message" to "Tournée mise à jour avec succès")
     }
 

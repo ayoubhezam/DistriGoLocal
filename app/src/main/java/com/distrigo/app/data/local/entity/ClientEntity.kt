@@ -11,6 +11,8 @@ data class ClientEntity(
     val phone: String?,
     val wilaya_name: String?,
     val commune_name: String?,
+    val secteur_id: Int?,
+    val secteur_name: String?,
     val address: String?,
     val note: String?,
     val balance: Double = 0.0,

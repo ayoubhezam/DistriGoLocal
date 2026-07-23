@@ -7,14 +7,12 @@ import androidx.room.PrimaryKey
 data class TourneeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val status: String,              // "ouverte" | "fermée"
+    val status: String,
     val date_debut: String?,
     val date_fin: String?,
     val note: String?,
     val nom: String,
     val wilaya_name: String?,
     val commune_name: String?,
-    val secteur_id: Int?,
-    val secteur_name: String?,
     val created_at: String
 )

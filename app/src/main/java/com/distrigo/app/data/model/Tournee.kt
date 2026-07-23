@@ -12,8 +12,6 @@ data class Tournee(
     val commune_id     : Int?,
     val wilaya_name    : String?,
     val commune_name   : String?,
-    val secteur_id     : Int?,
-    val secteur_name   : String?,
     val clients_count  : Int? = null,
     val ventes_count   : Int? = null,
     val total_ventes   : Double? = null,

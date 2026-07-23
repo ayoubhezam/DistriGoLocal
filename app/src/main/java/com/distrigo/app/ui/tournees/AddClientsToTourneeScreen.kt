@@ -26,6 +26,12 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.GridView
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -73,6 +79,9 @@ fun AddClientsToTourneeScreen(
                     (client.wilaya_name?.contains(token, ignoreCase = true) == true)
         }
     }
+    val groupedClients = filtered
+        .groupBy { it.secteur_name?.takeIf { name -> name.isNotBlank() } ?: "Sans secteur" }
+        .toSortedMap(compareBy { if (it == "Sans secteur") "\uFFFF" else it }) // "Sans secteur" en dernier
 
     fun save() {
         if (selected.isEmpty()) return
@@ -132,38 +141,98 @@ fun AddClientsToTourneeScreen(
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            items(filtered, key = { it.id }) { client ->
-                val isSelected = client.id in selected
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .clickable { selected = if (isSelected) selected - client.id else selected + client.id }
-                        .padding(DsSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val initials = client.name.split(" ").take(2)
-                        .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
-                    Box(
-                        modifier         = Modifier.size(34.dp).clip(DsShapes.medium).background(DsColors.SurfaceMuted),
-                        contentAlignment = Alignment.Center
+            groupedClients.forEach { (secteurLabel, clientsInGroup) ->
+                item(key = "header_$secteurLabel") {
+                    val groupIds = remember(clientsInGroup) { clientsInGroup.map { it.id }.toSet() }
+                    val allSelected = groupIds.isNotEmpty() && selected.containsAll(groupIds)
+
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier               = Modifier
+                            .fillMaxWidth()
+                            .padding(top = DsSpacing.sm, bottom = 2.dp)
                     ) {
-                        Text(initials, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.TextSecondary)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.GridView,
+                                contentDescription = null,
+                                tint     = DsColors.TextSecondary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "${secteurLabel.uppercase()} (${clientsInGroup.size})",
+                                fontSize   = DsTextSize.caption,
+                                fontWeight = FontWeight.Bold,
+                                color      = DsColors.TextSecondary
+                            )
+                        }
+                        Text(
+                            if (allSelected) "Tout désélectionner" else "Tout sélectionner",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.Primary,
+                            modifier   = Modifier.clickable {
+                                selected = if (allSelected) selected - groupIds else selected + groupIds
+                            }
+                        )
                     }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(client.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1)
-                        val address = listOfNotNull(client.commune_name, client.wilaya_name).joinToString(", ")
-                        Text(address.ifEmpty { "—" }, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
-                    }
-                    if (isSelected) {
+                }
+                items(clientsInGroup, key = { it.id }) { client ->
+                    val isSelected = client.id in selected
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.large)
+                            .background(DsColors.Surface)
+                            .border(1.dp, DsColors.Border, DsShapes.large)
+                            .clickable { selected = if (isSelected) selected - client.id else selected + client.id }
+                            .padding(DsSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val initials = client.name.split(" ").take(2)
+                            .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                         Box(
-                            modifier         = Modifier.size(22.dp).clip(DsShapes.small).background(DsColors.Primary),
+                            modifier         = Modifier.size(34.dp).clip(DsShapes.medium).background(DsColors.SurfaceMuted),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            if (!client.image_uri.isNullOrBlank()) {
+                                val bitmap = remember(client.image_uri) {
+                                    try {
+                                        val bytes = Base64.decode(client.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
+                                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                }
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap             = bitmap.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier           = Modifier.fillMaxSize(),
+                                        contentScale       = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(initials, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.TextSecondary)
+                                }
+                            } else {
+                                Text(initials, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.TextSecondary)
+                            }
+                        }
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(client.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1)
+                            val address = listOfNotNull(client.commune_name, client.wilaya_name).joinToString(", ")
+                            Text(address.ifEmpty { "—" }, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
+                        }
+                        if (isSelected) {
+                            Box(
+                                modifier         = Modifier.size(22.dp).clip(DsShapes.small).background(DsColors.Primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            }
                         }
                     }
                 }

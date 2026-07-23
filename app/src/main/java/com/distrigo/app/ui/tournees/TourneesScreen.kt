@@ -484,7 +484,6 @@ fun TourneesScreen(
                                     Spacer(Modifier.height(2.dp))
                                     TourneeStatusBadge(status = current.status)
                                     val details = listOfNotNull(
-                                        current.secteur_name,
                                         listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ").ifEmpty { null }
                                     ).joinToString(" · ")
                                     if (details.isNotEmpty()) {
@@ -1185,12 +1184,7 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                     fontSize = DsTextSize.caption,
                     color = DsColors.TextSecondary
                 )
-                if (!tournee.secteur_name.isNullOrBlank()) {
-                    Spacer(Modifier.width(DsSpacing.md))
-                    Icon(Icons.Default.GridView, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(tournee.secteur_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                }
+
             }
 
             if (tournee.wilaya_name != null || tournee.commune_name != null) {

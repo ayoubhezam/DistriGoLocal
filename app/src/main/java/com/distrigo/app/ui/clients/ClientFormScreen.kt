@@ -42,7 +42,10 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Map
-
+import com.distrigo.app.data.geo.GeoRepository
+import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SecteurPickerSheet
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
@@ -57,6 +60,21 @@ fun ClientFormScreen(
     var phone        by remember { mutableStateOf(client?.phone ?: "") }
     var wilayaName   by remember { mutableStateOf(client?.wilaya_name ?: "") }
     var communeName  by remember { mutableStateOf(client?.commune_name ?: "") }
+    var selectedWilayaCode by remember(wilayaName) {
+        mutableStateOf(GeoRepository.findWilayaByFrName(wilayaName)?.wilayaCode)
+    }
+    var secteurId    by remember { mutableStateOf(client?.secteur_id) }
+    var secteurName  by remember { mutableStateOf(client?.secteur_name ?: "") }
+
+    var showWilayaSheet  by remember { mutableStateOf(false) }
+    var showCommuneSheet by remember { mutableStateOf(false) }
+    var showSecteurSheet by remember { mutableStateOf(false) }
+
+    val secteurs by viewModel.secteurs.collectAsState()
+
+    LaunchedEffect(communeName) {
+        if (communeName.isNotBlank()) viewModel.loadSecteurs(communeName)
+    }
     var address      by remember { mutableStateOf(client?.address ?: "") }
     var note         by remember { mutableStateOf(client?.note ?: "") }
     var customerType by remember { mutableStateOf(client?.customer_type ?: "retail") }
@@ -107,6 +125,8 @@ fun ClientFormScreen(
             "phone"         to phone.trim().ifEmpty { null },
             "wilaya_name"   to wilayaName.trim().ifEmpty { null },
             "commune_name"  to communeName.trim().ifEmpty { null },
+            "secteur_id"    to secteurId,
+            "secteur_name"  to secteurName.trim().ifEmpty { null },
             "address"       to address.trim().ifEmpty { null },
             "note"          to note.trim().ifEmpty { null },
             "customer_type" to customerType,
@@ -268,24 +288,43 @@ fun ClientFormScreen(
 
         Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Wilaya + Commune ──
+// ── Wilaya + Commune ──
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Wilaya",
-                    value         = wilayaName,
-                    onValueChange = { wilayaName = it },
-                    placeholder   = "Ex: Alger"
+                DsSelectorField(
+                    label       = "Wilaya",
+                    value       = wilayaName,
+                    placeholder = "Sélectionner une wilaya",
+                    onClick     = { showWilayaSheet = true }
                 )
             }
             Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Commune",
-                    value         = communeName,
-                    onValueChange = { communeName = it },
-                    placeholder   = "Ex: Bab Ezzouar"
+                DsSelectorField(
+                    label       = "Commune",
+                    value       = communeName,
+                    placeholder = "Sélectionner une commune",
+                    onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                 )
             }
+        }
+
+        Spacer(Modifier.height(DsSpacing.md))
+
+        // ── Secteur (optionnel) ──
+        Column {
+            Text(
+                "Secteur (optionnel)",
+                fontSize   = DsTextSize.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color      = DsColors.TextPrimary
+            )
+            Spacer(Modifier.height(2.dp))
+            DsSelectorField(
+                label       = null,
+                value       = secteurName,
+                placeholder = "Sélectionner un secteur",
+                onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
+            )
         }
 
         Spacer(Modifier.height(DsSpacing.md))
@@ -348,10 +387,7 @@ fun ClientFormScreen(
             Spacer(Modifier.height(4.dp))
             Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
         }
-        if (locationError.isNotEmpty()) {
-            Spacer(Modifier.height(4.dp))
-            Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
-        }
+
 
 
         // ── Note ──
@@ -388,6 +424,65 @@ fun ClientFormScreen(
         }
 
         Spacer(Modifier.height(DsSpacing.lg))
+    }
+
+    //ayoub
+    if (showWilayaSheet) {
+        SearchableSelectSheet(
+            title      = "Sélectionner une wilaya",
+            items      = GeoRepository.getWilayas(),
+            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+            onDismiss  = { showWilayaSheet = false },
+            onSelect   = { wilaya ->
+                wilayaName         = wilaya.nameFr
+                selectedWilayaCode = wilaya.wilayaCode
+                communeName        = ""
+                secteurId          = null
+                secteurName        = ""
+            }
+        )
+    }
+
+    if (showCommuneSheet && selectedWilayaCode != null) {
+        val sortedCommunes = remember(selectedWilayaCode) {
+            GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
+        }
+        SearchableSelectSheet(
+            title      = "Sélectionner une commune",
+            items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
+            itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+            onDismiss  = { showCommuneSheet = false },
+            onSelect   = { (_, commune) ->
+                communeName = commune.nameFr
+                secteurId   = null
+                secteurName = ""
+            }
+        )
+    }
+
+    if (showSecteurSheet) {
+        SecteurPickerSheet(
+            communeName = communeName,
+            wilayaName  = wilayaName,
+            secteurs    = secteurs,
+            onDismiss   = { showSecteurSheet = false },
+            onSelect    = { secteur ->
+                secteurId   = secteur.id
+                secteurName = secteur.nom
+            },
+            onAddNew    = { nom ->
+                viewModel.createSecteur(
+                    nom         = nom,
+                    communeName = communeName,
+                    wilayaName  = wilayaName.ifEmpty { null },
+                    onSuccess   = { secteur ->
+                        secteurId   = secteur.id
+                        secteurName = secteur.nom
+                    },
+                    onError     = { }
+                )
+            }
+        )
     }
 }
 

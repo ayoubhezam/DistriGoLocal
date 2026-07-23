@@ -15,6 +15,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.platform.LocalFocusManager
 /**
  * Bottom sheet عام لاختيار عنصر واحد من قائمة مع بحث نصي.
@@ -35,12 +37,6 @@ fun <T> SearchableSelectSheet(
         else items.filter { itemLabel(it).contains(query, ignoreCase = true) }
     }
 
-    var isFieldFocused by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-
-    BackHandler(enabled = isFieldFocused) {
-        focusManager.clearFocus()
-    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -57,15 +53,24 @@ fun <T> SearchableSelectSheet(
             )
             Spacer(Modifier.height(DsSpacing.sm))
 
+            val focusManager = LocalFocusManager.current
             OutlinedTextField(
                 value         = query,
                 onValueChange = { query = it },
                 placeholder   = { Text("Rechercher...") },
                 singleLine    = true,
                 shape         = DsShapes.medium,
-                modifier      = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { isFieldFocused = it.isFocused }
+                trailingIcon  = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = {
+                            query = ""
+                            focusManager.clearFocus()
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
+                        }
+                    }
+                },
+                modifier      = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(DsSpacing.sm))
 

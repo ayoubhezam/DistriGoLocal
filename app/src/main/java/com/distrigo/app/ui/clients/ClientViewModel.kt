@@ -10,6 +10,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.model.Secteur
+import com.distrigo.app.data.api.extractErrorMessage
+
 class ClientViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
@@ -29,6 +32,9 @@ class ClientViewModel(application: Application) : AndroidViewModel(application) 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _secteurs = MutableStateFlow<List<Secteur>>(emptyList())
+    val secteurs: StateFlow<List<Secteur>> = _secteurs
+
     init { loadClients() }
 
     fun loadClients() {
@@ -44,6 +50,48 @@ class ClientViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
+
+    /**
+     * ترجع الولاية الأكثر استعمالًا إن ظهرت في زبونين أو أكثر، وإلا null.
+     * تُستعمل لتعبئة حقل Wilaya تلقائيًا عند إضافة زبون جديد (قابل للتغيير من المستخدم).
+     */
+    fun getDefaultWilaya(): String? {
+        val counts = _clients.value
+            .mapNotNull { it.wilaya_name?.takeIf { name -> name.isNotBlank() } }
+            .groupingBy { it }
+            .eachCount()
+        val (name, count) = counts.maxByOrNull { it.value } ?: return null
+        return if (count >= 2) name else null
+    }
+
+    fun loadSecteurs(communeName: String) {
+        viewModelScope.launch {
+            try {
+                _secteurs.value = repository.getSecteursForCommune(communeName)
+            } catch (e: Exception) {
+                android.util.Log.e("DISTRIGO", "secteurs error: ${e.message}")
+            }
+        }
+    }
+
+    fun createSecteur(
+        nom          : String,
+        communeName  : String,
+        wilayaName   : String?,
+        onSuccess    : (Secteur) -> Unit,
+        onError      : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val secteur = repository.createSecteur(nom, communeName, wilayaName)
+                loadSecteurs(communeName)
+                onSuccess(secteur)
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
+
     private val _transactions = MutableStateFlow<List<ClientTransaction>>(emptyList())
     val transactions: StateFlow<List<ClientTransaction>> = _transactions
 
