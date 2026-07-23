@@ -16,7 +16,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.compose.foundation.layout.imePadding
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecteurPickerSheet(
@@ -34,6 +34,7 @@ fun SecteurPickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = DsSpacing.md)
                 .padding(bottom = DsSpacing.lg)
         ) {

@@ -75,6 +75,15 @@ fun ClientFormScreen(
     LaunchedEffect(communeName) {
         if (communeName.isNotBlank()) viewModel.loadSecteurs(communeName)
     }
+
+    LaunchedEffect(Unit) {
+        if (!isEdit && wilayaName.isBlank()) {
+            viewModel.getDefaultWilaya()?.let { defaultWilaya ->
+                wilayaName         = defaultWilaya
+                selectedWilayaCode = GeoRepository.findWilayaByFrName(defaultWilaya)?.wilayaCode
+            }
+        }
+    }
     var address      by remember { mutableStateOf(client?.address ?: "") }
     var note         by remember { mutableStateOf(client?.note ?: "") }
     var customerType by remember { mutableStateOf(client?.customer_type ?: "retail") }

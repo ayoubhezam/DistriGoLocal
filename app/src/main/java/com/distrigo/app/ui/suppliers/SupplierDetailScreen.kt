@@ -296,6 +296,16 @@ fun SupplierDetailScreen(
         )
     }
 
+    // ── Tab 3: Retours (écran plein, comme les sous-écrans de PurchaseFormScreen) ──
+    if (selectedTab == 3) {
+        com.distrigo.app.ui.retours.RetourFournisseurListScreen(
+            supplierId   = currentSupplier.id,
+            supplierName = currentSupplier.name,
+            onBack       = { selectedTab = 0 }
+        )
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -471,7 +481,8 @@ fun SupplierDetailScreen(
                     listOf(
                         Pair("Infos",               Icons.Default.Info),
                         Pair("Produits",             Icons.Default.ShoppingCart),
-                        Pair("Factures &\nPaiements", Icons.Default.Receipt)
+                        Pair("Factures &\nPaiements", Icons.Default.Receipt),
+                        Pair("Retours",              Icons.Default.AssignmentReturn)
                     ).forEachIndexed { index, (label, icon) ->
                         Box(
                             modifier = Modifier

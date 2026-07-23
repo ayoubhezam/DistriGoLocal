@@ -26,6 +26,12 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.products.ProductViewModel
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+
 
 data class ChargementCartItem(
     val product      : Product,
@@ -38,16 +44,23 @@ fun ChargementFormScreen(
     onSaved           : () -> Unit,
     viewModel         : ChargementViewModel = viewModel(),
     productViewModel  : ProductViewModel    = viewModel(),
-    correctionSource  : com.distrigo.app.data.model.Chargement? = null
+    correctionSource  : com.distrigo.app.data.model.Chargement? = null,
+    preSelectedProduct: Product? = null
 ) {
     val products by productViewModel.products.collectAsState()
 
     var search     by remember { mutableStateOf("") }
-    var cartItems  by remember { mutableStateOf<List<ChargementCartItem>>(emptyList()) }
+    var cartItems  by remember {
+        mutableStateOf(
+            preSelectedProduct?.let {
+                listOf(ChargementCartItem(product = it, targetCamion = it.camion_stock))
+            } ?: emptyList()
+        )
+    }
     var note       by remember { mutableStateOf("") }
     var userName   by remember { mutableStateOf("") }
     var isSaving   by remember { mutableStateOf(false) }
-    var showCart   by remember { mutableStateOf(false) }
+    var showCart   by remember { mutableStateOf(preSelectedProduct != null) }
 
     LaunchedEffect(Unit) { productViewModel.loadProducts() }
 
@@ -160,8 +173,9 @@ fun ChargementFormScreen(
                 ) {
                     items(cartItems, key = { "cart_${it.product.id}" }) { item ->
                         ChargementCartRow(
-                            item             = item,
-                            onQuantityChange = { newTarget ->
+                            item              = item,
+                            initiallyExpanded = preSelectedProduct?.id == item.product.id,
+                            onQuantityChange  = { newTarget ->
                                 cartItems = cartItems.map {
                                     if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0.0)) else it
                                 }
@@ -298,6 +312,12 @@ fun ChargementFormScreen(
                         .padding(DsSpacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val bitmap = remember(product.image_uri) {
+                        product.image_uri?.let { uri ->
+                            val imageBytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
+                            BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        }
+                    }
                     Box(
                         modifier = Modifier
                             .size(42.dp)
@@ -305,12 +325,16 @@ fun ChargementFormScreen(
                             .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            if (isInCart) Icons.Default.Check else Icons.Default.Inventory2,
-                            contentDescription = null,
-                            tint     = if (isInCart) DsColors.Primary else DsColors.TextSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        when {
+                            isInCart -> Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            bitmap != null -> Image(
+                                bitmap             = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
+                                contentScale       = ContentScale.Crop
+                            )
+                            else -> Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+                        }
                     }
 
                     Spacer(Modifier.width(DsSpacing.sm))
@@ -410,11 +434,12 @@ internal fun formatQty(v: Double): String =
 
 @Composable
 private fun ChargementCartRow(
-    item             : ChargementCartItem,
-    onQuantityChange : (Double) -> Unit,
-    onRemove         : () -> Unit
+    item              : ChargementCartItem,
+    onQuantityChange  : (Double) -> Unit,
+    onRemove          : () -> Unit,
+    initiallyExpanded : Boolean = false
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     val delta         = item.targetCamion - item.product.camion_stock
     val depotPreview  = item.product.stock - item.targetCamion   // stock = total désormais
     val subtitle = when {
@@ -438,11 +463,26 @@ private fun ChargementCartRow(
                 .padding(DsSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val bitmap = remember(item.product.image_uri) {
+                item.product.image_uri?.let { uri ->
+                    val imageBytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
+                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                }
+            }
             Box(
                 modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                if (bitmap != null) {
+                    Image(
+                        bitmap             = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
+                        contentScale       = ContentScale.Crop
+                    )
+                } else {
+                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                }
             }
             Spacer(Modifier.width(DsSpacing.sm))
             Column(modifier = Modifier.weight(1f)) {

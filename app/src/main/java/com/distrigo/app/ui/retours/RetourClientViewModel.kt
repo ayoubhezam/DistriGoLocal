@@ -1,0 +1,109 @@
+package com.distrigo.app.ui.retours
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.model.Client
+import com.distrigo.app.data.model.Product
+import com.distrigo.app.data.model.RetourClient
+import com.distrigo.app.data.repository.ProductRepository
+import com.distrigo.app.data.repository.RetourClientRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class RetourClientViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = AppDatabase.getDatabase(application)
+    private val repository        = RetourClientRepository(db)
+    private val productRepository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+
+    private val _retours = MutableStateFlow<List<RetourClient>>(emptyList())
+    val retours: StateFlow<List<RetourClient>> = _retours
+
+    private val _products = MutableStateFlow<List<Product>>(emptyList())
+    val products: StateFlow<List<Product>> = _products
+
+    private val _clients = MutableStateFlow<List<Client>>(emptyList())
+    val clients: StateFlow<List<Client>> = _clients
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
+    fun loadRetours() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                _retours.value = repository.getRetours()
+                _error.value = null
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadProducts() {
+        viewModelScope.launch {
+            try {
+                _products.value = productRepository.getProducts()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun loadClients() {
+        viewModelScope.launch {
+            try {
+                _clients.value = productRepository.getClients()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun createRetour(
+        clientId  : Int,
+        date      : String,
+        motif     : String?,
+        note      : String?,
+        items     : List<Map<String, Any?>>,
+        userName  : String? = null,
+        onSuccess : () -> Unit,
+        onError   : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = repository.createRetour(clientId, null, date, motif, note, items, userName)
+            if (result.containsKey("error")) {
+                onError(result["error"] as String)
+            } else {
+                loadRetours()
+                loadProducts()
+                onSuccess()
+            }
+        }
+    }
+
+    fun deleteRetour(
+        id        : Int,
+        onSuccess : () -> Unit,
+        onError   : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = repository.deleteRetour(id)
+            if (result.containsKey("error")) {
+                onError(result["error"] as String)
+            } else {
+                loadRetours()
+                loadProducts()
+                onSuccess()
+            }
+        }
+    }
+}

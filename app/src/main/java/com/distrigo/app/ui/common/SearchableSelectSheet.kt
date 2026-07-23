@@ -42,6 +42,7 @@ fun <T> SearchableSelectSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = DsSpacing.md)
                 .padding(bottom = DsSpacing.lg)
         ) {

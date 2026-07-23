@@ -3,9 +3,11 @@ package com.distrigo.app.ui.tournees
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.ui.chargements.ChargementFormScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -29,8 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 @Composable
 fun StockCamionScreen(
-    onBack           : () -> Unit,
-    productViewModel : com.distrigo.app.ui.products.ProductViewModel =
+    onBack             : () -> Unit,
+    onFullScreenChange : (Boolean) -> Unit = {},
+    productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     LaunchedEffect(Unit) { productViewModel.loadProducts() }
@@ -40,94 +44,183 @@ fun StockCamionScreen(
 
     var search by remember { mutableStateOf("") }
 
+    var showNewChargement by remember { mutableStateOf(false) }
+    var editingProduct    by remember { mutableStateOf<Product?>(null) }
+    var longPressProduct  by remember { mutableStateOf<Product?>(null) }
+
     val camionProducts = products.filter { it.camion_stock > 0 }
     val filtered = camionProducts.filter { it.name.contains(search, ignoreCase = true) }
 
     val totalQuantity = camionProducts.sumOf { it.camion_stock }
+
+    // ── New Chargement Screen (multi-produits) ──
+    if (showNewChargement) {
+        onFullScreenChange(true)
+        ChargementFormScreen(
+            onBack  = { showNewChargement = false; onFullScreenChange(false) },
+            onSaved = {
+                showNewChargement = false
+                onFullScreenChange(false)
+                productViewModel.loadProducts()
+            }
+        )
+        return
+    }
+
+    // ── Modifier Screen (produit unique pré-sélectionné) ──
+    editingProduct?.let { product ->
+        onFullScreenChange(true)
+        ChargementFormScreen(
+            preSelectedProduct = product,
+            onBack  = { editingProduct = null; onFullScreenChange(false) },
+            onSaved = {
+                editingProduct = null
+                onFullScreenChange(false)
+                productViewModel.loadProducts()
+            }
+        )
+        return
+    }
+
+    // ── Long Press Dialog ──
+    longPressProduct?.let { product ->
+        AlertDialog(
+            onDismissRequest = { longPressProduct = null },
+            title = { Text(product.name, maxLines = 1) },
+            confirmButton = {},
+            dismissButton = {},
+            shape = DsShapes.medium,
+            containerColor = DsColors.Surface,
+            text = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.medium)
+                        .background(DsColors.PrimaryLight)
+                        .combinedClickable(
+                            onClick = {
+                                editingProduct  = product
+                                longPressProduct = null
+                            }
+                        )
+                        .padding(DsSpacing.md),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                    Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                }
+            }
+        )
+    }
+
     BackHandler { onBack() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DsColors.Surface)
-    ) {
-        // ── Header ──
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DsColors.Surface)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+            // ── Header ──
+            Row(
+                modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                }
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text(
+                    "Stock Camion",
+                    fontSize   = DsTextSize.title,
+                    fontWeight = FontWeight.Bold,
+                    color      = DsColors.TextPrimary
+                )
             }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                "Stock Camion",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Search ──
+            OutlinedTextField(
+                value         = search,
+                onValueChange = { search = it },
+                placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
+                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                shape         = DsShapes.large,
+                singleLine    = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = DsColors.Border,
+                    focusedBorderColor   = DsColors.Primary
+                )
             )
+
+            Spacer(Modifier.height(DsSpacing.sm))
+
+            when {
+                isLoading && products.isEmpty() -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = DsColors.Primary)
+                    }
+                }
+                filtered.isEmpty() -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Inventory2,
+                                contentDescription = null,
+                                tint     = DsColors.TextTertiary,
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(Modifier.height(DsSpacing.sm))
+                            Text("Aucun produit dans le camion", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                    ) {
+                        items(filtered, key = { it.id }) { product ->
+                            StockCamionProductRow(
+                                product     = product,
+                                onLongClick = { longPressProduct = product }
+                            )
+                        }
+                        item { Spacer(Modifier.height(72.dp)) }
+                    }
+                }
+            }
         }
-        Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Search ──
-        OutlinedTextField(
-            value         = search,
-            onValueChange = { search = it },
-            placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
-            leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-            modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape         = DsShapes.large,
-            singleLine    = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor   = DsColors.Primary
-            )
-        )
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        when {
-            isLoading && products.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DsColors.Primary)
-                }
-            }
-            filtered.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Inventory2,
-                            contentDescription = null,
-                            tint     = DsColors.TextTertiary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text("Aucun produit dans le camion", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-            else -> {
-                LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    items(filtered, key = { it.id }) { product ->
-                        StockCamionProductRow(product = product)
-                    }
-                }
-            }
+        // ── FAB: ajouter plusieurs produits ──
+        FloatingActionButton(
+            onClick         = { showNewChargement = true },
+            containerColor  = DsColors.Primary,
+            contentColor    = Color.White,
+            modifier        = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(DsSpacing.lg)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Ajouter des produits")
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StockCamionProductRow(product: Product) {
+private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large)
+            .combinedClickable(
+                onClick     = {},
+                onLongClick = onLongClick
+            )
             .padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -135,17 +228,20 @@ private fun StockCamionProductRow(product: Product) {
             modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.SurfaceMuted),
             contentAlignment = Alignment.Center
         ) {
-            if (product.image_uri != null) {
-                val imageBytes = Base64.decode(product.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
-                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                bitmap?.let {
-                    Image(
-                        bitmap             = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
-                        contentScale       = ContentScale.Crop
-                    )
+            // ── بعد ──
+            val bitmap = remember(product.image_uri) {
+                product.image_uri?.let { uri ->
+                    val imageBytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
+                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                 }
+            }
+            if (bitmap != null) {
+                Image(
+                    bitmap             = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
+                    contentScale       = ContentScale.Crop
+                )
             } else {
                 Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
             }

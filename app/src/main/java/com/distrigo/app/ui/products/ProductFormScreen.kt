@@ -52,8 +52,8 @@ fun ProductFormScreen(
     var purchasePrice by remember { mutableStateOf(if (isEdit) product!!.purchase_price.toString() else "") }
     var packages      by remember { mutableStateOf(if (isEdit) product!!.packages.toString() else "") }
     var packSize      by remember { mutableStateOf(if (isEdit) product!!.pack_size.toString() else "") }
-    var minStock      by remember { mutableStateOf(if (isEdit) product!!.min_stock.toString() else "10") }
-    var unitType      by remember { mutableStateOf(if (isEdit) product!!.unit_type else "pièce") }
+    var minStock      by remember { mutableStateOf(if (isEdit) product!!.min_stock.toString() else "0") }
+    var unitType      by remember { mutableStateOf(if (isEdit) product!!.unit_type else "carton") }
     var hasExpiry     by remember { mutableStateOf(if (isEdit) product!!.has_expiry == 1 else false) }
     var expiryDate    by remember { mutableStateOf(if (isEdit) product?.expiry_date ?: "" else "") }
     var imageBase64   by remember { mutableStateOf<String?>(if (isEdit) product!!.image_uri else null) }
@@ -663,7 +663,7 @@ fun ProductFormScreen(
             label         = "Stock minimum",
             value         = minStock,
             onValueChange = { minStock = it },
-            placeholder   = "10",
+            placeholder   = "0",
             isNumber      = true,
             imeAction     = ImeAction.Done
         )
@@ -682,7 +682,7 @@ fun ProductFormScreen(
                 Text("Unité de stockage", fontSize = 12.sp, color = TextMuted)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("pièce", "carton").forEach { unit ->
+                    listOf("carton", "pièce").forEach { unit ->
                         val active = unitType == unit
                         Box(
                             modifier = Modifier

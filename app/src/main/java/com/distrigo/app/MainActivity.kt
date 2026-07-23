@@ -66,11 +66,7 @@ class MainActivity : ComponentActivity() {
                                 icon   = Icons.Default.BarChart,
                                 onBack = { moreScreen = null }
                             )
-                            "stock_inventaire" -> PlaceholderScreen(
-                                title  = "Stock & Inventaire",
-                                icon   = Icons.Default.Inventory2,
-                                onBack = { moreScreen = null }
-                            )
+
                             "parametres" -> com.distrigo.app.ui.settings.ParametresScreen(
                                 onBack = { moreScreen = null }
                             )

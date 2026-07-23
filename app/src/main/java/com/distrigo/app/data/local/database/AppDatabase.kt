@@ -36,6 +36,61 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
     }
 }
 
+val MIGRATION_26_27 = object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `retour_fournisseur` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `supplier_id` INTEGER NOT NULL,
+                `date` TEXT NOT NULL,
+                `motif` TEXT,
+                `note` TEXT,
+                `total` REAL NOT NULL,
+                `created_at` TEXT NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `retour_fournisseur_items` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `retour_id` INTEGER NOT NULL,
+                `product_id` INTEGER NOT NULL,
+                `product_name` TEXT NOT NULL,
+                `unit_type` TEXT NOT NULL,
+                `quantity` REAL NOT NULL,
+                `unit_price` REAL NOT NULL,
+                `total_price` REAL NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `retour_client` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `client_id` INTEGER NOT NULL,
+                `tournee_id` INTEGER,
+                `date` TEXT NOT NULL,
+                `motif` TEXT,
+                `note` TEXT,
+                `total` REAL NOT NULL,
+                `created_at` TEXT NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `retour_client_items` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `retour_id` INTEGER NOT NULL,
+                `product_id` INTEGER NOT NULL,
+                `product_name` TEXT NOT NULL,
+                `unit_type` TEXT NOT NULL,
+                `quantity` REAL NOT NULL,
+                `unit_price` REAL NOT NULL,
+                `total_price` REAL NOT NULL
+            )
+        """.trimIndent())
+    }
+}
+
 @Database(
     entities = [
         ProductEntity::class,
@@ -65,8 +120,12 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
         InventoryItemEntity::class,
         StockMovementEntity::class,
         SecteurEntity::class,
+        RetourFournisseurEntity::class,
+        RetourFournisseurItemEntity::class,
+        RetourClientEntity::class,
+        RetourClientItemEntity::class,
     ],
-    version = 26,
+    version = 27,
     exportSchema = false
 )
 
@@ -97,6 +156,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun secteurDao(): SecteurDao
 
+    abstract fun retourFournisseurDao(): RetourFournisseurDao
+    abstract fun retourClientDao(): RetourClientDao
+
 
 
     companion object {
@@ -110,7 +172,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    .addMigrations(MIGRATION_24_25)
+                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

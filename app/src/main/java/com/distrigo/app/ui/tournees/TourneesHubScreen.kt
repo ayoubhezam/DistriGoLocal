@@ -37,25 +37,29 @@ fun TourneesHubScreen(
         BackHandler { currentScreen = "hub" }
         TourneesScreen(
             onFullScreenChange = onFullScreenChange,
-            onNavigateToChargement = { currentScreen = "chargement" }
+            onNavigateToChargement = { currentScreen = "stock_camion" }
         )
         return
     }
 
     if (currentScreen == "stock_camion") {
         BackHandler { currentScreen = "hub" }
-        StockCamionScreen(onBack = { currentScreen = "hub" })
-        return
-    }
-
-    if (currentScreen == "chargement") {
-        BackHandler { currentScreen = "hub" }
-        com.distrigo.app.ui.chargements.ChargementSessionsScreen(onFullScreenChange = onFullScreenChange)
+        StockCamionScreen(
+            onBack             = { currentScreen = "hub" },
+            onFullScreenChange = onFullScreenChange
+        )
         return
     }
     if (currentScreen == "rapport") {
         BackHandler { currentScreen = "hub" }
         com.distrigo.app.ui.screens.rapport.RapportTourneesScreen(
+            onBack = { currentScreen = "hub" }
+        )
+        return
+    }
+    if (currentScreen == "retours_client") {
+        BackHandler { currentScreen = "hub" }
+        com.distrigo.app.ui.retours.RetourClientListScreen(
             onBack = { currentScreen = "hub" }
         )
         return
@@ -141,12 +145,12 @@ fun TourneesHubScreen(
                 onClick     = { currentScreen = "stock_camion" }
             )
             HubNavCard(
-                icon        = Icons.Default.SwapVert,
-                iconBg      = DsColors.WarningLight,
-                iconTint    = DsColors.Warning,
-                title       = "Chargement",
-                subtitle    = "Gérer le chargement et déchargement des camions",
-                onClick     = { currentScreen = "chargement" }
+                icon        = Icons.Default.AssignmentReturn,
+                iconBg      = DsColors.DangerLight,
+                iconTint    = DsColors.Danger,
+                title       = "Retours client",
+                subtitle    = "Enregistrer les produits retournés par un client",
+                onClick     = { currentScreen = "retours_client" }
             )
             HubNavCard(
                 icon        = Icons.Default.PieChart,
