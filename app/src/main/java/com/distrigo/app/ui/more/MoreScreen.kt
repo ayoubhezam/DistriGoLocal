@@ -29,7 +29,6 @@ private data class MoreMenuEntry(
 )
 
 private val MORE_MENU_ENTRIES = listOf(
-    MoreMenuEntry(Icons.Default.Storefront, "Dépôt Vente", "Ventes depuis le dépôt", Color(0xFF2196F3), "depot_vente"),
     MoreMenuEntry(Icons.Default.People, "Clients", "Gérer vos clients et leurs comptes", Color(0xFFFF9800), "clients"),
     MoreMenuEntry(Icons.Default.Business, "Fournisseurs", "Gérer vos fournisseurs", Color(0xFF4CAF50), "fournisseurs"),
     MoreMenuEntry(Icons.Default.BarChart, "Rapports", "Statistiques et performances", Color(0xFFE91E63), "rapports"),

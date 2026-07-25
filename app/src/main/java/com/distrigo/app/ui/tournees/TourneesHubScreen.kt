@@ -33,6 +33,12 @@ fun TourneesHubScreen(
     LaunchedEffect(Unit) { tourneeViewModel.loadTournees() }
     val tournees by tourneeViewModel.tournees.collectAsState()
 
+    if (currentScreen == "depot_vente") {
+        BackHandler { currentScreen = "hub" }
+        com.distrigo.app.ui.ventes.VentesScreen(onFullScreenChange = onFullScreenChange)
+        return
+    }
+
     if (currentScreen == "tournees") {
         BackHandler { currentScreen = "hub" }
         TourneesScreen(
@@ -57,14 +63,6 @@ fun TourneesHubScreen(
         )
         return
     }
-    if (currentScreen == "retours_client") {
-        BackHandler { currentScreen = "hub" }
-        com.distrigo.app.ui.retours.RetourClientListScreen(
-            onBack = { currentScreen = "hub" }
-        )
-        return
-    }
-
     val activeTournees = tournees.count { it.status == "ouverte" }
     val closedTournees = tournees.count { it.status == "fermée" }
     val totalRevenue   = tournees.sumOf { it.total_ventes ?: 0.0 }
@@ -86,8 +84,8 @@ fun TourneesHubScreen(
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column {
-                Text("Tournées", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text("Gérez vos tournées et vos opérations", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text("Ventes", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text("Gérez vos ventes et vos opérations", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
 
@@ -129,6 +127,14 @@ fun TourneesHubScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             HubNavCard(
+                icon        = Icons.Default.Storefront,
+                iconBg      = DsColors.WarningLight,
+                iconTint    = DsColors.Warning,
+                title       = "Dépôt Vente",
+                subtitle    = "Ventes depuis le dépôt",
+                onClick     = { currentScreen = "depot_vente" }
+            )
+            HubNavCard(
                 icon        = Icons.Default.LocalShipping,
                 iconBg      = DsColors.PrimaryLight,
                 iconTint    = DsColors.Primary,
@@ -145,18 +151,10 @@ fun TourneesHubScreen(
                 onClick     = { currentScreen = "stock_camion" }
             )
             HubNavCard(
-                icon        = Icons.Default.AssignmentReturn,
-                iconBg      = DsColors.DangerLight,
-                iconTint    = DsColors.Danger,
-                title       = "Retours client",
-                subtitle    = "Enregistrer les produits retournés par un client",
-                onClick     = { currentScreen = "retours_client" }
-            )
-            HubNavCard(
                 icon        = Icons.Default.PieChart,
                 iconBg      = DsColors.PrimaryLight,
                 iconTint    = DsColors.Primary,
-                title       = "Rapport des tournées",
+                title       = "Rapports",
                 subtitle    = "Analysez vos performances de vente",
                 onClick     = { currentScreen = "rapport" }
             )

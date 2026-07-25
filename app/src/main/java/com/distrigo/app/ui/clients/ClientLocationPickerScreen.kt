@@ -41,6 +41,17 @@ import androidx.activity.result.IntentSenderRequest
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationSettingsRequest
+import androidx.compose.runtime.rememberCoroutineScope
+import com.distrigo.app.ui.common.OfflineMapBadge
+import com.distrigo.app.ui.common.rememberIsOnline
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
 /**
  * مصدر صور الأقمار الصناعية من Esri World Imagery — مجاني بالكامل وبدون مفتاح API.
  * ملاحظة: ترتيب المسار عند Esri هو z/y/x (وليس z/x/y كما في Mapnik)، لذا نُعيد كتابة
@@ -71,10 +82,16 @@ fun ClientLocationPickerScreen(
     val defaultLat = initialLatitude ?: 36.7538
     val defaultLng = initialLongitude ?: 3.0588
 
+    val isOnline by rememberIsOnline()
+    val scope = rememberCoroutineScope()
+
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(defaultLat, defaultLng), 17f)
+    }
+
     var isLocating by remember { mutableStateOf(false) }
     var locationError by remember { mutableStateOf("") }
-    var isSatelliteView by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
@@ -97,7 +114,15 @@ fun ClientLocationPickerScreen(
                 .addOnSuccessListener { location ->
                     isLocating = false
                     if (location != null) {
-                        mapViewRef?.controller?.animateTo(GeoPoint(location.latitude, location.longitude))
+                        if (isOnline) {
+                            scope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLng(LatLng(location.latitude, location.longitude))
+                                )
+                            }
+                        } else {
+                            mapViewRef?.controller?.animateTo(GeoPoint(location.latitude, location.longitude))
+                        }
                     } else {
                         locationError = "Position indisponible. Activez le GPS."
                     }
@@ -112,55 +137,9 @@ fun ClientLocationPickerScreen(
         }
     }
 
-
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = "Permission refusée." }
-
-    val gpsSettingsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            centerOnHighAccuracyGps()
-        } else {
-            locationError = "Le GPS doit être activé pour une localisation précise."
-        }
-    }
-
-    fun checkGpsAndLocate() {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!hasPermission) {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            return
-        }
-
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L).build()
-        val settingsRequest = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest)
-            .setAlwaysShow(true)
-            .build()
-
-        LocationServices.getSettingsClient(context)
-            .checkLocationSettings(settingsRequest)
-            .addOnSuccessListener {
-                centerOnHighAccuracyGps()
-            }
-            .addOnFailureListener { exception ->
-                if (exception is ResolvableApiException) {
-                    try {
-                        val intentSenderRequest = IntentSenderRequest.Builder(exception.resolution).build()
-                        gpsSettingsLauncher.launch(intentSenderRequest)
-                    } catch (sendEx: IntentSender.SendIntentException) {
-                        locationError = "Impossible d'activer le GPS."
-                    }
-                } else {
-                    locationError = "GPS indisponible sur cet appareil."
-                }
-            }
-    }
-
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
         Row(
@@ -175,23 +154,27 @@ fun ClientLocationPickerScreen(
         }
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            AndroidView(
-                factory = { ctx ->
-                    MapView(ctx).apply {
-                        setTileSource(EsriWorldImageryTileSource)
-                        setMultiTouchControls(true)
-                        controller.setZoom(18.0)
-                        controller.setCenter(GeoPoint(defaultLat, defaultLng))
-                        mapViewRef = this
-                    }
-                },
-                update = { mapView ->
-                    mapView.setTileSource(
-                        if (isSatelliteView) EsriWorldImageryTileSource else TileSourceFactory.MAPNIK
-                    )
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            if (isOnline) {
+                GoogleMap(
+                    modifier            = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState,
+                    properties          = MapProperties(isMyLocationEnabled = false),
+                    uiSettings          = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
+                )
+            } else {
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            controller.setZoom(17.0)
+                            controller.setCenter(GeoPoint(defaultLat, defaultLng))
+                            mapViewRef = this
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             Icon(
                 Icons.Default.MyLocation,
@@ -199,21 +182,19 @@ fun ClientLocationPickerScreen(
                 tint     = DsColors.Danger,
                 modifier = Modifier.align(Alignment.Center).size(36.dp)
             )
-            Button(
-                onClick  = { isSatelliteView = !isSatelliteView },
-                modifier = Modifier.align(Alignment.TopEnd).padding(DsSpacing.lg),
-                shape    = DsShapes.pill,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Surface, contentColor = DsColors.TextPrimary)
-            ) {
-                Text(
-                    if (isSatelliteView) "Vue plan" else "Vue satellite",
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold
-                )
+
+            if (!isOnline) {
+                OfflineMapBadge(modifier = Modifier.align(Alignment.TopStart).padding(DsSpacing.md))
             }
 
             Button(
-                onClick  = { checkGpsAndLocate() },
+                onClick  = {
+                    val hasPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) centerOnHighAccuracyGps()
+                    else locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                },
                 enabled  = !isLocating,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(DsSpacing.lg),
                 shape    = DsShapes.pill,
@@ -247,8 +228,13 @@ fun ClientLocationPickerScreen(
 
         Button(
             onClick = {
-                mapViewRef?.mapCenter?.let { center ->
-                    onLocationSelected(center.latitude, center.longitude)
+                if (isOnline) {
+                    val target = cameraPositionState.position.target
+                    onLocationSelected(target.latitude, target.longitude)
+                } else {
+                    mapViewRef?.mapCenter?.let { center ->
+                        onLocationSelected(center.latitude, center.longitude)
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),

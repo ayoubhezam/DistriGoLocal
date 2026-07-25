@@ -1,3 +1,11 @@
+
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,6 +25,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {
@@ -68,7 +77,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
-
+    implementation("com.google.maps.android:maps-compose:6.5.0")
     // Barcode scanning
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("androidx.camera:camera-core:1.6.1")

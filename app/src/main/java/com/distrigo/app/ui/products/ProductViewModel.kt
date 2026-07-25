@@ -174,7 +174,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun addSupplierAndRefresh(
         name      : String,
-        phone     : String,
+        phone     : String?,
         onSuccess : (Int) -> Unit
     ) {
         viewModelScope.launch {

@@ -318,6 +318,15 @@ fun ClientDetailScreen(
         )
     }
 
+    // ── Tab 2: Retours (écran plein, comme les sous-écrans de SupplierDetailScreen) ──
+    if (selectedTab == 2) {
+        com.distrigo.app.ui.retours.RetourClientListScreen(
+            client = currentClient,
+            onBack = { selectedTab = 0 }
+        )
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -511,7 +520,8 @@ fun ClientDetailScreen(
                 ) {
                     listOf(
                         Pair("Infos", Icons.Default.Info),
-                        Pair("Factures &\nPaiements", Icons.Default.Receipt)
+                        Pair("Factures &\nPaiements", Icons.Default.Receipt),
+                        Pair("Retours", Icons.Default.AssignmentReturn)
                     ).forEachIndexed { index, (label, icon) ->
                         val active = selectedTab == index
                         Box(

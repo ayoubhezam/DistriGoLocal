@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -31,10 +32,12 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 
 @Composable
 fun RetourClientListScreen(
+    client    : Client,
     viewModel : RetourClientViewModel = viewModel(),
     onBack    : () -> Unit
 ) {
-    val retours by viewModel.retours.collectAsState()
+    val allRetours by viewModel.retours.collectAsState()
+    val retours = allRetours.filter { it.client_id == client.id }
 
     var showForm by remember { mutableStateOf(false) }
     var search   by remember { mutableStateOf("") }
@@ -44,9 +47,10 @@ fun RetourClientListScreen(
     if (showForm) {
         BackHandler { showForm = false }
         RetourClientFormScreen(
-            viewModel = viewModel,
-            onBack    = { showForm = false },
-            onSaved   = { showForm = false }
+            viewModel         = viewModel,
+            preSelectedClient = client,
+            onBack            = { showForm = false },
+            onSaved           = { showForm = false }
         )
         return
     }

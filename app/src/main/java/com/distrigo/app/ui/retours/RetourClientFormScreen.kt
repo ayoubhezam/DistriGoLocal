@@ -31,7 +31,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.lazy.stickyHeader
 
 internal val RETOUR_CLIENT_MOTIFS = listOf(
     "Produit défectueux",
@@ -45,15 +44,16 @@ internal val RETOUR_CLIENT_MOTIFS = listOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun RetourClientFormScreen(
-    viewModel : RetourClientViewModel = viewModel(),
-    onBack    : () -> Unit,
-    onSaved   : () -> Unit
+    viewModel         : RetourClientViewModel = viewModel(),
+    preSelectedClient : Client? = null,
+    onBack            : () -> Unit,
+    onSaved           : () -> Unit
 ) {
     val products by viewModel.products.collectAsState()
     val clients  by viewModel.clients.collectAsState()
 
-    var currentStep     by remember { mutableStateOf(1) }
-    var selectedClient   by remember { mutableStateOf<Client?>(null) }
+    var currentStep     by remember { mutableStateOf(if (preSelectedClient != null) 2 else 1) }
+    var selectedClient   by remember { mutableStateOf(preSelectedClient) }
     var selectedDate      by remember { mutableStateOf(LocalDate.now()) }
     var motif               by remember { mutableStateOf<String?>(null) }
     var note                  by remember { mutableStateOf("") }
@@ -173,7 +173,7 @@ fun RetourClientFormScreen(
     fun goBack() {
         when (currentStep) {
             3    -> currentStep = 2
-            2    -> currentStep = 1
+            2    -> if (preSelectedClient != null) onBack() else currentStep = 1
             else -> onBack()
         }
     }

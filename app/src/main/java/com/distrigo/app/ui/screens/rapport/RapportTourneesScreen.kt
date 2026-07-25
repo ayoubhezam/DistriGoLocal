@@ -124,7 +124,7 @@ private fun RapportTopBar(
             )
         }
         Text(
-            text = "Rapport des tournées",
+            text = "Rapports",
             fontSize = DsTextSize.title,
             fontWeight = FontWeight.SemiBold,
             color = DsColors.TextPrimary,

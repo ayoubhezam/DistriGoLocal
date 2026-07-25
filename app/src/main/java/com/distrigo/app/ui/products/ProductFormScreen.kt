@@ -341,10 +341,10 @@ fun ProductFormScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newSupplierName.isNotBlank() && newSupplierPhone.isNotBlank()) {
+                    if (newSupplierName.isNotBlank()) {
                         viewModel.addSupplierAndRefresh(
                             name      = newSupplierName.trim(),
-                            phone     = newSupplierPhone.trim(),
+                            phone     = newSupplierPhone.trim().ifEmpty { null },
                             onSuccess = { id ->
                                 selectedSupplierId    = id
                                 showAddSupplierDialog = false

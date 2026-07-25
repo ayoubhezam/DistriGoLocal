@@ -34,7 +34,6 @@ import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.tournees.TourneesHubScreen
-import com.distrigo.app.ui.ventes.VentesScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +51,6 @@ class MainActivity : ComponentActivity() {
                             moreScreen = null
                         }
                         when (screen) {
-                            "depot_vente"  -> VentesScreen(onFullScreenChange = { hideBottomBar = it })
                             "clients"      -> ClientsScreen(onFullScreenChange = { hideBottomBar = it })
                             "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
                             "charges" -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
@@ -107,7 +105,7 @@ class MainActivity : ComponentActivity() {
                                         BottomNavItem(
                                             selected = selectedTab == 1,
                                             icon     = Icons.Default.LocalShipping,
-                                            label    = "Tournées",
+                                            label    = "Ventes",
                                             onClick  = { selectedTab = 1 }
                                         )
                                         BottomNavItem(
