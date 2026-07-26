@@ -4,47 +4,85 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
-
-/**
- * محتوى تبويب "Rapport des ventes".
- * تقرير رسمي بلا Insight/Trend/Drill-down — بيانات ثابتة تجريبية حاليًا (sampleRapportVentesData).
- */
+import com.distrigo.app.ui.designsystem.DsTextSize
+import kotlin.math.roundToInt
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 @Composable
-fun RapportVentesTab(modifier: Modifier = Modifier) {
-    val selectedPeriod = remember { mutableStateOf(ReportPeriod.SEMAINE) }
-    val uiState: RapportVentesUiState = remember {
-        RapportVentesUiState.Content(sampleRapportVentesData())
+fun RapportVentesTab(
+    modifier: Modifier = Modifier,
+    viewModel: RapportVentesViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val selectedPeriod by viewModel.selectedPeriod.collectAsState()
+    var drillDown by remember { mutableStateOf<VentesDrillDown>(VentesDrillDown.None) }
+
+    BackHandler(enabled = drillDown != VentesDrillDown.None) {
+        drillDown = when (val d = drillDown) {
+            is VentesDrillDown.Secteurs -> VentesDrillDown.Communes(d.wilaya)
+            is VentesDrillDown.Communes -> VentesDrillDown.None
+            VentesDrillDown.None -> VentesDrillDown.None
+        }
     }
 
-    when (uiState) {
-        is RapportVentesUiState.Loading -> {
-            // TODO: حالة تحميل
+    when (val d = drillDown) {
+        is VentesDrillDown.Communes -> {
+            GeoDrillDownScreen(
+                title = d.wilaya.name,
+                items = d.wilaya.communes,
+                onBack = { drillDown = VentesDrillDown.None },
+                onItemClick = { commune -> drillDown = VentesDrillDown.Secteurs(d.wilaya, commune) },
+                modifier = modifier
+            )
+            return
         }
+        is VentesDrillDown.Secteurs -> {
+            GeoDrillDownScreen(
+                title = d.commune.name,
+                items = d.commune.secteurs,
+                onBack = { drillDown = VentesDrillDown.Communes(d.wilaya) },
+                onItemClick = null,
+                modifier = modifier
+            )
+            return
+        }
+        VentesDrillDown.None -> Unit
+    }
+
+    when (val state = uiState) {
+        is RapportVentesUiState.Loading -> { /* TODO */ }
         is RapportVentesUiState.Empty -> {
             RapportVentesEmptyState(
-                selectedPeriod = selectedPeriod.value,
-                onPeriodSelected = { selectedPeriod.value = it },
+                selectedPeriod = selectedPeriod,
+                periodeLabel = state.periodeLabel,
+                onPeriodSelected = viewModel::onPeriodSelected,
+                onCustomRangeSelected = viewModel::onCustomRangeSelected,
                 modifier = modifier
             )
         }
         is RapportVentesUiState.Content -> {
             RapportVentesContent(
-                data = uiState.data,
-                selectedPeriod = selectedPeriod.value,
-                onPeriodSelected = { selectedPeriod.value = it },
-                onPrintClick = { /* TODO: ربط بنظام الطباعة عند بناء طبقة البيانات */ },
-                onExportPdfClick = { /* TODO */ },
+                data = state.data,
+                selectedPeriod = selectedPeriod,
+                onPeriodSelected = viewModel::onPeriodSelected,
+                onCustomRangeSelected = viewModel::onCustomRangeSelected,
+                onWilayaClick = { wilaya -> drillDown = VentesDrillDown.Communes(wilaya) },
                 modifier = modifier
             )
         }
@@ -56,152 +94,125 @@ private fun RapportVentesContent(
     data: RapportVentesData,
     selectedPeriod: ReportPeriod,
     onPeriodSelected: (ReportPeriod) -> Unit,
-    onPrintClick: () -> Unit,
-    onExportPdfClick: () -> Unit,
+    onCustomRangeSelected: (java.time.LocalDate, java.time.LocalDate) -> Unit,
+    onWilayaClick: (com.distrigo.app.data.model.report.WilayaBreakdown) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(DsColors.SurfaceMuted),
+        modifier = modifier.fillMaxSize().background(DsColors.SurfaceMuted),
         contentPadding = PaddingValues(bottom = DsSpacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(DsSpacing.xxl)
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.lg)
     ) {
-        item {
-            PeriodSelectorChips(
+        item(key = "period") {
+            VentesPeriodSection(
                 selectedPeriod = selectedPeriod,
+                periodeLabel = data.periodeLabel,
                 onPeriodSelected = onPeriodSelected,
+                onCustomRangeSelected = onCustomRangeSelected,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
             )
         }
-
-        item(key = "header") {
-            ReportHeaderCard(
-                periodeLabel = data.periodeLabel,
-                genereLeLabel = data.genereLeLabel,
-                modifier = Modifier.padding(horizontal = DsSpacing.lg)
-            )
-        }
-
-        item(key = "primary_metrics") {
-            Row(
-                modifier = Modifier.padding(horizontal = DsSpacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-            ) {
-                StatCard(
-                    icon = Icons.Filled.AccountBalanceWallet,
-                    iconTint = DsColors.Primary,
-                    iconBg = DsColors.PrimaryLight,
-                    value = formatCurrency(data.chiffreAffaires),
-                    label = "Chiffre d'affaires",
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    icon = Icons.Filled.ShoppingCart,
-                    iconTint = DsColors.Primary,
-                    iconBg = DsColors.PrimaryLight,
-                    value = formatCurrency(data.panierMoyen),
-                    label = "Panier moyen",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        item(key = "activite_section") {
+        item(key = "kpis") {
             Column(
                 modifier = Modifier.padding(horizontal = DsSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
             ) {
-                SectionHeader("Activité commerciale")
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                     StatCard(
-                        icon = Icons.Filled.Receipt,
-                        iconTint = DsColors.Primary,
-                        iconBg = DsColors.PrimaryLight,
-                        value = data.nombreTickets.toString(),
-                        label = "Nombre de tickets",
+                        icon = Icons.Filled.TrendingUp,
+                        iconTint = DsColors.Success,
+                        iconBg = DsColors.SuccessLight,
+                        value = formatCurrency(data.chiffreAffairesTotal.roundToInt()),
+                        label = "Chiffre d'affaires total",
+                        trend = data.chiffreAffairesTotalTrend,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
-                        icon = Icons.Filled.Inventory2,
+                        icon = Icons.Filled.ShoppingCart,
                         iconTint = DsColors.Primary,
                         iconBg = DsColors.PrimaryLight,
-                        value = data.produitsVendus.toString(),
-                        label = "Produits vendus",
+                        value = formatCurrency(data.panierMoyen.roundToInt()),
+                        label = "Panier moyen",
+                        trend = data.panierMoyenTrend,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                    StatCard(
+                        icon = Icons.Filled.BarChart,
+                        iconTint = DsColors.Primary,
+                        iconBg = DsColors.PrimaryLight,
+                        value = formatCurrency(data.chiffreAffairesMoyenParJour.roundToInt()),
+                        label = "CA moyen / jour",
+                        trend = data.chiffreAffairesMoyenParJourTrend,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        icon = Icons.Filled.Receipt,
+                        iconTint = DsColors.Warning,
+                        iconBg = DsColors.WarningLight,
+                        value = data.nombreTickets.toString(),
+                        label = "Nombre de tickets",
+                        trend = data.nombreTicketsTrend,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
 
-        item(key = "couverture_section") {
-            Column(
-                modifier = Modifier.padding(horizontal = DsSpacing.lg),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-            ) {
-                SectionHeader("Couverture clients")
-                StatCard(
-                    icon = Icons.Filled.Groups,
-                    iconTint = DsColors.Primary,
-                    iconBg = DsColors.PrimaryLight,
-                    value = data.clientsVisites.toString(),
-                    label = "Clients visités",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                ClientsCoverageBar(
-                    clientsAvecVente = data.clientsAvecVente,
-                    clientsSansVente = data.clientsSansVente,
-                    avecFraction = data.avecVenteFraction
-                )
-            }
+        item(key = "evolution") {
+            SalesEvolutionChart(
+                points = data.salesEvolution,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+            )
         }
 
-        item(key = "export_actions") {
-            ExportActionsRow(
-                onPrintClick = onPrintClick,
-                onExportPdfClick = onExportPdfClick,
+        item(key = "sources") {
+            SourcesVentesCard(
+                sources = data.sourcesVentes,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+            )
+        }
+        item(key = "wilaya") {
+            RepartitionWilayaCard(
+                wilayas = data.wilayaBreakdown,
+                onWilayaClick = onWilayaClick,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+            )
+        }
+
+        item(key = "top_secteurs") {
+            TopSecteursCard(
+                secteurs = data.topSecteurs,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
         }
     }
 }
 
+
+
+
+
 @Composable
 private fun RapportVentesEmptyState(
     selectedPeriod: ReportPeriod,
+    periodeLabel: String,
     onPeriodSelected: (ReportPeriod) -> Unit,
+    onCustomRangeSelected: (java.time.LocalDate, java.time.LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        PeriodSelectorChips(
-            selectedPeriod = selectedPeriod,
-            onPeriodSelected = onPeriodSelected,
+        VentesPeriodSection(
+            selectedPeriod = selectedPeriod, periodeLabel = periodeLabel,
+            onPeriodSelected = onPeriodSelected, onCustomRangeSelected = onCustomRangeSelected,
             modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
         )
         Column(
             modifier = Modifier.fillMaxSize().padding(DsSpacing.xxxl),
-            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
         ) {
-            androidx.compose.material3.Text(
-                text = "Aucune vente enregistrée pour cette période",
-                fontSize = com.distrigo.app.ui.designsystem.DsTextSize.bodyLarge,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                color = DsColors.TextPrimary
-            )
+            Text("Aucune vente enregistrée pour cette période", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
         }
-        ExportActionsRow(onPrintClick = {}, onExportPdfClick = {}, enabled = false, modifier = Modifier.padding(DsSpacing.lg))
     }
 }
-
-private fun sampleRapportVentesData() = RapportVentesData(
-    periodeLabel = "09 — 15 Juillet 2026",
-    genereLeLabel = "Généré le 15/07/2026",
-    chiffreAffaires = 18750,
-    panierMoyen = 493,
-    nombreTickets = 38,
-    produitsVendus = 214,
-    clientsVisites = 42,
-    clientsAvecVente = 31,
-    clientsSansVente = 11
-)

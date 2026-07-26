@@ -9,7 +9,7 @@ import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.local.entity.SecteurEntity
 import com.distrigo.app.data.model.Secteur
-
+import kotlin.math.roundToInt
 class ProductRepository(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
@@ -800,6 +800,49 @@ class ProductRepository(
         )
     }
 
+    // ── Rapports Ventes (toutes sources — Dépôt + Tournée) ──
+    suspend fun getVentesRapportKpis(
+        startIso: String, endIso: String,
+        previousStartIso: String, previousEndIso: String
+    ): com.distrigo.app.data.model.report.VentesRapportKpis {
+        val currentVentes = db.venteDao().getVentesBetween(startIso, endIso)
+        val previousVentes = db.venteDao().getVentesBetween(previousStartIso, previousEndIso)
+
+        val totalVentes = currentVentes.sumOf { it.total }
+        val ticketsCount = currentVentes.size
+        val depotTotal = currentVentes.filter { it.source == "depot" }.sumOf { it.total }
+        val tourneeTotal = currentVentes.filter { it.source == "camion" }.sumOf { it.total }
+
+        val joursCount = java.time.temporal.ChronoUnit.DAYS.between(
+            java.time.LocalDate.parse(startIso.substring(0, 10)),
+            java.time.LocalDate.parse(endIso.substring(0, 10))
+        ).coerceAtLeast(1)
+        val caMoyenParJour = totalVentes / joursCount
+        val panierMoyen = if (ticketsCount == 0) 0.0 else totalVentes / ticketsCount
+
+        val previousTotalVentes = previousVentes.sumOf { it.total }
+        val previousTicketsCount = previousVentes.size
+        val previousJoursCount = java.time.temporal.ChronoUnit.DAYS.between(
+            java.time.LocalDate.parse(previousStartIso.substring(0, 10)),
+            java.time.LocalDate.parse(previousEndIso.substring(0, 10))
+        ).coerceAtLeast(1)
+        val previousCaMoyenParJour = previousTotalVentes / previousJoursCount
+        val previousPanierMoyen = if (previousTicketsCount == 0) 0.0 else previousTotalVentes / previousTicketsCount
+
+        val dailyBreakdown = currentVentes
+            .groupBy { it.created_at.substring(0, 10) }
+            .map { (date, v) -> com.distrigo.app.data.model.report.DailySalesAmount(date, v.sumOf { it.total }) }
+            .sortedBy { it.dateIso }
+
+        return com.distrigo.app.data.model.report.VentesRapportKpis(
+            totalVentes = totalVentes, ticketsCount = ticketsCount, caMoyenParJour = caMoyenParJour,
+            panierMoyen = panierMoyen, depotTotal = depotTotal, tourneeTotal = tourneeTotal,
+            previousTotalVentes = previousTotalVentes, previousTicketsCount = previousTicketsCount,
+            previousCaMoyenParJour = previousCaMoyenParJour, previousPanierMoyen = previousPanierMoyen,
+            dailyBreakdown = dailyBreakdown
+        )
+    }
+
     // Supplier transactions
     // ── Supplier transactions (محلي بالكامل) ──
 
@@ -833,6 +876,105 @@ class ProductRepository(
         )
 
         return (factureTx + paiementTx + soldeInitialTx).sortedByDescending { it.created_at }
+    }
+
+
+    // ── Rapports Ventes — Répartition géographique (Wilaya → Commune → Secteur) ──
+    suspend fun getVentesWilayaBreakdown(startIso: String, endIso: String): List<com.distrigo.app.data.model.report.WilayaBreakdown> {
+        val ventes = db.venteDao().getVentesBetween(startIso, endIso)
+        if (ventes.isEmpty()) return emptyList()
+
+        val clientIds = ventes.mapNotNull { it.client_id }.distinct()
+        val clientsById = db.clientDao().getClientsByIds(clientIds).associateBy { it.id }
+
+        data class GeoKey(val wilaya: String, val commune: String, val secteur: String)
+
+        val totalsByKey = ventes.groupBy { vente ->
+            val client = clientsById[vente.client_id]
+            GeoKey(
+                wilaya = client?.wilaya_name?.takeIf { it.isNotBlank() } ?: "Sans wilaya",
+                commune = client?.commune_name?.takeIf { it.isNotBlank() } ?: "Sans commune",
+                secteur = client?.secteur_name?.takeIf { it.isNotBlank() } ?: "Sans secteur"
+            )
+        }.mapValues { (_, v) -> v.sumOf { it.total } }
+
+        val grandTotal = totalsByKey.values.sum()
+        if (grandTotal <= 0.0) return emptyList()
+
+        return totalsByKey.entries
+            .groupBy { it.key.wilaya }
+            .map { (wilayaName, wilayaEntries) ->
+                val wilayaTotal = wilayaEntries.sumOf { it.value }
+                val communes = wilayaEntries
+                    .groupBy { it.key.commune }
+                    .map { (communeName, communeEntries) ->
+                        val communeTotal = communeEntries.sumOf { it.value }
+                        val secteurs = communeEntries
+                            .groupBy { it.key.secteur }
+                            .map { (secteurName, secteurEntries) ->
+                                val secteurTotal = secteurEntries.sumOf { it.value }
+                                com.distrigo.app.data.model.report.SecteurBreakdown(
+                                    name = secteurName,
+                                    amount = secteurTotal,
+                                    percent = if (communeTotal == 0.0) 0 else ((secteurTotal / communeTotal) * 100).roundToInt()
+                                )
+                            }.sortedByDescending { it.amount }
+                        com.distrigo.app.data.model.report.CommuneBreakdown(
+                            name = communeName,
+                            amount = communeTotal,
+                            percent = if (wilayaTotal == 0.0) 0 else ((communeTotal / wilayaTotal) * 100).roundToInt(),
+                            secteurs = secteurs
+                        )
+                    }.sortedByDescending { it.amount }
+                com.distrigo.app.data.model.report.WilayaBreakdown(
+                    name = wilayaName,
+                    amount = wilayaTotal,
+                    percent = if (grandTotal == 0.0) 0 else ((wilayaTotal / grandTotal) * 100).roundToInt(),
+                    communes = communes
+                )
+            }.sortedByDescending { it.amount }
+    }
+
+    // ── Rapports Ventes — Top Secteurs (عام، مستقل عن اختيار الولاية) ──
+    suspend fun getTopSecteurs(
+        startIso: String, endIso: String, limit: Int = 10
+    ): List<com.distrigo.app.data.model.report.SecteurRankItem> {
+        val ventes = db.venteDao().getVentesBetween(startIso, endIso)
+        if (ventes.isEmpty()) return emptyList()
+
+        val clientIds = ventes.mapNotNull { it.client_id }.distinct()
+        val clientsById = db.clientDao().getClientsByIds(clientIds).associateBy { it.id }
+
+        data class SecteurKey(val id: Int, val name: String, val commune: String, val wilaya: String)
+
+        val totalsBySecteur = ventes.mapNotNull { vente ->
+            val client = clientsById[vente.client_id] ?: return@mapNotNull null
+            val secteurId = client.secteur_id ?: return@mapNotNull null // العملاء بلا قطاع مُستبعدون من الترتيب
+            SecteurKey(
+                id = secteurId,
+                name = client.secteur_name?.takeIf { it.isNotBlank() } ?: "Secteur $secteurId",
+                commune = client.commune_name.orEmpty(),
+                wilaya = client.wilaya_name.orEmpty()
+            ) to vente.total
+        }.groupBy({ it.first }, { it.second }).mapValues { (_, amounts) -> amounts.sum() }
+
+        if (totalsBySecteur.isEmpty()) return emptyList()
+
+        val grandTotal = totalsBySecteur.values.sum()
+        val ranked = totalsBySecteur.entries.sortedByDescending { it.value }.take(limit)
+        val weakThreshold = (ranked.size - 5).coerceAtLeast(0)
+
+        return ranked.mapIndexed { index, (key, amount) ->
+            com.distrigo.app.data.model.report.SecteurRankItem(
+                secteurId = key.id,
+                name = key.name,
+                subtitle = listOf(key.commune, key.wilaya).filter { it.isNotBlank() }.joinToString(", "),
+                amount = amount,
+                percent = if (grandTotal == 0.0) 0 else ((amount / grandTotal) * 100).roundToInt(),
+                rank = index + 1,
+                isWeak = index >= weakThreshold
+            )
+        }
     }
 
     suspend fun addSupplierPayment(id: Int, amount: Double, note: String?): Map<String, Any> {
@@ -1216,6 +1358,34 @@ class ProductRepository(
                 TourneeClientInfo(client = entity.toClient(), status = tc.status, visitedAt = tc.visited_at)
             }
         }
+    }
+
+    // ── Rapports Clients — KPIs (Part A) ──
+    suspend fun getClientsRapportKpis(startIso: String, endIso: String): com.distrigo.app.data.model.report.ClientsRapportKpis {
+        val periodVentes = db.venteDao().getVentesBetween(startIso, endIso)
+        val allDates = db.venteDao().getAllVenteClientDates()
+
+        val clientsActifs = periodVentes.mapNotNull { it.client_id }.distinct().size
+
+        val byClient = allDates.groupBy { it.client_id }
+        val firstPurchaseByClient = byClient.mapValues { (_, rows) -> rows.minOf { it.created_at } }
+        val lastPurchaseByClient = byClient.mapValues { (_, rows) -> rows.maxOf { it.created_at } }
+
+        val nouveauxClients = firstPurchaseByClient.count { (_, first) -> first >= startIso && first < endIso }
+
+        val now = java.time.Instant.now()
+        val perdusThreshold = now.minus(90, java.time.temporal.ChronoUnit.DAYS).toString()
+        val sansAchatThreshold = now.minus(30, java.time.temporal.ChronoUnit.DAYS).toString()
+
+        val clientsPerdus = lastPurchaseByClient.count { (_, last) -> last < perdusThreshold }
+        val clientsSansAchat = lastPurchaseByClient.count { (_, last) -> last < sansAchatThreshold }
+
+        return com.distrigo.app.data.model.report.ClientsRapportKpis(
+            clientsActifs = clientsActifs,
+            nouveauxClients = nouveauxClients,
+            clientsPerdus = clientsPerdus,
+            clientsSansAchat = clientsSansAchat
+        )
     }
 
 

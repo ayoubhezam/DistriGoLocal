@@ -2,24 +2,44 @@ package com.distrigo.app.ui.screens.rapport
 
 sealed interface RapportVentesUiState {
     data object Loading : RapportVentesUiState
-    data object Empty : RapportVentesUiState
+    data class Empty(val periodeLabel: String) : RapportVentesUiState
     data class Content(val data: RapportVentesData) : RapportVentesUiState
 }
 
 data class RapportVentesData(
-    val periodeLabel: String,        // مثال: "09 — 15 Juillet 2026"
-    val genereLeLabel: String,       // مثال: "Généré le 15/07/2026"
-    val chiffreAffaires: Int,
-    val panierMoyen: Int,
+    val periodeLabel: String,
+    val chiffreAffairesTotal: Double,
+    val chiffreAffairesTotalTrend: TrendInfo,
+    val chiffreAffairesMoyenParJour: Double,
+    val chiffreAffairesMoyenParJourTrend: TrendInfo,
     val nombreTickets: Int,
-    val produitsVendus: Int,
-    val clientsVisites: Int,
-    val clientsAvecVente: Int,
-    val clientsSansVente: Int
+    val nombreTicketsTrend: TrendInfo,
+    val salesEvolution: List<SalesPoint>,
+    val panierMoyen: Double,
+    val panierMoyenTrend: TrendInfo,
+    val sourcesVentes: List<SourceVenteItem>,
+    val wilayaBreakdown: List<com.distrigo.app.data.model.report.WilayaBreakdown>,
+    val topSecteurs: List<com.distrigo.app.data.model.report.SecteurRankItem>
+
 )
 
-val RapportVentesData.totalClients: Int
-    get() = clientsAvecVente + clientsSansVente
+data class SalesPoint(
+    val shortLabel: String,     // "15/06" — محور X
+    val fullDateLabel: String,  // "18/06/2025" — Tooltip
+    val amount: Double
+)
 
-val RapportVentesData.avecVenteFraction: Float
-    get() = if (totalClients == 0) 0f else clientsAvecVente.toFloat() / totalClients
+data class SourceVenteItem(
+    val label: String,   // "Dépôt Vente" / "Tournées"
+    val amount: Double,
+    val percent: Int
+)
+
+sealed interface VentesDrillDown {
+    data object None : VentesDrillDown
+    data class Communes(val wilaya: com.distrigo.app.data.model.report.WilayaBreakdown) : VentesDrillDown
+    data class Secteurs(
+        val wilaya: com.distrigo.app.data.model.report.WilayaBreakdown,
+        val commune: com.distrigo.app.data.model.report.CommuneBreakdown
+    ) : VentesDrillDown
+}

@@ -52,6 +52,8 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Layers
+import com.google.maps.android.compose.MapType
 /**
  * مصدر صور الأقمار الصناعية من Esri World Imagery — مجاني بالكامل وبدون مفتاح API.
  * ملاحظة: ترتيب المسار عند Esri هو z/y/x (وليس z/x/y كما في Mapnik)، لذا نُعيد كتابة
@@ -89,6 +91,7 @@ fun ClientLocationPickerScreen(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(defaultLat, defaultLng), 17f)
     }
+    var mapType by remember { mutableStateOf(MapType.NORMAL) }
 
     var isLocating by remember { mutableStateOf(false) }
     var locationError by remember { mutableStateOf("") }
@@ -158,7 +161,7 @@ fun ClientLocationPickerScreen(
                 GoogleMap(
                     modifier            = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    properties          = MapProperties(isMyLocationEnabled = false),
+                    properties = MapProperties(isMyLocationEnabled = false, mapType = mapType),
                     uiSettings          = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
                 )
             } else {
@@ -206,6 +209,23 @@ fun ClientLocationPickerScreen(
                     Icon(Icons.Default.MyLocation, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("GPS précis", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            if (isOnline) {
+                IconButton(
+                    onClick  = { mapType = if (mapType == MapType.NORMAL) MapType.HYBRID else MapType.NORMAL },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(DsSpacing.md)
+                        .clip(DsShapes.pill)
+                        .background(DsColors.Surface)
+                ) {
+                    Icon(
+                        Icons.Default.Layers,
+                        contentDescription = if (mapType == MapType.NORMAL) "Vue satellite" else "Vue standard",
+                        tint = DsColors.Primary
+                    )
                 }
             }
         }

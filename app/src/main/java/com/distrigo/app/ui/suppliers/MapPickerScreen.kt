@@ -34,6 +34,12 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import androidx.compose.material.icons.filled.Layers
+import com.google.maps.android.compose.MapType
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsColors
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 @Composable
 fun MapPickerScreen(
     initialLat : Double = 36.1901,
@@ -51,6 +57,7 @@ fun MapPickerScreen(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLng), 15f)
     }
+    var mapType by remember { mutableStateOf(MapType.NORMAL) }
     val markerState = rememberMarkerState(position = LatLng(initialLat, initialLng))
 
     // يُبقي دبوس Google Maps متزامنًا مع النقطة المختارة عند النقر على الخريطة
@@ -67,7 +74,7 @@ fun MapPickerScreen(
             GoogleMap(
                 modifier            = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties          = MapProperties(isMyLocationEnabled = false),
+                properties = MapProperties(isMyLocationEnabled = false, mapType = mapType),
                 uiSettings          = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
                 onMapClick          = { latLng ->
                     selectedLat = latLng.latitude
@@ -137,9 +144,24 @@ fun MapPickerScreen(
             Text("Choisir l'emplacement", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         }
 
-        if (!isOnline) {
-            OfflineMapBadge(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp))
+        if (isOnline) {
+            IconButton(
+                onClick  = { mapType = if (mapType == MapType.NORMAL) MapType.HYBRID else MapType.NORMAL },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(DsSpacing.md)
+                    .clip(RoundedCornerShape(50))
+                    .background(DsColors.Surface)
+            ) {
+                Icon(
+                    Icons.Default.Layers,
+                    contentDescription = if (mapType == MapType.NORMAL) "Vue satellite" else "Vue standard",
+                    tint = DsColors.Primary
+                )
+            }
         }
+
+
 
         // ── Confirm Button ──
         Button(

@@ -1,0 +1,70 @@
+package com.distrigo.app.ui.screens.rapport
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.repository.ProductRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+class RapportClientsViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = AppDatabase.getDatabase(application)
+    private val repository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db = db)
+
+    private val _selectedPeriod = MutableStateFlow(ReportPeriod.AUJOURD_HUI)
+    val selectedPeriod: StateFlow<ReportPeriod> = _selectedPeriod.asStateFlow()
+
+    private var customStart: LocalDate? = null
+    private var customEnd: LocalDate? = null
+
+    private val _uiState = MutableStateFlow<RapportClientsUiState>(RapportClientsUiState.Loading)
+    val uiState: StateFlow<RapportClientsUiState> = _uiState.asStateFlow()
+
+    init { load() }
+
+    fun onPeriodSelected(period: ReportPeriod) {
+        _selectedPeriod.value = period
+        load()
+    }
+
+    fun onCustomRangeSelected(start: LocalDate, end: LocalDate) {
+        customStart = start
+        customEnd = end
+        _selectedPeriod.value = ReportPeriod.PERSONNALISEE
+        load()
+    }
+
+    fun refresh() = load()
+
+    private fun load() {
+        viewModelScope.launch {
+            _uiState.value = RapportClientsUiState.Loading
+            val range = _selectedPeriod.value.toDateRange(customStart = customStart, customEnd = customEnd)
+            val kpis = repository.getClientsRapportKpis(range.startIso, range.endIso)
+            val label = periodeLabel(range)
+
+            _uiState.value = RapportClientsUiState.Content(
+                RapportClientsData(
+                    periodeLabel = label,
+                    clientsActifs = kpis.clientsActifs,
+                    nouveauxClients = kpis.nouveauxClients,
+                    clientsPerdus = kpis.clientsPerdus,
+                    clientsSansAchat = kpis.clientsSansAchat
+                )
+            )
+        }
+    }
+
+    private fun periodeLabel(range: ReportDateRange): String {
+        val fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val startLabel = LocalDate.parse(range.startIso.substring(0, 10)).format(fmt)
+        val endLabel = LocalDate.parse(range.endIso.substring(0, 10)).minusDays(1).format(fmt)
+        return "$startLabel → $endLabel"
+    }
+}

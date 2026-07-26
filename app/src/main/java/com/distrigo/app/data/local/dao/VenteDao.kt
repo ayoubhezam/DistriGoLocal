@@ -55,4 +55,21 @@ interface VenteDao {
     ORDER BY created_at ASC
 """)
     suspend fun getVentesBySourceBetween(source: String, start: String, end: String): List<VenteEntity>
+
+    @Query("""
+    SELECT * FROM ventes 
+    WHERE created_at >= :start AND created_at < :end 
+    ORDER BY created_at ASC
+""")
+    suspend fun getVentesBetween(start: String, end: String): List<VenteEntity>
+
+
+
+    @Query("SELECT client_id, created_at FROM ventes WHERE client_id IS NOT NULL")
+    suspend fun getAllVenteClientDates(): List<VenteClientDate>
 }
+
+data class VenteClientDate(
+    val client_id: Int,
+    val created_at: String
+)

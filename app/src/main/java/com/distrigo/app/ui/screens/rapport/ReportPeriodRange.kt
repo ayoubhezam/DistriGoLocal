@@ -14,7 +14,11 @@ data class ReportDateRange(
 )
 
 /** يحوّل ReportPeriod إلى نطاق تواريخ فعلي + النطاق المكافئ للفترة السابقة (لحساب Trend). */
-fun ReportPeriod.toDateRange(referenceDate: LocalDate = LocalDate.now()): ReportDateRange {
+fun ReportPeriod.toDateRange(
+    referenceDate: LocalDate = LocalDate.now(),
+    customStart: LocalDate? = null,
+    customEnd: LocalDate? = null
+): ReportDateRange {
     return when (this) {
         ReportPeriod.AUJOURD_HUI -> {
             val start = referenceDate
@@ -52,8 +56,18 @@ fun ReportPeriod.toDateRange(referenceDate: LocalDate = LocalDate.now()): Report
             )
         }
         ReportPeriod.PERSONNALISEE -> {
-            // TODO: يحتاج date picker لم يُبنَ بعد — نستخدم "Semaine" كقيمة افتراضية مؤقتة
-            ReportPeriod.SEMAINE.toDateRange(referenceDate)
+            val start = customStart ?: referenceDate
+            val end = customEnd ?: referenceDate
+            val endExclusive = end.plusDays(1)
+            val durationDays = java.time.temporal.ChronoUnit.DAYS.between(start, endExclusive).coerceAtLeast(1)
+            val previousStart = start.minusDays(durationDays)
+            ReportDateRange(
+                startIso = "${start}T00:00:00.000",
+                endIso = "${endExclusive}T00:00:00.000",
+                previousStartIso = "${previousStart}T00:00:00.000",
+                previousEndIso = "${start}T00:00:00.000",
+                allDatesInRange = (0 until durationDays).map { start.plusDays(it) }
+            )
         }
     }
 }
@@ -61,3 +75,14 @@ fun ReportPeriod.toDateRange(referenceDate: LocalDate = LocalDate.now()): Report
 /** حرف واحد يمثل اليوم بالفرنسية (L, M, M, J, V, S, D) لتسمية أعمدة الرسم البياني */
 fun LocalDate.toShortDayLabel(): String =
     dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.FRENCH).take(1).uppercase()
+
+/** اسم مختصر لليوم بالفرنسية (Lun, Mar, Mer...) لمحور الرسم البياني في Évolution des ventes */
+fun DayOfWeek.toFrenchShortLabel(): String = when (this) {
+    DayOfWeek.MONDAY -> "Lun"
+    DayOfWeek.TUESDAY -> "Mar"
+    DayOfWeek.WEDNESDAY -> "Mer"
+    DayOfWeek.THURSDAY -> "Jeu"
+    DayOfWeek.FRIDAY -> "Ven"
+    DayOfWeek.SATURDAY -> "Sam"
+    DayOfWeek.SUNDAY -> "Dim"
+}

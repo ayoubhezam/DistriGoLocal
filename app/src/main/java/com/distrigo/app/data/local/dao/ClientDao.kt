@@ -24,4 +24,7 @@ interface ClientDao {
 
     @Query("DELETE FROM clients WHERE id = :id")
     suspend fun deleteClientById(id: Int)
+
+    @Query("SELECT * FROM clients WHERE id IN (:ids)")
+    suspend fun getClientsByIds(ids: List<Int>): List<ClientEntity>
 }
