@@ -178,6 +178,7 @@ fun TourneeVenteFormScreen(
             }
 
             LazyColumn(
+                modifier            = Modifier.weight(1f),
                 contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
@@ -228,6 +229,21 @@ fun TourneeVenteFormScreen(
                         }
                     }
                 }
+            }
+
+            // ── Nouveau client ──
+            Button(
+                onClick  = { showClientPicker = false; showAddClientScreen = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+                    .height(52.dp),
+                shape  = DsShapes.medium,
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(DsSpacing.sm))
+                Text("Nouveau client", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
         }
         return
@@ -339,19 +355,32 @@ fun TourneeVenteFormScreen(
                     }
                 }
 
-                // ── Save button (always visible, no scrolling needed) ──
-                Button(
-                    onClick  = { showCart = false },
+                // ── Bottom action bar: Retour + Suivant ──
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-                        .height(52.dp),
-                    shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Valider la sélection", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    OutlinedButton(
+                        onClick  = { showCart = false },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape    = DsShapes.medium
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Button(
+                        onClick  = { showCart = false; currentStep = 3 },
+                        enabled  = cartItems.isNotEmpty(),
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape    = DsShapes.medium,
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    ) {
+                        Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -425,7 +454,6 @@ fun TourneeVenteFormScreen(
             1 -> Step1Client(
                 selectedClient = selectedClient,
                 onChooseClient = { showClientPicker = true },
-                onAddNewClient = { showAddClientScreen = true },
                 onNext         = { currentStep = 2 }
             )
 
@@ -580,17 +608,17 @@ fun TourneeVenteFormScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+                        .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(DsShapes.medium)
+                            .fillMaxWidth()
+                            .clip(DsShapes.large)
                             .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
                             .clickable(enabled = cartItems.isNotEmpty()) { showCart = true }
-                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
@@ -612,15 +640,7 @@ fun TourneeVenteFormScreen(
                         )
                     }
 
-                    Button(
-                        onClick        = { currentStep = 3 },
-                        enabled        = cartItems.isNotEmpty(),
-                        shape          = DsShapes.medium,
-                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
-                    ) {
-                        Text("Suivant →", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold)
-                    }
+
                 }
             }
 
@@ -647,7 +667,6 @@ fun TourneeVenteFormScreen(
 private fun Step1Client(
     selectedClient : Client?,
     onChooseClient : () -> Unit,
-    onAddNewClient : () -> Unit,
     onNext         : () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -703,17 +722,6 @@ private fun Step1Client(
 
                 Spacer(Modifier.height(DsSpacing.sm))
 
-                OutlinedButton(
-                    onClick  = onAddNewClient,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape    = DsShapes.medium
-                ) {
-                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Nouveau client", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
-                }
-
-                Spacer(Modifier.height(DsSpacing.lg))
 
                 Column(
                     modifier = Modifier

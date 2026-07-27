@@ -1256,7 +1256,7 @@ fun PurchaseFormScreen(
                 ) {
                     Row(
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                             .background(if (cartItems.isNotEmpty()) GreenLight else MutedGray)
                             .clickable(enabled = cartItems.isNotEmpty()) { showCart = true }
@@ -1280,16 +1280,6 @@ fun PurchaseFormScreen(
                             "${"%.2f".format(total)} DA", fontSize = 12.sp, fontWeight = FontWeight.Bold,
                             color = if (cartItems.isNotEmpty()) AccentGreen else TextMuted
                         )
-                    }
-
-                    Button(
-                        onClick = { currentStep = 3 },
-                        enabled = cartItems.isNotEmpty(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
-                    ) {
-                        Text("Suivant →", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
