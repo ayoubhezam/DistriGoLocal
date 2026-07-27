@@ -83,6 +83,25 @@ class ProductRepository(
         val newBalance = ventesTotal - ventesPaid - separatePayments
         clientDao.updateClient(client.copy(balance = newBalance))
     }
+
+    // ── Rapports Clients — Factures d'un client (écran autonome) ──
+    suspend fun getClientInvoices(clientId: Int): List<com.distrigo.app.data.model.report.ClientInvoiceItem> {
+        val ventes = db.venteDao().getVentesForClient(clientId)
+        return ventes.sortedByDescending { it.created_at }.map { vente ->
+            val reste = vente.total - vente.montant_paye
+            val status = when {
+                reste <= 0.0 -> "payee"
+                vente.montant_paye <= 0.0 -> "impayee"
+                else -> "partielle"
+            }
+            com.distrigo.app.data.model.report.ClientInvoiceItem(
+                venteId = vente.id, createdAt = vente.created_at,
+                total = vente.total, montantPaye = vente.montant_paye,
+                reste = reste, status = status
+            )
+        }
+    }
+
     private suspend fun applyStockDelta(source: String, productId: Int, delta: Double) {
         val product = productDao.getProductById(productId) ?: return
         val updated = if (source == "depot")
@@ -1386,6 +1405,88 @@ class ProductRepository(
             clientsPerdus = clientsPerdus,
             clientsSansAchat = clientsSansAchat
         )
+    }
+
+
+    // ── Rapports Clients — Répartition géographique (كل العملاء، بلا علاقة بالفترة) ──
+    suspend fun getClientsWilayaBreakdown(): List<com.distrigo.app.data.model.report.WilayaBreakdown> {
+        val clients = clientDao.getAllClients()
+        if (clients.isEmpty()) return emptyList()
+
+        data class GeoKey(val wilaya: String, val commune: String, val secteur: String)
+
+        val countsByKey = clients.groupBy { client ->
+            GeoKey(
+                wilaya = client.wilaya_name?.takeIf { it.isNotBlank() } ?: "Sans wilaya",
+                commune = client.commune_name?.takeIf { it.isNotBlank() } ?: "Sans commune",
+                secteur = client.secteur_name?.takeIf { it.isNotBlank() } ?: "Sans secteur"
+            )
+        }.mapValues { (_, v) -> v.size }
+
+        val grandTotal = countsByKey.values.sum()
+        if (grandTotal == 0) return emptyList()
+
+        return countsByKey.entries
+            .groupBy { it.key.wilaya }
+            .map { (wilayaName, wilayaEntries) ->
+                val wilayaTotal = wilayaEntries.sumOf { it.value }
+                val communes = wilayaEntries
+                    .groupBy { it.key.commune }
+                    .map { (communeName, communeEntries) ->
+                        val communeTotal = communeEntries.sumOf { it.value }
+                        val secteurs = communeEntries
+                            .groupBy { it.key.secteur }
+                            .map { (secteurName, secteurEntries) ->
+                                val secteurTotal = secteurEntries.sumOf { it.value }
+                                com.distrigo.app.data.model.report.SecteurBreakdown(
+                                    name = secteurName,
+                                    amount = secteurTotal.toDouble(),
+                                    percent = if (communeTotal == 0) 0 else ((secteurTotal.toDouble() / communeTotal) * 100).roundToInt()
+                                )
+                            }.sortedByDescending { it.amount }
+                        com.distrigo.app.data.model.report.CommuneBreakdown(
+                            name = communeName,
+                            amount = communeTotal.toDouble(),
+                            percent = if (wilayaTotal == 0) 0 else ((communeTotal.toDouble() / wilayaTotal) * 100).roundToInt(),
+                            secteurs = secteurs
+                        )
+                    }.sortedByDescending { it.amount }
+                com.distrigo.app.data.model.report.WilayaBreakdown(
+                    name = wilayaName,
+                    amount = wilayaTotal.toDouble(),
+                    percent = ((wilayaTotal.toDouble() / grandTotal) * 100).roundToInt(),
+                    communes = communes
+                )
+            }.sortedByDescending { it.amount }
+    }
+
+
+    // ── Rapports Clients — Top clients (مرتبون حسب رقم الأعمال، الفترة المختارة) ──
+    suspend fun getTopClients(startIso: String, endIso: String): List<com.distrigo.app.data.model.report.ClientRankItem> {
+        val ventes = db.venteDao().getVentesBetween(startIso, endIso)
+        if (ventes.isEmpty()) return emptyList()
+
+        val clientIds = ventes.mapNotNull { it.client_id }.distinct()
+        val clientsById = db.clientDao().getClientsByIds(clientIds).associateBy { it.id }
+
+        return ventes.filter { it.client_id != null }
+            .groupBy { it.client_id!! }
+            .entries
+            .sortedByDescending { (_, clientVentes) -> clientVentes.sumOf { it.total } }
+            .mapIndexed { index, (clientId, clientVentes) ->
+                val client = clientsById[clientId]
+                com.distrigo.app.data.model.report.ClientRankItem(
+                    clientId = clientId,
+                    name = client?.name ?: "Client #$clientId",
+                    subtitle = listOfNotNull(
+                        client?.wilaya_name?.takeIf { it.isNotBlank() },
+                        client?.commune_name?.takeIf { it.isNotBlank() }
+                    ).joinToString(", "),
+                    amount = clientVentes.sumOf { it.total },
+                    facturesCount = clientVentes.size,
+                    rank = index + 1
+                )
+            }
     }
 
 

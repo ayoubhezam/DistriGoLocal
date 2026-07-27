@@ -561,7 +561,7 @@ fun SourcesVentesCard(
 
 @Composable
 fun WilayaRow(
-    name: String, amount: Double, percent: Int,
+    name: String, valueLabel: String, percent: Int,
     onClick: (() -> Unit)?, modifier: Modifier = Modifier
 ) {
     Row(
@@ -580,7 +580,7 @@ fun WilayaRow(
         }
         Spacer(Modifier.width(DsSpacing.md))
         Column(horizontalAlignment = Alignment.End) {
-            Text(formatCurrency(amount.roundToInt()), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(valueLabel, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text("$percent%", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         }
         if (onClick != null) {
@@ -592,21 +592,31 @@ fun WilayaRow(
 
 @Composable
 fun RepartitionWilayaCard(
+    title: String,
     wilayas: List<com.distrigo.app.data.model.report.WilayaBreakdown>,
+    valueLabel: (com.distrigo.app.data.model.report.WilayaBreakdown) -> String,
     onWilayaClick: (com.distrigo.app.data.model.report.WilayaBreakdown) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    headerIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    hintText: String = "Appuyez sur une wilaya pour voir la répartition par communes"
 ) {
     Column(
         modifier = modifier.fillMaxWidth().background(DsColors.Surface, DsShapes.large)
             .border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.lg)
     ) {
-        Text("Répartition par Wilaya", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (headerIcon != null) {
+                Icon(headerIcon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(title, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        }
         Spacer(Modifier.height(DsSpacing.md))
         if (wilayas.isEmpty()) {
             Text("Aucune donnée à afficher", fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary)
         } else {
             wilayas.forEachIndexed { index, w ->
-                WilayaRow(name = w.name, amount = w.amount, percent = w.percent, onClick = { onWilayaClick(w) })
+                WilayaRow(name = w.name, valueLabel = valueLabel(w), percent = w.percent, onClick = { onWilayaClick(w) })
                 if (index != wilayas.lastIndex) HorizontalDivider(color = DsColors.Border)
             }
             Spacer(Modifier.height(DsSpacing.md))
@@ -616,7 +626,7 @@ fun RepartitionWilayaCard(
             ) {
                 Icon(Icons.Filled.TouchApp, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Appuyez sur une wilaya pour voir la répartition par communes", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                Text(hintText, fontSize = DsTextSize.caption, color = DsColors.Primary)
             }
         }
     }
@@ -679,6 +689,7 @@ private fun SecteurRankRow(item: com.distrigo.app.data.model.report.SecteurRankI
 fun <T : com.distrigo.app.data.model.report.GeoAmountItem> GeoDrillDownScreen(
     title: String,
     items: List<T>,
+    valueLabel: (T) -> String,
     onBack: () -> Unit,
     onItemClick: ((T) -> Unit)?,
     modifier: Modifier = Modifier
@@ -703,7 +714,7 @@ fun <T : com.distrigo.app.data.model.report.GeoAmountItem> GeoDrillDownScreen(
             } else {
                 itemsIndexed(items) { index, geoItem ->
                     WilayaRow(
-                        name = geoItem.name, amount = geoItem.amount, percent = geoItem.percent,
+                        name = geoItem.name, valueLabel = valueLabel(geoItem), percent = geoItem.percent,
                         onClick = onItemClick?.let { callback -> { callback(geoItem) } }
                     )
                     if (index != items.lastIndex) HorizontalDivider(color = DsColors.Border)

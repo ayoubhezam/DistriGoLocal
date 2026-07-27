@@ -43,9 +43,11 @@ fun RapportVentesTab(
 
     when (val d = drillDown) {
         is VentesDrillDown.Communes -> {
+            // في RapportVentesTab (حالة VentesDrillDown.Communes):
             GeoDrillDownScreen(
                 title = d.wilaya.name,
                 items = d.wilaya.communes,
+                valueLabel = { formatCurrency(it.amount.roundToInt()) },
                 onBack = { drillDown = VentesDrillDown.None },
                 onItemClick = { commune -> drillDown = VentesDrillDown.Secteurs(d.wilaya, commune) },
                 modifier = modifier
@@ -53,9 +55,11 @@ fun RapportVentesTab(
             return
         }
         is VentesDrillDown.Secteurs -> {
+            // وحالة VentesDrillDown.Secteurs:
             GeoDrillDownScreen(
                 title = d.commune.name,
                 items = d.commune.secteurs,
+                valueLabel = { formatCurrency(it.amount.roundToInt()) },
                 onBack = { drillDown = VentesDrillDown.Communes(d.wilaya) },
                 onItemClick = null,
                 modifier = modifier
@@ -174,8 +178,11 @@ private fun RapportVentesContent(
             )
         }
         item(key = "wilaya") {
+            // في RapportVentesContent، بدل النداء القديم لـ RepartitionWilayaCard:
             RepartitionWilayaCard(
+                title = "Répartition par Wilaya",
                 wilayas = data.wilayaBreakdown,
+                valueLabel = { formatCurrency(it.amount.roundToInt()) },
                 onWilayaClick = onWilayaClick,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )

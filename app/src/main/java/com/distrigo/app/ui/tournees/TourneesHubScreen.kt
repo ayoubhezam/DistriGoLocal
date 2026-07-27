@@ -26,7 +26,8 @@ import androidx.compose.foundation.verticalScroll
 @Composable
 fun TourneesHubScreen(
     tourneeViewModel   : TourneeViewModel = viewModel(),
-    onFullScreenChange : (Boolean) -> Unit = {}
+    onFullScreenChange : (Boolean) -> Unit = {},
+    onOpenClientDetail : (Int) -> Unit = {}   // ← جديد
 ) {
     var currentScreen by remember { mutableStateOf("hub") }
 
@@ -59,7 +60,8 @@ fun TourneesHubScreen(
     if (currentScreen == "rapport") {
         BackHandler { currentScreen = "hub" }
         com.distrigo.app.ui.screens.rapport.RapportTourneesScreen(
-            onBack = { currentScreen = "hub" }
+            onBack = { currentScreen = "hub" },
+            onOpenClientDetail = onOpenClientDetail   // ← جديد
         )
         return
     }

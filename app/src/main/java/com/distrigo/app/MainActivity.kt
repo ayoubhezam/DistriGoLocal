@@ -44,14 +44,18 @@ class MainActivity : ComponentActivity() {
                     var selectedTab   by remember { mutableStateOf(0) }
                     var hideBottomBar by remember { mutableStateOf(false) }
                     var moreScreen    by remember { mutableStateOf<String?>(null) }
-
+                    var pendingClientId by remember { mutableStateOf<Int?>(null) }   // ← جديد
                     // ── "Plus" sub-screen navigation (takes over full screen) ──
                     moreScreen?.let { screen ->
                         BackHandler(enabled = !hideBottomBar) {
                             moreScreen = null
                         }
                         when (screen) {
-                            "clients"      -> ClientsScreen(onFullScreenChange = { hideBottomBar = it })
+                            "clients"      -> ClientsScreen(
+                                onFullScreenChange = { hideBottomBar = it },
+                                preSelectedClientId = pendingClientId   // ← جديد
+
+                            )
                             "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
                             "charges" -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
                             "pertes" -> com.distrigo.app.ui.pertes.PertesScreen(onFullScreenChange = { hideBottomBar = it })
@@ -135,10 +139,19 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(paddingValues)) {
                         when (selectedTab) {
                             0 -> DashboardScreen()
-                            1 -> TourneesHubScreen(onFullScreenChange = { hideBottomBar = it })
+                            1 -> TourneesHubScreen(
+                                onFullScreenChange = { hideBottomBar = it },
+                                onOpenClientDetail = { clientId ->      // ← جديد
+                                    pendingClientId = clientId
+                                    moreScreen = "clients"
+                                }
+                            )
                             2 -> ProductsScreen(onFullScreenChange = { hideBottomBar = it })
                             3 -> PurchasesScreen(onFullScreenChange = { hideBottomBar = it })
-                            4 -> MoreScreen(onNavigate = { route -> moreScreen = route })
+                            4 -> MoreScreen(onNavigate = { route ->
+                                if (route == "clients") pendingClientId = null   // ← يمنع بقاء تحديد قديم عند الدخول العادي من "Plus"
+                                moreScreen = route
+                            })
                         }
                     }
                 }

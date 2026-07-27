@@ -34,41 +34,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
  */
 @Composable
 fun RapportTourneesScreen(
-    modifier: Modifier = Modifier
-) {
-    val tabs = remember { RapportTab.entries }
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
-    val scope = rememberCoroutineScope()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(DsColors.SurfaceMuted)
-    ) {
-        RapportTabRow(
-            tabs = tabs,
-            selectedIndex = pagerState.currentPage,
-            onTabSelected = { index ->
-                scope.launch { pagerState.animateScrollToPage(index) }
-            }
-        )
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            when (tabs[page]) {
-                RapportTab.TABLEAU_DE_BORD -> TableauDeBordTab()
-                RapportTab.VENTES -> RapportVentesTab()
-                RapportTab.CLIENTS -> RapportClientTab()
-                RapportTab.PRODUITS -> RapportProduitTab()
-            }
-        }
-    }
-}
-@Composable
-fun RapportTourneesScreen(
     onBack: () -> Unit,
+    onOpenClientDetail: (Int) -> Unit = {},   // ← جديد
     modifier: Modifier = Modifier
 ) {
     val tabs = remember { RapportTab.entries }
@@ -80,8 +47,6 @@ fun RapportTourneesScreen(
             .fillMaxSize()
             .background(DsColors.SurfaceMuted)
     ) {
-        RapportTopBar(onBack = onBack)
-
         RapportTabRow(
             tabs = tabs,
             selectedIndex = pagerState.currentPage,
@@ -90,19 +55,17 @@ fun RapportTourneesScreen(
             }
         )
 
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             when (tabs[page]) {
                 RapportTab.TABLEAU_DE_BORD -> TableauDeBordTab()
                 RapportTab.VENTES -> RapportVentesTab()
-                RapportTab.CLIENTS -> RapportClientTab()
+                RapportTab.CLIENTS -> RapportClientsTab(onOpenClientDetail = onOpenClientDetail)   // ← معدَّل
                 RapportTab.PRODUITS -> RapportProduitTab()
             }
         }
     }
 }
+
 
 @Composable
 private fun RapportTopBar(

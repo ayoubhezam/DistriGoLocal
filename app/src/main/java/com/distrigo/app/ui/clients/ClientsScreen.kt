@@ -36,8 +36,9 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 fun ClientsScreen(
     viewModel : ClientViewModel = viewModel(),
     modifier  : Modifier = Modifier,
-    onFullScreenChange : (Boolean) -> Unit = {}
-) {
+    onFullScreenChange : (Boolean) -> Unit = {},
+    preSelectedClientId : Int? = null   // ← جديد
+){
     val clients   by viewModel.clients.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -51,7 +52,11 @@ fun ClientsScreen(
     var longPressClient  by remember { mutableStateOf<Client?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadClients() }
-
+    LaunchedEffect(clients, preSelectedClientId) {   // ← جديد
+        if (preSelectedClientId != null && selectedClient == null) {
+            clients.find { it.id == preSelectedClientId }?.let { selectedClient = it }
+        }
+    }
     if (showAddScreen) {
         onFullScreenChange(true)
         BackHandler { showAddScreen = false; onFullScreenChange(false) }

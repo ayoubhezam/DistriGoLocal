@@ -27,38 +27,7 @@ import androidx.compose.material.icons.filled.Receipt
  * حاليًا: عميل تجريبي محدد افتراضيًا لعرض التصميم كاملًا (sampleClientData)،
  * مع زر "×" لإظهار حالة "لا يوجد عميل محدد".
  */
-@Composable
-fun RapportClientTab(modifier: Modifier = Modifier) {
-    val hasSelectedClient = remember { mutableStateOf(true) }
-    val uiState: RapportClientUiState = remember(hasSelectedClient.value) {
-        if (hasSelectedClient.value) {
-            RapportClientUiState.Content(sampleClientData())
-        } else {
-            RapportClientUiState.NoClientSelected
-        }
-    }
 
-    when (uiState) {
-        is RapportClientUiState.Loading -> {
-            // TODO: حالة تحميل
-        }
-        is RapportClientUiState.NoClientSelected -> {
-            RapportClientEmptyState(
-                onSearchBarClick = { hasSelectedClient.value = true },
-                modifier = modifier
-            )
-        }
-        is RapportClientUiState.Content -> {
-            RapportClientContent(
-                data = uiState.data,
-                onClearSelection = { hasSelectedClient.value = false },
-                onSearchBarClick = { /* TODO: فتح قائمة بحث العملاء */ },
-                onPrintClick = { /* TODO: ربط بنظام الطباعة عند بناء طبقة البيانات */ },
-                modifier = modifier
-            )
-        }
-    }
-}
 
 @Composable
 private fun RapportClientContent(
