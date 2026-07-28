@@ -67,6 +67,42 @@ interface VenteDao {
 
     @Query("SELECT client_id, created_at FROM ventes WHERE client_id IS NOT NULL")
     suspend fun getAllVenteClientDates(): List<VenteClientDate>
+
+    // ── Historique paginé (Factures & Paiements — Client Detail) ──
+    @Query("""
+        SELECT * FROM ventes
+        WHERE client_id = :clientId
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (
+            :statusFilter = 'TOUTES'
+            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
+            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
+            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+        )
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun pageVentesForClient(
+        clientId: Int,
+        cursorCreatedAt: String?,
+        search: String,
+        statusFilter: String,
+        limit: Int
+    ): List<VenteEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM ventes
+        WHERE client_id = :clientId
+        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (
+            :statusFilter = 'TOUTES'
+            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
+            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
+            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+        )
+    """)
+    suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int
 }
 
 data class VenteClientDate(

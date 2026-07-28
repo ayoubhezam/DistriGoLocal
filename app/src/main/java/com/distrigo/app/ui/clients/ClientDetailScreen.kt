@@ -2,12 +2,12 @@ package com.distrigo.app.ui.clients
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,13 +29,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.Client
+import com.distrigo.app.data.model.FactureFilter
+import com.distrigo.app.ui.components.paging.PagedHistoryScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
-import com.distrigo.app.ui.purchases.formatOrderTime
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -78,6 +80,8 @@ fun ClientDetailScreen(
     var showEditPayment   by remember { mutableStateOf(false) }
     var editPaymentAmount by remember { mutableStateOf("") }
     var editError         by remember { mutableStateOf("") }
+    var factureExpanded   by remember { mutableStateOf(false) }
+    var showFactureHistory by remember { mutableStateOf(false) }
     val clientTransactions by viewModel.transactions.collectAsState()
 
     LaunchedEffect(selectedTab) {
@@ -324,6 +328,36 @@ fun ClientDetailScreen(
             client = currentClient,
             onBack = { selectedTab = 0 }
         )
+        return
+    }
+
+    // ── "Voir tout l'historique" (écran plein, paginé) ──
+    if (showFactureHistory) {
+        BackHandler { showFactureHistory = false }
+        val factureHistoryViewModel: FactureHistoryViewModel = viewModel()
+        LaunchedEffect(Unit) { factureHistoryViewModel.bind(currentClient.id) }
+        val controller = factureHistoryViewModel.bind(currentClient.id)
+        val historyQuery      by controller.query.collectAsState()
+        val historyFilter     by controller.filter.collectAsState()
+        val historyTotalCount by factureHistoryViewModel.totalCount.collectAsState()
+        val pagingItems = controller.items.collectAsLazyPagingItems()
+
+        PagedHistoryScreen(
+            title             = "Factures & Paiements",
+            countLabel        = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
+            query             = historyQuery,
+            onQueryChange     = controller::onQueryChange,
+            searchPlaceholder = "Rechercher une facture ou un paiement",
+            filters           = FactureFilter.entries,
+            selectedFilter    = historyFilter,
+            onFilterSelected  = controller::onFilterChange,
+            filterLabel       = { it.label },
+            pagingItems       = pagingItems,
+            itemKey           = { "${it.type}_${it.id}" },
+            onBack            = { showFactureHistory = false }
+        ) { transaction ->
+            FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
+        }
         return
     }
 
@@ -617,7 +651,9 @@ fun ClientDetailScreen(
                         }
                     }
                 } else {
-                    val grouped = clientTransactions.groupBy { it.created_at.take(10) }
+                    val visibleLimit = if (factureExpanded) 10 else 5
+                    val visibleTransactions = clientTransactions.take(visibleLimit)
+                    val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
                     grouped.forEach { (date, dayTransactions) ->
                         item {
                             Text(
@@ -629,95 +665,51 @@ fun ClientDetailScreen(
                             )
                         }
                         items(dayTransactions) { transaction ->
-                            if (transaction.type == "vente") {
-                                val montantPaye = transaction.montant_paye ?: 0.0
-                                val total       = transaction.total ?: 0.0
-                                val statut = when {
-                                    montantPaye >= total && total > 0      -> "Payé"
-                                    montantPaye > 0 && montantPaye < total -> "Partiel"
-                                    else                                    -> "Impayé"
-                                }
-                                val statusColor = when (statut) {
-                                    "Payé"    -> DsColors.Success
-                                    "Partiel" -> DsColors.Warning
-                                    else      -> DsColors.Danger
-                                }
-                                val statusColorLight = when (statut) {
-                                    "Payé"    -> DsColors.SuccessLight
-                                    "Partiel" -> DsColors.WarningLight
-                                    else      -> DsColors.DangerLight
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(DsShapes.large)
-                                        .background(DsColors.Surface)
-                                        .border(1.dp, DsColors.Border, DsShapes.large)
-                                        .padding(DsSpacing.md),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.PointOfSale, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-                                    }
-                                    Spacer(Modifier.width(DsSpacing.md))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            "Vente #${transaction.id} · ${formatOrderTime(transaction.created_at)}",
-                                            fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
-                                        )
-                                        if (statut == "Partiel") {
-                                            Text("Payé: ${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.caption, color = DsColors.Warning)
-                                        }
-                                    }
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                        Spacer(Modifier.height(4.dp))
-                                        Box(
-                                            modifier = Modifier.clip(DsShapes.pill).background(statusColorLight).padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(statut, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor)
-                                        }
-                                    }
-                                }
-                            } else if (transaction.type == "paiement") {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(DsShapes.large)
-                                        .background(DsColors.Surface)
-                                        .border(1.dp, DsColors.Border, DsShapes.large)
-                                        .combinedClickable(
-                                            onClick     = {},
-                                            onLongClick = { longPressPayment = transaction }
-                                        )
-                                        .padding(DsSpacing.md),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.SuccessLight),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(18.dp))
-                                    }
-                                    Spacer(Modifier.width(DsSpacing.md))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            "Paiement · ${formatOrderTime(transaction.created_at)}",
-                                            fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
-                                        )
-                                        transaction.note?.takeIf { it.isNotBlank() }?.let {
-                                            Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                        }
-                                    }
-                                    Text(
-                                        "+${"%.2f".format(transaction.amount ?: 0.0)} DA",
-                                        fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Success
-                                    )
-                                }
+                            FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
+                        }
+                    }
+
+                    if (!factureExpanded && clientTransactions.size > visibleLimit) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.medium)
+                                    .clickable(
+                                        indication        = null,
+                                        interactionSource  = remember { MutableInteractionSource() }
+                                    ) { factureExpanded = true }
+                                    .padding(vertical = DsSpacing.sm),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text("Voir plus", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                                Icon(Icons.Default.ExpandMore, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                             }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceSunken)
+                                .clickable(
+                                    indication        = null,
+                                    interactionSource  = remember { MutableInteractionSource() }
+                                ) { showFactureHistory = true }
+                                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Voir tout l'historique (${clientTransactions.size})",
+                                fontSize   = DsTextSize.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = DsColors.TextPrimary
+                            )
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }

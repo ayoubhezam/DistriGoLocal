@@ -91,6 +91,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Paging — pagination Room + Compose (historique complet paginé)
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
+
     // QR code generation
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.android.gms:play-services-location:21.3.0")

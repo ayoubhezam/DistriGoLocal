@@ -22,4 +22,27 @@ interface ClientPaymentDao {
 
     @Query("SELECT * FROM client_payments WHERE created_at >= :start AND created_at < :end")
     suspend fun getPaymentsBetween(start: String, end: String): List<ClientPaymentEntity>
+
+    // ── Historique paginé (Factures & Paiements — Client Detail) ──
+    @Query("""
+        SELECT * FROM client_payments
+        WHERE client_id = :clientId
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:search = '' OR note LIKE '%' || :search || '%')
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun pagePaymentsForClient(
+        clientId: Int,
+        cursorCreatedAt: String?,
+        search: String,
+        limit: Int
+    ): List<ClientPaymentEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM client_payments
+        WHERE client_id = :clientId
+        AND (:search = '' OR note LIKE '%' || :search || '%')
+    """)
+    suspend fun countPaymentsForClient(clientId: Int, search: String): Int
 }

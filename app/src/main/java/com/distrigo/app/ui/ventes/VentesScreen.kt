@@ -207,136 +207,109 @@ fun VentesScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // ── Header ──
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            Text("Ventes", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Button(
-                onClick = { showNewVente = true },
-                shape   = RoundedCornerShape(12.dp),
-                colors  = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ── Header ──
+            Row(
+                modifier          = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Nouveau bon", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Ventes", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             }
-        }
 
-        // ── Stats ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(PrimaryBlue)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            UnifiedStatColumn(icon = Icons.Default.Receipt,     value = depotVentes.size.toString(), label = "Total bons")
-            UnifiedStatColumn(icon = Icons.Default.Schedule,    value = depotVentes.count { it.status == "pending"   }.toString(), label = "En attente")
-            UnifiedStatColumn(icon = Icons.Default.CheckCircle, value = depotVentes.count { it.status == "delivered" }.toString(), label = "Reçus")
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            "Historique des ventes",
-            fontSize = 12.sp,
-            color    = TextMuted,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        // ── Loading ──
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryBlue)
+            // ── Stats ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(PrimaryBlue)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                UnifiedStatColumn(icon = Icons.Default.Receipt,     value = depotVentes.size.toString(), label = "Total bons")
+                UnifiedStatColumn(icon = Icons.Default.Schedule,    value = depotVentes.count { it.status == "pending"   }.toString(), label = "En attente")
+                UnifiedStatColumn(icon = Icons.Default.CheckCircle, value = depotVentes.count { it.status == "delivered" }.toString(), label = "Reçus")
             }
-            return
-        }
 
-        // ── Error ──
-        error?.let {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(it, color = DestructiveRed)
-            }
-            return
-        }
+            Spacer(Modifier.height(12.dp))
 
-        // ── Empty State ──
-        if (depotVentes.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.PointOfSale, contentDescription = null,
-                        tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(56.dp))
-                    Spacer(Modifier.height(12.dp))
-                    Text("Aucune vente", color = TextMuted, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Appuyez sur + pour créer", fontSize = 12.sp, color = TextMuted)
-                }
-            }
-            return
-        }
-
-        val groupedVentes = depotVentes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
-
-        // ── List ──
-        LazyColumn(
-            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier            = Modifier.weight(1f)
-        ) {
-            groupedVentes.forEach { (date, dayVentes) ->
-                // ── Date Header ──
-                item {
-                    Text(
-                        text       = formatOrderDate(date),
-                        fontSize   = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = TextMuted,
-                        modifier   = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-                items(dayVentes) { vente ->
-                    VenteCard(
-                        vente       = vente,
-                        onClick     = {
-                            selectedVente = vente
-                            viewModel.loadVenteDetail(vente.id)
-                        },
-                        onLongClick = {
-                            longPressVente = vente
-                        }
-                    )
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(BlueLight)
-                .padding(12.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(Icons.Default.Info, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
             Text(
-                "Appuyez sur une vente pour voir les détails complets et les articles.",
+                "Historique des ventes",
                 fontSize = 12.sp,
-                color    = PrimaryBlue
+                color    = TextMuted,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryBlue)
+                }
+            } else if (error != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(error ?: "", color = DestructiveRed)
+                }
+            } else if (depotVentes.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.PointOfSale, contentDescription = null,
+                            tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(56.dp))
+                        Spacer(Modifier.height(12.dp))
+                        Text("Aucune vente", color = TextMuted, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Appuyez sur + pour créer", fontSize = 12.sp, color = TextMuted)
+                    }
+                }
+            } else {
+                val groupedVentes =
+                    depotVentes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
+
+                // ── List ──
+                LazyColumn(
+                    contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier            = Modifier.weight(1f)
+                ) {
+                    groupedVentes.forEach { (date, dayVentes) ->
+                        // ── Date Header ──
+                        item {
+                            Text(
+                                text       = formatOrderDate(date),
+                                fontSize   = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = TextMuted,
+                                modifier   = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        items(dayVentes) { vente ->
+                            VenteCard(
+                                vente       = vente,
+                                onClick     = {
+                                    selectedVente = vente
+                                    viewModel.loadVenteDetail(vente.id)
+                                },
+                                onLongClick = {
+                                    longPressVente = vente
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
+
+        com.distrigo.app.ui.components.ScrollAwareFab(
+            onClick  = { showNewVente = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 }
 
@@ -673,7 +646,6 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                // Ligne 1 : Vente # + heure
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -693,7 +665,6 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.height(2.dp))
-                // Ligne 2 : nom du client + badge
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -723,7 +694,6 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(2.dp))
-                // Ligne 3 : montant + nombre d'articles
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

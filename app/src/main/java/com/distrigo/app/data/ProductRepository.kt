@@ -1248,6 +1248,30 @@ class ProductRepository(
         return (venteTx + paiementTx).sortedByDescending { it.created_at }
     }
 
+    suspend fun countClientLedger(clientId: Int, filter: FactureFilter, search: String): Int {
+        val statusFilter = if (filter == FactureFilter.VERSEMENT) "TOUTES" else filter.name
+        val ventesCount = if (filter != FactureFilter.VERSEMENT)
+            db.venteDao().countVentesForClient(clientId, search, statusFilter) else 0
+        val paiementsCount = if (filter == FactureFilter.TOUTES || filter == FactureFilter.VERSEMENT)
+            db.clientPaymentDao().countPaymentsForClient(clientId, search) else 0
+        return ventesCount + paiementsCount
+    }
+
+    fun getClientLedgerPaged(
+        clientId: Int,
+        filter: FactureFilter,
+        search: String
+    ): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<ClientTransaction>> =
+        com.distrigo.app.core.paging.pagedFlow {
+            com.distrigo.app.data.local.paging.ClientLedgerPagingSource(
+                venteDao = db.venteDao(),
+                paymentDao = db.clientPaymentDao(),
+                clientId = clientId,
+                filter = filter,
+                search = search
+            )
+        }
+
     suspend fun addClientPayment(id: Int, amount: Double, note: String?): Map<String, Any> {
         db.withTransaction {
             db.clientPaymentDao().insertPayment(
