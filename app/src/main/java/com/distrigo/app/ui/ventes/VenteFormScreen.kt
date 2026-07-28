@@ -47,7 +47,8 @@ data class VenteCartItem(
 
 @Composable
 fun VenteFormScreen(
-    vente            : com.distrigo.app.data.model.Vente? = null,
+    vente               : com.distrigo.app.data.model.Vente? = null,
+    preSelectedClientId : Int? = null,
     onBack           : () -> Unit,
     onSaved          : () -> Unit,
     venteViewModel   : VenteViewModel   = viewModel(),
@@ -59,7 +60,7 @@ fun VenteFormScreen(
     val products by productViewModel.products.collectAsState()
     val clients  by clientViewModel.clients.collectAsState()
 
-    var currentStep      by remember { mutableStateOf(if (isEdit) 2 else 1) }
+    var currentStep      by remember { mutableStateOf(if (isEdit || preSelectedClientId != null) 2 else 1) }
     // Client is matched from the clients list once loaded, since Vente
     // only carries client_name, not a full Client object (see LaunchedEffect below)
     var selectedClient   by remember { mutableStateOf<Client?>(null) }
@@ -86,6 +87,12 @@ fun VenteFormScreen(
     LaunchedEffect(clients) {
         if (isEdit && selectedClient == null && clients.isNotEmpty()) {
             selectedClient = clients.find { it.id == vente!!.client_id }
+        }
+    }
+
+    LaunchedEffect(preSelectedClientId, clients) {
+        if (preSelectedClientId != null && selectedClient == null) {
+            selectedClient = clients.find { it.id == preSelectedClientId }
         }
     }
 
@@ -458,7 +465,7 @@ fun VenteFormScreen(
     fun goBack() {
         when (currentStep) {
             3    -> currentStep = 2
-            2    -> currentStep = 1
+            2    -> if (preSelectedClientId != null) onBack() else currentStep = 1
             else -> onBack()
         }
     }

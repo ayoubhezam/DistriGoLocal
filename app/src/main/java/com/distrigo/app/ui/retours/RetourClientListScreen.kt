@@ -130,7 +130,7 @@ fun RetourClientListScreen(
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
                 items(filteredRetours, key = { it.id }) { retour ->
-                    RetourClientRow(retour = retour)
+                    RetourRow(retour = retour)
                 }
             }
         }
@@ -146,8 +146,9 @@ private fun RetourClientStatColumn(value: String, label: String) {
     }
 }
 
+/** Shared row for one retour — used here and in ClientDetailScreen's inline preview. */
 @Composable
-private fun RetourClientRow(retour: RetourClient) {
+fun RetourRow(retour: RetourClient) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape    = DsShapes.medium,
