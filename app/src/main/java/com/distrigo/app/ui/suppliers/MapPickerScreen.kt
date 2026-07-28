@@ -40,6 +40,15 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsColors
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.launch
 @Composable
 fun MapPickerScreen(
     initialLat : Double = 36.1901,
@@ -59,6 +68,66 @@ fun MapPickerScreen(
     }
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
     val markerState = rememberMarkerState(position = LatLng(initialLat, initialLng))
+    val scope = rememberCoroutineScope()
+    var isLocating by remember { mutableStateOf(false) }
+    var locationError by remember { mutableStateOf("") }
+
+    fun applyPickedLocation(lat: Double, lng: Double) {
+        selectedLat = lat
+        selectedLng = lng
+        if (isOnline) {
+            scope.launch {
+                cameraPositionState.animate(CameraUpdateFactory.newLatLng(LatLng(lat, lng)))
+            }
+        } else {
+            mapView?.let { mv ->
+                mv.overlays.removeAll { it is OsmMarker }
+                val newMarker = OsmMarker(mv)
+                newMarker.position = GeoPoint(lat, lng)
+                newMarker.setAnchor(OsmMarker.ANCHOR_CENTER, OsmMarker.ANCHOR_BOTTOM)
+                newMarker.title = "Fournisseur"
+                mv.overlays.add(newMarker)
+                mv.controller.animateTo(GeoPoint(lat, lng))
+                mv.invalidate()
+            }
+        }
+    }
+
+    fun centerOnHighAccuracyGps() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasPermission) {
+            locationError = "Permission de localisation refusée."
+            return
+        }
+        isLocating = true
+        locationError = ""
+        val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+        val cancellationTokenSource = CancellationTokenSource()
+        try {
+            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
+                .addOnSuccessListener { location ->
+                    isLocating = false
+                    if (location != null) {
+                        applyPickedLocation(location.latitude, location.longitude)
+                    } else {
+                        locationError = "Position indisponible. Activez le GPS."
+                    }
+                }
+                .addOnFailureListener {
+                    isLocating = false
+                    locationError = "Impossible d'obtenir la position."
+                }
+        } catch (e: SecurityException) {
+            isLocating = false
+            locationError = "Permission de localisation refusée."
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = "Permission refusée." }
 
     // يُبقي دبوس Google Maps متزامنًا مع النقطة المختارة عند النقر على الخريطة
     LaunchedEffect(selectedLat, selectedLng) {
@@ -158,6 +227,30 @@ fun MapPickerScreen(
                     contentDescription = if (mapType == MapType.NORMAL) "Vue satellite" else "Vue standard",
                     tint = DsColors.Primary
                 )
+            }
+        }
+
+        Button(
+            onClick  = {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+                if (hasPermission) centerOnHighAccuracyGps()
+                else locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            },
+            enabled  = !isLocating,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 150.dp),
+            shape    = RoundedCornerShape(50),
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Surface, contentColor = DsColors.TextPrimary)
+        ) {
+            if (isLocating) {
+                CircularProgressIndicator(color = DsColors.Primary, modifier = Modifier.size(16.dp))
+            } else {
+                Icon(Icons.Default.MyLocation, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("GPS précis", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             }
         }
 

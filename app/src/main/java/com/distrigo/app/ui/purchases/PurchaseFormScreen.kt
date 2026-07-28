@@ -61,12 +61,13 @@ data class CartItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchaseFormScreen(
-    order             : PurchaseOrder?     = null,
-    onBack            : () -> Unit,
-    onSaved           : () -> Unit,
-    purchaseViewModel : PurchaseViewModel  = viewModel(),
-    productViewModel  : ProductViewModel   = viewModel(),
-    supplierViewModel : SupplierViewModel  = viewModel()
+    order                 : PurchaseOrder?     = null,
+    preSelectedSupplierId : Int?               = null,
+    onBack                : () -> Unit,
+    onSaved               : () -> Unit,
+    purchaseViewModel     : PurchaseViewModel  = viewModel(),
+    productViewModel      : ProductViewModel   = viewModel(),
+    supplierViewModel     : SupplierViewModel  = viewModel()
 ) {
     val isEdit = order != null
 
@@ -83,7 +84,7 @@ fun PurchaseFormScreen(
     var showScanner        by remember { mutableStateOf(false) }
     var supplierSearch     by remember { mutableStateOf("") }
     var montantPaye by remember { mutableStateOf("") }
-    var currentStep by remember { mutableStateOf(if (isEdit) 2 else 1) }
+    var currentStep by remember { mutableStateOf(if (isEdit || preSelectedSupplierId != null) 2 else 1) }
     var showAddSupplierDialog by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     var newSupplierName       by remember { mutableStateOf("") }
@@ -100,6 +101,12 @@ fun PurchaseFormScreen(
     LaunchedEffect(suppliers) {
         if (isEdit && selectedSupplier == null) {
             selectedSupplier = suppliers.find { it.id == order!!.supplier_id }
+        }
+    }
+
+    LaunchedEffect(preSelectedSupplierId, suppliers) {
+        if (preSelectedSupplierId != null && selectedSupplier == null) {
+            selectedSupplier = suppliers.find { it.id == preSelectedSupplierId }
         }
     }
 
@@ -1016,7 +1023,7 @@ fun PurchaseFormScreen(
     fun goBack() {
         when (currentStep) {
             3    -> currentStep = 2
-            2    -> currentStep = 1
+            2    -> if (preSelectedSupplierId != null) onBack() else currentStep = 1
             else -> onBack()
         }
     }

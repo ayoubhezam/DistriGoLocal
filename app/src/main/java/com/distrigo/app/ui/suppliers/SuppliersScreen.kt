@@ -22,7 +22,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.activity.compose.BackHandler
-
+import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun SuppliersScreen(
     viewModel : SupplierViewModel = viewModel(),
@@ -134,172 +134,111 @@ fun SuppliersScreen(
         }
 
 
-
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-            snackbarMessage?.let { message ->
-                LaunchedEffect(message) {
-                    kotlinx.coroutines.delay(2500)
-                    snackbarMessage = null
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
-                        .clip(DsShapes.medium)
-                        .background(Color(0xFF323232))
-                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-                ) {
-                    Text(message, color = Color.White, fontSize = DsTextSize.bodySmall)
-                }
-            }
+        item {
             // ── Header ──
             Row(
-                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text(
-                    "Fournisseurs",
-                    fontSize = DsTextSize.headline,
-                    fontWeight = FontWeight.Bold,
-                    color = DsColors.TextPrimary
-                )
+                Text("Fournisseurs", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
                 FloatingActionButton(
-                    onClick = { showAddScreen = true },
+                    onClick        = { showAddScreen = true },
                     containerColor = DsColors.Primary,
-                    contentColor = Color.White,
-                    modifier = Modifier.size(40.dp),
-                    shape = DsShapes.pill
+                    contentColor   = Color.White,
+                    modifier       = Modifier.size(40.dp),
+                    shape          = DsShapes.pill
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Ajouter")
                 }
             }
+        }
 
-            // ── Total Debt Banner ──
-            if (totalDebt > 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg)
-                        .padding(bottom = 10.dp)
-                        .clip(DsShapes.large)
-                        .background(DsColors.DangerLight)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        if (totalDebt > 0) {
+            item {
+                Column {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = DsSpacing.lg)
+                            .clip(DsShapes.large)
+                            .background(DsColors.DangerLight)
+                            .padding(DsSpacing.lg)
                     ) {
-                        Icon(
-                            Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = DsColors.Danger,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
+                            Text("Total des dettes", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                        }
                         Text(
-                            "Total des dettes",
-                            fontSize = DsTextSize.bodySmall,
-                            color = DsColors.Danger,
-                            fontWeight = FontWeight.Medium
+                            "${formatDZD(totalDebt)} DA",
+                            fontSize   = DsTextSize.bodyLarge,
+                            color      = DsColors.Danger,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    Text(
-                        "${formatDZD(totalDebt)} DA",
-                        fontSize = DsTextSize.bodyLarge,
-                        color = DsColors.Danger,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            // ── Search ──
-        OutlinedTextField(
-            value = search,
-            onValueChange = { search = it },
-            placeholder = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (search.isNotEmpty()) {
-                    IconButton(onClick = { search = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg)
-                .clip(DsShapes.large),
-            shape = DsShapes.large,
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor = DsColors.Primary
-            )
-        )
-
-            Spacer(Modifier.height(DsSpacing.sm))
-
-            Text(
-                "${filtered.size} fournisseur(s)",
-                fontSize = DsTextSize.caption,
-                color = DsColors.TextSecondary,
-                modifier = Modifier.padding(horizontal = DsSpacing.lg)
-            )
-
-            Spacer(Modifier.height(DsSpacing.sm))
-
-            // ── Loading ──
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DsColors.Primary)
-                }
-                return
-            }
-
-            // ── Error ──
-            error?.let {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(it, color = DsColors.Danger)
-                }
-                return
-            }
-
-            // ── Empty State ──
-            if (filtered.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Business, contentDescription = null,
-                            tint = DsColors.Primary.copy(alpha = 0.3f), modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(DsSpacing.md))
-                        Text(
-                            "Aucun fournisseur trouvé",
-                            color = DsColors.TextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-                return
-            }
-
-            // ── List ──
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-            ) {
-                items(filtered) { supplier ->
-                    SupplierCard(
-                        supplier = supplier,
-                        onClick = { selectedSupplier = supplier }
-                    )
+                    Spacer(Modifier.height(DsSpacing.md))
                 }
             }
         }
+
+        stickyHeader {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DsColors.Surface)
+            ) {
+                // ── Search ──
+                OutlinedTextField(
+                    value         = search,
+                    onValueChange = { search = it },
+                    placeholder   = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon  = {
+                        if (search.isNotEmpty()) {
+                            IconButton(onClick = { search = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    shape         = DsShapes.large,
+                    singleLine    = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                Text(
+                    "${filtered.size} fournisseur(s)",
+                    fontSize = DsTextSize.caption,
+                    color    = DsColors.TextSecondary,
+                    modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                )
+
+                Spacer(Modifier.height(DsSpacing.xs))
+            }
+        }
+
+        items(filtered, key = { it.id }) { supplier ->
+            Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                SupplierCard(
+                    supplier = supplier,
+                    onClick  = { selectedSupplier = supplier }
+                )
+            }
+        }
+    }
     }
 
 

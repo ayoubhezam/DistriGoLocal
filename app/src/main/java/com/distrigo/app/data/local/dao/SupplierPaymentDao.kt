@@ -22,4 +22,27 @@ interface SupplierPaymentDao {
 
     @Query("DELETE FROM supplier_payments WHERE id = :id")
     suspend fun deletePaymentById(id: Int)
+
+    // ── Historique paginé (Achats & Paiements — Supplier Detail) ──
+    @Query("""
+        SELECT * FROM supplier_payments
+        WHERE supplier_id = :supplierId
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:search = '' OR note LIKE '%' || :search || '%')
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun pagePaymentsForSupplier(
+        supplierId: Int,
+        cursorCreatedAt: String?,
+        search: String,
+        limit: Int
+    ): List<SupplierPaymentEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM supplier_payments
+        WHERE supplier_id = :supplierId
+        AND (:search = '' OR note LIKE '%' || :search || '%')
+    """)
+    suspend fun countPaymentsForSupplier(supplierId: Int, search: String): Int
 }

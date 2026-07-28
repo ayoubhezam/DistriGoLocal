@@ -54,6 +54,10 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Layers
 import com.google.maps.android.compose.MapType
+import androidx.activity.compose.rememberLauncherForActivityResult
+import kotlinx.coroutines.launch
+
+
 /**
  * مصدر صور الأقمار الصناعية من Esri World Imagery — مجاني بالكامل وبدون مفتاح API.
  * ملاحظة: ترتيب المسار عند Esri هو z/y/x (وليس z/x/y كما في Mapnik)، لذا نُعيد كتابة

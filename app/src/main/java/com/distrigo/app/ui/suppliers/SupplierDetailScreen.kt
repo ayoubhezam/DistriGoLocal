@@ -1,10 +1,24 @@
 package com.distrigo.app.ui.suppliers
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,25 +26,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.distrigo.app.data.model.AchatFilter
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SupplierTransaction
-import com.distrigo.app.ui.products.*
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
+import com.distrigo.app.ui.common.QuickActionButton
+import com.distrigo.app.ui.common.StatCell
+import com.distrigo.app.ui.common.WhatsAppIcon
+import com.distrigo.app.ui.components.paging.PagedHistoryScreen
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.purchases.PurchaseFormScreen
 import com.distrigo.app.ui.purchases.formatOrderDate
-import com.distrigo.app.ui.purchases.formatOrderTime
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-
-private fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+import com.distrigo.app.ui.retours.RetourFournisseurFormScreen
+import com.distrigo.app.ui.retours.RetourFournisseurListScreen
+import com.distrigo.app.ui.retours.RetourFournisseurRow
+import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -42,37 +66,71 @@ fun SupplierDetailScreen(
     viewModel         : SupplierViewModel = viewModel(),
     onNavigateToOrder : (Int) -> Unit = {}
 ) {
-    val supplierProducts by viewModel.supplierProducts.collectAsState()
-    val transactions     by viewModel.transactions.collectAsState()
-
     val currentSupplier = viewModel.suppliers.collectAsState().value
         .find { it.id == supplier.id } ?: supplier
+
     val balanceStatus = when {
-        currentSupplier.balance > 0  -> "due"
+        currentSupplier.balance > 0    -> "due"
         currentSupplier.balance == 0.0 -> "settled"
-        else                         -> "credit"
+        else                           -> "credit"
     }
+
     val colors   = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
     val color    = Color(colors[currentSupplier.name[0].code % colors.size])
-    val initials = currentSupplier.name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
-    var selectedTab       by remember { mutableStateOf(0) }
-    var showPaymentDialog by remember { mutableStateOf(false) }
-    var payAmount         by remember { mutableStateOf("") }
-    var payNote           by remember { mutableStateOf("") }
-    var payError          by remember { mutableStateOf("") }
-    var longPressPayment    by remember { mutableStateOf<SupplierTransaction?>(null) }
-    var showDeletePayment   by remember { mutableStateOf(false) }
-    var showEditPayment     by remember { mutableStateOf(false) }
-    var editPaymentAmount   by remember { mutableStateOf("") }
-    var editError           by remember { mutableStateOf("") }
+    val initials = currentSupplier.name.split(" ").take(2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 
-    LaunchedEffect(supplier.id) {
-        viewModel.loadSupplierProducts(supplier.id)
-        viewModel.loadTransactions(supplier.id)
+    var showPaymentDialog  by remember { mutableStateOf(false) }
+    var payAmount          by remember { mutableStateOf("") }
+    var payNote            by remember { mutableStateOf("") }
+    var payError           by remember { mutableStateOf("") }
+    var longPressPayment   by remember { mutableStateOf<SupplierTransaction?>(null) }
+    var showDeletePayment  by remember { mutableStateOf(false) }
+    var showEditPayment    by remember { mutableStateOf(false) }
+    var editPaymentAmount  by remember { mutableStateOf("") }
+    var editError          by remember { mutableStateOf("") }
+    var achatExpanded      by remember { mutableStateOf(false) }
+    var showAchatHistory   by remember { mutableStateOf(false) }
+    var showNewAchat       by remember { mutableStateOf(false) }
+    var showRetourForm     by remember { mutableStateOf(false) }
+    var showRetourHistory  by remember { mutableStateOf(false) }
+    var showMoreMenu       by remember { mutableStateOf(false) }
+    var showPhotoMenu      by remember { mutableStateOf(false) }
+    val supplierTransactions by viewModel.transactions.collectAsState()
+
+    val context = LocalContext.current
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val stream         = context.contentResolver.openInputStream(it)
+            val originalBitmap = BitmapFactory.decodeStream(stream)
+            stream?.close()
+            val maxSize = 400
+            val ratio   = minOf(maxSize.toFloat() / originalBitmap.width, maxSize.toFloat() / originalBitmap.height)
+            val resized = android.graphics.Bitmap.createScaledBitmap(
+                originalBitmap, (originalBitmap.width * ratio).toInt(), (originalBitmap.height * ratio).toInt(), true
+            )
+            val outputStream = java.io.ByteArrayOutputStream()
+            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
+            val newImageUri = "data:image/jpeg;base64," + Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+            viewModel.updateSupplier(
+                id        = currentSupplier.id,
+                supplier  = supplierToUpdateMap(currentSupplier, newImageUri),
+                onSuccess = { viewModel.loadSuppliers() },
+                onError   = {}
+            )
+        }
     }
 
-    LaunchedEffect(selectedTab) {
-        if (selectedTab == 2) viewModel.loadTransactions(currentSupplier.id)
+    val retourViewModel: RetourFournisseurViewModel = viewModel()
+    val supplierRetours by retourViewModel.retours.collectAsState()
+
+    // Le tableau de bord fusionné affiche toujours Achats & Retours en même
+    // temps que les Infos — les deux doivent donc se charger dès l'ouverture.
+    LaunchedEffect(Unit) {
+        viewModel.loadTransactions(currentSupplier.id)
+        retourViewModel.loadRetours(currentSupplier.id)
     }
 
     // ── Payment Dialog ──
@@ -84,75 +142,83 @@ fun SupplierDetailScreen(
             },
             title = { Text("Enregistrer un paiement", fontWeight = FontWeight.Bold) },
             text  = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // Solde restant banner
-                    Box(
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(RedLight)
-                            .padding(12.dp)
+                            .clip(DsShapes.medium)
+                            .background(DsColors.DangerLight)
+                            .padding(DsSpacing.md)
                     ) {
                         Row(
-                            modifier              = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Solde restant", fontSize = 13.sp, color = DestructiveRed)
+                            Text("Solde restant", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                             Text(
-                                "${formatDZD(currentSupplier.balance)} DA",
-                                fontSize   = 15.sp,
+                                "${"%.2f".format(currentSupplier.balance)} DA",
+                                fontSize = DsTextSize.body,
                                 fontWeight = FontWeight.Bold,
-                                color      = DestructiveRed
+                                color = DsColors.Danger
                             )
                         }
                     }
 
                     OutlinedTextField(
-                        value         = payAmount,
+                        value = payAmount,
                         onValueChange = { payAmount = it; payError = "" },
-                        label         = { Text("Montant (DA)") },
+                        label = { Text("Montant (DA)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier      = Modifier.fillMaxWidth(),
-                        singleLine    = true,
-                        isError       = payError.isNotEmpty()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = payError.isNotEmpty(),
+                        shape = DsShapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor = DsColors.Primary
+                        )
                     )
 
                     OutlinedTextField(
-                        value         = payNote,
+                        value = payNote,
                         onValueChange = { payNote = it },
-                        label         = { Text("Note (optionnel)") },
-                        modifier      = Modifier.fillMaxWidth(),
-                        singleLine    = true
+                        label = { Text("Note (optionnel)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = DsShapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor = DsColors.Primary
+                        )
                     )
 
-                    // Quick amount buttons
                     Row(
-                        modifier              = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(1000.0, 2000.0, 5000.0).forEach { quick ->
                             OutlinedButton(
-                                onClick          = { payAmount = quick.toInt().toString() },
-                                modifier         = Modifier.weight(1f),
-                                shape            = RoundedCornerShape(8.dp),
-                                contentPadding   = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                onClick = { payAmount = quick.toInt().toString() },
+                                modifier = Modifier.weight(1f),
+                                shape = DsShapes.small,
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                             ) {
-                                Text("${quick.toInt()}", fontSize = 11.sp)
+                                Text("${quick.toInt()}", fontSize = DsTextSize.caption)
                             }
                         }
                         OutlinedButton(
-                            onClick          = { payAmount = currentSupplier.balance.toString() },
-                            modifier         = Modifier.weight(1.5f),
-                            shape            = RoundedCornerShape(8.dp),
-                            contentPadding   = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                            onClick = { payAmount = currentSupplier.balance.toString() },
+                            modifier = Modifier.weight(1.5f),
+                            shape = DsShapes.small,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                         ) {
-                            Text("Tout régler", fontSize = 11.sp)
+                            Text("Tout régler", fontSize = DsTextSize.caption)
                         }
                     }
 
                     if (payError.isNotEmpty()) {
-                        Text(payError, color = DestructiveRed, fontSize = 12.sp)
+                        Text(payError, color = DsColors.Danger, fontSize = DsTextSize.caption)
                     }
                 }
             },
@@ -171,13 +237,11 @@ fun SupplierDetailScreen(
                             onSuccess = {
                                 showPaymentDialog = false
                                 payAmount = ""; payNote = ""
-                                viewModel.loadSuppliers()
-                                viewModel.loadTransactions(currentSupplier.id)
                             },
                             onError = { payError = it }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DestructiveRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                 ) {
                     Text("Confirmer", color = Color.White)
                 }
@@ -204,12 +268,12 @@ fun SupplierDetailScreen(
                     editPaymentAmount = (payment.amount ?: 0.0).toString()
                     showEditPayment = true
                 }) {
-                    Text("Modifier le montant", color = PrimaryBlue)
+                    Text("Modifier le montant", color = DsColors.Primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeletePayment = true }) {
-                    Text("Supprimer", color = DestructiveRed)
+                    Text("Supprimer", color = DsColors.Danger)
                 }
             }
         )
@@ -232,7 +296,7 @@ fun SupplierDetailScreen(
                             onError    = {}
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DestructiveRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                 ) {
                     Text("Supprimer", color = Color.White)
                 }
@@ -252,18 +316,23 @@ fun SupplierDetailScreen(
             onDismissRequest = { showEditPayment = false; longPressPayment = null; editError = "" },
             title = { Text("Modifier le paiement", fontWeight = FontWeight.Bold) },
             text  = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
-                        value           = editPaymentAmount,
-                        onValueChange   = { editPaymentAmount = it; editError = "" },
-                        label           = { Text("Montant (DA)") },
+                        value = editPaymentAmount,
+                        onValueChange = { editPaymentAmount = it; editError = "" },
+                        label = { Text("Montant (DA)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier        = Modifier.fillMaxWidth(),
-                        singleLine      = true,
-                        isError         = editError.isNotEmpty()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = editError.isNotEmpty(),
+                        shape = DsShapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor = DsColors.Primary
+                        )
                     )
                     if (editError.isNotEmpty()) {
-                        Text(editError, color = DestructiveRed, fontSize = 12.sp)
+                        Text(editError, color = DsColors.Danger, fontSize = DsTextSize.caption)
                     }
                 }
             },
@@ -283,7 +352,7 @@ fun SupplierDetailScreen(
                             onError    = { editError = it }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                 ) {
                     Text("Confirmer", color = Color.White)
                 }
@@ -296,81 +365,212 @@ fun SupplierDetailScreen(
         )
     }
 
-    // ── Tab 3: Retours (écran plein, comme les sous-écrans de PurchaseFormScreen) ──
-    if (selectedTab == 3) {
-        com.distrigo.app.ui.retours.RetourFournisseurListScreen(
+    // ── Nouvel achat (écran plein) ──
+    if (showNewAchat) {
+        BackHandler { showNewAchat = false }
+        PurchaseFormScreen(
+            preSelectedSupplierId = currentSupplier.id,
+            onBack  = { showNewAchat = false },
+            onSaved = { showNewAchat = false; viewModel.loadTransactions(currentSupplier.id) }
+        )
+        return
+    }
+
+    // ── Nouveau retour (écran plein) ──
+    if (showRetourForm) {
+        BackHandler { showRetourForm = false }
+        RetourFournisseurFormScreen(
             supplierId   = currentSupplier.id,
             supplierName = currentSupplier.name,
-            onBack       = { selectedTab = 0 }
+            viewModel    = retourViewModel,
+            onBack       = { showRetourForm = false },
+            onSaved      = { showRetourForm = false; retourViewModel.loadRetours(currentSupplier.id) }
         )
+        return
+    }
+
+    // ── "Voir tout l'historique" des retours (écran plein) ──
+    if (showRetourHistory) {
+        BackHandler { showRetourHistory = false }
+        RetourFournisseurListScreen(
+            supplierId   = currentSupplier.id,
+            supplierName = currentSupplier.name,
+            viewModel    = retourViewModel,
+            onBack       = { showRetourHistory = false }
+        )
+        return
+    }
+
+    // ── "Voir tout l'historique" (écran plein, paginé) ──
+    if (showAchatHistory) {
+        BackHandler { showAchatHistory = false }
+        val achatHistoryViewModel: AchatHistoryViewModel = viewModel()
+        LaunchedEffect(Unit) { achatHistoryViewModel.bind(currentSupplier.id) }
+        val controller = achatHistoryViewModel.bind(currentSupplier.id)
+        val historyQuery by controller.query.collectAsState()
+        val historyFilter by controller.filter.collectAsState()
+        val historyTotalCount by achatHistoryViewModel.totalCount.collectAsState()
+        val pagingItems = controller.items.collectAsLazyPagingItems()
+
+        PagedHistoryScreen(
+            title = "Achats & Paiements",
+            countLabel = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
+            query = historyQuery,
+            onQueryChange = controller::onQueryChange,
+            searchPlaceholder = "Rechercher un achat ou un paiement",
+            filters = AchatFilter.entries,
+            selectedFilter = historyFilter,
+            onFilterSelected = controller::onFilterChange,
+            filterLabel = { it.label },
+            pagingItems = pagingItems,
+            itemKey = { "${it.type}_${it.id}" },
+            onBack = { showAchatHistory = false }
+        ) { transaction ->
+            AchatRow(
+                transaction,
+                onLongPressPaiement = { longPressPayment = it },
+                onClickFacture = { onNavigateToOrder(it.id) }
+            )
+        }
         return
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.SurfaceMuted)
     ) {
         // ── Header ──
         Row(
-            modifier              = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(DsSpacing.lg),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
                 }
-                Spacer(Modifier.width(4.dp))
-                Text("Fournisseur", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text("Fournisseur", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 IconButton(
                     onClick  = onDelete,
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(RedLight)
+                    modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DestructiveRed, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(20.dp))
                 }
                 IconButton(
                     onClick  = onEdit,
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight)
+                    modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
                 ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }
         }
 
         LazyColumn(
-            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
-            // ── Identity Card ──
+            // ── Carte d'identité (dégradé) ──
             item {
-                Card(
-                    modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(DsColors.Primary, lerp(DsColors.Primary, Color.Black, 0.35f))
+                            )
+                        )
+                        .padding(DsSpacing.lg)
                 ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier         = Modifier.size(52.dp).clip(RoundedCornerShape(50)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                            Text(initials, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.BottomEnd) {
+                            Box(
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .clip(DsShapes.pill)
+                                    .background(Color.White.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (currentSupplier.image_uri != null) {
+                                    val imageBytes = Base64.decode(currentSupplier.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
+                                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                    bitmap?.let {
+                                        Image(
+                                            bitmap             = it.asImageBitmap(),
+                                            contentDescription = null,
+                                            modifier           = Modifier.fillMaxSize().clip(DsShapes.pill),
+                                            contentScale       = ContentScale.Crop
+                                        )
+                                    }
+                                } else {
+                                    Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                            Box {
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(DsShapes.pill)
+                                        .background(Color.White)
+                                        .clickable(
+                                            indication        = null,
+                                            interactionSource  = remember { MutableInteractionSource() }
+                                        ) { showPhotoMenu = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                }
+                                DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Ajouter une nouvelle photo") },
+                                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
+                                        onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
+                                    )
+                                    if (currentSupplier.image_uri != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Supprimer la photo actuelle") },
+                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                            onClick = {
+                                                showPhotoMenu = false
+                                                viewModel.updateSupplier(
+                                                    id        = currentSupplier.id,
+                                                    supplier  = supplierToUpdateMap(currentSupplier, null),
+                                                    onSuccess = { viewModel.loadSuppliers() },
+                                                    onError   = {}
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        Spacer(Modifier.width(12.dp))
+
+                        Spacer(Modifier.width(DsSpacing.md))
+
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(currentSupplier.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.Phone, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
-                                Text(formatPhone(currentSupplier.phone ?: ""), fontSize = 13.sp, color = TextMuted)                            }
-                            if (!currentSupplier.address.isNullOrEmpty()) {
+                            Text(currentSupplier.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = Color.White)
+                            if (!currentSupplier.phone.isNullOrBlank()) {
+                                Spacer(Modifier.height(4.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
-                                    Text(currentSupplier.address!!, fontSize = 12.sp, color = TextMuted, maxLines = 1)
+                                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                    Text(formatPhone(currentSupplier.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                                }
+                            }
+                            if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
+                                Spacer(Modifier.height(4.dp))
+                                val location = listOfNotNull(
+                                    currentSupplier.commune_name?.takeIf { it.isNotBlank() },
+                                    currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
+                                ).joinToString(", ")
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                    Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
                                 }
                             }
                         }
@@ -378,424 +578,389 @@ fun SupplierDetailScreen(
                 }
             }
 
-// ── Balance Card ──
+            // ── Statistiques (Total payé / Total facturé / Solde dû) ──
+            item {
+                val totalFacture = supplierTransactions.filter { it.type == "facture" }.sumOf { it.amount ?: 0.0 }
+                val totalPaye = supplierTransactions.filter { it.type == "facture" }.sumOf { it.montant_paye ?: 0.0 } +
+                        supplierTransactions.filter { it.type == "paiement" }.sumOf { it.amount ?: 0.0 }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(vertical = DsSpacing.md)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
+                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                        StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
+                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                        StatCell(modifier = Modifier.weight(1f), label = "Solde dû", value = kotlin.math.abs(currentSupplier.balance), color = DsColors.Danger)
+                    }
+
+                    if (balanceStatus == "due") {
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Button(
+                            onClick        = { showPaymentDialog = true },
+                            modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                            shape          = DsShapes.medium,
+                            colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
+                            contentPadding = PaddingValues(vertical = 10.dp)
+                        ) {
+                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            // ── Actions rapides (rangée défilante horizontalement) ──
+            item {
+                val hasPhone = !currentSupplier.phone.isNullOrBlank()
+                val hasLocation = currentSupplier.latitude != null && currentSupplier.longitude != null
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
+                ) {
+                    item {
+                        QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                            if (hasPhone) {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
+                                )
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
+                            if (hasLocation) {
+                                try {
+                                    val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
+                                    )
+                                } catch (e: ActivityNotFoundException) {
+                                    Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
+                            if (hasPhone) {
+                                val digits = currentSupplier.phone!!.filter { it.isDigit() }
+                                try {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }
+                                    )
+                                } catch (e: ActivityNotFoundException) {
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
+                                    } catch (e2: ActivityNotFoundException) {
+                                        Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(
+                            icon = Icons.Default.ShoppingCart,
+                            label = "Nouvel\nachat"
+                        ) { showNewAchat = true }
+                    }
+                    item {
+                        QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                            showPaymentDialog = true
+                        }
+                    }
+                    item {
+                        QuickActionButton(
+                            icon = Icons.Default.AssignmentReturn,
+                            label = "Retour"
+                        ) { showRetourForm = true }
+                    }
+                    item {
+                        Box {
+                            QuickActionButton(
+                                icon = Icons.Default.MoreHoriz,
+                                label = "Plus",
+                                tint = DsColors.TextSecondary,
+                                bg = DsColors.SurfaceSunken
+                            ) {
+                                showMoreMenu = true
+                            }
+                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Modifier le fournisseur") },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                                    onClick = { showMoreMenu = false; onEdit() }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Supprimer le fournisseur") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                    onClick = { showMoreMenu = false; onDelete() }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Informations ──
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                    Text("Informations", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                }
+            }
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            when (balanceStatus) {
-                                "due"     -> RedLight
-                                "settled" -> GreenLight
-                                else      -> BlueLight
-                            }
-                        )
-                        .padding(14.dp)
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(DsSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier         = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(
-                                    when (balanceStatus) {
-                                        "due"     -> Color(0xFFFFCDD2)
-                                        "settled" -> Color(0xFFA5D6A7)
-                                        else      -> Color(0xFFBBDEFB)
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.AccountBalanceWallet,
-                                contentDescription = null,
-                                tint = when (balanceStatus) {
-                                    "due"     -> DestructiveRed
-                                    "settled" -> AccentGreen
-                                    else      -> PrimaryBlue
-                                },
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                when (balanceStatus) {
-                                    "due"     -> "Montant dû"
-                                    "settled" -> "Réglé"
-                                    else      -> "Avance"
-                                },
-                                color = when (balanceStatus) {
-                                    "due"     -> DestructiveRed
-                                    "settled" -> AccentGreen
-                                    else      -> PrimaryBlue
-                                },
-                                fontSize   = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                "${"%.2f".format(kotlin.math.abs(currentSupplier.balance))} DA",
-                                fontSize   = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                maxLines   = 1,
-                                overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                color      = when (balanceStatus) {
-                                    "due"     -> DestructiveRed
-                                    "settled" -> AccentGreen
-                                    else      -> PrimaryBlue
-                                }
-                            )
-                        }
-                    }
-                    if (balanceStatus == "due") {
-                        Spacer(Modifier.height(10.dp))
-                        Button(
-                            onClick        = { showPaymentDialog = true },
-                            modifier       = Modifier.fillMaxWidth(),
-                            shape          = RoundedCornerShape(10.dp),
-                            colors         = ButtonDefaults.buttonColors(containerColor = DestructiveRed),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = null,
-                                tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Payer", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                    SupplierInfoRow(
+                        icon = Icons.Default.Phone,
+                        label = "Téléphone",
+                        value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
+                    )
+                    SupplierInfoRow(
+                        icon = Icons.Default.LocationOn,
+                        label = "Wilaya",
+                        value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                    )
+                    SupplierInfoRow(
+                        icon = Icons.Default.Map,
+                        label = "Commune",
+                        value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                    )
+                    SupplierInfoRow(
+                        icon = Icons.Default.Home,
+                        label = "Adresse",
+                        value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                    )
+                    if (!currentSupplier.note.isNullOrBlank()) {
+                        SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
                     }
                 }
             }
 
-            // ── Tabs ──
+            // ── Achats & Paiements ──
             item {
-                Row(
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                    Text("Achats & Paiements", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                }
+            }
+            item {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MutedGray)
-                        .padding(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(DsSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    listOf(
-                        Pair("Infos",               Icons.Default.Info),
-                        Pair("Produits",             Icons.Default.ShoppingCart),
-                        Pair("Factures &\nPaiements", Icons.Default.Receipt),
-                        Pair("Retours",              Icons.Default.AssignmentReturn)
-                    ).forEachIndexed { index, (label, icon) ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(9.dp))
-                                .background(if (selectedTab == index) PrimaryBlue else Color.Transparent)
-                                .clickable(
-                                    indication       = null,
-                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                                ) { selectedTab = index }
-                                .padding(vertical = 6.dp, horizontal = 2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Icon(
-                                    icon,
-                                    contentDescription = null,
-                                    tint     = if (selectedTab == index) Color.White else TextMuted,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    label,
-                                    fontSize   = 10.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color      = if (selectedTab == index) Color.White else TextMuted,
-                                    textAlign  = TextAlign.Center,
-                                    lineHeight = 13.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Tab 0: Infos ──
-            if (selectedTab == 0) {
-                item {
-                    Card(
-                        modifier  = Modifier.fillMaxWidth(),
-                        shape     = RoundedCornerShape(16.dp),
-                        colors    = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            InfoRow(icon = Icons.Default.Phone,      label = "Téléphone", value = currentSupplier.phone?:"")
-                            InfoRow(icon = Icons.Default.LocationOn, label = "Adresse",   value = currentSupplier.address ?: "Non renseignée")
-                            if (!currentSupplier.note.isNullOrEmpty()) {
-                                InfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note!!)
-                            }
-                        }
-                    }
-                }
-
-                // Stats row 1: Produits liés + Solde
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(
-                            modifier = Modifier.weight(1f),
-                            label    = "Produits liés",
-                            value    = supplierProducts.size.toString(),
-                            color    = PrimaryBlue
-                        )
-                        StatCard(
-                            modifier = Modifier.weight(1f),
-                            label    = "Solde",
-                            value    = "${formatDZD(currentSupplier.balance)} DA",
-                            color = when (balanceStatus) {
-                                "due"     -> DestructiveRed
-                                "settled" -> AccentGreen
-                                else      -> PrimaryBlue
-                            }                        )
-                    }
-                }
-
-                // Stats row 2: Payé + Partiel + Impayé
-                item {
-                    val factures     = transactions.filter { it.type == "facture" }
-                    val payeCount    = factures.count { (it.montant_paye ?: 0.0) >= (it.amount ?: 0.0) && (it.amount ?: 0.0) > 0 }
-                    val partialCount = factures.count { (it.montant_paye ?: 0.0) > 0.0 && (it.montant_paye ?: 0.0) < (it.amount ?: 0.0) }
-                    val unpaidCount  = factures.count { (it.montant_paye ?: 0.0) == 0.0 }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(modifier = Modifier.weight(1f), label = "Payé",    value = payeCount.toString(),    color = AccentGreen)
-                        StatCard(modifier = Modifier.weight(1f), label = "Partiel", value = partialCount.toString(), color = Color(0xFFE65100))
-                        StatCard(modifier = Modifier.weight(1f), label = "Impayé",  value = unpaidCount.toString(),  color = DestructiveRed)
-                    }
-                }
-            }
-
-            // ── Tab 1: Produits ──
-            if (selectedTab == 1) {
-                if (supplierProducts.isEmpty()) {
-                    item {
-                        Box(
-                            modifier         = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = null,
-                                    tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                                Spacer(Modifier.height(8.dp))
-                                Text("Aucun produit lié à ce fournisseur", color = TextMuted, fontSize = 13.sp)
-                            }
-                        }
-                    }
-                } else {
-                    items(supplierProducts) { product ->
-                        Card(
-                            modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(14.dp),
-                            colors    = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(1.dp),
-                            border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.ShoppingCart, contentDescription = null,
-                                        tint = PrimaryBlue, modifier = Modifier.size(18.dp))
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(product.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                    Text("Prix achat : ${"%.2f".format(product.purchase_price)} DA",
-                                        fontSize = 11.sp, color = TextMuted)
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text("${formatQty(product.stock)} ${product.unit_type}",
-                                        fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PrimaryBlue)
-                                    if (product.is_default == 1) {
-                                        Text("Principal", fontSize = 10.sp, color = AccentGreen)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Tab 2: Factures & Paiements ──
-            if (selectedTab == 2) {
-                item {
                     Row(
-                        modifier              = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "Historique",
-                            fontSize   = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = TextMuted
-                        )
+                        Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                         Button(
-                            onClick        = { showPaymentDialog = true },
-                            shape          = RoundedCornerShape(20.dp),
-                            colors         = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                            onClick = { showPaymentDialog = true },
+                            shape = DsShapes.pill,
+                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null,
-                                tint = Color.White, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Versement", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Versement", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                }
-                if (transactions.isEmpty()) {
-                    item {
+
+                    if (supplierTransactions.isEmpty()) {
                         Box(
-                            modifier         = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.Receipt, contentDescription = null,
-                                    tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                                Spacer(Modifier.height(8.dp))
-                                Text("Aucune transaction", color = TextMuted, fontSize = 13.sp)
+                                Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                Spacer(Modifier.height(DsSpacing.sm))
+                                Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                             }
+                        }
+                    } else {
+                        val collapsedLimit = 2
+                        val expandedLimit = 4
+                        val visibleLimit = if (achatExpanded) expandedLimit else collapsedLimit
+                        val visibleTransactions = supplierTransactions.take(visibleLimit)
+                        val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
+                        grouped.forEach { (date, dayTransactions) ->
+                            Text(
+                                text = formatOrderDate(date),
+                                fontSize = DsTextSize.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DsColors.TextSecondary,
+                                modifier = Modifier.padding(vertical = DsSpacing.sm)
+                            )
+                            dayTransactions.forEach { transaction ->
+                                AchatRow(
+                                    transaction,
+                                    onLongPressPaiement = { longPressPayment = it },
+                                    onClickFacture = { onNavigateToOrder(it.id) }
+                                )
+                            }
+                        }
+
+                        if (supplierTransactions.size > collapsedLimit) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.medium)
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) { achatExpanded = !achatExpanded }
+                                    .padding(vertical = DsSpacing.sm),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    if (achatExpanded) "Voir moins" else "Voir plus",
+                                    fontSize = DsTextSize.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DsColors.Primary
+                                )
+                                Icon(
+                                    if (achatExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    tint = DsColors.Primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceSunken)
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { showAchatHistory = true }
+                                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Voir tout l'historique (${supplierTransactions.size})",
+                                fontSize = DsTextSize.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DsColors.TextPrimary
+                            )
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
-                } else {
-                    val grouped = transactions.groupBy { it.created_at.take(10) }
-                    grouped.forEach { (date, dayTransactions) ->
-                        item {
-                            Text(
-                                text       = formatOrderDate(date),
-                                fontSize   = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color      = TextMuted,
-                                modifier   = Modifier.padding(vertical = 6.dp)
-                            )
+                }
+            }
+
+            // ── Retours ──
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                    Text("Retours", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                }
+            }
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(DsSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                        Button(
+                            onClick = { showRetourForm = true },
+                            shape = DsShapes.pill,
+                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Nouveau retour", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
                         }
-                        items(dayTransactions) { transaction ->
-                            if (transaction.type == "facture") {
-                                val montantPaye = transaction.montant_paye ?: 0.0
-                                val total       = transaction.amount ?: 0.0
-                                val statut = when {
-                                    montantPaye >= total && total > 0 -> "Payé"
-                                    montantPaye > 0 && montantPaye < total -> "Partiel"
-                                    else -> "Impayé"
-                                }
-                                Card(
-                                    modifier  = Modifier.fillMaxWidth().clickable { onNavigateToOrder(transaction.id) },
-                                    shape     = RoundedCornerShape(14.dp),
-                                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(1.dp),
-                                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-                                ) {
-                                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.ShoppingCart, contentDescription = null,
-                                                tint = PrimaryBlue, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("Bon #${transaction.id} · ${formatOrderTime(transaction.created_at)}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                            Text("${"%.2f".format(total)} DA", fontSize = 12.sp, color = TextMuted)
-                                            if (statut == "Partiel") {
-                                                Text("Payé: ${"%.2f".format(montantPaye)} DA", fontSize = 11.sp, color = Color(0xFFE65100))
-                                            }
-                                        }
-                                        val statusBg = when (statut) {
-                                            "Payé"    -> GreenLight
-                                            "Partiel" -> Color(0xFFFFF3E0)
-                                            else      -> RedLight
-                                        }
-                                        val statusColor = when (statut) {
-                                            "Payé"    -> AccentGreen
-                                            "Partiel" -> Color(0xFFE65100)
-                                            else      -> DestructiveRed
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .background(statusBg)
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(statut, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
-                                        }
-                                    }
-                                }
-                            } else if (transaction.type == "paiement") {
-                                Card(
-                                    modifier  = Modifier.fillMaxWidth().combinedClickable(
-                                        onClick     = {},
-                                        onLongClick = { longPressPayment = transaction }
-                                    ),
-                                    shape     = RoundedCornerShape(14.dp),
-                                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(1.dp),
-                                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-                                ) {
-                                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(GreenLight),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null,
-                                                tint = AccentGreen, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("Paiement · ${formatOrderTime(transaction.created_at)}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                            if (!transaction.note.isNullOrEmpty()) {
-                                                Text(transaction.note.orEmpty(), fontSize = 11.sp, color = TextMuted)
-                                            }
-                                        }
-                                        Text(
-                                            "+${"%.2f".format(transaction.amount ?: 0.0)} DA",
-                                            fontSize   = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color      = AccentGreen
-                                        )
-                                    }
-                                }
-                            } else if (transaction.type == "solde_initial") {
-                                Card(
-                                    modifier  = Modifier.fillMaxWidth(),
-                                    shape     = RoundedCornerShape(14.dp),
-                                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(1.dp),
-                                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-                                ) {
-                                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFF0F0F0)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.AccountBalance, contentDescription = null,
-                                                tint = TextMuted, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("Solde initial", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                            Text(formatOrderTime(transaction.created_at), fontSize = 11.sp, color = TextMuted)
-                                        }
-                                        Text(
-                                            "${formatDZD(transaction.amount ?: 0.0)} DA",
-                                            fontSize   = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color      = TextPrimary
-                                        )
-                                    }
-                                }
+                    }
+
+                    if (supplierRetours.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                Spacer(Modifier.height(DsSpacing.sm))
+                                Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                             }
+                        }
+                    } else {
+                        supplierRetours.take(3).forEach { retour ->
+                            RetourFournisseurRow(retour = retour)
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceSunken)
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { showRetourHistory = true }
+                                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Voir tout l'historique (${supplierRetours.size})",
+                                fontSize = DsTextSize.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DsColors.TextPrimary
+                            )
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -804,35 +969,37 @@ fun SupplierDetailScreen(
     }
 }
 
-@Composable
-fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(
-            modifier         = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(BlueLight),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
-        }
-        Column {
-            Text(label, fontSize = 11.sp, color = TextMuted)
-            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-        }
-    }
-}
+private fun supplierToUpdateMap(supplier: Supplier, newImageUri: String?) = mapOf(
+    "name"             to supplier.name,
+    "phone"            to supplier.phone,
+    "address"          to supplier.address,
+    "note"             to supplier.note,
+    "initial_balance"  to supplier.initial_balance,
+    "latitude"         to supplier.latitude,
+    "longitude"        to supplier.longitude,
+    "wilaya_name"      to supplier.wilaya_name,
+    "commune_name"     to supplier.commune_name,
+    "image_uri"        to newImageUri
+)
 
 @Composable
-fun StatCard(modifier: Modifier = Modifier, label: String, value: String, color: Color = TextPrimary) {
-    Card(
-        modifier  = modifier,
-        shape     = RoundedCornerShape(14.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+private fun SupplierInfoRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
-        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, fontSize = 11.sp, color = TextMuted)
-            Spacer(Modifier.height(4.dp))
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(DsShapes.small)
+                .background(DsColors.PrimaryLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+        }
+        Column {
+            Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
         }
     }
 }

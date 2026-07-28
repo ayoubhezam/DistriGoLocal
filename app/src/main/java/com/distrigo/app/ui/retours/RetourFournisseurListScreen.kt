@@ -147,7 +147,7 @@ private fun RetourStatColumn(value: String, label: String) {
 }
 
 @Composable
-private fun RetourFournisseurRow(retour: RetourFournisseur) {
+fun RetourFournisseurRow(retour: RetourFournisseur) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape    = DsShapes.medium,

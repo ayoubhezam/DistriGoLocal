@@ -49,4 +49,40 @@ interface PurchaseDao {
 
     @Query("SELECT * FROM price_history WHERE product_id = :productId ORDER BY created_at DESC")
     suspend fun getPriceHistoryForProduct(productId: Int): List<PriceHistoryEntity>
+
+    // ── Historique paginé (Achats & Paiements — Supplier Detail) ──
+    @Query("""
+        SELECT * FROM purchase_orders
+        WHERE supplier_id = :supplierId
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (
+            :statusFilter = 'TOUTES'
+            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
+            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
+            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+        )
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun pageOrdersForSupplier(
+        supplierId: Int,
+        cursorCreatedAt: String?,
+        search: String,
+        statusFilter: String,
+        limit: Int
+    ): List<PurchaseOrderEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM purchase_orders
+        WHERE supplier_id = :supplierId
+        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (
+            :statusFilter = 'TOUTES'
+            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
+            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
+            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+        )
+    """)
+    suspend fun countOrdersForSupplier(supplierId: Int, search: String, statusFilter: String): Int
 }

@@ -11,5 +11,6 @@ data class Supplier(
     val latitude  : Double?,
     val longitude : Double?,
     val wilaya_name  : String? = null,
-    val commune_name : String? = null
+    val commune_name : String? = null,
+    val image_uri    : String? = null
 )

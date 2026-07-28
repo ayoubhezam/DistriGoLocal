@@ -31,7 +31,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-
+import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun ClientsScreen(
     viewModel : ClientViewModel = viewModel(),
@@ -170,192 +170,138 @@ fun ClientsScreen(
     val debtClients = clients.filter { it.balance > 0 }
     val totalDebt   = debtClients.sumOf { it.balance }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-        // ── Header ──
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            Text("Clients", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-            FloatingActionButton(
-                onClick        = { showAddScreen = true },
-                containerColor = DsColors.Primary,
-                contentColor   = Color.White,
-                modifier       = Modifier.size(40.dp),
-                shape          = DsShapes.pill
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter")
-            }
-        }
-
-        // ── Debt banner ──
-        if (totalDebt > 0) {
+        item {
+            // ── Header ──
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = DsSpacing.lg)
-                    .clip(DsShapes.large)
-                    .background(DsColors.DangerLight)
-                    .padding(DsSpacing.lg),
+                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        "Dettes en cours · ${debtClients.size} client(s)",
-                        fontSize   = DsTextSize.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = DsColors.Danger
-                    )
-                    Text(
-                        "${"%.2f".format(totalDebt)} DA",
-                        fontSize   = DsTextSize.headline,
-                        fontWeight = FontWeight.ExtraBold,
-                        color      = DsColors.Danger
-                    )
-                }
-                Icon(
-                    Icons.Default.Warning,
-                    contentDescription = null,
-                    tint     = DsColors.Danger.copy(alpha = 0.5f),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(Modifier.height(DsSpacing.md))
-        }
-
-        // ── Search ──
-        OutlinedTextField(
-            value         = search,
-            onValueChange = { search = it },
-            placeholder   = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
-            leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon  = {
-                if (search.isNotEmpty()) {
-                    IconButton(onClick = { search = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                    }
-                }
-            },
-            modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape         = DsShapes.large,
-            singleLine    = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor   = DsColors.Primary
-            )
-        )
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        // ── Filter chips ──
-        LazyRow(
-            contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-        ) {
-            item {
-                DsFilterChip(
-                    label        = "Avec dettes",
-                    active       = debtOnly,
-                    activeBg     = DsColors.DangerLight,
-                    activeBorder = DsColors.Danger,
-                    activeText   = DsColors.Danger,
-                    onClick      = { debtOnly = !debtOnly }
-                )
-            }
-            item {
-                DsFilterChip(
-                    label        = "Tous",
-                    active       = typeFilter == "all",
-                    activeBg     = DsColors.PrimaryLight,
-                    activeBorder = DsColors.Primary,
-                    activeText   = DsColors.Primary,
-                    onClick      = { typeFilter = "all" }
-                )
-            }
-            item {
-                DsFilterChip(
-                    label        = "Détail",
-                    active       = typeFilter == "retail",
-                    activeBg     = DsColors.TagRetail.second,
-                    activeBorder = DsColors.TagRetail.first,
-                    activeText   = DsColors.TagRetail.first,
-                    onClick      = { typeFilter = "retail" }
-                )
-            }
-            item {
-                DsFilterChip(
-                    label        = "Gros",
-                    active       = typeFilter == "wholesale",
-                    activeBg     = DsColors.TagWholesale.second,
-                    activeBorder = DsColors.TagWholesale.first,
-                    activeText   = DsColors.TagWholesale.first,
-                    onClick      = { typeFilter = "wholesale" }
-                )
-            }
-            item {
-                DsFilterChip(
-                    label        = "Société",
-                    active       = typeFilter == "business",
-                    activeBg     = DsColors.TagBusiness.second,
-                    activeBorder = DsColors.TagBusiness.first,
-                    activeText   = DsColors.TagBusiness.first,
-                    onClick      = { typeFilter = "business" }
-                )
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        Text(
-            "${filtered.size} client(s)",
-            fontSize = DsTextSize.caption,
-            color    = DsColors.TextSecondary,
-            modifier = Modifier.padding(horizontal = DsSpacing.lg)
-        )
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        when {
-            isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DsColors.Primary)
-                }
-            }
-            filtered.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.PersonOutline,
-                            contentDescription = null,
-                            tint     = DsColors.TextTertiary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text("Aucun client trouvé", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-            else -> {
-                LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                Text("Clients", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+                FloatingActionButton(
+                    onClick        = { showAddScreen = true },
+                    containerColor = DsColors.Primary,
+                    contentColor   = Color.White,
+                    modifier       = Modifier.size(40.dp),
+                    shape          = DsShapes.pill
                 ) {
-                    items(filtered) { client ->
-                        ClientCard(
-                            client      = client,
-                            onClick     = { selectedClient = client },
-                            onLongClick = { longPressClient = client }
-                        )
-                    }
+                    Icon(Icons.Default.Add, contentDescription = "Ajouter")
                 }
             }
         }
+
+        if (totalDebt > 0) {
+            item {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = DsSpacing.lg)
+                            .clip(DsShapes.large)
+                            .background(DsColors.DangerLight)
+                            .padding(DsSpacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "Dettes en cours · ${debtClients.size} client(s)",
+                                fontSize   = DsTextSize.caption,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = DsColors.Danger
+                            )
+                            Text(
+                                "${"%.2f".format(totalDebt)} DA",
+                                fontSize   = DsTextSize.headline,
+                                fontWeight = FontWeight.ExtraBold,
+                                color      = DsColors.Danger
+                            )
+                        }
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint     = DsColors.Danger.copy(alpha = 0.5f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(DsSpacing.md))
+                }
+            }
+        }
+
+        stickyHeader {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DsColors.Surface)
+            ) {
+                // ── Search ──
+                OutlinedTextField(
+                    value         = search,
+                    onValueChange = { search = it },
+                    placeholder   = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon  = {
+                        if (search.isNotEmpty()) {
+                            IconButton(onClick = { search = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    shape         = DsShapes.large,
+                    singleLine    = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                // ── Filter chips ──
+                LazyRow(
+                    contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    item {
+                        DsFilterChip(label = "Avec dettes", active = debtOnly, activeBg = DsColors.DangerLight, activeBorder = DsColors.Danger, activeText = DsColors.Danger, onClick = { debtOnly = !debtOnly })
+                    }
+                    item {
+                        DsFilterChip(label = "Tous", active = typeFilter == "all", activeBg = DsColors.PrimaryLight, activeBorder = DsColors.Primary, activeText = DsColors.Primary, onClick = { typeFilter = "all" })
+                    }
+                    item {
+                        DsFilterChip(label = "Détail", active = typeFilter == "retail", activeBg = DsColors.TagRetail.second, activeBorder = DsColors.TagRetail.first, activeText = DsColors.TagRetail.first, onClick = { typeFilter = "retail" })
+                    }
+                    item {
+                        DsFilterChip(label = "Gros", active = typeFilter == "wholesale", activeBg = DsColors.TagWholesale.second, activeBorder = DsColors.TagWholesale.first, activeText = DsColors.TagWholesale.first, onClick = { typeFilter = "wholesale" })
+                    }
+                    item {
+                        DsFilterChip(label = "Société", active = typeFilter == "business", activeBg = DsColors.TagBusiness.second, activeBorder = DsColors.TagBusiness.first, activeText = DsColors.TagBusiness.first, onClick = { typeFilter = "business" })
+                    }
+                }
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                Text(
+                    "${filtered.size} client(s)",
+                    fontSize = DsTextSize.caption,
+                    color    = DsColors.TextSecondary,
+                    modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                )
+
+                Spacer(Modifier.height(DsSpacing.xs))
+            }
+        }
+
+        // ⚠️ ضع هنا بالضبط items(filtered, key = { it.id }) { client -> ... } الموجودة عندك حاليًا —
+        //    فقط انقلها من داخل الـLazyColumn المنفصلة (احذف تلك الـLazyColumn نفسها، أبقِ فقط استدعاء items{})،
+        //    واحذف منها Modifier.weight(1f) إن كانت موجودة على الـmodifier الخاص بها.
     }
 }
 

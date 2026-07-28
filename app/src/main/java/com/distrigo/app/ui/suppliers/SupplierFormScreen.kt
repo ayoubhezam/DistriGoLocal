@@ -1,6 +1,10 @@
 package com.distrigo.app.ui.suppliers
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,14 +17,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Supplier
+import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.products.*
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
@@ -53,6 +65,12 @@ fun SupplierFormScreen(
 
     var wilayaName  by remember { mutableStateOf(supplier?.wilaya_name ?: "") }
     var communeName by remember { mutableStateOf(supplier?.commune_name ?: "") }
+    var selectedWilayaCode by remember(wilayaName) {
+        mutableStateOf(GeoRepository.findWilayaByFrName(wilayaName)?.wilayaCode)
+    }
+    var showWilayaSheet  by remember { mutableStateOf(false) }
+    var showCommuneSheet by remember { mutableStateOf(false) }
+    var imageBase64 by remember { mutableStateOf<String?>(supplier?.image_uri) }
 
     var nameError    by remember { mutableStateOf("") }
     var phoneError   by remember { mutableStateOf("") }
@@ -61,6 +79,26 @@ fun SupplierFormScreen(
     val colors   = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
     val color    = if (name.isNotEmpty()) Color(colors[name[0].code % colors.size]) else PrimaryBlue
     val initials = name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
+
+    val context = LocalContext.current
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val stream         = context.contentResolver.openInputStream(it)
+            val originalBitmap = BitmapFactory.decodeStream(stream)
+            stream?.close()
+            val maxSize = 400
+            val ratio   = minOf(maxSize.toFloat() / originalBitmap.width, maxSize.toFloat() / originalBitmap.height)
+            val resized = android.graphics.Bitmap.createScaledBitmap(
+                originalBitmap, (originalBitmap.width * ratio).toInt(), (originalBitmap.height * ratio).toInt(), true
+            )
+            val outputStream = java.io.ByteArrayOutputStream()
+            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
+            imageBase64 = "data:image/jpeg;base64," +
+                    Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+        }
+    }
 
     fun validate(): Boolean {
         var valid = true
@@ -83,7 +121,8 @@ fun SupplierFormScreen(
                 "latitude"  to latitude,
                 "longitude" to longitude,
                 "wilaya_name"  to wilayaName.trim().ifEmpty { null },
-                "commune_name" to communeName.trim().ifEmpty { null }
+                "commune_name" to communeName.trim().ifEmpty { null },
+                "image_uri"    to imageBase64
             )
         } else {
             mapOf(
@@ -96,7 +135,8 @@ fun SupplierFormScreen(
                 "latitude"        to latitude,
                 "longitude"       to longitude,
                 "wilaya_name"     to wilayaName.trim().ifEmpty { null },
-                "commune_name"    to communeName.trim().ifEmpty { null }
+                "commune_name"    to communeName.trim().ifEmpty { null },
+                "image_uri"       to imageBase64
             )
         }
         if (isEdit) {
@@ -153,17 +193,49 @@ fun SupplierFormScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // ── Avatar Preview ──
-        if (name.isNotEmpty()) {
-            Box(
-                modifier         = Modifier.size(64.dp).clip(RoundedCornerShape(50)).align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                Text(initials, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+        // ── Photo ──
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MutedGray)
+                .clickable { photoPicker.launch("image/*") },
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageBase64 != null) {
+                val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
+                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                bitmap?.let {
+                    Image(
+                        bitmap             = it.asImageBitmap(),
+                        contentDescription = null,
+                        modifier           = Modifier.fillMaxSize(),
+                        contentScale       = ContentScale.Crop
+                    )
+                }
+            } else if (name.isNotEmpty()) {
+                Box(
+                    modifier         = Modifier.size(64.dp).clip(RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
+                    Text(initials, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint     = PrimaryBlue,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text("Ajouter une photo", fontSize = 13.sp, color = TextMuted)
+                }
             }
-            Spacer(Modifier.height(16.dp))
         }
+        Spacer(Modifier.height(16.dp))
 
         // ── Nom ──
         FormField(
@@ -211,19 +283,19 @@ fun SupplierFormScreen(
         // ── Wilaya + Commune ──
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                FormField(
-                    label         = "Wilaya",
-                    value         = wilayaName,
-                    onValueChange = { wilayaName = it },
-                    placeholder   = "Ex: Alger"
+                DsSelectorField(
+                    label       = "Wilaya",
+                    value       = wilayaName,
+                    placeholder = "Sélectionner une wilaya",
+                    onClick     = { showWilayaSheet = true }
                 )
             }
             Box(modifier = Modifier.weight(1f)) {
-                FormField(
-                    label         = "Commune",
-                    value         = communeName,
-                    onValueChange = { communeName = it },
-                    placeholder   = "Ex: Bab Ezzouar"
+                DsSelectorField(
+                    label       = "Commune",
+                    value       = communeName,
+                    placeholder = "Sélectionner une commune",
+                    onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                 )
             }
         }
@@ -287,5 +359,34 @@ fun SupplierFormScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+    }
+
+    if (showWilayaSheet) {
+        SearchableSelectSheet(
+            title      = "Sélectionner une wilaya",
+            items      = GeoRepository.getWilayas(),
+            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+            onDismiss  = { showWilayaSheet = false },
+            onSelect   = { wilaya ->
+                wilayaName         = wilaya.nameFr
+                selectedWilayaCode = wilaya.wilayaCode
+                communeName        = ""
+            }
+        )
+    }
+
+    if (showCommuneSheet && selectedWilayaCode != null) {
+        val sortedCommunes = remember(selectedWilayaCode) {
+            GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
+        }
+        SearchableSelectSheet(
+            title      = "Sélectionner une commune",
+            items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
+            itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+            onDismiss  = { showCommuneSheet = false },
+            onSelect   = { (_, commune) ->
+                communeName = commune.nameFr
+            }
+        )
     }
 }

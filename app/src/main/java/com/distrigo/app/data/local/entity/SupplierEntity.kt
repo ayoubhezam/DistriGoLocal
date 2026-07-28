@@ -17,6 +17,6 @@ data class SupplierEntity(
     val longitude: Double?,
     val wilaya_name: String?,
     val commune_name: String?,
-    val created_at: String = java.time.Instant.now().toString()   // جديد
-
+    val created_at: String = java.time.Instant.now().toString(),   // جديد
+    val image_uri: String? = null
 )

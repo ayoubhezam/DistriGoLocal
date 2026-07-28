@@ -59,7 +59,8 @@ class ProductRepository(
             latitude = this.latitude,
             longitude = this.longitude,
             wilaya_name = this.wilaya_name,
-            commune_name = this.commune_name
+            commune_name = this.commune_name,
+            image_uri = this.image_uri
         )
     }
     private fun ClientEntity.toClient(): Client {
@@ -331,7 +332,8 @@ class ProductRepository(
             latitude = (supplier["latitude"] as? Number)?.toDouble(),
             longitude = (supplier["longitude"] as? Number)?.toDouble(),
             wilaya_name = supplier["wilaya_name"] as? String,
-            commune_name = supplier["commune_name"] as? String
+            commune_name = supplier["commune_name"] as? String,
+            image_uri = supplier["image_uri"] as? String
         )
         val newId = supplierDao.insertSupplier(entity)
         return mapOf("id" to newId.toDouble(), "message" to "Supplier added successfully")
@@ -348,7 +350,8 @@ class ProductRepository(
             latitude = if (supplier.containsKey("latitude")) (supplier["latitude"] as? Number)?.toDouble() else existing.latitude,
             longitude = if (supplier.containsKey("longitude")) (supplier["longitude"] as? Number)?.toDouble() else existing.longitude,
             wilaya_name = if (supplier.containsKey("wilaya_name")) supplier["wilaya_name"] as? String else existing.wilaya_name,
-            commune_name = if (supplier.containsKey("commune_name")) supplier["commune_name"] as? String else existing.commune_name
+            commune_name = if (supplier.containsKey("commune_name")) supplier["commune_name"] as? String else existing.commune_name,
+            image_uri = if (supplier.containsKey("image_uri")) supplier["image_uri"] as? String else existing.image_uri
         )
         supplierDao.updateSupplier(updatedEntity)
         recalculateSupplierBalance(id)
@@ -896,6 +899,35 @@ class ProductRepository(
 
         return (factureTx + paiementTx + soldeInitialTx).sortedByDescending { it.created_at }
     }
+
+    suspend fun countSupplierLedger(supplierId: Int, filter: AchatFilter, search: String): Int {
+        val statusFilter = if (filter == AchatFilter.VERSEMENT) "TOUTES" else filter.name
+        val ordersCount = if (filter != AchatFilter.VERSEMENT)
+            db.purchaseDao().countOrdersForSupplier(supplierId, search, statusFilter) else 0
+        val paiementsCount = if (filter == AchatFilter.TOUTES || filter == AchatFilter.VERSEMENT)
+            db.supplierPaymentDao().countPaymentsForSupplier(supplierId, search) else 0
+        val soldeInitialCount = if (filter == AchatFilter.TOUTES && search.isBlank()) {
+            val supplier = supplierDao.getSupplierById(supplierId)
+            if (supplier != null && supplier.initial_balance != 0.0) 1 else 0
+        } else 0
+        return ordersCount + paiementsCount + soldeInitialCount
+    }
+
+    fun getSupplierLedgerPaged(
+        supplierId: Int,
+        filter: AchatFilter,
+        search: String
+    ): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<SupplierTransaction>> =
+        com.distrigo.app.core.paging.pagedFlow {
+            com.distrigo.app.data.local.paging.SupplierLedgerPagingSource(
+                purchaseDao = db.purchaseDao(),
+                paymentDao = db.supplierPaymentDao(),
+                supplierDao = supplierDao,
+                supplierId = supplierId,
+                filter = filter,
+                search = search
+            )
+        }
 
 
     // ── Rapports Ventes — Répartition géographique (Wilaya → Commune → Secteur) ──
