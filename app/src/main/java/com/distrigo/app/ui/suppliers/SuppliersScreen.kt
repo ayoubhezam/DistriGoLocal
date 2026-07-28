@@ -199,8 +199,15 @@ fun SuppliersScreen(
                 OutlinedTextField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder   = {
+                        Text(
+                            "Rechercher par nom ou téléphone…",
+                            fontSize = DsTextSize.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     trailingIcon  = {
                         if (search.isNotEmpty()) {
                             IconButton(onClick = { search = "" }) {
@@ -211,6 +218,7 @@ fun SuppliersScreen(
                     modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                     shape         = DsShapes.large,
                     singleLine    = true,
+                    textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary

@@ -244,8 +244,15 @@ fun ClientsScreen(
                 OutlinedTextField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder   = {
+                        Text(
+                            "Rechercher par nom ou téléphone…",
+                            fontSize = DsTextSize.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     trailingIcon  = {
                         if (search.isNotEmpty()) {
                             IconButton(onClick = { search = "" }) {
@@ -256,6 +263,7 @@ fun ClientsScreen(
                     modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                     shape         = DsShapes.large,
                     singleLine    = true,
+                    textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary
@@ -298,10 +306,15 @@ fun ClientsScreen(
                 Spacer(Modifier.height(DsSpacing.xs))
             }
         }
-
-        // ⚠️ ضع هنا بالضبط items(filtered, key = { it.id }) { client -> ... } الموجودة عندك حاليًا —
-        //    فقط انقلها من داخل الـLazyColumn المنفصلة (احذف تلك الـLazyColumn نفسها، أبقِ فقط استدعاء items{})،
-        //    واحذف منها Modifier.weight(1f) إن كانت موجودة على الـmodifier الخاص بها.
+        items(filtered, key = { it.id }) { client ->
+            Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                ClientCard(
+                    client      = client,
+                    onClick     = { selectedClient = client },
+                    onLongClick = { longPressClient = client }
+                )
+            }
+        }
     }
 }
 

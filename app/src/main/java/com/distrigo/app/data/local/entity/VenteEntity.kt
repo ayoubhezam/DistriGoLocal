@@ -14,5 +14,6 @@ data class VenteEntity(
     val montant_paye: Double,
     val status: String,              // "confirmee" | "livree"
     val note: String?,
-    val created_at: String
+    val created_at: String,
+    val client_name: String? = null
 )

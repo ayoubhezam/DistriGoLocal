@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,11 +16,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.PurchaseOrder
-import com.distrigo.app.data.model.Supplier
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.products.ProductViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.combinedClickable
@@ -131,8 +132,8 @@ fun PurchasesScreen(
                     Column {
                         Text("Voulez-vous supprimer le bon #${order.id} de ${order.supplier_name} ?")
                         if (deleteError.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(deleteError, fontSize = 13.sp, color = DestructiveRed)
+                            Spacer(Modifier.height(DsSpacing.sm))
+                            Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                         }
                     }
                 },
@@ -152,7 +153,7 @@ fun PurchasesScreen(
                             }
                         )
                     }) {
-                        Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                     }
                 },
                 dismissButton = {
@@ -171,16 +172,16 @@ fun PurchasesScreen(
                 dismissButton = {},
                 icon = null,
                 properties = androidx.compose.ui.window.DialogProperties(),
-                shape = RoundedCornerShape(16.dp),
-                containerColor = Color.White,
+                shape = DsShapes.large,
+                containerColor = DsColors.Surface,
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         // زر التعديل
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(BlueLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressOrder = null
                                     viewModel.loadOrderDetail(order.id)
@@ -188,18 +189,18 @@ fun PurchasesScreen(
                                 }
                                 .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = null,
-                                tint = PrimaryBlue,
+                                tint = DsColors.Primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 "Modifier le bon",
-                                fontSize = 14.sp,
-                                color = PrimaryBlue,
+                                fontSize = DsTextSize.body,
+                                color = DsColors.Primary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -207,23 +208,23 @@ fun PurchasesScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(RedLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.DangerLight)
                                 .clickable { showDeleteDialog = true }
                                 .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = null,
-                                tint = DestructiveRed,
+                                tint = DsColors.Danger,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 "Supprimer le bon",
-                                fontSize = 14.sp,
-                                color = DestructiveRed,
+                                fontSize = DsTextSize.body,
+                                color = DsColors.Danger,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -239,18 +240,18 @@ fun PurchasesScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
             // ── Header (ثابت دائمًا) ──
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Achats", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("Achats", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
             // ── Stats (تختفي/تظهر مع التمرير) ──
@@ -258,10 +259,10 @@ fun PurchasesScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(PrimaryBlue)
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                        .padding(horizontal = DsSpacing.lg)
+                        .clip(DsShapes.large)
+                        .background(DsColors.Primary)
+                        .padding(vertical = DsSpacing.md, horizontal = DsSpacing.lg),
                     horizontalArrangement = Arrangement.SpaceBetween
                 )  {
                     UnifiedStatColumn(
@@ -282,26 +283,26 @@ fun PurchasesScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(DsSpacing.md))
 
             Text(
                 "Historique des achats",
-                fontSize = 12.sp,
-                color = TextMuted,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                fontSize = DsTextSize.caption,
+                color = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(DsSpacing.sm))
 
             // ── Loading ──
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryBlue)
+                    CircularProgressIndicator(color = DsColors.Primary)
                 }
             } else if (error != null) {
                 // ── Error ──
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(error ?: "", color = DestructiveRed)
+                    Text(error ?: "", color = DsColors.Danger)
                 }
             } else if (orders.isEmpty()) {
                 // ── Empty State ──
@@ -309,16 +310,16 @@ fun PurchasesScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Default.ShoppingCart, contentDescription = null,
-                            tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(56.dp)
+                            tint = DsColors.Primary.copy(alpha = 0.3f), modifier = Modifier.size(56.dp)
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(DsSpacing.md))
                         Text(
                             "Aucun bon de commande",
-                            color = TextMuted,
+                            color = DsColors.TextSecondary,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.height(4.dp))
-                        Text("Appuyez sur + pour créer", fontSize = 12.sp, color = TextMuted)
+                        Text("Appuyez sur + pour créer", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                 }
             } else {
@@ -328,18 +329,18 @@ fun PurchasesScreen(
                 // ── List ──
                 LazyColumn(
                     state               = listState,
-                    contentPadding      = PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 140.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding      = PaddingValues(start = DsSpacing.lg, top = DsSpacing.xs, end = DsSpacing.lg, bottom = 140.dp),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
                     groupedOrders.forEach { (date, dayOrders) ->
                         item {
                             Text(
                                 text = formatOrderDate(date),
-                                fontSize = 13.sp,
+                                fontSize = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextMuted,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                color = DsColors.TextSecondary,
+                                modifier = Modifier.padding(vertical = DsSpacing.sm)
                             )
                         }
                         items(dayOrders) { order ->
@@ -364,7 +365,7 @@ fun PurchasesScreen(
             onClick = { showNewOrder = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = fabBottomPadding)
+                .padding(end = DsSpacing.lg, bottom = fabBottomPadding)
         )
     }
 }
@@ -375,22 +376,22 @@ fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, val
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         Spacer(Modifier.height(4.dp))
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(value, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(Modifier.height(1.dp))
-        Text(label, fontSize = 10.sp, color = Color.White.copy(alpha = 0.85f))
+        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
     }
 }
 @Composable
 fun StatBox(modifier: Modifier = Modifier, label: String, value: String, color: Color) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(12.dp))
-            .padding(12.dp),
+            .clip(DsShapes.medium)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
+            .padding(DsSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
-        Text(label, fontSize = 11.sp, color = TextMuted)
+        Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = color)
+        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
     }
 }
 
@@ -406,27 +407,27 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                 onClick     = { onClick() },
                 onLongClick = { onLongClick() }
             ),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier         = Modifier
                     .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isReceived) GreenLight else Color(0xFFFFF3E0)),
+                    .clip(DsShapes.medium)
+                    .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.ShoppingCart,
                     contentDescription = null,
-                    tint     = if (isReceived) AccentGreen else Color(0xFFE65100),
+                    tint     = if (isReceived) DsColors.Success else DsColors.Warning,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(DsSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 // السطر 1: Bon # + الوقت
                 Row(
@@ -436,15 +437,15 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                 ) {
                     Text(
                         "Bon #${order.id}",
-                        fontSize   = 11.sp,
+                        fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.Medium,
-                        color      = TextMuted
+                        color      = DsColors.TextSecondary
                     )
                     Text(
                         formatOrderTime(order.created_at),
-                        fontSize   = 12.sp,
+                        fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color      = TextMuted
+                        color      = DsColors.TextSecondary
                     )
                 }
                 Spacer(Modifier.height(2.dp))
@@ -457,23 +458,23 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                     Text(
                         order.supplier_name,
                         fontWeight = FontWeight.Bold,
-                        fontSize   = 15.sp,
-                        color      = TextPrimary,
+                        fontSize   = DsTextSize.bodyLarge,
+                        color      = DsColors.TextPrimary,
                         maxLines   = 1,
                         modifier   = Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isReceived) GreenLight else Color(0xFFFFF3E0))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .clip(DsShapes.pill)
+                            .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight)
+                            .padding(horizontal = DsSpacing.sm, vertical = 2.dp)
                     ) {
                         Text(
                             if (isReceived) "Reçu" else "En attente",
-                            fontSize   = 10.sp,
+                            fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
-                            color      = if (isReceived) AccentGreen else Color(0xFFE65100)
+                            color      = if (isReceived) DsColors.Success else DsColors.Warning
                         )
                     }
                 }
@@ -486,19 +487,19 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                 ) {
                     Text(
                         "${"%.2f".format(order.total)} DA",
-                        fontSize   = 14.sp,
+                        fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.Bold,
-                        color      = PrimaryBlue
+                        color      = DsColors.Primary
                     )
                     Text(
                         "· ${order.items_count ?: order.items?.size ?: 0} article(s)",
-                        fontSize = 11.sp,
-                        color    = TextMuted
+                        fontSize = DsTextSize.caption,
+                        color    = DsColors.TextSecondary
                     )
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
         }
     }
 }

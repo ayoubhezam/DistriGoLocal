@@ -13,5 +13,6 @@ data class PurchaseOrderEntity(
     val status: String,              // "pending" | "received"
     val note: String?,
     val montant_paye: Double,
-    val created_at: String
+    val created_at: String,
+    val supplier_name: String? = null
 )

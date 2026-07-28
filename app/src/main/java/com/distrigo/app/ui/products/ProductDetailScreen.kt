@@ -540,7 +540,7 @@ private fun StockPrixDetailScreen(
         ((product.selling_price - product.purchase_price) / product.selling_price * 100)
     else 0.0
 
-    val depotStock     = (product.stock - product.camion_stock).coerceAtLeast(0.0)
+    val depotStock     = (product.stock - product.camion_stock)
     val camionStock    = product.camion_stock.coerceAtLeast(0.0)
     val depotFraction  = if (product.stock > 0) (depotStock / product.stock).toFloat().coerceIn(0f, 1f) else 0f
     val camionFraction = if (product.stock > 0) (camionStock / product.stock).toFloat().coerceIn(0f, 1f) else 0f

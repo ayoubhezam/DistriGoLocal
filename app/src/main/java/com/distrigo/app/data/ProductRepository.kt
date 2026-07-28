@@ -130,7 +130,7 @@ class ProductRepository(
     )
 
     private suspend fun VenteEntity.toVente(items: List<VenteItem>? = null): Vente {
-        val clientName = clientDao.getClientById(this.client_id)?.name ?: ""
+        val clientName = this.client_name ?: clientDao.getClientById(this.client_id)?.name ?: "Client supprimé"
         return Vente(
             id = this.id, client_id = this.client_id, client_name = clientName,
             tournee_id = this.tournee_id, source = this.source, total = this.total,
@@ -383,7 +383,7 @@ class ProductRepository(
     suspend fun getPurchaseOrders(): List<PurchaseOrder> {
         return db.purchaseDao().getAllOrders().map { order ->
             val items = db.purchaseDao().getItemsForOrder(order.id).map { it.toItem() }
-            val supplierName = supplierDao.getSupplierById(order.supplier_id)?.name ?: ""
+            val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
             order.toOrder(items, supplierName)
         }
     }
@@ -392,7 +392,7 @@ class ProductRepository(
         val order = db.purchaseDao().getOrderById(id)
             ?: throw IllegalStateException("Bon introuvable: $id")
         val items = db.purchaseDao().getItemsForOrder(id).map { it.toItem() }
-        val supplierName = supplierDao.getSupplierById(order.supplier_id)?.name ?: ""
+        val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
         return order.toOrder(items, supplierName)
     }
 
@@ -407,15 +407,16 @@ class ProductRepository(
 
             val now = java.time.Instant.now().toString()
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
+            val supplierName = supplierDao.getSupplierById(supplierId)?.name
 
             val orderId = db.purchaseDao().insertOrder(
                 PurchaseOrderEntity(
                     supplier_id = supplierId, date = date, total = total, status = "pending",
-                    note = note, montant_paye = montantPaye, created_at = now
+                    note = note, montant_paye = montantPaye, created_at = now,
+                    supplier_name = supplierName
                 )
             ).toInt()
 
-            val supplierName = supplierDao.getSupplierById(supplierId)?.name ?: ""
             val itemEntities = mutableListOf<PurchaseOrderItemEntity>()
             val historyEntities = mutableListOf<PriceHistoryEntity>()
 
@@ -440,7 +441,7 @@ class ProductRepository(
                 historyEntities.add(
                     PriceHistoryEntity(
                         product_id = productId, unit_cost = unitCost,
-                        date = date, created_at = now, supplier_name = supplierName
+                        date = date, created_at = now, supplier_name = supplierName ?: ""
                     )
                 )
             }
@@ -457,7 +458,7 @@ class ProductRepository(
                 ?: throw IllegalStateException("Bon introuvable: $id")
             if (order.status == "received") return@withTransaction
 
-            val supplierName = supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur inconnu"
+            val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
             val now = java.time.Instant.now().toString()
             val items = db.purchaseDao().getItemsForOrder(id)
             val movementEntities = mutableListOf<StockMovementEntity>()
@@ -514,7 +515,7 @@ class ProductRepository(
 
             val existing = db.purchaseDao().getOrderById(id)
                 ?: throw IllegalStateException("Bon introuvable: $id")
-            val supplierName = supplierDao.getSupplierById(existing.supplier_id)?.name ?: ""
+            val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
             db.purchaseDao().deleteItemsForOrder(id)
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
@@ -638,15 +639,16 @@ class ProductRepository(
                 }
             }
 
+            val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
+
             val venteId = db.venteDao().insertVente(
                 VenteEntity(
                     client_id = clientId, tournee_id = tourneeId, source = source,
                     total = total, montant_paye = montantPaye, status = "pending",
-                    note = note, created_at = now
+                    note = note, created_at = now, client_name = clientName
                 )
             ).toInt()
 
-            val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
             val movementEntities = mutableListOf<StockMovementEntity>()
 
             val itemEntities = items.map { map ->

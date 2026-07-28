@@ -42,6 +42,27 @@ val MIGRATION_27_28 = object : Migration(27, 28) {
     }
 }
 
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Part A — purchase orders / supplier name (snapshotted at write time,
+        // same pattern as PurchaseOrderItemEntity.product_name)
+        db.execSQL("ALTER TABLE purchase_orders ADD COLUMN supplier_name TEXT")
+        db.execSQL("""
+            UPDATE purchase_orders
+            SET supplier_name = (SELECT name FROM suppliers WHERE suppliers.id = purchase_orders.supplier_id)
+            WHERE supplier_name IS NULL
+        """.trimIndent())
+
+        // Part B — ventes / client name (same reasoning)
+        db.execSQL("ALTER TABLE ventes ADD COLUMN client_name TEXT")
+        db.execSQL("""
+            UPDATE ventes
+            SET client_name = (SELECT name FROM clients WHERE clients.id = ventes.client_id)
+            WHERE client_name IS NULL
+        """.trimIndent())
+    }
+}
+
 val MIGRATION_26_27 = object : Migration(26, 27) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("""
@@ -131,7 +152,7 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
         RetourClientEntity::class,
         RetourClientItemEntity::class,
     ],
-    version = 28,
+    version = 29,
     exportSchema = false
 )
 
@@ -178,7 +199,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27, MIGRATION_27_28)
+                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
