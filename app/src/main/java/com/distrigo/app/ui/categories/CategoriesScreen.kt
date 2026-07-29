@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,7 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Category
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 
 @Composable
 fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
@@ -46,16 +48,16 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                         placeholder   = { Text("Ex: Boissons") },
                         isError       = nameError.isNotEmpty(),
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray,
-                            errorBorderColor     = DestructiveRed
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border,
+                            errorBorderColor     = DsColors.Danger
                         )
                     )
                     if (nameError.isNotEmpty()) {
-                        Text(nameError, fontSize = 11.sp, color = DestructiveRed,
+                        Text(nameError, fontSize = DsTextSize.caption, color = DsColors.Danger,
                             modifier = Modifier.padding(start = 4.dp, top = 2.dp))
                     }
                 }
@@ -79,7 +81,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                         onError   = { nameError = it }
                     )
                 }) {
-                    Text("Ajouter", color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                    Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -104,16 +106,16 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                         onValueChange = { editName = it; editError = "" },
                         isError       = editError.isNotEmpty(),
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray,
-                            errorBorderColor     = DestructiveRed
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border,
+                            errorBorderColor     = DsColors.Danger
                         )
                     )
                     if (editError.isNotEmpty()) {
-                        Text(editError, fontSize = 11.sp, color = DestructiveRed,
+                        Text(editError, fontSize = DsTextSize.caption, color = DsColors.Danger,
                             modifier = Modifier.padding(start = 4.dp, top = 2.dp))
                     }
                 }
@@ -128,7 +130,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                         onError   = { editError = it }
                     )
                 }) {
-                    Text("Enregistrer", color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                    Text("Enregistrer", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -147,13 +149,13 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                 Column {
                     Text("Voulez-vous supprimer \"${cat.name}\" ?")
                     Text("Attention : impossible si des produits y sont associés.",
-                        fontSize = 13.sp, color = TextMuted)
+                        fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     if (deleteError.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text     = deleteError,
-                            fontSize = 13.sp,
-                            color    = DestructiveRed
+                            fontSize = DsTextSize.bodySmall,
+                            color    = DsColors.Danger
                         )
                     }
                 }
@@ -166,7 +168,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                         onError   = { deleteError = it }
                     )
                 }) {
-                    Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -178,7 +180,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         // ── Header ──
         Row(
@@ -186,13 +188,13 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment     = Alignment.CenterVertically
         ) {
-            Text("Catégories", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Catégories", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
             FloatingActionButton(
                 onClick        = { showAddDialog = true },
-                containerColor = PrimaryBlue,
+                containerColor = DsColors.Primary,
                 contentColor   = Color.White,
                 modifier       = Modifier.size(40.dp),
-                shape          = RoundedCornerShape(50)
+                shape          = DsShapes.pill
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Ajouter")
             }
@@ -201,7 +203,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
         // ── Loading ──
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryBlue)
+                CircularProgressIndicator(color = DsColors.Primary)
             }
             return
         }
@@ -209,7 +211,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
         // ── Error ──
         error?.let {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(it, color = DestructiveRed)
+                Text(it, color = DsColors.Danger)
             }
             return
         }
@@ -219,11 +221,11 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Category, contentDescription = null,
-                        tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(56.dp))
+                        tint = DsColors.Primary.copy(alpha = 0.3f), modifier = Modifier.size(56.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text("Aucune catégorie", color = TextMuted, fontWeight = FontWeight.Medium)
+                    Text("Aucune catégorie", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(4.dp))
-                    Text("Appuyez sur + pour ajouter", fontSize = 12.sp, color = TextMuted)
+                    Text("Appuyez sur + pour ajouter", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
             }
             return
@@ -232,8 +234,8 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
         // ── Count ──
         Text(
             text     = "${categories.size} catégorie(s)",
-            fontSize = 12.sp,
-            color    = TextMuted,
+            fontSize = DsTextSize.caption,
+            color    = DsColors.TextSecondary,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -247,10 +249,10 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
             items(categories) { category ->
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Row(
                         modifier              = Modifier.fillMaxWidth().padding(16.dp),
@@ -264,36 +266,36 @@ fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
                             Box(
                                 modifier         = Modifier
                                     .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(BlueLight),
+                                    .clip(DsShapes.medium)
+                                    .background(DsColors.PrimaryLight),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.Category, contentDescription = null,
-                                    tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                                    tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                             }
                             Text(category.name, fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp, color = TextPrimary)
+                                fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             IconButton(
                                 onClick  = { editCategory = category },
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(BlueLight)
+                                    .clip(DsShapes.small)
+                                    .background(DsColors.PrimaryLight)
                             ) {
                                 Icon(Icons.Default.Edit, contentDescription = "Modifier",
-                                    tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                                    tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                             }
                             IconButton(
                                 onClick  = { deleteCategory = category },
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(RedLight)
+                                    .clip(DsShapes.small)
+                                    .background(DsColors.DangerLight)
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = "Supprimer",
-                                    tint = DestructiveRed, modifier = Modifier.size(16.dp))
+                                    tint = DsColors.Danger, modifier = Modifier.size(16.dp))
                             }
                         }
                     }

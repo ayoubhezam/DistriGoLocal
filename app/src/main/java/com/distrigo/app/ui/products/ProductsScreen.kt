@@ -15,6 +15,10 @@ import com.distrigo.app.data.model.Category
 import com.distrigo.app.ui.categories.CategoriesScreen
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -67,7 +71,7 @@ fun ProductsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
     val products    by viewModel.products.collectAsState()
     val isLoading   by viewModel.isLoading.collectAsState()
@@ -150,7 +154,7 @@ fun ProductsScreen(
                     viewModel.deleteProduct(product.id)
                     showDeleteDialog = null
                     selectedProduct  = null
-                }) { Text("Supprimer", color = DestructiveRed) }
+                }) { Text("Supprimer", color = DsColors.Danger) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) { Text("Annuler") }
@@ -164,15 +168,15 @@ fun ProductsScreen(
                 title = { Text(product.name, fontWeight = FontWeight.Bold) },
                 confirmButton = {},
                 dismissButton = {},
-                shape = RoundedCornerShape(16.dp),
-                containerColor = Color.White,
+                shape = DsShapes.large,
+                containerColor = DsColors.Surface,
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(BlueLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.PrimaryLight)
                                 .clickable {
                                     showEditScreen   = product
                                     longPressProduct = null
@@ -181,14 +185,14 @@ fun ProductsScreen(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
-                            Text("Modifier", fontSize = 14.sp, color = PrimaryBlue, fontWeight = FontWeight.Medium)
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                         }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(RedLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.DangerLight)
                                 .clickable {
                                     showDeleteDialog = product
                                     longPressProduct = null
@@ -197,8 +201,8 @@ fun ProductsScreen(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = DestructiveRed, modifier = Modifier.size(20.dp))
-                            Text("Supprimer", fontSize = 14.sp, color = DestructiveRed, fontWeight = FontWeight.Medium)
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                            Text("Supprimer", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -244,17 +248,17 @@ fun ProductsScreen(
         ModalBottomSheet(
             onDismissRequest = { showSortSheet = false },
             sheetState       = sheetState,
-            containerColor   = Color.White
+            containerColor   = DsColors.Surface
         ) {
             Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-                Text("Trier par", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                Spacer(Modifier.height(12.dp))
+                Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                Spacer(Modifier.height(DsSpacing.md))
                 SortOption.entries.forEach { option ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (sortOption == option) BlueLight else Color.Transparent)
+                            .clip(DsShapes.medium)
+                            .background(if (sortOption == option) DsColors.PrimaryLight else Color.Transparent)
                             .clickable { sortOption = option; showSortSheet = false }
                             .padding(horizontal = 12.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -262,12 +266,12 @@ fun ProductsScreen(
                     ) {
                         Text(
                             text       = option.label,
-                            fontSize   = 14.sp,
-                            color      = if (sortOption == option) PrimaryBlue else TextPrimary,
+                            fontSize   = DsTextSize.body,
+                            color      = if (sortOption == option) DsColors.Primary else DsColors.TextPrimary,
                             fontWeight = if (sortOption == option) FontWeight.SemiBold else FontWeight.Normal
                         )
                         if (sortOption == option) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -278,32 +282,32 @@ fun ProductsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         // ── Header ──
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Produits", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Produits", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // ── Toggle List/Grid ──
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MutedGray)
+                        .clip(DsShapes.medium)
+                        .background(DsColors.SurfaceSunken)
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (!isGridView) PrimaryBlue else Color.Transparent)
+                            .clip(DsShapes.small)
+                            .background(if (!isGridView) DsColors.Primary else Color.Transparent)
                             .clickable { isGridView = false }
                             .padding(6.dp),
                         contentAlignment = Alignment.Center
@@ -311,14 +315,14 @@ fun ProductsScreen(
                         Icon(
                             Icons.Default.ViewList,
                             contentDescription = "Liste",
-                            tint = if (!isGridView) Color.White else TextMuted,
+                            tint = if (!isGridView) Color.White else DsColors.TextSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isGridView) PrimaryBlue else Color.Transparent)
+                            .clip(DsShapes.small)
+                            .background(if (isGridView) DsColors.Primary else Color.Transparent)
                             .clickable { isGridView = true }
                             .padding(6.dp),
                         contentAlignment = Alignment.Center
@@ -326,7 +330,7 @@ fun ProductsScreen(
                         Icon(
                             Icons.Default.GridView,
                             contentDescription = "Grille",
-                            tint = if (isGridView) Color.White else TextMuted,
+                            tint = if (isGridView) Color.White else DsColors.TextSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -337,10 +341,10 @@ fun ProductsScreen(
                 // ── Add button ──
                 FloatingActionButton(
                     onClick = { showAddScreen = true },
-                    containerColor = PrimaryBlue,
+                    containerColor = DsColors.Primary,
                     contentColor = Color.White,
                     modifier = Modifier.size(40.dp),
-                    shape = RoundedCornerShape(50)
+                    shape = DsShapes.pill
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Ajouter")
                 }
@@ -351,31 +355,31 @@ fun ProductsScreen(
         OutlinedTextField(
             value = search,
             onValueChange = { search = it },
-            placeholder = { Text("Rechercher par nom ou code-barres…", fontSize = 12.sp) },
+            placeholder = { Text("Rechercher par nom ou code-barres…", fontSize = DsTextSize.caption) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (search.isNotEmpty()) {
                         IconButton(onClick = { search = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = TextMuted, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
                     IconButton(onClick = { showScanner = true }) {
                         Icon(
                             Icons.Default.QrCodeScanner,
                             contentDescription = "Scanner un code-barres",
-                            tint = PrimaryBlue
+                            tint = DsColors.Primary
                         )
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
+                .clip(DsShapes.large),
+            shape = DsShapes.large,
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGray,
-                focusedBorderColor = PrimaryBlue,
+                unfocusedBorderColor = DsColors.Border,
+                focusedBorderColor = DsColors.Primary,
             )
         )
 
@@ -388,32 +392,32 @@ fun ProductsScreen(
             item {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (selectedCategory == null) PrimaryBlue else Color.Transparent)
+                        .clip(DsShapes.pill)
+                        .background(if (selectedCategory == null) DsColors.Primary else Color.Transparent)
                         .border(
                             1.dp,
-                            if (selectedCategory == null) PrimaryBlue else BorderGray,
-                            RoundedCornerShape(20.dp)
+                            if (selectedCategory == null) DsColors.Primary else DsColors.Border,
+                            DsShapes.pill
                         )
                         .clickable { selectedCategory = null }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         "Tous",
-                        color = if (selectedCategory == null) Color.White else TextMuted,
-                        fontSize = 13.sp
+                        color = if (selectedCategory == null) Color.White else DsColors.TextSecondary,
+                        fontSize = DsTextSize.bodySmall
                     )
                 }
             }
             items(categories) { cat ->
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (selectedCategory == cat.name) PrimaryBlue else Color.Transparent)
+                        .clip(DsShapes.pill)
+                        .background(if (selectedCategory == cat.name) DsColors.Primary else Color.Transparent)
                         .border(
                             1.dp,
-                            if (selectedCategory == cat.name) PrimaryBlue else BorderGray,
-                            RoundedCornerShape(20.dp)
+                            if (selectedCategory == cat.name) DsColors.Primary else DsColors.Border,
+                            DsShapes.pill
                         )
                         .clickable {
                             selectedCategory = if (selectedCategory == cat.name) null else cat.name
@@ -422,8 +426,8 @@ fun ProductsScreen(
                 ) {
                     Text(
                         cat.name,
-                        color = if (selectedCategory == cat.name) Color.White else TextMuted,
-                        fontSize = 13.sp
+                        color = if (selectedCategory == cat.name) Color.White else DsColors.TextSecondary,
+                        fontSize = DsTextSize.bodySmall
                     )
                 }
             }
@@ -431,15 +435,15 @@ fun ProductsScreen(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MutedGray)
+                        .clip(DsShapes.pill)
+                        .background(DsColors.SurfaceSunken)
                         .clickable { showCategoriesScreen = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = "Gérer catégories",
-                        tint = TextMuted,
+                        tint = DsColors.TextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -453,13 +457,13 @@ fun ProductsScreen(
         ) {
             Text(
                 text = "${sorted.size} produit(s)",
-                fontSize = 12.sp,
-                color = TextMuted
+                fontSize = DsTextSize.caption,
+                color = DsColors.TextSecondary
             )
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MutedGray)
+                    .clip(DsShapes.medium)
+                    .background(DsColors.SurfaceSunken)
                     .clickable { showSortSheet = true }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
@@ -468,14 +472,14 @@ fun ProductsScreen(
                     Icon(
                         Icons.Default.Sort,
                         contentDescription = "Trier",
-                        tint = if (sortOption != SortOption.NAME_ASC) PrimaryBlue else TextMuted,
+                        tint = if (sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         "Trier",
-                        fontSize = 12.sp,
-                        color = if (sortOption != SortOption.NAME_ASC) PrimaryBlue else TextMuted
+                        fontSize = DsTextSize.caption,
+                        color = if (sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary
                     )
                 }
             }
@@ -485,14 +489,14 @@ fun ProductsScreen(
 
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryBlue)
+                CircularProgressIndicator(color = DsColors.Primary)
             }
             return
         }
 
         error?.let {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = it, color = DestructiveRed)
+                Text(text = it, color = DsColors.Danger)
             }
             return
         }
@@ -503,11 +507,11 @@ fun ProductsScreen(
                     Icon(
                         Icons.Default.ShoppingCart,
                         contentDescription = null,
-                        tint = PrimaryBlue.copy(alpha = 0.3f),
+                        tint = DsColors.Primary.copy(alpha = 0.3f),
                         modifier = Modifier.size(56.dp)
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("Aucun produit trouvé", color = TextMuted, fontWeight = FontWeight.Medium)
+                    Text("Aucun produit trouvé", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                 }
             }
             return
@@ -557,14 +561,14 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
             onClick     = { onClick() },
             onLongClick = { onLongClick() }
         ),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) RedLight else BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) DsColors.DangerLight else DsColors.Border)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier         = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
+                modifier         = Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = remember(product.image_uri) {
@@ -579,7 +583,7 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                         modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )
                 } else {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }
             Spacer(Modifier.width(12.dp))
@@ -589,8 +593,8 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 Text(
                     product.name,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize   = 13.sp,
-                    color      = TextPrimary,
+                    fontSize   = DsTextSize.bodySmall,
+                    color      = DsColors.TextPrimary,
                     maxLines   = 1,
                     overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -600,8 +604,8 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 // ── السطر 2 : Catégorie · Fournisseur ──
                 Text(
                     "${product.category_name ?: "—"} · ${product.supplier_name ?: "—"}",
-                    fontSize = 11.sp,
-                    color    = TextMuted,
+                    fontSize = DsTextSize.caption,
+                    color    = DsColors.TextSecondary,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -612,8 +616,8 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 Text(
                     "${product.selling_price} DA",
                     fontWeight = FontWeight.Bold,
-                    fontSize   = 14.sp,
-                    color      = PrimaryBlue
+                    fontSize   = DsTextSize.body,
+                    color      = DsColors.Primary
                 )
             }
 
@@ -622,16 +626,16 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
             // ── Stock : عمود منفصل على اليمين ──
             Text(
                 "${formatQty(product.stock)} ${product.unit_type}",
-                fontSize   = 11.sp,
+                fontSize   = DsTextSize.caption,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
-                color      = if (isLow) DestructiveRed else TextMuted,
+                color      = if (isLow) DsColors.Danger else DsColors.TextSecondary,
                 textAlign  = androidx.compose.ui.text.style.TextAlign.End,
                 maxLines   = 1,
                 softWrap   = false
             )
 
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -643,15 +647,15 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
 
     Card(
         modifier  = Modifier.fillMaxWidth().clickable { onClick() },
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) RedLight else BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) DsColors.DangerLight else DsColors.Border)
     ) {
         Column {
             // ── Image ──
             Box(
-                modifier         = Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFF7F7F8)),
+                modifier         = Modifier.fillMaxWidth().height(110.dp).background(DsColors.SurfaceMuted),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = remember(product.image_uri) {
@@ -667,7 +671,7 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                         contentScale = androidx.compose.ui.layout.ContentScale.Fit
                     )
                 } else {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue.copy(alpha = 0.5f), modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary.copy(alpha = 0.5f), modifier = Modifier.size(32.dp))
                 }
                 // Stock badge
                 if (isLow) {
@@ -675,8 +679,8 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DestructiveRed)
+                            .clip(DsShapes.small)
+                            .background(DsColors.Danger)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text("!", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
@@ -686,9 +690,9 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
 
             // ── Info ──
             Column(modifier = Modifier.padding(10.dp)) {
-                Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = TextPrimary, maxLines = 2)
+                Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, maxLines = 2)
                 Spacer(Modifier.height(4.dp))
-                Text("${product.selling_price} DA", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryBlue)
+                Text("${product.selling_price} DA", fontWeight = FontWeight.Bold, fontSize = DsTextSize.body, color = DsColors.Primary)
                 Spacer(Modifier.height(4.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -697,14 +701,14 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                 ) {
                     Text(
                         text       = "${formatQty(product.stock)} ${product.unit_type}",
-                        fontSize   = 11.sp,
+                        fontSize   = DsTextSize.caption,
                         fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Normal,
-                        color      = if (isLow) DestructiveRed else TextMuted
+                        color      = if (isLow) DsColors.Danger else DsColors.TextSecondary
                     )
                     Text(
                         text     = product.category_name ?: "—",
                         fontSize = 10.sp,
-                        color    = TextMuted,
+                        color    = DsColors.TextSecondary,
                         maxLines = 1
                     )
                 }

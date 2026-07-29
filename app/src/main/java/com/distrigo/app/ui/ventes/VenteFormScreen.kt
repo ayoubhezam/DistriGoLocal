@@ -1234,7 +1234,7 @@ private fun VenteCartRow(
                     item.product.name,
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Medium,
-                    color      = if (isNegative) Color(0xFF1A1A1A) else DsColors.TextPrimary,
+                    color      = DsColors.TextPrimary,
                     maxLines   = 1
                 )
                 Text(

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.focus.FocusRequester
@@ -35,7 +33,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Supplier
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.suppliers.SupplierViewModel
 import com.distrigo.app.ui.suppliers.formatDZD
@@ -200,17 +202,17 @@ fun PurchaseFormScreen(
             onDismissRequest = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" },
             title = { Text("Nouveau fournisseur") },
             text  = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value         = newSupplierName,
                         onValueChange = { newSupplierName = it },
                         placeholder   = { Text("Nom du fournisseur *") },
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border
                         )
                     )
                     OutlinedTextField(
@@ -218,11 +220,11 @@ fun PurchaseFormScreen(
                         onValueChange = { newSupplierPhone = it },
                         placeholder   = { Text("Téléphone (optionnel)") },
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border
                         )
                     )
                 }
@@ -253,7 +255,7 @@ fun PurchaseFormScreen(
                         )
                     }
                 }) {
-                    Text("Ajouter", color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                    Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -270,10 +272,10 @@ fun PurchaseFormScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(DsColors.Surface)
         ) {
             Row(
-                modifier              = Modifier.fillMaxWidth().padding(16.dp),
+                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -281,35 +283,35 @@ fun PurchaseFormScreen(
                     IconButton(onClick = { showSupplierPicker = false }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
                     }
-                    Text("Choisir un fournisseur", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("Choisir un fournisseur", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 }
                 OutlinedButton(
                     onClick = { showAddSupplierDialog = true },
-                    shape   = RoundedCornerShape(20.dp),
-                    border  = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue)
+                    shape   = DsShapes.pill,
+                    border  = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("", fontSize = 12.sp, color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                    Text("", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
             OutlinedTextField(
                 value         = supplierSearch,
                 onValueChange = { supplierSearch = it },
-                placeholder   = { Text("Rechercher…", fontSize = 14.sp) },
+                placeholder   = { Text("Rechercher…", fontSize = DsTextSize.body) },
                 leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier      = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                shape         = RoundedCornerShape(16.dp),
+                    .padding(horizontal = DsSpacing.lg)
+                    .clip(DsShapes.large),
+                shape         = DsShapes.large,
                 singleLine    = true,
                 colors        = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = BorderGray,
-                    focusedBorderColor   = PrimaryBlue
+                    unfocusedBorderColor = DsColors.Border,
+                    focusedBorderColor   = DsColors.Primary
                 )
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(DsSpacing.sm))
             val filteredSuppliers = suppliers.filter { supplier ->
                 val tokens = supplierSearch.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
                 tokens.isEmpty() || tokens.all { token ->
@@ -318,8 +320,8 @@ fun PurchaseFormScreen(
                 }
             }
             LazyColumn(
-                contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
                 items(filteredSuppliers) { supplier ->
                     Card(
@@ -328,10 +330,10 @@ fun PurchaseFormScreen(
                             showSupplierPicker = false
                             supplierSearch     = ""
                         },
-                        shape     = RoundedCornerShape(14.dp),
-                        colors    = CardDefaults.cardColors(containerColor = Color.White),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                         elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Row(
                             modifier          = Modifier.padding(14.dp),
@@ -342,27 +344,27 @@ fun PurchaseFormScreen(
                             val initials     = supplier.name.split(" ").take(2)
                                 .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                             Box(
-                                modifier         = Modifier.size(40.dp).clip(RoundedCornerShape(50)),
+                                modifier         = Modifier.size(40.dp).clip(DsShapes.pill),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                                Text(initials, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
+                                Text(initials, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = color)
                             }
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(DsSpacing.md))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(supplier.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
+                                Text(supplier.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                                 Row(
                                     verticalAlignment     = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.Phone, contentDescription = null, tint = TextMuted, modifier = Modifier.size(11.dp))
-                                    Text(supplier.phone?:"", fontSize = 12.sp, color = TextMuted)
+                                    Icon(Icons.Default.Phone, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(11.dp))
+                                    Text(supplier.phone?:"", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                                 }
                             }
                             if (selectedSupplier?.id == supplier.id) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                             } else {
-                                Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
@@ -395,10 +397,10 @@ fun PurchaseFormScreen(
 // ── Cart Sub-screen ─────────────────────────────────────────────────────
     if (showCart) {
         BackHandler { showCart = false }
-        Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
             // Header
             Row(
-                modifier              = Modifier.fillMaxWidth().padding(16.dp),
+                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
@@ -407,13 +409,13 @@ fun PurchaseFormScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
                     }
                     Column {
-                        Text("Ma sélection", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text(selectedSupplier?.name ?: "", fontSize = 12.sp, color = TextMuted)
+                        Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                        Text(selectedSupplier?.name ?: "", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
                 if (cartItems.isNotEmpty()) {
                     TextButton(onClick = { cartItems = emptyList() }) {
-                        Text("Vider", color = DestructiveRed, fontSize = 13.sp)
+                        Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                     }
                 }
             }
@@ -428,23 +430,23 @@ fun PurchaseFormScreen(
                         Icon(
                             Icons.Default.ShoppingCart,
                             contentDescription = null,
-                            tint     = PrimaryBlue.copy(alpha = 0.3f),
+                            tint     = DsColors.Primary.copy(alpha = 0.3f),
                             modifier = Modifier.size(56.dp)
                         )
-                        Spacer(Modifier.height(12.dp))
-                        Text("Sélection vide", color = TextMuted, fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(DsSpacing.md))
+                        Text("Sélection vide", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(DsSpacing.sm))
                         Button(
                             onClick = { showCart = false },
-                            shape   = RoundedCornerShape(12.dp),
-                            colors  = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            shape   = DsShapes.medium,
+                            colors  = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                         ) { Text("Parcourir les produits") }
                     }
                 }
             } else {
                 LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                     modifier            = Modifier.weight(1f)
                 ) {
                     // ── Expandable cart item cards ──
@@ -462,12 +464,12 @@ fun PurchaseFormScreen(
 
                         Card(
                             modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(14.dp),
-                            colors    = CardDefaults.cardColors(containerColor = Color.White),
+                            shape     = DsShapes.large,
+                            colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                             elevation = CardDefaults.cardElevation(1.dp),
                             border    = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isExpanded) PrimaryBlue else BorderGray
+                                if (isExpanded) DsColors.Primary else DsColors.Border
                             )
                         ) {
                             Column {
@@ -476,7 +478,7 @@ fun PurchaseFormScreen(
                                     modifier              = Modifier
                                         .fillMaxWidth()
                                         .clickable { isExpanded = !isExpanded }
-                                        .padding(12.dp),
+                                        .padding(DsSpacing.md),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment     = Alignment.CenterVertically
                                 ) {
@@ -486,7 +488,7 @@ fun PurchaseFormScreen(
                                         modifier              = Modifier.weight(1f)
                                     ) {
                                         Box(
-                                            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
+                                            modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             val bitmap = remember(item.product.image_uri) {
@@ -501,35 +503,35 @@ fun PurchaseFormScreen(
                                                     modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                                 )
                                             } else {
-                                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                                             }
                                         }
                                         Column {
                                             Text(
                                                 item.product.name,
-                                                fontSize   = 13.sp,
+                                                fontSize   = DsTextSize.bodySmall,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color      = TextPrimary,
+                                                color      = DsColors.TextPrimary,
                                                 maxLines   = 1
                                             )
-                                            Text(subtitle, fontSize = 11.sp, color = TextMuted)
+                                            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                         }
                                     }
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(DsSpacing.sm))
                                     Row(
                                         verticalAlignment     = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Text(
                                             "${"%.2f".format(item.quantity * item.unitCost)} DA",
-                                            fontSize   = 13.sp,
+                                            fontSize   = DsTextSize.bodySmall,
                                             fontWeight = FontWeight.Bold,
-                                            color      = PrimaryBlue
+                                            color      = DsColors.Primary
                                         )
                                         Icon(
                                             if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null,
-                                            tint     = TextMuted,
+                                            tint     = DsColors.TextSecondary,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -539,28 +541,28 @@ fun PurchaseFormScreen(
                                 AnimatedVisibility(visible = isExpanded) {
                                     Column(
                                         modifier = Modifier
-                                            .padding(horizontal = 12.dp)
-                                            .padding(bottom = 12.dp)
+                                            .padding(horizontal = DsSpacing.md)
+                                            .padding(bottom = DsSpacing.md)
                                     ) {
-                                        HorizontalDivider(color = BorderGray, thickness = 1.dp)
-                                        Spacer(Modifier.height(12.dp))
+                                        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+                                        Spacer(Modifier.height(DsSpacing.md))
 
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                                             StatBox(
                                                 modifier = Modifier.weight(1f),
                                                 label    = "Stock actuel",
                                                 value    = "${formatQty(item.product.stock)} ${item.product.unit_type}",
-                                                color    = TextPrimary
+                                                color    = DsColors.TextPrimary
                                             )
                                             StatBox(
                                                 modifier = Modifier.weight(1f),
                                                 label    = "Après réception",
                                                 value    = "${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
-                                                color    = AccentGreen
+                                                color    = DsColors.Success
                                             )
                                         }
 
-                                        Spacer(Modifier.height(12.dp))
+                                        Spacer(Modifier.height(DsSpacing.md))
 
                                         if (item.product.unit_type == "pièce") {
                                             Row(
@@ -586,20 +588,20 @@ fun PurchaseFormScreen(
                                                         }
                                                     },
                                                     modifier        = Modifier.weight(1f),
-                                                    label           = { Text("Nb colis", fontSize = 12.sp) },
+                                                    label           = { Text("Nb colis", fontSize = DsTextSize.caption) },
                                                     singleLine      = true,
-                                                    shape           = RoundedCornerShape(10.dp),
+                                                    shape           = DsShapes.medium,
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                     colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = BorderGray,
-                                                        focusedBorderColor   = PrimaryBlue
+                                                        unfocusedBorderColor = DsColors.Border,
+                                                        focusedBorderColor   = DsColors.Primary
                                                     )
                                                 )
                                                 Text(
                                                     "×",
-                                                    fontSize   = 18.sp,
+                                                    fontSize   = DsTextSize.title,
                                                     fontWeight = FontWeight.Bold,
-                                                    color      = TextMuted
+                                                    color      = DsColors.TextSecondary
                                                 )
                                                 OutlinedTextField(
                                                     value         = uniteParColisStr,
@@ -616,44 +618,44 @@ fun PurchaseFormScreen(
                                                         }
                                                     },
                                                     modifier        = Modifier.weight(1f),
-                                                    label           = { Text("Unités/colis", fontSize = 12.sp) },
+                                                    label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
                                                     singleLine      = true,
-                                                    shape           = RoundedCornerShape(10.dp),
+                                                    shape           = DsShapes.medium,
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                     colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = BorderGray,
-                                                        focusedBorderColor   = PrimaryBlue
+                                                        unfocusedBorderColor = DsColors.Border,
+                                                        focusedBorderColor   = DsColors.Primary
                                                     )
                                                 )
                                             }
-                                            Spacer(Modifier.height(8.dp))
+                                            Spacer(Modifier.height(DsSpacing.sm))
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(10.dp))
-                                                    .background(BlueLight)
-                                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                    .clip(DsShapes.medium)
+                                                    .background(DsColors.PrimaryLight)
+                                                    .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
                                             ) {
                                                 Row(
                                                     modifier              = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment     = Alignment.CenterVertically
                                                 ) {
-                                                    Text("Total pièces à acheter", fontSize = 12.sp, color = PrimaryBlue)
+                                                    Text("Total pièces à acheter", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
                                                     Text(
                                                         "${formatQty(item.quantity)} pièces",
-                                                        fontSize   = 14.sp,
+                                                        fontSize   = DsTextSize.body,
                                                         fontWeight = FontWeight.Bold,
-                                                        color      = PrimaryBlue
+                                                        color      = DsColors.Primary
                                                     )
                                                 }
                                             }
                                         } else {
-                                            Text("Nombre de cartons", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                            Text("Nombre de cartons", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.Medium)
                                             Spacer(Modifier.height(6.dp))
                                             Row(
                                                 verticalAlignment     = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                                             ) {
                                                 IconButton(
                                                     onClick  = {
@@ -665,9 +667,9 @@ fun PurchaseFormScreen(
                                                             else ci
                                                         }
                                                     },
-                                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(MutedGray)
+                                                    modifier = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
                                                 ) {
-                                                    Icon(Icons.Default.Remove, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                                                    Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                                                 }
 
                                                 OutlinedTextField(
@@ -691,14 +693,14 @@ fun PurchaseFormScreen(
                                                     modifier        = Modifier.weight(1f),
                                                     singleLine      = true,
                                                     textStyle       = androidx.compose.ui.text.TextStyle(
-                                                        fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                                                        textAlign = TextAlign.Center, color = PrimaryBlue
+                                                        fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                                                        textAlign = TextAlign.Center, color = DsColors.Primary
                                                     ),
-                                                    shape           = RoundedCornerShape(10.dp),
+                                                    shape           = DsShapes.medium,
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                     colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = BorderGray,
-                                                        focusedBorderColor   = PrimaryBlue
+                                                        unfocusedBorderColor = DsColors.Border,
+                                                        focusedBorderColor   = DsColors.Primary
                                                     )
                                                 )
 
@@ -712,17 +714,17 @@ fun PurchaseFormScreen(
                                                             else ci
                                                         }
                                                     },
-                                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(MutedGray)
+                                                    modifier = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
                                                 ) {
-                                                    Icon(Icons.Default.Add, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                                                    Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                                                 }
                                             }
                                         }
-                                        Spacer(Modifier.height(12.dp))
+                                        Spacer(Modifier.height(DsSpacing.md))
 
                                         Row(
                                             verticalAlignment     = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                                         ) {
                                             OutlinedTextField(
                                                 value         = unitCostStr,
@@ -743,11 +745,11 @@ fun PurchaseFormScreen(
                                                 modifier        = Modifier.weight(1f),
                                                 label           = { Text("Prix unitaire (DA)") },
                                                 singleLine      = true,
-                                                shape           = RoundedCornerShape(10.dp),
+                                                shape           = DsShapes.medium,
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                 colors          = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = BorderGray,
-                                                    focusedBorderColor   = PrimaryBlue
+                                                    unfocusedBorderColor = DsColors.Border,
+                                                    focusedBorderColor   = DsColors.Primary
                                                 )
                                             )
 
@@ -763,13 +765,13 @@ fun PurchaseFormScreen(
                                                     },
                                                     modifier = Modifier
                                                         .size(44.dp)
-                                                        .clip(RoundedCornerShape(10.dp))
-                                                        .background(if (hasHistory) BlueLight else MutedGray)
+                                                        .clip(DsShapes.medium)
+                                                        .background(if (hasHistory) DsColors.PrimaryLight else DsColors.SurfaceSunken)
                                                 ) {
                                                     Icon(
                                                         Icons.Default.History,
                                                         contentDescription = "Historique des prix",
-                                                        tint = if (hasHistory) PrimaryBlue else TextMuted,
+                                                        tint = if (hasHistory) DsColors.Primary else DsColors.TextSecondary,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }
@@ -777,14 +779,14 @@ fun PurchaseFormScreen(
                                                 DropdownMenu(
                                                     expanded = showPriceHistory,
                                                     onDismissRequest = { showPriceHistory = false },
-                                                    modifier = Modifier.background(Color.White)
+                                                    modifier = Modifier.background(DsColors.Surface)
                                                 ) {
                                                     Text(
                                                         "DERNIERS PRIX",
-                                                        fontSize = 10.sp,
+                                                        fontSize = DsTextSize.caption,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = TextMuted,
-                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                                        color = DsColors.TextSecondary,
+                                                        modifier = Modifier.padding(horizontal = DsSpacing.md, vertical = 6.dp)
                                                     )
 
                                                     val filteredHistory = history
@@ -794,9 +796,9 @@ fun PurchaseFormScreen(
                                                     if (filteredHistory.isEmpty()) {
                                                         Text(
                                                             "Aucun historique disponible",
-                                                            fontSize = 11.sp,
-                                                            color = TextMuted,
-                                                            modifier = Modifier.padding(12.dp)
+                                                            fontSize = DsTextSize.caption,
+                                                            color = DsColors.TextSecondary,
+                                                            modifier = Modifier.padding(DsSpacing.md)
                                                         )
                                                     } else {
                                                         val minPrice = filteredHistory.minOf { it.unit_cost }
@@ -811,17 +813,17 @@ fun PurchaseFormScreen(
                                                                         verticalAlignment = Alignment.CenterVertically
                                                                     ) {
                                                                         Column {
-                                                                            Text(h.supplier_name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                                                            Text(h.date.take(10), fontSize = 10.sp, color = TextMuted)
+                                                                            Text(h.supplier_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                                                                            Text(h.date.take(10), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                                                         }
                                                                         Text(
                                                                             "${"%.2f".format(h.unit_cost)} DA",
-                                                                            fontSize = 13.sp,
+                                                                            fontSize = DsTextSize.bodySmall,
                                                                             fontWeight = FontWeight.Bold,
                                                                             color = when {
-                                                                                h.unit_cost == minPrice -> AccentGreen
-                                                                                h.unit_cost == maxPrice -> DestructiveRed
-                                                                                else -> TextPrimary
+                                                                                h.unit_cost == minPrice -> DsColors.Success
+                                                                                h.unit_cost == maxPrice -> DsColors.Danger
+                                                                                else -> DsColors.TextPrimary
                                                                             }
                                                                         )
                                                                     }
@@ -840,7 +842,7 @@ fun PurchaseFormScreen(
                                             }
                                         }
 
-                                        Spacer(Modifier.height(12.dp))
+                                        Spacer(Modifier.height(DsSpacing.md))
 
                                         // ── Date d'expiration (optionnelle) ──
                                         var showExpiryPicker by remember { mutableStateOf(false) }
@@ -874,9 +876,9 @@ fun PurchaseFormScreen(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MutedGray)
-                                                .padding(12.dp)
+                                                .clip(DsShapes.medium)
+                                                .background(DsColors.SurfaceSunken)
+                                                .padding(DsSpacing.md)
                                         ) {
                                             Row(
                                                 modifier              = Modifier.fillMaxWidth(),
@@ -884,10 +886,10 @@ fun PurchaseFormScreen(
                                                 verticalAlignment     = Alignment.CenterVertically
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    Icon(Icons.Default.Info, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                                    Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                                                     Column {
-                                                        Text("Date d'expiration", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                                        Text("Le produit a une date d'expiration", fontSize = 10.sp, color = TextMuted)
+                                                        Text("Date d'expiration", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                                                        Text("Le produit a une date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                                     }
                                                 }
                                                 Switch(
@@ -897,26 +899,26 @@ fun PurchaseFormScreen(
                                                             if (ci.product.id == item.product.id) ci.copy(hasExpiry = checked) else ci
                                                         }
                                                     },
-                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = PrimaryBlue)
+                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
                                                 )
                                             }
 
                                             AnimatedVisibility(visible = item.hasExpiry) {
-                                                Column(modifier = Modifier.padding(top = 8.dp)) {
+                                                Column(modifier = Modifier.padding(top = DsSpacing.sm)) {
                                                     OutlinedTextField(
                                                         value         = item.expiryDate ?: "",
                                                         onValueChange = {},
                                                         readOnly      = true,
-                                                        label         = { Text("Date d'expiration", fontSize = 12.sp) },
+                                                        label         = { Text("Date d'expiration", fontSize = DsTextSize.caption) },
                                                         trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
                                                         modifier      = Modifier.fillMaxWidth().clickable { showExpiryPicker = true },
-                                                        shape         = RoundedCornerShape(10.dp),
+                                                        shape         = DsShapes.medium,
                                                         enabled       = false,
                                                         colors = OutlinedTextFieldDefaults.colors(
-                                                            disabledBorderColor = BorderGray,
-                                                            disabledTextColor   = TextPrimary,
-                                                            disabledLabelColor  = TextMuted,
-                                                            disabledTrailingIconColor = PrimaryBlue
+                                                            disabledBorderColor = DsColors.Border,
+                                                            disabledTextColor   = DsColors.TextPrimary,
+                                                            disabledLabelColor  = DsColors.TextSecondary,
+                                                            disabledTrailingIconColor = DsColors.Primary
                                                         )
                                                     )
                                                 }
@@ -929,9 +931,9 @@ fun PurchaseFormScreen(
                                             onClick  = { cartItems = cartItems.filter { it.product.id != item.product.id } },
                                             modifier = Modifier.align(Alignment.End)
                                         ) {
-                                            Icon(Icons.Default.Delete, contentDescription = null, tint = DestructiveRed, modifier = Modifier.size(15.dp))
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                                             Spacer(Modifier.width(4.dp))
-                                            Text("Retirer", color = DestructiveRed, fontSize = 13.sp)
+                                            Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                                         }
                                     }
                                 }
@@ -944,14 +946,14 @@ fun PurchaseFormScreen(
                         OutlinedTextField(
                             value         = note,
                             onValueChange = { note = it },
-                            placeholder   = { Text("Note (optionnel)", fontSize = 14.sp) },
+                            placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                             modifier      = Modifier.fillMaxWidth(),
-                            shape         = RoundedCornerShape(12.dp),
+                            shape         = DsShapes.medium,
                             minLines      = 2,
                             maxLines      = 3,
                             colors        = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = BorderGray,
-                                focusedBorderColor   = PrimaryBlue
+                                unfocusedBorderColor = DsColors.Border,
+                                focusedBorderColor   = DsColors.Primary
                             )
                         )
                     }
@@ -961,14 +963,14 @@ fun PurchaseFormScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(BlueLight)
-                                .padding(16.dp),
+                                .clip(DsShapes.large)
+                                .background(DsColors.PrimaryLight)
+                                .padding(DsSpacing.lg),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Total", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                            Text("${"%.2f".format(total)} DA", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue)
+                            Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                            Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                         }
                     }
 
@@ -978,27 +980,27 @@ fun PurchaseFormScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedButton(
                         onClick  = { showCart = false },
                         modifier = Modifier.weight(1f).height(52.dp),
-                        shape    = RoundedCornerShape(16.dp)
+                        shape    = DsShapes.large
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Retour", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                     }
 
                     Button(
                         onClick  = { showCart = false; currentStep = 3 },
                         enabled  = cartItems.isNotEmpty(),
                         modifier = Modifier.weight(1f).height(52.dp),
-                        shape    = RoundedCornerShape(16.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        shape    = DsShapes.large,
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                     ) {
-                        Text("Suivant →", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1033,7 +1035,7 @@ fun PurchaseFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         // ── Compact header ──
         val stepLabel = when (currentStep) {
@@ -1043,7 +1045,7 @@ fun PurchaseFormScreen(
             else -> ""
         }
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { goBack() }) {
@@ -1052,31 +1054,31 @@ fun PurchaseFormScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     if (isEdit) "Modifier le bon #${order!!.id}" else "Nouveau bon",
-                    fontSize   = 12.sp,
+                    fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color      = TextPrimary
+                    color      = DsColors.TextPrimary
                 )
                 Text(
                     selectedSupplier?.name ?: "Choisir un fournisseur",
-                    fontSize = 11.sp,
-                    color    = if (selectedSupplier != null) PrimaryBlue else TextMuted
+                    fontSize = DsTextSize.caption,
+                    color    = if (selectedSupplier != null) DsColors.Primary else DsColors.TextSecondary
                 )
             }
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(BlueLight)
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .clip(DsShapes.pill)
+                    .background(DsColors.PrimaryLight)
+                    .padding(horizontal = DsSpacing.sm, vertical = 5.dp)
             ) {
                 Text(
                     "$stepLabel · $currentStep/3",
-                    fontSize   = 11.sp,
+                    fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.Bold,
-                    color      = PrimaryBlue
+                    color      = DsColors.Primary
                 )
             }
         }
-        HorizontalDivider(color = BorderGray, thickness = 1.dp)
+        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         when (currentStep) {
             1 -> Step1Fournisseur(
@@ -1091,59 +1093,59 @@ fun PurchaseFormScreen(
                 OutlinedTextField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = { Text("Rechercher par nom ou code-barres…", fontSize = 12.sp) },
+                    placeholder   = { Text("Rechercher par nom ou code-barres…", fontSize = DsTextSize.bodySmall) },
                     leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon  = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (search.isNotEmpty()) {
                                 IconButton(onClick = { search = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Effacer", tint = TextMuted, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                                 }
                             }
                             IconButton(onClick = { showScanner = true }) {
                                 Icon(
                                     Icons.Default.QrCodeScanner,
                                     contentDescription = "Scanner un code-barres",
-                                    tint = PrimaryBlue
+                                    tint = DsColors.Primary
                                 )
                             }
                         }
                     },
                     modifier      = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    shape         = RoundedCornerShape(16.dp),
+                        .padding(horizontal = DsSpacing.lg)
+                        .padding(top = DsSpacing.md)
+                        .clip(DsShapes.large),
+                    shape         = DsShapes.large,
                     singleLine    = true,
                     colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = BorderGray,
-                        focusedBorderColor   = PrimaryBlue
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
                     )
                 )
 
                 // ── العدد + زر Nouveau produit (يختفي/يظهر مع التمرير) ──
                 CollapsibleHeader(collapsed = step2Collapsed) {
                     Row(
-                        modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Text(
                             "${filteredProducts.size} produit(s)",
-                            fontSize = 12.sp,
-                            color    = TextMuted
+                            fontSize = DsTextSize.bodySmall,
+                            color    = DsColors.TextSecondary
                         )
                         OutlinedButton(
                             onClick        = { showAddProductScreen = true },
-                            shape          = RoundedCornerShape(20.dp),
-                            border         = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue),
-                            colors         = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),
+                            shape          = DsShapes.pill,
+                            border         = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary),
+                            colors         = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Nouveau produit", fontSize = 12.sp, color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                            Text("Nouveau produit", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -1152,8 +1154,8 @@ fun PurchaseFormScreen(
                 LazyColumn(
                     state               = step2ListState,
                     modifier            = Modifier.weight(1f),
-                    contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
                     items(filteredProducts, key = { it.id }) { product ->
                         val isInCart = cartItems.any { it.product.id == product.id }
@@ -1161,27 +1163,27 @@ fun PurchaseFormScreen(
 
                         Card(
                             modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(14.dp),
-                            colors    = CardDefaults.cardColors(containerColor = Color.White),
+                            shape     = DsShapes.large,
+                            colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                             elevation = CardDefaults.cardElevation(1.dp),
                             border    = androidx.compose.foundation.BorderStroke(
                                 1.dp,
                                 when {
-                                    isInCart -> PrimaryBlue
-                                    isLow    -> Color(0xFFFFCDD2)
-                                    else     -> BorderGray
+                                    isInCart -> DsColors.Primary
+                                    isLow    -> DsColors.Danger
+                                    else     -> DsColors.Border
                                 }
                             )
                         ) {
                             Row(
-                                modifier          = Modifier.padding(12.dp),
+                                modifier          = Modifier.padding(DsSpacing.md),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier         = Modifier
                                         .size(42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isInCart) BlueLight else MutedGray),
+                                        .clip(DsShapes.medium)
+                                        .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceSunken),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val bitmap = remember(product.image_uri) {
@@ -1199,7 +1201,7 @@ fun PurchaseFormScreen(
                                         Icon(
                                             if (isInCart) Icons.Default.Check else Icons.Default.ShoppingCart,
                                             contentDescription = null,
-                                            tint     = if (isInCart) PrimaryBlue else TextMuted,
+                                            tint     = if (isInCart) DsColors.Primary else DsColors.TextSecondary,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -1209,22 +1211,22 @@ fun PurchaseFormScreen(
                                     Text(
                                         product.name,
                                         fontWeight = FontWeight.SemiBold,
-                                        fontSize   = 13.sp,
-                                        color      = TextPrimary,
+                                        fontSize   = DsTextSize.bodySmall,
+                                        color      = DsColors.TextPrimary,
                                         maxLines   = 1
                                     )
                                     Text(
                                         "${product.category_name ?: "—"} · ${"%.2f".format(product.purchase_price)} DA",
-                                        fontSize = 11.sp,
-                                        color    = TextMuted
+                                        fontSize = DsTextSize.caption,
+                                        color    = DsColors.TextSecondary
                                     )
                                     Text(
                                         "Stock : ${formatQty(product.stock)} ${product.unit_type}",
-                                        fontSize = 11.sp,
-                                        color    = if (isLow) DestructiveRed else TextMuted
+                                        fontSize = DsTextSize.caption,
+                                        color    = if (isLow) DsColors.Danger else DsColors.TextSecondary
                                     )
                                 }
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(DsSpacing.sm))
                                 if (!isInCart) {
                                     IconButton(
                                         onClick = {
@@ -1236,16 +1238,16 @@ fun PurchaseFormScreen(
                                                 uniteParColis = 1
                                             )
                                         },
-                                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(BlueLight)
+                                        modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
                                     ) {
-                                        Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                                     }
                                 } else {
                                     IconButton(
                                         onClick = { cartItems = cartItems.filter { it.product.id != product.id } },
-                                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(GreenLight)
+                                        modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                     ) {
-                                        Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = AccentGreen, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -1257,35 +1259,35 @@ fun PurchaseFormScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 28.dp, vertical = 8.dp),
+                        .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(if (cartItems.isNotEmpty()) GreenLight else MutedGray)
+                            .clip(DsShapes.pill)
+                            .background(if (cartItems.isNotEmpty()) DsColors.SuccessLight else DsColors.SurfaceSunken)
                             .clickable(enabled = cartItems.isNotEmpty()) { showCart = true }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .padding(horizontal = 14.dp, vertical = DsSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
                         Box(
-                            modifier = Modifier.size(20.dp).clip(RoundedCornerShape(50))
-                                .background(if (cartItems.isNotEmpty()) AccentGreen else TextMuted),
+                            modifier = Modifier.size(20.dp).clip(DsShapes.pill)
+                                .background(if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextSecondary),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("${cartItems.size}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("${cartItems.size}", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                         }
                         Text(
-                            "Ma sélection", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = if (cartItems.isNotEmpty()) AccentGreen else TextMuted
+                            "Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                            color = if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextSecondary
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
-                            "${"%.2f".format(total)} DA", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = if (cartItems.isNotEmpty()) AccentGreen else TextMuted
+                            "${"%.2f".format(total)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                            color = if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextSecondary
                         )
                     }
                 }
@@ -1317,7 +1319,7 @@ private fun StepIndicator(currentStep: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = DsSpacing.xxl, vertical = DsSpacing.lg),
         verticalAlignment = Alignment.Top
     ) {
         steps.forEachIndexed { index, label ->
@@ -1328,13 +1330,13 @@ private fun StepIndicator(currentStep: Int) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(if (isCompleted || isActive) PrimaryBlue else Color.Transparent)
+                        .size(28.dp)
+                        .clip(DsShapes.pill)
+                        .background(if (isCompleted || isActive) DsColors.Primary else Color.Transparent)
                         .border(
                             width = if (isCompleted || isActive) 0.dp else 1.5.dp,
-                            color = if (isCompleted || isActive) Color.Transparent else BorderGray,
-                            shape = RoundedCornerShape(50)
+                            color = if (isCompleted || isActive) Color.Transparent else DsColors.Border,
+                            shape = DsShapes.pill
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1343,18 +1345,18 @@ private fun StepIndicator(currentStep: Int) {
                     } else {
                         Text(
                             step.toString(),
-                            fontSize   = 13.sp,
+                            fontSize   = DsTextSize.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color      = if (isActive) Color.White else TextMuted
+                            color      = if (isActive) Color.White else DsColors.TextSecondary
                         )
                     }
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(DsSpacing.xs))
                 Text(
                     label,
-                    fontSize   = 11.sp,
+                    fontSize   = DsTextSize.caption,
                     fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                    color      = if (isActive || isCompleted) PrimaryBlue else TextMuted,
+                    color      = if (isActive || isCompleted) DsColors.Primary else DsColors.TextSecondary,
                     textAlign  = TextAlign.Center
                 )
             }
@@ -1365,7 +1367,7 @@ private fun StepIndicator(currentStep: Int) {
                         .weight(1f)
                         .padding(top = 15.dp, start = 4.dp, end = 4.dp),
                     thickness = 2.dp,
-                    color     = if (step < currentStep) PrimaryBlue else BorderGray
+                    color     = if (step < currentStep) DsColors.Primary else DsColors.Border
                 )
             }
         }
@@ -1385,25 +1387,25 @@ private fun Step1Fournisseur(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(DsSpacing.xxl))
 
             Box(
-                modifier         = Modifier.size(88.dp).clip(RoundedCornerShape(24.dp)).background(BlueLight),
+                modifier         = Modifier.size(88.dp).clip(DsShapes.large).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Business, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(44.dp))
+                Icon(Icons.Default.Business, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(44.dp))
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(DsSpacing.xl))
 
             Text(
                 "Choisir un fournisseur",
-                fontSize   = 19.sp,
+                fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
-                color      = TextPrimary,
+                color      = DsColors.TextPrimary,
                 textAlign  = TextAlign.Center
             )
 
@@ -1411,115 +1413,115 @@ private fun Step1Fournisseur(
 
             Text(
                 "Sélectionnez le fournisseur avant d'ajouter des produits",
-                fontSize  = 13.sp,
-                color     = TextMuted,
+                fontSize  = DsTextSize.bodySmall,
+                color     = DsColors.TextSecondary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(DsSpacing.xxl))
 
             if (selectedSupplier == null) {
                 Button(
                     onClick  = onChooseSupplier,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape    = RoundedCornerShape(16.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    shape    = DsShapes.large,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                 ) {
                     Icon(Icons.Default.Business, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Choisir un fournisseur", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text("Choisir un fournisseur", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(DsSpacing.lg))
 
                 // ── Info box ──
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(BlueLight)
+                        .clip(DsShapes.large)
+                        .background(DsColors.PrimaryLight)
                         .padding(14.dp)
                 ) {
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                         Text(
                             "Pourquoi d'abord le fournisseur ?",
-                            fontSize   = 13.sp,
+                            fontSize   = DsTextSize.bodySmall,
                             fontWeight = FontWeight.SemiBold,
-                            color      = PrimaryBlue
+                            color      = DsColors.Primary
                         )
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Les prix d'achat et les produits disponibles dépendent du fournisseur choisi. " +
                             "Cela permet de proposer une liste de produits pertinente et d'éviter les erreurs de saisie.",
-                        fontSize = 12.sp,
-                        color    = TextPrimary
+                        fontSize = DsTextSize.caption,
+                        color    = DsColors.TextPrimary
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(DsSpacing.md))
 
                 // ── Search preview (disabled) ──
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MutedGray)
+                        .clip(DsShapes.large)
+                        .background(DsColors.SurfaceSunken)
                         .padding(14.dp),
                     verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                     Text(
                         "La recherche sera disponible après la sélection",
-                        fontSize = 13.sp,
-                        color    = TextMuted
+                        fontSize = DsTextSize.bodySmall,
+                        color    = DsColors.TextSecondary
                     )
                 }
             } else {
                 // ── Selected supplier card ──
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(DsSpacing.lg)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             val avatarColors = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
                             val color        = Color(avatarColors[selectedSupplier.name[0].code % avatarColors.size])
                             val initials     = selectedSupplier.name.split(" ").take(2)
                                 .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                             Box(
-                                modifier         = Modifier.size(46.dp).clip(RoundedCornerShape(50)),
+                                modifier         = Modifier.size(46.dp).clip(DsShapes.pill),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                                Text(initials, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
+                                Text(initials, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = color)
                             }
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(DsSpacing.md))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(selectedSupplier.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text(selectedSupplier.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                                 Text(
                                     "Solde : ${formatDZD(selectedSupplier.balance)} DA",
-                                    fontSize = 12.sp,
-                                    color    = if (selectedSupplier.balance > 0) DestructiveRed else TextMuted
+                                    fontSize = DsTextSize.bodySmall,
+                                    color    = if (selectedSupplier.balance > 0) DsColors.Danger else DsColors.TextSecondary
                                 )
                             }
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AccentGreen, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
                         }
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(DsSpacing.md))
                         OutlinedButton(
                             onClick  = onChooseSupplier,
                             modifier = Modifier.fillMaxWidth(),
-                            shape    = RoundedCornerShape(12.dp)
+                            shape    = DsShapes.medium
                         ) {
-                            Text("Changer", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text("Changer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -1532,12 +1534,12 @@ private fun Step1Fournisseur(
             enabled  = selectedSupplier != null,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                 .height(52.dp),
-            shape  = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            shape  = DsShapes.large,
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
         ) {
-            Text("Suivant →", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -1560,43 +1562,43 @@ private fun Step3Validation(
     Column(modifier = Modifier.fillMaxSize()) {
         // ── Header ──
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
-            Text("Validation", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Validation", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         }
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // ── Supplier summary card ──
             item {
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier         = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(BlueLight),
+                            modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Business, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Business, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                         }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(DsSpacing.md))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(selectedSupplier?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text(selectedSupplier?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
                                 "Solde du fournisseur : ${formatDZD(selectedSupplier?.balance ?: 0.0)} DA",
-                                fontSize = 12.sp,
-                                color    = if ((selectedSupplier?.balance ?: 0.0) > 0) DestructiveRed else TextMuted
+                                fontSize = DsTextSize.bodySmall,
+                                color    = if ((selectedSupplier?.balance ?: 0.0) > 0) DsColors.Danger else DsColors.TextSecondary
                             )
                         }
                     }
@@ -1607,9 +1609,9 @@ private fun Step3Validation(
             item {
                 Text(
                     "Articles (${cartItems.size})",
-                    fontSize   = 13.sp,
+                    fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = TextMuted,
+                    color      = DsColors.TextSecondary,
                     modifier   = Modifier.padding(top = 4.dp)
                 )
             }
@@ -1623,14 +1625,14 @@ private fun Step3Validation(
 
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(14.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(modifier = Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
+                            modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                             contentAlignment = Alignment.Center
                         ) {
                             val bitmap = remember(item.product.image_uri) {
@@ -1645,21 +1647,21 @@ private fun Step3Validation(
                                     modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                             }
                         }
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(item.product.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1)
-                            Text(quantityLine, fontSize = 11.sp, color = TextMuted)
-                            Text("${"%.2f".format(item.unitCost)} DA/u", fontSize = 11.sp, color = TextMuted)
+                            Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+                            Text(quantityLine, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("${"%.2f".format(item.unitCost)} DA/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(DsSpacing.sm))
                         Text(
                             "${"%.2f".format(item.quantity * item.unitCost)} DA",
-                            fontSize   = 14.sp,
+                            fontSize   = DsTextSize.body,
                             fontWeight = FontWeight.Bold,
-                            color      = PrimaryBlue
+                            color      = DsColors.Primary
                         )
                     }
                 }
@@ -1670,14 +1672,14 @@ private fun Step3Validation(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(BlueLight)
-                        .padding(16.dp),
+                        .clip(DsShapes.large)
+                        .background(DsColors.PrimaryLight)
+                        .padding(DsSpacing.lg),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Total", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                    Text("${"%.2f".format(total)} DA", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue)
+                    Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                 }
             }
 
@@ -1686,8 +1688,8 @@ private fun Step3Validation(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MutedGray)
+                        .clip(DsShapes.large)
+                        .background(DsColors.SurfaceSunken)
                         .padding(14.dp)
                 ) {
                     Row(
@@ -1695,60 +1697,60 @@ private fun Step3Validation(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Montant payé (DA)", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                        Text("Montant payé (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         TextButton(
                             onClick = { onMontantPayeChange("%.2f".format(total)) }
                         ) {
-                            Text("Tout réglé", fontSize = 12.sp, color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                            Text("Tout réglé", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value         = montantPaye,
                         onValueChange = { raw -> onMontantPayeChange(raw.filter { it.isDigit() || it == '.' }) },
-                        placeholder     = { Text("0.00", fontSize = 14.sp) },
+                        placeholder     = { Text("0.00", fontSize = DsTextSize.body) },
                         modifier        = Modifier.fillMaxWidth(),
-                        shape           = RoundedCornerShape(10.dp),
+                        shape           = DsShapes.medium,
                         singleLine      = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors          = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = BorderGray,
-                            focusedBorderColor   = PrimaryBlue
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor   = DsColors.Primary
                         )
                     )
 
                     val paye  = montantPaye.toDoubleOrNull() ?: 0.0
                     val reste = total - paye
                     if (paye > 0 && reste > 0) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(DsSpacing.sm))
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Reste", fontSize = 12.sp, color = DestructiveRed)
+                            Text("Reste", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                             Text(
                                 "${"%.2f".format(reste)} DA",
-                                fontSize   = 14.sp,
+                                fontSize   = DsTextSize.body,
                                 fontWeight = FontWeight.Bold,
-                                color      = DestructiveRed
+                                color      = DsColors.Danger
                             )
                         }
                     } else if (paye >= total && total > 0) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(DsSpacing.sm))
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Statut", fontSize = 12.sp, color = AccentGreen)
+                            Text("Statut", fontSize = DsTextSize.bodySmall, color = DsColors.Success)
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(GreenLight)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    .clip(DsShapes.pill)
+                                    .background(DsColors.SuccessLight)
+                                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp)
                             ) {
-                                Text("Réglé ✓", fontSize = 12.sp, color = AccentGreen, fontWeight = FontWeight.SemiBold)
+                                Text("Réglé ✓", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -1760,14 +1762,14 @@ private fun Step3Validation(
                 OutlinedTextField(
                     value         = note,
                     onValueChange = onNoteChange,
-                    placeholder   = { Text("Note (optionnel)", fontSize = 14.sp) },
+                    placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                     modifier      = Modifier.fillMaxWidth(),
-                    shape         = RoundedCornerShape(12.dp),
+                    shape         = DsShapes.medium,
                     minLines      = 2,
                     maxLines      = 3,
                     colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = BorderGray,
-                        focusedBorderColor   = PrimaryBlue
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
                     )
                 )
             }
@@ -1779,22 +1781,22 @@ private fun Step3Validation(
             enabled  = !isSaving && selectedSupplier != null && (cartItems.isNotEmpty() || isEdit),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                 .height(52.dp),
-            shape    = RoundedCornerShape(16.dp),
+            shape    = DsShapes.large,
             colors   = ButtonDefaults.buttonColors(
-                containerColor = if (isEdit) PrimaryBlue else AccentGreen
+                containerColor = if (isEdit) DsColors.Primary else DsColors.Success
             )
         ) {
             if (isSaving) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             } else {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(DsSpacing.sm))
                 Text(
                     if (isEdit) "Enregistrer · ${"%.2f".format(total)} DA"
                     else        "Confirmer la commande · ${"%.2f".format(total)} DA",
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                    fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }
         }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -32,6 +31,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -290,14 +293,14 @@ fun ProductFormScreen(
             text  = {
                 Column {
                     Text("Prix de vente : $sellingPrice DA")
-                    Text("Prix d'achat  : $purchasePrice DA", color = DestructiveRed)
+                    Text("Prix d'achat  : $purchasePrice DA", color = DsColors.Danger)
                     Spacer(Modifier.height(8.dp))
-                    Text("Voulez-vous continuer malgré la perte ?", fontSize = 13.sp)
+                    Text("Voulez-vous continuer malgré la perte ?", fontSize = DsTextSize.bodySmall)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showMarginWarn = false; save(forceSubmit = true) }) {
-                    Text("Continuer", color = DestructiveRed)
+                    Text("Continuer", color = DsColors.Danger)
                 }
             },
             dismissButton = {
@@ -318,11 +321,11 @@ fun ProductFormScreen(
                         onValueChange = { newSupplierName = it },
                         placeholder   = { Text("Nom du fournisseur") },
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border
                         )
                     )
                     OutlinedTextField(
@@ -330,11 +333,11 @@ fun ProductFormScreen(
                         onValueChange = { newSupplierPhone = it },
                         placeholder   = { Text("Téléphone") },
                         singleLine    = true,
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
                         colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = PrimaryBlue,
-                            unfocusedBorderColor = BorderGray
+                            focusedBorderColor   = DsColors.Primary,
+                            unfocusedBorderColor = DsColors.Border
                         )
                     )
                 }
@@ -353,7 +356,7 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = PrimaryBlue, fontWeight = FontWeight.SemiBold) }
+                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -377,11 +380,11 @@ fun ProductFormScreen(
                     onValueChange = { newCategoryName = it },
                     placeholder   = { Text("Ex: Boissons") },
                     singleLine    = true,
-                    shape         = RoundedCornerShape(12.dp),
+                    shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
                     colors        = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor   = PrimaryBlue,
-                        unfocusedBorderColor = BorderGray
+                        focusedBorderColor   = DsColors.Primary,
+                        unfocusedBorderColor = DsColors.Border
                     )
                 )
             },
@@ -397,7 +400,7 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = PrimaryBlue, fontWeight = FontWeight.SemiBold) }
+                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false; newCategoryName = "" }) {
@@ -410,7 +413,7 @@ fun ProductFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
@@ -422,7 +425,7 @@ fun ProductFormScreen(
             Spacer(Modifier.width(4.dp))
             Text(
                 if (isEdit) "Modifier le produit" else "Nouveau produit",
-                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+                fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
             )
         }
 
@@ -433,8 +436,8 @@ fun ProductFormScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MutedGray)
+                .clip(DsShapes.large)
+                .background(DsColors.SurfaceSunken)
                 .clickable { imagePicker.launch("image/*") },
             contentAlignment = Alignment.Center
         ) {
@@ -457,7 +460,7 @@ fun ProductFormScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(DsShapes.small)
                             .background(Color.Black.copy(alpha = 0.5f))
                             .clickable { imageRotation = (imageRotation + 90f) % 360f }
                             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -467,17 +470,17 @@ fun ProductFormScreen(
                     }
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(DsShapes.small)
                             .background(Color.Black.copy(alpha = 0.5f))
                             .clickable { imagePicker.launch("image/*") }
                             .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) { Text("Changer", fontSize = 11.sp, color = Color.White) }
+                    ) { Text("Changer", fontSize = DsTextSize.caption, color = Color.White) }
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
                     Spacer(Modifier.height(6.dp))
-                    Text("Ajouter une photo", fontSize = 12.sp, color = TextMuted)
+                    Text("Ajouter une photo", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
             }
         }
@@ -508,8 +511,8 @@ fun ProductFormScreen(
             Button(
                 onClick  = { showScanner = true },
                 modifier = Modifier.height(56.dp),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = BlueLight, contentColor = PrimaryBlue)
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
             ) {
                 Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
             }
@@ -521,8 +524,8 @@ fun ProductFormScreen(
                     barcode = nextId.toString().padStart(13, '0')
                 },
                 modifier = Modifier.height(56.dp),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = BlueLight, contentColor = PrimaryBlue)
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
             }
@@ -531,7 +534,7 @@ fun ProductFormScreen(
         Spacer(Modifier.height(12.dp))
 
         // ── Fournisseur ──
-        Text("Fournisseur", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment     = Alignment.CenterVertically
@@ -547,10 +550,10 @@ fun ProductFormScreen(
                     readOnly      = true,
                     trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
                     modifier      = Modifier.fillMaxWidth().menuAnchor(),
-                    shape         = RoundedCornerShape(12.dp),
+                    shape         = DsShapes.medium,
                     colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = BorderGray,
-                        focusedBorderColor   = PrimaryBlue
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
                     )
                 )
                 ExposedDropdownMenu(
@@ -558,7 +561,7 @@ fun ProductFormScreen(
                     onDismissRequest = { supplierExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text    = { Text("Sans fournisseur", color = TextMuted) },
+                        text    = { Text("Sans fournisseur", color = DsColors.TextSecondary) },
                         onClick = { selectedSupplierId = null; supplierExpanded = false }
                     )
                     suppliers.forEach { supplier ->
@@ -572,8 +575,8 @@ fun ProductFormScreen(
             Button(
                 onClick  = { showAddSupplierDialog = true },
                 modifier = Modifier.height(56.dp),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = BlueLight, contentColor = PrimaryBlue)
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             }
@@ -582,7 +585,7 @@ fun ProductFormScreen(
         Spacer(Modifier.height(12.dp))
 
         // ── Catégorie ──
-        Text("Catégorie", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment     = Alignment.CenterVertically
@@ -598,10 +601,10 @@ fun ProductFormScreen(
                     readOnly      = true,
                     trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                     modifier      = Modifier.fillMaxWidth().menuAnchor(),
-                    shape         = RoundedCornerShape(12.dp),
+                    shape         = DsShapes.medium,
                     colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = BorderGray,
-                        focusedBorderColor   = PrimaryBlue
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
                     )
                 )
                 ExposedDropdownMenu(
@@ -609,7 +612,7 @@ fun ProductFormScreen(
                     onDismissRequest = { categoryExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text    = { Text("Sans catégorie", color = TextMuted) },
+                        text    = { Text("Sans catégorie", color = DsColors.TextSecondary) },
                         onClick = { selectedCategoryId = null; categoryExpanded = false }
                     )
                     categories.forEach { category ->
@@ -623,8 +626,8 @@ fun ProductFormScreen(
             Button(
                 onClick  = { showAddCategoryDialog = true },
                 modifier = Modifier.height(56.dp),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = BlueLight, contentColor = PrimaryBlue)
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             }
@@ -672,14 +675,14 @@ fun ProductFormScreen(
         // ── Stock & conditionnement ──
         Card(
             modifier  = Modifier.fillMaxWidth(),
-            shape     = RoundedCornerShape(16.dp),
-            colors    = CardDefaults.cardColors(containerColor = MutedGray),
+            shape     = DsShapes.large,
+            colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
+                Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                 Spacer(Modifier.height(12.dp))
-                Text("Unité de stockage", fontSize = 12.sp, color = TextMuted)
+                Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("carton", "pièce").forEach { unit ->
@@ -687,18 +690,18 @@ fun ProductFormScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (active) PrimaryBlue else Color.White)
-                                .border(1.dp, if (active) PrimaryBlue else BorderGray, RoundedCornerShape(12.dp))
+                                .clip(DsShapes.medium)
+                                .background(if (active) DsColors.Primary else DsColors.Surface)
+                                .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
                                 .clickable { unitType = unit }
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 if (unit == "pièce") "Pièce" else "Carton",
-                                fontSize   = 14.sp,
+                                fontSize   = DsTextSize.body,
                                 fontWeight = FontWeight.Medium,
-                                color      = if (active) Color.White else TextPrimary
+                                color      = if (active) Color.White else DsColors.TextPrimary
                             )
                         }
                     }
@@ -708,8 +711,8 @@ fun ProductFormScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BlueLight)
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
                             .padding(12.dp)
                     ) {
                         Row(
@@ -719,11 +722,11 @@ fun ProductFormScreen(
                         ) {
                             Text(
                                 if (unitType == "pièce") "Unités totales" else "Colis en stock",
-                                fontSize = 12.sp, color = PrimaryBlue
+                                fontSize = DsTextSize.caption, color = DsColors.Primary
                             )
                             Text(
                                 "$computedStock ${if (unitType == "pièce") "pièces" else "cartons"}",
-                                fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue
+                                fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary
                             )
                         }
                     }
@@ -736,8 +739,8 @@ fun ProductFormScreen(
         // ── Date d'expiration ──
         Card(
             modifier  = Modifier.fillMaxWidth(),
-            shape     = RoundedCornerShape(16.dp),
-            colors    = CardDefaults.cardColors(containerColor = MutedGray),
+            shape     = DsShapes.large,
+            colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -747,13 +750,13 @@ fun ProductFormScreen(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
-                        Text("Produit soumis à une date de péremption", fontSize = 11.sp, color = TextMuted)
+                        Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                        Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Switch(
                         checked         = hasExpiry,
                         onCheckedChange = { hasExpiry = it },
-                        colors          = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = PrimaryBlue)
+                        colors          = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
                     )
                 }
                 if (hasExpiry) {
@@ -761,13 +764,13 @@ fun ProductFormScreen(
                     OutlinedButton(
                         onClick  = { showDatePicker = true },
                         modifier = Modifier.fillMaxWidth(),
-                        shape    = RoundedCornerShape(12.dp),
-                        colors   = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),
-                        border   = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        shape    = DsShapes.medium,
+                        colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
+                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(if (expiryDate.isEmpty()) "Choisir une date" else expiryDate, fontSize = 14.sp)
+                        Text(if (expiryDate.isEmpty()) "Choisir une date" else expiryDate, fontSize = DsTextSize.body)
                     }
                 }
             }
@@ -780,13 +783,13 @@ fun ProductFormScreen(
             onClick  = { save() },
             enabled  = !isSaving,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = RoundedCornerShape(16.dp),
-            colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            shape    = DsShapes.large,
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
         ) {
             if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             else Text(
                 if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
-                fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
             )
         }
 
@@ -807,15 +810,15 @@ fun FormField(
 ) {
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     Column {
-        Text(label, fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         OutlinedTextField(
             value           = value,
             onValueChange   = onValueChange,
-            placeholder     = { Text(placeholder, fontSize = 14.sp) },
+            placeholder     = { Text(placeholder, fontSize = DsTextSize.body) },
             singleLine      = true,
             isError         = error.isNotEmpty(),
             modifier        = Modifier.fillMaxWidth(),
-            shape           = RoundedCornerShape(12.dp),
+            shape           = DsShapes.medium,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = if (isNumber) androidx.compose.ui.text.input.KeyboardType.Number
                                else          androidx.compose.ui.text.input.KeyboardType.Text,
@@ -826,13 +829,13 @@ fun FormField(
                 onDone = { focusManager.clearFocus() }
             ),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGray,
-                focusedBorderColor   = PrimaryBlue,
-                errorBorderColor     = DestructiveRed
+                unfocusedBorderColor = DsColors.Border,
+                focusedBorderColor   = DsColors.Primary,
+                errorBorderColor     = DsColors.Danger
             )
         )
         if (error.isNotEmpty()) {
-            Text(error, fontSize = 11.sp, color = DestructiveRed, modifier = Modifier.padding(start = 4.dp, top = 2.dp))
+            Text(error, fontSize = DsTextSize.caption, color = DsColors.Danger, modifier = Modifier.padding(start = 4.dp, top = 2.dp))
         }
     }
 }

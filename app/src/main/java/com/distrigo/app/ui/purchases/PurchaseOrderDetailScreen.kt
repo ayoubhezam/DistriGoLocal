@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,9 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.model.PurchaseOrder
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.products.ProductViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.ui.components.ReceiptPreviewSheet
@@ -63,7 +64,7 @@ fun PurchaseOrderDetailScreen(
             text  = {
                 Text(
                     "Ce bon a déjà été reçu. Le rouvrir annulera la mise à jour du stock. Voulez-vous continuer ?",
-                    fontSize = 13.sp
+                    fontSize = DsTextSize.bodySmall
                 )
             },
             confirmButton = {
@@ -79,7 +80,7 @@ fun PurchaseOrderDetailScreen(
                         onError   = { isLoading = false }
                     )
                 }) {
-                    Text("Rouvrir", color = Color(0xFFE65100), fontWeight = FontWeight.SemiBold)
+                    Text("Rouvrir", color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -122,8 +123,8 @@ fun PurchaseOrderDetailScreen(
                 Column {
                     Text("Voulez-vous supprimer le bon #${displayOrder.id} ?")
                     if (deleteError.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(deleteError, fontSize = 13.sp, color = DestructiveRed)
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                     }
                 }
             },
@@ -141,7 +142,7 @@ fun PurchaseOrderDetailScreen(
                         }
                     )
                 }) {
-                    Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -173,11 +174,11 @@ fun PurchaseOrderDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         // ── Header ──
         Row(
-            modifier              = Modifier.fillMaxWidth().padding(16.dp),
+            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment     = Alignment.CenterVertically
         )
@@ -187,13 +188,13 @@ fun PurchaseOrderDetailScreen(
                 onClick  = { showDeleteDialog = true },
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(RedLight)
+                    .clip(DsShapes.medium)
+                    .background(DsColors.DangerLight)
             ) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Supprimer",
-                    tint     = DestructiveRed,
+                    tint     = DsColors.Danger,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -209,13 +210,13 @@ fun PurchaseOrderDetailScreen(
                 },
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(BlueLight)
+                    .clip(DsShapes.medium)
+                    .background(DsColors.PrimaryLight)
             ) {
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = "Modifier",
-                    tint     = PrimaryBlue,
+                    tint     = DsColors.Primary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -223,21 +224,21 @@ fun PurchaseOrderDetailScreen(
             // Status badge
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (isReceived) GreenLight else Color(0xFFFFF3E0))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .clip(DsShapes.pill)
+                    .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight)
+                    .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
                     if (isReceived) "Reçu" else "En attente",
-                    fontSize   = 12.sp,
+                    fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (isReceived) AccentGreen else Color(0xFFE65100)
+                    color      = if (isReceived) DsColors.Success else DsColors.Warning
                 )
             }
         }
 
         LazyColumn(
-            contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
+            contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxl),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier            = Modifier.weight(1f)
         ) {
@@ -245,28 +246,28 @@ fun PurchaseOrderDetailScreen(
             item {
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Row(
-                        modifier          = Modifier.padding(16.dp),
+                        modifier          = Modifier.padding(DsSpacing.lg),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                     ) {
                         Box(
                             modifier         = Modifier
                                 .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(BlueLight),
+                                .clip(DsShapes.medium)
+                                .background(DsColors.PrimaryLight),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Business, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Business, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                         }
                         Column {
-                            Text(displayOrder.supplier_name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextPrimary)
-                            Text(displayOrder.date, fontSize = 12.sp, color = TextMuted)
+                            Text(displayOrder.supplier_name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                            Text(displayOrder.date, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                         }
                     }
                 }
@@ -274,7 +275,7 @@ fun PurchaseOrderDetailScreen(
 
             // ── Items ──
             item {
-                Text("Articles", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextMuted)
+                Text("Articles", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             }
 
             displayOrder.items?.let { itemsList ->
@@ -284,13 +285,13 @@ fun PurchaseOrderDetailScreen(
 
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
-                        shape     = RoundedCornerShape(14.dp),
-                        colors    = CardDefaults.cardColors(containerColor = Color.White),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                         elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Row(
-                            modifier              = Modifier.padding(12.dp),
+                            modifier              = Modifier.padding(DsSpacing.md),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
@@ -302,8 +303,8 @@ fun PurchaseOrderDetailScreen(
                                 Box(
                                     modifier         = Modifier
                                         .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(BlueLight),
+                                        .clip(DsShapes.medium)
+                                        .background(DsColors.PrimaryLight),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val bitmap = remember(matchedProduct?.image_uri) {
@@ -318,15 +319,15 @@ fun PurchaseOrderDetailScreen(
                                             modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                         )
                                     } else {
-                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                                     }
                                 }
                                 Column {
-                                    Text(item.product_name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                    Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA", fontSize = 11.sp, color = TextMuted)
+                                    Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                                    Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                             }
-                            Text("${"%.2f".format(item.total_cost)} DA", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                            Text("${"%.2f".format(item.total_cost)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
                         }
                     }
                 }
@@ -338,32 +339,32 @@ fun PurchaseOrderDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(BlueLight)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .clip(DsShapes.large)
+                        .background(DsColors.PrimaryLight)
+                        .padding(DsSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Total", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                        Text("${"%.2f".format(displayOrder.total)} DA", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue)
+                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                        Text("${"%.2f".format(displayOrder.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                     }
 
                     val montantPaye = displayOrder.montant_paye ?: 0.0
                     val reste       = displayOrder.total - montantPaye
 
-                    HorizontalDivider(color = PrimaryBlue.copy(alpha = 0.2f), thickness = 0.5.dp)
+                    HorizontalDivider(color = DsColors.Primary.copy(alpha = 0.2f), thickness = 0.5.dp)
 
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Montant payé", fontSize = 13.sp, color = AccentGreen, fontWeight = FontWeight.Medium)
-                        Text("${"%.2f".format(montantPaye)} DA", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AccentGreen)
+                        Text("Montant payé", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.Medium)
+                        Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Success)
                     }
 
                     if (reste > 0) {
@@ -372,8 +373,8 @@ fun PurchaseOrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Reste (Impayé)", fontSize = 13.sp, color = DestructiveRed, fontWeight = FontWeight.Medium)
-                            Text("${"%.2f".format(reste)} DA", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DestructiveRed)
+                            Text("Reste (Impayé)", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                            Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                         }
                     } else {
                         Row(
@@ -381,14 +382,14 @@ fun PurchaseOrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Statut", fontSize = 13.sp, color = AccentGreen, fontWeight = FontWeight.Medium)
+                            Text("Statut", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.Medium)
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(GreenLight)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    .clip(DsShapes.pill)
+                                    .background(DsColors.SuccessLight)
+                                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp)
                             ) {
-                                Text("Réglé ✓", fontSize = 12.sp, color = AccentGreen, fontWeight = FontWeight.SemiBold)
+                                Text("Réglé ✓", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -400,13 +401,13 @@ fun PurchaseOrderDetailScreen(
                 item {
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
-                        shape     = RoundedCornerShape(14.dp),
-                        colors    = CardDefaults.cardColors(containerColor = MutedGray),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
                         elevation = CardDefaults.cardElevation(0.dp)
                     ) {
-                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Notes, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
-                            Text(note, fontSize = 13.sp, color = TextPrimary)
+                        Row(modifier = Modifier.padding(DsSpacing.md), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                            Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                            Text(note, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
                         }
                     }
                 }
@@ -421,20 +422,22 @@ fun PurchaseOrderDetailScreen(
                     OutlinedButton(
                         onClick  = { showReceiptPreview = true },
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape    = RoundedCornerShape(14.dp)
+                        shape    = DsShapes.large,
+                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Aperçu & Imprimer", fontSize = 10.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(
                         onClick  = { showShareOptions = true },
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape    = RoundedCornerShape(14.dp)
+                        shape    = DsShapes.large,
+                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Partager", fontSize = 10.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text("Partager", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -446,15 +449,15 @@ fun PurchaseOrderDetailScreen(
                         onClick  = { showReceiveDialog = true },
                         enabled  = !isLoading,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape    = RoundedCornerShape(16.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                        shape    = DsShapes.large,
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                         } else {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Marquer comme reçu", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text("Marquer comme reçu", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -471,10 +474,10 @@ fun PurchaseOrderDetailScreen(
                     Column {
                         Text(
                             "Le stock du dépôt sera mis à jour pour tous les articles de ce bon.",
-                            fontSize = 13.sp,
-                            color = Color.Gray
+                            fontSize = DsTextSize.bodySmall,
+                            color = DsColors.TextSecondary
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(DsSpacing.md))
                         OutlinedTextField(
                             value         = receiveUserName,
                             onValueChange = { receiveUserName = it },
@@ -500,7 +503,7 @@ fun PurchaseOrderDetailScreen(
                                 onError   = { isLoading = false }
                             )
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
                     ) { Text("Confirmer") }
                 },
                 dismissButton = {

@@ -19,7 +19,6 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -35,9 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.distrigo.app.ui.products.AccentGreen
-import com.distrigo.app.ui.products.DestructiveRed
-import com.distrigo.app.ui.products.PrimaryBlue
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsTextSize
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.delay
@@ -91,7 +90,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
     val coroutineScope = rememberCoroutineScope()
 
     var hasScanned by remember { mutableStateOf(false) }
-    var indicatorColor by remember { mutableStateOf(DestructiveRed) }
+    var indicatorColor by remember { mutableStateOf(DsColors.Danger) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -133,7 +132,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
                                         val rawValue = barcodes.firstOrNull()?.rawValue
                                         if (!hasScanned && !rawValue.isNullOrBlank()) {
                                             hasScanned = true
-                                            indicatorColor = AccentGreen
+                                            indicatorColor = DsColors.Success
 
                                             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
                                             vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
@@ -176,13 +175,13 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
             Box(
                 modifier = Modifier
                     .size(width = 250.dp, height = 150.dp)
-                    .border(2.dp, Color.White, RoundedCornerShape(16.dp))
+                    .border(2.dp, Color.White, DsShapes.large)
             )
             Spacer(Modifier.height(16.dp))
             Text(
                 "Placez le code-barres dans le cadre",
                 color = Color.White,
-                fontSize = 13.sp,
+                fontSize = DsTextSize.bodySmall,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
@@ -194,7 +193,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
                 .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(40.dp)
-                .clip(RoundedCornerShape(50))
+                .clip(DsShapes.pill)
                 .background(Color.Black.copy(alpha = 0.4f))
         ) {
             Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)
@@ -206,7 +205,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
                 .size(12.dp)
-                .clip(RoundedCornerShape(50))
+                .clip(DsShapes.pill)
                 .background(indicatorColor)
         )
     }
@@ -224,14 +223,14 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
             Text(
                 "Autorisation caméra requise",
                 color = Color.White,
-                fontSize = 16.sp,
+                fontSize = DsTextSize.title,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = onRetry,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                shape = DsShapes.medium,
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
             ) {
                 Text("Réessayer")
             }
@@ -243,7 +242,7 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
                 .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(40.dp)
-                .clip(RoundedCornerShape(50))
+                .clip(DsShapes.pill)
                 .background(Color.White.copy(alpha = 0.15f))
         ) {
             Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)

@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,10 +16,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Vente
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.purchases.UnifiedStatColumn
@@ -128,8 +130,8 @@ fun VentesScreen(
                     Column {
                         Text("Voulez-vous supprimer la vente #${vente.id} de ${vente.client_name} ?")
                         if (deleteError.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(deleteError, fontSize = 13.sp, color = DestructiveRed)
+                            Spacer(Modifier.height(DsSpacing.sm))
+                            Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                         }
                     }
                 },
@@ -150,7 +152,7 @@ fun VentesScreen(
                             }
                         )
                     }) {
-                        Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                     }
                 },
                 dismissButton = {
@@ -167,15 +169,15 @@ fun VentesScreen(
                 dismissButton = {},
                 icon = null,
                 properties = androidx.compose.ui.window.DialogProperties(),
-                shape = RoundedCornerShape(16.dp),
-                containerColor = Color.White,
+                shape = DsShapes.large,
+                containerColor = DsColors.Surface,
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(BlueLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressVente = null
                                     viewModel.loadVenteDetail(vente.id)
@@ -183,23 +185,23 @@ fun VentesScreen(
                                 }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
-                            Text("Modifier la vente", fontSize = 14.sp, color = PrimaryBlue, fontWeight = FontWeight.Medium)
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            Text("Modifier la vente", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                         }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(RedLight)
+                                .clip(DsShapes.medium)
+                                .background(DsColors.DangerLight)
                                 .clickable { showDeleteDialog = true }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = DestructiveRed, modifier = Modifier.size(20.dp))
-                            Text("Supprimer la vente", fontSize = 14.sp, color = DestructiveRed, fontWeight = FontWeight.Medium)
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                            Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -210,25 +212,25 @@ fun VentesScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Header ──
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(16.dp),
+                modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Ventes", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("Ventes", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
             // ── Stats ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PrimaryBlue)
-                    .padding(16.dp),
+                    .padding(horizontal = DsSpacing.lg)
+                    .clip(DsShapes.large)
+                    .background(DsColors.Primary)
+                    .padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 UnifiedStatColumn(icon = Icons.Default.Receipt,     value = depotVentes.size.toString(), label = "Total bons")
@@ -236,34 +238,34 @@ fun VentesScreen(
                 UnifiedStatColumn(icon = Icons.Default.CheckCircle, value = depotVentes.count { it.status == "delivered" }.toString(), label = "Reçus")
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(DsSpacing.md))
 
             Text(
                 "Historique des ventes",
-                fontSize = 12.sp,
-                color    = TextMuted,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                fontSize = DsTextSize.caption,
+                color    = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(DsSpacing.sm))
 
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryBlue)
+                    CircularProgressIndicator(color = DsColors.Primary)
                 }
             } else if (error != null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(error ?: "", color = DestructiveRed)
+                    Text(error ?: "", color = DsColors.Danger)
                 }
             } else if (depotVentes.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.PointOfSale, contentDescription = null,
-                            tint = PrimaryBlue.copy(alpha = 0.3f), modifier = Modifier.size(56.dp))
-                        Spacer(Modifier.height(12.dp))
-                        Text("Aucune vente", color = TextMuted, fontWeight = FontWeight.Medium)
+                            tint = DsColors.TextTertiary, modifier = Modifier.size(56.dp))
+                        Spacer(Modifier.height(DsSpacing.md))
+                        Text("Aucune vente", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(4.dp))
-                        Text("Appuyez sur + pour créer", fontSize = 12.sp, color = TextMuted)
+                        Text("Appuyez sur + pour créer", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                 }
             } else {
@@ -272,8 +274,8 @@ fun VentesScreen(
 
                 // ── List ──
                 LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
                     groupedVentes.forEach { (date, dayVentes) ->
@@ -281,10 +283,10 @@ fun VentesScreen(
                         item {
                             Text(
                                 text       = formatOrderDate(date),
-                                fontSize   = 13.sp,
+                                fontSize   = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color      = TextMuted,
-                                modifier   = Modifier.padding(vertical = 8.dp)
+                                color      = DsColors.TextSecondary,
+                                modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
                         }
                         items(dayVentes) { vente ->
@@ -308,7 +310,7 @@ fun VentesScreen(
             onClick  = { showNewVente = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(DsSpacing.lg)
         )
     }
 }
@@ -364,8 +366,8 @@ fun VenteDetailScreen(
                 Column {
                     Text("Cette action est irréversible. Les quantités vendues seront remises en stock.")
                     if (deleteError.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(deleteError, fontSize = 13.sp, color = DestructiveRed)
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                     }
                 }
             },
@@ -389,9 +391,9 @@ fun VenteDetailScreen(
                     enabled = !isDeleting
                 ) {
                     if (isDeleting) {
-                        CircularProgressIndicator(color = DestructiveRed, modifier = Modifier.size(16.dp))
+                        CircularProgressIndicator(color = DsColors.Danger, modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
@@ -406,11 +408,11 @@ fun VenteDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
     ) {
         // ── Header ──
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(16.dp),
+            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onBack() }) {
@@ -418,43 +420,43 @@ fun VenteDetailScreen(
             }
             Spacer(Modifier.width(4.dp))
             Column {
-                Text("Vente #${vente.id}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text(vente.client_name, fontSize = 12.sp, color = TextMuted)
+                Text("Vente #${vente.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(vente.client_name, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
             }
             Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (isDelivered) GreenLight else Color(0xFFFFF3E0))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .clip(DsShapes.pill)
+                    .background(if (isDelivered) DsColors.SuccessLight else DsColors.WarningLight)
+                    .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
                     if (isDelivered) "Livré" else "En attente",
-                    fontSize   = 12.sp,
+                    fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (isDelivered) AccentGreen else Color(0xFFE65100)
+                    color      = if (isDelivered) DsColors.Success else DsColors.Warning
                 )
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
             IconButton(
                 onClick  = { showDeleteDialog = true },
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(RedLight)
+                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DestructiveRed, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(18.dp))
             }
         }
 
         LazyColumn(
             modifier            = Modifier.weight(1f),
-            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
             item {
                 Text(
                     "Articles (${vente.items?.size ?: vente.items_count ?: 0})",
-                    fontSize   = 13.sp,
+                    fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = TextMuted,
+                    color      = DsColors.TextSecondary,
                     modifier   = Modifier.padding(top = 4.dp)
                 )
             }
@@ -463,25 +465,25 @@ fun VenteDetailScreen(
                 items(itemsList, key = { it.id }) { item ->
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
-                        shape     = RoundedCornerShape(14.dp),
-                        colors    = CardDefaults.cardColors(containerColor = Color.White),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                         elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(item.product_name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1)
+                                Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                 Text(
                                     "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
-                                    fontSize = 11.sp,
-                                    color    = TextMuted
+                                    fontSize = DsTextSize.caption,
+                                    color    = DsColors.TextSecondary
                                 )
                             }
                             Text(
                                 "${"%.2f".format(item.total_price)} DA",
-                                fontSize   = 14.sp,
+                                fontSize   = DsTextSize.body,
                                 fontWeight = FontWeight.Bold,
-                                color      = PrimaryBlue
+                                color      = DsColors.Primary
                             )
                         }
                     }
@@ -492,14 +494,14 @@ fun VenteDetailScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(BlueLight)
-                        .padding(16.dp),
+                        .clip(DsShapes.large)
+                        .background(DsColors.PrimaryLight)
+                        .padding(DsSpacing.lg),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Total", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                    Text("${"%.2f".format(vente.total)} DA", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue)
+                    Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text("${"%.2f".format(vente.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                 }
             }
 
@@ -509,16 +511,16 @@ fun VenteDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MutedGray)
+                        .clip(DsShapes.large)
+                        .background(DsColors.SurfaceSunken)
                         .padding(14.dp)
                 ) {
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Montant payé", fontSize = 13.sp, color = TextPrimary)
-                        Text("${"%.2f".format(montantPaye)} DA", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Text("Montant payé", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
+                        Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                     }
                     if (reste > 0) {
                         Spacer(Modifier.height(6.dp))
@@ -526,8 +528,8 @@ fun VenteDetailScreen(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Reste", fontSize = 13.sp, color = DestructiveRed)
-                            Text("${"%.2f".format(reste)} DA", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DestructiveRed)
+                            Text("Reste", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                            Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                         }
                     }
                 }
@@ -538,13 +540,13 @@ fun VenteDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MutedGray)
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .clip(DsShapes.large)
+                            .background(DsColors.SurfaceSunken)
+                            .padding(DsSpacing.md),
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
-                        Icon(Icons.Default.Notes, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
-                        Text(note, fontSize = 13.sp, color = TextPrimary)
+                        Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                        Text(note, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
                     }
                 }
             }
@@ -553,26 +555,28 @@ fun VenteDetailScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             OutlinedButton(
                 onClick  = { showReceiptPreview = true },
                 modifier = Modifier.weight(1f).height(48.dp),
-                shape    = RoundedCornerShape(14.dp)
+                shape    = DsShapes.medium,
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
-                Icon(Icons.Default.Print, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Aperçu & Imprimer", fontSize = 10.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             }
             OutlinedButton(
                 onClick  = { showShareOptions = true },
                 modifier = Modifier.weight(1f).height(48.dp),
-                shape    = RoundedCornerShape(14.dp)
+                shape    = DsShapes.medium,
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
-                Icon(Icons.Default.Share, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Partager", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Partager", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -595,17 +599,17 @@ fun VenteDetailScreen(
                 enabled  = !isDelivering,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                     .height(52.dp),
-                shape  = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                shape  = DsShapes.large,
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
             ) {
                 if (isDelivering) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 } else {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Marquer comme livré", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text("Marquer comme livré", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -624,27 +628,27 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                 onClick     = { onClick() },
                 onLongClick = { onLongClick() }
             ),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier         = Modifier
                     .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isDelivered) GreenLight else Color(0xFFFFF3E0)),
+                    .clip(DsShapes.medium)
+                    .background(if (isDelivered) DsColors.SuccessLight else DsColors.WarningLight),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.PointOfSale,
                     contentDescription = null,
-                    tint     = if (isDelivered) AccentGreen else Color(0xFFE65100),
+                    tint     = if (isDelivered) DsColors.Success else DsColors.Warning,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(DsSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -653,15 +657,15 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                 ) {
                     Text(
                         "Vente #${vente.id}",
-                        fontSize   = 11.sp,
+                        fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.Medium,
-                        color      = TextMuted
+                        color      = DsColors.TextSecondary
                     )
                     Text(
                         formatOrderTime(vente.created_at),
-                        fontSize   = 12.sp,
+                        fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color      = TextMuted
+                        color      = DsColors.TextSecondary
                     )
                 }
                 Spacer(Modifier.height(2.dp))
@@ -673,23 +677,23 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     Text(
                         vente.client_name,
                         fontWeight = FontWeight.Bold,
-                        fontSize   = 15.sp,
-                        color      = TextPrimary,
+                        fontSize   = DsTextSize.bodyLarge,
+                        color      = DsColors.TextPrimary,
                         maxLines   = 1,
                         modifier   = Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isDelivered) GreenLight else Color(0xFFFFF3E0))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .clip(DsShapes.pill)
+                            .background(if (isDelivered) DsColors.SuccessLight else DsColors.WarningLight)
+                            .padding(horizontal = DsSpacing.sm, vertical = 2.dp)
                     ) {
                         Text(
                             if (isDelivered) "Livré" else "En attente",
-                            fontSize   = 10.sp,
+                            fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
-                            color      = if (isDelivered) AccentGreen else Color(0xFFE65100)
+                            color      = if (isDelivered) DsColors.Success else DsColors.Warning
                         )
                     }
                 }
@@ -701,19 +705,19 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                 ) {
                     Text(
                         "${"%.2f".format(vente.total)} DA",
-                        fontSize   = 14.sp,
+                        fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.Bold,
-                        color      = PrimaryBlue
+                        color      = DsColors.Primary
                     )
                     Text(
                         "· ${vente.items_count ?: vente.items?.size ?: 0} article(s)",
-                        fontSize = 11.sp,
-                        color    = TextMuted
+                        fontSize = DsTextSize.caption,
+                        color    = DsColors.TextSecondary
                     )
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
         }
     }
 }

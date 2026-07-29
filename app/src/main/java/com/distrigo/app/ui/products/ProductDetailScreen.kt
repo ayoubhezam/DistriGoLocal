@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -25,6 +24,10 @@ import com.distrigo.app.data.model.Product
 import androidx.compose.foundation.clickable
 import com.distrigo.app.ui.suppliers.formatDZD
 import androidx.activity.compose.BackHandler
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 @Composable
 fun ProductDetailScreen(
     product          : Product,
@@ -88,7 +91,7 @@ fun ProductDetailScreen(
                             .align(Alignment.TopEnd)
                             .padding(16.dp)
                             .size(36.dp)
-                            .clip(RoundedCornerShape(50))
+                            .clip(DsShapes.pill)
                             .background(Color.White.copy(alpha = 0.2f))
                             .clickable { showFullImage = false },
                         contentAlignment = Alignment.Center
@@ -128,7 +131,7 @@ fun ProductDetailScreen(
                     showDeleteDialog = false
                     onDelete()
                 }) {
-                    Text("Supprimer", color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -142,7 +145,7 @@ fun ProductDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Header ──
@@ -158,9 +161,9 @@ fun ProductDetailScreen(
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text       = "Détails du produit",
-                    fontSize   = 18.sp,
+                    fontSize   = DsTextSize.title,
                     fontWeight = FontWeight.Bold,
-                    color      = TextPrimary
+                    color      = DsColors.TextPrimary
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -172,19 +175,19 @@ fun ProductDetailScreen(
                 IconButton(
                     onClick  = { showDeleteDialog = true },
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(RedLight)
+                        .clip(DsShapes.medium)
+                        .background(DsColors.DangerLight)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DestructiveRed)
+                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
                 }
                 Spacer(Modifier.width(8.dp))
                 IconButton(
                     onClick  = onEdit,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(BlueLight)
+                        .clip(DsShapes.medium)
+                        .background(DsColors.PrimaryLight)
                 ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = PrimaryBlue)
+                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary)
                 }
             }
         }
@@ -203,7 +206,7 @@ fun ProductDetailScreen(
                         .fillMaxWidth()
                         .height(200.dp)
                         .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(DsShapes.large)
                         .clickable { showFullImage = true },  // ← أضف هذا
 
                     contentScale = ContentScale.Crop
@@ -217,10 +220,10 @@ fun ProductDetailScreen(
 // ── Name + category card ──
             Card(
                 modifier  = Modifier.fillMaxWidth(),
-                shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
+                shape     = DsShapes.large,
+                colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                 elevation = CardDefaults.cardElevation(1.dp),
-                border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -231,42 +234,42 @@ fun ProductDetailScreen(
                         Text(
                             product.name,
                             fontWeight = FontWeight.Bold,
-                            fontSize   = 18.sp,
-                            color      = TextPrimary,
+                            fontSize   = DsTextSize.title,
+                            color      = DsColors.TextPrimary,
                             modifier   = Modifier.weight(1f)
                         )
                         if (isLow) {
                             Spacer(Modifier.width(8.dp))
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RedLight)
+                                    .clip(DsShapes.medium)
+                                    .background(DsColors.DangerLight)
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("Stock faible", fontSize = 11.sp, color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                                Text("Stock faible", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
                     Spacer(Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(BlueLight)
+                            .clip(DsShapes.pill)
+                            .background(DsColors.PrimaryLight)
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text       = product.category_name ?: "Sans catégorie",
-                            fontSize   = 11.sp,
-                            color      = PrimaryBlue,
+                            fontSize   = DsTextSize.caption,
+                            color      = DsColors.Primary,
                             fontWeight = FontWeight.Medium
                         )
                     }
                     if (!product.barcode.isNullOrEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(product.barcode, fontSize = 13.sp, color = TextMuted)
+                            Text(product.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                         }
                     }
                 }
@@ -306,15 +309,15 @@ fun InfoCard(
     modifier   : Modifier = Modifier,
     label      : String,
     value      : String,
-    valueColor : Color = TextPrimary,
+    valueColor : Color = DsColors.TextPrimary,
     icon       : androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     Card(
         modifier  = modifier,
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(
             modifier              = Modifier.fillMaxWidth().padding(12.dp),
@@ -322,13 +325,13 @@ fun InfoCard(
             verticalAlignment     = Alignment.CenterVertically
         ) {
             Column {
-                Text(label, fontSize = 12.sp, color = TextMuted)
+                Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 Spacer(Modifier.height(2.dp))
-                Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = valueColor)
+                Text(value, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = valueColor)
             }
             if (icon != null) {
                 Box(
-                    modifier         = Modifier.size(36.dp).clip(RoundedCornerShape(50)).background(valueColor.copy(alpha = 0.12f)),
+                    modifier         = Modifier.size(36.dp).clip(DsShapes.pill).background(valueColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(icon, contentDescription = null, tint = valueColor, modifier = Modifier.size(18.dp))
@@ -352,26 +355,26 @@ private fun StockLocationCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(DsShapes.large)
             .background(background)
             .padding(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
-                modifier         = Modifier.size(30.dp).clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.15f)),
+                modifier         = Modifier.size(30.dp).clip(DsShapes.pill).background(color.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
             }
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, letterSpacing = 0.5.sp)
+            Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color, letterSpacing = 0.5.sp)
         }
         Spacer(Modifier.height(10.dp))
-        Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(unit, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+        Text(value, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(unit, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = color)
         Spacer(Modifier.height(10.dp))
         LinearProgressIndicator(
             progress   = { progress },
-            modifier   = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)),
+            modifier   = Modifier.fillMaxWidth().height(4.dp).clip(DsShapes.pill),
             color      = color,
             trackColor = color.copy(alpha = 0.15f)
         )
@@ -382,8 +385,8 @@ private fun StockLocationCard(
 @Composable
 private fun StockInfoExplainRow(label: String, desc: String) {
     Column {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        Text(desc, fontSize = 12.sp, color = TextMuted)
+        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(desc, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
     }
 }
 
@@ -400,10 +403,10 @@ private fun DetailSectionRow(
 ) {
     Card(
         modifier  = Modifier.fillMaxWidth().clickable { onClick() },
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        shape     = DsShapes.large,
+        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
         elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(
             modifier              = Modifier.fillMaxWidth().padding(16.dp),
@@ -412,14 +415,14 @@ private fun DetailSectionRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
-                    modifier         = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(BlueLight),
+                    modifier         = Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                    Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                 }
-                Text(label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
+                Text(label, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -437,56 +440,56 @@ private fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
             java.time.LocalDate.parse(product.expiry_date.take(10))
                 .isBefore(java.time.LocalDate.now().plusDays(30))
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface).verticalScroll(rememberScrollState())) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
             Spacer(Modifier.width(4.dp))
-            Text("Informations générales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Informations générales", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Card(
                 modifier  = Modifier.fillMaxWidth(),
-                shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
+                shape     = DsShapes.large,
+                colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                 elevation = CardDefaults.cardElevation(1.dp),
-                border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(product.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
+                    Text(product.name, fontWeight = FontWeight.Bold, fontSize = DsTextSize.title, color = DsColors.TextPrimary)
                     Spacer(Modifier.height(4.dp))
                     Box(
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(BlueLight).padding(horizontal = 8.dp, vertical = 2.dp)
+                        modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             product.category_name ?: "Sans catégorie",
-                            fontSize = 11.sp, color = PrimaryBlue, fontWeight = FontWeight.Medium
+                            fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.Medium
                         )
                     }
                     if (!product.barcode.isNullOrEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(product.barcode, fontSize = 13.sp, color = TextMuted)
+                            Text(product.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                         }
                     }
                 }
             }
 
-            InfoCard(modifier = Modifier.fillMaxWidth(), label = "Fournisseur", value = product.supplier_name ?: "—", valueColor = TextPrimary)
+            InfoCard(modifier = Modifier.fillMaxWidth(), label = "Fournisseur", value = product.supplier_name ?: "—", valueColor = DsColors.TextPrimary)
 
             if (product.has_expiry == 1) {
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
                     border    = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isExpired) DestructiveRed else if (isNearExpiry) Color(0xFFE65100) else BorderGray
+                        if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Border
                     )
                 ) {
                     Row(
@@ -497,25 +500,25 @@ private fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(
                                 Icons.Default.CalendarToday, contentDescription = null,
-                                tint     = if (isExpired) DestructiveRed else if (isNearExpiry) Color(0xFFE65100) else PrimaryBlue,
+                                tint     = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Primary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Column {
-                                Text("Date d'expiration", fontSize = 12.sp, color = TextMuted)
+                                Text("Date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 Text(
                                     product.expiry_date?.take(10) ?: "Non définie",
-                                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                                    color = if (isExpired) DestructiveRed else if (isNearExpiry) Color(0xFFE65100) else TextPrimary
+                                    fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+                                    color = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.TextPrimary
                                 )
                             }
                         }
                         if (isExpired) {
-                            Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(RedLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                Text("Expiré", fontSize = 11.sp, color = DestructiveRed, fontWeight = FontWeight.SemiBold)
+                            Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.DangerLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Text("Expiré", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                             }
                         } else if (isNearExpiry) {
-                            Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Color(0xFFFFF3E0)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                Text("Expire bientôt", fontSize = 11.sp, color = Color(0xFFE65100), fontWeight = FontWeight.SemiBold)
+                            Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.WarningLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Text("Expire bientôt", fontSize = DsTextSize.caption, color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -565,13 +568,13 @@ private fun StockPrixDetailScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface).verticalScroll(rememberScrollState())) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
             Spacer(Modifier.width(4.dp))
-            Text("Stock et prix", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Stock et prix", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -580,14 +583,14 @@ private fun StockPrixDetailScreen(
                     modifier   = Modifier.weight(1f),
                     label      = "Prix de vente",
                     value      = "${product.selling_price} DA",
-                    valueColor = PrimaryBlue,
+                    valueColor = DsColors.Primary,
                     icon       = Icons.Default.LocalOffer
                 )
                 InfoCard(
                     modifier   = Modifier.weight(1f),
                     label      = "Prix d'achat",
                     value      = "${product.purchase_price} DA",
-                    valueColor = AccentGreen,
+                    valueColor = DsColors.Success,
                     icon       = Icons.Default.ShoppingCart
                 )
             }
@@ -602,10 +605,10 @@ private fun StockPrixDetailScreen(
             // ── Informations de stock ──
             Card(
                 modifier  = Modifier.fillMaxWidth(),
-                shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
+                shape     = DsShapes.large,
+                colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                 elevation = CardDefaults.cardElevation(1.dp),
-                border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -613,9 +616,9 @@ private fun StockPrixDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Informations de stock", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
+                        Text("Informations de stock", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                         IconButton(onClick = { showStockInfoDialog = true }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Info, contentDescription = "En savoir plus", tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Info, contentDescription = "En savoir plus", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -624,22 +627,22 @@ private fun StockPrixDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(BlueLight)
+                            .clip(DsShapes.large)
+                            .background(DsColors.PrimaryLight)
                             .padding(vertical = 22.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Inventory2,
                             contentDescription = null,
-                            tint     = PrimaryBlue.copy(alpha = 0.12f),
+                            tint     = DsColors.Primary.copy(alpha = 0.12f),
                             modifier = Modifier.size(96.dp)
                         )
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("STOCK TOTAL", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, letterSpacing = 1.sp)
+                            Text("STOCK TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary, letterSpacing = 1.sp)
                             Spacer(Modifier.height(4.dp))
-                            Text(formatQty(product.stock), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlue)
-                            Text(pluralUnit(product.stock, product.unit_type), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlue)
+                            Text(formatQty(product.stock), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                            Text(pluralUnit(product.stock, product.unit_type), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
                         }
                     }
 
@@ -653,8 +656,8 @@ private fun StockPrixDetailScreen(
                             label      = "DÉPÔT",
                             value      = formatQty(depotStock),
                             unit       = pluralUnit(depotStock, product.unit_type),
-                            color      = AccentGreen,
-                            background = GreenLight,
+                            color      = DsColors.Success,
+                            background = DsColors.SuccessLight,
                             progress   = depotFraction
                         )
                         StockLocationCard(
@@ -663,8 +666,8 @@ private fun StockPrixDetailScreen(
                             label      = "CAMION",
                             value      = formatQty(camionStock),
                             unit       = pluralUnit(camionStock, product.unit_type),
-                            color      = Color(0xFFE65100),
-                            background = Color(0xFFFFF3E0),
+                            color      = DsColors.Warning,
+                            background = DsColors.WarningLight,
                             progress   = camionFraction
                         )
                     }
@@ -675,8 +678,8 @@ private fun StockPrixDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MutedGray)
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceSunken)
                             .clickable { onEdit() }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -684,19 +687,19 @@ private fun StockPrixDetailScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Box(
-                                modifier         = Modifier.size(28.dp).clip(RoundedCornerShape(50)).background(Color(0xFFEDE7F6)),
+                                modifier         = Modifier.size(28.dp).clip(DsShapes.pill).background(Color(0xFFEDE7F6)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF6A1B9A), modifier = Modifier.size(14.dp))
                             }
-                            Text("SEUIL MINIMUM", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6A1B9A), letterSpacing = 0.5.sp)
+                            Text("SEUIL MINIMUM", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = Color(0xFF6A1B9A), letterSpacing = 0.5.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 "${product.min_stock} ${pluralUnit(product.min_stock.toDouble(), product.unit_type)}",
-                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+                                fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
                             )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -706,10 +709,10 @@ private fun StockPrixDetailScreen(
             if (priceHistory.isNotEmpty()) {
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
+                    shape     = DsShapes.large,
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -717,14 +720,14 @@ private fun StockPrixDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Historique des prix", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
+                            Text("Historique des prix", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                             val minPrice     = priceHistory.minOf { it.unit_cost }
                             val bestSupplier = priceHistory.find { it.unit_cost == minPrice }
                             bestSupplier?.let {
                                 Box(
-                                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(GreenLight).padding(horizontal = 8.dp, vertical = 3.dp)
+                                    modifier = Modifier.clip(DsShapes.pill).background(DsColors.SuccessLight).padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
-                                    Text("✓ ${it.supplier_name}", fontSize = 10.sp, color = AccentGreen, fontWeight = FontWeight.SemiBold)
+                                    Text("✓ ${it.supplier_name}", fontSize = 10.sp, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -741,35 +744,35 @@ private fun StockPrixDetailScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(
-                                        modifier = Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(
+                                        modifier = Modifier.size(8.dp).clip(DsShapes.pill).background(
                                             when {
-                                                isMin   -> AccentGreen
-                                                isMax   -> DestructiveRed
-                                                isFirst -> PrimaryBlue
-                                                else    -> BorderGray
+                                                isMin   -> DsColors.Success
+                                                isMax   -> DsColors.Danger
+                                                isFirst -> DsColors.Primary
+                                                else    -> DsColors.Border
                                             }
                                         )
                                     )
                                     Column {
-                                        Text(history.supplier_name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                        Text(history.date.take(10), fontSize = 11.sp, color = TextMuted)
+                                        Text(history.supplier_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                                        Text(history.date.take(10), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (isFirst) {
-                                        Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(BlueLight).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                                            Text("Dernier", fontSize = 9.sp, color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                                        Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                            Text("Dernier", fontSize = 9.sp, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                                         }
                                     }
                                     Text(
                                         "${formatDZD(history.unit_cost)} DA",
-                                        fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                                        color = when { isMin -> AccentGreen; isMax -> DestructiveRed; else -> TextPrimary }
+                                        fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                                        color = when { isMin -> DsColors.Success; isMax -> DsColors.Danger; else -> DsColors.TextPrimary }
                                     )
                                 }
                             }
                             if (index < priceHistory.size - 1) {
-                                HorizontalDivider(color = BorderGray, thickness = 0.5.dp)
+                                HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
                             }
                         }
                     }
