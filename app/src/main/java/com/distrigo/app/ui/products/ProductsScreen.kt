@@ -41,17 +41,6 @@ import androidx.compose.foundation.combinedClickable
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
 
-val PrimaryBlue    = Color(0xFF1565C0)
-val BlueLight      = Color(0xFFE3F2FD)
-val RedLight       = Color(0xFFFFEBEE)
-val GreenLight     = Color(0xFFE8F5E9)
-val AccentGreen    = Color(0xFF2E7D32)
-val DestructiveRed = Color(0xFFC62828)
-val MutedGray      = Color(0xFFF5F5F5)
-val BorderGray     = Color(0xFFE0E0E0)
-val TextPrimary    = Color(0xFF1A1A1A)
-val TextMuted      = Color(0xFF757575)
-
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),
     NAME_DESC  ("Nom (Z → A)"),

@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.distrigo.app.R
-import com.distrigo.app.ui.products.*
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -207,10 +206,10 @@ fun MapPickerScreen(
                 onClick  = onBack,
                 modifier = Modifier.size(40.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = TextPrimary)
+                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
             }
             Spacer(Modifier.width(8.dp))
-            Text("Choisir l'emplacement", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Choisir l'emplacement", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         }
 
         if (isOnline) {
@@ -264,7 +263,7 @@ fun MapPickerScreen(
                 .padding(16.dp)
                 .align(Alignment.BottomCenter),
             shape  = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
         ) {
             Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
@@ -277,12 +276,12 @@ fun MapPickerScreen(
                 .padding(horizontal = 16.dp, vertical = 80.dp)
                 .align(Alignment.BottomCenter),
             shape  = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
+            colors = CardDefaults.cardColors(containerColor = DsColors.Surface.copy(alpha = 0.9f))
         ) {
             Text(
                 text     = "${"%.6f".format(selectedLat)}, ${"%.6f".format(selectedLng)}",
                 fontSize = 12.sp,
-                color    = TextMuted,
+                color    = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )
         }

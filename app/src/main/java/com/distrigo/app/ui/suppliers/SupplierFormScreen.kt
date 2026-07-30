@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -29,7 +28,11 @@ import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
-import com.distrigo.app.ui.products.*
+import com.distrigo.app.ui.products.FormField
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,7 +80,7 @@ fun SupplierFormScreen(
     var isSaving     by remember { mutableStateOf(false) }
 
     val colors   = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
-    val color    = if (name.isNotEmpty()) Color(colors[name[0].code % colors.size]) else PrimaryBlue
+    val color    = if (name.isNotEmpty()) Color(colors[name[0].code % colors.size]) else DsColors.Primary
     val initials = name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 
     val context = LocalContext.current
@@ -175,7 +178,7 @@ fun SupplierFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(DsColors.Surface)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
@@ -187,7 +190,7 @@ fun SupplierFormScreen(
             Spacer(Modifier.width(4.dp))
             Text(
                 if (isEdit) "Modifier le fournisseur" else "Nouveau fournisseur",
-                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+                fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
             )
         }
 
@@ -198,8 +201,8 @@ fun SupplierFormScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MutedGray)
+                .clip(DsShapes.large)
+                .background(DsColors.SurfaceSunken)
                 .clickable { photoPicker.launch("image/*") },
             contentAlignment = Alignment.Center
         ) {
@@ -216,22 +219,22 @@ fun SupplierFormScreen(
                 }
             } else if (name.isNotEmpty()) {
                 Box(
-                    modifier         = Modifier.size(64.dp).clip(RoundedCornerShape(50)),
+                    modifier         = Modifier.size(64.dp).clip(DsShapes.pill),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                    Text(initials, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+                    Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = color)
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Default.CameraAlt,
                         contentDescription = null,
-                        tint     = PrimaryBlue,
+                        tint     = DsColors.Primary,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(Modifier.height(4.dp))
-                    Text("Ajouter une photo", fontSize = 13.sp, color = TextMuted)
+                    Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                 }
             }
         }
@@ -259,13 +262,13 @@ fun SupplierFormScreen(
         Spacer(Modifier.height(12.dp))
 
         // ── Localisation ──
-        Text("Localisation", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text("Localisation", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         OutlinedButton(
             onClick  = { showMapPicker = true },
             modifier = Modifier.fillMaxWidth(),
-            shape    = RoundedCornerShape(12.dp),
-            colors   = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),
-            border   = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            shape    = DsShapes.medium,
+            colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
+            border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
         ) {
             Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
@@ -274,7 +277,7 @@ fun SupplierFormScreen(
                     "${"%.4f".format(latitude)}, ${"%.4f".format(longitude)}"
                 else
                     "Choisir sur la carte",
-                fontSize = 14.sp
+                fontSize = DsTextSize.body
             )
         }
 
@@ -320,24 +323,24 @@ fun SupplierFormScreen(
         )
         Text(
             "Montant que vous devez à ce fournisseur au départ",
-            fontSize = 11.sp, color = TextMuted,
+            fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
             modifier = Modifier.padding(start = 4.dp, top = 2.dp)
         )
         Spacer(Modifier.height(12.dp))
 
         // ── Note ──
-        Text("Note (optionnel)", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text("Note (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         OutlinedTextField(
             value         = note,
             onValueChange = { note = it },
-            placeholder   = { Text("Informations supplémentaires…", fontSize = 14.sp) },
+            placeholder   = { Text("Informations supplémentaires…", fontSize = DsTextSize.body) },
             modifier      = Modifier.fillMaxWidth(),
-            shape         = RoundedCornerShape(12.dp),
+            shape         = DsShapes.medium,
             minLines      = 2,
             maxLines      = 4,
             colors        = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGray,
-                focusedBorderColor   = PrimaryBlue
+                unfocusedBorderColor = DsColors.Border,
+                focusedBorderColor   = DsColors.Primary
             )
         )
 
@@ -348,13 +351,13 @@ fun SupplierFormScreen(
             onClick  = { save() },
             enabled  = !isSaving,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = RoundedCornerShape(16.dp),
-            colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            shape    = DsShapes.large,
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
         ) {
             if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             else Text(
                 if (isEdit) "Enregistrer les modifications" else "Ajouter le fournisseur",
-                fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
             )
         }
 
