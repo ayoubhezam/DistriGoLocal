@@ -1300,6 +1300,9 @@ private fun VenteCartRow(
             )
         },
         expandedContent = {
+            // `max` intentionally omitted: Dépôt sales are permissive by design and only
+            // soft-warn (color + vibration) on overselling, unlike Camion/Tournée's
+            // TourneeVenteCartRow stepper, which enforces a hard ceiling via `max`.
             QuantityStepper(
                 label         = "Quantité",
                 value         = item.quantity,

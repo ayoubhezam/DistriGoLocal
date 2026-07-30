@@ -37,19 +37,22 @@ fun ProductDetailScreen(
     onViewMovements  : () -> Unit,
     viewModel: ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    val isLow  = product.stock < product.min_stock
-    val margin = if (product.selling_price > 0)
-        ((product.selling_price - product.purchase_price) / product.selling_price * 100)
+    val currentProduct = viewModel.products.collectAsState().value
+        .find { it.id == product.id } ?: product
+
+    val isLow  = currentProduct.stock < currentProduct.min_stock
+    val margin = if (currentProduct.selling_price > 0)
+        ((currentProduct.selling_price - currentProduct.purchase_price) / currentProduct.selling_price * 100)
     else 0.0
 
     val today        = java.time.LocalDate.now().toString()
-    val isExpired    = product.has_expiry == 1 &&
-            !product.expiry_date.isNullOrEmpty() &&
-            product.expiry_date.take(10) < today
-    val isNearExpiry = product.has_expiry == 1 &&
-            !product.expiry_date.isNullOrEmpty() &&
+    val isExpired    = currentProduct.has_expiry == 1 &&
+            !currentProduct.expiry_date.isNullOrEmpty() &&
+            currentProduct.expiry_date.take(10) < today
+    val isNearExpiry = currentProduct.has_expiry == 1 &&
+            !currentProduct.expiry_date.isNullOrEmpty() &&
             !isExpired &&
-            java.time.LocalDate.parse(product.expiry_date.take(10))
+            java.time.LocalDate.parse(currentProduct.expiry_date.take(10))
                 .isBefore(java.time.LocalDate.now().plusDays(30))
 
     LaunchedEffect(product.id) {
@@ -66,7 +69,7 @@ fun ProductDetailScreen(
     BackHandler(enabled = !showFullImage) { onBack() }
     BackHandler(enabled = showFullImage) { showFullImage = false }
     if (showFullImage) {
-        product.image_uri?.let { base64 ->
+        currentProduct.image_uri?.let { base64 ->
             val imageBytes = Base64.decode(base64.substringAfter("base64,"), Base64.NO_WRAP)
             val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
             bitmap?.let {
@@ -105,13 +108,13 @@ fun ProductDetailScreen(
 
     if (showInfoGenerales) {
         BackHandler { showInfoGenerales = false }
-        InfoGeneralesDetailScreen(product = product, onBack = { showInfoGenerales = false })
+        InfoGeneralesDetailScreen(product = currentProduct, onBack = { showInfoGenerales = false })
         return
     }
 
     if (showStockPrix) {
         BackHandler { showStockPrix = false }
-        StockPrixDetailScreen(product = product, priceHistory = priceHistory, onBack = { showStockPrix = false }, onEdit = onEdit)
+        StockPrixDetailScreen(product = currentProduct, priceHistory = priceHistory, onBack = { showStockPrix = false }, onEdit = onEdit)
         return
     }
 
@@ -120,8 +123,8 @@ fun ProductDetailScreen(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Supprimer le produit ?") },
             text  = {
-                if (product.supplier_name != null) {
-                    Text("Ce produit est lié au fournisseur ${product.supplier_name}. Il sera dissocié puis supprimé définitivement.")
+                if (currentProduct.supplier_name != null) {
+                    Text("Ce produit est lié au fournisseur ${currentProduct.supplier_name}. Il sera dissocié puis supprimé définitivement.")
                 } else {
                     Text("Voulez-vous supprimer ce produit définitivement ?")
                 }
@@ -193,7 +196,7 @@ fun ProductDetailScreen(
         }
 
         // ── Image ──
-        product.image_uri?.let { base64 ->
+        currentProduct.image_uri?.let { base64 ->
             val imageBytes = Base64.decode(
                 base64.substringAfter("base64,"), Base64.NO_WRAP
             )
@@ -232,7 +235,7 @@ fun ProductDetailScreen(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Text(
-                            product.name,
+                            currentProduct.name,
                             fontWeight = FontWeight.Bold,
                             fontSize   = DsTextSize.title,
                             color      = DsColors.TextPrimary,
@@ -258,18 +261,18 @@ fun ProductDetailScreen(
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text       = product.category_name ?: "Sans catégorie",
+                            text       = currentProduct.category_name ?: "Sans catégorie",
                             fontSize   = DsTextSize.caption,
                             color      = DsColors.Primary,
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    if (!product.barcode.isNullOrEmpty()) {
+                    if (!currentProduct.barcode.isNullOrEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(product.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                            Text(currentProduct.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                         }
                     }
                 }

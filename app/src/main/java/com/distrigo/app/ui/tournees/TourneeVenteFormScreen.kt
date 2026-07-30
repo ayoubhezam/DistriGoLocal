@@ -88,12 +88,21 @@ fun TourneeVenteFormScreen(
     // snapshot against the live list so the stepper's ceiling/"Disponible" line stay honest.
     // This is a UX refresh only — ProductRepository.createVente re-checks camion_stock
     // against the database at save time regardless, so data integrity never depended on this.
+    // Only replace a line whose camion_stock actually changed — products re-emits on every
+    // write to the table, including edits fully unrelated to this cart's items.
     LaunchedEffect(products) {
-        if (products.isNotEmpty()) {
-            cartItems = cartItems.map { ci ->
-                products.find { it.id == ci.product.id }?.let { fresh -> ci.copy(product = fresh) } ?: ci
+        if (products.isEmpty()) return@LaunchedEffect
+        var changed = false
+        val resynced = cartItems.map { ci ->
+            val fresh = products.find { it.id == ci.product.id } ?: return@map ci
+            if (fresh.camion_stock == ci.product.camion_stock) {
+                ci
+            } else {
+                changed = true
+                ci.copy(product = fresh)
             }
         }
+        if (changed) cartItems = resynced
     }
 
     val filteredProducts = products.filter { product ->
