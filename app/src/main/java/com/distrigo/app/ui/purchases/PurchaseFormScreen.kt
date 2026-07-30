@@ -97,11 +97,28 @@ fun PurchaseFormScreen(
     var newSupplierName       by remember { mutableStateOf("") }
     var newSupplierPhone      by remember { mutableStateOf("") }
     var showAddProductScreen by remember { mutableStateOf(false) }
+    var pendingNewProductId  by remember { mutableStateOf<Int?>(null) }
     val step2ListState = rememberLazyListState()
     val step2Collapsed by rememberScrollCollapsed(step2ListState)
 
     LaunchedEffect(Unit) {
         supplierViewModel.loadSuppliers()
+    }
+
+    // Auto-add a freshly created product ("Nouveau produit") to the cart once the observed
+    // products flow actually contains it — the flow's emission arrives asynchronously after
+    // ProductFormScreen.onSaved fires, so reading `products` in that callback would race.
+    LaunchedEffect(products, pendingNewProductId) {
+        val id = pendingNewProductId ?: return@LaunchedEffect
+        val newProduct = products.find { it.id == id } ?: return@LaunchedEffect
+        if (cartItems.none { it.product.id == id }) {
+            cartItems = cartItems + CartItem(
+                product  = newProduct,
+                quantity = 1.0,
+                unitCost = newProduct.purchase_price
+            )
+        }
+        pendingNewProductId = null
     }
 
     LaunchedEffect(suppliers) {
@@ -384,14 +401,9 @@ fun PurchaseFormScreen(
             onBack  = { showAddProductScreen = false },
             onSaved = { newProductId ->
                 showAddProductScreen = false
-                val newProduct = products.find { it.id == newProductId }
-                if (newProduct != null) {
-                    cartItems = cartItems + CartItem(
-                        product  = newProduct,
-                        quantity = 1.0,
-                        unitCost = newProduct.purchase_price
-                    )
-                }
+                // Don't read `products` here — the Room flow may not have emitted the new
+                // product yet. Park the id; the effect below adds it once it arrives.
+                pendingNewProductId = newProductId
             }
         )
         return
