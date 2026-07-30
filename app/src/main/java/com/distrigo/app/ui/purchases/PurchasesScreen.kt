@@ -381,20 +381,6 @@ fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, val
         Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
     }
 }
-@Composable
-fun StatBox(modifier: Modifier = Modifier, label: String, value: String, color: Color) {
-    Column(
-        modifier = modifier
-            .clip(DsShapes.medium)
-            .border(1.dp, DsColors.Border, DsShapes.medium)
-            .padding(DsSpacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = color)
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: () -> Unit) {

@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.purchases
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +32,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Supplier
+import com.distrigo.app.ui.common.CartStatusLine
+import com.distrigo.app.ui.common.CartStatusTone
+import com.distrigo.app.ui.common.ExpiryToggleField
+import com.distrigo.app.ui.common.PriceFieldWithHistory
+import com.distrigo.app.ui.common.QuantityStepper
+import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -397,6 +402,7 @@ fun PurchaseFormScreen(
 // ── Cart Sub-screen ─────────────────────────────────────────────────────
     if (showCart) {
         BackHandler { showCart = false }
+        var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
         Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
             // Header
             Row(
@@ -449,496 +455,181 @@ fun PurchaseFormScreen(
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                     modifier            = Modifier.weight(1f)
                 ) {
-                    // ── Expandable cart item cards ──
+                    // ── Expandable cart item cards (shared SelectionCartCard) ──
                     items(cartItems, key = { it.product.id }) { item ->
-                        var isExpanded        by remember { mutableStateOf(false) }
-                        var nbColisStr        by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
-                        var uniteParColisStr  by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
-                        var unitCostStr       by remember(item.unitCost)      { mutableStateOf("%.2f".format(item.unitCost)) }
-                        var nbColisManualStr  by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
+                        val isExpanded = expandedCartItemId == item.product.id
+                        val history by productViewModel.priceHistory.collectAsState()
 
-                        val subtitle = if (item.product.unit_type == "pièce")
+                        LaunchedEffect(isExpanded, item.product.id) {
+                            if (isExpanded) productViewModel.loadPriceHistory(item.product.id)
+                        }
+
+                        val priceHistoryValues = history
+                            .filterNot { isEdit && order != null && it.date.take(10) == order.date.take(10) && it.unit_cost == item.unitCost }
+                            .take(4)
+                            .map { it.unit_cost }
+
+                        val metaLine = if (item.product.unit_type == "pièce")
                             "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                         else
-                            "${formatQty(item.nbColis)} cartons · ${"%.2f".format(item.unitCost)} DA/u"
+                            "${formatQty(item.quantity)} carton × ${"%.2f".format(item.unitCost)} DA"
 
-                        Card(
-                            modifier  = Modifier.fillMaxWidth(),
-                            shape     = DsShapes.large,
-                            colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                            elevation = CardDefaults.cardElevation(1.dp),
-                            border    = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isExpanded) DsColors.Primary else DsColors.Border
-                            )
-                        ) {
-                            Column {
-                                // ── Collapsed row (always visible) ──
-                                Row(
-                                    modifier              = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { isExpanded = !isExpanded }
-                                        .padding(DsSpacing.md),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment     = Alignment.CenterVertically
-                                ) {
+                        SelectionCartCard(
+                            avatarIcon      = Icons.Default.ShoppingCart,
+                            title           = item.product.name,
+                            metaLine        = metaLine,
+                            totalPriceLabel = "${"%.2f".format(item.quantity * item.unitCost)} DA",
+                            isExpanded      = isExpanded,
+                            onToggleExpand  = { expandedCartItemId = if (isExpanded) null else item.product.id },
+                            statusLine      = {
+                                CartStatusLine(
+                                    icon = Icons.Default.ArrowUpward,
+                                    text = "Stock ${formatQty(item.product.stock)} → ${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
+                                    tone = CartStatusTone.OK
+                                )
+                            },
+                            expandedContent = {
+                                if (item.product.unit_type == "pièce") {
+                                    var nbColisStr       by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
+                                    var uniteParColisStr by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
+
+                                    Text("Quantité à réceptionner", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                                    Spacer(Modifier.height(6.dp))
                                     Row(
                                         verticalAlignment     = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier              = Modifier.weight(1f)
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Box(
-                                            modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            val bitmap = remember(item.product.image_uri) {
-                                                item.product.image_uri?.let { uri ->
-                                                    val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                                    android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                        OutlinedTextField(
+                                            value         = nbColisStr,
+                                            onValueChange = { raw ->
+                                                val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                                                    val dot = s.indexOf('.')
+                                                    if (dot < 0) s
+                                                    else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
                                                 }
-                                            }
-                                            if (bitmap != null) {
-                                                androidx.compose.foundation.Image(
-                                                    bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                                                    modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                                )
-                                            } else {
-                                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-                                            }
-                                        }
-                                        Column {
-                                            Text(
-                                                item.product.name,
-                                                fontSize   = DsTextSize.bodySmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color      = DsColors.TextPrimary,
-                                                maxLines   = 1
+                                                nbColisStr = filtered
+                                                val nb = filtered.toDoubleOrNull()
+                                                if (nb != null && nb >= 1) {
+                                                    cartItems = cartItems.map { ci ->
+                                                        if (ci.product.id == item.product.id)
+                                                            ci.copy(nbColis = nb, quantity = nb * ci.uniteParColis)
+                                                        else ci
+                                                    }
+                                                }
+                                            },
+                                            modifier        = Modifier.weight(1f),
+                                            label           = { Text("Nb colis", fontSize = DsTextSize.caption) },
+                                            singleLine      = true,
+                                            shape           = DsShapes.medium,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                            colors          = OutlinedTextFieldDefaults.colors(
+                                                unfocusedBorderColor = DsColors.Border,
+                                                focusedBorderColor   = DsColors.Primary
                                             )
-                                            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                        )
+                                        Text(
+                                            "×",
+                                            fontSize   = DsTextSize.title,
+                                            fontWeight = FontWeight.Bold,
+                                            color      = DsColors.TextSecondary
+                                        )
+                                        OutlinedTextField(
+                                            value         = uniteParColisStr,
+                                            onValueChange = { raw ->
+                                                val digits = raw.filter { it.isDigit() }
+                                                uniteParColisStr = digits
+                                                val upe = digits.toIntOrNull()
+                                                if (upe != null && upe >= 1) {
+                                                    cartItems = cartItems.map { ci ->
+                                                        if (ci.product.id == item.product.id)
+                                                            ci.copy(uniteParColis = upe, quantity = ci.nbColis * upe)
+                                                        else ci
+                                                    }
+                                                }
+                                            },
+                                            modifier        = Modifier.weight(1f),
+                                            label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
+                                            singleLine      = true,
+                                            shape           = DsShapes.medium,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            colors          = OutlinedTextFieldDefaults.colors(
+                                                unfocusedBorderColor = DsColors.Border,
+                                                focusedBorderColor   = DsColors.Primary
+                                            )
+                                        )
+                                    }
+                                    Spacer(Modifier.height(DsSpacing.sm))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(DsShapes.small)
+                                            .background(DsColors.SurfaceMuted)
+                                            .padding(horizontal = DsSpacing.md, vertical = 8.dp)
+                                    ) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                            Text("Total pièces à acheter : ", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                                            Text(
+                                                "${formatQty(item.quantity)} pièces",
+                                                fontSize   = DsTextSize.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color      = DsColors.Primary
+                                            )
                                         }
                                     }
-                                    Spacer(Modifier.width(DsSpacing.sm))
-                                    Row(
-                                        verticalAlignment     = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            "${"%.2f".format(item.quantity * item.unitCost)} DA",
-                                            fontSize   = DsTextSize.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color      = DsColors.Primary
-                                        )
-                                        Icon(
-                                            if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                            contentDescription = null,
-                                            tint     = DsColors.TextSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                } else {
+                                    QuantityStepper(
+                                        label         = "Nombre de cartons",
+                                        value         = item.quantity,
+                                        onValueChange = { newQty ->
+                                            cartItems = cartItems.map { ci ->
+                                                if (ci.product.id == item.product.id) ci.copy(nbColis = newQty, quantity = newQty) else ci
+                                            }
+                                        },
+                                        formatValue   = ::formatQty
+                                    )
                                 }
 
-                                // ── Expanded section ──
-                                AnimatedVisibility(visible = isExpanded) {
-                                    Column(
-                                        modifier = Modifier
-                                            .padding(horizontal = DsSpacing.md)
-                                            .padding(bottom = DsSpacing.md)
-                                    ) {
-                                        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
-                                        Spacer(Modifier.height(DsSpacing.md))
+                                Spacer(Modifier.height(DsSpacing.md))
 
-                                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                                            StatBox(
-                                                modifier = Modifier.weight(1f),
-                                                label    = "Stock actuel",
-                                                value    = "${formatQty(item.product.stock)} ${item.product.unit_type}",
-                                                color    = DsColors.TextPrimary
-                                            )
-                                            StatBox(
-                                                modifier = Modifier.weight(1f),
-                                                label    = "Après réception",
-                                                value    = "${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
-                                                color    = DsColors.Success
-                                            )
+                                PriceFieldWithHistory(
+                                    price         = item.unitCost,
+                                    onPriceChange = { newCost ->
+                                        cartItems = cartItems.map { ci ->
+                                            if (ci.product.id == item.product.id) ci.copy(unitCost = newCost) else ci
                                         }
+                                    },
+                                    priceHistory  = priceHistoryValues
+                                )
 
-                                        Spacer(Modifier.height(DsSpacing.md))
+                                Spacer(Modifier.height(DsSpacing.md))
 
-                                        if (item.product.unit_type == "pièce") {
-                                            Row(
-                                                verticalAlignment     = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                OutlinedTextField(
-                                                    value         = nbColisStr,
-                                                    onValueChange = { raw ->
-                                                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                                                            val dot = s.indexOf('.')
-                                                            if (dot < 0) s
-                                                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                                                        }
-                                                        nbColisStr = filtered
-                                                        val nb = filtered.toDoubleOrNull()
-                                                        if (nb != null && nb >= 1) {
-                                                            cartItems = cartItems.map { ci ->
-                                                                if (ci.product.id == item.product.id)
-                                                                    ci.copy(nbColis = nb, quantity = nb * ci.uniteParColis)
-                                                                else ci
-                                                            }
-                                                        }
-                                                    },
-                                                    modifier        = Modifier.weight(1f),
-                                                    label           = { Text("Nb colis", fontSize = DsTextSize.caption) },
-                                                    singleLine      = true,
-                                                    shape           = DsShapes.medium,
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                    colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = DsColors.Border,
-                                                        focusedBorderColor   = DsColors.Primary
-                                                    )
-                                                )
-                                                Text(
-                                                    "×",
-                                                    fontSize   = DsTextSize.title,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color      = DsColors.TextSecondary
-                                                )
-                                                OutlinedTextField(
-                                                    value         = uniteParColisStr,
-                                                    onValueChange = { raw ->
-                                                        val digits = raw.filter { it.isDigit() }
-                                                        uniteParColisStr = digits
-                                                        val upe = digits.toIntOrNull()
-                                                        if (upe != null && upe >= 1) {
-                                                            cartItems = cartItems.map { ci ->
-                                                                if (ci.product.id == item.product.id)
-                                                                    ci.copy(uniteParColis = upe, quantity = ci.nbColis * upe)
-                                                                else ci
-                                                            }
-                                                        }
-                                                    },
-                                                    modifier        = Modifier.weight(1f),
-                                                    label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
-                                                    singleLine      = true,
-                                                    shape           = DsShapes.medium,
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                    colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = DsColors.Border,
-                                                        focusedBorderColor   = DsColors.Primary
-                                                    )
-                                                )
-                                            }
-                                            Spacer(Modifier.height(DsSpacing.sm))
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(DsShapes.medium)
-                                                    .background(DsColors.PrimaryLight)
-                                                    .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
-                                            ) {
-                                                Row(
-                                                    modifier              = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment     = Alignment.CenterVertically
-                                                ) {
-                                                    Text("Total pièces à acheter", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
-                                                    Text(
-                                                        "${formatQty(item.quantity)} pièces",
-                                                        fontSize   = DsTextSize.body,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color      = DsColors.Primary
-                                                    )
-                                                }
-                                            }
-                                        } else {
-                                            Text("Nombre de cartons", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.Medium)
-                                            Spacer(Modifier.height(6.dp))
-                                            Row(
-                                                verticalAlignment     = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                                            ) {
-                                                IconButton(
-                                                    onClick  = {
-                                                        val newNb = maxOf(1.0, item.nbColis - 1)
-                                                        nbColisManualStr = formatQty(newNb)
-                                                        cartItems = cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id)
-                                                                ci.copy(nbColis = newNb, quantity = newNb)
-                                                            else ci
-                                                        }
-                                                    },
-                                                    modifier = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
-                                                ) {
-                                                    Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
-                                                }
-
-                                                OutlinedTextField(
-                                                    value         = nbColisManualStr,
-                                                    onValueChange = { raw ->
-                                                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                                                            val dot = s.indexOf('.')
-                                                            if (dot < 0) s
-                                                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                                                        }
-                                                        nbColisManualStr = filtered
-                                                        val nb = filtered.toDoubleOrNull()
-                                                        if (nb != null && nb >= 1) {
-                                                            cartItems = cartItems.map { ci ->
-                                                                if (ci.product.id == item.product.id)
-                                                                    ci.copy(nbColis = nb, quantity = nb)
-                                                                else ci
-                                                            }
-                                                        }
-                                                    },
-                                                    modifier        = Modifier.weight(1f),
-                                                    singleLine      = true,
-                                                    textStyle       = androidx.compose.ui.text.TextStyle(
-                                                        fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
-                                                        textAlign = TextAlign.Center, color = DsColors.Primary
-                                                    ),
-                                                    shape           = DsShapes.medium,
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                    colors          = OutlinedTextFieldDefaults.colors(
-                                                        unfocusedBorderColor = DsColors.Border,
-                                                        focusedBorderColor   = DsColors.Primary
-                                                    )
-                                                )
-
-                                                IconButton(
-                                                    onClick  = {
-                                                        val newNb = item.nbColis + 1
-                                                        nbColisManualStr = formatQty(newNb)
-                                                        cartItems = cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id)
-                                                                ci.copy(nbColis = newNb, quantity = newNb)
-                                                            else ci
-                                                        }
-                                                    },
-                                                    modifier = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
-                                                ) {
-                                                    Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
-                                                }
-                                            }
+                                ExpiryToggleField(
+                                    hasExpiry          = item.hasExpiry,
+                                    expiryDate         = item.expiryDate,
+                                    onHasExpiryChange  = { checked ->
+                                        cartItems = cartItems.map { ci ->
+                                            if (ci.product.id == item.product.id) ci.copy(hasExpiry = checked) else ci
                                         }
-                                        Spacer(Modifier.height(DsSpacing.md))
-
-                                        Row(
-                                            verticalAlignment     = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                                        ) {
-                                            OutlinedTextField(
-                                                value         = unitCostStr,
-                                                onValueChange = { raw ->
-                                                    val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                                                        val dot = s.indexOf('.')
-                                                        if (dot < 0) s
-                                                        else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                                                    }
-                                                    unitCostStr = filtered
-                                                    val cost = filtered.toDoubleOrNull()
-                                                    if (cost != null && cost > 0) {
-                                                        cartItems = cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id) ci.copy(unitCost = cost) else ci
-                                                        }
-                                                    }
-                                                },
-                                                modifier        = Modifier.weight(1f),
-                                                label           = { Text("Prix unitaire (DA)") },
-                                                singleLine      = true,
-                                                shape           = DsShapes.medium,
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                colors          = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = DsColors.Border,
-                                                    focusedBorderColor   = DsColors.Primary
-                                                )
-                                            )
-
-                                            var showPriceHistory by remember { mutableStateOf(false) }
-                                            val history by productViewModel.priceHistory.collectAsState()
-                                            val hasHistory = history.isNotEmpty()
-
-                                            Box {
-                                                IconButton(
-                                                    onClick = {
-                                                        productViewModel.loadPriceHistory(item.product.id)
-                                                        showPriceHistory = true
-                                                    },
-                                                    modifier = Modifier
-                                                        .size(44.dp)
-                                                        .clip(DsShapes.medium)
-                                                        .background(if (hasHistory) DsColors.PrimaryLight else DsColors.SurfaceSunken)
-                                                ) {
-                                                    Icon(
-                                                        Icons.Default.History,
-                                                        contentDescription = "Historique des prix",
-                                                        tint = if (hasHistory) DsColors.Primary else DsColors.TextSecondary,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                }
-
-                                                DropdownMenu(
-                                                    expanded = showPriceHistory,
-                                                    onDismissRequest = { showPriceHistory = false },
-                                                    modifier = Modifier.background(DsColors.Surface)
-                                                ) {
-                                                    Text(
-                                                        "DERNIERS PRIX",
-                                                        fontSize = DsTextSize.caption,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = DsColors.TextSecondary,
-                                                        modifier = Modifier.padding(horizontal = DsSpacing.md, vertical = 6.dp)
-                                                    )
-
-                                                    val filteredHistory = history
-                                                        .filterNot { isEdit && order != null && it.date.take(10) == order.date.take(10) && it.unit_cost == item.unitCost }
-                                                        .take(4)
-
-                                                    if (filteredHistory.isEmpty()) {
-                                                        Text(
-                                                            "Aucun historique disponible",
-                                                            fontSize = DsTextSize.caption,
-                                                            color = DsColors.TextSecondary,
-                                                            modifier = Modifier.padding(DsSpacing.md)
-                                                        )
-                                                    } else {
-                                                        val minPrice = filteredHistory.minOf { it.unit_cost }
-                                                        val maxPrice = filteredHistory.maxOf { it.unit_cost }
-
-                                                        filteredHistory.forEach { h ->
-                                                            DropdownMenuItem(
-                                                                text = {
-                                                                    Row(
-                                                                        modifier = Modifier.fillMaxWidth(),
-                                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                                        verticalAlignment = Alignment.CenterVertically
-                                                                    ) {
-                                                                        Column {
-                                                                            Text(h.supplier_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-                                                                            Text(h.date.take(10), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                                                        }
-                                                                        Text(
-                                                                            "${"%.2f".format(h.unit_cost)} DA",
-                                                                            fontSize = DsTextSize.bodySmall,
-                                                                            fontWeight = FontWeight.Bold,
-                                                                            color = when {
-                                                                                h.unit_cost == minPrice -> DsColors.Success
-                                                                                h.unit_cost == maxPrice -> DsColors.Danger
-                                                                                else -> DsColors.TextPrimary
-                                                                            }
-                                                                        )
-                                                                    }
-                                                                },
-                                                                onClick = {
-                                                                    unitCostStr = "%.2f".format(h.unit_cost)
-                                                                    cartItems = cartItems.map { ci ->
-                                                                        if (ci.product.id == item.product.id) ci.copy(unitCost = h.unit_cost) else ci
-                                                                    }
-                                                                    showPriceHistory = false
-                                                                }
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        Spacer(Modifier.height(DsSpacing.md))
-
-                                        // ── Date d'expiration (optionnelle) ──
-                                        var showExpiryPicker by remember { mutableStateOf(false) }
-                                        val expiryDateState = rememberDatePickerState(
-                                            initialSelectedDateMillis = item.expiryDate?.let {
-                                                runCatching {
-                                                    java.time.LocalDate.parse(it).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
-                                                }.getOrNull()
-                                            }
-                                        )
-
-                                        if (showExpiryPicker) {
-                                            DatePickerDialog(
-                                                onDismissRequest = { showExpiryPicker = false },
-                                                confirmButton = {
-                                                    TextButton(onClick = {
-                                                        expiryDateState.selectedDateMillis?.let { millis ->
-                                                            val date = java.time.Instant.ofEpochMilli(millis)
-                                                                .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
-                                                            cartItems = cartItems.map { ci ->
-                                                                if (ci.product.id == item.product.id) ci.copy(expiryDate = date) else ci
-                                                            }
-                                                        }
-                                                        showExpiryPicker = false
-                                                    }) { Text("OK") }
-                                                },
-                                                dismissButton = { TextButton(onClick = { showExpiryPicker = false }) { Text("Annuler") } }
-                                            ) { DatePicker(state = expiryDateState) }
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(DsShapes.medium)
-                                                .background(DsColors.SurfaceSunken)
-                                                .padding(DsSpacing.md)
-                                        ) {
-                                            Row(
-                                                modifier              = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment     = Alignment.CenterVertically
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                                                    Column {
-                                                        Text("Date d'expiration", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                                        Text("Le produit a une date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                                    }
-                                                }
-                                                Switch(
-                                                    checked         = item.hasExpiry,
-                                                    onCheckedChange = { checked ->
-                                                        cartItems = cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id) ci.copy(hasExpiry = checked) else ci
-                                                        }
-                                                    },
-                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
-                                                )
-                                            }
-
-                                            AnimatedVisibility(visible = item.hasExpiry) {
-                                                Column(modifier = Modifier.padding(top = DsSpacing.sm)) {
-                                                    OutlinedTextField(
-                                                        value         = item.expiryDate ?: "",
-                                                        onValueChange = {},
-                                                        readOnly      = true,
-                                                        label         = { Text("Date d'expiration", fontSize = DsTextSize.caption) },
-                                                        trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                                                        modifier      = Modifier.fillMaxWidth().clickable { showExpiryPicker = true },
-                                                        shape         = DsShapes.medium,
-                                                        enabled       = false,
-                                                        colors = OutlinedTextFieldDefaults.colors(
-                                                            disabledBorderColor = DsColors.Border,
-                                                            disabledTextColor   = DsColors.TextPrimary,
-                                                            disabledLabelColor  = DsColors.TextSecondary,
-                                                            disabledTrailingIconColor = DsColors.Primary
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        Spacer(Modifier.height(4.dp))
-
-                                        TextButton(
-                                            onClick  = { cartItems = cartItems.filter { it.product.id != item.product.id } },
-                                            modifier = Modifier.align(Alignment.End)
-                                        ) {
-                                            Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                                    },
+                                    onExpiryDateChange = { date ->
+                                        cartItems = cartItems.map { ci ->
+                                            if (ci.product.id == item.product.id) ci.copy(expiryDate = date) else ci
                                         }
                                     }
+                                )
+
+                                Spacer(Modifier.height(4.dp))
+
+                                TextButton(
+                                    onClick  = { cartItems = cartItems.filter { it.product.id != item.product.id } },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                                 }
                             }
-                        }
+                        )
                     }
 
                     // ── Note ──

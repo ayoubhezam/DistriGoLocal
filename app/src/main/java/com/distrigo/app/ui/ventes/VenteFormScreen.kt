@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.ventes
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +27,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.clients.ClientViewModel
+import com.distrigo.app.ui.common.CartStatusLine
+import com.distrigo.app.ui.common.CartStatusTone
+import com.distrigo.app.ui.common.PriceFieldWithHistory
+import com.distrigo.app.ui.common.QuantityStepper
+import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -326,6 +330,7 @@ fun VenteFormScreen(
     // ── Cart Sub-screen ──────────────────────────────────────────────────────
     if (showCart) {
         BackHandler { showCart = false }
+        var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
         Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
             Row(
                 modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
@@ -382,6 +387,10 @@ fun VenteFormScreen(
                     items(cartItems, key = { "cart_${it.product.id}" }) { item ->
                         VenteCartRow(
                             item             = item,
+                            isExpanded       = expandedCartItemId == item.product.id,
+                            onToggleExpand   = {
+                                expandedCartItemId = if (expandedCartItemId == item.product.id) null else item.product.id
+                            },
                             onQuantityChange = { newQty ->
                                 cartItems = cartItems.map {
                                     if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
@@ -1168,27 +1177,23 @@ private fun Step3Validation(
     }
 }
 
-// ── Cart row (expandable) ────────────────────────────────────────────────────
+// ── Cart row (expandable, shared SelectionCartCard) ──────────────────────────
 @Composable
 private fun VenteCartRow(
     item             : VenteCartItem,
+    isExpanded       : Boolean,
+    onToggleExpand   : () -> Unit,
     onQuantityChange : (Double) -> Unit,
     onPriceChange    : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
-    var isExpanded  by remember { mutableStateOf(false) }
-    var priceStr    by remember(item.unitPrice) { mutableStateOf("%.2f".format(item.unitPrice)) }
     val context = LocalContext.current
 
     val availableStock = item.product.stock - item.product.camion_stock   // dépôt uniquement (stock = total)
     val remainingAfter = availableStock - item.quantity
     val isNegative     = remainingAfter < 0
     val isLow          = !isNegative && remainingAfter <= item.product.min_stock
-    val progressColor  = when {
-        isNegative -> Color(0xFFEF4444)
-        isLow      -> Color(0xFFF59E0B)
-        else       -> Color(0xFF22C55E)
-    }
+
     val progressFraction = if (availableStock > 0)
         (remainingAfter.toFloat() / availableStock.toFloat()).coerceIn(0f, 1f)
     else 0f
@@ -1199,232 +1204,59 @@ private fun VenteCartRow(
         }
     }
 
-    val cardBg     = if (isNegative) Color(0xFFFEF2F2) else DsColors.Surface
-    val cardBorder = if (isNegative) Color(0xFFEF4444) else if (isExpanded) DsColors.Primary else DsColors.Border
-    val accentColor = if (isNegative) Color(0xFFDC2626) else DsColors.Primary
-    val mutedColor   = if (isNegative) Color(0xFFB91C1C) else DsColors.TextSecondary
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(cardBg)
-            .border(1.5.dp, cardBorder, DsShapes.large)
-    ) {
-        // ── Collapsed header ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
-                .padding(DsSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(if (isNegative) Color(0xFFFEE2E2) else DsColors.PrimaryLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (isNegative) Icons.Default.Warning else Icons.Default.ShoppingCart,
-                    contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    item.product.name,
-                    fontSize   = DsTextSize.body,
-                    fontWeight = FontWeight.Medium,
-                    color      = DsColors.TextPrimary,
-                    maxLines   = 1
-                )
-                Text(
-                    "${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA",
-                    fontSize = DsTextSize.caption,
-                    color    = mutedColor
-                )
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(
-                "${"%.2f".format(item.quantity * item.unitPrice)} DA",
-                fontSize   = DsTextSize.body,
-                fontWeight = FontWeight.Bold,
-                color      = accentColor
-            )
-            Spacer(Modifier.width(DsSpacing.xs))
-            Icon(
-                if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = accentColor
-            )
-        }
-        // ── Live stock indicator ──
-        Column(
-            modifier = Modifier
-                .padding(horizontal = DsSpacing.md)
-                .padding(bottom = DsSpacing.sm)
-                .fillMaxWidth()
-                .clip(DsShapes.medium)
-                .background(DsColors.SurfaceMuted)
-                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Stock avant : ${formatQty(availableStock)}",
-                    fontSize = DsTextSize.caption,
-                    color = mutedColor
-                )
-                Text(
-                    "Vendu : ${formatQty(item.quantity)}",
-                    fontSize = DsTextSize.caption,
-                    color = mutedColor
-                )
-            }
-
-            Spacer(Modifier.height(6.dp))
-
-            LinearProgressIndicator(
-                progress = { progressFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(DsShapes.pill),
-                color = progressColor,
-                trackColor = DsColors.Border,
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Stock restant",
-                    fontSize = DsTextSize.caption,
-                    fontWeight = FontWeight.SemiBold,
-                    color = mutedColor
-                )
-                Text(
-                    "${formatQty(remainingAfter)} ${item.product.unit_type}",
-                    fontSize = DsTextSize.body,
-                    fontWeight = FontWeight.Bold,
-                    color = progressColor
-                )
-            }
-        }
-
-        if (isNegative) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = DsSpacing.md)
-                    .padding(bottom = DsSpacing.sm)
-                    .fillMaxWidth()
-                    .clip(DsShapes.medium)
-                    .background(Color(0xFFFEE2E2))
-                    .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
-            )
-
-            {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(14.dp))
-                Text(
-                    "Stock négatif : ${formatQty(remainingAfter)} ${item.product.unit_type} disponible",
-                    fontSize = DsTextSize.caption,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFDC2626)
-                )
-            }
-        }
-
-        // ── Expanded panel ──
-        AnimatedVisibility(visible = isExpanded) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = DsSpacing.md)
-                    .padding(bottom = DsSpacing.md)
-            ) {
-                HorizontalDivider(color = if (isNegative) Color(0xFFFCA5A5) else DsColors.Border, thickness = 1.dp)
-                Spacer(Modifier.height(DsSpacing.md))
-
-                Text("Quantité", fontSize = DsTextSize.caption, color = mutedColor)
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick  = {
-                            val newQty = item.quantity - 1
-                            onQuantityChange(newQty)
-                            if (availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
-                        },
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(if (isNegative) Color(0xFFFEE2E2) else DsColors.SurfaceMuted)
-                    ) {
-                        Icon(Icons.Default.Remove, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
-                    }
-                    Text(
-                        formatQty(item.quantity),
-                        fontSize   = DsTextSize.headline,
-                        fontWeight = FontWeight.Medium,
-                        color      = accentColor,
-                        textAlign  = TextAlign.Center,
-                        modifier   = Modifier.widthIn(min = 28.dp).padding(horizontal = DsSpacing.md)
-                    )
-                    IconButton(
-                        onClick  = {
-                            val newQty = item.quantity + 1
-                            onQuantityChange(newQty)
-                            if (availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
-                        },
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(if (isNegative) Color(0xFFFEE2E2) else DsColors.SurfaceMuted)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
-                    }
-                }
-
-                Spacer(Modifier.height(DsSpacing.md))
-
-                Text("Prix unitaire (DA)", fontSize = DsTextSize.caption, color = mutedColor)
-                Spacer(Modifier.height(4.dp))
-                OutlinedTextField(
-                    value         = priceStr,
-                    onValueChange = { raw ->
-                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                            val dot = s.indexOf('.')
-                            if (dot < 0) s
-                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                        }
-                        priceStr = filtered
-                        val price = filtered.toDoubleOrNull()
-                        if (price != null && price >= 0) onPriceChange(price)
-                    },
-                    modifier        = Modifier.fillMaxWidth(),
-                    singleLine      = true,
-                    shape           = DsShapes.small,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = if (isNegative) Color(0xFFFCA5A5) else DsColors.Border,
-                        focusedBorderColor   = accentColor
-                    )
-                )
-
-                Spacer(Modifier.height(DsSpacing.xs))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton(onClick = onRemove) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Retirer", color = Color(0xFFDC2626), fontSize = DsTextSize.bodySmall)
-                    }
-                }
-            }
-        }
+    val tone = when {
+        isNegative -> CartStatusTone.DANGER
+        isLow      -> CartStatusTone.WARNING
+        else       -> CartStatusTone.OK
     }
+    val statusText = if (isNegative)
+        "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} ${item.product.unit_type}"
+    else
+        "Reste ${formatQty(remainingAfter)} ${item.product.unit_type}"
+
+    SelectionCartCard(
+        avatarIcon      = Icons.Default.ShoppingCart,
+        title           = item.product.name,
+        metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.unitPrice)} DA",
+        totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
+        isExpanded      = isExpanded,
+        onToggleExpand  = onToggleExpand,
+        isDanger        = isNegative,
+        statusLine = {
+            CartStatusLine(
+                icon             = if (isNegative) Icons.Default.Warning else Icons.Default.Inventory2,
+                text             = statusText,
+                tone             = tone,
+                progressFraction = progressFraction
+            )
+        },
+        expandedContent = {
+            QuantityStepper(
+                label         = "Quantité",
+                value         = item.quantity,
+                onValueChange = { newQty ->
+                    if (availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
+                    onQuantityChange(newQty)
+                },
+                formatValue   = ::formatQty
+            )
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            PriceFieldWithHistory(
+                price         = item.unitPrice,
+                onPriceChange = onPriceChange
+            )
+
+            Spacer(Modifier.height(DsSpacing.xs))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                TextButton(onClick = onRemove) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                }
+            }
+        }
+    )
 }

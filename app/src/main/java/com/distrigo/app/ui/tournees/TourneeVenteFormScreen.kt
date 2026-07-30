@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.tournees
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +27,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.clients.ClientViewModel
+import com.distrigo.app.ui.common.CartStatusLine
+import com.distrigo.app.ui.common.CartStatusTone
+import com.distrigo.app.ui.common.PriceFieldWithHistory
+import com.distrigo.app.ui.common.QuantityStepper
+import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -252,6 +256,7 @@ fun TourneeVenteFormScreen(
     // ── Cart Sub-screen ──────────────────────────────────────────────────────
     if (showCart) {
         BackHandler { showCart = false }
+        var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
         Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
             Row(
                 modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
@@ -308,6 +313,10 @@ fun TourneeVenteFormScreen(
                     items(cartItems, key = { "cart_${it.product.id}" }) { item ->
                         TourneeVenteCartRow(
                             item             = item,
+                            isExpanded       = expandedCartItemId == item.product.id,
+                            onToggleExpand   = {
+                                expandedCartItemId = if (expandedCartItemId == item.product.id) null else item.product.id
+                            },
                             onQuantityChange = { newQty ->
                                 cartItems = cartItems.map {
                                     if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
@@ -1072,160 +1081,58 @@ private fun Step3Validation(
     }
 }
 
-// ── Cart row (expandable) ────────────────────────────────────────────────────
+// ── Cart row (expandable, shared SelectionCartCard) ──────────────────────────
 @Composable
 private fun TourneeVenteCartRow(
     item             : TourneeVenteCartItem,
+    isExpanded       : Boolean,
+    onToggleExpand   : () -> Unit,
     onQuantityChange : (Double) -> Unit,
     onPriceChange    : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
-    var isExpanded  by remember { mutableStateOf(false) }
-    var priceStr    by remember(item.unitPrice) { mutableStateOf("%.2f".format(item.unitPrice)) }
-
     val availableStock = item.product.camion_stock
     val isLow          = item.quantity > availableStock
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, if (isExpanded) DsColors.Primary else DsColors.Border, DsShapes.large)
-    ) {
-        // ── Collapsed header ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
-                .padding(DsSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    item.product.name,
-                    fontSize   = DsTextSize.body,
-                    fontWeight = FontWeight.Medium,
-                    color      = DsColors.TextPrimary,
-                    maxLines   = 1
-                )
-                Text(
-                    "${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA",
-                    fontSize = DsTextSize.caption,
-                    color    = DsColors.TextSecondary
-                )
-                Text(
-                    "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}",
-                    fontSize = DsTextSize.caption,
-                    color    = if (isLow) DsColors.Warning else DsColors.TextSecondary
-                )
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(
-                "${"%.2f".format(item.quantity * item.unitPrice)} DA",
-                fontSize   = DsTextSize.body,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.Primary
+    SelectionCartCard(
+        avatarIcon      = Icons.Default.ShoppingCart,
+        title           = item.product.name,
+        metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.unitPrice)} DA",
+        totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
+        isExpanded      = isExpanded,
+        onToggleExpand  = onToggleExpand,
+        statusLine = {
+            CartStatusLine(
+                icon = if (isLow) Icons.Default.Warning else Icons.Default.LocalShipping,
+                text = "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}",
+                tone = if (isLow) CartStatusTone.WARNING else CartStatusTone.NEUTRAL
             )
-            Spacer(Modifier.width(DsSpacing.xs))
-            Icon(
-                if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = DsColors.TextSecondary
+        },
+        expandedContent = {
+            QuantityStepper(
+                label         = "Quantité",
+                value         = item.quantity,
+                onValueChange = onQuantityChange,
+                max           = availableStock,
+                formatValue   = ::formatQty
             )
-        }
 
-        // ── Expanded panel ──
-        AnimatedVisibility(visible = isExpanded) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = DsSpacing.md)
-                    .padding(bottom = DsSpacing.md)
-            ) {
-                HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
-                Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
 
-                // ── Quantité ──
-                Text("Quantité", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick  = { onQuantityChange(item.quantity - 1) },
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                    ) {
-                        Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
-                    }
-                    Text(
-                        formatQty(item.quantity),
-                        fontSize   = DsTextSize.headline,
-                        fontWeight = FontWeight.Medium,
-                        color      = DsColors.TextPrimary,
-                        textAlign  = TextAlign.Center,
-                        modifier   = Modifier.widthIn(min = 28.dp).padding(horizontal = DsSpacing.md)
-                    )
-                    IconButton(
-                        onClick  = { if (item.quantity < availableStock) onQuantityChange(item.quantity + 1) },
-                        enabled  = item.quantity < availableStock,
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = if (item.quantity < availableStock) DsColors.TextPrimary else DsColors.TextTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+            PriceFieldWithHistory(
+                price         = item.unitPrice,
+                onPriceChange = onPriceChange
+            )
 
-                Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.xs))
 
-                // ── Prix unitaire ──
-                Text("Prix unitaire (DA)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                Spacer(Modifier.height(4.dp))
-                OutlinedTextField(
-                    value         = priceStr,
-                    onValueChange = { raw ->
-                        val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                            val dot = s.indexOf('.')
-                            if (dot < 0) s
-                            else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                        }
-                        priceStr = filtered
-                        val price = filtered.toDoubleOrNull()
-                        if (price != null && price >= 0) onPriceChange(price)
-                    },
-                    modifier        = Modifier.fillMaxWidth(),
-                    singleLine      = true,
-                    shape           = DsShapes.small,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
-                )
-
-                Spacer(Modifier.height(DsSpacing.xs))
-
-                // ── Retirer ──
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton(onClick = onRemove) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
-                    }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                TextButton(onClick = onRemove) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                 }
             }
         }
-    }
+    )
 }
