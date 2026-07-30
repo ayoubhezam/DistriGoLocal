@@ -1072,6 +1072,11 @@ class ProductRepository(
         return clientDao.getAllClients().map { it.toClient() }
     }
 
+    // Source of truth réactive : émet automatiquement à chaque écriture sur la table clients
+    // (création, modification, recalcul de solde après vente/paiement…), quel que soit l'écran.
+    fun observeClients(): Flow<List<Client>> =
+        clientDao.observeAllClients().map { list -> list.map { it.toClient() } }
+
     suspend fun addClient(client: Map<String, Any?>): Map<String, Any> {
         val entity = ClientEntity(
             name = client["name"] as? String ?: "",

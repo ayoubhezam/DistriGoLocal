@@ -51,7 +51,6 @@ fun ClientsScreen(
     var showDeleteDialog by remember { mutableStateOf<Client?>(null) }
     var longPressClient  by remember { mutableStateOf<Client?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.loadClients() }
     LaunchedEffect(clients, preSelectedClientId) {   // ← جديد
         if (preSelectedClientId != null && selectedClient == null) {
             clients.find { it.id == preSelectedClientId }?.let { selectedClient = it }
@@ -62,7 +61,7 @@ fun ClientsScreen(
         BackHandler { showAddScreen = false; onFullScreenChange(false) }
         ClientFormScreen(
             onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { _ -> showAddScreen = false; onFullScreenChange(false); viewModel.loadClients() }
+            onSaved = { _ -> showAddScreen = false; onFullScreenChange(false) }
         )
         return
     }
@@ -73,7 +72,7 @@ fun ClientsScreen(
         ClientFormScreen(
             client  = c,
             onBack  = { editingClient = null; onFullScreenChange(false) },
-            onSaved = { _ -> editingClient = null; onFullScreenChange(false); viewModel.loadClients() }
+            onSaved = { _ -> editingClient = null; onFullScreenChange(false) }
         )
         return
     }

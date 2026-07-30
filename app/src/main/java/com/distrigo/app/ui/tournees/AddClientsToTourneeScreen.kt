@@ -52,8 +52,6 @@ fun AddClientsToTourneeScreen(
     var errorMsg  by remember { mutableStateOf("") }
     var showAddClientScreen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { clientViewModel.loadClients() }
-
     // ── Add Client Sub-screen ──
     if (showAddClientScreen) {
         com.distrigo.app.ui.clients.ClientFormScreen(

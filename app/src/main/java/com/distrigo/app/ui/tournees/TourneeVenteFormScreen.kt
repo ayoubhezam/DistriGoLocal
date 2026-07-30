@@ -77,9 +77,6 @@ fun TourneeVenteFormScreen(
     var showAddClientScreen by remember { mutableStateOf(false) }
 
 
-    LaunchedEffect(Unit) {
-        clientViewModel.loadClients()
-    }
     LaunchedEffect(preSelectedClientId, clients) {
         if (preSelectedClientId != null && selectedClient == null) {
             selectedClient = clients.find { it.id == preSelectedClientId }
@@ -128,7 +125,6 @@ fun TourneeVenteFormScreen(
             note        = note.trim().ifEmpty { null },
             montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
             onSuccess   = {
-                clientViewModel.loadClients()
                 onSaved()
             },
             onError     = { isSaving = false }

@@ -129,7 +129,7 @@ fun ClientDetailScreen(
             viewModel.updateClient(
                 id        = currentClient.id,
                 client    = clientToUpdateMap(currentClient, newImageUri),
-                onSuccess = { viewModel.loadClients() },
+                onSuccess = {},
                 onError   = {}
             )
         }
@@ -586,7 +586,7 @@ fun ClientDetailScreen(
                                                 viewModel.updateClient(
                                                     id        = currentClient.id,
                                                     client    = clientToUpdateMap(currentClient, null),
-                                                    onSuccess = { viewModel.loadClients() },
+                                                    onSuccess = {},
                                                     onError   = {}
                                                 )
                                             }

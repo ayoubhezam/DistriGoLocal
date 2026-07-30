@@ -28,8 +28,9 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _clients = MutableStateFlow<List<Client>>(emptyList())
-    val clients: StateFlow<List<Client>> = _clients
+    // Observés depuis Room — mise à jour automatique à chaque écriture sur la table clients
+    val clients: StateFlow<List<Client>> = productRepository.observeClients()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -47,16 +48,6 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadClients() {
-        viewModelScope.launch {
-            try {
-                _clients.value = productRepository.getClients()
-            } catch (e: Exception) {
-                _error.value = e.message
             }
         }
     }

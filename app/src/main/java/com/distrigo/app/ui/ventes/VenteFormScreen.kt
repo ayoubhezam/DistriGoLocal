@@ -93,10 +93,6 @@ fun VenteFormScreen(
     var clientSearch      by remember { mutableStateOf("") }
 
 
-    LaunchedEffect(Unit) {
-        clientViewModel.loadClients()
-    }
-
     LaunchedEffect(clients) {
         if (isEdit && selectedClient == null && clients.isNotEmpty()) {
             selectedClient = clients.find { it.id == vente!!.client_id }
@@ -215,7 +211,6 @@ fun VenteFormScreen(
                 montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
                 userName    = userName.trim().ifEmpty { null },
                 onSuccess   = {
-                    clientViewModel.loadClients()
                     onSaved()
                 },
                 onError     = { error -> isSaving = false; saveError = error }
