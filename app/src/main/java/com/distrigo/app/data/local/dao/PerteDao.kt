@@ -33,6 +33,9 @@ interface PerteDao {
     @Query("SELECT * FROM pertes WHERE id = :id")
     suspend fun getPerteById(id: Int): PerteEntity?
 
+    @Query("SELECT * FROM pertes WHERE source_type = :sourceType AND source_id = :sourceId")
+    suspend fun getPertesBySource(sourceType: String, sourceId: Int): List<PerteEntity>
+
     @Insert
     suspend fun insertPerte(perte: PerteEntity): Long
 

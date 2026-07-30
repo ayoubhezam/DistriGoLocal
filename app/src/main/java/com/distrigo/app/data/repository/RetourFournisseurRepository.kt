@@ -8,6 +8,8 @@ import com.distrigo.app.data.local.entity.RetourFournisseurItemEntity
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.model.RetourFournisseurItem
+import com.distrigo.app.data.model.RetourFournisseurMotifs
+import com.distrigo.app.data.model.StockEffect
 
 class RetourFournisseurRepository(
     private val db: AppDatabase
@@ -81,12 +83,17 @@ class RetourFournisseurRepository(
                 )
             ).toInt()
 
+            val definition = RetourFournisseurMotifs.resolve(motif)
             val movementEntities = mutableListOf<StockMovementEntity>()
             val itemEntities = lines.map { (product, quantity) ->
                 val unitPrice  = product.purchase_price
                 val totalPrice = quantity * unitPrice
 
-                productDao.updateProduct(product.copy(stock = product.stock - quantity))
+                when (definition.stockEffect) {
+                    StockEffect.DECREASE -> productDao.updateProduct(product.copy(stock = product.stock - quantity))
+                    StockEffect.INCREASE -> productDao.updateProduct(product.copy(stock = product.stock + quantity))
+                    StockEffect.NONE     -> { /* no-op */ }
+                }
 
                 movementEntities += StockMovementEntity(
                     product_id   = product.id,
@@ -105,6 +112,17 @@ class RetourFournisseurRepository(
                     created_at   = now
                 )
 
+                if (definition.perteTypeName != null) {
+                    val perteType = db.perteDao().getAllPerteTypes().find { it.name == definition.perteTypeName }
+                        ?: throw IllegalStateException("Type de perte introuvable : ${definition.perteTypeName}")
+                    PerteRepository(db).addPerte(
+                        typeId = perteType.id, productId = product.id, quantity = quantity, source = "depot",
+                        dateTime = now, motif = "Retour fournisseur #$retourId — refusé", photoPath = null, userName = userName,
+                        affectsStock = false,
+                        sourceType = "retour_fournisseur", sourceId = retourId
+                    )
+                }
+
                 RetourFournisseurItemEntity(
                     retour_id = retourId, product_id = product.id, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
@@ -121,10 +139,21 @@ class RetourFournisseurRepository(
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
         db.withTransaction {
+            val definition = RetourFournisseurMotifs.resolve(retour.motif)
+
+            // Raw DAO delete, not PerteRepository.deletePerte: these linked pertes have affectsStock=false,
+            // so their stock was never separately decremented — restoring would incorrectly add quantity back.
+            db.perteDao().getPertesBySource("retour_fournisseur", id).forEach { db.perteDao().deletePerteById(it.id) }
+
             val items = retourDao.getItemsForRetour(id)
             for (item in items) {
                 productDao.getProductById(item.product_id)?.let { product ->
-                    productDao.updateProduct(product.copy(stock = product.stock + item.quantity))
+                    val reversed = when (definition.stockEffect) {
+                        StockEffect.DECREASE -> product.copy(stock = product.stock + item.quantity)
+                        StockEffect.INCREASE -> product.copy(stock = product.stock - item.quantity)
+                        StockEffect.NONE      -> product
+                    }
+                    productDao.updateProduct(reversed)
                 }
             }
             retourDao.deleteItemsForRetour(id)

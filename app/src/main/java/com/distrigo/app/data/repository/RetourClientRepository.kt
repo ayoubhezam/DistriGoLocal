@@ -8,6 +8,8 @@ import com.distrigo.app.data.local.entity.RetourClientItemEntity
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.model.RetourClientItem
+import com.distrigo.app.data.model.RetourClientMotifs
+import com.distrigo.app.data.model.StockEffect
 
 class RetourClientRepository(
     private val db: AppDatabase
@@ -82,17 +84,18 @@ class RetourClientRepository(
                 )
             ).toInt()
 
+            val definition = RetourClientMotifs.resolve(motif)
             val movementEntities = mutableListOf<StockMovementEntity>()
             val itemEntities = lines.map { (product, quantity) ->
                 val unitPrice  = product.selling_price
                 val totalPrice = quantity * unitPrice
 
-                productDao.updateProduct(
-                    product.copy(
-                        stock        = product.stock + quantity,
-                        camion_stock = product.camion_stock + quantity
-                    )
-                )
+                when (definition.stockEffect) {
+                    StockEffect.INCREASE -> productDao.updateProduct(product.copy(stock = product.stock + quantity, camion_stock = product.camion_stock + quantity))
+                    StockEffect.DECREASE -> productDao.updateProduct(product.copy(stock = product.stock - quantity, camion_stock = product.camion_stock - quantity))
+                    StockEffect.NONE     -> productDao.updateProduct(product.copy(stock = product.stock + quantity, camion_stock = product.camion_stock + quantity))
+                    // NONE still increases here — the physical item really did come back — the offsetting decrease happens immediately below via the linked Perte, giving a full paper trail instead of a silent no-op.
+                }
 
                 movementEntities += StockMovementEntity(
                     product_id   = product.id,
@@ -111,6 +114,16 @@ class RetourClientRepository(
                     created_at   = now
                 )
 
+                if (definition.perteTypeName != null) {
+                    val perteType = db.perteDao().getAllPerteTypes().find { it.name == definition.perteTypeName }
+                        ?: throw IllegalStateException("Type de perte introuvable : ${definition.perteTypeName}. Assurez-vous que seedDefaultPerteTypesIfNeeded() a été exécuté.")
+                    PerteRepository(db).addPerte(
+                        typeId = perteType.id, productId = product.id, quantity = quantity, source = "camion",
+                        dateTime = now, motif = "Retour client #$retourId", photoPath = null, userName = userName,
+                        sourceType = "retour_client", sourceId = retourId
+                    )
+                }
+
                 RetourClientItemEntity(
                     retour_id = retourId, product_id = product.id, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
@@ -127,15 +140,28 @@ class RetourClientRepository(
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
         db.withTransaction {
+            val definition = RetourClientMotifs.resolve(retour.motif)
+
+            if (definition.perteTypeName != null) {
+                // Restores the quantity that addPerte had subtracted, bringing stock back to the "just increased" state.
+                db.perteDao().getPertesBySource("retour_client", id).forEach { PerteRepository(db).deletePerte(it.id) }
+            }
+
             val items = retourDao.getItemsForRetour(id)
             for (item in items) {
                 productDao.getProductById(item.product_id)?.let { product ->
-                    productDao.updateProduct(
-                        product.copy(
+                    val reversed = when (definition.stockEffect) {
+                        // Step 6 always increases first regardless of stockEffect, so NONE reverses the same way as INCREASE.
+                        StockEffect.INCREASE, StockEffect.NONE -> product.copy(
                             stock        = product.stock - item.quantity,
                             camion_stock = product.camion_stock - item.quantity
                         )
-                    )
+                        StockEffect.DECREASE -> product.copy(
+                            stock        = product.stock + item.quantity,
+                            camion_stock = product.camion_stock + item.quantity
+                        )
+                    }
+                    productDao.updateProduct(reversed)
                 }
             }
             retourDao.deleteItemsForRetour(id)

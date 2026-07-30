@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Share
 import com.distrigo.app.ui.components.ReceiptPreviewSheet
 import com.distrigo.app.ui.components.ShareOptionsSheet
 import com.distrigo.app.ui.components.toReceiptData
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun VentesScreen(
@@ -329,8 +330,8 @@ fun VenteDetailScreen(
 
 
     val fullVenteState by viewModel.selectedVente.collectAsState()
-    val vente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
-    val isDelivered = vente.status == "delivered"
+    val displayVente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
+    val isDelivered = displayVente.status == "delivered"
     var isDelivering by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -338,10 +339,11 @@ fun VenteDetailScreen(
     val context = LocalContext.current
     var showReceiptPreview by remember { mutableStateOf(false) }
     var showShareOptions    by remember { mutableStateOf(false) }
+    var overflowMenuExpanded by remember { mutableStateOf(false) }
 
     if (showReceiptPreview) {
         ReceiptPreviewSheet(
-            receipt          = vente.toReceiptData(context),
+            receipt          = displayVente.toReceiptData(context),
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
@@ -352,7 +354,7 @@ fun VenteDetailScreen(
 
     if (showShareOptions) {
         ShareOptionsSheet(
-            receipt   = vente.toReceiptData(context),
+            receipt   = displayVente.toReceiptData(context),
             onDismiss = { showShareOptions = false }
         )
     }
@@ -374,7 +376,7 @@ fun VenteDetailScreen(
                     onClick = {
                         isDeleting = true
                         viewModel.deleteVente(
-                            id        = vente.id,
+                            id        = displayVente.id,
                             onSuccess = {
                                 isDeleting = false
                                 showDeleteDialog = false
@@ -404,9 +406,9 @@ fun VenteDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceSunken)
     ) {
-        // ── Header ──
+        // ── Header (Outside Ticket) ──
         Row(
             modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
@@ -416,138 +418,196 @@ fun VenteDetailScreen(
             }
             Spacer(Modifier.width(4.dp))
             Column {
-                Text("Vente #${vente.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(vente.client_name, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                Text("Vente #${displayVente.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(displayVente.client_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
             Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
                     .clip(DsShapes.pill)
-                    .background(if (isDelivered) DsColors.SuccessLight else DsColors.WarningLight)
+                    .background(if (isDelivered) DsColors.SurfaceSunken else DsColors.WarningLight)
                     .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
                     if (isDelivered) "Livré" else "En attente",
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (isDelivered) DsColors.Success else DsColors.Warning
+                    color      = if (isDelivered) DsColors.TextSecondary else DsColors.Warning
                 )
             }
             Spacer(Modifier.width(DsSpacing.sm))
-            IconButton(
-                onClick  = { showDeleteDialog = true },
-                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(18.dp))
+
+            Box {
+                IconButton(onClick = { overflowMenuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                }
+                DropdownMenu(
+                    expanded = overflowMenuExpanded,
+                    onDismissRequest = { overflowMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Supprimer", color = DsColors.Danger) },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                        onClick = {
+                            overflowMenuExpanded = false
+                            showDeleteDialog = true
+                        }
+                    )
+                }
             }
         }
 
+        // ── Ticket Area ──
         LazyColumn(
-            modifier            = Modifier.weight(1f),
-            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            modifier            = Modifier.weight(1f).padding(horizontal = DsSpacing.lg),
+            contentPadding      = PaddingValues(top = DsSpacing.xs, bottom = DsSpacing.xxl),
         ) {
             item {
-                Text(
-                    "Articles (${vente.items?.size ?: vente.items_count ?: 0})",
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = DsColors.TextSecondary,
-                    modifier   = Modifier.padding(top = 4.dp)
-                )
-            }
-
-            vente.items?.let { itemsList ->
-                items(itemsList, key = { it.id }) { item ->
-                    Card(
-                        modifier  = Modifier.fillMaxWidth(),
-                        shape     = DsShapes.large,
-                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                        elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-                    ) {
-                        Row(modifier = Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                                Text(
-                                    "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
-                                    fontSize = DsTextSize.caption,
-                                    color    = DsColors.TextSecondary
-                                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = com.distrigo.app.ui.common.TicketShape(),
+                    colors = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                    elevation = CardDefaults.cardElevation(0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        // Client Row
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(DsShapes.pill)
+                                    .background(if (isDelivered) DsColors.SurfaceSunken else DsColors.PrimaryLight),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = if (isDelivered) DsColors.TextTertiary else DsColors.Primary)
                             }
-                            Text(
-                                "${"%.2f".format(item.total_price)} DA",
-                                fontSize   = DsTextSize.body,
-                                fontWeight = FontWeight.Bold,
-                                color      = DsColors.Primary
-                            )
+                            Spacer(Modifier.width(DsSpacing.md))
+                            Column {
+                                Text(displayVente.client_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                Text(displayVente.created_at?.take(10) ?: "", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            }
                         }
-                    }
-                }
-            }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text("${"%.2f".format(vente.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
-                }
-            }
+                        Spacer(Modifier.height(DsSpacing.md))
+                        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+                        Spacer(Modifier.height(DsSpacing.md))
 
-            item {
-                val montantPaye = vente.montant_paye ?: 0.0
-                val reste       = vente.total - montantPaye
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.SurfaceSunken)
-                        .padding(14.dp)
-                ) {
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Montant payé", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
-                        Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-                    }
-                    if (reste > 0) {
-                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "ARTICLES (${displayVente.items?.size ?: displayVente.items_count ?: 0})",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.Bold,
+                            color      = DsColors.TextSecondary,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        displayVente.items?.let { itemsList ->
+                            itemsList.forEachIndexed { index, item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = DsSpacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(DsShapes.small)
+                                            .background(if (isDelivered) DsColors.SurfaceSunken else DsColors.PrimaryLight),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = if (isDelivered) DsColors.TextTertiary else DsColors.Primary, modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(Modifier.width(DsSpacing.md))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+                                        Text(
+                                            "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
+                                            fontSize = DsTextSize.caption,
+                                            color    = DsColors.TextSecondary
+                                        )
+                                    }
+                                    Text(
+                                        "${"%.2f".format(item.total_price)} DA",
+                                        fontSize   = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color      = DsColors.TextPrimary
+                                    )
+                                }
+                                if (index < itemsList.size - 1) {
+                                    HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.md))
+                        HorizontalDivider(color = DsColors.Border, thickness = 2.dp) // Emphasized divider
+                        Spacer(Modifier.height(DsSpacing.md))
+
+                        // Total Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isDelivered) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
+                            Text("${"%.2f".format(displayVente.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isDelivered) DsColors.TextPrimary else DsColors.Primary)
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.md))
+
+                        // Payment Rows
+                        val montantPaye = displayVente.montant_paye ?: 0.0
+                        val reste       = displayVente.total - montantPaye
+
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Reste", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
-                            Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                            Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
-                    }
-                }
-            }
 
-            vente.note?.takeIf { it.isNotBlank() }?.let { note ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.large)
-                            .background(DsColors.SurfaceSunken)
-                            .padding(DsSpacing.md),
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                        Text(note, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        if (reste > 0) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                            }
+                        } else {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                com.distrigo.app.ui.common.PaidStamp()
+                            }
+                        }
+
+                        displayVente.note?.takeIf { it.isNotBlank() }?.let { note ->
+                            Spacer(Modifier.height(DsSpacing.md))
+                            HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+                            Spacer(Modifier.height(DsSpacing.sm))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                                Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                            }
+                        }
                     }
                 }
             }
         }
 
+        // ── Bottom Area ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -581,7 +641,7 @@ fun VenteDetailScreen(
                 onClick = {
                     isDelivering = true
                     viewModel.deliverVente(
-                        id        = vente.id,
+                        id        = displayVente.id,
                         onSuccess = {
                             isDelivering  = false
                             viewModel.loadVentes()
@@ -605,6 +665,18 @@ fun VenteDetailScreen(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text("Marquer comme livré", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Vente livrée et enregistrée", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             }
         }
     }

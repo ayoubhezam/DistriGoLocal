@@ -20,5 +20,7 @@ data class PerteEntity(
     val date_time: String,               // ISO-8601
     val motif: String?,
     val photo_path: String?,             // مسار محلي في filesDir
-    val created_at: String
+    val created_at: String,
+    val source_type: String? = null,
+    val source_id: Int? = null
 )

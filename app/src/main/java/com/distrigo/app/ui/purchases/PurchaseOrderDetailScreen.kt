@@ -29,6 +29,7 @@ import com.distrigo.app.ui.components.toReceiptData
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.sp
 @Composable
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
@@ -51,6 +52,7 @@ fun PurchaseOrderDetailScreen(
     var showReceiptPreview by remember { mutableStateOf(false) }
     var showShareOptions    by remember { mutableStateOf(false) }
     var deleteError       by remember { mutableStateOf("") }
+    var overflowMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler { onBack() }
 
@@ -169,298 +171,288 @@ fun PurchaseOrderDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceSunken)
     ) {
-        // ── Header ──
+        // ── Header (Outside Ticket) ──
         Row(
             modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment     = Alignment.CenterVertically
         )
         {
-            // زر الحذف
-            IconButton(
-                onClick  = { showDeleteDialog = true },
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(DsShapes.medium)
-                    .background(DsColors.DangerLight)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Supprimer",
-                    tint     = DsColors.Danger,
-                    modifier = Modifier.size(18.dp)
-                )
+            IconButton(onClick = { onBack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
-
-            // زر التعديل
-            IconButton(
-                onClick  = {
-                    if (displayOrder.status == "received") {
-                        showReopenDialog = true
-                    } else {
-                        showEditScreen = true
-                    }
-                },
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(DsShapes.medium)
-                    .background(DsColors.PrimaryLight)
-            ) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Modifier",
-                    tint     = DsColors.Primary,
-                    modifier = Modifier.size(18.dp)
-                )
+            Spacer(Modifier.width(4.dp))
+            Column {
+                Text("Achat #${displayOrder.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(displayOrder.supplier_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
-
-            // Status badge
+            Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
                     .clip(DsShapes.pill)
-                    .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight)
+                    .background(if (isReceived) DsColors.SurfaceSunken else DsColors.WarningLight)
                     .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
                     if (isReceived) "Reçu" else "En attente",
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (isReceived) DsColors.Success else DsColors.Warning
+                    color      = if (isReceived) DsColors.TextSecondary else DsColors.Warning
                 )
+            }
+            Spacer(Modifier.width(DsSpacing.sm))
+
+            Box {
+                IconButton(onClick = { overflowMenuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                }
+                DropdownMenu(
+                    expanded = overflowMenuExpanded,
+                    onDismissRequest = { overflowMenuExpanded = false }
+                ) {
+                    if (isReceived) {
+                        DropdownMenuItem(
+                            text = { Text("Rouvrir le bon", color = DsColors.Warning) },
+                            leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Warning) },
+                            onClick = {
+                                overflowMenuExpanded = false
+                                showReopenDialog = true
+                            }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Modifier", color = DsColors.Primary) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                            onClick = {
+                                overflowMenuExpanded = false
+                                showEditScreen = true
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Supprimer", color = DsColors.Danger) },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                        onClick = {
+                            overflowMenuExpanded = false
+                            showDeleteDialog = true
+                        }
+                    )
+                }
             }
         }
 
         LazyColumn(
-            contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             modifier            = Modifier.weight(1f)
         ) {
-            // ── Supplier Card ──
             item {
                 Card(
-                    modifier  = Modifier.fillMaxWidth(),
-                    shape     = DsShapes.large,
-                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = DsSpacing.xxl),
+                    shape = com.distrigo.app.ui.common.TicketShape(),
+                    colors = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Row(
-                        modifier          = Modifier.padding(DsSpacing.lg),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                    ) {
-                        Box(
-                            modifier         = Modifier
-                                .size(42.dp)
-                                .clip(DsShapes.medium)
-                                .background(DsColors.PrimaryLight),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Business, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                        }
-                        Column {
-                            Text(displayOrder.supplier_name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
-                            Text(displayOrder.date, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                        }
-                    }
-                }
-            }
-
-            // ── Items ──
-            item {
-                Text("Articles", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-            }
-
-            displayOrder.items?.let { itemsList ->
-                items(itemsList) { item ->
-                    val products by productViewModel.products.collectAsState()
-                    val matchedProduct = remember(products, item.product_id) { products.find { it.id == item.product_id } }
-
-                    Card(
-                        modifier  = Modifier.fillMaxWidth(),
-                        shape     = DsShapes.large,
-                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                        elevation = CardDefaults.cardElevation(1.dp),
-                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-                    ) {
-                        Row(
-                            modifier              = Modifier.padding(DsSpacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier              = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier         = Modifier
-                                        .size(36.dp)
-                                        .clip(DsShapes.medium)
-                                        .background(DsColors.PrimaryLight),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val bitmap = remember(matchedProduct?.image_uri) {
-                                        matchedProduct?.image_uri?.let { uri ->
-                                            val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                            android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                        }
-                                    }
-                                    if (bitmap != null) {
-                                        androidx.compose.foundation.Image(
-                                            bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                                            modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                        )
-                                    } else {
-                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                                Column {
-                                    Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                }
-                            }
-                            Text("${"%.2f".format(item.total_cost)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                        }
-                    }
-                }
-            }
-
-
-// ── Total ──
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .padding(DsSpacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                        Text("${"%.2f".format(displayOrder.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
-                    }
-
-                    val montantPaye = displayOrder.montant_paye ?: 0.0
-                    val reste       = displayOrder.total - montantPaye
-
-                    HorizontalDivider(color = DsColors.Primary.copy(alpha = 0.2f), thickness = 0.5.dp)
-
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text("Montant payé", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.Medium)
-                        Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Success)
-                    }
-
-                    if (reste > 0) {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Text("Reste (Impayé)", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
-                            Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                        }
-                    } else {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Text("Statut", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.Medium)
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        // Supplier Row
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
+                                    .size(40.dp)
                                     .clip(DsShapes.pill)
-                                    .background(DsColors.SuccessLight)
-                                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp)
+                                    .background(if (isReceived) DsColors.SurfaceSunken else DsColors.PrimaryLight),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("Réglé ✓", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Default.Business, contentDescription = null, tint = if (isReceived) DsColors.TextTertiary else DsColors.Primary)
+                            }
+                            Spacer(Modifier.width(DsSpacing.md))
+                            Column {
+                                Text(displayOrder.supplier_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                Text(displayOrder.date, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            }
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.md))
+                        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+                        Spacer(Modifier.height(DsSpacing.md))
+
+                        Text(
+                            "ARTICLES (${displayOrder.items?.size ?: 0})",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.Bold,
+                            color      = DsColors.TextSecondary,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        displayOrder.items?.let { itemsList ->
+                            itemsList.forEachIndexed { index, item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = DsSpacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(DsShapes.small)
+                                            .background(if (isReceived) DsColors.SurfaceSunken else DsColors.PrimaryLight),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = if (isReceived) DsColors.TextTertiary else DsColors.Primary, modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(Modifier.width(DsSpacing.md))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+                                        Text(
+                                            "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA",
+                                            fontSize = DsTextSize.caption,
+                                            color    = DsColors.TextSecondary
+                                        )
+                                    }
+                                    Text(
+                                        "${"%.2f".format(item.total_cost)} DA",
+                                        fontSize   = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color      = DsColors.TextPrimary
+                                    )
+                                }
+                                if (index < itemsList.size - 1) {
+                                    HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.md))
+                        HorizontalDivider(color = DsColors.Border, thickness = 2.dp)
+                        Spacer(Modifier.height(DsSpacing.md))
+
+                        // Total Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
+                            Text("${"%.2f".format(displayOrder.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary)
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.md))
+
+                        // Payment Rows
+                        val montantPaye = displayOrder.montant_paye ?: 0.0
+                        val reste       = displayOrder.total - montantPaye
+
+                        Row(
+                            modifier              = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        if (reste > 0) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                            }
+                        } else {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                com.distrigo.app.ui.common.PaidStamp()
+                            }
+                        }
+
+                        displayOrder.note?.takeIf { it.isNotBlank() }?.let { note ->
+                            Spacer(Modifier.height(DsSpacing.md))
+                            HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+                            Spacer(Modifier.height(DsSpacing.sm))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                                Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                             }
                         }
                     }
                 }
             }
-
-            // ── Note ──
-            displayOrder.note?.let { note ->
-                item {
-                    Card(
-                        modifier  = Modifier.fillMaxWidth(),
-                        shape     = DsShapes.large,
-                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
-                        elevation = CardDefaults.cardElevation(0.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(DsSpacing.md), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                            Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                            Text(note, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
-                        }
-                    }
-                }
-            }
-
-            // ── Actions: Aperçu & Imprimer / Partager ──
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedButton(
-                        onClick  = { showReceiptPreview = true },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape    = DsShapes.large,
-                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-                    ) {
-                        Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                    }
-                    OutlinedButton(
-                        onClick  = { showShareOptions = true },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape    = DsShapes.large,
-                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Partager", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-
-            // ── Receive Button ──
-            if (!isReceived) {
-                item {
-                    Button(
-                        onClick  = { showReceiveDialog = true },
-                        enabled  = !isLoading,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape    = DsShapes.large,
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                        } else {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(DsSpacing.sm))
-                            Text("Marquer comme reçu", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-
-
         }
+
+        // ── Bottom Area ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            OutlinedButton(
+                onClick  = { showReceiptPreview = true },
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape    = DsShapes.medium,
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+            ) {
+                Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+            }
+            OutlinedButton(
+                onClick  = { showShareOptions = true },
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape    = DsShapes.medium,
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Partager", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        if (!isReceived) {
+            Button(
+                onClick  = { showReceiveDialog = true },
+                enabled  = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+                    .height(52.dp),
+                shape    = DsShapes.large,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text("Marquer comme reçu", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Achat finalisé et enregistré", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+            }
+        }
+
         if (showReceiveDialog) {
             AlertDialog(
                 onDismissRequest = { showReceiveDialog = false },

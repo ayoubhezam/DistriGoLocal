@@ -32,14 +32,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import androidx.compose.foundation.ExperimentalFoundationApi
 
-internal val RETOUR_CLIENT_MOTIFS = listOf(
-    "Produit défectueux",
-    "Produit périmé",
-    "Erreur de livraison",
-    "Fin de tournée",
-    "Client insatisfait",
-    "Autre"
-)
+internal val RETOUR_CLIENT_MOTIFS = com.distrigo.app.data.model.RetourClientMotifs.ALL.map { it.id }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable

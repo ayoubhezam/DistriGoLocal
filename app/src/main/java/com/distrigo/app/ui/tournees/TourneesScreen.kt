@@ -60,6 +60,7 @@ fun TourneesScreen(
     var showReopenDialog     by remember { mutableStateOf<Tournee?>(null) }
     var actionError          by remember { mutableStateOf("") }
     var showDeleteTourneeDialog by remember { mutableStateOf<Tournee?>(null) }
+    var showTourneeMenu by remember { mutableStateOf(false) }
     var deleteTourneeError      by remember { mutableStateOf("") }
     var selectedVenteInTournee  by remember { mutableStateOf<Vente?>(null) }
     var longPressVenteInTournee by remember { mutableStateOf<Vente?>(null) }
@@ -473,67 +474,92 @@ fun TourneesScreen(
                 ) {
                     item {
                         Column(modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { selectedTourneeId = null }) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+
+                            // ── Carte d'informations ──
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.Surface)
+                                    .border(1.dp, DsColors.Border, DsShapes.large)
+                                    .padding(DsSpacing.lg)
+                            ) {
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Box(
+                                        modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
+                                    }
+                                    Spacer(Modifier.width(DsSpacing.md))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(current.nom, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                        Spacer(Modifier.height(4.dp))
+                                        TourneeStatusBadge(status = current.status)
+                                    }
+                                    Box {
+                                        IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
+                                            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+                                        }
+                                        DropdownMenu(expanded = showTourneeMenu, onDismissRequest = { showTourneeMenu = false }) {
+                                            DropdownMenuItem(
+                                                text        = { Text("Modifier les informations") },
+                                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                                                onClick     = { showTourneeMenu = false; editingTournee = current; showTourneeForm = true }
+                                            )
+                                            if ((current.ventes_count ?: 0) == 0) {
+                                                DropdownMenuItem(
+                                                    text        = { Text("Supprimer la tournée") },
+                                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                                    onClick     = { showTourneeMenu = false; showDeleteTourneeDialog = current }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-                                Spacer(Modifier.width(DsSpacing.xs))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(current.nom, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                    Spacer(Modifier.height(2.dp))
-                                    TourneeStatusBadge(status = current.status)
-                                    val details = listOfNotNull(
-                                        listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ").ifEmpty { null }
-                                    ).joinToString(" · ")
-                                    if (details.isNotEmpty()) {
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(details, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+
+                                val details = listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ")
+                                if (details.isNotEmpty()) {
+                                    Spacer(Modifier.height(DsSpacing.sm))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(details, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                                    }
+                                }
+
+                                current.date_debut?.let { date ->
+                                    Spacer(Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(formatOrderDate(date.take(10)), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                                     }
                                 }
                             }
 
                             Spacer(Modifier.height(DsSpacing.md))
 
-                            Row(
-                                modifier              = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                            ) {
-                                if ((current.ventes_count ?: 0) == 0) {
-                                    IconButton(
-                                        onClick  = { showDeleteTourneeDialog = current },
-                                        modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-
-                                IconButton(
-                                    onClick  = { editingTournee = current; showTourneeForm = true },
-                                    modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                            // ── Action principale ──
+                            if (current.status == "ouverte") {
+                                Button(
+                                    onClick  = { showCloseDialog = current },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape    = DsShapes.medium,
+                                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(DsSpacing.xs))
+                                    Text("Clôturer la tournée", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                                 }
-
-                                Spacer(Modifier.weight(1f))
-
-                                if (current.status == "ouverte") {
-                                    Button(
-                                        onClick        = { showCloseDialog = current },
-                                        shape          = DsShapes.medium,
-                                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
-                                        contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = 10.dp)
-                                    ) {
-                                        Text("Clôturer la tournée", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                } else {
-                                    Button(
-                                        onClick        = { showReopenDialog = current },
-                                        shape          = DsShapes.medium,
-                                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
-                                        contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = 10.dp)
-                                    ) {
-                                        Text("Rouvrir", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
+                            } else {
+                                Button(
+                                    onClick  = { showReopenDialog = current },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape    = DsShapes.medium,
+                                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                ) {
+                                    Text("Rouvrir", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }

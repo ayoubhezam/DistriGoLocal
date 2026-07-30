@@ -25,7 +25,8 @@ class PerteRepository(
         product_id = this.product_id, product_name = this.product_name, product_image_uri = this.product_image_uri,
         quantity = this.quantity, unit = this.unit, source = this.source,
         purchase_price_snapshot = this.purchase_price_snapshot, valeur_totale = this.valeur_totale,
-        date_time = this.date_time, motif = this.motif, photo_path = this.photo_path, created_at = this.created_at
+        date_time = this.date_time, motif = this.motif, photo_path = this.photo_path, created_at = this.created_at,
+        source_type = this.source_type, source_id = this.source_id
     )
 
 
@@ -92,14 +93,17 @@ class PerteRepository(
     }
 
     suspend fun addPerte(
-        typeId    : Int,
-        productId : Int,
-        quantity  : Double,
-        source    : String,   // "depot" | "camion"
-        dateTime  : String,
-        motif     : String?,
-        photoPath : String?,
-        userName  : String? = null
+        typeId       : Int,
+        productId    : Int,
+        quantity     : Double,
+        source       : String,   // "depot" | "camion"
+        dateTime     : String,
+        motif        : String?,
+        photoPath    : String?,
+        userName     : String? = null,
+        affectsStock : Boolean = true,   // when false, the caller already recorded the physical stock movement itself; only the PerteEntity row is written
+        sourceType   : String? = null,
+        sourceId     : Int?    = null
     ): Map<String, Any> {
         val type = perteDao.getPerteTypeById(typeId) ?: return mapOf("error" to "Type introuvable")
         val product = productDao.getProductById(productId) ?: return mapOf("error" to "Produit introuvable")
@@ -121,44 +125,49 @@ class PerteRepository(
                     quantity = quantity, unit = product.unit_type, source = source,
                     purchase_price_snapshot = product.purchase_price, valeur_totale = valeurTotale,
                     date_time = dateTime, motif = motif, photo_path = photoPath,
-                    created_at = now
+                    created_at = now, source_type = sourceType, source_id = sourceId
                 )
             ).toInt()
 
-            val updatedProduct = if (source == "camion") {
-                product.copy(
-                    stock        = product.stock - quantity,
-                    camion_stock = product.camion_stock - quantity
-                )
-            } else {
-                product.copy(stock = product.stock - quantity)
-            }
-            productDao.updateProduct(updatedProduct)
+            if (affectsStock) {
+                val updatedProduct = if (source == "camion") {
+                    product.copy(
+                        stock        = product.stock - quantity,
+                        camion_stock = product.camion_stock - quantity
+                    )
+                } else {
+                    product.copy(stock = product.stock - quantity)
+                }
+                productDao.updateProduct(updatedProduct)
 
-            db.stockMovementDao().insert(
-                StockMovementEntity(
-                    product_id   = product.id,
-                    product_name = product.name,
-                    type         = "perte",
-                    direction    = "sortie",
-                    quantity     = quantity,
-                    emplacement  = source,
-                    source_label = type.name,
-                    source_type  = "perte",
-                    source_id    = perteId,
-                    unit_price   = product.purchase_price,
-                    total_value  = valeurTotale,
-                    user_name    = userName,
-                    note         = motif,
-                    created_at   = now
+                db.stockMovementDao().insert(
+                    StockMovementEntity(
+                        product_id   = product.id,
+                        product_name = product.name,
+                        type         = "perte",
+                        direction    = "sortie",
+                        quantity     = quantity,
+                        emplacement  = source,
+                        source_label = type.name,
+                        source_type  = "perte",
+                        source_id    = perteId,
+                        unit_price   = product.purchase_price,
+                        total_value  = valeurTotale,
+                        user_name    = userName,
+                        note         = motif,
+                        created_at   = now
+                    )
                 )
-            )
+            }
         }
         return mapOf("message" to "Perte enregistrée avec succès")
     }
 
     suspend fun deletePerte(id: Int): Map<String, Any> {
         val perte = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
+        if (perte.source_type != null) {
+            throw IllegalStateException("Cette perte est liée à un retour fournisseur — supprimez le retour concerné")
+        }
         db.withTransaction {
             productDao.getProductById(perte.product_id)?.let { product ->
                 val restored = if (perte.source == "camion") {

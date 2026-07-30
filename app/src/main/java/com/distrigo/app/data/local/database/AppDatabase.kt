@@ -118,6 +118,13 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
     }
 }
 
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE pertes ADD COLUMN source_type TEXT")
+        db.execSQL("ALTER TABLE pertes ADD COLUMN source_id INTEGER")
+    }
+}
+
 @Database(
     entities = [
         ProductEntity::class,
@@ -152,7 +159,7 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
         RetourClientEntity::class,
         RetourClientItemEntity::class,
     ],
-    version = 29,
+    version = 30,
     exportSchema = false
 )
 
@@ -199,7 +206,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29)
+                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

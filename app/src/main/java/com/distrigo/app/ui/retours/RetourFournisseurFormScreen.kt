@@ -38,13 +38,7 @@ import java.time.ZoneOffset
 internal fun formatRetourQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
 
-internal val RETOUR_FOURNISSEUR_MOTIFS = listOf(
-    "Produit défectueux",
-    "Produit périmé",
-    "Erreur de commande",
-    "Excédent de stock",
-    "Autre"
-)
+internal val RETOUR_FOURNISSEUR_MOTIFS = com.distrigo.app.data.model.RetourFournisseurMotifs.ALL.map { it.id }
 
 data class RetourCartItem(
     val product  : Product,

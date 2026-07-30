@@ -27,5 +27,7 @@ data class Perte(
     val date_time                : String,
     val motif                    : String?,
     val photo_path                : String?,
-    val created_at                : String
+    val created_at                : String,
+    val source_type               : String? = null,
+    val source_id                 : Int? = null
 )
