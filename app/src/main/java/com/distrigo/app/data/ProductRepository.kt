@@ -328,6 +328,11 @@ class ProductRepository(
         return supplierDao.getAllSuppliers().map { it.toSupplier() }
     }
 
+    // Source of truth réactive : émet automatiquement à chaque écriture sur la table suppliers
+    // (création, modification, recalcul de solde après achat/paiement…), quel que soit l'écran.
+    fun observeSuppliers(): Flow<List<Supplier>> =
+        supplierDao.observeAllSuppliers().map { list -> list.map { it.toSupplier() } }
+
     suspend fun addSupplier(supplier: Map<String, Any?>): Map<String, Any> {
         val entity = SupplierEntity(
             name = supplier["name"] as? String ?: "",

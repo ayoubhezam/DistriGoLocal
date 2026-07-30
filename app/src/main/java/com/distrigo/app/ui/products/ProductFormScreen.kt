@@ -69,7 +69,6 @@ fun ProductFormScreen(
     var newCategoryName       by remember { mutableStateOf("") }
 
     val suppliers             by viewModel.suppliers.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadSuppliers() }
     var selectedSupplierId by remember { mutableStateOf<Int?>(if (isEdit) product?.supplier_id else null) }
     var supplierExpanded      by remember { mutableStateOf(false) }
     var showAddSupplierDialog by remember { mutableStateOf(false) }

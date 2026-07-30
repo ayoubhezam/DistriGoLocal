@@ -40,8 +40,6 @@ fun SuppliersScreen(
     var showDeleteDialog by remember { mutableStateOf<Supplier?>(null) }
     var snackbarMessage  by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.loadSuppliers() }
-
     val filtered  = suppliers.filter { supplier ->
         val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
         tokens.isEmpty() || tokens.all { token ->
@@ -95,7 +93,7 @@ fun SuppliersScreen(
         BackHandler { showAddScreen = false; onFullScreenChange(false) }
         SupplierFormScreen(
             onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { showAddScreen = false; onFullScreenChange(false); viewModel.loadSuppliers() }
+            onSaved = { showAddScreen = false; onFullScreenChange(false) }
         )
         return
     }
@@ -112,8 +110,6 @@ fun SuppliersScreen(
                 onFullScreenChange(false)
                 viewModel.loadSuppliersAndUpdate(supplier.id) { updated ->
                     selectedSupplier = updated
-                    viewModel.loadSuppliers()
-
                 }
             }
         )

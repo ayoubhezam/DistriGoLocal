@@ -117,7 +117,7 @@ fun SupplierDetailScreen(
             viewModel.updateSupplier(
                 id        = currentSupplier.id,
                 supplier  = supplierToUpdateMap(currentSupplier, newImageUri),
-                onSuccess = { viewModel.loadSuppliers() },
+                onSuccess = {},
                 onError   = {}
             )
         }
@@ -541,7 +541,7 @@ fun SupplierDetailScreen(
                                                 viewModel.updateSupplier(
                                                     id        = currentSupplier.id,
                                                     supplier  = supplierToUpdateMap(currentSupplier, null),
-                                                    onSuccess = { viewModel.loadSuppliers() },
+                                                    onSuccess = {},
                                                     onError   = {}
                                                 )
                                             }

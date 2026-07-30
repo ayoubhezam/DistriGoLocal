@@ -98,12 +98,9 @@ fun PurchaseFormScreen(
     var newSupplierPhone      by remember { mutableStateOf("") }
     var showAddProductScreen by remember { mutableStateOf(false) }
     var pendingNewProductId  by remember { mutableStateOf<Int?>(null) }
+    var pendingNewSupplierName by remember { mutableStateOf<String?>(null) }
     val step2ListState = rememberLazyListState()
     val step2Collapsed by rememberScrollCollapsed(step2ListState)
-
-    LaunchedEffect(Unit) {
-        supplierViewModel.loadSuppliers()
-    }
 
     // Auto-add a freshly created product ("Nouveau produit") to the cart once the observed
     // products flow actually contains it — the flow's emission arrives asynchronously after
@@ -119,6 +116,17 @@ fun PurchaseFormScreen(
             )
         }
         pendingNewProductId = null
+    }
+
+    // Same pattern for a freshly created supplier ("Nouveau fournisseur"): select it once the
+    // observed suppliers flow actually contains it, instead of reading the flow synchronously
+    // in the add callback (which would race the Room emission).
+    LaunchedEffect(suppliers, pendingNewSupplierName) {
+        val name = pendingNewSupplierName ?: return@LaunchedEffect
+        val newSupplier = suppliers.find { it.name == name } ?: return@LaunchedEffect
+        selectedSupplier       = newSupplier
+        showSupplierPicker     = false
+        pendingNewSupplierName = null
     }
 
     LaunchedEffect(suppliers) {
@@ -261,13 +269,9 @@ fun PurchaseFormScreen(
                                 "initial_balance" to 0.0
                             ),
                             onSuccess = {
-                                supplierViewModel.loadSuppliers()
-                                // اختر المورد الجديد تلقائيا
-                                val newSupplier = suppliers.find { it.name == newSupplierName.trim() }
-                                if (newSupplier != null) {
-                                    selectedSupplier   = newSupplier
-                                    showSupplierPicker = false
-                                }
+                                // اختر المورد الجديد تلقائيا — عبر LaunchedEffect(suppliers,
+                                // pendingNewSupplierName) بمجرد وصول الإصدار الجديد من التدفق المُراقَب
+                                pendingNewSupplierName = newSupplierName.trim()
                                 showAddSupplierDialog = false
                                 newSupplierName  = ""
                                 newSupplierPhone = ""

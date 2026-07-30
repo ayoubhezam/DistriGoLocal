@@ -44,15 +44,15 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
 
-    private val _suppliers = MutableStateFlow<List<Supplier>>(emptyList())
-    val suppliers: StateFlow<List<Supplier>> = _suppliers
+    // Observés depuis Room — mise à jour automatique à chaque écriture sur la table suppliers
+    val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _priceHistory = MutableStateFlow<List<PriceHistory>>(emptyList())
     val priceHistory: StateFlow<List<PriceHistory>> = _priceHistory
 
     init {
         loadCategories()
-        loadSuppliers()
     }
 
     fun deleteProduct(id: Int) {
@@ -154,16 +154,6 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun loadSuppliers() {
-        viewModelScope.launch {
-            try {
-                _suppliers.value = repository.getSuppliers()
-            } catch (e: Exception) {
-                // ignore
-            }
-        }
-    }
-
     fun addSupplierAndRefresh(
         name      : String,
         phone     : String?,
@@ -179,7 +169,6 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                     "balance" to 0.0
                 ))
                 val newId = (result["id"] as? Double)?.toInt() ?: 0
-                loadSuppliers()
                 onSuccess(newId)
             } catch (e: Exception) {
                 // ignore

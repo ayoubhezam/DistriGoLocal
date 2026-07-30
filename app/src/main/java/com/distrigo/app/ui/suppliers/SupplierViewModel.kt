@@ -4,7 +4,11 @@ import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SupplierProduct
 import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.SupplierTransaction
 import android.app.Application
@@ -21,33 +25,21 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         db.supplierDao(),
         db     = db
     )
-    private val _suppliers = MutableStateFlow<List<Supplier>>(emptyList())
-    val suppliers: StateFlow<List<Supplier>> = _suppliers
-
     private val _supplierProducts = MutableStateFlow<List<SupplierProduct>>(emptyList())
     val supplierProducts: StateFlow<List<SupplierProduct>> = _supplierProducts
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    init { loadSuppliers() }
-
-    fun loadSuppliers() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _suppliers.value = repository.getSuppliers()
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+    // Room-observed single source of truth: re-emits on every write to the suppliers table
+    // (ajout/modification/suppression, recalcul de solde après achat ou paiement…) — no manual refresh.
+    val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
+        .onEach { _isLoading.value = false; _error.value = null }
+        .catch { e -> _error.value = e.message; _isLoading.value = false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun loadSupplierProducts(supplierId: Int) {
         viewModelScope.launch {
@@ -67,7 +59,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repository.addSupplier(supplier)
-                loadSuppliers()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
@@ -84,7 +75,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repository.updateSupplier(id, supplier)
-                loadSuppliers()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
@@ -100,7 +90,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repository.deleteSupplier(id)
-                loadSuppliers()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
@@ -108,12 +97,13 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // Résout un fournisseur précis directement depuis la base (lecture one-shot) — le flux
+    // observé `suppliers` se met à jour tout seul ; ceci sert uniquement au rappel immédiat
+    // après création/modification sans dépendre du timing d'émission du flux.
     fun loadSuppliersAndUpdate(supplierId: Int, onUpdated: (Supplier?) -> Unit) {
         viewModelScope.launch {
             try {
-                _suppliers.value = repository.getSuppliers()
-                val updated = _suppliers.value.find { it.id == supplierId }
-                onUpdated(updated)
+                onUpdated(repository.getSuppliers().find { it.id == supplierId })
             } catch (e: Exception) {
                 _error.value = e.message
             }
@@ -144,7 +134,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
             try {
                 repository.addSupplierPayment(supplierId, amount, note)
                 loadTransactions(supplierId)
-                loadSuppliers()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
@@ -161,7 +150,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repository.deleteSupplierPayment(supplierId, paymentId)
-                loadSuppliers()
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
@@ -180,7 +168,6 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repository.updateSupplierPayment(supplierId, paymentId, amount)
-                loadSuppliers()
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
