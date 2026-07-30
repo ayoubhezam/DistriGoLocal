@@ -72,7 +72,6 @@ fun TourneesScreen(
     var transientMessage        by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
-    LaunchedEffect(Unit) { productViewModel.loadProducts() }
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {

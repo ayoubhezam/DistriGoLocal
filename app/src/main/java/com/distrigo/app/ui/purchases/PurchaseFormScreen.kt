@@ -101,7 +101,6 @@ fun PurchaseFormScreen(
     val step2Collapsed by rememberScrollCollapsed(step2ListState)
 
     LaunchedEffect(Unit) {
-        productViewModel.loadProducts()
         supplierViewModel.loadSuppliers()
     }
 
@@ -246,7 +245,7 @@ fun PurchaseFormScreen(
                             ),
                             onSuccess = {
                                 supplierViewModel.loadSuppliers()
-                                // اختر المورد الجديد تلقائياً
+                                // اختر المورد الجديد تلقائيا
                                 val newSupplier = suppliers.find { it.name == newSupplierName.trim() }
                                 if (newSupplier != null) {
                                     selectedSupplier   = newSupplier
@@ -385,7 +384,6 @@ fun PurchaseFormScreen(
             onBack  = { showAddProductScreen = false },
             onSaved = { newProductId ->
                 showAddProductScreen = false
-                productViewModel.loadProducts()
                 val newProduct = products.find { it.id == newProductId }
                 if (newProduct != null) {
                     cartItems = cartItems + CartItem(

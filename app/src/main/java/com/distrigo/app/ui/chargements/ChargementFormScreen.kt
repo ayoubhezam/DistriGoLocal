@@ -62,8 +62,6 @@ fun ChargementFormScreen(
     var isSaving   by remember { mutableStateOf(false) }
     var showCart   by remember { mutableStateOf(preSelectedProduct != null) }
 
-    LaunchedEffect(Unit) { productViewModel.loadProducts() }
-
     LaunchedEffect(correctionSource, products) {
         if (correctionSource != null && products.isNotEmpty() && cartItems.isEmpty()) {
             cartItems = correctionSource.items?.mapNotNull { item ->
@@ -105,7 +103,6 @@ fun ChargementFormScreen(
             userName  = userName.trim().ifEmpty { null },
             items     = items,
             onSuccess = {
-                productViewModel.loadProducts()
                 onSaved()
             },
             onError   = { isSaving = false }

@@ -75,8 +75,6 @@ fun CommissionPolicyScreen(
     var freeGoodProductName by remember { mutableStateOf("") }
     var productSearchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) { productViewModel.loadProducts() }
-
     // ── تعبئة النموذج من السياسة الحالية عند فتح الشاشة (إن وُجدت) ──
     LaunchedEffect(activePolicy) {
         activePolicy?.let { pwt ->

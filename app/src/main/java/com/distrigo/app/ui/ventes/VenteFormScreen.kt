@@ -38,6 +38,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import com.distrigo.app.ui.tournees.TourneeVenteCartItem
+import com.distrigo.app.ui.tournees.TourneeVenteCartRow
 import androidx.compose.ui.platform.LocalContext
 
 internal fun formatQty(v: Double): String =
@@ -46,7 +48,15 @@ internal fun formatQty(v: Double): String =
 data class VenteCartItem(
     val product   : Product,
     val quantity  : Double = 1.0,
-    val unitPrice : Double
+    val unitPrice : Double,
+    // Edit mode only: this line's quantity as saved in the DB, captured once at edit-load.
+    // The live products flow already includes this sale's own stock deduction, so EVERY
+    // resync — not just the first load — must re-add this amount onto the fresh snapshot
+    // before display; otherwise a later resync would replace the restored baseline with the
+    // raw depleted value and resurface the false "Reste négatif on a valid sale" bug.
+    // Null for lines added fresh in this session (nothing to restore). Not dead code while
+    // "Modifier la vente" is WIP — it ships with that feature.
+    val originalReservedQty : Double? = null
 )
 
 @Composable
@@ -84,7 +94,6 @@ fun VenteFormScreen(
 
 
     LaunchedEffect(Unit) {
-        productViewModel.loadProducts()
         clientViewModel.loadClients()
     }
 
@@ -103,7 +112,7 @@ fun VenteFormScreen(
     LaunchedEffect(products, vente) {
         if (isEdit && cartItems.isEmpty() && vente!!.items != null && products.isNotEmpty()) {
             cartItems = vente.items.map { item ->
-                val product = products.find { it.id == item.product_id }
+                val liveProduct = products.find { it.id == item.product_id }
                     ?: Product(
                         id             = item.product_id,
                         name           = item.product_name,
@@ -124,13 +133,56 @@ fun VenteFormScreen(
                         supplier_id    = null,
                         camion_stock   = 0.0
                     )
+                // `liveProduct.stock`/`camion_stock` already reflect this sale's own deduction
+                // (applyStockDelta was applied at save time), so the raw live snapshot understates
+                // what was actually available when this sale was made — the cart preview would show
+                // a depleted or negative "Reste" on an untouched, valid sale. Restore this item's own
+                // reservation onto the snapshot before it's used for display, mirroring
+                // ProductRepository.updateVente's own reversal math, but only in local UI state —
+                // never persisted. NOTE: `isEdit` has no live UI entry point yet ("Modifier la vente"
+                // is still WIP), so this branch doesn't execute in production today — do not remove it
+                // as dead code; it's the fix for when that entry point ships.
+                val editBaselineProduct = if (vente.source == "camion") {
+                    liveProduct.copy(
+                        stock        = liveProduct.stock + item.quantity,
+                        camion_stock = liveProduct.camion_stock + item.quantity
+                    )
+                } else {
+                    liveProduct.copy(stock = liveProduct.stock + item.quantity)
+                }
                 VenteCartItem(
-                    product   = product,
-                    quantity  = item.quantity,
-                    unitPrice = item.unit_price
+                    product             = editBaselineProduct,
+                    quantity            = item.quantity,
+                    unitPrice           = item.unit_price,
+                    originalReservedQty = item.quantity
                 )
             }
         }
+    }
+
+    // Keep each cart line's product snapshot synced with the live products flow (screens stay
+    // mounted under when(selectedTab) navigation, and products now re-emits automatically on
+    // every write to the products table). For edit-mode lines, re-apply the original saved
+    // reservation on every sync — see VenteCartItem.originalReservedQty.
+    LaunchedEffect(products) {
+        if (products.isEmpty()) return@LaunchedEffect
+        var changed = false
+        val resynced = cartItems.map { ci ->
+            val fresh = products.find { it.id == ci.product.id } ?: return@map ci
+            val adjusted = ci.originalReservedQty?.let { reserved ->
+                if (vente?.source == "camion")
+                    fresh.copy(stock = fresh.stock + reserved, camion_stock = fresh.camion_stock + reserved)
+                else
+                    fresh.copy(stock = fresh.stock + reserved)
+            } ?: fresh
+            if (adjusted.stock == ci.product.stock && adjusted.camion_stock == ci.product.camion_stock) {
+                ci
+            } else {
+                changed = true
+                ci.copy(product = adjusted)
+            }
+        }
+        if (changed) cartItems = resynced
     }
 
     val filteredProducts = products.filter { product ->
@@ -163,7 +215,6 @@ fun VenteFormScreen(
                 montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
                 userName    = userName.trim().ifEmpty { null },
                 onSuccess   = {
-                    productViewModel.loadProducts()
                     clientViewModel.loadClients()
                     onSaved()
                 },
@@ -179,7 +230,6 @@ fun VenteFormScreen(
                 montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
                 userName    = userName.trim().ifEmpty { null },
                 onSuccess   = {
-                    productViewModel.loadProducts()
                     onSaved()
                 },
                 onError     = { error -> isSaving = false; saveError = error }
@@ -385,26 +435,50 @@ fun VenteFormScreen(
                     modifier            = Modifier.weight(1f)
                 ) {
                     items(cartItems, key = { "cart_${it.product.id}" }) { item ->
-                        VenteCartRow(
-                            item             = item,
-                            isExpanded       = expandedCartItemId == item.product.id,
-                            onToggleExpand   = {
-                                expandedCartItemId = if (expandedCartItemId == item.product.id) null else item.product.id
-                            },
-                            onQuantityChange = { newQty ->
-                                cartItems = cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
-                                }
-                            },
-                            onPriceChange = { newPrice ->
-                                cartItems = cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(unitPrice = newPrice) else it
-                                }
-                            },
-                            onRemove = {
-                                cartItems = cartItems.filter { it.product.id != item.product.id }
+                        val isRowExpanded = expandedCartItemId == item.product.id
+                        val toggleExpand: () -> Unit = {
+                            expandedCartItemId = if (isRowExpanded) null else item.product.id
+                        }
+                        val changeQuantity: (Double) -> Unit = { newQty ->
+                            cartItems = cartItems.map {
+                                if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
                             }
-                        )
+                        }
+                        val changePrice: (Double) -> Unit = { newPrice ->
+                            cartItems = cartItems.map {
+                                if (it.product.id == item.product.id) it.copy(unitPrice = newPrice) else it
+                            }
+                        }
+                        val removeItem: () -> Unit = {
+                            cartItems = cartItems.filter { it.product.id != item.product.id }
+                        }
+
+                        // Camion-sourced items (once "Modifier la vente" wires an edit path for
+                        // Tournée sales) must use the camion availability formula, never Dépôt's —
+                        // reuse TourneeVenteCartRow itself rather than duplicating its formula here.
+                        if (vente?.source == "camion") {
+                            TourneeVenteCartRow(
+                                item = TourneeVenteCartItem(
+                                    product   = item.product,
+                                    quantity  = item.quantity,
+                                    unitPrice = item.unitPrice
+                                ),
+                                isExpanded       = isRowExpanded,
+                                onToggleExpand   = toggleExpand,
+                                onQuantityChange = changeQuantity,
+                                onPriceChange    = changePrice,
+                                onRemove         = removeItem
+                            )
+                        } else {
+                            VenteCartRow(
+                                item             = item,
+                                isExpanded       = isRowExpanded,
+                                onToggleExpand   = toggleExpand,
+                                onQuantityChange = changeQuantity,
+                                onPriceChange    = changePrice,
+                                onRemove         = removeItem
+                            )
+                        }
                     }
 
                     item {

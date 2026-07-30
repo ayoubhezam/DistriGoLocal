@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.distrigo.app.data.local.entity.ProductEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductDao {
@@ -13,6 +14,11 @@ interface ProductDao {
     // 1. جلب جميع المنتجات (رتبناها تنازلياً حسب الـ ID لتظهر الأحدث أولاً، ويمكن تعديلها لاحقاً)
     @Query("SELECT * FROM products ORDER BY id DESC")
     suspend fun getAllProducts(): List<ProductEntity>
+
+    // نسخة مُراقَبة: Room يعيد إصدار القائمة تلقائياً عند أي كتابة على جدول المنتجات،
+    // مهما كان الـ DAO أو الـ Repository الذي نفّذ الكتابة (بيع، chargement، perte، retour…)
+    @Query("SELECT * FROM products ORDER BY id DESC")
+    fun observeAllProducts(): Flow<List<ProductEntity>>
 
     // 2. جلب منتج واحد بواسطة الـ ID
     @Query("SELECT * FROM products WHERE id = :productId")

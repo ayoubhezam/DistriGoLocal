@@ -9,7 +9,9 @@ import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class RetourFournisseurViewModel(application: Application) : AndroidViewModel(application) {
@@ -21,8 +23,9 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
     private val _retours = MutableStateFlow<List<RetourFournisseur>>(emptyList())
     val retours: StateFlow<List<RetourFournisseur>> = _retours
 
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    // Observés depuis Room — mise à jour automatique à chaque écriture sur la table products
+    val products: StateFlow<List<Product>> = productRepository.observeProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -44,16 +47,6 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
         }
     }
 
-    fun loadProducts() {
-        viewModelScope.launch {
-            try {
-                _products.value = productRepository.getProducts()
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
-    }
-
     fun createRetour(
         supplierId : Int,
         date       : String,
@@ -70,7 +63,6 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
                 onError(result["error"] as String)
             } else {
                 loadRetours(supplierId)
-                loadProducts()
                 onSuccess()
             }
         }
@@ -88,7 +80,6 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
                 onError(result["error"] as String)
             } else {
                 loadRetours(supplierId)
-                loadProducts()
                 onSuccess()
             }
         }

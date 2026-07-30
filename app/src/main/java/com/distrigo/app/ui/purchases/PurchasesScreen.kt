@@ -146,7 +146,6 @@ fun PurchasesScreen(
                                 longPressOrder = null
                                 deleteError = ""
                                 viewModel.loadOrders()
-                                productViewModel.loadProducts()
                             },
                             onError = { error ->
                                 deleteError = error

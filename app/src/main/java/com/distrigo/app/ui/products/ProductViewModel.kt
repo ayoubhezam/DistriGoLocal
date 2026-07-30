@@ -7,7 +7,11 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.local.database.AppDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.Category
 import com.distrigo.app.data.model.PriceHistory
@@ -24,14 +28,18 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         db     = db
     )
 
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
-
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    // Room-observed single source of truth: re-emits on every write to the products table,
+    // from any feature (vente, chargement, perte, retour, inventaire…) — no manual refresh.
+    val products: StateFlow<List<Product>> = repository.observeProducts()
+        .onEach { _isLoading.value = false; _error.value = null }
+        .catch { e -> _error.value = e.message; _isLoading.value = false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
@@ -43,30 +51,14 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     val priceHistory: StateFlow<List<PriceHistory>> = _priceHistory
 
     init {
-        loadProducts()
         loadCategories()
         loadSuppliers()
-    }
-
-    fun loadProducts() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _products.value = repository.getProducts()
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
     }
 
     fun deleteProduct(id: Int) {
         viewModelScope.launch {
             try {
                 repository.deleteProduct(id)
-                loadProducts()
             } catch (e: Exception) {
                 _error.value = e.message
             }

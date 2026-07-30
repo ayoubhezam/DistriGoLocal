@@ -82,13 +82,12 @@ fun ProductsScreen(
     var showSortSheet        by remember { mutableStateOf(false) }
     val sheetState           = rememberModalBottomSheetState()
 
-        LaunchedEffect(Unit) { viewModel.loadProducts() }
     if (showAddScreen) {
         onFullScreenChange(true)
         BackHandler { showAddScreen = false; onFullScreenChange(false) }
         ProductFormScreen(
             onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { showAddScreen = false; onFullScreenChange(false); viewModel.loadProducts() }
+            onSaved = { showAddScreen = false; onFullScreenChange(false) }
         )
         return
     }
@@ -204,7 +203,7 @@ fun ProductsScreen(
         ProductFormScreen(
             product = product,
             onBack  = { showEditScreen = null; onFullScreenChange(false) },
-            onSaved = { showEditScreen = null; selectedProduct = null; onFullScreenChange(false); viewModel.loadProducts() }
+            onSaved = { showEditScreen = null; selectedProduct = null; onFullScreenChange(false) }
         )
         return
     }

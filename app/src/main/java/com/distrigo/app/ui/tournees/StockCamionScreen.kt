@@ -37,8 +37,6 @@ fun StockCamionScreen(
     productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    LaunchedEffect(Unit) { productViewModel.loadProducts() }
-
     val products  by productViewModel.products.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
 
@@ -61,7 +59,6 @@ fun StockCamionScreen(
             onSaved = {
                 showNewChargement = false
                 onFullScreenChange(false)
-                productViewModel.loadProducts()
             }
         )
         return
@@ -76,7 +73,6 @@ fun StockCamionScreen(
             onSaved = {
                 editingProduct = null
                 onFullScreenChange(false)
-                productViewModel.loadProducts()
             }
         )
         return

@@ -78,12 +78,24 @@ fun TourneeVenteFormScreen(
 
 
     LaunchedEffect(Unit) {
-        productViewModel.loadProducts()
         clientViewModel.loadClients()
     }
     LaunchedEffect(preSelectedClientId, clients) {
         if (preSelectedClientId != null && selectedClient == null) {
             selectedClient = clients.find { it.id == preSelectedClientId }
+        }
+    }
+    // Because this screen can stay alive in the background (MainActivity navigates via
+    // when(selectedTab), not NavHost), a product's camion_stock can change elsewhere
+    // (Chargement, Perte) while this cart is still open. Re-sync each cart item's product
+    // snapshot against the live list so the stepper's ceiling/"Disponible" line stay honest.
+    // This is a UX refresh only — ProductRepository.createVente re-checks camion_stock
+    // against the database at save time regardless, so data integrity never depended on this.
+    LaunchedEffect(products) {
+        if (products.isNotEmpty()) {
+            cartItems = cartItems.map { ci ->
+                products.find { it.id == ci.product.id }?.let { fresh -> ci.copy(product = fresh) } ?: ci
+            }
         }
     }
 
@@ -116,7 +128,6 @@ fun TourneeVenteFormScreen(
             note        = note.trim().ifEmpty { null },
             montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
             onSuccess   = {
-                productViewModel.loadProducts()
                 clientViewModel.loadClients()
                 onSaved()
             },
@@ -1082,8 +1093,10 @@ private fun Step3Validation(
 }
 
 // ── Cart row (expandable, shared SelectionCartCard) ──────────────────────────
+// Not private: reused by VenteFormScreen.kt for camion-sourced items in edit mode,
+// so the camion availability formula has exactly one implementation in the app.
 @Composable
-private fun TourneeVenteCartRow(
+fun TourneeVenteCartRow(
     item             : TourneeVenteCartItem,
     isExpanded       : Boolean,
     onToggleExpand   : () -> Unit,

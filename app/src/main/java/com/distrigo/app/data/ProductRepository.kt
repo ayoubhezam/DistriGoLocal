@@ -9,6 +9,8 @@ import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.local.entity.SecteurEntity
 import com.distrigo.app.data.model.Secteur
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 class ProductRepository(
     private val productDao: ProductDao,
@@ -195,6 +197,11 @@ class ProductRepository(
     suspend fun getProducts(): List<Product> {
         return productDao.getAllProducts().map { it.toProduct() }
     }
+
+    // Source of truth réactive : émet automatiquement à chaque écriture sur la table products,
+    // quel que soit l'écran ou le repository à l'origine de la modification.
+    fun observeProducts(): Flow<List<Product>> =
+        productDao.observeAllProducts().map { list -> list.map { it.toProduct() } }
 
     suspend fun addProduct(product: Map<String, Any?>): Map<String, Any> {
         val catId = (product["category_id"] as? Number)?.toInt()

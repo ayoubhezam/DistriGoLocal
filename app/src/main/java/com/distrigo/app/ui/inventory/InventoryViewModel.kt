@@ -11,7 +11,9 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.InventoryRepository
 import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
 class InventoryViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,9 +30,9 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     private val _sessionItems = MutableStateFlow<List<InventoryItem>>(emptyList())
     val sessionItems: StateFlow<List<InventoryItem>> = _sessionItems
 
-    // ── Produits (pour "Rechercher un produit") ──
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
+    val products: StateFlow<List<Product>> = productRepository.observeProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Résumé après "Terminer l'inventaire" ──
     private val _summary = MutableStateFlow<InventorySessionSummary?>(null)
@@ -50,7 +52,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         viewModelScope.launch {
-            loadProducts()
             startOrResumeSession()
         }
     }
@@ -81,16 +82,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun loadProducts() {
-        viewModelScope.launch {
-            try {
-                _products.value = productRepository.getProducts()
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
-    }
-
     // ── Vérification locale rapide (sans requête DB) avant d'ouvrir l'écran de saisie ──
     fun isProductAlreadyScanned(productId: Int): Boolean {
         return _sessionItems.value.any { it.product_id == productId }
@@ -110,7 +101,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
                 onError(result["error"] as String)
             } else {
                 loadSessionItems(sessionId)
-                loadProducts()   // les stocks affichés (product.stock) ont changé
                 onSuccess(
                     result["qte_systeme"] as Double,
                     result["ecart"] as Double,
@@ -166,7 +156,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
                 onError(result["error"] as String)
             } else {
                 loadSessionItems(sessionId)
-                loadProducts()
                 onSuccess()
             }
         }
@@ -179,7 +168,6 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
                 onError(result["error"] as String)
             } else {
                 loadSessionItems(sessionId)
-                loadProducts()
                 onSuccess()
             }
         }

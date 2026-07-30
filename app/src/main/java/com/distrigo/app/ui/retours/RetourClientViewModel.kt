@@ -10,7 +10,9 @@ import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourClientRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class RetourClientViewModel(application: Application) : AndroidViewModel(application) {
@@ -22,8 +24,9 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
     private val _retours = MutableStateFlow<List<RetourClient>>(emptyList())
     val retours: StateFlow<List<RetourClient>> = _retours
 
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    // Observés depuis Room — mise à jour automatique à chaque écriture sur la table products
+    val products: StateFlow<List<Product>> = productRepository.observeProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _clients = MutableStateFlow<List<Client>>(emptyList())
     val clients: StateFlow<List<Client>> = _clients
@@ -44,16 +47,6 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadProducts() {
-        viewModelScope.launch {
-            try {
-                _products.value = productRepository.getProducts()
-            } catch (e: Exception) {
-                _error.value = e.message
             }
         }
     }
@@ -84,7 +77,6 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
                 onError(result["error"] as String)
             } else {
                 loadRetours()
-                loadProducts()
                 onSuccess()
             }
         }
@@ -101,7 +93,6 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
                 onError(result["error"] as String)
             } else {
                 loadRetours()
-                loadProducts()
                 onSuccess()
             }
         }

@@ -68,7 +68,6 @@ fun RetourClientFormScreen(
     var saveError                         by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        viewModel.loadProducts()
         viewModel.loadClients()
     }
 

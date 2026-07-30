@@ -53,9 +53,6 @@ fun PurchaseOrderDetailScreen(
     var deleteError       by remember { mutableStateOf("") }
 
     BackHandler { onBack() }
-    LaunchedEffect(Unit) {
-        productViewModel.loadProducts()
-    }
 
     if (showReopenDialog) {
         AlertDialog(
@@ -108,7 +105,6 @@ fun PurchaseOrderDetailScreen(
                 onFullScreenChange(false)
                 viewModel.loadOrderDetail(displayOrder.id)
                 viewModel.loadOrders()
-                productViewModel.loadProducts()
             },
             purchaseViewModel = viewModel
         )
@@ -134,7 +130,6 @@ fun PurchaseOrderDetailScreen(
                         id        = displayOrder.id,
                         onSuccess = {
                             showDeleteDialog = false
-                            productViewModel.loadProducts()
                             onBack()
                         },
                         onError = { error ->
@@ -497,7 +492,6 @@ fun PurchaseOrderDetailScreen(
                                 id        = displayOrder.id,
                                 userName  = receiveUserName.trim().ifEmpty { null },
                                 onSuccess = {
-                                    productViewModel.loadProducts()
                                     onReceived()
                                 },
                                 onError   = { isLoading = false }

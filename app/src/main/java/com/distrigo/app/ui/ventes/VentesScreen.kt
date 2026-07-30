@@ -144,7 +144,6 @@ fun VentesScreen(
                                 longPressVente   = null
                                 deleteError      = ""
                                 viewModel.loadVentes()
-                                productViewModel.loadProducts()
                                 clientViewModel.loadClients()
                             },
                             onError = { error ->
@@ -381,7 +380,6 @@ fun VenteDetailScreen(
                                 isDeleting = false
                                 showDeleteDialog = false
                                 viewModel.loadVentes()
-                                productViewModel.loadProducts()
                                 clientViewModel.loadClients()
                                 onDeleted()
                             },
@@ -589,7 +587,6 @@ fun VenteDetailScreen(
                         onSuccess = {
                             isDelivering  = false
                             viewModel.loadVentes()
-                            productViewModel.loadProducts()
                             clientViewModel.loadClients()
                             onDelivered()
                         },

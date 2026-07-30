@@ -119,7 +119,6 @@ private fun InventorySessionScreen(
 
     LaunchedEffect(Unit) {
         viewModel.startOrResumeSession()
-        viewModel.loadProducts()
     }
 
     var step             by remember { mutableStateOf<InvStep>(InvStep.Scan) }

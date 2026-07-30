@@ -74,8 +74,6 @@ fun RetourFournisseurFormScreen(
     var isSaving                by remember { mutableStateOf(false) }
     var saveError                 by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) { viewModel.loadProducts() }
-
     val filteredProducts = products.filter { product ->
         val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
         tokens.isEmpty() || tokens.all { token ->

@@ -10,7 +10,9 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class PerteViewModel(application: Application) : AndroidViewModel(application) {
@@ -27,9 +29,9 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
     private val _pertes = MutableStateFlow<List<Perte>>(emptyList())
     val pertes: StateFlow<List<Perte>> = _pertes
 
-    // ── المنتجات (لاختيار Produit في الفورم) ──
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    // ── المنتجات (لاختيار Produit في الفورم) — مُراقَبة مباشرة من Room، تتحدّث تلقائياً ──
+    val products: StateFlow<List<Product>> = productRepository.observeProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedMonth = MutableStateFlow(currentMonth())
     val selectedMonth: StateFlow<String> = _selectedMonth
@@ -44,7 +46,6 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.seedDefaultPerteTypesIfNeeded()
             loadPerteTypes()
-            loadProducts()
         }
     }
 
@@ -76,16 +77,6 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadProducts() {
-        viewModelScope.launch {
-            try {
-                _products.value = productRepository.getProducts()
-            } catch (e: Exception) {
-                _error.value = e.message
             }
         }
     }
@@ -143,7 +134,6 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 loadPertes(typeId)
                 loadPerteTypes()
-                loadProducts()   // تحديث الأرصدة المعروضة بعد خصم المخزون
                 onSuccess()
             }
         }
@@ -160,7 +150,6 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
                 repository.deletePerte(id)
                 loadPertes(typeId)
                 loadPerteTypes()
-                loadProducts()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
@@ -188,7 +177,6 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 loadPertes(typeId)
                 loadPerteTypes()
-                loadProducts()
                 onSuccess()
             }
         }
