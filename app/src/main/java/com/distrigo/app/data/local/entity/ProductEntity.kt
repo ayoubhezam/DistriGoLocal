@@ -30,4 +30,10 @@ data class ProductEntity(
     val supplier_name: String?,
     val supplier_id: Int?,
 
-    val camion_stock: Double = 0.0)
+    val camion_stock: Double = 0.0,
+
+    val sous_categorie_id   : Int?    = null,
+    val sous_categorie_name : String? = null,
+    val marque_id           : Int?    = null,
+    val marque_name         : String? = null
+)

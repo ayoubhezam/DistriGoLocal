@@ -73,6 +73,7 @@ fun RetourClientFormScreen(
 
     fun doSave() {
         val client = selectedClient ?: return
+        if (motif == null) { saveError = "Veuillez sélectionner un motif"; return }
         isSaving = true
         saveError = ""
         val items = cartItems.map { ci -> mapOf("product_id" to ci.product.id, "quantity" to ci.quantity) }

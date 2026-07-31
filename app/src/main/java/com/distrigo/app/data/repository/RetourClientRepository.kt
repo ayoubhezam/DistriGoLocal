@@ -63,6 +63,8 @@ class RetourClientRepository(
     ): Map<String, Any> {
         if (items.isEmpty()) return mapOf("error" to "Ajoutez au moins un produit")
 
+        PerteRepository(db).seedDefaultPerteTypesIfNeeded()
+
         db.withTransaction {
             val client = clientDao.getClientById(clientId)
                 ?: throw IllegalStateException("Client introuvable: $clientId")

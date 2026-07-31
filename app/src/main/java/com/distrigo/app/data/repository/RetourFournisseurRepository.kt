@@ -62,6 +62,8 @@ class RetourFournisseurRepository(
     ): Map<String, Any> {
         if (items.isEmpty()) return mapOf("error" to "Ajoutez au moins un produit")
 
+        PerteRepository(db).seedDefaultPerteTypesIfNeeded()
+
         db.withTransaction {
             val supplier = supplierDao.getSupplierById(supplierId)
                 ?: throw IllegalStateException("Fournisseur introuvable: $supplierId")

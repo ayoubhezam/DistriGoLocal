@@ -1132,7 +1132,8 @@ fun TourneeVenteCartRow(
                 value         = item.quantity,
                 onValueChange = onQuantityChange,
                 max           = availableStock,
-                formatValue   = ::formatQty
+                formatValue   = ::formatQty,
+                min = 0.01,
             )
 
             Spacer(Modifier.height(DsSpacing.md))

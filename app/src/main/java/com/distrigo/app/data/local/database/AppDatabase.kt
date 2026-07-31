@@ -26,105 +26,6 @@ import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
 import com.distrigo.app.data.local.dao.incentive.TargetPolicyDao
 import com.distrigo.app.data.local.dao.mouvement.StockMovementDao
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-
-val MIGRATION_24_25 = object : Migration(24, 25) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE clients ADD COLUMN secteur_id INTEGER")
-        db.execSQL("ALTER TABLE clients ADD COLUMN secteur_name TEXT")
-    }
-}
-
-val MIGRATION_27_28 = object : Migration(27, 28) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE suppliers ADD COLUMN image_uri TEXT")
-    }
-}
-
-val MIGRATION_28_29 = object : Migration(28, 29) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // Part A — purchase orders / supplier name (snapshotted at write time,
-        // same pattern as PurchaseOrderItemEntity.product_name)
-        db.execSQL("ALTER TABLE purchase_orders ADD COLUMN supplier_name TEXT")
-        db.execSQL("""
-            UPDATE purchase_orders
-            SET supplier_name = (SELECT name FROM suppliers WHERE suppliers.id = purchase_orders.supplier_id)
-            WHERE supplier_name IS NULL
-        """.trimIndent())
-
-        // Part B — ventes / client name (same reasoning)
-        db.execSQL("ALTER TABLE ventes ADD COLUMN client_name TEXT")
-        db.execSQL("""
-            UPDATE ventes
-            SET client_name = (SELECT name FROM clients WHERE clients.id = ventes.client_id)
-            WHERE client_name IS NULL
-        """.trimIndent())
-    }
-}
-
-val MIGRATION_26_27 = object : Migration(26, 27) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `retour_fournisseur` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `supplier_id` INTEGER NOT NULL,
-                `date` TEXT NOT NULL,
-                `motif` TEXT,
-                `note` TEXT,
-                `total` REAL NOT NULL,
-                `created_at` TEXT NOT NULL
-            )
-        """.trimIndent())
-
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `retour_fournisseur_items` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `retour_id` INTEGER NOT NULL,
-                `product_id` INTEGER NOT NULL,
-                `product_name` TEXT NOT NULL,
-                `unit_type` TEXT NOT NULL,
-                `quantity` REAL NOT NULL,
-                `unit_price` REAL NOT NULL,
-                `total_price` REAL NOT NULL
-            )
-        """.trimIndent())
-
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `retour_client` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `client_id` INTEGER NOT NULL,
-                `tournee_id` INTEGER,
-                `date` TEXT NOT NULL,
-                `motif` TEXT,
-                `note` TEXT,
-                `total` REAL NOT NULL,
-                `created_at` TEXT NOT NULL
-            )
-        """.trimIndent())
-
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `retour_client_items` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `retour_id` INTEGER NOT NULL,
-                `product_id` INTEGER NOT NULL,
-                `product_name` TEXT NOT NULL,
-                `unit_type` TEXT NOT NULL,
-                `quantity` REAL NOT NULL,
-                `unit_price` REAL NOT NULL,
-                `total_price` REAL NOT NULL
-            )
-        """.trimIndent())
-    }
-}
-
-val MIGRATION_29_30 = object : Migration(29, 30) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE pertes ADD COLUMN source_type TEXT")
-        db.execSQL("ALTER TABLE pertes ADD COLUMN source_id INTEGER")
-    }
-}
-
 @Database(
     entities = [
         ProductEntity::class,
@@ -158,8 +59,10 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
         RetourFournisseurItemEntity::class,
         RetourClientEntity::class,
         RetourClientItemEntity::class,
+        SousCategorieEntity::class,
+        MarqueEntity::class,
     ],
-    version = 30,
+    version = 31,
     exportSchema = false
 )
 
@@ -193,6 +96,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun retourFournisseurDao(): RetourFournisseurDao
     abstract fun retourClientDao(): RetourClientDao
 
+    abstract fun sousCategorieDao(): SousCategorieDao
+    abstract fun marqueDao(): MarqueDao
+
 
 
     companion object {
@@ -206,7 +112,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    .addMigrations(MIGRATION_24_25, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

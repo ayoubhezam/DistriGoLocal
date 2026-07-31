@@ -75,7 +75,11 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 /**
  * Shared "Ma sélection" cart-item card, used identically by Achat, Vente (Dépôt)
  * and Vente (Tournée). See docs/design/distrigo_ma_selection_unifiee.html for the
@@ -250,6 +254,20 @@ fun QuantityStepper(
 ) {
     val canDecrement = value > min
     val canIncrement = max == null || value < max
+    val focusManager = LocalFocusManager.current
+
+    var text by remember(value) { mutableStateOf(formatValue(value)) }
+
+    fun commit() {
+        val parsed = text.replace(',', '.').toDoubleOrNull()
+        val next = when {
+            parsed == null || parsed <= 0.0 -> value
+            max != null                      -> parsed.coerceIn(min.coerceAtMost(parsed), max)
+            else                              -> parsed.coerceAtLeast(min.coerceAtMost(parsed))
+        }.let { if (parsed != null && parsed > 0.0) parsed.coerceIn(min.coerceAtMost(parsed), max ?: Double.MAX_VALUE) else value }
+        text = formatValue(next)
+        if (next != value) onValueChange(next)
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
@@ -262,32 +280,49 @@ fun QuantityStepper(
             IconButton(
                 onClick  = { onValueChange(maxOf(min, value - 1.0)) },
                 enabled  = canDecrement,
-                modifier = Modifier
-                    .size(44.dp)
-                    .alpha(if (canDecrement) 1f else 0.4f)
-                    .clip(DsShapes.medium)
-                    .background(DsColors.SurfaceSunken)
+                modifier = Modifier.size(44.dp).alpha(if (canDecrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
                 Icon(Icons.Default.Remove, contentDescription = "Diminuer", tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
             }
 
-            Text(
-                formatValue(value),
-                fontSize   = DsTextSize.headline,
-                fontWeight = FontWeight.Medium,
-                color      = DsColors.Primary,
-                textAlign  = TextAlign.Center,
-                modifier   = Modifier.widthIn(min = 64.dp).padding(horizontal = DsSpacing.md)
+            OutlinedTextField(
+                value           = text,
+                onValueChange   = { raw ->
+                    val filtered = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+                    if (filtered.count { it == '.' } <= 1) {
+                        text = filtered
+                        // نُحدّث البطاقة فوراً بمجرد أن يصبح النص رقماً كاملاً وصالحاً ضمن الحدود —
+                        // الحالات غير المكتملة ("0"، "0.") تُترك محلياً بلا تحديث، وهذا وحده يكفي لتفادي الخلل القديم
+                        val parsed = filtered.toDoubleOrNull()
+                        if (parsed != null && parsed >= min && (max == null || parsed <= max)) {
+                            onValueChange(parsed)
+                        }
+                    }
+                },
+                modifier        = Modifier
+                    .widthIn(min = 72.dp)
+                    .padding(horizontal = DsSpacing.sm)
+                    .onFocusChanged { if (!it.isFocused) commit() },
+                singleLine      = true,
+                shape           = DsShapes.medium,
+                textStyle       = LocalTextStyle.current.copy(
+                    fontSize   = DsTextSize.headline,
+                    fontWeight = FontWeight.Medium,
+                    color      = DsColors.Primary,
+                    textAlign  = TextAlign.Center
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { commit(); focusManager.clearFocus() }),
+                colors          = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = DsColors.Border,
+                    focusedBorderColor   = DsColors.Primary
+                )
             )
 
             IconButton(
                 onClick  = { if (max != null) onValueChange(minOf(max, value + 1.0)) else onValueChange(value + 1.0) },
                 enabled  = canIncrement,
-                modifier = Modifier
-                    .size(44.dp)
-                    .alpha(if (canIncrement) 1f else 0.4f)
-                    .clip(DsShapes.medium)
-                    .background(DsColors.SurfaceSunken)
+                modifier = Modifier.size(44.dp).alpha(if (canIncrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Augmenter", tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
             }

@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,8 +37,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ProductFormScreen(
     product   : Product? = null,
@@ -48,6 +51,7 @@ fun ProductFormScreen(
 
     val context  = LocalContext.current
     val products by viewModel.products.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     var name          by remember { mutableStateOf(product?.name ?: "") }
     var barcode       by remember { mutableStateOf(product?.barcode ?: "") }
@@ -67,6 +71,27 @@ fun ProductFormScreen(
     var categoryExpanded      by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName       by remember { mutableStateOf("") }
+
+    val sousCategories              by viewModel.sousCategories.collectAsState()
+    var selectedSousCategorieId     by remember { mutableStateOf<Int?>(if (isEdit) product?.sous_categorie_id else null) }
+    var sousCategorieExpanded       by remember { mutableStateOf(false) }
+    var showAddSousCategorieDialog  by remember { mutableStateOf(false) }
+    var newSousCategorieName        by remember { mutableStateOf("") }
+    var isInitialCategoryEffect     by remember { mutableStateOf(true) }
+
+    LaunchedEffect(selectedCategoryId) {
+        if (isInitialCategoryEffect) {
+            isInitialCategoryEffect = false
+        } else {
+            selectedSousCategorieId = null
+        }
+    }
+
+    val marques             by viewModel.marques.collectAsState()
+    var selectedMarqueId    by remember { mutableStateOf<Int?>(if (isEdit) product?.marque_id else null) }
+    var marqueExpanded      by remember { mutableStateOf(false) }
+    var showAddMarqueDialog by remember { mutableStateOf(false) }
+    var newMarqueName       by remember { mutableStateOf("") }
 
     val suppliers             by viewModel.suppliers.collectAsState()
     var selectedSupplierId by remember { mutableStateOf<Int?>(if (isEdit) product?.supplier_id else null) }
@@ -89,6 +114,9 @@ fun ProductFormScreen(
     val datePickerState    = rememberDatePickerState()
     var showDatePicker     by remember { mutableStateOf(false) }
     var showScanner        by remember { mutableStateOf(false) }
+
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val tabTitles = listOf("Informations obligatoires", "Informations supplémentaires")
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -149,7 +177,12 @@ fun ProductFormScreen(
     }
 
     fun save(forceSubmit: Boolean = false) {
-        if (!validate()) return
+        if (!validate()) {
+            if (pagerState.currentPage != 0) {
+                coroutineScope.launch { pagerState.animateScrollToPage(0) }
+            }
+            return
+        }
         val sp = sellingPrice.toDouble()
         val pp = purchasePrice.toDouble()
         if (pp >= sp && !forceSubmit) { showMarginWarn = true; return }
@@ -167,7 +200,9 @@ fun ProductFormScreen(
                 "has_expiry"     to if (hasExpiry) 1 else 0,
                 "expiry_date"    to if (hasExpiry) expiryDate else null,
                 "image_uri"      to imageBase64,
-                "category_id"    to selectedCategoryId
+                "category_id"    to selectedCategoryId,
+                "sous_categorie_id" to selectedSousCategorieId,
+                "marque_id"      to selectedMarqueId
             )
         } else {
             mapOf(
@@ -183,7 +218,9 @@ fun ProductFormScreen(
                 "has_expiry"     to if (hasExpiry) 1 else 0,
                 "expiry_date"    to if (hasExpiry) expiryDate else null,
                 "image_uri"      to imageBase64,
-                "category_id"    to selectedCategoryId
+                "category_id"    to selectedCategoryId,
+                "sous_categorie_id" to selectedSousCategorieId,
+                "marque_id"      to selectedMarqueId
             )
         }
         if (isEdit) {
@@ -409,15 +446,99 @@ fun ProductFormScreen(
         )
     }
 
+    // ── Add Sous-catégorie Dialog ──
+    if (showAddSousCategorieDialog && selectedCategoryId != null) {
+        AlertDialog(
+            onDismissRequest = { showAddSousCategorieDialog = false; newSousCategorieName = "" },
+            title = { Text("Nouvelle sous-catégorie") },
+            text  = {
+                OutlinedTextField(
+                    value         = newSousCategorieName,
+                    onValueChange = { newSousCategorieName = it },
+                    placeholder   = { Text("Ex: Sodas") },
+                    singleLine    = true,
+                    shape         = DsShapes.medium,
+                    modifier      = Modifier.fillMaxWidth(),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = DsColors.Primary,
+                        unfocusedBorderColor = DsColors.Border
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newSousCategorieName.isNotBlank()) {
+                        viewModel.addSousCategorieAndRefresh(
+                            name       = newSousCategorieName.trim(),
+                            categoryId = selectedCategoryId!!,
+                            onSuccess  = { id: Int ->
+                                selectedSousCategorieId    = id
+                                showAddSousCategorieDialog = false
+                                newSousCategorieName       = ""
+                            }
+                        )
+                    }
+                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddSousCategorieDialog = false; newSousCategorieName = "" }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+
+    // ── Add Marque Dialog ──
+    if (showAddMarqueDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddMarqueDialog = false; newMarqueName = "" },
+            title = { Text("Nouvelle marque") },
+            text  = {
+                OutlinedTextField(
+                    value         = newMarqueName,
+                    onValueChange = { newMarqueName = it },
+                    placeholder   = { Text("Ex: Danone") },
+                    singleLine    = true,
+                    shape         = DsShapes.medium,
+                    modifier      = Modifier.fillMaxWidth(),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = DsColors.Primary,
+                        unfocusedBorderColor = DsColors.Border
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newMarqueName.isNotBlank()) {
+                        viewModel.addMarqueAndRefresh(
+                            name      = newMarqueName.trim(),
+                            onSuccess = { id: Int ->
+                                selectedMarqueId    = id
+                                showAddMarqueDialog = false
+                                newMarqueName        = ""
+                            }
+                        )
+                    }
+                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddMarqueDialog = false; newMarqueName = "" }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
     ) {
         // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
@@ -428,371 +549,518 @@ fun ProductFormScreen(
             )
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        // ── Photo ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(DsShapes.large)
-                .background(DsColors.SurfaceSunken)
-                .clickable { imagePicker.launch("image/*") },
-            contentAlignment = Alignment.Center
+        // ── Tabs ──
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor   = DsColors.Surface,
+            contentColor     = DsColors.Primary
         ) {
-            if (imageBase64 != null) {
-                val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                bitmap?.let {
-                    Image(
-                        bitmap             = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier           = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { rotationZ = imageRotation },
-                        contentScale       = ContentScale.Crop
-                    )
-                }
-                Row(
-                    modifier              = Modifier.align(Alignment.BottomEnd).padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+            tabTitles.forEachIndexed { index, title ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick  = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                    text     = { Text(title, fontSize = DsTextSize.bodySmall) }
+                )
+            }
+        }
+
+        // ── Pages ──
+        HorizontalPager(
+            state    = pagerState,
+            modifier = Modifier.weight(1f).fillMaxWidth()
+        ) { page ->
+            when (page) {
+                0 -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.small)
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { imageRotation = (imageRotation + 90f) % 360f }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.RotateRight, contentDescription = null,
-                            tint = Color.White, modifier = Modifier.size(16.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.small)
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { imagePicker.launch("image/*") }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) { Text("Changer", fontSize = DsTextSize.caption, color = Color.White) }
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.height(6.dp))
-                    Text("Ajouter une photo", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // ── Nom ──
-        FormField(
-            label         = "Nom du produit *",
-            value         = name,
-            onValueChange = { name = it; nameError = "" },
-            error         = nameError,
-            placeholder   = "Ex: Coca-Cola 1.5L"
-        )
-        Spacer(Modifier.height(12.dp))
-
-        // ── Code-barres ──
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-            Column(modifier = Modifier.weight(1f)) {
-                FormField(
-                    label         = "Code-barres *",
-                    value         = barcode,
-                    onValueChange = { barcode = it; barcodeError = "" },
-                    error         = barcodeError,
-                    placeholder   = "EAN-13"
-                )
-            }
-            Button(
-                onClick  = { showScanner = true },
-                modifier = Modifier.height(56.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
-            }
-            Button(
-                onClick  = {
-                    // نبحث عن أعلى ID في قائمة المنتجات، وإذا كانت فارغة نعتبره 0
-                    val maxId = products.maxOfOrNull { it.id } ?: 0
-                    val nextId = (maxId + 1).toLong()
-                    barcode = nextId.toString().padStart(13, '0')
-                },
-                modifier = Modifier.height(56.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // ── Fournisseur ──
-        Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            ExposedDropdownMenuBox(
-                expanded         = supplierExpanded,
-                onExpandedChange = { supplierExpanded = it },
-                modifier         = Modifier.weight(1f)
-            ) {
-                OutlinedTextField(
-                    value         = suppliers.find { it.id == selectedSupplierId }?.name ?: "Sans fournisseur",
-                    onValueChange = {},
-                    readOnly      = true,
-                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
-                    modifier      = Modifier.fillMaxWidth().menuAnchor(),
-                    shape         = DsShapes.medium,
-                    colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
+                    // ── Nom ──
+                    FormField(
+                        label         = "Nom du produit *",
+                        value         = name,
+                        onValueChange = { name = it; nameError = "" },
+                        error         = nameError,
+                        placeholder   = "Ex: Coca-Cola 1.5L"
                     )
-                )
-                ExposedDropdownMenu(
-                    expanded         = supplierExpanded,
-                    onDismissRequest = { supplierExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text    = { Text("Sans fournisseur", color = DsColors.TextSecondary) },
-                        onClick = { selectedSupplierId = null; supplierExpanded = false }
-                    )
-                    suppliers.forEach { supplier ->
-                        DropdownMenuItem(
-                            text    = { Text(supplier.name) },
-                            onClick = { selectedSupplierId = supplier.id; supplierExpanded = false }
-                        )
-                    }
-                }
-            }
-            Button(
-                onClick  = { showAddSupplierDialog = true },
-                modifier = Modifier.height(56.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
+                    Spacer(Modifier.height(12.dp))
 
-        Spacer(Modifier.height(12.dp))
-
-        // ── Catégorie ──
-        Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            ExposedDropdownMenuBox(
-                expanded         = categoryExpanded,
-                onExpandedChange = { categoryExpanded = it },
-                modifier         = Modifier.weight(1f)
-            ) {
-                OutlinedTextField(
-                    value         = categories.find { it.id == selectedCategoryId }?.name ?: "Sans catégorie",
-                    onValueChange = {},
-                    readOnly      = true,
-                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier      = Modifier.fillMaxWidth().menuAnchor(),
-                    shape         = DsShapes.medium,
-                    colors        = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
-                )
-                ExposedDropdownMenu(
-                    expanded         = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text    = { Text("Sans catégorie", color = DsColors.TextSecondary) },
-                        onClick = { selectedCategoryId = null; categoryExpanded = false }
-                    )
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text    = { Text(category.name) },
-                            onClick = { selectedCategoryId = category.id; categoryExpanded = false }
-                        )
-                    }
-                }
-            }
-            Button(
-                onClick  = { showAddCategoryDialog = true },
-                modifier = Modifier.height(56.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // ── Prix ──
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                FormField(
-                    label         = "Prix de vente *",
-                    value         = sellingPrice,
-                    onValueChange = { sellingPrice = it; sellingPriceError = "" },
-                    error         = sellingPriceError,
-                    placeholder   = "0.00",
-                    isNumber      = true
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                FormField(
-                    label         = "Prix d'achat *",
-                    value         = purchasePrice,
-                    onValueChange = { purchasePrice = it; purchasePriceError = "" },
-                    error         = purchasePriceError,
-                    placeholder   = "0.00",
-                    isNumber      = true
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // ── Stock minimum ──
-        FormField(
-            label         = "Stock minimum",
-            value         = minStock,
-            onValueChange = { minStock = it },
-            placeholder   = "0",
-            isNumber      = true,
-            imeAction     = ImeAction.Done
-        )
-        Spacer(Modifier.height(16.dp))
-
-        // ── Stock & conditionnement ──
-        Card(
-            modifier  = Modifier.fillMaxWidth(),
-            shape     = DsShapes.large,
-            colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
-            elevation = CardDefaults.cardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                Spacer(Modifier.height(12.dp))
-                Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("carton", "pièce").forEach { unit ->
-                        val active = unitType == unit
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(DsShapes.medium)
-                                .background(if (active) DsColors.Primary else DsColors.Surface)
-                                .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
-                                .clickable { unitType = unit }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
+                    // ── Code-barres ──
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            FormField(
+                                label         = "Code-barres *",
+                                value         = barcode,
+                                onValueChange = { barcode = it; barcodeError = "" },
+                                error         = barcodeError,
+                                placeholder   = "EAN-13"
+                            )
+                        }
+                        Button(
+                            onClick  = { showScanner = true },
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                         ) {
-                            Text(
-                                if (unit == "pièce") "Pièce" else "Carton",
-                                fontSize   = DsTextSize.body,
-                                fontWeight = FontWeight.Medium,
-                                color      = if (active) Color.White else DsColors.TextPrimary
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
+                        }
+                        Button(
+                            onClick  = {
+                                // نبحث عن أعلى ID في قائمة المنتجات، وإذا كانت فارغة نعتبره 0
+                                val maxId = products.maxOfOrNull { it.id } ?: 0
+                                val nextId = (maxId + 1).toLong()
+                                barcode = nextId.toString().padStart(13, '0')
+                            },
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Fournisseur ──
+                    Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        ExposedDropdownMenuBox(
+                            expanded         = supplierExpanded,
+                            onExpandedChange = { supplierExpanded = it },
+                            modifier         = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value         = suppliers.find { it.id == selectedSupplierId }?.name ?: "Sans fournisseur",
+                                onValueChange = {},
+                                readOnly      = true,
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
+                                modifier      = Modifier.fillMaxWidth().menuAnchor(),
+                                shape         = DsShapes.medium,
+                                colors        = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor   = DsColors.Primary
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded         = supplierExpanded,
+                                onDismissRequest = { supplierExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text    = { Text("Sans fournisseur", color = DsColors.TextSecondary) },
+                                    onClick = { selectedSupplierId = null; supplierExpanded = false }
+                                )
+                                suppliers.forEach { supplier ->
+                                    DropdownMenuItem(
+                                        text    = { Text(supplier.name) },
+                                        onClick = { selectedSupplierId = supplier.id; supplierExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick  = { showAddSupplierDialog = true },
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Prix ──
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            FormField(
+                                label         = "Prix de vente *",
+                                value         = sellingPrice,
+                                onValueChange = { sellingPrice = it; sellingPriceError = "" },
+                                error         = sellingPriceError,
+                                placeholder   = "0.00",
+                                isNumber      = true
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            FormField(
+                                label         = "Prix d'achat *",
+                                value         = purchasePrice,
+                                onValueChange = { purchasePrice = it; purchasePriceError = "" },
+                                error         = purchasePriceError,
+                                placeholder   = "0.00",
+                                isNumber      = true
                             )
                         }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Stock minimum ──
+                    FormField(
+                        label         = "Stock minimum",
+                        value         = minStock,
+                        onValueChange = { minStock = it },
+                        placeholder   = "0",
+                        isNumber      = true,
+                        imeAction     = ImeAction.Done
+                    )
+                    Spacer(Modifier.height(16.dp))
+
+                    // ── Stock & conditionnement ──
+                    Card(
+                        modifier  = Modifier.fillMaxWidth(),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                            Spacer(Modifier.height(12.dp))
+                            Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Spacer(Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf("carton", "pièce").forEach { unit ->
+                                    val active = unitType == unit
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(DsShapes.medium)
+                                            .background(if (active) DsColors.Primary else DsColors.Surface)
+                                            .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                                            .clickable { unitType = unit }
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            if (unit == "pièce") "Pièce" else "Carton",
+                                            fontSize   = DsTextSize.body,
+                                            fontWeight = FontWeight.Medium,
+                                            color      = if (active) Color.White else DsColors.TextPrimary
+                                        )
+                                    }
+                                }
+                            }
+                            if ((packages.toIntOrNull() ?: 0) > 0 && (packSize.toIntOrNull() ?: 0) > 0) {
+                                Spacer(Modifier.height(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(DsShapes.medium)
+                                        .background(DsColors.PrimaryLight)
+                                        .padding(12.dp)
+                                ) {
+                                    Row(
+                                        modifier              = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment     = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            if (unitType == "pièce") "Unités totales" else "Colis en stock",
+                                            fontSize = DsTextSize.caption, color = DsColors.Primary
+                                        )
+                                        Text(
+                                            "$computedStock ${if (unitType == "pièce") "pièces" else "cartons"}",
+                                            fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
                 }
-                if ((packages.toIntOrNull() ?: 0) > 0 && (packSize.toIntOrNull() ?: 0) > 0) {
-                    Spacer(Modifier.height(10.dp))
+
+                1 -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    // ── Photo ──
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(DsShapes.medium)
-                            .background(DsColors.PrimaryLight)
-                            .padding(12.dp)
+                            .height(140.dp)
+                            .clip(DsShapes.large)
+                            .background(DsColors.SurfaceSunken)
+                            .clickable { imagePicker.launch("image/*") },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                if (unitType == "pièce") "Unités totales" else "Colis en stock",
-                                fontSize = DsTextSize.caption, color = DsColors.Primary
-                            )
-                            Text(
-                                "$computedStock ${if (unitType == "pièce") "pièces" else "cartons"}",
-                                fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary
-                            )
+                        if (imageBase64 != null) {
+                            val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
+                            val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                            bitmap?.let {
+                                Image(
+                                    bitmap             = it.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier           = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer { rotationZ = imageRotation },
+                                    contentScale       = ContentScale.Crop
+                                )
+                            }
+                            Row(
+                                modifier              = Modifier.align(Alignment.BottomEnd).padding(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(DsShapes.small)
+                                        .background(Color.Black.copy(alpha = 0.5f))
+                                        .clickable { imageRotation = (imageRotation + 90f) % 360f }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.RotateRight, contentDescription = null,
+                                        tint = Color.White, modifier = Modifier.size(16.dp))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(DsShapes.small)
+                                        .background(Color.Black.copy(alpha = 0.5f))
+                                        .clickable { imagePicker.launch("image/*") }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) { Text("Changer", fontSize = DsTextSize.caption, color = Color.White) }
+                            }
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
+                                Spacer(Modifier.height(6.dp))
+                                Text("Ajouter une photo", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            }
                         }
                     }
-                }
-            }
-        }
 
-        Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
 
-        // ── Date d'expiration ──
-        Card(
-            modifier  = Modifier.fillMaxWidth(),
-            shape     = DsShapes.large,
-            colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
-            elevation = CardDefaults.cardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                        Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                    Switch(
-                        checked         = hasExpiry,
-                        onCheckedChange = { hasExpiry = it },
-                        colors          = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
-                    )
-                }
-                if (hasExpiry) {
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick  = { showDatePicker = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape    = DsShapes.medium,
-                        colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
-                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                    // ── Catégorie ──
+                    Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (expiryDate.isEmpty()) "Choisir une date" else expiryDate, fontSize = DsTextSize.body)
+                        ExposedDropdownMenuBox(
+                            expanded         = categoryExpanded,
+                            onExpandedChange = { categoryExpanded = it },
+                            modifier         = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value         = categories.find { it.id == selectedCategoryId }?.name ?: "Sans catégorie",
+                                onValueChange = {},
+                                readOnly      = true,
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                                modifier      = Modifier.fillMaxWidth().menuAnchor(),
+                                shape         = DsShapes.medium,
+                                colors        = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor   = DsColors.Primary
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded         = categoryExpanded,
+                                onDismissRequest = { categoryExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text    = { Text("Sans catégorie", color = DsColors.TextSecondary) },
+                                    onClick = { selectedCategoryId = null; categoryExpanded = false }
+                                )
+                                categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text    = { Text(category.name) },
+                                        onClick = { selectedCategoryId = category.id; categoryExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick  = { showAddCategoryDialog = true },
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Sous-catégorie ──
+                    val sousCategorieEnabled = selectedCategoryId != null
+                    Text(
+                        "Sous-catégorie",
+                        fontSize = DsTextSize.bodySmall,
+                        color    = if (sousCategorieEnabled) DsColors.TextSecondary else DsColors.TextSecondary.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        ExposedDropdownMenuBox(
+                            expanded         = sousCategorieEnabled && sousCategorieExpanded,
+                            onExpandedChange = { if (sousCategorieEnabled) sousCategorieExpanded = it },
+                            modifier         = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value         = sousCategories.find { it.id == selectedSousCategorieId }?.name ?: "Sans sous-catégorie",
+                                onValueChange = {},
+                                readOnly      = true,
+                                enabled       = sousCategorieEnabled,
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sousCategorieExpanded) },
+                                modifier      = Modifier.fillMaxWidth().menuAnchor(),
+                                shape         = DsShapes.medium,
+                                colors        = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor   = DsColors.Primary,
+                                    disabledBorderColor  = DsColors.Border.copy(alpha = 0.5f),
+                                    disabledTextColor    = DsColors.TextSecondary.copy(alpha = 0.5f)
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded         = sousCategorieExpanded,
+                                onDismissRequest = { sousCategorieExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text    = { Text("Sans sous-catégorie", color = DsColors.TextSecondary) },
+                                    onClick = { selectedSousCategorieId = null; sousCategorieExpanded = false }
+                                )
+                                sousCategories.filter { it.category_id == selectedCategoryId }.forEach { sousCategorie ->
+                                    DropdownMenuItem(
+                                        text    = { Text(sousCategorie.name) },
+                                        onClick = { selectedSousCategorieId = sousCategorie.id; sousCategorieExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick  = { showAddSousCategorieDialog = true },
+                            enabled  = sousCategorieEnabled,
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Marque ──
+                    Text("Marque", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        ExposedDropdownMenuBox(
+                            expanded         = marqueExpanded,
+                            onExpandedChange = { marqueExpanded = it },
+                            modifier         = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value         = marques.find { it.id == selectedMarqueId }?.name ?: "Sans marque",
+                                onValueChange = {},
+                                readOnly      = true,
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = marqueExpanded) },
+                                modifier      = Modifier.fillMaxWidth().menuAnchor(),
+                                shape         = DsShapes.medium,
+                                colors        = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor   = DsColors.Primary
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded         = marqueExpanded,
+                                onDismissRequest = { marqueExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text    = { Text("Sans marque", color = DsColors.TextSecondary) },
+                                    onClick = { selectedMarqueId = null; marqueExpanded = false }
+                                )
+                                marques.forEach { marque ->
+                                    DropdownMenuItem(
+                                        text    = { Text(marque.name) },
+                                        onClick = { selectedMarqueId = marque.id; marqueExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick  = { showAddMarqueDialog = true },
+                            modifier = Modifier.height(56.dp),
+                            shape    = DsShapes.medium,
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Date d'expiration ──
+                    Card(
+                        modifier  = Modifier.fillMaxWidth(),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                                    Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                }
+                                Switch(
+                                    checked         = hasExpiry,
+                                    onCheckedChange = { hasExpiry = it },
+                                    colors          = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
+                                )
+                            }
+                            if (hasExpiry) {
+                                Spacer(Modifier.height(12.dp))
+                                OutlinedButton(
+                                    onClick  = { showDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape    = DsShapes.medium,
+                                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
+                                    border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                                ) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(if (expiryDate.isEmpty()) "Choisir une date" else expiryDate, fontSize = DsTextSize.body)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
                 }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-
-        // ── Save ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.large,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            else Text(
-                if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
-                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
-            )
+        // ── Save (persistent, visible on both tabs) ──
+        Column(modifier = Modifier.padding(16.dp)) {
+            Button(
+                onClick  = { save() },
+                enabled  = !isSaving,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = DsShapes.large,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                else Text(
+                    if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
+                    fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
+                )
+            }
         }
-
-        Spacer(Modifier.height(16.dp))
     }
 }
 

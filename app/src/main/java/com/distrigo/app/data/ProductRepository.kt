@@ -17,7 +17,9 @@ class ProductRepository(
     private val categoryDao: CategoryDao,
     private val supplierDao: SupplierDao,
     private val db: AppDatabase,
-    private val clientDao: ClientDao = db.clientDao()
+    private val clientDao: ClientDao = db.clientDao(),
+    private val sousCategorieDao: SousCategorieDao = db.sousCategorieDao(),
+    private val marqueDao: MarqueDao = db.marqueDao()
 
 
 ) {
@@ -42,11 +44,23 @@ class ProductRepository(
             category_id = this.category_id,
             supplier_name = this.supplier_name,
             supplier_id = this.supplier_id,
-            camion_stock = this.camion_stock
+            camion_stock = this.camion_stock,
+            sous_categorie_id = this.sous_categorie_id,
+            sous_categorie_name = this.sous_categorie_name,
+            marque_id = this.marque_id,
+            marque_name = this.marque_name
         )
     }
     private fun CategoryEntity.toCategory(): Category {
         return Category(id = this.id, name = this.name, sort_order = this.sort_order)
+    }
+
+    private fun SousCategorieEntity.toSousCategorie(): SousCategorie {
+        return SousCategorie(id = this.id, category_id = this.category_id, name = this.name, sort_order = this.sort_order)
+    }
+
+    private fun MarqueEntity.toMarque(): Marque {
+        return Marque(id = this.id, name = this.name, sort_order = this.sort_order)
     }
 
     private fun SupplierEntity.toSupplier(): Supplier {
@@ -209,6 +223,12 @@ class ProductRepository(
         // جلب اسم الصنف فوراً من جدول الفئات
         val catName = catId?.let { categoryDao.getCategoryById(it)?.name }
 
+        val sousCatId = (product["sous_categorie_id"] as? Number)?.toInt()
+        val sousCatName = sousCatId?.let { sousCategorieDao.getSousCategorieById(it)?.name }
+
+        val marqueId = (product["marque_id"] as? Number)?.toInt()
+        val marqueName = marqueId?.let { marqueDao.getMarqueById(it)?.name }
+
         val entity = ProductEntity(
             name = product["name"] as? String ?: "",
             barcode = product["barcode"] as? String,
@@ -225,7 +245,11 @@ class ProductRepository(
             category_id = catId,
             category_name = catName, // سيتم تخزين الاسم الفعلي هنا
             supplier_id = null,
-            supplier_name = null
+            supplier_name = null,
+            sous_categorie_id = sousCatId,
+            sous_categorie_name = sousCatName,
+            marque_id = marqueId,
+            marque_name = marqueName
         )
 
         val newId = productDao.insertProduct(entity)
@@ -239,6 +263,12 @@ class ProductRepository(
 
         // 🔥 التعديل هنا: سنجلب اسم الصنف دائماً من قاعدة البيانات، حتى لو لم يتم تغييره، لتصحيح أي خطأ سابق
         val newCatName = newCatId?.let { categoryDao.getCategoryById(it)?.name }
+
+        val newSousCatId = if (product.containsKey("sous_categorie_id")) (product["sous_categorie_id"] as? Number)?.toInt() else existing.sous_categorie_id
+        val newSousCatName = newSousCatId?.let { sousCategorieDao.getSousCategorieById(it)?.name }
+
+        val newMarqueId = if (product.containsKey("marque_id")) (product["marque_id"] as? Number)?.toInt() else existing.marque_id
+        val newMarqueName = newMarqueId?.let { marqueDao.getMarqueById(it)?.name }
 
         val updatedEntity = existing.copy(
             name = product["name"] as? String ?: existing.name,
@@ -254,7 +284,11 @@ class ProductRepository(
             expiry_date = if (product.containsKey("expiry_date")) product["expiry_date"] as? String else existing.expiry_date,
             image_uri = if (product.containsKey("image_uri")) product["image_uri"] as? String else existing.image_uri,
             category_id = newCatId,
-            category_name = newCatName // وضع الاسم الجديد المصحح
+            category_name = newCatName, // وضع الاسم الجديد المصحح
+            sous_categorie_id = newSousCatId,
+            sous_categorie_name = newSousCatName,
+            marque_id = newMarqueId,
+            marque_name = newMarqueName
         )
 
         productDao.updateProduct(updatedEntity)
@@ -322,6 +356,70 @@ class ProductRepository(
     suspend fun deleteCategory(id: Int): Map<String, Any> {
         categoryDao.deleteCategoryById(id)
         return mapOf("message" to "Category deleted successfully")
+    }
+
+    // ── Sous-catégories ──
+    suspend fun getSousCategories(): List<SousCategorie> {
+        return sousCategorieDao.getAllSousCategories().map { it.toSousCategorie() }
+    }
+
+    suspend fun getSousCategoriesForCategory(categoryId: Int): List<SousCategorie> {
+        return sousCategorieDao.getSousCategoriesForCategory(categoryId).map { it.toSousCategorie() }
+    }
+
+    suspend fun addSousCategorie(sousCategorie: Map<String, Any?>): Map<String, Any> {
+        val entity = SousCategorieEntity(
+            category_id = (sousCategorie["category_id"] as Number).toInt(),
+            name = sousCategorie["name"] as? String ?: "",
+            sort_order = (sousCategorie["sort_order"] as? Number)?.toInt() ?: 0
+        )
+        val newId = sousCategorieDao.insertSousCategorie(entity)
+        return mapOf("id" to newId.toDouble(), "message" to "SousCategorie added successfully")
+    }
+
+    suspend fun updateSousCategorie(id: Int, sousCategorie: Map<String, Any?>): Map<String, Any> {
+        val existing = sousCategorieDao.getSousCategorieById(id) ?: return mapOf("error" to "SousCategorie not found")
+        val updatedEntity = existing.copy(
+            category_id = (sousCategorie["category_id"] as? Number)?.toInt() ?: existing.category_id,
+            name = sousCategorie["name"] as? String ?: existing.name,
+            sort_order = if (sousCategorie.containsKey("sort_order")) (sousCategorie["sort_order"] as? Number)?.toInt() ?: existing.sort_order else existing.sort_order
+        )
+        sousCategorieDao.updateSousCategorie(updatedEntity)
+        return mapOf("message" to "SousCategorie updated successfully")
+    }
+
+    suspend fun deleteSousCategorie(id: Int): Map<String, Any> {
+        sousCategorieDao.deleteSousCategorieById(id)
+        return mapOf("message" to "SousCategorie deleted successfully")
+    }
+
+    // ── Marques ──
+    suspend fun getMarques(): List<Marque> {
+        return marqueDao.getAllMarques().map { it.toMarque() }
+    }
+
+    suspend fun addMarque(marque: Map<String, Any?>): Map<String, Any> {
+        val entity = MarqueEntity(
+            name = marque["name"] as? String ?: "",
+            sort_order = (marque["sort_order"] as? Number)?.toInt() ?: 0
+        )
+        val newId = marqueDao.insertMarque(entity)
+        return mapOf("id" to newId.toDouble(), "message" to "Marque added successfully")
+    }
+
+    suspend fun updateMarque(id: Int, marque: Map<String, Any?>): Map<String, Any> {
+        val existing = marqueDao.getMarqueById(id) ?: return mapOf("error" to "Marque not found")
+        val updatedEntity = existing.copy(
+            name = marque["name"] as? String ?: existing.name,
+            sort_order = if (marque.containsKey("sort_order")) (marque["sort_order"] as? Number)?.toInt() ?: existing.sort_order else existing.sort_order
+        )
+        marqueDao.updateMarque(updatedEntity)
+        return mapOf("message" to "Marque updated successfully")
+    }
+
+    suspend fun deleteMarque(id: Int): Map<String, Any> {
+        marqueDao.deleteMarqueById(id)
+        return mapOf("message" to "Marque deleted successfully")
     }
 
     suspend fun getSuppliers(): List<Supplier> {

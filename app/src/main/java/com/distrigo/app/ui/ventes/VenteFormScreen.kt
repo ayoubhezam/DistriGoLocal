@@ -1310,7 +1310,8 @@ private fun VenteCartRow(
                     if (availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
                     onQuantityChange(newQty)
                 },
-                formatValue   = ::formatQty
+                formatValue   = ::formatQty,
+                min = 0.01
             )
 
             Spacer(Modifier.height(DsSpacing.md))

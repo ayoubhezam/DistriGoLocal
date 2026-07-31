@@ -87,7 +87,7 @@ fun PurchaseFormScreen(
     var isSaving           by remember { mutableStateOf(false) }
     var search             by remember { mutableStateOf("") }
     var showSupplierPicker by remember { mutableStateOf(false) }
-    var showCart           by remember { mutableStateOf(false) }
+    var showCart by remember { mutableStateOf(isEdit) }
     var showScanner        by remember { mutableStateOf(false) }
     var supplierSearch     by remember { mutableStateOf("") }
     var montantPaye by remember { mutableStateOf("") }
@@ -599,7 +599,8 @@ fun PurchaseFormScreen(
                                                 if (ci.product.id == item.product.id) ci.copy(nbColis = newQty, quantity = newQty) else ci
                                             }
                                         },
-                                        formatValue   = ::formatQty
+                                        formatValue   = ::formatQty,
+                                        min = 0.01
                                     )
                                 }
 

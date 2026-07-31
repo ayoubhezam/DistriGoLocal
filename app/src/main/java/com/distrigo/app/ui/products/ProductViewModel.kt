@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.Category
 import com.distrigo.app.data.model.PriceHistory
 import com.distrigo.app.data.model.Supplier
+import com.distrigo.app.data.model.SousCategorie
+import com.distrigo.app.data.model.Marque
 
 class ProductViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -44,6 +46,12 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
 
+    private val _sousCategories = MutableStateFlow<List<SousCategorie>>(emptyList())
+    val sousCategories: StateFlow<List<SousCategorie>> = _sousCategories
+
+    private val _marques = MutableStateFlow<List<Marque>>(emptyList())
+    val marques: StateFlow<List<Marque>> = _marques
+
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table suppliers
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -53,6 +61,8 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         loadCategories()
+        loadSousCategories()
+        loadMarques()
     }
 
     fun deleteProduct(id: Int) {
@@ -115,6 +125,61 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 val result = repository.addCategory(mapOf("name" to name, "sort_order" to 0))
                 val newId  = (result["id"] as? Double)?.toInt() ?: 0
                 loadCategories()
+                onSuccess(newId)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun loadSousCategories() {
+        viewModelScope.launch {
+            try {
+                _sousCategories.value = repository.getSousCategories()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun addSousCategorieAndRefresh(
+        name       : String,
+        categoryId : Int,
+        onSuccess  : (Int) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val result = repository.addSousCategorie(
+                    mapOf("name" to name, "category_id" to categoryId, "sort_order" to 0)
+                )
+                val newId  = (result["id"] as? Double)?.toInt() ?: 0
+                loadSousCategories()
+                onSuccess(newId)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun loadMarques() {
+        viewModelScope.launch {
+            try {
+                _marques.value = repository.getMarques()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun addMarqueAndRefresh(
+        name      : String,
+        onSuccess : (Int) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val result = repository.addMarque(mapOf("name" to name, "sort_order" to 0))
+                val newId  = (result["id"] as? Double)?.toInt() ?: 0
+                loadMarques()
                 onSuccess(newId)
             } catch (e: Exception) {
                 // ignore

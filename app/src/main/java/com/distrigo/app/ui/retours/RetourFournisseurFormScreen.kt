@@ -80,6 +80,7 @@ fun RetourFournisseurFormScreen(
     val totalValue     = cartItems.sumOf { it.quantity * it.product.purchase_price }
 
     fun doSave() {
+        if (motif == null) { saveError = "Veuillez sélectionner un motif"; return }
         isSaving = true
         saveError = ""
         val items = cartItems.map { ci ->
