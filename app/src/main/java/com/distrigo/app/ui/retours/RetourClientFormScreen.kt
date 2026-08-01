@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,8 +17,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,29 +45,32 @@ fun RetourClientFormScreen(
     onBack            : () -> Unit,
     onSaved           : () -> Unit
 ) {
-    val products by viewModel.products.collectAsState()
+    val returnableProducts by viewModel.returnableProducts.collectAsState()
     val clients  by viewModel.clients.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val context = LocalContext.current
 
     var currentStep     by remember { mutableStateOf(if (preSelectedClient != null) 2 else 1) }
     var selectedClient   by remember { mutableStateOf(preSelectedClient) }
     var selectedDate      by remember { mutableStateOf(LocalDate.now()) }
     var motif               by remember { mutableStateOf<String?>(null) }
-    var note                  by remember { mutableStateOf("") }
     var cartItems              by remember { mutableStateOf<List<RetourCartItem>>(emptyList()) }
     var search                  by remember { mutableStateOf("") }
     var clientSearch              by remember { mutableStateOf("") }
     var showClientPicker           by remember { mutableStateOf(false) }
-    var showDatePicker              by remember { mutableStateOf(false) }
-    var motifExpanded                by remember { mutableStateOf(false) }
-    var showScanner                    by remember { mutableStateOf(false) }
-    var isSaving                        by remember { mutableStateOf(false) }
-    var saveError                         by remember { mutableStateOf("") }
+    var showCart                    by remember { mutableStateOf(false) }
+    var showDatePicker               by remember { mutableStateOf(false) }
+    var motifExpanded                 by remember { mutableStateOf(false) }
+    var showScanner                     by remember { mutableStateOf(false) }
+    var isSaving                         by remember { mutableStateOf(false) }
 
-    val filteredProducts = products.filter { product ->
+    LaunchedEffect(selectedClient?.id) { selectedClient?.let { viewModel.loadReturnableProducts(it.id) } }
+
+    val filteredProducts = returnableProducts.filter { rp ->
         val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
         tokens.isEmpty() || tokens.all { token ->
-            product.name.contains(token, ignoreCase = true) ||
-                    (product.barcode?.contains(token, ignoreCase = true) == true)
+            rp.product.name.contains(token, ignoreCase = true) ||
+                    (rp.product.barcode?.contains(token, ignoreCase = true) == true)
         }
     }
 
@@ -73,18 +79,16 @@ fun RetourClientFormScreen(
 
     fun doSave() {
         val client = selectedClient ?: return
-        if (motif == null) { saveError = "Veuillez sélectionner un motif"; return }
         isSaving = true
-        saveError = ""
         val items = cartItems.map { ci -> mapOf("product_id" to ci.product.id, "quantity" to ci.quantity) }
         viewModel.createRetour(
             clientId  = client.id,
             date      = selectedDate.toString(),
             motif     = motif,
-            note      = note.trim().ifEmpty { null },
+            note      = null,
             items     = items,
             onSuccess = onSaved,
-            onError   = { msg -> isSaving = false; saveError = msg }
+            onError   = { msg -> isSaving = false; Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() }
         )
     }
 
@@ -145,6 +149,81 @@ fun RetourClientFormScreen(
                         }
                     }
                 }
+            }
+        }
+        return
+    }
+
+    if (showCart) {
+        BackHandler { showCart = false }
+        Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showCart = false }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                }
+                Spacer(Modifier.width(DsSpacing.xs))
+                Column {
+                    Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                    Text("${cartItems.size} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                }
+            }
+            HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                items(cartItems, key = { it.product.id }) { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
+                            .border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(item.product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
+                            Text("${"%.2f".format(item.product.selling_price)} DA / ${item.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("Max : ${formatRetourQty(item.maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = {
+                                    val newQty = item.quantity - 1
+                                    cartItems = if (newQty <= 0) cartItems.filter { it.product.id != item.product.id }
+                                    else cartItems.map { if (it.product.id == item.product.id) it.copy(quantity = newQty) else it }
+                                },
+                                modifier = Modifier.size(32.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
+                            ) { Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(15.dp)) }
+                            Text(
+                                formatRetourQty(item.quantity), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                                color = DsColors.Success, modifier = Modifier.widthIn(min = 28.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            val atMax = item.quantity >= item.maxQuantity
+                            IconButton(
+                                onClick = { cartItems = cartItems.map { if (it.product.id == item.product.id) it.copy(quantity = (it.quantity + 1).coerceAtMost(it.maxQuantity)) else it } },
+                                enabled = !atMax,
+                                modifier = Modifier.size(32.dp).alpha(if (atMax) 0.4f else 1f).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
+                            ) { Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(15.dp)) }
+                        }
+                    }
+                }
+            }
+
+            Column(Modifier.fillMaxWidth().padding(DsSpacing.lg)) {
+                Button(
+                    onClick = {
+                        if (motif == null) {
+                            Toast.makeText(context, "Veuillez sélectionner un motif", Toast.LENGTH_SHORT).show()
+                        } else {
+                            showCart = false
+                            currentStep = 3
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = DsShapes.medium,
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
+                ) { Text("Suivant →", color = Color.White, fontWeight = FontWeight.SemiBold) }
             }
         }
         return
@@ -235,6 +314,20 @@ fun RetourClientFormScreen(
             }
 
             2 -> Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+              if (!isLoading && selectedClient != null && returnableProducts.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Inventory2,
+                            contentDescription = null,
+                            tint = DsColors.Success.copy(alpha = 0.3f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text("Aucun produit livré à ce client", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                    }
+                }
+              } else {
                 LazyColumn(
                     modifier            = Modifier.weight(1f),
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
@@ -321,52 +414,51 @@ fun RetourClientFormScreen(
                     }
 
                     // ── Product list ──
-                    items(filteredProducts, key = { it.id }) { product ->
-                        val cartItem = cartItems.find { it.product.id == product.id }
+                    items(filteredProducts, key = { it.product.id }) { rp ->
+                        val cartItem = cartItems.find { it.product.id == rp.product.id }
                         RetourProductRow(
-                            product  = product,
-                            quantity = cartItem?.quantity,
-                            onAdd    = { cartItems = cartItems + RetourCartItem(product = product, quantity = 1.0) },
+                            product     = rp.product,
+                            quantity    = cartItem?.quantity,
+                            maxQuantity = rp.maxQuantity,
+                            onAdd       = { cartItems = cartItems + RetourCartItem(product = rp.product, quantity = 1.0, maxQuantity = rp.maxQuantity) },
                             onQuantityChange = { newQty ->
-                                cartItems = if (newQty <= 0) cartItems.filter { it.product.id != product.id }
-                                else cartItems.map { if (it.product.id == product.id) it.copy(quantity = newQty) else it }
+                                cartItems = if (newQty <= 0) cartItems.filter { it.product.id != rp.product.id }
+                                else cartItems.map { if (it.product.id == rp.product.id) it.copy(quantity = newQty) else it }
                             }
                         )
                     }
                 }
+              }
 
+                // ── Voir la sélection ──
                 Row(
-                    modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                    verticalAlignment     = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Row(
-                        modifier = Modifier.weight(1f).clip(DsShapes.medium)
-                            .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                        modifier = Modifier.fillMaxWidth().clip(DsShapes.medium)
+                            .background(if (cartItems.isNotEmpty()) DsColors.SuccessLight else DsColors.SurfaceSunken)
+                            .clickable(enabled = cartItems.isNotEmpty()) { showCart = true }
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier.size(20.dp).clip(DsShapes.pill)
-                                .background(if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary),
+                                .background(if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextTertiary),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("${cartItems.size}", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                         }
+                        Spacer(Modifier.width(DsSpacing.sm))
                         Text(
-                            "Produits sélectionnés", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                            color = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
+                            "Voir la sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                            color = if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextTertiary
                         )
-                    }
-                    Button(
-                        onClick        = { currentStep = 3 },
-                        enabled        = cartItems.isNotEmpty(),
-                        shape          = DsShapes.medium,
-                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
-                    ) {
-                        Text("Suivant →", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold)
+                        if (cartItems.isNotEmpty()) {
+                            Spacer(Modifier.width(DsSpacing.xs))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
@@ -399,27 +491,14 @@ fun RetourClientFormScreen(
 
                     item {
                         Spacer(Modifier.height(DsSpacing.sm))
-                        OutlinedTextField(
-                            value = note, onValueChange = { note = it },
-                            placeholder = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
-                            modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium, minLines = 2,
-                            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
-                        )
-                    }
-
-                    item {
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Column(modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.PrimaryLight).padding(DsSpacing.lg)) {
-                            Text("Résumé du retour", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                        Column(modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SuccessLight).padding(DsSpacing.lg)) {
+                            Text("Résumé du retour", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Success)
                             Spacer(Modifier.height(DsSpacing.sm))
+                            RetourSummaryRow("Motif", motif ?: "—")
                             RetourSummaryRow("Produits", "${cartItems.size}")
                             RetourSummaryRow("Cartons", formatRetourQty(totalQuantity))
                             RetourSummaryRow("Valeur totale (DA)", "${"%,.2f".format(totalValue)} DA", highlight = true)
                         }
-                    }
-
-                    if (saveError.isNotEmpty()) {
-                        item { Text(saveError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall) }
                     }
                 }
 

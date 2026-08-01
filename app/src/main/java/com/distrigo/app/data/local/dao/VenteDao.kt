@@ -68,6 +68,15 @@ interface VenteDao {
     @Query("SELECT client_id, created_at FROM ventes WHERE client_id IS NOT NULL")
     suspend fun getAllVenteClientDates(): List<VenteClientDate>
 
+    @Query("""
+        SELECT vi.product_id AS product_id, SUM(vi.quantity) AS total_quantity
+        FROM vente_items vi
+        INNER JOIN ventes v ON v.id = vi.vente_id
+        WHERE v.client_id = :clientId AND v.status = :deliveredStatus
+        GROUP BY vi.product_id
+    """)
+    suspend fun getSoldQuantitiesForClient(clientId: Int, deliveredStatus: String): List<ProductQuantitySum>
+
     // ── Historique paginé (Factures & Paiements — Client Detail) ──
     @Query("""
         SELECT * FROM ventes

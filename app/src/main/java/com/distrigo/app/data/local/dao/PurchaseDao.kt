@@ -85,4 +85,13 @@ interface PurchaseDao {
         )
     """)
     suspend fun countOrdersForSupplier(supplierId: Int, search: String, statusFilter: String): Int
+
+    @Query("""
+        SELECT poi.product_id AS product_id, SUM(poi.quantity) AS total_quantity
+        FROM purchase_order_items poi
+        INNER JOIN purchase_orders po ON po.id = poi.purchase_order_id
+        WHERE po.supplier_id = :supplierId AND po.status = :receivedStatus
+        GROUP BY poi.product_id
+    """)
+    suspend fun getPurchasedQuantitiesForSupplier(supplierId: Int, receivedStatus: String): List<ProductQuantitySum>
 }

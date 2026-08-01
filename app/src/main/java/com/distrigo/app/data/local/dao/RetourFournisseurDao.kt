@@ -32,4 +32,13 @@ interface RetourFournisseurDao {
 
     @Query("DELETE FROM retour_fournisseur_items WHERE retour_id = :retourId")
     suspend fun deleteItemsForRetour(retourId: Int)
+
+    @Query("""
+        SELECT rfi.product_id AS product_id, SUM(rfi.quantity) AS total_quantity
+        FROM retour_fournisseur_items rfi
+        INNER JOIN retour_fournisseur rf ON rf.id = rfi.retour_id
+        WHERE rf.supplier_id = :supplierId
+        GROUP BY rfi.product_id
+    """)
+    suspend fun getReturnedQuantitiesForSupplier(supplierId: Int): List<ProductQuantitySum>
 }

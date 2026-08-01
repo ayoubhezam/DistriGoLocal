@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -29,7 +31,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
@@ -38,6 +42,12 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.draw.shadow
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -116,7 +126,10 @@ fun ProductFormScreen(
     var showScanner        by remember { mutableStateOf(false) }
 
     val pagerState = rememberPagerState(pageCount = { 2 })
-    val tabTitles = listOf("Informations obligatoires", "Informations supplémentaires")
+    val tabItems = listOf(
+        Triple("Essentiel", Icons.Default.Inventory2, 0),
+        Triple("Options", Icons.Default.AutoAwesome, 1)
+    )
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -543,24 +556,98 @@ fun ProductFormScreen(
                 Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
             }
             Spacer(Modifier.width(4.dp))
-            Text(
-                if (isEdit) "Modifier le produit" else "Nouveau produit",
-                fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
-            )
+            Column {
+                Text(
+                    if (isEdit) "Modifier le produit" else "Nouveau produit",
+                    fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
+                )
+                Text(
+                    if (isEdit) "Modifiez les informations du produit" else "Créez un nouveau produit facilement",
+                    fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
+                )
+            }
         }
 
-        // ── Tabs ──
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor   = DsColors.Surface,
-            contentColor     = DsColors.Primary
+// ── Tabs (pill segmented control, elastic indicator) ──
+        val density      = LocalDensity.current
+        val tabOffsetsPx = remember { mutableStateListOf(0f, 0f) }
+        val tabWidthsPx  = remember { mutableStateListOf(0f, 0f) }
+        var tabHeightPx  by remember { mutableStateOf(0f) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(DsShapes.large)
+                .background(DsColors.SurfaceSunken)
+                .padding(4.dp)
         ) {
-            tabTitles.forEachIndexed { index, title ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick  = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                    text     = { Text(title, fontSize = DsTextSize.bodySmall) }
+            val pageFraction = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                .coerceIn(0f, (tabItems.size - 1).toFloat())
+
+            // ── Floating elastic pill (behind the labels) ──
+            if (tabWidthsPx[0] > 0f && tabWidthsPx[1] > 0f && tabHeightPx > 0f) {
+                val leftIndex  = kotlin.math.floor(pageFraction).toInt().coerceIn(0, tabItems.size - 1)
+                val rightIndex = kotlin.math.ceil(pageFraction).toInt().coerceIn(0, tabItems.size - 1)
+                val localT     = pageFraction - leftIndex
+
+                val indicatorLeftPx: Float
+                val indicatorRightPx: Float
+                if (leftIndex == rightIndex) {
+                    indicatorLeftPx  = tabOffsetsPx[leftIndex]
+                    indicatorRightPx = tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex]
+                } else {
+                    // حافة تتأخر ثم تلحق بسرعة (ease-in) وحافة تتقدم بسرعة ثم تتباطأ (ease-out) = تمدد مرن
+                    val easeIn  = localT * localT
+                    val easeOut = 1f - (1f - localT) * (1f - localT)
+                    indicatorLeftPx  = androidx.compose.ui.util.lerp(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], easeIn)
+                    indicatorRightPx = androidx.compose.ui.util.lerp(
+                        tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex],
+                        tabOffsetsPx[rightIndex] + tabWidthsPx[rightIndex],
+                        easeOut
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
+                        .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
+                        .height(with(density) { tabHeightPx.toDp() })
+                        .shadow(2.dp, DsShapes.large)
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
                 )
+            }
+
+            // ── Labels (on top، ألوان متدرّجة بسلاسة بدل القفز) ──
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                tabItems.forEach { (title, icon, index) ->
+                    val proximity = (1f - kotlin.math.abs(pageFraction - index)).coerceIn(0f, 1f)
+                    val tint      = androidx.compose.ui.graphics.lerp(DsColors.TextSecondary, DsColors.Primary, proximity)
+
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned {
+                                tabOffsetsPx[index] = it.positionInParent().x
+                                tabWidthsPx[index]  = it.size.width.toFloat()
+                                tabHeightPx         = it.size.height.toFloat()
+                            }
+                            .clickable { coroutineScope.launch { pagerState.animateScrollToPage(index) } }
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            title,
+                            fontSize   = DsTextSize.bodySmall,
+                            color      = tint,
+                            fontWeight = if (proximity > 0.5f) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
             }
         }
 
@@ -569,6 +656,20 @@ fun ProductFormScreen(
             state    = pagerState,
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) { page ->
+            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+            val absOffset  = pageOffset.coerceIn(-1f, 1f).let { if (it < 0f) -it else it }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        shadowElevation = lerp(0.dp, 16.dp, absOffset).toPx()
+                        shape = RectangleShape
+                        clip  = false
+                        alpha = lerp(1f, 0.97f, absOffset)
+                    }
+                    .background(DsColors.Surface)
+            ) {
             when (page) {
                 0 -> Column(
                     modifier = Modifier
@@ -598,25 +699,33 @@ fun ProductFormScreen(
                             )
                         }
                         Button(
-                            onClick  = { showScanner = true },
-                            modifier = Modifier.height(56.dp),
-                            shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            onClick        = { showScanner = true },
+                            modifier       = Modifier.height(56.dp),
+                            shape          = DsShapes.medium,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            colors         = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                         ) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
+                                Text("Scanner", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                            }
                         }
                         Button(
-                            onClick  = {
+                            onClick        = {
                                 // نبحث عن أعلى ID في قائمة المنتجات، وإذا كانت فارغة نعتبره 0
                                 val maxId = products.maxOfOrNull { it.id } ?: 0
                                 val nextId = (maxId + 1).toLong()
                                 barcode = nextId.toString().padStart(13, '0')
                             },
-                            modifier = Modifier.height(56.dp),
-                            shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            modifier       = Modifier.height(56.dp),
+                            shape          = DsShapes.medium,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            colors         = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Générer un code-barres", modifier = Modifier.size(18.dp))
+                                Text("Générer", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                            }
                         }
                     }
 
@@ -682,7 +791,8 @@ fun ProductFormScreen(
                                 onValueChange = { sellingPrice = it; sellingPriceError = "" },
                                 error         = sellingPriceError,
                                 placeholder   = "0.00",
-                                isNumber      = true
+                                isNumber      = true,
+                                trailingText  = "DA"
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
@@ -692,7 +802,8 @@ fun ProductFormScreen(
                                 onValueChange = { purchasePrice = it; purchasePriceError = "" },
                                 error         = purchasePriceError,
                                 placeholder   = "0.00",
-                                isNumber      = true
+                                isNumber      = true,
+                                trailingText  = "DA"
                             )
                         }
                     }
@@ -706,7 +817,7 @@ fun ProductFormScreen(
                         onValueChange = { minStock = it },
                         placeholder   = "0",
                         isNumber      = true,
-                        imeAction     = ImeAction.Done
+                        imeAction     = ImeAction.Done,
                     )
                     Spacer(Modifier.height(16.dp))
 
@@ -735,12 +846,21 @@ fun ProductFormScreen(
                                             .padding(vertical = 12.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            if (unit == "pièce") "Pièce" else "Carton",
-                                            fontSize   = DsTextSize.body,
-                                            fontWeight = FontWeight.Medium,
-                                            color      = if (active) Color.White else DsColors.TextPrimary
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.Inventory2,
+                                                contentDescription = null,
+                                                tint     = if (active) Color.White else DsColors.TextSecondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                if (unit == "pièce") "Pièce" else "Carton",
+                                                fontSize   = DsTextSize.body,
+                                                fontWeight = FontWeight.Medium,
+                                                color      = if (active) Color.White else DsColors.TextPrimary
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1043,6 +1163,7 @@ fun ProductFormScreen(
                     Spacer(Modifier.height(16.dp))
                 }
             }
+            }
         }
 
         // ── Save (persistent, visible on both tabs) ──
@@ -1055,10 +1176,14 @@ fun ProductFormScreen(
                 colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
             ) {
                 if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                else Text(
-                    if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
-                    fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
-                )
+                else Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
+                        fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White
+                    )
+                }
             }
         }
     }
@@ -1074,6 +1199,8 @@ fun FormField(
     isNumber      : Boolean = false,
     imeAction     : ImeAction = ImeAction.Next,
     onNext        : (() -> Unit)? = null,
+    leadingIcon   : androidx.compose.ui.graphics.vector.ImageVector? = null,
+    trailingText  : String? = null,
 ) {
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     Column {
@@ -1086,6 +1213,12 @@ fun FormField(
             isError         = error.isNotEmpty(),
             modifier        = Modifier.fillMaxWidth(),
             shape           = DsShapes.medium,
+            leadingIcon     = leadingIcon?.let { icon ->
+                { Icon(icon, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp)) }
+            },
+            trailingIcon    = trailingText?.let { txt ->
+                { Text(txt, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, fontWeight = FontWeight.Medium) }
+            },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = if (isNumber) androidx.compose.ui.text.input.KeyboardType.Number
                                else          androidx.compose.ui.text.input.KeyboardType.Text,

@@ -38,6 +38,24 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _returnableProducts = MutableStateFlow<List<ReturnableProduct>>(emptyList())
+    val returnableProducts: StateFlow<List<ReturnableProduct>> = _returnableProducts
+
+    fun loadReturnableProducts(clientId: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val deliveredStatus = "delivered"
+            val sold     = db.venteDao().getSoldQuantitiesForClient(clientId, deliveredStatus).associate { it.product_id to it.total_quantity }
+            val returned = db.retourClientDao().getReturnedQuantitiesForClient(clientId).associate { it.product_id to it.total_quantity }
+            val byId     = products.value.associateBy { it.id }
+            _returnableProducts.value = sold.mapNotNull { (productId, soldQty) ->
+                val remaining = soldQty - (returned[productId] ?: 0.0)
+                if (remaining > 0) byId[productId]?.let { ReturnableProduct(it, remaining) } else null
+            }
+            _isLoading.value = false
+        }
+    }
+
     fun loadRetours() {
         viewModelScope.launch {
             _isLoading.value = true

@@ -32,4 +32,13 @@ interface RetourClientDao {
 
     @Query("DELETE FROM retour_client_items WHERE retour_id = :retourId")
     suspend fun deleteItemsForRetour(retourId: Int)
+
+    @Query("""
+        SELECT rci.product_id AS product_id, SUM(rci.quantity) AS total_quantity
+        FROM retour_client_items rci
+        INNER JOIN retour_client rc ON rc.id = rci.retour_id
+        WHERE rc.client_id = :clientId
+        GROUP BY rci.product_id
+    """)
+    suspend fun getReturnedQuantitiesForClient(clientId: Int): List<ProductQuantitySum>
 }
