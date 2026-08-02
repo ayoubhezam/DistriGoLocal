@@ -36,13 +36,22 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
     private val _returnableProducts = MutableStateFlow<List<ReturnableProduct>>(emptyList())
     val returnableProducts: StateFlow<List<ReturnableProduct>> = _returnableProducts
 
+    private val _retourDetail = MutableStateFlow<RetourFournisseur?>(null)
+    val retourDetail: StateFlow<RetourFournisseur?> = _retourDetail
+
+    fun loadRetourDetail(id: Int) {
+        viewModelScope.launch {
+            _retourDetail.value = repository.getRetourDetail(id)
+        }
+    }
+
     fun loadReturnableProducts(supplierId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             val receivedStatus = "received"
             val purchased = db.purchaseDao().getPurchasedQuantitiesForSupplier(supplierId, receivedStatus).associate { it.product_id to it.total_quantity }
             val returned   = db.retourFournisseurDao().getReturnedQuantitiesForSupplier(supplierId).associate { it.product_id to it.total_quantity }
-            val byId       = products.value.associateBy { it.id }
+            val byId       = productRepository.getProducts().associateBy { it.id }
             _returnableProducts.value = purchased.mapNotNull { (productId, purchasedQty) ->
                 val remaining = purchasedQty - (returned[productId] ?: 0.0)
                 if (remaining > 0) byId[productId]?.let { ReturnableProduct(it, remaining) } else null

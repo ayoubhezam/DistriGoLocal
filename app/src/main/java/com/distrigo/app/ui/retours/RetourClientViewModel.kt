@@ -47,7 +47,7 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
             val deliveredStatus = "delivered"
             val sold     = db.venteDao().getSoldQuantitiesForClient(clientId, deliveredStatus).associate { it.product_id to it.total_quantity }
             val returned = db.retourClientDao().getReturnedQuantitiesForClient(clientId).associate { it.product_id to it.total_quantity }
-            val byId     = products.value.associateBy { it.id }
+            val byId     = productRepository.getProducts().associateBy { it.id }
             _returnableProducts.value = sold.mapNotNull { (productId, soldQty) ->
                 val remaining = soldQty - (returned[productId] ?: 0.0)
                 if (remaining > 0) byId[productId]?.let { ReturnableProduct(it, remaining) } else null

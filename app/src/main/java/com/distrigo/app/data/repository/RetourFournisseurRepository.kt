@@ -51,6 +51,12 @@ class RetourFournisseurRepository(
         return entity.toRetour(items)
     }
 
+    suspend fun getRetourDetail(id: Int): RetourFournisseur? {
+        val retour = retourDao.getRetourById(id) ?: return null
+        val items = retourDao.getItemsForRetour(id).map { it.toItem() }
+        return retour.toRetour(items)
+    }
+
     // ── Écriture ──
     suspend fun createRetour(
         supplierId : Int,

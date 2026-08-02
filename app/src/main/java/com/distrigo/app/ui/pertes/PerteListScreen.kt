@@ -32,7 +32,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.Inventory2
-
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Link
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PerteListScreen(
@@ -45,7 +47,7 @@ fun PerteListScreen(
     val pertes     by viewModel.pertes.collectAsState()
     val perteTypes by viewModel.perteTypes.collectAsState()
     val type = perteTypes.find { it.id == typeId }
-
+    val context = LocalContext.current
     var longPressPerte  by remember { mutableStateOf<Perte?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -129,10 +131,28 @@ fun PerteListScreen(
                         )
                     }
                     items(dayPertes, key = { it.id }) { perte ->
+                        val isLinked = perte.source_type != null
                         PerteRow(
-                            perte       = perte,
-                            onClick     = { onEditPerte(perte) },
-                            onLongClick = { longPressPerte = perte; showDeleteDialog = true }
+                            perte    = perte,
+                            isLinked = isLinked,
+                            onClick  = {
+                                if (isLinked) {
+                                    Toast.makeText(
+                                        context,
+                                        "Cette perte provient d'un retour ${if (perte.source_type == "retour_client") "client" else "fournisseur"} — modifiez-la depuis l'écran Retours.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else onEditPerte(perte)
+                            },
+                            onLongClick = {
+                                if (isLinked) {
+                                    Toast.makeText(
+                                        context,
+                                        "Cette perte provient d'un retour ${if (perte.source_type == "retour_client") "client" else "fournisseur"} — supprimez le retour concerné pour l'annuler.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else { longPressPerte = perte; showDeleteDialog = true }
+                            }
                         )
                     }
                 }
@@ -161,7 +181,7 @@ fun PerteListScreen(
                     viewModel.deletePerte(
                         id = longPressPerte!!.id, typeId = typeId,
                         onSuccess = { showDeleteDialog = false; longPressPerte = null },
-                        onError   = { showDeleteDialog = false }
+                        onError = { msg -> showDeleteDialog = false; Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
                     )
                 }) { Text("Supprimer", color = DsColors.Danger) }
             },
@@ -174,7 +194,7 @@ fun PerteListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PerteRow(perte: Perte, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape    = DsShapes.medium,
@@ -206,10 +226,19 @@ private fun PerteRow(perte: Perte, onClick: () -> Unit, onLongClick: () -> Unit)
 
             Column(Modifier.weight(1f)) {
                 Text(perte.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                if (!perte.motif.isNullOrBlank()) {
+                if (isLinked) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(12.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            if (perte.source_type == "retour_client") "Lié à un retour client" else "Lié à un retour fournisseur",
+                            fontSize = DsTextSize.caption, color = DsColors.TextTertiary, maxLines = 1
+                        )
+                    }
+                } else if (!perte.motif.isNullOrBlank()) {
                     Text(perte.motif, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
                 }
-                // ── لو Motif فارغ، لا نعرض شيئاً بدله (مساحة فارغة كما طلبت) ──
+                // ── لو Motif فارغ وغير مرتبطة، لا نعرض شيئاً بدله (مساحة فارغة كما طلبت سابقاً) ──
             }
 
             Spacer(Modifier.width(DsSpacing.sm))

@@ -630,23 +630,38 @@ class ProductRepository(
             db.purchaseDao().deleteItemsForOrder(id)
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
 
-            val itemEntities = itemsList.map { map ->
+            val now = java.time.Instant.now().toString()
+            val itemEntities = mutableListOf<PurchaseOrderItemEntity>()
+            val historyEntities = mutableListOf<PriceHistoryEntity>()
+
+            for (map in itemsList) {
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity = (map["quantity"] as Number).toDouble()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
-                PurchaseOrderItemEntity(
-                    purchase_order_id = id, product_id = productId, quantity = quantity,
-                    unit_cost = unitCost, total_cost = quantity * unitCost,
-                    product_name = product.name, unit_type = product.unit_type,
-                    nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
-                    unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
-                    has_expiry = (map["has_expiry"] as? Boolean) ?: false,
-                    expiry_date = map["expiry_date"] as? String
+
+                itemEntities.add(
+                    PurchaseOrderItemEntity(
+                        purchase_order_id = id, product_id = productId, quantity = quantity,
+                        unit_cost = unitCost, total_cost = quantity * unitCost,
+                        product_name = product.name, unit_type = product.unit_type,
+                        nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
+                        unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
+                        has_expiry = (map["has_expiry"] as? Boolean) ?: false,
+                        expiry_date = map["expiry_date"] as? String
+                    )
+                )
+                historyEntities.add(
+                    PriceHistoryEntity(
+                        product_id = productId, unit_cost = unitCost,
+                        date = existing.date, created_at = now, supplier_name = supplierName
+                    )
                 )
             }
+
             db.purchaseDao().insertItems(itemEntities)
+            db.purchaseDao().insertPriceHistory(historyEntities)
             db.purchaseDao().updateOrderFields(id, note, montantPaye, total)
 
             recalculateSupplierBalance(existing.supplier_id)

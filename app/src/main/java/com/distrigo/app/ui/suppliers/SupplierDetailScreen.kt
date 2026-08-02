@@ -938,7 +938,7 @@ fun SupplierDetailScreen(
                         }
                     } else {
                         supplierRetours.take(3).forEach { retour ->
-                            RetourFournisseurRow(retour = retour)
+                            RetourFournisseurRow(retour = retour, onClick = {})
                         }
 
                         Row(

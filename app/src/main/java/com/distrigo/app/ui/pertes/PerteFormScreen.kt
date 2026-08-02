@@ -81,7 +81,7 @@ fun PerteFormScreen(
     var saveError               by remember { mutableStateOf("") }
     var isSaving                 by remember { mutableStateOf(false) }
 
-    val isoDateTime = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toString()
+    val isoDateTime = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toString()
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {

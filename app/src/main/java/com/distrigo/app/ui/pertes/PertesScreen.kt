@@ -80,9 +80,9 @@ fun PertesScreen(
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
         Row(
             modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment     = Alignment.CenterVertically
-        ) {
+        )  {
             Box(
                 modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showAddTypeDialog = true },
                 contentAlignment = Alignment.Center
