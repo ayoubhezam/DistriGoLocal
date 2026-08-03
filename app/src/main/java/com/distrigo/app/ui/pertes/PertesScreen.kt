@@ -28,51 +28,19 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 
 @Composable
 fun PertesScreen(
-    viewModel          : PerteViewModel = viewModel(),
-    onFullScreenChange : (Boolean) -> Unit = {}
+    viewModel   : PerteViewModel = viewModel(),
+    onTypeClick : (Int) -> Unit
 ) {
     val perteTypes by viewModel.perteTypes.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()
 
-    var selectedTypeId       by remember { mutableStateOf<Int?>(null) }
-    var showPerteForm        by remember { mutableStateOf(false) }
-    var editingPerte         by remember { mutableStateOf<com.distrigo.app.data.model.Perte?>(null) }
     var showAddTypeDialog    by remember { mutableStateOf(false) }
     var newTypeName          by remember { mutableStateOf("") }
     var longPressType        by remember { mutableStateOf<PerteType?>(null) }
     var showDeleteTypeDialog by remember { mutableStateOf(false) }
     var deleteTypeError      by remember { mutableStateOf("") }
 
-    // ── Formulaire de perte (plein écran) ──
-    if (showPerteForm && selectedTypeId != null) {
-        onFullScreenChange(true)
-        BackHandler { showPerteForm = false; editingPerte = null; onFullScreenChange(false) }
-        PerteFormScreen(
-            typeId  = selectedTypeId!!,
-            perte   = editingPerte,
-            onBack  = { showPerteForm = false; editingPerte = null; onFullScreenChange(false) },
-            onSaved = {
-                showPerteForm = false
-                editingPerte  = null
-                onFullScreenChange(false)
-                viewModel.loadPertes(selectedTypeId!!)
-                viewModel.loadPerteTypes()
-            }
-        )
-        return
-    }
 
-    // ── Liste des pertes d'un type ──
-    selectedTypeId?.let { typeId ->
-        BackHandler { selectedTypeId = null }
-        PerteListScreen(
-            typeId      = typeId,
-            onBack      = { selectedTypeId = null },
-            onAddPerte  = { editingPerte = null; showPerteForm = true },
-            onEditPerte = { perte -> editingPerte = perte; showPerteForm = true }
-        )
-        return
-    }
     LaunchedEffect(Unit) { viewModel.loadPerteTypes() }
 
 
@@ -140,7 +108,7 @@ fun PertesScreen(
                 items(perteTypes, key = { it.id }) { type ->
                     PerteTypeRow(
                         type        = type,
-                        onClick     = { selectedTypeId = type.id },
+                        onClick     = { onTypeClick(type.id) },
                         onLongClick = { longPressType = type; showDeleteTypeDialog = true }
                     )
                 }

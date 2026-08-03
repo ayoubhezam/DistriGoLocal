@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity() {
                 ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                         when (selectedTab) {
-                            0 -> DashboardScreen()
+                            0 -> com.distrigo.app.ui.navigation.DashboardNavHost()
                             1 -> TourneesHubScreen(
                                 onFullScreenChange = { hideBottomBar = it },
                                 onOpenClientDetail = { clientId ->      // ← جديد
@@ -220,7 +220,7 @@ class MainActivity : ComponentActivity() {
                                 )
                                 "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
                                 "charges"      -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
-                                "pertes"       -> com.distrigo.app.ui.pertes.PertesScreen(onFullScreenChange = { hideBottomBar = it })
+                                "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
                                 "inventaire"   -> com.distrigo.app.ui.inventory.InventoryScreen(
                                     onBack              = { moreScreen = null },
                                     onFullScreenChange  = { hideBottomBar = it }
