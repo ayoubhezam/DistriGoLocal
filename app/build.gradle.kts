@@ -99,4 +99,7 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.compose.foundation:foundation")
+
+    // Navigation Compose — POC step, Dashboard tab only
+    implementation("androidx.navigation:navigation-compose:2.8.4")
 }
