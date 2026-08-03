@@ -67,8 +67,8 @@ class MainActivity : ComponentActivity() {
 
                             )
                             "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
-                            "charges" -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
-                            "pertes" -> com.distrigo.app.ui.pertes.PertesScreen(onFullScreenChange = { hideBottomBar = it })
+                            "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
+                            "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
                             "inventaire" -> com.distrigo.app.ui.inventory.InventoryScreen(
                                 onBack = { moreScreen = null },
                                 onFullScreenChange = { hideBottomBar = it }
@@ -219,7 +219,7 @@ class MainActivity : ComponentActivity() {
                                     preSelectedClientId = pendingClientId
                                 )
                                 "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
-                                "charges"      -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
+                                "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
                                 "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
                                 "inventaire"   -> com.distrigo.app.ui.inventory.InventoryScreen(
                                     onBack              = { moreScreen = null },

@@ -3,6 +3,7 @@ package com.distrigo.app.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,8 +24,9 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         startDestination = Screen.PertesHome.route,
         route            = Screen.PertesGraph.route
     ) {
-        composable(Screen.PertesHome.route) {
-            val viewModel: PerteViewModel = viewModel(navController.getBackStackEntry(Screen.PertesGraph.route))
+        composable(Screen.PertesHome.route) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
+            val viewModel: PerteViewModel = viewModel(parentEntry)
             PertesScreen(
                 viewModel   = viewModel,
                 onTypeClick = { typeId -> navController.navigate(Screen.PertesList.createRoute(typeId)) }
@@ -35,7 +37,8 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             route     = Screen.PertesList.route,
             arguments = listOf(navArgument("typeId") { type = NavType.IntType })
         ) { entry ->
-            val viewModel: PerteViewModel = viewModel(navController.getBackStackEntry(Screen.PertesGraph.route))
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
+            val viewModel: PerteViewModel = viewModel(parentEntry)
             val typeId = entry.arguments!!.getInt("typeId")
             PerteListScreen(
                 typeId      = typeId,
@@ -53,7 +56,8 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                 navArgument("perteId") { type = NavType.IntType; defaultValue = -1 }
             )
         ) { entry ->
-            val viewModel: PerteViewModel = viewModel(navController.getBackStackEntry(Screen.PertesGraph.route))
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
+            val viewModel: PerteViewModel = viewModel(parentEntry)
             val typeId    = entry.arguments!!.getInt("typeId")
             val perteId   = entry.arguments!!.getInt("perteId").takeIf { it != -1 }
             val pertes by viewModel.pertes.collectAsState()
@@ -64,7 +68,11 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                 perte     = perte,
                 viewModel = viewModel,
                 onBack    = { navController.popBackStack() },
-                onSaved   = { navController.popBackStack() }
+                onSaved   = {
+                    viewModel.loadPertes(typeId)
+                    viewModel.loadPerteTypes()
+                    navController.popBackStack()
+                }
             )
         }
     }

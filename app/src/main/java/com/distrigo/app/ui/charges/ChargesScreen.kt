@@ -26,71 +26,20 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.combinedClickable
 @Composable
 fun ChargesScreen(
-    viewModel          : ChargeViewModel = viewModel(),
-    onFullScreenChange : (Boolean) -> Unit = {}
+    viewModel   : ChargeViewModel = viewModel(),
+    onTypeClick : (Int) -> Unit
 ) {
     val chargeTypes by viewModel.chargeTypes.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
 
-    var selectedTypeId    by remember { mutableStateOf<Int?>(null) }
-    var selectedSubTypeId by remember { mutableStateOf<Int?>(null) }
-    var showChargeForm    by remember { mutableStateOf(false) }
-    var editingCharge     by remember { mutableStateOf<com.distrigo.app.data.model.Charge?>(null) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
     var newTypeName       by remember { mutableStateOf("") }
     var longPressType       by remember { mutableStateOf<ChargeType?>(null) }
     var showDeleteTypeDialog by remember { mutableStateOf(false) }
     var deleteTypeError      by remember { mutableStateOf("") }
 
-    // ── Formulaire de dépense (niveau le plus profond، plein écran) ──
-    if (showChargeForm && selectedSubTypeId != null) {
-        onFullScreenChange(true)
-        BackHandler {
-            showChargeForm = false
-            editingCharge  = null
-            onFullScreenChange(false)
-        }
-        ChargeFormScreen(
-            subtypeId = selectedSubTypeId!!,
-            charge    = editingCharge,
-            onBack    = {
-                showChargeForm = false
-                editingCharge  = null
-                onFullScreenChange(false)
-            },
-            onSaved   = {
-                showChargeForm = false
-                editingCharge  = null
-                onFullScreenChange(false)
-                viewModel.loadCharges(selectedSubTypeId!!)
-                viewModel.loadChargeTypes()
-            }
-        )
-        return
-    }
 
-    // ── Liste des dépenses d'un sous-type ──
-    selectedSubTypeId?.let { subtypeId ->
-        BackHandler { selectedSubTypeId = null }
-        ChargeListScreen(
-            subtypeId    = subtypeId,
-            onBack       = { selectedSubTypeId = null },
-            onAddCharge  = { editingCharge = null; showChargeForm = true },
-            onEditCharge = { charge -> editingCharge = charge; showChargeForm = true }
-        )
-        return
-    }
 
-    // ── Sous-types d'un type ──
-    selectedTypeId?.let { typeId ->
-        BackHandler { selectedTypeId = null }
-        ChargeSubTypesScreen(
-            typeId         = typeId,
-            onBack         = { selectedTypeId = null },
-            onSubTypeClick = { selectedSubTypeId = it }
-        )
-        return
-    }
     LaunchedEffect(Unit) { viewModel.loadChargeTypes() }
 
 
@@ -146,7 +95,7 @@ fun ChargesScreen(
                 items(chargeTypes, key = { it.id }) { type ->
                     ChargeTypeRow(
                         type        = type,
-                        onClick     = { selectedTypeId = type.id },
+                        onClick     = { onTypeClick(type.id) },
                         onLongClick = { longPressType = type; showDeleteTypeDialog = true }
                     )
                 }
