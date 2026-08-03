@@ -79,11 +79,11 @@ fun RetourFournisseurListScreen(
         targetState = selectedRetour,
         transitionSpec = {
             if (targetState != null && initialState == null) {
-                (slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullHeight -> fullHeight })
+                (slideInVertically(animationSpec = tween(450, easing = FastOutSlowInEasing)) { fullHeight -> fullHeight })
                     .togetherWith(ExitTransition.None)
             } else {
                 EnterTransition.None
-                    .togetherWith(slideOutVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullHeight -> fullHeight })
+                    .togetherWith(slideOutVertically(animationSpec = tween(450, easing = FastOutSlowInEasing)) { fullHeight -> fullHeight })
             }
         },
         label = "retour_detail_transition"

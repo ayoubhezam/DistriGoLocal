@@ -18,7 +18,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -41,6 +45,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.AchatFilter
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SupplierTransaction
+import com.distrigo.app.ui.common.ElasticUnderlineTabRow
 import com.distrigo.app.ui.common.QuickActionButton
 import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.WhatsAppIcon
@@ -55,6 +60,15 @@ import com.distrigo.app.ui.retours.RetourFournisseurFormScreen
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -435,10 +449,29 @@ fun SupplierDetailScreen(
         return
     }
 
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val density = LocalDensity.current
+    var headerOffsetPx by remember { mutableStateOf(0f) }
+    var headerHeightPx by remember { mutableStateOf(0f) }
+
+    val headerNestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = (headerOffsetPx + delta).coerceIn(-headerHeightPx, 0f)
+                val consumed = newOffset - headerOffsetPx
+                headerOffsetPx = newOffset
+                return Offset(0f, consumed)
+            }
+        }
+    }
+    val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.SurfaceMuted)
+            .nestedScroll(headerNestedScrollConnection)
     ) {
         // ── Header ──
         Row(
@@ -471,107 +504,117 @@ fun SupplierDetailScreen(
             }
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+        Box(
+            modifier = (
+                    if (headerHeightPx > 0f)
+                        Modifier.height(with(density) { (headerHeightPx + headerOffsetPx).coerceAtLeast(0f).toDp() })
+                    else
+                        Modifier
+                    ).fillMaxWidth().clipToBounds()
         ) {
-            // ── Carte d'identité (dégradé) ──
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(DsColors.Primary, lerp(DsColors.Primary, Color.Black, 0.35f))
-                            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset { IntOffset(0, headerOffsetPx.roundToInt()) }
+                    .onGloballyPositioned { if (headerHeightPx <= 0f) headerHeightPx = it.size.height.toFloat() }
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+            ) {
+                // ── Carte d'identité (dégradé) ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(DsShapes.large)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(DsColors.Primary, lerp(DsColors.Primary, Color.Black, 0.35f))
                         )
-                        .padding(DsSpacing.lg)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.BottomEnd) {
+                    )
+                    .padding(DsSpacing.lg)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.BottomEnd) {
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(DsShapes.pill)
+                                .background(Color.White.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (currentSupplier.image_uri != null) {
+                                val imageBytes = Base64.decode(currentSupplier.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
+                                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                bitmap?.let {
+                                    Image(
+                                        bitmap             = it.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier           = Modifier.fillMaxSize().clip(DsShapes.pill),
+                                        contentScale       = ContentScale.Crop
+                                    )
+                                }
+                            } else {
+                                Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                        Box {
                             Box(
                                 modifier = Modifier
-                                    .size(76.dp)
+                                    .size(26.dp)
                                     .clip(DsShapes.pill)
-                                    .background(Color.White.copy(alpha = 0.18f)),
+                                    .background(Color.White)
+                                    .clickable(
+                                        indication        = null,
+                                        interactionSource  = remember { MutableInteractionSource() }
+                                    ) { showPhotoMenu = true },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (currentSupplier.image_uri != null) {
-                                    val imageBytes = Base64.decode(currentSupplier.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
-                                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                    bitmap?.let {
-                                        Image(
-                                            bitmap             = it.asImageBitmap(),
-                                            contentDescription = null,
-                                            modifier           = Modifier.fillMaxSize().clip(DsShapes.pill),
-                                            contentScale       = ContentScale.Crop
-                                        )
-                                    }
-                                } else {
-                                    Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                             }
-                            Box {
-                                Box(
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clip(DsShapes.pill)
-                                        .background(Color.White)
-                                        .clickable(
-                                            indication        = null,
-                                            interactionSource  = remember { MutableInteractionSource() }
-                                        ) { showPhotoMenu = true },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
-                                }
-                                DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
+                            DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Ajouter une nouvelle photo") },
+                                    leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
+                                    onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
+                                )
+                                if (currentSupplier.image_uri != null) {
                                     DropdownMenuItem(
-                                        text = { Text("Ajouter une nouvelle photo") },
-                                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
-                                        onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
+                                        text = { Text("Supprimer la photo actuelle") },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                        onClick = {
+                                            showPhotoMenu = false
+                                            viewModel.updateSupplier(
+                                                id        = currentSupplier.id,
+                                                supplier  = supplierToUpdateMap(currentSupplier, null),
+                                                onSuccess = {},
+                                                onError   = {}
+                                            )
+                                        }
                                     )
-                                    if (currentSupplier.image_uri != null) {
-                                        DropdownMenuItem(
-                                            text = { Text("Supprimer la photo actuelle") },
-                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                            onClick = {
-                                                showPhotoMenu = false
-                                                viewModel.updateSupplier(
-                                                    id        = currentSupplier.id,
-                                                    supplier  = supplierToUpdateMap(currentSupplier, null),
-                                                    onSuccess = {},
-                                                    onError   = {}
-                                                )
-                                            }
-                                        )
-                                    }
                                 }
                             }
                         }
+                    }
 
-                        Spacer(Modifier.width(DsSpacing.md))
+                    Spacer(Modifier.width(DsSpacing.md))
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(currentSupplier.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = Color.White)
-                            if (!currentSupplier.phone.isNullOrBlank()) {
-                                Spacer(Modifier.height(4.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                                    Text(formatPhone(currentSupplier.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
-                                }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(currentSupplier.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = Color.White)
+                        if (!currentSupplier.phone.isNullOrBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                Text(formatPhone(currentSupplier.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                             }
-                            if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
-                                Spacer(Modifier.height(4.dp))
-                                val location = listOfNotNull(
-                                    currentSupplier.commune_name?.takeIf { it.isNotBlank() },
-                                    currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
-                                ).joinToString(", ")
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                                    Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
-                                }
+                        }
+                        if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            val location = listOfNotNull(
+                                currentSupplier.commune_name?.takeIf { it.isNotBlank() },
+                                currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
+                            ).joinToString(", ")
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
                             }
                         }
                     }
@@ -579,388 +622,377 @@ fun SupplierDetailScreen(
             }
 
             // ── Statistiques (Total payé / Total facturé / Solde dû) ──
-            item {
-                val totalFacture = supplierTransactions.filter { it.type == "facture" }.sumOf { it.amount ?: 0.0 }
-                val totalPaye = supplierTransactions.filter { it.type == "facture" }.sumOf { it.montant_paye ?: 0.0 } +
-                        supplierTransactions.filter { it.type == "paiement" }.sumOf { it.amount ?: 0.0 }
+            val totalFacture = supplierTransactions.filter { it.type == "facture" }.sumOf { it.amount ?: 0.0 }
+            val totalPaye = supplierTransactions.filter { it.type == "facture" }.sumOf { it.montant_paye ?: 0.0 } +
+                    supplierTransactions.filter { it.type == "paiement" }.sumOf { it.amount ?: 0.0 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(vertical = DsSpacing.md)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
-                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                        StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
-                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                        StatCell(modifier = Modifier.weight(1f), label = "Solde dû", value = kotlin.math.abs(currentSupplier.balance), color = DsColors.Danger)
-                    }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(DsShapes.large)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
+                    .padding(vertical = DsSpacing.md)
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
+                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                    StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
+                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                    StatCell(modifier = Modifier.weight(1f), label = "Solde dû", value = kotlin.math.abs(currentSupplier.balance), color = DsColors.Danger)
+                }
 
-                    if (balanceStatus == "due") {
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Button(
-                            onClick        = { showPaymentDialog = true },
-                            modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                            shape          = DsShapes.medium,
-                            colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
-                            contentPadding = PaddingValues(vertical = 10.dp)
-                        ) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                        }
+                if (balanceStatus == "due") {
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    Button(
+                        onClick        = { showPaymentDialog = true },
+                        modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                        shape          = DsShapes.medium,
+                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
+                        contentPadding = PaddingValues(vertical = 10.dp)
+                    ) {
+                        Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
 
             // ── Actions rapides (rangée défilante horizontalement) ──
-            item {
-                val hasPhone = !currentSupplier.phone.isNullOrBlank()
-                val hasLocation = currentSupplier.latitude != null && currentSupplier.longitude != null
+            val hasPhone = !currentSupplier.phone.isNullOrBlank()
+            val hasLocation = currentSupplier.latitude != null && currentSupplier.longitude != null
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
-                ) {
-                    item {
-                        QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
-                            if (hasPhone) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+                item {
+                    QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                        if (hasPhone) {
+                            context.startActivity(
+                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
+                            )
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+                item {
+                    QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
+                        if (hasLocation) {
+                            try {
+                                val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
                                 context.startActivity(
-                                    Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
+                                    Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
                                 )
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            } catch (e: ActivityNotFoundException) {
+                                Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
                             }
+                        } else {
+                            Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
                         }
                     }
-                    item {
-                        QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
-                            if (hasLocation) {
+                }
+                item {
+                    QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
+                        if (hasPhone) {
+                            val digits = currentSupplier.phone!!.filter { it.isDigit() }
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }
+                                )
+                            } catch (e: ActivityNotFoundException) {
                                 try {
-                                    val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
-                                    )
-                                } catch (e: ActivityNotFoundException) {
-                                    Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
+                                } catch (e2: ActivityNotFoundException) {
+                                    Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
                                 }
-                            } else {
-                                Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+                item {
+                    QuickActionButton(
+                        icon = Icons.Default.ShoppingCart,
+                        label = "Nouvel\nachat"
+                    ) { showNewAchat = true }
+                }
+                item {
+                    QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                        showPaymentDialog = true
+                    }
+                }
+                item {
+                    QuickActionButton(
+                        icon = Icons.Default.AssignmentReturn,
+                        label = "Retour"
+                    ) { showRetourForm = true }
+                }
+                item {
+                    Box {
+                        QuickActionButton(
+                            icon = Icons.Default.MoreHoriz,
+                            label = "Plus",
+                            tint = DsColors.TextSecondary,
+                            bg = DsColors.SurfaceSunken
+                        ) {
+                            showMoreMenu = true
+                        }
+                        DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Modifier le fournisseur") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                                onClick = { showMoreMenu = false; onEdit() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Supprimer le fournisseur") },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                onClick = { showMoreMenu = false; onDelete() }
+                            )
+                        }
+                    }
+                }
+            }
+            }
+        }
+
+        ElasticUnderlineTabRow(tabs = tabTitles, pagerState = pagerState)
+
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f).fillMaxWidth()) { page ->
+            Column(
+                modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+            ) {
+                when (page) {
+                    0 -> {
+                        // ── Informations ──
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.large)
+                                .background(DsColors.Surface)
+                                .border(1.dp, DsColors.Border, DsShapes.large)
+                                .padding(DsSpacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+                        ) {
+                            SupplierInfoRow(
+                                icon = Icons.Default.Phone,
+                                label = "Téléphone",
+                                value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
+                            )
+                            SupplierInfoRow(
+                                icon = Icons.Default.LocationOn,
+                                label = "Wilaya",
+                                value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                            )
+                            SupplierInfoRow(
+                                icon = Icons.Default.Map,
+                                label = "Commune",
+                                value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                            )
+                            SupplierInfoRow(
+                                icon = Icons.Default.Home,
+                                label = "Adresse",
+                                value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                            )
+                            if (!currentSupplier.note.isNullOrBlank()) {
+                                SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
                             }
                         }
                     }
-                    item {
-                        QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
-                            if (hasPhone) {
-                                val digits = currentSupplier.phone!!.filter { it.isDigit() }
-                                try {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }
-                                    )
-                                } catch (e: ActivityNotFoundException) {
-                                    try {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
-                                    } catch (e2: ActivityNotFoundException) {
-                                        Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                    1 -> {
+                        // ── Achats & Paiements ──
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.large)
+                                .background(DsColors.Surface)
+                                .border(1.dp, DsColors.Border, DsShapes.large)
+                                .padding(DsSpacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                Button(
+                                    onClick = { showPaymentDialog = true },
+                                    shape = DsShapes.pill,
+                                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Versement", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            if (supplierTransactions.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                        Spacer(Modifier.height(DsSpacing.sm))
+                                        Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                                     }
                                 }
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    }
-                    item {
-                        QuickActionButton(
-                            icon = Icons.Default.ShoppingCart,
-                            label = "Nouvel\nachat"
-                        ) { showNewAchat = true }
-                    }
-                    item {
-                        QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
-                            showPaymentDialog = true
-                        }
-                    }
-                    item {
-                        QuickActionButton(
-                            icon = Icons.Default.AssignmentReturn,
-                            label = "Retour"
-                        ) { showRetourForm = true }
-                    }
-                    item {
-                        Box {
-                            QuickActionButton(
-                                icon = Icons.Default.MoreHoriz,
-                                label = "Plus",
-                                tint = DsColors.TextSecondary,
-                                bg = DsColors.SurfaceSunken
-                            ) {
-                                showMoreMenu = true
-                            }
-                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Modifier le fournisseur") },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
-                                    onClick = { showMoreMenu = false; onEdit() }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Supprimer le fournisseur") },
-                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                    onClick = { showMoreMenu = false; onDelete() }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+                                val collapsedLimit = 2
+                                val expandedLimit = 4
+                                val visibleLimit = if (achatExpanded) expandedLimit else collapsedLimit
+                                val visibleTransactions = supplierTransactions.take(visibleLimit)
+                                val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
+                                grouped.forEach { (date, dayTransactions) ->
+                                    Text(
+                                        text = formatOrderDate(date),
+                                        fontSize = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DsColors.TextSecondary,
+                                        modifier = Modifier.padding(vertical = DsSpacing.sm)
+                                    )
+                                    dayTransactions.forEach { transaction ->
+                                        AchatRow(
+                                            transaction,
+                                            onLongPressPaiement = { longPressPayment = it },
+                                            onClickFacture = { onNavigateToOrder(it.id) }
+                                        )
+                                    }
+                                }
 
-            // ── Informations ──
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                    Text("Informations", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                }
-            }
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(DsSpacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                ) {
-                    SupplierInfoRow(
-                        icon = Icons.Default.Phone,
-                        label = "Téléphone",
-                        value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
-                    )
-                    SupplierInfoRow(
-                        icon = Icons.Default.LocationOn,
-                        label = "Wilaya",
-                        value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                    )
-                    SupplierInfoRow(
-                        icon = Icons.Default.Map,
-                        label = "Commune",
-                        value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                    )
-                    SupplierInfoRow(
-                        icon = Icons.Default.Home,
-                        label = "Adresse",
-                        value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                    )
-                    if (!currentSupplier.note.isNullOrBlank()) {
-                        SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
-                    }
-                }
-            }
+                                if (supplierTransactions.size > collapsedLimit) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(DsShapes.medium)
+                                            .clickable(
+                                                indication = null,
+                                                interactionSource = remember { MutableInteractionSource() }
+                                            ) { achatExpanded = !achatExpanded }
+                                            .padding(vertical = DsSpacing.sm),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            if (achatExpanded) "Voir moins" else "Voir plus",
+                                            fontSize = DsTextSize.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = DsColors.Primary
+                                        )
+                                        Icon(
+                                            if (achatExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = null,
+                                            tint = DsColors.Primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
 
-            // ── Achats & Paiements ──
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                    Text("Achats & Paiements", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                }
-            }
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(DsSpacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                        Button(
-                            onClick = { showPaymentDialog = true },
-                            shape = DsShapes.pill,
-                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(DsShapes.medium)
+                                        .background(DsColors.SurfaceSunken)
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { showAchatHistory = true }
+                                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Voir tout l'historique (${supplierTransactions.size})",
+                                        fontSize = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DsColors.TextPrimary
+                                    )
+                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
+                    2 -> {
+                        // ── Retours ──
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.large)
+                                .background(DsColors.Surface)
+                                .border(1.dp, DsColors.Border, DsShapes.large)
+                                .padding(DsSpacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Versement", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    if (supplierTransactions.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                                Spacer(Modifier.height(DsSpacing.sm))
-                                Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
-                            }
-                        }
-                    } else {
-                        val collapsedLimit = 2
-                        val expandedLimit = 4
-                        val visibleLimit = if (achatExpanded) expandedLimit else collapsedLimit
-                        val visibleTransactions = supplierTransactions.take(visibleLimit)
-                        val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
-                        grouped.forEach { (date, dayTransactions) ->
-                            Text(
-                                text = formatOrderDate(date),
-                                fontSize = DsTextSize.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DsColors.TextSecondary,
-                                modifier = Modifier.padding(vertical = DsSpacing.sm)
-                            )
-                            dayTransactions.forEach { transaction ->
-                                AchatRow(
-                                    transaction,
-                                    onLongPressPaiement = { longPressPayment = it },
-                                    onClickFacture = { onNavigateToOrder(it.id) }
-                                )
-                            }
-                        }
-
-                        if (supplierTransactions.size > collapsedLimit) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(DsShapes.medium)
-                                    .clickable(
-                                        indication = null,
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) { achatExpanded = !achatExpanded }
-                                    .padding(vertical = DsSpacing.sm),
-                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    if (achatExpanded) "Voir moins" else "Voir plus",
-                                    fontSize = DsTextSize.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = DsColors.Primary
-                                )
-                                Icon(
-                                    if (achatExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = null,
-                                    tint = DsColors.Primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                Button(
+                                    onClick = { showRetourForm = true },
+                                    shape = DsShapes.pill,
+                                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Nouveau retour", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                }
                             }
-                        }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(DsShapes.medium)
-                                .background(DsColors.SurfaceSunken)
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() }
-                                ) { showAchatHistory = true }
-                                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Voir tout l'historique (${supplierTransactions.size})",
-                                fontSize = DsTextSize.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DsColors.TextPrimary
-                            )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
+                            if (supplierRetours.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                        Spacer(Modifier.height(DsSpacing.sm))
+                                        Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                    }
+                                }
+                            } else {
+                                supplierRetours.take(3).forEach { retour ->
+                                    RetourFournisseurRow(retour = retour, onClick = {})
+                                }
 
-            // ── Retours ──
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                    Text("Retours", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                }
-            }
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(DsSpacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                        Button(
-                            onClick = { showRetourForm = true },
-                            shape = DsShapes.pill,
-                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Nouveau retour", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    if (supplierRetours.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                                Spacer(Modifier.height(DsSpacing.sm))
-                                Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(DsShapes.medium)
+                                        .background(DsColors.SurfaceSunken)
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { showRetourHistory = true }
+                                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Voir tout l'historique (${supplierRetours.size})",
+                                        fontSize = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DsColors.TextPrimary
+                                    )
+                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                }
                             }
-                        }
-                    } else {
-                        supplierRetours.take(3).forEach { retour ->
-                            RetourFournisseurRow(retour = retour, onClick = {})
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(DsShapes.medium)
-                                .background(DsColors.SurfaceSunken)
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() }
-                                ) { showRetourHistory = true }
-                                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Voir tout l'historique (${supplierRetours.size})",
-                                fontSize = DsTextSize.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DsColors.TextPrimary
-                            )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }

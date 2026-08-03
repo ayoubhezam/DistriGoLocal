@@ -34,6 +34,14 @@ import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.tournees.TourneesHubScreen
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.draw.shadow
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +52,10 @@ class MainActivity : ComponentActivity() {
                     var selectedTab   by remember { mutableStateOf(0) }
                     var hideBottomBar by remember { mutableStateOf(false) }
                     var moreScreen    by remember { mutableStateOf<String?>(null) }
-                    var pendingClientId by remember { mutableStateOf<Int?>(null) }   // ← جديد
+                    var pendingClientId by remember { mutableStateOf<Int?>(null) }
+                    var showPlusDrawer by remember { mutableStateOf(false) }
                     // ── "Plus" sub-screen navigation (takes over full screen) ──
+                    BackHandler(enabled = showPlusDrawer) { showPlusDrawer = false }
                     moreScreen?.let { screen ->
                         BackHandler(enabled = !hideBottomBar) {
                             moreScreen = null
@@ -104,31 +114,31 @@ class MainActivity : ComponentActivity() {
                                             selected = selectedTab == 0,
                                             icon     = Icons.Default.Home,
                                             label    = "Dashboard",
-                                            onClick  = { selectedTab = 0 }
+                                            onClick  = { selectedTab = 0; showPlusDrawer = false }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 1,
                                             icon     = Icons.Default.LocalShipping,
                                             label    = "Ventes",
-                                            onClick  = { selectedTab = 1 }
+                                            onClick  = { selectedTab = 1; showPlusDrawer = false }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 2,
                                             icon     = Icons.Default.ShoppingCart,
                                             label    = "Produits",
-                                            onClick  = { selectedTab = 2 }
+                                            onClick  = { selectedTab = 2; showPlusDrawer = false }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 3,
                                             icon     = Icons.Default.Receipt,
                                             label    = "Achats",
-                                            onClick  = { selectedTab = 3 }
+                                            onClick  = { selectedTab = 3; showPlusDrawer = false }
                                         )
                                         BottomNavItem(
-                                            selected = selectedTab == 4,
+                                            selected = showPlusDrawer,
                                             icon     = Icons.Default.Menu,
                                             label    = "Plus",
-                                            onClick  = { selectedTab = 4 }
+                                            onClick  = { showPlusDrawer = true }
                                         )
                                     }
                                 }
@@ -148,13 +158,85 @@ class MainActivity : ComponentActivity() {
                             )
                             2 -> ProductsScreen(onFullScreenChange = { hideBottomBar = it })
                             3 -> PurchasesScreen(onFullScreenChange = { hideBottomBar = it })
-                            4 -> MoreScreen(onNavigate = { route ->
-                                if (route == "clients") pendingClientId = null   // ← يمنع بقاء تحديد قديم عند الدخول العادي من "Plus"
+
+                        }
+                    }
+                }
+
+                    // ── تعتيم خلفي، ينقر لإغلاق كل شيء ──
+                    AnimatedVisibility(
+                        visible = showPlusDrawer,
+                        enter   = fadeIn(animationSpec = tween(300)),
+                        exit    = fadeOut(animationSpec = tween(300))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                ) { showPlusDrawer = false; moreScreen = null }
+                        )
+                    }
+
+                    // ── الطبقة أ: قائمة Plus، ٨٠٪ من العرض — تبقى قائمة طوال فتح اللوحة، لا تتأثر بـ moreScreen ──
+                    AnimatedVisibility(
+                        visible  = showPlusDrawer,
+                        enter    = slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
+                        exit     = slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .fillMaxHeight()
+                                .shadow(16.dp)
+                                .background(Color.White)
+                        ) {
+                            MoreScreen(onNavigate = { route ->
+                                if (route == "clients") pendingClientId = null
                                 moreScreen = route
                             })
                         }
                     }
-                }
+
+                    // ── الطبقة ب: الشاشة الفرعية — عرض كامل، تنزلق فوق كل شيء عند فتحها ──
+                    AnimatedVisibility(
+                        visible  = showPlusDrawer && moreScreen != null,
+                        enter    = slideInHorizontally(animationSpec = tween(375, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
+                        exit     = slideOutHorizontally(animationSpec = tween(375, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.White)
+                        ) {
+                            when (moreScreen) {
+                                "clients"      -> ClientsScreen(
+                                    onFullScreenChange  = { hideBottomBar = it },
+                                    preSelectedClientId = pendingClientId
+                                )
+                                "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
+                                "charges"      -> com.distrigo.app.ui.charges.ChargesScreen(onFullScreenChange = { hideBottomBar = it })
+                                "pertes"       -> com.distrigo.app.ui.pertes.PertesScreen(onFullScreenChange = { hideBottomBar = it })
+                                "inventaire"   -> com.distrigo.app.ui.inventory.InventoryScreen(
+                                    onBack              = { moreScreen = null },
+                                    onFullScreenChange  = { hideBottomBar = it }
+                                )
+                                "rapports"     -> PlaceholderScreen(
+                                    title  = "Rapports",
+                                    icon   = Icons.Default.BarChart,
+                                    onBack = { moreScreen = null }
+                                )
+                                "parametres"   -> com.distrigo.app.ui.settings.ParametresScreen(
+                                    onBack = { moreScreen = null }
+                                )
+                                else -> {}
+                            }
+                        }
+                    }
             }
         }
     }

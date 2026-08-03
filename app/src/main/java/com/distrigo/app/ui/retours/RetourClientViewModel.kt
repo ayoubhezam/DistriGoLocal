@@ -41,6 +41,15 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
     private val _returnableProducts = MutableStateFlow<List<ReturnableProduct>>(emptyList())
     val returnableProducts: StateFlow<List<ReturnableProduct>> = _returnableProducts
 
+    private val _retourDetail = MutableStateFlow<RetourClient?>(null)
+    val retourDetail: StateFlow<RetourClient?> = _retourDetail
+
+    fun loadRetourDetail(id: Int) {
+        viewModelScope.launch {
+            _retourDetail.value = repository.getRetourDetail(id)
+        }
+    }
+
     fun loadReturnableProducts(clientId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
