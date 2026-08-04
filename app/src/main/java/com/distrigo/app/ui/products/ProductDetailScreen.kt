@@ -35,6 +35,8 @@ fun ProductDetailScreen(
     onDelete         : () -> Unit,
     onEdit           : () -> Unit,
     onViewMovements  : () -> Unit,
+    onInfoGenerales  : () -> Unit,
+    onStockPrix      : () -> Unit,
     viewModel: ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val currentProduct = viewModel.products.collectAsState().value
@@ -61,8 +63,6 @@ fun ProductDetailScreen(
     val priceHistory by viewModel.priceHistory.collectAsState()
     var showFullImage by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showInfoGenerales by remember { mutableStateOf(false) }
-    var showStockPrix by remember { mutableStateOf(false) }
 
 
     BackHandler { onBack() }
@@ -104,18 +104,6 @@ fun ProductDetailScreen(
                 }
             }
         }
-    }
-
-    if (showInfoGenerales) {
-        BackHandler { showInfoGenerales = false }
-        InfoGeneralesDetailScreen(product = currentProduct, onBack = { showInfoGenerales = false })
-        return
-    }
-
-    if (showStockPrix) {
-        BackHandler { showStockPrix = false }
-        StockPrixDetailScreen(product = currentProduct, priceHistory = priceHistory, onBack = { showStockPrix = false }, onEdit = onEdit)
-        return
     }
 
     if (showDeleteDialog) {
@@ -282,17 +270,10 @@ fun ProductDetailScreen(
 
 
             // ── Sections navigables ──
-            DetailSectionRow(
-                icon    = Icons.Default.Info,
-                label   = "Informations générales",
-                onClick = { showInfoGenerales = true }
-            )
+            DetailSectionRow(icon = Icons.Default.Info, label = "Informations générales", onClick = onInfoGenerales)
+
             Spacer(Modifier.height(10.dp))
-            DetailSectionRow(
-                icon    = Icons.Default.Inventory2,
-                label   = "Stock et prix",
-                onClick = { showStockPrix = true }
-            )
+            DetailSectionRow(icon = Icons.Default.Inventory2, label = "Stock et prix", onClick = onStockPrix)
             Spacer(Modifier.height(10.dp))
             DetailSectionRow(
                 icon    = Icons.Default.SwapVert,
@@ -432,7 +413,7 @@ private fun DetailSectionRow(
 
 // ── Sous-écran : Informations générales ──
 @Composable
-private fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
+fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
     val today        = java.time.LocalDate.now().toString()
     val isExpired    = product.has_expiry == 1 &&
             !product.expiry_date.isNullOrEmpty() &&
@@ -535,7 +516,7 @@ private fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
 
 // ── Sous-écran : Stock et prix ──
 @Composable
-private fun StockPrixDetailScreen(
+fun StockPrixDetailScreen(
     product      : Product,
     priceHistory : List<com.distrigo.app.data.model.PriceHistory>,
     onBack       : () -> Unit,

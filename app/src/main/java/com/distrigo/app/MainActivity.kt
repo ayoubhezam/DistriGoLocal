@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
                                     moreScreen = "clients"
                                 }
                             )
-                            2 -> ProductsScreen(onFullScreenChange = { hideBottomBar = it })
+                            2 -> com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
                             3 -> PurchasesScreen(onFullScreenChange = { hideBottomBar = it })
 
                         }

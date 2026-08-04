@@ -39,21 +39,19 @@ data class MovementFilters(
 
 @Composable
 fun MouvementsScreen(
-    product   : Product,
-    onBack    : () -> Unit,
-    viewModel : StockMovementViewModel = viewModel()
+    product         : Product,
+    onBack          : () -> Unit,
+    onMovementClick : (StockMovement) -> Unit,
+    onFilterClick   : () -> Unit,
+    viewModel       : StockMovementViewModel = viewModel()
 ) {
-    var filters          by remember { mutableStateOf(MovementFilters()) }
-    var showFilters       by remember { mutableStateOf(false) }
-    var selectedMovement  by remember { mutableStateOf<StockMovement?>(null) }
 
+    val filters by viewModel.filters.collectAsState()
     val movements by viewModel.movements.collectAsState()
     val sources    by viewModel.availableSources.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(product.id) {
-        viewModel.loadSourcesForProduct(product.id)
-    }
+    LaunchedEffect(product.id) { viewModel.loadSourcesForProduct(product.id) }
     LaunchedEffect(product.id, filters) {
         viewModel.loadFilteredMovements(
             productId   = product.id,
@@ -65,27 +63,6 @@ fun MouvementsScreen(
     }
 
     // ── Detail Sub-screen ──
-    selectedMovement?.let { movement ->
-        BackHandler { selectedMovement = null }
-        MovementDetailView(
-            movement = movement,
-            onBack   = { selectedMovement = null }
-        )
-        return
-    }
-
-    // ── Filters Sub-screen ──
-    if (showFilters) {
-        BackHandler { showFilters = false }
-        MovementFiltersView(
-            initialFilters   = filters,
-            availableSources = sources,
-            onBack           = { showFilters = false },
-            onApply          = { newFilters -> filters = newFilters; showFilters = false },
-            onReset          = { filters = MovementFilters(); showFilters = false }
-        )
-        return
-    }
 
     // ── Main List ──
     BackHandler { onBack() }
@@ -107,7 +84,8 @@ fun MouvementsScreen(
                 color      = DsColors.TextPrimary,
                 modifier   = Modifier.weight(1f)
             )
-            IconButton(onClick = { showFilters = true }) {
+            IconButton(onClick = onFilterClick) {
+
                 Icon(
                     Icons.Default.FilterList,
                     contentDescription = "Filtres",
@@ -182,7 +160,7 @@ fun MouvementsScreen(
                             )
                         }
                         items(dayMovements, key = { it.id }) { movement ->
-                            MovementRow(movement = movement, onClick = { selectedMovement = movement })
+                            MovementRow(movement = movement, onClick = { onMovementClick(movement) })
                         }
                     }
                 }
@@ -267,17 +245,16 @@ fun formatMovementDateLabel(date: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MovementFiltersView(
-    initialFilters   : MovementFilters,
+fun MovementFiltersView(
+    viewModel        : StockMovementViewModel,
     availableSources : List<String>,
-    onBack           : () -> Unit,
-    onApply          : (MovementFilters) -> Unit,
-    onReset          : () -> Unit
+    onBack           : () -> Unit
 ) {
-    var dateFrom    by remember { mutableStateOf(initialFilters.dateFrom ?: "") }
-    var dateTo      by remember { mutableStateOf(initialFilters.dateTo ?: "") }
-    var direction   by remember { mutableStateOf(initialFilters.direction) }
-    var sourceLabel by remember { mutableStateOf(initialFilters.sourceLabel) }
+    val currentFilters by viewModel.filters.collectAsState()
+    var dateFrom    by remember { mutableStateOf(currentFilters.dateFrom ?: "") }
+    var dateTo      by remember { mutableStateOf(currentFilters.dateTo ?: "") }
+    var direction   by remember { mutableStateOf(currentFilters.direction) }
+    var sourceLabel by remember { mutableStateOf(currentFilters.sourceLabel) }
     var showDateFromPicker by remember { mutableStateOf(false) }
     var showDateToPicker   by remember { mutableStateOf(false) }
     var sourceMenuExpanded by remember { mutableStateOf(false) }
@@ -411,8 +388,8 @@ private fun MovementFiltersView(
 
         Column(modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg)) {
             Button(
-                onClick  = {
-                    onApply(
+                onClick = {
+                    viewModel.setFilters(
                         MovementFilters(
                             dateFrom    = dateFrom.ifEmpty { null },
                             dateTo      = dateTo.ifEmpty { null },
@@ -420,6 +397,7 @@ private fun MovementFiltersView(
                             sourceLabel = sourceLabel
                         )
                     )
+                    onBack()
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.medium,
@@ -428,7 +406,7 @@ private fun MovementFiltersView(
                 Text("Appliquer les filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
             Spacer(Modifier.height(DsSpacing.sm))
-            TextButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { viewModel.setFilters(MovementFilters()); onBack() }, modifier = Modifier.fillMaxWidth()) {
                 Text("Réinitialiser", color = DsColors.TextSecondary)
             }
         }
@@ -455,12 +433,23 @@ private fun FilterChipOption(label: String, selected: Boolean, onClick: () -> Un
 
 // ── Sub-screen 5 : Détail du mouvement ──
 @Composable
-private fun MovementDetailView(
-    movement : StockMovement,
-    onBack   : () -> Unit
+fun MovementDetailView(
+    movementId : Int,
+    viewModel  : StockMovementViewModel,
+    onBack     : () -> Unit
 ) {
-    val isEntree = movement.direction == "entree"
-    val (_, typeLabel) = movementTypeDisplay(movement.type)
+    LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
+    val movement by viewModel.selectedMovement.collectAsState()
+    val currentMovement = movement
+
+    if (currentMovement == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = DsColors.Primary)
+        }
+        return
+    }
+    val isEntree = currentMovement.direction == "entree"
+    val (_, typeLabel) = movementTypeDisplay(currentMovement.type)
 
     BackHandler { onBack() }
 
@@ -501,7 +490,7 @@ private fun MovementDetailView(
                     )
                 }
             }
-            Text(formatMovementDateTime(movement.created_at), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(formatMovementDateTime(currentMovement.created_at), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
 
             // ── Quantité ──
             Column(
@@ -514,7 +503,7 @@ private fun MovementDetailView(
             ) {
                 Text("Quantité", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                 Text(
-                    "${if (isEntree) "+" else "-"}${formatQty(movement.quantity)}",
+                    "${if (isEntree) "+" else "-"}${formatQty(currentMovement.quantity)}",
                     fontSize   = DsTextSize.display,
                     fontWeight = FontWeight.ExtraBold,
                     color      = if (isEntree) DsColors.Success else DsColors.Danger
@@ -532,15 +521,15 @@ private fun MovementDetailView(
                     .padding(DsSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
-                DetailInfoRow("Produit", movement.product_name)
-                DetailInfoRow("Source", movement.source_label)
-                DetailInfoRow("N° de source", "#${movement.source_id}")
-                movement.unit_price?.let {
+                DetailInfoRow("Produit", currentMovement.product_name)
+                DetailInfoRow("Source", currentMovement.source_label)
+                DetailInfoRow("N° de source", "#${currentMovement.source_id}")
+                currentMovement.unit_price?.let {
                     DetailInfoRow("Prix unitaire", "${"%.2f".format(it)} DA")
                 }
-                DetailInfoRow("Valeur totale", "${"%.2f".format(movement.total_value)} DA")
-                DetailInfoRow("Utilisateur", movement.user_name ?: "—")
-                DetailInfoRow("Notes", movement.note ?: "—")
+                DetailInfoRow("Valeur totale", "${"%.2f".format(currentMovement.total_value)} DA")
+                DetailInfoRow("Utilisateur", currentMovement.user_name ?: "—")
+                DetailInfoRow("Notes", currentMovement.note ?: "—")
             }
         }
     }

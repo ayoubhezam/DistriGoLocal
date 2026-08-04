@@ -29,6 +29,13 @@ class StockMovementViewModel(application: Application) : AndroidViewModel(applic
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _filters = MutableStateFlow(MovementFilters())
+    val filters: StateFlow<MovementFilters> = _filters
+
+    fun setFilters(newFilters: MovementFilters) {
+        _filters.value = newFilters
+    }
+
     fun loadMovementsForProduct(productId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -62,4 +69,6 @@ class StockMovementViewModel(application: Application) : AndroidViewModel(applic
             _selectedMovement.value = repository.getMovementById(id)
         }
     }
+
+
 }

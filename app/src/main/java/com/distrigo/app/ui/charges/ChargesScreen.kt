@@ -24,6 +24,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.Text
 @Composable
 fun ChargesScreen(
     viewModel   : ChargeViewModel = viewModel(),

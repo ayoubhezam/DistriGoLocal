@@ -3,7 +3,6 @@ package com.distrigo.app.ui.products
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -64,9 +63,11 @@ private fun isExpiringSoon(expiryDate: String?, withinDays: Int = 30): Boolean {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
-    viewModel : ProductViewModel = viewModel(),
-    modifier  : Modifier = Modifier,
-    onFullScreenChange : (Boolean) -> Unit = {}
+    viewModel      : ProductViewModel = viewModel(),
+    modifier       : Modifier = Modifier,
+    onAddProduct   : () -> Unit = {},
+    onEditProduct  : (Int) -> Unit = {},
+    onProductClick : (Int) -> Unit = {}
 ) {
     val products      by viewModel.products.collectAsState()
     val isLoading     by viewModel.isLoading.collectAsState()
@@ -77,12 +78,8 @@ fun ProductsScreen(
     val suppliers       by viewModel.suppliers.collectAsState()
     var longPressProduct by remember { mutableStateOf<Product?>(null) }
 
-    var showEditScreen   by remember { mutableStateOf<Product?>(null) }
     var search           by remember { mutableStateOf("") }
-    var selectedProduct  by remember { mutableStateOf<Product?>(null) }
-    var showMovements    by remember { mutableStateOf<Product?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Product?>(null) }
-    var showAddScreen    by remember { mutableStateOf(false) }
     var showScanner      by remember { mutableStateOf(false) }
     var isGridView       by remember { mutableStateOf(false) }
     var sortOption       by remember { mutableStateOf(SortOption.NAME_ASC) }
@@ -123,26 +120,10 @@ fun ProductsScreen(
         filterExpiringSoon    = false
     }
 
-    if (showAddScreen) {
-        onFullScreenChange(true)
-        BackHandler { showAddScreen = false; onFullScreenChange(false) }
-        ProductFormScreen(
-            onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { showAddScreen = false; onFullScreenChange(false) }
-        )
-        return
-    }
-
     if (showScanner) {
-        onFullScreenChange(true)
-        BackHandler { showScanner = false; onFullScreenChange(false) }
         BarcodeScannerScreen(
-            onBarcodeScanned = { code ->
-                search = code
-                showScanner = false
-                onFullScreenChange(false)
-            },
-            onClose = { showScanner = false; onFullScreenChange(false) }
+            onBarcodeScanned = { code -> search = code; showScanner = false },
+            onClose          = { showScanner = false }
         )
         return
     }
@@ -151,22 +132,22 @@ fun ProductsScreen(
     val filtered = products.filter { product ->
         (tokens.isEmpty() || tokens.all { token ->
             product.name.contains(token, ignoreCase = true) ||
-            (product.barcode?.contains(token, ignoreCase = true) == true)
+                    (product.barcode?.contains(token, ignoreCase = true) == true)
         }) &&
-        (filterCategoryId == null || product.category_id == filterCategoryId) &&
-        (filterSousCategorieId == null || product.sous_categorie_id == filterSousCategorieId) &&
-        (filterMarqueId == null || product.marque_id == filterMarqueId) &&
-        (filterSupplierId == null || product.supplier_id == filterSupplierId) &&
-        (filterUnitType == null || product.unit_type == filterUnitType) &&
-        (filterStockLevel == null || when (filterStockLevel) {
-            "in_stock"     -> product.stock > product.min_stock
-            "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
-            "out_of_stock" -> product.stock <= 0
-            else           -> true
-        }) &&
-        (filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
-        (filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
-        (!filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))
+                (filterCategoryId == null || product.category_id == filterCategoryId) &&
+                (filterSousCategorieId == null || product.sous_categorie_id == filterSousCategorieId) &&
+                (filterMarqueId == null || product.marque_id == filterMarqueId) &&
+                (filterSupplierId == null || product.supplier_id == filterSupplierId) &&
+                (filterUnitType == null || product.unit_type == filterUnitType) &&
+                (filterStockLevel == null || when (filterStockLevel) {
+                    "in_stock"     -> product.stock > product.min_stock
+                    "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
+                    "out_of_stock" -> product.stock <= 0
+                    else           -> true
+                }) &&
+                (filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
+                (filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
+                (!filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))
     }
     val sorted = when (sortOption) {
         SortOption.NAME_ASC   -> filtered.sortedBy { it.name.lowercase() }
@@ -225,7 +206,6 @@ fun ProductsScreen(
                 TextButton(onClick = {
                     viewModel.deleteProduct(product.id)
                     showDeleteDialog = null
-                    selectedProduct  = null
                 }) { Text("Supprimer", color = DsColors.Danger) }
             },
             dismissButton = {
@@ -250,7 +230,7 @@ fun ProductsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.PrimaryLight)
                             .clickable {
-                                showEditScreen   = product
+                                onEditProduct(product.id)
                                 longPressProduct = null
                             }
                             .padding(14.dp),
@@ -279,41 +259,6 @@ fun ProductsScreen(
                 }
             }
         )
-    }
-
-    showEditScreen?.let { product ->
-        onFullScreenChange(true)
-        BackHandler { showEditScreen = null; onFullScreenChange(false) }
-        ProductFormScreen(
-            product = product,
-            onBack  = { showEditScreen = null; onFullScreenChange(false) },
-            onSaved = { showEditScreen = null; selectedProduct = null; onFullScreenChange(false) }
-        )
-        return
-    }
-
-    showMovements?.let { product ->
-        BackHandler { showMovements = null }
-        com.distrigo.app.ui.mouvements.MouvementsScreen(
-            product = product,
-            onBack  = { showMovements = null }
-        )
-        return
-    }
-
-    selectedProduct?.let { product ->
-        BackHandler { showEditScreen = null }
-        ProductDetailScreen(
-            product  = product,
-            onBack   = { selectedProduct = null },
-            onDelete = { showDeleteDialog = product },
-            onEdit = {
-                showEditScreen  = product
-                selectedProduct = null
-            },
-            onViewMovements = { showMovements = product }
-        )
-        return
     }
 
     if (showSortSheet) {
@@ -380,7 +325,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(DsSpacing.sm))
 
-                // ── Catégorie ──
                 Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterCategoryExpanded,
@@ -413,7 +357,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Sous-catégorie ──
                 val sousCategorieEnabled = filterCategoryId != null
                 Text(
                     "Sous-catégorie",
@@ -455,7 +398,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Marque ──
                 Text("Marque", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterMarqueExpanded,
@@ -488,7 +430,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Fournisseur ──
                 Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterSupplierExpanded,
@@ -521,7 +462,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Unité de stockage ──
                 Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf<Pair<String?, String>>(null to "Toutes", "carton" to "Carton", "pièce" to "Pièce").forEach { (value, label) ->
@@ -547,7 +487,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Niveau de stock ──
                 Text("Niveau de stock", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterStockLevelExpanded,
@@ -586,7 +525,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Fourchette de prix ──
                 Text("Fourchette de prix", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -618,7 +556,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // ── Bientôt périmé ──
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -636,7 +573,6 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(DsSpacing.lg))
 
-                // ── Footer ──
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick  = { clearAllFilters(); showFilterSheet = false },
@@ -666,7 +602,6 @@ fun ProductsScreen(
                 .fillMaxSize()
                 .background(DsColors.Surface)
         ) {
-            // ── Header ──
             Row(
                 modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -675,7 +610,6 @@ fun ProductsScreen(
                 Text("Produits", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
             }
 
-            // ── Search bar ──
             OutlinedTextField(
                 value = search,
                 onValueChange = { search = it },
@@ -709,7 +643,6 @@ fun ProductsScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Count + List/Grid + Trier + Filtres ──
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -717,7 +650,6 @@ fun ProductsScreen(
             ) {
                 Text("${sorted.size} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                    // ── Toggle List/Grid ──
                     Row(
                         modifier = Modifier
                             .clip(DsShapes.medium)
@@ -757,7 +689,6 @@ fun ProductsScreen(
                         }
                     }
 
-                    // ── Trier ──
                     Box(
                         modifier = Modifier
                             .clip(DsShapes.medium)
@@ -782,7 +713,6 @@ fun ProductsScreen(
                         }
                     }
 
-                    // ── Filtres ──
                     Box {
                         Box(
                             modifier = Modifier
@@ -820,7 +750,6 @@ fun ProductsScreen(
                 }
             }
 
-            // ── Active filter chips ──
             if (hasActiveFilters) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
@@ -884,7 +813,6 @@ fun ProductsScreen(
                     }
                 }
             } else {
-                // ── List View ──
                 if (!isGridView) {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -892,14 +820,12 @@ fun ProductsScreen(
                     ) {
                         items(sorted) { product ->
                             ProductCard(product = product,
-                                onClick = { selectedProduct = product },
+                                onClick = { onProductClick(product.id) },
                                 onLongClick = { longPressProduct = product }
                             )
                         }
                     }
-                }
-                // ── Grid View ──
-                else {
+                } else {
                     LazyVerticalGrid(
                         columns             = GridCells.Fixed(2),
                         contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -908,7 +834,7 @@ fun ProductsScreen(
                     ) {
                         items(sorted) { product ->
                             ProductGridCard(product = product,
-                                onClick = { selectedProduct = product },
+                                onClick = { onProductClick(product.id) },
                                 onLongClick = { longPressProduct = product })
                         }
                     }
@@ -916,9 +842,8 @@ fun ProductsScreen(
             }
         }
 
-        // ── Add button ──
         FloatingActionButton(
-            onClick        = { showAddScreen = true },
+            onClick        = { onAddProduct() },
             containerColor = DsColors.Primary,
             contentColor   = Color.White,
             modifier       = Modifier.align(Alignment.BottomEnd).padding(DsSpacing.lg)
