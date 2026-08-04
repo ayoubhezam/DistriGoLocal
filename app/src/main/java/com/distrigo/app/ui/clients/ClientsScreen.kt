@@ -34,10 +34,11 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun ClientsScreen(
-    viewModel : ClientViewModel = viewModel(),
-    modifier  : Modifier = Modifier,
-    onFullScreenChange : (Boolean) -> Unit = {},
-    preSelectedClientId : Int? = null   // ← جديد
+    viewModel     : ClientViewModel = viewModel(),
+    modifier      : Modifier = Modifier,
+    onAddClient   : () -> Unit = {},
+    onEditClient  : (Int) -> Unit = {},
+    onClientClick : (Int) -> Unit = {}
 ){
     val clients   by viewModel.clients.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -45,47 +46,8 @@ fun ClientsScreen(
     var search           by remember { mutableStateOf("") }
     var typeFilter       by remember { mutableStateOf("all") }
     var debtOnly         by remember { mutableStateOf(false) }
-    var showAddScreen    by remember { mutableStateOf(false) }
-    var editingClient    by remember { mutableStateOf<Client?>(null) }
-    var selectedClient   by remember { mutableStateOf<Client?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Client?>(null) }
     var longPressClient  by remember { mutableStateOf<Client?>(null) }
-
-    LaunchedEffect(clients, preSelectedClientId) {   // ← جديد
-        if (preSelectedClientId != null && selectedClient == null) {
-            clients.find { it.id == preSelectedClientId }?.let { selectedClient = it }
-        }
-    }
-    if (showAddScreen) {
-        onFullScreenChange(true)
-        BackHandler { showAddScreen = false; onFullScreenChange(false) }
-        ClientFormScreen(
-            onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { _ -> showAddScreen = false; onFullScreenChange(false) }
-        )
-        return
-    }
-
-    editingClient?.let { c ->
-        onFullScreenChange(true)
-        BackHandler { editingClient = null; onFullScreenChange(false) }
-        ClientFormScreen(
-            client  = c,
-            onBack  = { editingClient = null; onFullScreenChange(false) },
-            onSaved = { _ -> editingClient = null; onFullScreenChange(false) }
-        )
-        return
-    }
-    selectedClient?.let { c ->
-        BackHandler { selectedClient = null }
-        ClientDetailScreen(
-            client   = c,
-            onBack   = { selectedClient = null },
-            onEdit   = { editingClient = c; selectedClient = null },
-            onDelete = { showDeleteDialog = c; selectedClient = null }
-        )
-        return
-    }
 
     // ── Delete confirmation ──
     showDeleteDialog?.let { client ->
@@ -125,7 +87,7 @@ fun ClientsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.PrimaryLight)
                             .clickable {
-                                editingClient   = client
+                                onEditClient(client.id)
                                 longPressClient = null
                             }
                             .padding(14.dp),
@@ -183,7 +145,7 @@ fun ClientsScreen(
             ) {
                 Text("Clients", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
                 FloatingActionButton(
-                    onClick        = { showAddScreen = true },
+                    onClick        = {onAddClient() },
                     containerColor = DsColors.Primary,
                     contentColor   = Color.White,
                     modifier       = Modifier.size(40.dp),
@@ -309,7 +271,7 @@ fun ClientsScreen(
             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
                 ClientCard(
                     client      = client,
-                    onClick     = { selectedClient = client },
+                    onClick     = { onClientClick(client.id) },
                     onLongClick = { longPressClient = client }
                 )
             }

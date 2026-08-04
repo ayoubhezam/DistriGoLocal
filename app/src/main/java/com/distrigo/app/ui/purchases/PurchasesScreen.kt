@@ -36,89 +36,27 @@ import com.distrigo.app.ui.components.ScrollAwareFab
 
 @Composable
 fun PurchasesScreen(
-    viewModel : PurchaseViewModel = viewModel(),
-    modifier  : Modifier = Modifier,
-    onFullScreenChange: (Boolean) -> Unit = {}
+    viewModel   : PurchaseViewModel = viewModel(),
+    modifier    : Modifier = Modifier,
+    onFullScreenChange : (Boolean) -> Unit = {},
+    onAddOrder  : () -> Unit = {},
+    onEditOrder : (Int) -> Unit = {},
+    onOrderClick: (Int) -> Unit = {}
 ) {
     val orders by viewModel.orders.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var showNewOrder by remember { mutableStateOf(false) }
-    var selectedOrder by remember { mutableStateOf<PurchaseOrder?>(null) }
     var longPressOrder by remember { mutableStateOf<PurchaseOrder?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val productViewModel: ProductViewModel = viewModel()
-    var editingOrderId by remember { mutableStateOf<Int?>(null) }
     var deleteError by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val rawCollapsed by rememberScrollCollapsed(listState)
     val collapsed = rawCollapsed && orders.size >= 10
     val fabBottomPadding by rememberFabBottomPadding(collapsed)
-
     LaunchedEffect(Unit) { viewModel.loadOrders() }
-    // ── New Order Screen ──
-    if (showNewOrder) {
-        onFullScreenChange(true)
-        BackHandler {
-            showNewOrder = false
-            onFullScreenChange(false)
-        }
-        PurchaseFormScreen(
-            onBack = {
-                showNewOrder = false
-                onFullScreenChange(false)
-            },
-            onSaved = {
-                showNewOrder = false
-                onFullScreenChange(false)
-                viewModel.loadOrders()
-            }
-        )
-        return
-    }
 
-    // ── Edit Order Screen ──
-    editingOrderId?.let { id ->
-        val fullOrderState by viewModel.selectedOrder.collectAsState()
-        val fullOrder = fullOrderState
-        if (fullOrder != null && fullOrder.id == id) {
-            onFullScreenChange(true)
-            BackHandler {
-                editingOrderId = null
-                onFullScreenChange(false)
-            }
-            PurchaseFormScreen(
-                order = fullOrder,
-                onBack = {
-                    editingOrderId = null
-                    onFullScreenChange(false)
-                },
-                onSaved = {
-                    editingOrderId = null
-                    onFullScreenChange(false)
-                    viewModel.loadOrders()
-                }
-            )
-            return
-        }
-    }
 
-    // ── Detail Screen ──
-    selectedOrder?.let { order ->
-        BackHandler { selectedOrder = null }
-        PurchaseOrderDetailScreen(
-            order = order,
-            onBack = { selectedOrder = null },
-            viewModel = viewModel,
-            onReceived = {
-                selectedOrder = null
-                viewModel.loadOrders()
-            },
-            onFullScreenChange = onFullScreenChange
-        )
-        return
-    }
 
     // ── Long Press Dialog ──
     longPressOrder?.let { order ->
@@ -183,8 +121,7 @@ fun PurchasesScreen(
                                 .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressOrder = null
-                                    viewModel.loadOrderDetail(order.id)
-                                    editingOrderId = order.id
+                                    onEditOrder(order.id)
                                 }
                                 .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -346,7 +283,7 @@ fun PurchasesScreen(
                             PurchaseOrderCard(
                                 order = order,
                                 onClick = {
-                                    selectedOrder = order
+                                    onOrderClick(order.id)
                                     viewModel.loadOrderDetail(order.id)
                                 },
                                 onLongClick = {
@@ -361,7 +298,7 @@ fun PurchasesScreen(
         }
 
         ScrollAwareFab(
-            onClick = { showNewOrder = true },
+            onClick = { onAddOrder() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = DsSpacing.lg, bottom = fabBottomPadding)

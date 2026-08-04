@@ -25,20 +25,16 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun SuppliersScreen(
-    viewModel : SupplierViewModel = viewModel(),
-    modifier  : Modifier = Modifier,
-    onFullScreenChange : (Boolean) -> Unit = {}
+    viewModel       : SupplierViewModel = viewModel(),
+    modifier        : Modifier = Modifier,
+    onAddSupplier   : () -> Unit = {},
+    onSupplierClick : (Int) -> Unit = {}
 ) {
     val suppliers by viewModel.suppliers.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error     by viewModel.error.collectAsState()
 
-    var search           by remember { mutableStateOf("") }
-    var selectedSupplier by remember { mutableStateOf<Supplier?>(null) }
-    var showAddScreen    by remember { mutableStateOf(false) }
-    var showEditScreen   by remember { mutableStateOf<Supplier?>(null) }
-    var showDeleteDialog by remember { mutableStateOf<Supplier?>(null) }
-    var snackbarMessage  by remember { mutableStateOf<String?>(null) }
+    var search by remember { mutableStateOf("") }
 
     val filtered  = suppliers.filter { supplier ->
         val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
@@ -49,85 +45,6 @@ fun SuppliersScreen(
 
     val totalDebt = suppliers.filter { it.balance > 0 }.sumOf { it.balance }
 
-    // ── Delete Dialog ──
-    showDeleteDialog?.let { supplier ->
-        var deleteError by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = null; deleteError = "" },
-            title = { Text("Supprimer le fournisseur") },
-            text  = {
-                Column {
-                    Text("Voulez-vous supprimer \"${supplier.name}\" ?")
-                    if (deleteError.isNotEmpty()) {
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteSupplier(
-                        id        = supplier.id,
-                        onSuccess = {
-                            showDeleteDialog = null
-                            selectedSupplier = null
-                            snackbarMessage  = "Fournisseur supprimé avec succès"
-                        },
-                        onError = {
-                            deleteError = "Impossible de supprimer ce fournisseur car il est associé à des produits."
-                        }
-                    )
-                }) { Text("Supprimer", color = DsColors.Danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null; deleteError = "" }) {
-                    Text("Annuler")
-                }
-            }
-        )
-    }
-
-    // ── Add Screen ──
-    if (showAddScreen) {
-        onFullScreenChange(true)
-        BackHandler { showAddScreen = false; onFullScreenChange(false) }
-        SupplierFormScreen(
-            onBack  = { showAddScreen = false; onFullScreenChange(false) },
-            onSaved = { showAddScreen = false; onFullScreenChange(false) }
-        )
-        return
-    }
-
-    // ── Edit Screen ──
-    showEditScreen?.let { supplier ->
-        onFullScreenChange(true)
-        BackHandler { showEditScreen = null; onFullScreenChange(false) }
-        SupplierFormScreen(
-            supplier = supplier,
-            onBack   = { showEditScreen = null; onFullScreenChange(false) },
-            onSaved  = {
-                showEditScreen = null
-                onFullScreenChange(false)
-                viewModel.loadSuppliersAndUpdate(supplier.id) { updated ->
-                    selectedSupplier = updated
-                }
-            }
-        )
-        return
-    }
-
-        // ── Detail Screen ──
-        selectedSupplier?.let { supplier ->
-            BackHandler { selectedSupplier = null }
-            SupplierDetailScreen(
-                supplier = supplier,
-                onBack = { selectedSupplier = null },
-                onEdit = { showEditScreen = supplier },
-                onDelete = { showDeleteDialog = supplier },
-                viewModel = viewModel
-            )
-            return
-        }
 
 
     LazyColumn(
@@ -144,7 +61,7 @@ fun SuppliersScreen(
             ) {
                 Text("Fournisseurs", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
                 FloatingActionButton(
-                    onClick        = { showAddScreen = true },
+                    onClick        = { onAddSupplier()},
                     containerColor = DsColors.Primary,
                     contentColor   = Color.White,
                     modifier       = Modifier.size(40.dp),
@@ -238,7 +155,7 @@ fun SuppliersScreen(
             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
                 SupplierCard(
                     supplier = supplier,
-                    onClick  = { selectedSupplier = supplier }
+                    onClick  = { onSupplierClick(supplier.id) }
                 )
             }
         }

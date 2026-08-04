@@ -64,11 +64,11 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.roundToInt
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -77,7 +77,12 @@ fun SupplierDetailScreen(
     onBack            : () -> Unit,
     onEdit            : () -> Unit,
     onDelete          : () -> Unit,
+    onNewAchat        : () -> Unit,
+    onRetourForm      : () -> Unit,
+    onRetourHistory   : () -> Unit,
+    onAchatHistory    : () -> Unit,
     viewModel         : SupplierViewModel = viewModel(),
+    retourViewModel   : RetourFournisseurViewModel = viewModel(),
     onNavigateToOrder : (Int) -> Unit = {}
 ) {
     val currentSupplier = viewModel.suppliers.collectAsState().value
@@ -104,10 +109,6 @@ fun SupplierDetailScreen(
     var editPaymentAmount  by remember { mutableStateOf("") }
     var editError          by remember { mutableStateOf("") }
     var achatExpanded      by remember { mutableStateOf(false) }
-    var showAchatHistory   by remember { mutableStateOf(false) }
-    var showNewAchat       by remember { mutableStateOf(false) }
-    var showRetourForm     by remember { mutableStateOf(false) }
-    var showRetourHistory  by remember { mutableStateOf(false) }
     var showMoreMenu       by remember { mutableStateOf(false) }
     var showPhotoMenu      by remember { mutableStateOf(false) }
     val supplierTransactions by viewModel.transactions.collectAsState()
@@ -137,11 +138,9 @@ fun SupplierDetailScreen(
         }
     }
 
-    val retourViewModel: RetourFournisseurViewModel = viewModel()
+
     val supplierRetours by retourViewModel.retours.collectAsState()
 
-    // Le tableau de bord fusionné affiche toujours Achats & Retours en même
-    // temps que les Infos — les deux doivent donc se charger dès l'ouverture.
     LaunchedEffect(Unit) {
         viewModel.loadTransactions(currentSupplier.id)
         retourViewModel.loadRetours(currentSupplier.id)
@@ -380,74 +379,16 @@ fun SupplierDetailScreen(
     }
 
     // ── Nouvel achat (écran plein) ──
-    if (showNewAchat) {
-        BackHandler { showNewAchat = false }
-        PurchaseFormScreen(
-            preSelectedSupplierId = currentSupplier.id,
-            onBack  = { showNewAchat = false },
-            onSaved = { showNewAchat = false; viewModel.loadTransactions(currentSupplier.id) }
-        )
-        return
-    }
+
 
     // ── Nouveau retour (écran plein) ──
-    if (showRetourForm) {
-        BackHandler { showRetourForm = false }
-        RetourFournisseurFormScreen(
-            supplierId   = currentSupplier.id,
-            supplierName = currentSupplier.name,
-            viewModel    = retourViewModel,
-            onBack       = { showRetourForm = false },
-            onSaved      = { showRetourForm = false; retourViewModel.loadRetours(currentSupplier.id) }
-        )
-        return
-    }
+
 
     // ── "Voir tout l'historique" des retours (écran plein) ──
-    if (showRetourHistory) {
-        BackHandler { showRetourHistory = false }
-        RetourFournisseurListScreen(
-            supplierId   = currentSupplier.id,
-            supplierName = currentSupplier.name,
-            viewModel    = retourViewModel,
-            onBack       = { showRetourHistory = false }
-        )
-        return
-    }
+
 
     // ── "Voir tout l'historique" (écran plein, paginé) ──
-    if (showAchatHistory) {
-        BackHandler { showAchatHistory = false }
-        val achatHistoryViewModel: AchatHistoryViewModel = viewModel()
-        LaunchedEffect(Unit) { achatHistoryViewModel.bind(currentSupplier.id) }
-        val controller = achatHistoryViewModel.bind(currentSupplier.id)
-        val historyQuery by controller.query.collectAsState()
-        val historyFilter by controller.filter.collectAsState()
-        val historyTotalCount by achatHistoryViewModel.totalCount.collectAsState()
-        val pagingItems = controller.items.collectAsLazyPagingItems()
 
-        PagedHistoryScreen(
-            title = "Achats & Paiements",
-            countLabel = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
-            query = historyQuery,
-            onQueryChange = controller::onQueryChange,
-            searchPlaceholder = "Rechercher un achat ou un paiement",
-            filters = AchatFilter.entries,
-            selectedFilter = historyFilter,
-            onFilterSelected = controller::onFilterChange,
-            filterLabel = { it.label },
-            pagingItems = pagingItems,
-            itemKey = { "${it.type}_${it.id}" },
-            onBack = { showAchatHistory = false }
-        ) { transaction ->
-            AchatRow(
-                transaction,
-                onLongPressPaiement = { longPressPayment = it },
-                onClickFacture = { onNavigateToOrder(it.id) }
-            )
-        }
-        return
-    }
 
     val pagerState = rememberPagerState(pageCount = { 3 })
     val density = LocalDensity.current
@@ -504,23 +445,22 @@ fun SupplierDetailScreen(
             }
         }
 
-        Box(
-            modifier = (
-                    if (headerHeightPx > 0f)
-                        Modifier.height(with(density) { (headerHeightPx + headerOffsetPx).coerceAtLeast(0f).toDp() })
-                    else
-                        Modifier
-                    ).fillMaxWidth().clipToBounds()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clipToBounds()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+                    headerHeightPx = placeable.height.toFloat()
+                    val collapsedHeight = (placeable.height + headerOffsetPx).coerceAtLeast(0f).roundToInt()
+                    layout(placeable.width, collapsedHeight) {
+                        placeable.placeRelative(0, headerOffsetPx.roundToInt())
+                    }
+                }
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(0, headerOffsetPx.roundToInt()) }
-                    .onGloballyPositioned { if (headerHeightPx <= 0f) headerHeightPx = it.size.height.toFloat() }
-                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-            ) {
-                // ── Carte d'identité (dégradé) ──
+            // ── Carte d'identité (dégradé) ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -725,7 +665,9 @@ fun SupplierDetailScreen(
                     QuickActionButton(
                         icon = Icons.Default.ShoppingCart,
                         label = "Nouvel\nachat"
-                    ) { showNewAchat = true }
+                    ) {
+                        onNewAchat()
+                    }
                 }
                 item {
                     QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
@@ -736,7 +678,9 @@ fun SupplierDetailScreen(
                     QuickActionButton(
                         icon = Icons.Default.AssignmentReturn,
                         label = "Retour"
-                    ) { showRetourForm = true }
+                    )  {
+                        onRetourForm()
+                    }
                 }
                 item {
                     Box {
@@ -762,7 +706,6 @@ fun SupplierDetailScreen(
                         }
                     }
                 }
-            }
             }
         }
 
@@ -910,7 +853,7 @@ fun SupplierDetailScreen(
                                         .clickable(
                                             indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
-                                        ) { showAchatHistory = true }
+                                        ) { onAchatHistory() }
                                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
@@ -944,7 +887,9 @@ fun SupplierDetailScreen(
                             ) {
                                 Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                                 Button(
-                                    onClick = { showRetourForm = true },
+                                    onClick = {
+                                        onRetourForm()
+                                    },
                                     shape = DsShapes.pill,
                                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -979,7 +924,7 @@ fun SupplierDetailScreen(
                                         .clickable(
                                             indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
-                                        ) { showRetourHistory = true }
+                                        ) { onRetourHistory()}
                                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically

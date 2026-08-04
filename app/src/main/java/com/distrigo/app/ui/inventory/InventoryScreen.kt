@@ -50,236 +50,15 @@ private sealed class InvStep {
 
 // ══════════════════════════════════════════════
 // ── Point d'entrée : Historique (accueil) ──
-// ══════════════════════════════════════════════
-@Composable
-fun InventoryScreen(
-    viewModel          : InventoryViewModel = viewModel(),
-    onBack              : () -> Unit,
-    onFullScreenChange   : (Boolean) -> Unit = {}
-) {
-    var showNewSession           by remember { mutableStateOf(false) }
-    var selectedHistorySessionId by remember { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.loadHistory() }
-
-    // ── Détail d'une session terminée (lecture seule) ──
-    selectedHistorySessionId?.let { sessionId ->
-        BackHandler { selectedHistorySessionId = null }
-        InventorySessionDetailScreen(
-            sessionId = sessionId,
-            viewModel = viewModel,
-            onBack    = { selectedHistorySessionId = null }
-        )
-        return
-    }
-
-    // ── Session de jrd active (scan → révision → résumé → confirmation) ──
-    if (showNewSession) {
-        onFullScreenChange(true)
-        InventorySessionScreen(
-            viewModel = viewModel,
-            onExit    = {
-                showNewSession = false
-                onFullScreenChange(false)
-                viewModel.loadHistory()
-            },
-            onFullScreenChange = onFullScreenChange
-        )
-        return
-    }
-
-
-    // ── Accueil : Historique des inventaires ──
-    InventoryHistoryScreen(
-        viewModel      = viewModel,
-        onBack         = onBack,
-        onSessionClick = { entry ->
-            if (entry.session.status == "draft") {
-                showNewSession = true   // reprend automatiquement le brouillon existant
-            } else {
-                selectedHistorySessionId = entry.session.id
-            }
-        },
-        onAddNew = { showNewSession = true }
-    )
-}
 
 // ══════════════════════════════════════════════
 // ── Flux de création d'un inventaire ──
 // ══════════════════════════════════════════════
-@Composable
-private fun InventorySessionScreen(
-    viewModel          : InventoryViewModel,
-    onExit             : () -> Unit,
-    onFullScreenChange : (Boolean) -> Unit
-) {
-    val activeSession by viewModel.activeSession.collectAsState()
-    val sessionItems   by viewModel.sessionItems.collectAsState()
-    val products        by viewModel.products.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.startOrResumeSession()
-    }
-
-    var step             by remember { mutableStateOf<InvStep>(InvStep.Scan) }
-    var userName          by remember { mutableStateOf("") }
-    var qtePhysiqueText   by remember { mutableStateOf("") }
-    var showScanner        by remember { mutableStateOf(false) }
-    var showSearchDialog     by remember { mutableStateOf(false) }
-    var scanError              by remember { mutableStateOf("") }
-    var saveError                by remember { mutableStateOf("") }
-    var isSaving                   by remember { mutableStateOf(false) }
-    var showDetailDialog             by remember { mutableStateOf(false) }
-    var isConfirmed                    by remember { mutableStateOf(false) }
-    var isConfirming                     by remember { mutableStateOf(false) }
-    var confirmError                       by remember { mutableStateOf("") }
-
-    fun openProduct(product: Product) {
-        if (viewModel.isProductAlreadyScanned(product.id)) {
-            scanError = "\"${product.name}\" a déjà été scanné dans cette session"
-            return
-        }
-        scanError = ""
-        qtePhysiqueText = ""
-        step = InvStep.Quantity(product)
-    }
-
-    if (showScanner) {
-        BackHandler { showScanner = false }
-        BarcodeScannerScreen(
-            onBarcodeScanned = { code ->
-                showScanner = false
-                val product = products.find { it.barcode?.equals(code, ignoreCase = true) == true }
-                if (product == null) scanError = "Aucun produit trouvé pour ce code-barres"
-                else openProduct(product)
-            },
-            onClose = { showScanner = false }
-        )
-        return
-    }
-
-    BackHandler {
-        when (step) {
-            is InvStep.Scan          -> onExit()
-            is InvStep.Quantity      -> step = InvStep.Scan
-            is InvStep.Confirmed     -> step = InvStep.Scan
-            is InvStep.Review        -> step = InvStep.Scan
-            is InvStep.ReadyToFinish -> step = InvStep.Review
-            is InvStep.Summary       -> if (isConfirmed) onExit() else step = InvStep.ReadyToFinish
-        }
-    }
-
-
-
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        when (val current = step) {
-            is InvStep.Scan -> InventoryScanStep(
-                numero            = activeSession?.let { inventoryNumero(it.id) } ?: "",
-                sessionItemsCount = sessionItems.size,
-                ecartsCount       = sessionItems.count { it.ecart != 0.0 },
-                totalValueEcarts  = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) },
-                scanError         = scanError,
-                canFinish         = sessionItems.isNotEmpty(),
-                isSaving          = false,
-                userName          = userName,
-                onUserNameChange  = { userName = it },
-                onBack            = onExit,
-                onScan            = { showScanner = true },
-                onSearch          = { showSearchDialog = true },
-                onReview          = { step = InvStep.Review },
-                onFinish          = { step = InvStep.ReadyToFinish }
-            )
-
-            is InvStep.Quantity -> InventoryQuantityStep(
-                product           = current.product,
-                qtePhysiqueText   = qtePhysiqueText,
-                onQuantityChange  = { raw ->
-                    val filtered = raw.filter { c -> c.isDigit() || c == '.' }
-                    qtePhysiqueText = if (filtered.count { it == '.' } > 1) qtePhysiqueText else filtered
-                },
-                saveError         = saveError,
-                isSaving          = isSaving,
-                onCancel          = { step = InvStep.Scan },
-                onSave            = {
-                    val qte = qtePhysiqueText.toDoubleOrNull()
-                    if (qte == null || qte < 0) { saveError = "Quantité invalide"; return@InventoryQuantityStep }
-                    isSaving = true
-                    viewModel.recordScan(
-                        productId = current.product.id, qtePhysique = qte,
-                        userName  = userName.trim().ifEmpty { null },
-                        onSuccess = { qteSysteme, ecart, valeurEcart ->
-                            isSaving = false; saveError = ""
-                            step = InvStep.Confirmed(current.product, qteSysteme, qte, ecart, valeurEcart)
-                        },
-                        onError = { msg -> isSaving = false; saveError = msg }
-                    )
-                }
-            )
-
-            is InvStep.Confirmed -> InventoryConfirmedStep(
-                product     = current.product,
-                qteSysteme  = current.qteSysteme,
-                qtePhysique = current.qtePhysique,
-                ecart       = current.ecart,
-                onScanNext  = { step = InvStep.Scan }
-            )
-
-            is InvStep.Review -> InventoryReviewStep(
-                items    = sessionItems,
-                isSaving = false,
-                onBack   = { step = InvStep.Scan },
-                onEdit   = { item, newQte -> viewModel.updateScan(item.id, newQte, userName = userName.trim().ifEmpty { null }, onSuccess = {}, onError = { scanError = it }) },                onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = {}, onError = { scanError = it }) },
-                onFinish = { step = InvStep.ReadyToFinish }
-            )
-
-            is InvStep.ReadyToFinish -> InventoryReadyToFinishStep(
-                itemsCount    = sessionItems.size,
-                onBack        = { step = InvStep.Review },
-                onShowSummary = { step = InvStep.Summary }
-            )
-
-            is InvStep.Summary -> {
-                val summaryPreview = InventorySessionSummary(
-                    total_products     = sessionItems.size,
-                    total_ecarts       = sessionItems.count { it.ecart != 0.0 },
-                    total_value_ecarts = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) }
-                )
-                InventorySummaryStep(
-                    summary         = summaryPreview,
-                    isConfirmed     = isConfirmed,
-                    isConfirming    = isConfirming,
-                    confirmError    = confirmError,
-                    onBack          = { step = InvStep.ReadyToFinish },
-                    onConfirm       = {
-                        isConfirming = true
-                        viewModel.finishSession(
-                            onSuccess = { isConfirming = false; isConfirmed = true; confirmError = "" },
-                            onError   = { msg -> isConfirming = false; confirmError = msg }
-                        )
-                    },
-                    onViewDetail    = { showDetailDialog = true },
-                    onReturnHistory = onExit
-                )
-            }
-        }
-    }
-
-    if (showSearchDialog) {
-        InventoryProductSearchDialog(
-            products  = products,
-            onSelect  = { product -> showSearchDialog = false; openProduct(product) },
-            onDismiss = { showSearchDialog = false }
-        )
-    }
-
-    if (showDetailDialog) {
-        InventoryDetailDialog(items = sessionItems, onDismiss = { showDetailDialog = false })
-    }
-}
 
 // ── Étape 1 : Scan ──
 @Composable
-private fun ColumnScope.InventoryScanStep(
+fun ColumnScope.InventoryScanStep(
     numero            : String,
     sessionItemsCount : Int,
     ecartsCount       : Int,
@@ -386,7 +165,7 @@ private fun InventoryStatChip(icon: androidx.compose.ui.graphics.vector.ImageVec
 
 // ── Étape 2 : Saisie de la quantité ──
 @Composable
-private fun ColumnScope.InventoryQuantityStep(
+fun ColumnScope.InventoryQuantityStep(
     product           : Product,
     qtePhysiqueText   : String,
     onQuantityChange  : (String) -> Unit,
@@ -491,7 +270,7 @@ private fun ColumnScope.InventoryQuantityStep(
 
 // ── Étape 3 : Confirmation d'un scan individuel ──
 @Composable
-private fun ColumnScope.InventoryConfirmedStep(
+fun ColumnScope.InventoryConfirmedStep(
     product     : Product,
     qteSysteme  : Double,
     qtePhysique : Double,
@@ -562,7 +341,7 @@ private fun InventorySummaryRow(label: String, value: String, valueColor: Color 
 
 // ── Étape : Liste des produits scannés (type panier, modifiable) ──
 @Composable
-private fun ColumnScope.InventoryReviewStep(
+fun ColumnScope.InventoryReviewStep(
     items      : List<com.distrigo.app.data.model.InventoryItem>,
     isSaving   : Boolean,
     onBack     : () -> Unit,
@@ -679,7 +458,7 @@ private fun ColumnScope.InventoryReviewStep(
 
 // ── Étape : Scan terminé, avant le résumé ──
 @Composable
-private fun ColumnScope.InventoryReadyToFinishStep(
+fun ColumnScope.InventoryReadyToFinishStep(
     itemsCount    : Int,
     onBack        : () -> Unit,
     onShowSummary : () -> Unit
@@ -727,7 +506,7 @@ private fun ColumnScope.InventoryReadyToFinishStep(
 
 // ── Étape : Résumé + Confirmation finale ──
 @Composable
-private fun ColumnScope.InventorySummaryStep(
+fun ColumnScope.InventorySummaryStep(
     summary         : InventorySessionSummary,
     isConfirmed     : Boolean,
     isConfirming    : Boolean,
@@ -833,7 +612,7 @@ private fun InventorySummaryStatCard(icon: androidx.compose.ui.graphics.vector.I
 
 // ── Dialog : Recherche de produit ──
 @Composable
-private fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) -> Unit, onDismiss: () -> Unit) {
+fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) -> Unit, onDismiss: () -> Unit) {
     var search by remember { mutableStateOf("") }
     val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     val filtered = products.filter { product ->
@@ -878,7 +657,7 @@ private fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Pro
 
 // ── Dialog : Détail des écarts ──
 @Composable
-private fun InventoryDetailDialog(items: List<com.distrigo.app.data.model.InventoryItem>, onDismiss: () -> Unit) {
+fun InventoryDetailDialog(items: List<com.distrigo.app.data.model.InventoryItem>, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
             Column(Modifier.fillMaxSize()) {

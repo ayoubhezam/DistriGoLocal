@@ -61,18 +61,18 @@ class MainActivity : ComponentActivity() {
                             moreScreen = null
                         }
                         when (screen) {
-                            "clients"      -> ClientsScreen(
-                                onFullScreenChange = { hideBottomBar = it },
-                                preSelectedClientId = pendingClientId   // ← جديد
-
+                            "clients" -> com.distrigo.app.ui.navigation.ClientsNavHost(
+                                preSelectedClientId = pendingClientId,
+                                onFullScreenChange  = { hideBottomBar = it },
+                                onBack              = { moreScreen = null }
                             )
-                            "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
+                            "fournisseurs" -> com.distrigo.app.ui.navigation.SuppliersNavHost(
+                                onFullScreenChange = { hideBottomBar = it }
+                                // onNavigateToOrder: مرّره هنا كما كان مربوطاً سابقاً في نظامك القديم، إن وُجد استدعاء مشابه
+                            )
                             "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
                             "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
-                            "inventaire" -> com.distrigo.app.ui.inventory.InventoryScreen(
-                                onBack = { moreScreen = null },
-                                onFullScreenChange = { hideBottomBar = it }
-                            )
+                            "inventaire" -> com.distrigo.app.ui.navigation.InventoryNavHost(onBack = { moreScreen = null }, onFullScreenChange = { hideBottomBar = it })
                             "rapports" -> PlaceholderScreen(
                                 title  = "Rapports",
                                 icon   = Icons.Default.BarChart,
@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             2 -> com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
-                            3 -> PurchasesScreen(onFullScreenChange = { hideBottomBar = it })
+                            3 -> com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
 
                         }
                     }
@@ -214,17 +214,18 @@ class MainActivity : ComponentActivity() {
                                 .background(Color.White)
                         ) {
                             when (moreScreen) {
-                                "clients"      -> ClientsScreen(
+                                "clients" -> com.distrigo.app.ui.navigation.ClientsNavHost(
+                                    preSelectedClientId = pendingClientId,
                                     onFullScreenChange  = { hideBottomBar = it },
-                                    preSelectedClientId = pendingClientId
+                                    onBack              = { moreScreen = null }
                                 )
-                                "fournisseurs" -> SuppliersScreen(onFullScreenChange = { hideBottomBar = it })
+                                "fournisseurs" -> com.distrigo.app.ui.navigation.SuppliersNavHost(
+                                    onFullScreenChange = { hideBottomBar = it }
+                                    // onNavigateToOrder: مرّره هنا كما كان مربوطاً سابقاً في نظامك القديم، إن وُجد استدعاء مشابه
+                                )
                                 "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
                                 "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
-                                "inventaire"   -> com.distrigo.app.ui.inventory.InventoryScreen(
-                                    onBack              = { moreScreen = null },
-                                    onFullScreenChange  = { hideBottomBar = it }
-                                )
+                                "inventaire" -> com.distrigo.app.ui.navigation.InventoryNavHost(onBack = { moreScreen = null }, onFullScreenChange = { hideBottomBar = it })
                                 "rapports"     -> PlaceholderScreen(
                                     title  = "Rapports",
                                     icon   = Icons.Default.BarChart,

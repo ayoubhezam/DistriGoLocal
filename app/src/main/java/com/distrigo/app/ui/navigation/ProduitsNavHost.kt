@@ -12,13 +12,17 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import com.distrigo.app.ui.designsystem.DsColors
 import androidx.compose.material3.Text
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.distrigo.app.ui.mouvements.MouvementsScreen
 import androidx.navigation.compose.navigation
 import com.distrigo.app.ui.mouvements.*
 @Composable
 fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     val navController = rememberNavController()
-
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    LaunchedEffect(currentRoute) {
+        onFullScreenChange(currentRoute != Screen.ProduitsHome.route)
+    }
     NavHost(
         navController    = navController,
         startDestination = Screen.ProduitsHome.route,

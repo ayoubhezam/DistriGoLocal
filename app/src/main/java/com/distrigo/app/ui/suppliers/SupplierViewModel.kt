@@ -97,18 +97,8 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Résout un fournisseur précis directement depuis la base (lecture one-shot) — le flux
-    // observé `suppliers` se met à jour tout seul ; ceci sert uniquement au rappel immédiat
-    // après création/modification sans dépendre du timing d'émission du flux.
-    fun loadSuppliersAndUpdate(supplierId: Int, onUpdated: (Supplier?) -> Unit) {
-        viewModelScope.launch {
-            try {
-                onUpdated(repository.getSuppliers().find { it.id == supplierId })
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
-    }
+
+
 
     private val _transactions = MutableStateFlow<List<SupplierTransaction>>(emptyList())
     val transactions: StateFlow<List<SupplierTransaction>> = _transactions

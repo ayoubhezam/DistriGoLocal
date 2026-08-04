@@ -54,4 +54,76 @@ sealed class Screen(val route: String) {
     data object ProduitsMovementDetail  : Screen("produits_movement_detail/{movementId}") {
         fun createRoute(movementId: Int) = "produits_movement_detail/$movementId"
     }
+    // ── Inventaire ──
+    data object InventaireGraph   : Screen("inventaire_graph")
+    data object InventaireHome    : Screen("inventaire_home")
+    data object InventaireDetail  : Screen("inventaire_detail/{sessionId}") {
+        fun createRoute(sessionId: Int) = "inventaire_detail/$sessionId"
+    }
+    data object InventaireSessionGraph         : Screen("inventaire_session_graph")
+    data object InventaireSessionScan          : Screen("inventaire_session_scan")
+    data object InventaireSessionQuantity      : Screen("inventaire_session_quantity/{productId}") {
+        fun createRoute(productId: Int) = "inventaire_session_quantity/$productId"
+    }
+    data object InventaireSessionConfirmed     : Screen("inventaire_session_confirmed")
+    data object InventaireSessionReview        : Screen("inventaire_session_review")
+    data object InventaireSessionReadyToFinish : Screen("inventaire_session_ready")
+    data object InventaireSessionSummary       : Screen("inventaire_session_summary")
+
+    // ── Clients ──
+    data object ClientsGraph          : Screen("clients_graph")
+    data object ClientsHome           : Screen("clients_home")
+    data object ClientsForm           : Screen("clients_form?clientId={clientId}") {
+        fun createRoute(clientId: Int? = null) =
+            "clients_form" + if (clientId != null) "?clientId=$clientId" else ""
+    }
+    data object ClientsDetail         : Screen("clients_detail/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_detail/$clientId"
+    }
+    data object ClientsNewVente       : Screen("clients_new_vente/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_new_vente/$clientId"
+    }
+    data object ClientsRetourForm     : Screen("clients_retour_form/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_retour_form/$clientId"
+    }
+    data object ClientsRetourHistory  : Screen("clients_retour_history/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_retour_history/$clientId"
+    }
+    data object ClientsFactureHistory : Screen("clients_facture_history/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_facture_history/$clientId"
+    }
+
+    // ── Fournisseurs ──
+    data object SuppliersGraph         : Screen("suppliers_graph")
+    data object SuppliersHome          : Screen("suppliers_home")
+    data object SuppliersForm          : Screen("suppliers_form?supplierId={supplierId}") {
+        fun createRoute(supplierId: Int? = null) =
+            "suppliers_form" + if (supplierId != null) "?supplierId=$supplierId" else ""
+    }
+    data object SuppliersDetail        : Screen("suppliers_detail/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_detail/$supplierId"
+    }
+    data object SuppliersNewAchat      : Screen("suppliers_new_achat/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_new_achat/$supplierId"
+    }
+    data object SuppliersRetourForm    : Screen("suppliers_retour_form/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_retour_form/$supplierId"
+    }
+    data object SuppliersRetourHistory : Screen("suppliers_retour_history/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_retour_history/$supplierId"
+    }
+    data object SuppliersAchatHistory  : Screen("suppliers_achat_history/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_achat_history/$supplierId"
+    }
+
+    // ── Achats ──
+    data object AchatsGraph  : Screen("achats_graph")
+    data object AchatsHome   : Screen("achats_home")
+    data object AchatsForm   : Screen("achats_form?orderId={orderId}") {
+        fun createRoute(orderId: Int? = null) =
+            "achats_form" + if (orderId != null) "?orderId=$orderId" else ""
+    }
+    data object AchatsDetail : Screen("achats_detail/{orderId}") {
+        fun createRoute(orderId: Int) = "achats_detail/$orderId"
+    }
 }

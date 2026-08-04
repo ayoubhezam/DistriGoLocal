@@ -34,10 +34,10 @@ import androidx.compose.ui.unit.sp
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
     onBack     : () -> Unit,
+    onEdit     : () -> Unit,
     onReceived : () -> Unit,
     viewModel  : PurchaseViewModel,
-    productViewModel: ProductViewModel = viewModel(),
-    onFullScreenChange: (Boolean) -> Unit = {}
+    productViewModel: ProductViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val selectedOrder by viewModel.selectedOrder.collectAsState()
@@ -47,7 +47,6 @@ fun PurchaseOrderDetailScreen(
     var showReceiveDialog by remember { mutableStateOf(false) }
     var receiveUserName   by remember { mutableStateOf("") }
     var showReopenDialog  by remember { mutableStateOf(false) }
-    var showEditScreen    by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
     var showReceiptPreview by remember { mutableStateOf(false) }
     var showShareOptions    by remember { mutableStateOf(false) }
@@ -73,8 +72,8 @@ fun PurchaseOrderDetailScreen(
                     viewModel.reopenOrder(
                         id        = displayOrder.id,
                         onSuccess = {
-                            isLoading     = false
-                            showEditScreen = true
+                            isLoading = false
+                            onEdit()
                         },
                         onError   = { isLoading = false }
                     )
@@ -88,29 +87,6 @@ fun PurchaseOrderDetailScreen(
                 }
             }
         )
-    }
-
-    if (showEditScreen) {
-        BackHandler {
-            showEditScreen = false
-            onFullScreenChange(false)
-        }
-        onFullScreenChange(true)
-        PurchaseFormScreen(
-            order             = displayOrder,
-            onBack            = {
-                showEditScreen = false
-                onFullScreenChange(false)
-            },
-            onSaved           = {
-                showEditScreen = false
-                onFullScreenChange(false)
-                viewModel.loadOrderDetail(displayOrder.id)
-                viewModel.loadOrders()
-            },
-            purchaseViewModel = viewModel
-        )
-        return
     }
 
     if (showDeleteDialog) {
@@ -226,7 +202,7 @@ fun PurchaseOrderDetailScreen(
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                             onClick = {
                                 overflowMenuExpanded = false
-                                showEditScreen = true
+                                onEdit()
                             }
                         )
                     }

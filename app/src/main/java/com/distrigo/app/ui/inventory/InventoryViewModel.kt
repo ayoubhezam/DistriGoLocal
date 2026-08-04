@@ -101,6 +101,12 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
                 onError(result["error"] as String)
             } else {
                 loadSessionItems(sessionId)
+                _lastScanResult.value = LastScanResult(
+                    productId   = productId,
+                    qtePhysique = qtePhysique,
+                    qteSysteme  = result["qte_systeme"] as Double,
+                    ecart       = result["ecart"] as Double
+                )
                 onSuccess(
                     result["qte_systeme"] as Double,
                     result["ecart"] as Double,
@@ -172,4 +178,19 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    // ── Nom de l'utilisateur (partagé entre les étapes Scan/Quantity/Review) ──
+    private val _userName = MutableStateFlow("")
+    val userName: StateFlow<String> = _userName
+    fun setUserName(name: String) { _userName.value = name }
+
+    // ── Dernier scan confirmé (pour l'écran Confirmed) ──
+    data class LastScanResult(
+        val productId   : Int,
+        val qtePhysique : Double,
+        val qteSysteme  : Double,
+        val ecart       : Double
+    )
+    private val _lastScanResult = MutableStateFlow<LastScanResult?>(null)
+    val lastScanResult: StateFlow<LastScanResult?> = _lastScanResult
 }

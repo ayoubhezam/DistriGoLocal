@@ -66,19 +66,25 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.roundToInt
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientDetailScreen(
-    client: Client,
-    onBack: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    viewModel: ClientViewModel = viewModel()
+    client           : Client,
+    onBack           : () -> Unit,
+    onEdit           : () -> Unit,
+    onDelete         : () -> Unit,
+    onNewVente       : () -> Unit,
+    onRetourForm     : () -> Unit,
+    onRetourHistory  : () -> Unit,
+    onFactureHistory : () -> Unit,
+    viewModel        : ClientViewModel = viewModel(),
+    retourViewModel  : RetourClientViewModel = viewModel()
 ) {
     val currentClient = viewModel.clients.collectAsState().value
         .find { it.id == client.id } ?: client
@@ -116,10 +122,6 @@ fun ClientDetailScreen(
     var editPaymentAmount by remember { mutableStateOf("") }
     var editError by remember { mutableStateOf("") }
     var factureExpanded by remember { mutableStateOf(false) }
-    var showFactureHistory by remember { mutableStateOf(false) }
-    var showNewVente by remember { mutableStateOf(false) }
-    var showRetourForm by remember { mutableStateOf(false) }
-    var showRetourHistory by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showPhotoMenu by remember { mutableStateOf(false) }
     val clientTransactions by viewModel.transactions.collectAsState()
@@ -151,7 +153,7 @@ fun ClientDetailScreen(
 
 
 
-    val retourViewModel: RetourClientViewModel = viewModel()
+
     val allRetours by retourViewModel.retours.collectAsState()
     val clientRetours = allRetours
         .filter { it.client_id == currentClient.id }
@@ -404,69 +406,8 @@ fun ClientDetailScreen(
         )
     }
 
-    // ── Nouvelle facture (écran plein) ──
-    if (showNewVente) {
-        BackHandler { showNewVente = false }
-        VenteFormScreen(
-            preSelectedClientId = currentClient.id,
-            onBack = { showNewVente = false },
-            onSaved = { showNewVente = false; viewModel.loadTransactions(currentClient.id) }
-        )
-        return
-    }
 
-    // ── Nouveau retour (écran plein) ──
-    if (showRetourForm) {
-        BackHandler { showRetourForm = false }
-        RetourClientFormScreen(
-            viewModel = retourViewModel,
-            preSelectedClient = currentClient,
-            onBack = { showRetourForm = false },
-            onSaved = { showRetourForm = false; retourViewModel.loadRetours() }
-        )
-        return
-    }
 
-    // ── "Voir tout l'historique" des retours (écran plein) ──
-    if (showRetourHistory) {
-        BackHandler { showRetourHistory = false }
-        RetourClientListScreen(
-            client = currentClient,
-            viewModel = retourViewModel,
-            onBack = { showRetourHistory = false }
-        )
-        return
-    }
-
-    // ── "Voir tout l'historique" (écran plein, paginé) ──
-    if (showFactureHistory) {
-        BackHandler { showFactureHistory = false }
-        val factureHistoryViewModel: FactureHistoryViewModel = viewModel()
-        LaunchedEffect(Unit) { factureHistoryViewModel.bind(currentClient.id) }
-        val controller = factureHistoryViewModel.bind(currentClient.id)
-        val historyQuery by controller.query.collectAsState()
-        val historyFilter by controller.filter.collectAsState()
-        val historyTotalCount by factureHistoryViewModel.totalCount.collectAsState()
-        val pagingItems = controller.items.collectAsLazyPagingItems()
-
-        PagedHistoryScreen(
-            title = "Factures & Paiements",
-            countLabel = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
-            query = historyQuery,
-            onQueryChange = controller::onQueryChange,
-            searchPlaceholder = "Rechercher une facture ou un paiement",
-            filters = FactureFilter.entries,
-            selectedFilter = historyFilter,
-            onFilterSelected = controller::onFilterChange,
-            filterLabel = { it.label },
-            pagingItems = pagingItems,
-            itemKey = { "${it.type}_${it.id}" },
-            onBack = { showFactureHistory = false }
-        ) { transaction ->
-            FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
-        }
-        return
-    }
 
     val pagerState = rememberPagerState(pageCount = { 3 })
     val density = LocalDensity.current
@@ -548,22 +489,21 @@ fun ClientDetailScreen(
             }
         }
 
-        Box(
-            modifier = (
-                    if (headerHeightPx > 0f)
-                        Modifier.height(with(density) { (headerHeightPx + headerOffsetPx).coerceAtLeast(0f).toDp() })
-                    else
-                        Modifier
-                    ).fillMaxWidth().clipToBounds()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clipToBounds()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+                    headerHeightPx = placeable.height.toFloat()
+                    val collapsedHeight = (placeable.height + headerOffsetPx).coerceAtLeast(0f).roundToInt()
+                    layout(placeable.width, collapsedHeight) {
+                        placeable.placeRelative(0, headerOffsetPx.roundToInt())
+                    }
+                }
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(0, headerOffsetPx.roundToInt()) }
-                    .onGloballyPositioned { if (headerHeightPx <= 0f) headerHeightPx = it.size.height.toFloat() }
-                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-            ) {
                 // ── Carte d'identité (dégradé) ──
             Box(
                 modifier = Modifier
@@ -804,7 +744,9 @@ fun ClientDetailScreen(
                     QuickActionButton(
                         icon = Icons.Default.Receipt,
                         label = "Nouvelle\nfacture"
-                    ) { showNewVente = true }
+                    ) {
+                        onNewVente()
+                    }
                 }
                 item {
                     QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
@@ -815,7 +757,9 @@ fun ClientDetailScreen(
                     QuickActionButton(
                         icon = Icons.Default.AssignmentReturn,
                         label = "Retour"
-                    ) { showRetourForm = true }
+                    ) {
+                        onRetourForm()
+                    }
                 }
                 item {
                     Box {
@@ -857,7 +801,7 @@ fun ClientDetailScreen(
                 }
             }
             }
-        }
+
 
         ElasticUnderlineTabRow(tabs = tabTitles, pagerState = pagerState)
 
@@ -1028,7 +972,7 @@ fun ClientDetailScreen(
                                         .clickable(
                                             indication        = null,
                                             interactionSource  = remember { MutableInteractionSource() }
-                                        ) { showFactureHistory = true }
+                                        ) { onFactureHistory() }
                                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment     = Alignment.CenterVertically
@@ -1062,7 +1006,7 @@ fun ClientDetailScreen(
                             ) {
                                 Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                                 Button(
-                                    onClick        = { showRetourForm = true },
+                                    onClick        = {onRetourForm()},
                                     shape          = DsShapes.pill,
                                     colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -1108,7 +1052,7 @@ fun ClientDetailScreen(
                                         .clickable(
                                             indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
-                                        ) { showRetourHistory = true }
+                                        ) { onRetourHistory() }
                                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
