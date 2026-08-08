@@ -40,86 +40,25 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun VentesScreen(
-    viewModel         : VenteViewModel   = viewModel(),
-    modifier          : Modifier         = Modifier,
-    onFullScreenChange: (Boolean) -> Unit = {},
-    productViewModel  : ProductViewModel = viewModel(),
-    clientViewModel   : ClientViewModel  = viewModel()
+    viewModel    : VenteViewModel = viewModel(),
+    modifier     : Modifier = Modifier,
+    onAddVente   : () -> Unit = {},
+    onEditVente  : (Int) -> Unit = {},
+    onVenteClick : (Int) -> Unit = {}
 ){
     val ventes    by viewModel.ventes.collectAsState()
     val depotVentes = ventes.filter { it.source == "depot" }
     val isLoading by viewModel.isLoading.collectAsState()
     val error     by viewModel.error.collectAsState()
 
-    var showNewVente     by remember { mutableStateOf(false) }
-    var selectedVente    by remember { mutableStateOf<Vente?>(null) }
     var longPressVente   by remember { mutableStateOf<Vente?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var editingVenteId   by remember { mutableStateOf<Int?>(null) }
     var deleteError      by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) { viewModel.loadVentes() }
-    // ── New Vente Screen ──
-    if (showNewVente) {
-        onFullScreenChange(true)
-        BackHandler {
-            showNewVente = false
-            onFullScreenChange(false)
-        }
-        VenteFormScreen(
-            onBack  = {
-                showNewVente = false
-                onFullScreenChange(false)
-            },
-            onSaved = {
-                showNewVente = false
-                onFullScreenChange(false)
-                viewModel.loadVentes()
-            }
-        )
-        return
-    }
 
-    // ── Edit Vente Screen ──
-    editingVenteId?.let { id ->
-        val fullVenteState by viewModel.selectedVente.collectAsState()
-        val fullVente = fullVenteState
-        if (fullVente != null && fullVente.id == id) {
-            onFullScreenChange(true)
-            BackHandler {
-                editingVenteId = null
-                onFullScreenChange(false)
-            }
-            // NOTE: VenteFormScreen doesn't support an edit mode yet — wired up as
-            // navigation structure only; will show the "new vente" form for now.
-            VenteFormScreen(
-                onBack  = {
-                    editingVenteId = null
-                    onFullScreenChange(false)
-                },
-                onSaved = {
-                    editingVenteId = null
-                    onFullScreenChange(false)
-                    viewModel.loadVentes()
-                }
-            )
-            return
-        }
-    }
 
-    // ── Detail Screen ──
-    selectedVente?.let { vente ->
-        VenteDetailScreen(
-            vente             = vente,
-            onBack            = { selectedVente = null },
-            viewModel         = viewModel,
-            productViewModel  = productViewModel,
-            clientViewModel   = clientViewModel,
-            onDelivered       = { selectedVente = null; viewModel.loadVentes() },
-            onDeleted         = { selectedVente = null; viewModel.loadVentes() }
-        )
-        return
-    }
+
 
     // ── Long Press Dialog ──
     longPressVente?.let { vente ->
@@ -179,8 +118,7 @@ fun VentesScreen(
                                 .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressVente = null
-                                    viewModel.loadVenteDetail(vente.id)
-                                    editingVenteId = vente.id
+                                    onEditVente(vente.id)
                                 }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
@@ -291,9 +229,8 @@ fun VentesScreen(
                         items(dayVentes) { vente ->
                             VenteCard(
                                 vente       = vente,
-                                onClick     = {
-                                    selectedVente = vente
-                                    viewModel.loadVenteDetail(vente.id)
+                                onClick = {
+                                    onVenteClick(vente.id)
                                 },
                                 onLongClick = {
                                     longPressVente = vente
@@ -306,7 +243,7 @@ fun VentesScreen(
         }
 
         com.distrigo.app.ui.components.ScrollAwareFab(
-            onClick  = { showNewVente = true },
+            onClick = { onAddVente() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(DsSpacing.lg)

@@ -27,7 +27,6 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.retours.RetourClientFormScreen
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
-import com.distrigo.app.ui.ventes.VenteFormScreen
 
 @Composable
 fun ClientsNavHost(
@@ -100,7 +99,7 @@ fun ClientsNavHost(
                         onBack           = { navController.popBackStack() },
                         onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                         onDelete         = { showDeleteConfirm = true },
-                        onNewVente       = { navController.navigate(Screen.ClientsNewVente.createRoute(clientId)) },
+                        onNewVente       = { navController.navigate(Screen.VenteFormGraph.createRoute(clientId = clientId)) },
                         onRetourForm     = { navController.navigate(Screen.ClientsRetourForm.createRoute(clientId)) },
                         onRetourHistory  = { navController.navigate(Screen.ClientsRetourHistory.createRoute(clientId)) },
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }
@@ -134,19 +133,15 @@ fun ClientsNavHost(
             }
         }
 
-        composable(
-            route     = Screen.ClientsNewVente.route,
-            arguments = listOf(navArgument("clientId") { type = NavType.IntType })
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
-            val clientId = entry.arguments!!.getInt("clientId")
-            VenteFormScreen(
-                preSelectedClientId = clientId,
-                onBack  = { navController.popBackStack() },
-                onSaved = { viewModel.loadTransactions(clientId); navController.popBackStack() }
-            )
-        }
+        venteFormGraph(
+            navController    = navController,
+            graphRoute        = Screen.VenteFormGraph.route,
+            viewModel         = { viewModel() },
+            productViewModel  = { viewModel() },
+            clientViewModel   = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.VenteFormGraph.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.VenteFormGraph.route, inclusive = true) }
+        )
 
         composable(
             route     = Screen.ClientsRetourForm.route,

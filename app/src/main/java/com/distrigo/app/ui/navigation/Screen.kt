@@ -80,9 +80,6 @@ sealed class Screen(val route: String) {
     data object ClientsDetail         : Screen("clients_detail/{clientId}") {
         fun createRoute(clientId: Int) = "clients_detail/$clientId"
     }
-    data object ClientsNewVente       : Screen("clients_new_vente/{clientId}") {
-        fun createRoute(clientId: Int) = "clients_new_vente/$clientId"
-    }
     data object ClientsRetourForm     : Screen("clients_retour_form/{clientId}") {
         fun createRoute(clientId: Int) = "clients_retour_form/$clientId"
     }
@@ -126,4 +123,27 @@ sealed class Screen(val route: String) {
     data object AchatsDetail : Screen("achats_detail/{orderId}") {
         fun createRoute(orderId: Int) = "achats_detail/$orderId"
     }
+
+    // ── Ventes (Dépôt) ──
+    data object VentesGraph  : Screen("ventes_graph")
+    data object VentesHome   : Screen("ventes_home")
+    data object VentesDetail : Screen("ventes_detail/{venteId}") {
+        fun createRoute(venteId: Int) = "ventes_detail/$venteId"
+    }
+
+    // ── Vente Form (multi-step nested graph, shared by Ventes tab and Client "Nouvelle facture") ──
+    data object VenteFormGraph : Screen("vente_form_graph?venteId={venteId}&clientId={clientId}") {
+        fun createRoute(venteId: Int? = null, clientId: Int? = null): String {
+            val params = buildList {
+                if (venteId != null) add("venteId=$venteId")
+                if (clientId != null) add("clientId=$clientId")
+            }
+            return "vente_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
+        }
+    }
+    data object VenteFormClient       : Screen("vente_form_client")
+    data object VenteFormClientPicker : Screen("vente_form_client_picker")
+    data object VenteFormProducts     : Screen("vente_form_products")
+    data object VenteFormCart         : Screen("vente_form_cart")
+    data object VenteFormValidation   : Screen("vente_form_validation")
 }

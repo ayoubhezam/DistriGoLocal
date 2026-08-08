@@ -54,7 +54,6 @@ import com.distrigo.app.ui.retours.RetourClientFormScreen
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
 import com.distrigo.app.ui.retours.RetourRow
-import com.distrigo.app.ui.ventes.VenteFormScreen
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.activity.compose.rememberLauncherForActivityResult

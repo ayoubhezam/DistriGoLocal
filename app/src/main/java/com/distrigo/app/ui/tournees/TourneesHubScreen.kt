@@ -36,7 +36,7 @@ fun TourneesHubScreen(
 
     if (currentScreen == "depot_vente") {
         BackHandler { currentScreen = "hub" }
-        com.distrigo.app.ui.ventes.VentesScreen(onFullScreenChange = onFullScreenChange)
+        com.distrigo.app.ui.navigation.VentesNavHost(onFullScreenChange = onFullScreenChange)
         return
     }
 

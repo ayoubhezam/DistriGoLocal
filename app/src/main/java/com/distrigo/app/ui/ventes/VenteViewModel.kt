@@ -32,6 +32,40 @@ class VenteViewModel(application: Application) : AndroidViewModel(application) {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    // ── Draft state for the multi-step Vente form (Client → Products → Cart → Validation) ──
+    // Shared across the nested vente_form_graph destinations so each step reads/writes the
+    // same in-progress draft instead of local remember state, exactly like InventoryViewModel's
+    // userName/lastScanResult support the Inventory session wizard's separate destinations.
+    private val _formClient = MutableStateFlow<com.distrigo.app.data.model.Client?>(null)
+    val formClient: StateFlow<com.distrigo.app.data.model.Client?> = _formClient
+    fun setFormClient(client: com.distrigo.app.data.model.Client?) { _formClient.value = client }
+
+    private val _formCartItems = MutableStateFlow<List<VenteCartItem>>(emptyList())
+    val formCartItems: StateFlow<List<VenteCartItem>> = _formCartItems
+    fun setFormCartItems(items: List<VenteCartItem>) { _formCartItems.value = items }
+
+    private val _formNote = MutableStateFlow("")
+    val formNote: StateFlow<String> = _formNote
+    fun setFormNote(note: String) { _formNote.value = note }
+
+    private val _formUserName = MutableStateFlow("")
+    val formUserName: StateFlow<String> = _formUserName
+    fun setFormUserName(name: String) { _formUserName.value = name }
+
+    private val _formMontantPaye = MutableStateFlow("")
+    val formMontantPaye: StateFlow<String> = _formMontantPaye
+    fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
+
+    /** Called once when a form graph session is freshly entered — clears any leftover draft
+     * from a previous session (new vente, or a previously edited/cancelled vente). */
+    fun resetVenteForm() {
+        _formClient.value = null
+        _formCartItems.value = emptyList()
+        _formNote.value = ""
+        _formUserName.value = ""
+        _formMontantPaye.value = ""
+    }
+
     init { loadVentes() }
 
     fun loadVentes() {
