@@ -3,7 +3,6 @@ package com.distrigo.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,22 +25,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.distrigo.app.ui.clients.ClientsScreen
 import com.distrigo.app.ui.common.PlaceholderScreen
 import com.distrigo.app.ui.dashboard.DashboardScreen
 import com.distrigo.app.ui.more.MoreScreen
+import com.distrigo.app.ui.navigation.Screen
 import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.tournees.TourneesHubScreen
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.ui.draw.shadow
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,44 +50,12 @@ class MainActivity : ComponentActivity() {
                 Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
                     var selectedTab   by remember { mutableStateOf(0) }
                     var hideBottomBar by remember { mutableStateOf(false) }
-                    var moreScreen    by remember { mutableStateOf<String?>(null) }
-                    var pendingClientId by remember { mutableStateOf<Int?>(null) }
-                    var showPlusDrawer by remember { mutableStateOf(false) }
-                    // ── "Plus" sub-screen navigation (takes over full screen) ──
-                    BackHandler(enabled = showPlusDrawer) { showPlusDrawer = false }
-                    moreScreen?.let { screen ->
-                        BackHandler(enabled = !hideBottomBar) {
-                            moreScreen = null
-                        }
-                        when (screen) {
-                            "clients" -> com.distrigo.app.ui.navigation.ClientsNavHost(
-                                preSelectedClientId = pendingClientId,
-                                onFullScreenChange  = { hideBottomBar = it },
-                                onBack              = { moreScreen = null }
-                            )
-                            "fournisseurs" -> com.distrigo.app.ui.navigation.SuppliersNavHost(
-                                onFullScreenChange = { hideBottomBar = it }
-                                // onNavigateToOrder: مرّره هنا كما كان مربوطاً سابقاً في نظامك القديم، إن وُجد استدعاء مشابه
-                            )
-                            "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
-                            "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
-                            "inventaire" -> com.distrigo.app.ui.navigation.InventoryNavHost(onBack = { moreScreen = null }, onFullScreenChange = { hideBottomBar = it })
-                            "rapports" -> PlaceholderScreen(
-                                title  = "Rapports",
-                                icon   = Icons.Default.BarChart,
-                                onBack = { moreScreen = null }
-                            )
-
-                            "parametres" -> com.distrigo.app.ui.settings.ParametresScreen(
-                                onBack = { moreScreen = null }
-                            )
-                        }
-                        return@Box
-                    }
+                    val navController = rememberNavController()
+                    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
                     Scaffold(
                         bottomBar = {
-                            if (!hideBottomBar) {
+                            if (currentRoute == Screen.MainTabs.route && !hideBottomBar) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -114,31 +81,31 @@ class MainActivity : ComponentActivity() {
                                             selected = selectedTab == 0,
                                             icon     = Icons.Default.Home,
                                             label    = "Dashboard",
-                                            onClick  = { selectedTab = 0; showPlusDrawer = false }
+                                            onClick  = { selectedTab = 0 }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 1,
                                             icon     = Icons.Default.LocalShipping,
                                             label    = "Ventes",
-                                            onClick  = { selectedTab = 1; showPlusDrawer = false }
+                                            onClick  = { selectedTab = 1 }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 2,
                                             icon     = Icons.Default.ShoppingCart,
                                             label    = "Produits",
-                                            onClick  = { selectedTab = 2; showPlusDrawer = false }
+                                            onClick  = { selectedTab = 2 }
                                         )
                                         BottomNavItem(
                                             selected = selectedTab == 3,
                                             icon     = Icons.Default.Receipt,
                                             label    = "Achats",
-                                            onClick  = { selectedTab = 3; showPlusDrawer = false }
+                                            onClick  = { selectedTab = 3 }
                                         )
                                         BottomNavItem(
-                                            selected = showPlusDrawer,
+                                            selected = false,
                                             icon     = Icons.Default.Menu,
                                             label    = "Plus",
-                                            onClick  = { showPlusDrawer = true }
+                                            onClick  = { navController.navigate(Screen.Plus.route) }
                                         )
                                     }
                                 }
@@ -147,102 +114,91 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
-                        when (selectedTab) {
-                            0 -> com.distrigo.app.ui.navigation.DashboardNavHost()
-                            1 -> TourneesHubScreen(
-                                onFullScreenChange = { hideBottomBar = it },
-                                onOpenClientDetail = { clientId ->      // ← جديد
-                                    pendingClientId = clientId
-                                    moreScreen = "clients"
+                        NavHost(
+                            navController    = navController,
+                            startDestination = Screen.MainTabs.route
+                        ) {
+                            // ── Bottom-tab container: unchanged tab-switching behavior ──
+                            composable(Screen.MainTabs.route) {
+                                when (selectedTab) {
+                                    0 -> com.distrigo.app.ui.navigation.DashboardNavHost()
+                                    1 -> TourneesHubScreen(
+                                        onFullScreenChange = { hideBottomBar = it },
+                                        onOpenClientDetail = { clientId ->
+                                            navController.navigate(Screen.PlusClients.createRoute(clientId))
+                                        }
+                                    )
+                                    2 -> com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
+                                    3 -> com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
                                 }
-                            )
-                            2 -> com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
-                            3 -> com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
+                            }
 
-                        }
-                    }
-                }
+                            // ── Plus: a real navigation destination, not an overlay ──
+                            composable(Screen.Plus.route) {
+                                MoreScreen(onNavigate = { route ->
+                                    when (route) {
+                                        "clients"      -> navController.navigate(Screen.PlusClients.createRoute())
+                                        "fournisseurs" -> navController.navigate(Screen.PlusFournisseurs.route)
+                                        "charges"      -> navController.navigate(Screen.PlusCharges.route)
+                                        "pertes"       -> navController.navigate(Screen.PlusPertes.route)
+                                        "inventaire"   -> navController.navigate(Screen.PlusInventaire.route)
+                                        "rapports"     -> navController.navigate(Screen.PlusRapports.route)
+                                        "parametres"   -> navController.navigate(Screen.PlusParametres.route)
+                                    }
+                                })
+                            }
 
-                    // ── تعتيم خلفي، ينقر لإغلاق كل شيء ──
-                    AnimatedVisibility(
-                        visible = showPlusDrawer,
-                        enter   = fadeIn(animationSpec = tween(300)),
-                        exit    = fadeOut(animationSpec = tween(300))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.45f))
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                                ) { showPlusDrawer = false; moreScreen = null }
-                        )
-                    }
-
-                    // ── الطبقة أ: قائمة Plus، ٨٠٪ من العرض — تبقى قائمة طوال فتح اللوحة، لا تتأثر بـ moreScreen ──
-                    AnimatedVisibility(
-                        visible  = showPlusDrawer,
-                        enter    = slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
-                        exit     = slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.8f)
-                                .fillMaxHeight()
-                                .shadow(16.dp)
-                                .background(Color.White)
-                        ) {
-                            MoreScreen(onNavigate = { route ->
-                                if (route == "clients") pendingClientId = null
-                                moreScreen = route
-                            })
-                        }
-                    }
-
-                    // ── الطبقة ب: الشاشة الفرعية — عرض كامل، تنزلق فوق كل شيء عند فتحها ──
-                    AnimatedVisibility(
-                        visible  = showPlusDrawer && moreScreen != null,
-                        enter    = slideInHorizontally(animationSpec = tween(375, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
-                        exit     = slideOutHorizontally(animationSpec = tween(375, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth },
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.White)
-                        ) {
-                            when (moreScreen) {
-                                "clients" -> com.distrigo.app.ui.navigation.ClientsNavHost(
-                                    preSelectedClientId = pendingClientId,
+                            composable(
+                                route     = Screen.PlusClients.route,
+                                arguments = listOf(navArgument("clientId") { type = NavType.IntType; defaultValue = -1 })
+                            ) { entry ->
+                                val clientId = entry.arguments!!.getInt("clientId").takeIf { it != -1 }
+                                com.distrigo.app.ui.navigation.ClientsNavHost(
+                                    preSelectedClientId = clientId,
                                     onFullScreenChange  = { hideBottomBar = it },
-                                    onBack              = { moreScreen = null }
+                                    onBack              = { navController.popBackStack() }
                                 )
-                                "fournisseurs" -> com.distrigo.app.ui.navigation.SuppliersNavHost(
-                                    onFullScreenChange = { hideBottomBar = it }
-                                    // onNavigateToOrder: مرّره هنا كما كان مربوطاً سابقاً في نظامك القديم، إن وُجد استدعاء مشابه
+                            }
+
+                            composable(Screen.PlusFournisseurs.route) {
+                                com.distrigo.app.ui.navigation.SuppliersNavHost(onFullScreenChange = { hideBottomBar = it })
+                            }
+
+                            composable(Screen.PlusCharges.route) {
+                                com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
+                            }
+
+                            composable(Screen.PlusPertes.route) {
+                                com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
+                            }
+
+                            composable(Screen.PlusInventaire.route) {
+                                com.distrigo.app.ui.navigation.InventoryNavHost(
+                                    onBack              = { navController.popBackStack() },
+                                    onFullScreenChange  = { hideBottomBar = it }
                                 )
-                                "charges" -> com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
-                                "pertes" -> com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
-                                "inventaire" -> com.distrigo.app.ui.navigation.InventoryNavHost(onBack = { moreScreen = null }, onFullScreenChange = { hideBottomBar = it })
-                                "rapports"     -> PlaceholderScreen(
+                            }
+
+                            composable(Screen.PlusRapports.route) {
+                                PlaceholderScreen(
                                     title  = "Rapports",
                                     icon   = Icons.Default.BarChart,
-                                    onBack = { moreScreen = null }
+                                    onBack = { navController.popBackStack() }
                                 )
-                                "parametres"   -> com.distrigo.app.ui.settings.ParametresScreen(
-                                    onBack = { moreScreen = null }
+                            }
+
+                            composable(Screen.PlusParametres.route) {
+                                com.distrigo.app.ui.settings.ParametresScreen(
+                                    onBack = { navController.popBackStack() }
                                 )
-                                else -> {}
                             }
                         }
                     }
+                }
             }
         }
     }
-
-
+}
 }
 
 @Composable
@@ -278,5 +234,4 @@ private fun BottomNavItem(
             color      = if (selected) selectedColor else unselectedColor
         )
     }
-}
 }
