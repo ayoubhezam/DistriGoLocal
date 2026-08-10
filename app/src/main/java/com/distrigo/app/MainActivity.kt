@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,14 +49,30 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-                    var selectedTab   by remember { mutableStateOf(0) }
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+                    val isTabRoute = currentRoute == Screen.TabDashboard.route ||
+                        currentRoute == Screen.TabVentes.route ||
+                        currentRoute == Screen.TabProduits.route ||
+                        currentRoute == Screen.TabAchats.route
+
+                    // ── Bottom-tab switch: standard "multiple back stacks" pattern —
+                    // pop to the graph's start destination (saving each tab's state) before
+                    // navigating, then restore the target tab's saved state if it has any. ──
+                    fun navigateToTab(route: String) {
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
 
                     Scaffold(
                         bottomBar = {
-                            if (currentRoute == Screen.MainTabs.route && !hideBottomBar) {
+                            if (isTabRoute && !hideBottomBar) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -78,28 +95,28 @@ class MainActivity : ComponentActivity() {
                                         verticalAlignment     = Alignment.CenterVertically
                                     ) {
                                         BottomNavItem(
-                                            selected = selectedTab == 0,
+                                            selected = currentRoute == Screen.TabDashboard.route,
                                             icon     = Icons.Default.Home,
                                             label    = "Dashboard",
-                                            onClick  = { selectedTab = 0 }
+                                            onClick  = { navigateToTab(Screen.TabDashboard.route) }
                                         )
                                         BottomNavItem(
-                                            selected = selectedTab == 1,
+                                            selected = currentRoute == Screen.TabVentes.route,
                                             icon     = Icons.Default.LocalShipping,
                                             label    = "Ventes",
-                                            onClick  = { selectedTab = 1 }
+                                            onClick  = { navigateToTab(Screen.TabVentes.route) }
                                         )
                                         BottomNavItem(
-                                            selected = selectedTab == 2,
+                                            selected = currentRoute == Screen.TabProduits.route,
                                             icon     = Icons.Default.ShoppingCart,
                                             label    = "Produits",
-                                            onClick  = { selectedTab = 2 }
+                                            onClick  = { navigateToTab(Screen.TabProduits.route) }
                                         )
                                         BottomNavItem(
-                                            selected = selectedTab == 3,
+                                            selected = currentRoute == Screen.TabAchats.route,
                                             icon     = Icons.Default.Receipt,
                                             label    = "Achats",
-                                            onClick  = { selectedTab = 3 }
+                                            onClick  = { navigateToTab(Screen.TabAchats.route) }
                                         )
                                         BottomNavItem(
                                             selected = false,
@@ -116,21 +133,28 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(paddingValues)) {
                         NavHost(
                             navController    = navController,
-                            startDestination = Screen.MainTabs.route
+                            startDestination = Screen.TabDashboard.route
                         ) {
-                            // ── Bottom-tab container: unchanged tab-switching behavior ──
-                            composable(Screen.MainTabs.route) {
-                                when (selectedTab) {
-                                    0 -> com.distrigo.app.ui.navigation.DashboardNavHost()
-                                    1 -> TourneesHubScreen(
-                                        onFullScreenChange = { hideBottomBar = it },
-                                        onOpenClientDetail = { clientId ->
-                                            navController.navigate(Screen.PlusClients.createRoute(clientId))
-                                        }
-                                    )
-                                    2 -> com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
-                                    3 -> com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
-                                }
+                            // ── Bottom-tab destinations: real siblings of Plus in the same graph ──
+                            composable(Screen.TabDashboard.route) {
+                                com.distrigo.app.ui.navigation.DashboardNavHost()
+                            }
+
+                            composable(Screen.TabVentes.route) {
+                                TourneesHubScreen(
+                                    onFullScreenChange = { hideBottomBar = it },
+                                    onOpenClientDetail = { clientId ->
+                                        navController.navigate(Screen.PlusClients.createRoute(clientId))
+                                    }
+                                )
+                            }
+
+                            composable(Screen.TabProduits.route) {
+                                com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
+                            }
+
+                            composable(Screen.TabAchats.route) {
+                                com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
                             }
 
                             // ── Plus: a real navigation destination, not an overlay ──
