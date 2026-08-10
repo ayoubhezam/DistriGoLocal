@@ -1,5 +1,7 @@
 package com.distrigo.app
 
+import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -244,7 +247,33 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+
+        // Gesture-nav devices reserve roughly this same band on both screen edges for the
+        // system's own back gesture, which otherwise swallows our edge-swipe touches before
+        // Compose ever sees them. Excluding it hands that band back to the app.
+        reservePlusSwipeEdgesFromSystemGestures()
+    }
+
+    private fun reservePlusSwipeEdgesFromSystemGestures() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val decorView = window.decorView
+        val exclusionWidthPx = with(Density(resources.displayMetrics.density)) {
+            PlusSwipeEdgeZone.toPx()
+        }.toInt()
+
+        fun updateExclusionRects() {
+            val width  = decorView.width
+            val height = decorView.height
+            if (width <= 0 || height <= 0) return
+            decorView.systemGestureExclusionRects = listOf(
+                Rect(0, 0, exclusionWidthPx, height),
+                Rect(width - exclusionWidthPx, 0, width, height)
+            )
+        }
+
+        decorView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateExclusionRects() }
+        decorView.post { updateExclusionRects() }
+    }
 }
 
 @Composable
