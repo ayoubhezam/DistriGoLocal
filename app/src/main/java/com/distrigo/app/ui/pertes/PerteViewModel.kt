@@ -42,6 +42,51 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    // ── Perte form (wizard) state — shared across PertesFormNavGraph steps ──
+    private val _formProduct = MutableStateFlow<Product?>(null)
+    val formProduct: StateFlow<Product?> = _formProduct
+
+    private val _formQuantity = MutableStateFlow(0.0)
+    val formQuantity: StateFlow<Double> = _formQuantity
+
+    private val _formSource = MutableStateFlow("depot")
+    val formSource: StateFlow<String> = _formSource
+
+    private val _formDate = MutableStateFlow(java.time.LocalDate.now())
+    val formDate: StateFlow<java.time.LocalDate> = _formDate
+
+    private val _formMotif = MutableStateFlow("")
+    val formMotif: StateFlow<String> = _formMotif
+
+    private val _formUserName = MutableStateFlow("")
+    val formUserName: StateFlow<String> = _formUserName
+
+    private val _formPhotoBase64 = MutableStateFlow<String?>(null)
+    val formPhotoBase64: StateFlow<String?> = _formPhotoBase64
+
+    private val _formSaveError = MutableStateFlow("")
+    val formSaveError: StateFlow<String> = _formSaveError
+
+    fun setFormProduct(product: Product?) { _formProduct.value = product }
+    fun setFormQuantity(qty: Double) { _formQuantity.value = qty }
+    fun setFormSource(source: String) { _formSource.value = source }
+    fun setFormDate(date: java.time.LocalDate) { _formDate.value = date }
+    fun setFormMotif(motif: String) { _formMotif.value = motif }
+    fun setFormUserName(name: String) { _formUserName.value = name }
+    fun setFormPhotoBase64(photo: String?) { _formPhotoBase64.value = photo }
+    fun setFormSaveError(error: String) { _formSaveError.value = error }
+
+    fun resetPerteForm() {
+        _formProduct.value = null
+        _formQuantity.value = 0.0
+        _formSource.value = "depot"
+        _formDate.value = java.time.LocalDate.now()
+        _formMotif.value = ""
+        _formUserName.value = ""
+        _formPhotoBase64.value = null
+        _formSaveError.value = ""
+    }
+
     init {
         viewModelScope.launch {
             repository.seedDefaultPerteTypesIfNeeded()

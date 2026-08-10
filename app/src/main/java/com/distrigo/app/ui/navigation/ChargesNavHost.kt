@@ -56,36 +56,17 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                 subtypeId    = subtypeId,
                 viewModel    = viewModel,
                 onBack       = { navController.popBackStack() },
-                onAddCharge  = { navController.navigate(Screen.ChargesForm.createRoute(subtypeId)) },
-                onEditCharge = { charge -> navController.navigate(Screen.ChargesForm.createRoute(subtypeId, charge.id)) }
+                onAddCharge  = { navController.navigate(Screen.ChargesFormGraph.createRoute(subtypeId)) },
+                onEditCharge = { charge -> navController.navigate(Screen.ChargesFormGraph.createRoute(subtypeId, charge.id)) }
             )
         }
 
-        composable(
-            route     = Screen.ChargesForm.route,
-            arguments = listOf(
-                navArgument("subtypeId") { type = NavType.IntType },
-                navArgument("chargeId")  { type = NavType.IntType; defaultValue = -1 }
-            )
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargesGraph.route) }
-            val viewModel: ChargeViewModel = viewModel(parentEntry)
-            val subtypeId = entry.arguments!!.getInt("subtypeId")
-            val chargeId  = entry.arguments!!.getInt("chargeId").takeIf { it != -1 }
-            val charges by viewModel.charges.collectAsState()
-            val charge = chargeId?.let { id -> charges.find { it.id == id } }
-
-            ChargeFormScreen(
-                subtypeId = subtypeId,
-                charge    = charge,
-                viewModel = viewModel,
-                onBack    = { navController.popBackStack() },
-                onSaved   = {
-                    viewModel.loadCharges(subtypeId)
-                    viewModel.loadChargeTypes()
-                    navController.popBackStack()
-                }
-            )
-        }
+        chargesFormGraph(
+            navController = navController,
+            graphRoute    = Screen.ChargesFormGraph.route,
+            viewModel     = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) }
+        )
     }
 }

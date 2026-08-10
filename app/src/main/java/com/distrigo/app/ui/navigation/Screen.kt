@@ -3,16 +3,24 @@ package com.distrigo.app.ui.navigation
 sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
 
+    // ── Chargement Form (self-contained 2-step wizard: Produits ↔ Panier) ──
+    data object ChargementFormGraph    : Screen("chargement_form_graph")
+    data object ChargementFormProducts : Screen("chargement_form_products")
+    data object ChargementFormCart     : Screen("chargement_form_cart")
+
     // ── Pertes ──
     data object PertesGraph : Screen("pertes_graph")
     data object PertesHome  : Screen("pertes_home")
     data object PertesList  : Screen("pertes_list/{typeId}") {
         fun createRoute(typeId: Int) = "pertes_list/$typeId"
     }
-    data object PertesForm  : Screen("pertes_form/{typeId}?perteId={perteId}") {
+    // ── Pertes Form (multi-step nested graph) ──
+    data object PertesFormGraph : Screen("pertes_form_graph/{typeId}?perteId={perteId}") {
         fun createRoute(typeId: Int, perteId: Int? = null) =
-            "pertes_form/$typeId" + if (perteId != null) "?perteId=$perteId" else ""
+            "pertes_form_graph/$typeId" + if (perteId != null) "?perteId=$perteId" else ""
     }
+    data object PertesFormDetails : Screen("pertes_form_details")
+    data object PertesFormSummary : Screen("pertes_form_summary")
 
     // ── Charges ──
     data object ChargesGraph    : Screen("charges_graph")
@@ -23,10 +31,13 @@ sealed class Screen(val route: String) {
     data object ChargesList     : Screen("charges_list/{subtypeId}") {
         fun createRoute(subtypeId: Int) = "charges_list/$subtypeId"
     }
-    data object ChargesForm     : Screen("charges_form/{subtypeId}?chargeId={chargeId}") {
+    // ── Charges Form (multi-step nested graph) ──
+    data object ChargesFormGraph : Screen("charges_form_graph/{subtypeId}?chargeId={chargeId}") {
         fun createRoute(subtypeId: Int, chargeId: Int? = null) =
-            "charges_form/$subtypeId" + if (chargeId != null) "?chargeId=$chargeId" else ""
+            "charges_form_graph/$subtypeId" + if (chargeId != null) "?chargeId=$chargeId" else ""
     }
+    data object ChargesFormDetails : Screen("charges_form_details")
+    data object ChargesFormSummary : Screen("charges_form_summary")
 
     // ── Produits ──
     data object ProduitsGraph     : Screen("produits_graph")
@@ -80,9 +91,16 @@ sealed class Screen(val route: String) {
     data object ClientsDetail         : Screen("clients_detail/{clientId}") {
         fun createRoute(clientId: Int) = "clients_detail/$clientId"
     }
-    data object ClientsRetourForm     : Screen("clients_retour_form/{clientId}") {
-        fun createRoute(clientId: Int) = "clients_retour_form/$clientId"
+    // ── Client Retour Form (multi-step nested graph) ──
+    data object ClientsRetourFormGraph : Screen("clients_retour_form_graph/{clientId}") {
+        fun createRoute(clientId: Int) = "clients_retour_form_graph/$clientId"
     }
+    data object ClientsRetourFormClient       : Screen("clients_retour_form_client")
+    data object ClientsRetourFormClientPicker : Screen("clients_retour_form_client_picker")
+    data object ClientsRetourFormProducts     : Screen("clients_retour_form_products")
+    data object ClientsRetourFormCart         : Screen("clients_retour_form_cart")
+    data object ClientsRetourFormSummary      : Screen("clients_retour_form_summary")
+
     data object ClientsRetourHistory  : Screen("clients_retour_history/{clientId}") {
         fun createRoute(clientId: Int) = "clients_retour_history/$clientId"
     }
@@ -100,9 +118,13 @@ sealed class Screen(val route: String) {
     data object SuppliersDetail        : Screen("suppliers_detail/{supplierId}") {
         fun createRoute(supplierId: Int) = "suppliers_detail/$supplierId"
     }
-    data object SuppliersRetourForm    : Screen("suppliers_retour_form/{supplierId}") {
-        fun createRoute(supplierId: Int) = "suppliers_retour_form/$supplierId"
+    // ── Suppliers Retour Form (multi-step nested graph) ──
+    data object SuppliersRetourFormGraph : Screen("suppliers_retour_form_graph/{supplierId}") {
+        fun createRoute(supplierId: Int) = "suppliers_retour_form_graph/$supplierId"
     }
+    data object SuppliersRetourFormProducts : Screen("suppliers_retour_form_products")
+    data object SuppliersRetourFormCart     : Screen("suppliers_retour_form_cart")
+    data object SuppliersRetourFormSummary  : Screen("suppliers_retour_form_summary")
     data object SuppliersRetourHistory : Screen("suppliers_retour_history/{supplierId}") {
         fun createRoute(supplierId: Int) = "suppliers_retour_history/$supplierId"
     }

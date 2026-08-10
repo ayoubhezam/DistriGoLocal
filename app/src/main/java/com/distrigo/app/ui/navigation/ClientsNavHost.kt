@@ -24,7 +24,6 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.retours.RetourClientFormScreen
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
 
@@ -100,7 +99,7 @@ fun ClientsNavHost(
                         onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                         onDelete         = { showDeleteConfirm = true },
                         onNewVente       = { navController.navigate(Screen.VenteFormGraph.createRoute(clientId = clientId)) },
-                        onRetourForm     = { navController.navigate(Screen.ClientsRetourForm.createRoute(clientId)) },
+                        onRetourForm     = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) },
                         onRetourHistory  = { navController.navigate(Screen.ClientsRetourHistory.createRoute(clientId)) },
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }
                     )
@@ -143,29 +142,13 @@ fun ClientsNavHost(
             onSaved = { navController.popBackStack(Screen.VenteFormGraph.route, inclusive = true) }
         )
 
-        composable(
-            route     = Screen.ClientsRetourForm.route,
-            arguments = listOf(navArgument("clientId") { type = NavType.IntType })
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
-            val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val retourViewModel: RetourClientViewModel = viewModel(retourParentEntry)
-            val clientId = entry.arguments!!.getInt("clientId")
-            val clients by viewModel.clients.collectAsState()
-            val client = clients.find { it.id == clientId }
-
-            if (client != null) {
-                RetourClientFormScreen(
-                    viewModel          = retourViewModel,
-                    preSelectedClient  = client,
-                    onBack             = { navController.popBackStack() },
-                    onSaved            = { retourViewModel.loadRetours(); navController.popBackStack() }
-                )
-            } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-            }
-        }
+        retourClientFormGraph(
+            navController = navController,
+            graphRoute    = Screen.ClientsRetourFormGraph.route,
+            viewModel     = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) }
+        )
 
         composable(
             route     = Screen.ClientsRetourHistory.route,
@@ -181,9 +164,10 @@ fun ClientsNavHost(
 
             if (client != null) {
                 RetourClientListScreen(
-                    client    = client,
-                    viewModel = retourViewModel,
-                    onBack    = { navController.popBackStack() }
+                    client      = client,
+                    viewModel   = retourViewModel,
+                    onBack      = { navController.popBackStack() },
+                    onAddRetour = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) }
                 )
             } else {
                 LaunchedEffect(Unit) { navController.popBackStack() }

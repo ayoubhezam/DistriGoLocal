@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class RetourClientViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -43,6 +44,31 @@ class RetourClientViewModel(application: Application) : AndroidViewModel(applica
 
     private val _retourDetail = MutableStateFlow<RetourClient?>(null)
     val retourDetail: StateFlow<RetourClient?> = _retourDetail
+
+    // ── Retour form (wizard) state — shared across RetourClientFormNavGraph steps ──
+    private val _formClient = MutableStateFlow<Client?>(null)
+    val formClient: StateFlow<Client?> = _formClient
+
+    private val _formDate = MutableStateFlow(LocalDate.now())
+    val formDate: StateFlow<LocalDate> = _formDate
+
+    private val _formMotif = MutableStateFlow<String?>(null)
+    val formMotif: StateFlow<String?> = _formMotif
+
+    private val _formCartItems = MutableStateFlow<List<RetourCartItem>>(emptyList())
+    val formCartItems: StateFlow<List<RetourCartItem>> = _formCartItems
+
+    fun setFormClient(client: Client?) { _formClient.value = client }
+    fun setFormDate(date: LocalDate) { _formDate.value = date }
+    fun setFormMotif(motif: String?) { _formMotif.value = motif }
+    fun setFormCartItems(items: List<RetourCartItem>) { _formCartItems.value = items }
+
+    fun resetRetourForm() {
+        _formClient.value = null
+        _formDate.value = LocalDate.now()
+        _formMotif.value = null
+        _formCartItems.value = emptyList()
+    }
 
     fun loadRetourDetail(id: Int) {
         viewModelScope.launch {

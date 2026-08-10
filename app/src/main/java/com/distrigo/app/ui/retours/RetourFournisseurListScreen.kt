@@ -42,27 +42,15 @@ fun RetourFournisseurListScreen(
     supplierId   : Int,
     supplierName : String,
     viewModel    : RetourFournisseurViewModel = viewModel(),
-    onBack       : () -> Unit
+    onBack       : () -> Unit,
+    onAddRetour  : () -> Unit = {}
 ) {
     val retours by viewModel.retours.collectAsState()
 
-    var showForm by remember { mutableStateOf(false) }
     var search   by remember { mutableStateOf("") }
     var selectedRetour by remember { mutableStateOf<RetourFournisseur?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadRetours(supplierId) }
-
-    if (showForm) {
-        BackHandler { showForm = false }
-        RetourFournisseurFormScreen(
-            supplierId   = supplierId,
-            supplierName = supplierName,
-            viewModel    = viewModel,
-            onBack       = { showForm = false },
-            onSaved      = { showForm = false }
-        )
-        return
-    }
 
     val filteredRetours = retours.filter { retour ->
         search.isBlank() ||
@@ -113,7 +101,7 @@ fun RetourFournisseurListScreen(
                         }
                     }
                     Box(
-                        modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showForm = true },
+                        modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddRetour() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Nouveau retour", tint = Color.White)

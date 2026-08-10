@@ -23,7 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
-import com.distrigo.app.ui.chargements.ChargementFormScreen
+import com.distrigo.app.ui.navigation.ChargementNavHost
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -54,7 +54,7 @@ fun StockCamionScreen(
     // ── New Chargement Screen (multi-produits) ──
     if (showNewChargement) {
         onFullScreenChange(true)
-        ChargementFormScreen(
+        ChargementNavHost(
             onBack  = { showNewChargement = false; onFullScreenChange(false) },
             onSaved = {
                 showNewChargement = false
@@ -67,8 +67,8 @@ fun StockCamionScreen(
     // ── Modifier Screen (produit unique pré-sélectionné) ──
     editingProduct?.let { product ->
         onFullScreenChange(true)
-        ChargementFormScreen(
-            preSelectedProduct = product,
+        ChargementNavHost(
+            preSelectedProductId = product.id,
             onBack  = { editingProduct = null; onFullScreenChange(false) },
             onSaved = {
                 editingProduct = null

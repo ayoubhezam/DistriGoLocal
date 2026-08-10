@@ -32,6 +32,26 @@ class ChargementViewModel(application: Application) : AndroidViewModel(applicati
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    // ── Chargement form (wizard) state — shared across ChargementNavHost's Products/Cart steps ──
+    private val _formCartItems = MutableStateFlow<List<ChargementCartItem>>(emptyList())
+    val formCartItems: StateFlow<List<ChargementCartItem>> = _formCartItems
+
+    private val _formNote = MutableStateFlow("")
+    val formNote: StateFlow<String> = _formNote
+
+    private val _formUserName = MutableStateFlow("")
+    val formUserName: StateFlow<String> = _formUserName
+
+    fun setFormCartItems(items: List<ChargementCartItem>) { _formCartItems.value = items }
+    fun setFormNote(note: String) { _formNote.value = note }
+    fun setFormUserName(name: String) { _formUserName.value = name }
+
+    fun resetChargementForm() {
+        _formCartItems.value = emptyList()
+        _formNote.value = ""
+        _formUserName.value = ""
+    }
+
     init { loadChargements() }
 
     fun loadChargements() {

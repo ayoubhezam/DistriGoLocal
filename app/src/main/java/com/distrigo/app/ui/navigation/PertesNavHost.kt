@@ -10,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.distrigo.app.ui.pertes.PerteFormScreen
 import com.distrigo.app.ui.pertes.PerteListScreen
 import com.distrigo.app.ui.pertes.PerteViewModel
 import com.distrigo.app.ui.pertes.PertesScreen
@@ -44,36 +43,19 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                 typeId      = typeId,
                 viewModel   = viewModel,
                 onBack      = { navController.popBackStack() },
-                onAddPerte  = { navController.navigate(Screen.PertesForm.createRoute(typeId)) },
-                onEditPerte = { perte -> navController.navigate(Screen.PertesForm.createRoute(typeId, perte.id)) }
+                onAddPerte  = { navController.navigate(Screen.PertesFormGraph.createRoute(typeId)) },
+                onEditPerte = { perte -> navController.navigate(Screen.PertesFormGraph.createRoute(typeId, perte.id)) }
             )
         }
 
-        composable(
-            route     = Screen.PertesForm.route,
-            arguments = listOf(
-                navArgument("typeId")  { type = NavType.IntType },
-                navArgument("perteId") { type = NavType.IntType; defaultValue = -1 }
-            )
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
-            val viewModel: PerteViewModel = viewModel(parentEntry)
-            val typeId    = entry.arguments!!.getInt("typeId")
-            val perteId   = entry.arguments!!.getInt("perteId").takeIf { it != -1 }
-            val pertes by viewModel.pertes.collectAsState()
-            val perte = perteId?.let { id -> pertes.find { it.id == id } }
-
-            PerteFormScreen(
-                typeId    = typeId,
-                perte     = perte,
-                viewModel = viewModel,
-                onBack    = { navController.popBackStack() },
-                onSaved   = {
-                    viewModel.loadPertes(typeId)
-                    viewModel.loadPerteTypes()
-                    navController.popBackStack()
-                }
-            )
-        }
+        pertesFormGraph(
+            navController = navController,
+            graphRoute    = Screen.PertesFormGraph.route,
+            viewModel     = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.PertesFormGraph.route, inclusive = true) },
+            onSaved = {
+                navController.popBackStack(Screen.PertesFormGraph.route, inclusive = true)
+            }
+        )
     }
 }

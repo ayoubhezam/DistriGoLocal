@@ -25,7 +25,6 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.retours.RetourFournisseurFormScreen
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import com.distrigo.app.ui.suppliers.*
@@ -94,7 +93,7 @@ fun SuppliersNavHost(
                         onEdit            = { navController.navigate(Screen.SuppliersForm.createRoute(supplierId)) },
                         onDelete          = { showDeleteConfirm = true },
                         onNewAchat        = { navController.navigate(Screen.PurchaseFormGraph.createRoute(supplierId = supplierId)) },
-                        onRetourForm      = { navController.navigate(Screen.SuppliersRetourForm.createRoute(supplierId)) },
+                        onRetourForm      = { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) },
                         onRetourHistory   = { navController.navigate(Screen.SuppliersRetourHistory.createRoute(supplierId)) },
                         onAchatHistory    = { navController.navigate(Screen.SuppliersAchatHistory.createRoute(supplierId)) },
                         onNavigateToOrder = onNavigateToOrder
@@ -155,30 +154,14 @@ fun SuppliersNavHost(
             }
         )
 
-        composable(
-            route     = Screen.SuppliersRetourForm.route,
-            arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
-            val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val retourViewModel: RetourFournisseurViewModel = viewModel(retourParentEntry)
-            val supplierId = entry.arguments!!.getInt("supplierId")
-            val suppliers by viewModel.suppliers.collectAsState()
-            val supplier = suppliers.find { it.id == supplierId }
-
-            if (supplier != null) {
-                RetourFournisseurFormScreen(
-                    supplierId   = supplier.id,
-                    supplierName = supplier.name,
-                    viewModel    = retourViewModel,
-                    onBack       = { navController.popBackStack() },
-                    onSaved      = { retourViewModel.loadRetours(supplierId); navController.popBackStack() }
-                )
-            } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-            }
-        }
+        retourFournisseurFormGraph(
+            navController     = navController,
+            graphRoute        = Screen.SuppliersRetourFormGraph.route,
+            viewModel         = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
+            supplierViewModel = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) }
+        )
 
         composable(
             route     = Screen.SuppliersRetourHistory.route,
@@ -197,7 +180,8 @@ fun SuppliersNavHost(
                     supplierId   = supplier.id,
                     supplierName = supplier.name,
                     viewModel    = retourViewModel,
-                    onBack       = { navController.popBackStack() }
+                    onBack       = { navController.popBackStack() },
+                    onAddRetour  = { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) }
                 )
             } else {
                 LaunchedEffect(Unit) { navController.popBackStack() }

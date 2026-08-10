@@ -39,6 +39,26 @@ class RetourFournisseurViewModel(application: Application) : AndroidViewModel(ap
     private val _retourDetail = MutableStateFlow<RetourFournisseur?>(null)
     val retourDetail: StateFlow<RetourFournisseur?> = _retourDetail
 
+    // ── Retour form (wizard) state — shared across RetourFournisseurFormNavGraph steps ──
+    private val _formDate = MutableStateFlow(java.time.LocalDate.now())
+    val formDate: StateFlow<java.time.LocalDate> = _formDate
+
+    private val _formMotif = MutableStateFlow<String?>(null)
+    val formMotif: StateFlow<String?> = _formMotif
+
+    private val _formCartItems = MutableStateFlow<List<RetourCartItem>>(emptyList())
+    val formCartItems: StateFlow<List<RetourCartItem>> = _formCartItems
+
+    fun setFormDate(date: java.time.LocalDate) { _formDate.value = date }
+    fun setFormMotif(motif: String?) { _formMotif.value = motif }
+    fun setFormCartItems(items: List<RetourCartItem>) { _formCartItems.value = items }
+
+    fun resetRetourForm() {
+        _formDate.value = java.time.LocalDate.now()
+        _formMotif.value = null
+        _formCartItems.value = emptyList()
+    }
+
     fun loadRetourDetail(id: Int) {
         viewModelScope.launch {
             _retourDetail.value = repository.getRetourDetail(id)

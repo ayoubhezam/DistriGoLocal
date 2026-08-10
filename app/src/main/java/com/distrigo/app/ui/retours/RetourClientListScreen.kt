@@ -40,29 +40,18 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 
 @Composable
 fun RetourClientListScreen(
-    client    : Client,
-    viewModel : RetourClientViewModel = viewModel(),
-    onBack    : () -> Unit
+    client      : Client,
+    viewModel   : RetourClientViewModel = viewModel(),
+    onBack      : () -> Unit,
+    onAddRetour : () -> Unit = {}
 ) {
     val allRetours by viewModel.retours.collectAsState()
     val retours = allRetours.filter { it.client_id == client.id }
 
-    var showForm by remember { mutableStateOf(false) }
     var search   by remember { mutableStateOf("") }
     var selectedRetour by remember { mutableStateOf<RetourClient?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadRetours() }
-
-    if (showForm) {
-        BackHandler { showForm = false }
-        RetourClientFormScreen(
-            viewModel         = viewModel,
-            preSelectedClient = client,
-            onBack            = { showForm = false },
-            onSaved           = { showForm = false }
-        )
-        return
-    }
 
     val filteredRetours = retours.filter { retour ->
         search.isBlank() ||
@@ -113,7 +102,7 @@ fun RetourClientListScreen(
                         }
                     }
                     Box(
-                        modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showForm = true },
+                        modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddRetour() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Nouveau retour", tint = Color.White)
