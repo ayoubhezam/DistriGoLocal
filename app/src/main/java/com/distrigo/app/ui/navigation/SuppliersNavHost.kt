@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,7 +25,6 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.purchases.PurchaseFormScreen
 import com.distrigo.app.ui.retours.RetourFournisseurFormScreen
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
@@ -93,7 +93,7 @@ fun SuppliersNavHost(
                         onBack            = { navController.popBackStack() },
                         onEdit            = { navController.navigate(Screen.SuppliersForm.createRoute(supplierId)) },
                         onDelete          = { showDeleteConfirm = true },
-                        onNewAchat        = { navController.navigate(Screen.SuppliersNewAchat.createRoute(supplierId)) },
+                        onNewAchat        = { navController.navigate(Screen.PurchaseFormGraph.createRoute(supplierId = supplierId)) },
                         onRetourForm      = { navController.navigate(Screen.SuppliersRetourForm.createRoute(supplierId)) },
                         onRetourHistory   = { navController.navigate(Screen.SuppliersRetourHistory.createRoute(supplierId)) },
                         onAchatHistory    = { navController.navigate(Screen.SuppliersAchatHistory.createRoute(supplierId)) },
@@ -137,19 +137,23 @@ fun SuppliersNavHost(
             }
         }
 
-        composable(
-            route     = Screen.SuppliersNewAchat.route,
-            arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
-            val supplierId = entry.arguments!!.getInt("supplierId")
-            PurchaseFormScreen(
-                preSelectedSupplierId = supplierId,
-                onBack  = { navController.popBackStack() },
-                onSaved = { viewModel.loadTransactions(supplierId); navController.popBackStack() }
-            )
-        }
+        purchaseFormGraph(
+            navController     = navController,
+            graphRoute        = Screen.PurchaseFormGraph.route,
+            viewModel         = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.PurchaseFormGraph.route) }) },
+            productViewModel  = { viewModel() },
+            supplierViewModel = { viewModel() },
+            onBack  = { navController.popBackStack(Screen.PurchaseFormGraph.route, inclusive = true) },
+            onSaved = {
+                val supplierId = navController.getBackStackEntry(Screen.PurchaseFormGraph.route)
+                    .arguments?.getInt("supplierId")?.takeIf { it != -1 }
+                if (supplierId != null) {
+                    ViewModelProvider(navController.getBackStackEntry(Screen.SuppliersGraph.route))[SupplierViewModel::class.java]
+                        .loadTransactions(supplierId)
+                }
+                navController.popBackStack(Screen.PurchaseFormGraph.route, inclusive = true)
+            }
+        )
 
         composable(
             route     = Screen.SuppliersRetourForm.route,

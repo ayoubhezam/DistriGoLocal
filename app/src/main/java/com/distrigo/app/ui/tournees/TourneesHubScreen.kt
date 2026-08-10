@@ -42,7 +42,7 @@ fun TourneesHubScreen(
 
     if (currentScreen == "tournees") {
         BackHandler { currentScreen = "hub" }
-        TourneesScreen(
+        com.distrigo.app.ui.navigation.TourneesNavHost(
             onFullScreenChange = onFullScreenChange,
             onNavigateToChargement = { currentScreen = "stock_camion" }
         )

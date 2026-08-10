@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.TourneeClientInfo
 import com.distrigo.app.data.model.Secteur
+import com.distrigo.app.data.model.Client
 
 class TourneeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -41,6 +42,31 @@ class TourneeViewModel(application: Application) : AndroidViewModel(application)
 
     private val _tourneeClients = MutableStateFlow<List<TourneeClientInfo>>(emptyList())
     val tourneeClients: StateFlow<List<TourneeClientInfo>> = _tourneeClients
+
+    // ── Tournée vente form (wizard) state — shared across TourneeVenteFormNavGraph steps ──
+    private val _formClient = MutableStateFlow<Client?>(null)
+    val formClient: StateFlow<Client?> = _formClient
+
+    private val _formCartItems = MutableStateFlow<List<TourneeVenteCartItem>>(emptyList())
+    val formCartItems: StateFlow<List<TourneeVenteCartItem>> = _formCartItems
+
+    private val _formNote = MutableStateFlow("")
+    val formNote: StateFlow<String> = _formNote
+
+    private val _formMontantPaye = MutableStateFlow("")
+    val formMontantPaye: StateFlow<String> = _formMontantPaye
+
+    fun setFormClient(client: Client?) { _formClient.value = client }
+    fun setFormCartItems(items: List<TourneeVenteCartItem>) { _formCartItems.value = items }
+    fun setFormNote(note: String) { _formNote.value = note }
+    fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
+
+    fun resetTourneeVenteForm() {
+        _formClient.value = null
+        _formCartItems.value = emptyList()
+        _formNote.value = ""
+        _formMontantPaye.value = ""
+    }
 
 
 

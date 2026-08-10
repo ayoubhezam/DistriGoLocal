@@ -11,6 +11,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.model.Supplier
 
 class PurchaseViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -34,6 +35,31 @@ class PurchaseViewModel(application: Application) : AndroidViewModel(application
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    // ── Purchase form (wizard) state — shared across PurchaseFormNavGraph steps ──
+    private val _formSupplier = MutableStateFlow<Supplier?>(null)
+    val formSupplier: StateFlow<Supplier?> = _formSupplier
+
+    private val _formCartItems = MutableStateFlow<List<CartItem>>(emptyList())
+    val formCartItems: StateFlow<List<CartItem>> = _formCartItems
+
+    private val _formNote = MutableStateFlow("")
+    val formNote: StateFlow<String> = _formNote
+
+    private val _formMontantPaye = MutableStateFlow("")
+    val formMontantPaye: StateFlow<String> = _formMontantPaye
+
+    fun setFormSupplier(supplier: Supplier?) { _formSupplier.value = supplier }
+    fun setFormCartItems(items: List<CartItem>) { _formCartItems.value = items }
+    fun setFormNote(note: String) { _formNote.value = note }
+    fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
+
+    fun resetPurchaseForm() {
+        _formSupplier.value = null
+        _formCartItems.value = emptyList()
+        _formNote.value = ""
+        _formMontantPaye.value = ""
+    }
 
     init { loadOrders() }
 

@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.tournees
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +26,6 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
-import com.distrigo.app.ui.ventes.VenteDetailScreen
 import com.distrigo.app.ui.ventes.VenteViewModel
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.sp
@@ -36,65 +34,152 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.filled.GridView
 
+// ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
 fun TourneesScreen(
-    viewModel             : TourneeViewModel = viewModel(),
-    modifier              : Modifier = Modifier,
-    onFullScreenChange    : (Boolean) -> Unit = {},
-    venteViewModel        : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    productViewModel      : com.distrigo.app.ui.products.ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onNavigateToChargement: () -> Unit = {}
+    viewModel      : TourneeViewModel = viewModel(),
+    modifier       : Modifier = Modifier,
+    onAddTournee   : () -> Unit = {},
+    onTourneeClick : (Int) -> Unit = {}
 ) {
     val tournees     by viewModel.tournees.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
     val error        by viewModel.error.collectAsState()
     val openTournee  by viewModel.openTournee.collectAsState()
 
-    var selectedTourneeId    by remember { mutableStateOf<Int?>(null) }
-    var showTourneeForm      by remember { mutableStateOf(false) }
-    var editingTournee       by remember { mutableStateOf<Tournee?>(null) }
-    var showCloseDialog      by remember { mutableStateOf<Tournee?>(null) }
-    var showReopenDialog     by remember { mutableStateOf<Tournee?>(null) }
-    var actionError          by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DsColors.Surface)
+    ) {
+        // ── Header ──
+        Row(
+            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
+            Text("Tournées", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+            FloatingActionButton(
+                onClick        = onAddTournee,
+                containerColor = DsColors.Primary,
+                contentColor   = Color.White,
+                modifier       = Modifier.size(40.dp),
+                shape          = DsShapes.pill
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Nouvelle tournée")
+            }
+        }
+
+        // ── Open Tournée Banner ──
+        openTournee?.let { open ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg)
+                    .padding(bottom = DsSpacing.md)
+                    .clip(DsShapes.large)
+                    .background(DsColors.PrimaryLight)
+                    .clickable { onTourneeClick(open.id) }
+                    .padding(DsSpacing.lg),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
+            ) {
+                Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
+                Column {
+                    Text("${open.nom} — en cours", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text("Tapez pour continuer", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                }
+            }
+        }
+
+        when {
+            isLoading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DsColors.Primary)
+                }
+            }
+            error != null -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(error ?: "", color = DsColors.Danger)
+                }
+            }
+            tournees.isEmpty() -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            tint     = DsColors.TextTertiary,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text("Aucune tournée", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    items(tournees, key = { it.id }) { tournee ->
+                        TourneeCard(
+                            tournee = tournee,
+                            onClick = { onTourneeClick(tournee.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══ LEVEL 2 — Tournée detail (Navigation Compose destination: Screen.TourneesDetail) ═══
+@Composable
+fun TourneeDetailScreen(
+    tourneeId              : Int,
+    viewModel              : TourneeViewModel = viewModel(),
+    modifier                : Modifier = Modifier,
+    venteViewModel          : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    productViewModel        : com.distrigo.app.ui.products.ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onBack                  : () -> Unit = {},
+    onEditTournee           : (Tournee) -> Unit = {},
+    onAddClients            : () -> Unit = {},
+    onCreateVente           : (Int?) -> Unit = {},
+    onOpenVente             : (Vente) -> Unit = {},
+    onNavigateToChargement  : () -> Unit = {}
+) {
+    val tournee by viewModel.selectedTournee.collectAsState()
+    val current = tournee
+    val tourneeClients by viewModel.tourneeClients.collectAsState()
+    val products by productViewModel.products.collectAsState()
+
+    LaunchedEffect(tourneeId) {
+        viewModel.loadTourneeDetail(tourneeId)
+        viewModel.loadTourneeClients(tourneeId)
+    }
+
+    var showCloseDialog         by remember { mutableStateOf<Tournee?>(null) }
+    var showReopenDialog        by remember { mutableStateOf<Tournee?>(null) }
+    var actionError             by remember { mutableStateOf("") }
     var showDeleteTourneeDialog by remember { mutableStateOf<Tournee?>(null) }
-    var showTourneeMenu by remember { mutableStateOf(false) }
+    var showTourneeMenu         by remember { mutableStateOf(false) }
     var deleteTourneeError      by remember { mutableStateOf("") }
-    var selectedVenteInTournee  by remember { mutableStateOf<Vente?>(null) }
     var longPressVenteInTournee by remember { mutableStateOf<Vente?>(null) }
     var showDeleteVenteInTournee by remember { mutableStateOf(false) }
     var deleteVenteError        by remember { mutableStateOf("") }
-    var showNewTourneeVente     by remember { mutableStateOf(false) }
-    var showAddClientsScreen    by remember { mutableStateOf(false) }
-    var pendingSaleClientId     by remember { mutableStateOf<Int?>(null) }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var transientMessage        by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
             kotlinx.coroutines.delay(2000)
             transientMessage = null
         }
-    }
-
-    // ── Tournée Form Sub-screen ──
-    if (showTourneeForm) {
-        onFullScreenChange(true)
-        TourneeFormScreen(
-            tournee = editingTournee,
-            onBack  = { showTourneeForm = false; editingTournee = null; onFullScreenChange(false) },
-            onSaved = {
-                showTourneeForm = false
-                editingTournee = null
-                onFullScreenChange(false)
-                viewModel.loadTournees()
-            }
-        )
-        return
     }
 
     // ── Close Confirmation Dialog ──
@@ -145,8 +230,7 @@ fun TourneesScreen(
                 TextButton(onClick = {
                     val cid = info.client.id
                     confirmReopenSaleClient = null
-                    pendingSaleClientId = cid
-                    showNewTourneeVente = true
+                    onCreateVente(cid)
                 }) {
                     Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
@@ -178,7 +262,7 @@ fun TourneesScreen(
                         onSuccess = {
                             showDeleteTourneeDialog = null
                             deleteTourneeError      = ""
-                            selectedTourneeId       = null
+                            onBack()
                         },
                         onError = { error -> deleteTourneeError = error }
                     )
@@ -234,176 +318,16 @@ fun TourneesScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DsColors.Surface)
-    ) {
-        if (selectedTourneeId == null) {
-            // ═══ LEVEL 1 — Main list ═══
-
-            // ── Header ──
-            Row(
-                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Text("Tournées", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-                FloatingActionButton(
-                    onClick        = { editingTournee = null; showTourneeForm = true },
-                    containerColor = DsColors.Primary,
-                    contentColor   = Color.White,
-                    modifier       = Modifier.size(40.dp),
-                    shape          = DsShapes.pill
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Nouvelle tournée")
-                }
-            }
-
-            // ── Open Tournée Banner ──
-            openTournee?.let { open ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg)
-                        .padding(bottom = DsSpacing.md)
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .clickable {
-                            selectedTourneeId = open.id
-                            viewModel.loadTourneeDetail(open.id)
-                            viewModel.loadTourneeClients(open.id)
-                        }
-                        .padding(DsSpacing.lg),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                ) {
-                    Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
-                    Column {
-                        Text("${open.nom} — en cours", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                        Text("Tapez pour continuer", fontSize = DsTextSize.caption, color = DsColors.Primary)
-                    }
-                }
-            }
-
-            when {
-                isLoading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = DsColors.Primary)
-                    }
-                }
-                error != null -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(error ?: "", color = DsColors.Danger)
-                    }
-                }
-                tournees.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.LocalShipping,
-                                contentDescription = null,
-                                tint     = DsColors.TextTertiary,
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Spacer(Modifier.height(DsSpacing.sm))
-                            Text("Aucune tournée", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                }
-                else -> {
-                    LazyColumn(
-                        contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        items(tournees, key = { it.id }) { tournee ->
-                            TourneeCard(
-                                tournee = tournee,
-                                onClick = {
-                                    selectedTourneeId = tournee.id
-                                    viewModel.loadTourneeDetail(tournee.id)
-                                    viewModel.loadTourneeClients(tournee.id)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        } else {
-            // ═══ LEVEL 2 — Tournée detail ═══
-            val id = selectedTourneeId!!
-            BackHandler { selectedTourneeId = null }
-
-            val tournee   by viewModel.selectedTournee.collectAsState()
-            val current   = tournee
-            val tourneeClients by viewModel.tourneeClients.collectAsState()
-            val products by productViewModel.products.collectAsState()
-
-            if (current == null || current.id != id) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DsColors.Surface)
+        ) {
+            if (current == null || current.id != tourneeId) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
             } else {
-                if (showAddClientsScreen) {
-                    onFullScreenChange(true)
-                    AddClientsToTourneeScreen(
-                        tourneeId         = id,
-                        tourneeNom        = current.nom,
-                        existingClientIds = tourneeClients.map { it.client.id }.toSet(),
-                        onBack  = { showAddClientsScreen = false; onFullScreenChange(false) },
-                        onSaved = { showAddClientsScreen = false; onFullScreenChange(false) }
-                    )
-                    return
-                }
-                if (showNewTourneeVente) {
-                    onFullScreenChange(true)
-                    TourneeVenteFormScreen(
-                        tourneeId           = id,
-                        preSelectedClientId = pendingSaleClientId,
-                        onBack    = { showNewTourneeVente = false; pendingSaleClientId = null; onFullScreenChange(false) },
-                        onSaved   = {
-                            val cid = pendingSaleClientId
-                            showNewTourneeVente = false
-                            pendingSaleClientId = null
-                            onFullScreenChange(false)
-                            viewModel.refreshAfterVenteChange(id)
-                            if (cid != null) {
-                                viewModel.markTourneeClientVisited(
-                                    id, cid,
-                                    onSuccess = { viewModel.refreshAfterVenteChange(id) },
-                                    onError   = {}
-                                )
-                            } else {
-                                viewModel.loadTourneeClients(id)
-                            }
-                        }
-                    )
-                    return
-                }
-
-
-
-                selectedVenteInTournee?.let { vente ->
-                    onFullScreenChange(true)
-                    VenteDetailScreen(
-                        vente       = vente,
-                        onBack      = { selectedVenteInTournee = null; onFullScreenChange(false) },
-                        viewModel   = venteViewModel,
-                        onDelivered = {
-                            selectedVenteInTournee = null
-                            onFullScreenChange(false)
-                            viewModel.loadTourneeDetail(id)
-                            viewModel.refreshAfterVenteChange(id)
-                        },
-                        onDeleted = {
-                            selectedVenteInTournee = null
-                            onFullScreenChange(false)
-                            viewModel.loadTourneeDetail(id)
-                            viewModel.refreshAfterVenteChange(id)
-                        }
-                    )
-                    return
-                }
                 longPressVenteInTournee?.let { vente ->
                     if (showDeleteVenteInTournee) {
                         AlertDialog(
@@ -426,8 +350,8 @@ fun TourneesScreen(
                                             showDeleteVenteInTournee = false
                                             longPressVenteInTournee  = null
                                             deleteVenteError         = ""
-                                            viewModel.loadTourneeDetail(id)
-                                            viewModel.refreshAfterVenteChange(id)
+                                            viewModel.loadTourneeDetail(tourneeId)
+                                            viewModel.refreshAfterVenteChange(tourneeId)
 
                                         },
                                         onError = { error -> deleteVenteError = error }
@@ -505,7 +429,7 @@ fun TourneesScreen(
                                             DropdownMenuItem(
                                                 text        = { Text("Modifier les informations") },
                                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
-                                                onClick     = { showTourneeMenu = false; editingTournee = current; showTourneeForm = true }
+                                                onClick     = { showTourneeMenu = false; onEditTournee(current) }
                                             )
                                             if ((current.ventes_count ?: 0) == 0) {
                                                 DropdownMenuItem(
@@ -620,7 +544,7 @@ fun TourneesScreen(
                                             colors = listOf(DsColors.Primary, DsColors.Primary.copy(alpha = 0.75f))
                                         )
                                     )
-                                    .clickable { showAddClientsScreen = true }
+                                    .clickable { onAddClients() }
                                     .padding(DsSpacing.lg),
                                 verticalAlignment     = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
@@ -651,14 +575,11 @@ fun TourneesScreen(
                             tourneeClients      = tourneeClients,
                             tourneeVentes       = current.ventes ?: emptyList(),
                             isOpen              = current.status == "ouverte",
-                            onCreateSale        = { cid -> pendingSaleClientId = cid; showNewTourneeVente = true },
-                            onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(id, cid, onSuccess = {}, onError = {}) },
-                            onNavigateToVente   = { vente ->
-                                selectedVenteInTournee = vente
-                                venteViewModel.loadVenteDetail(vente.id)
-                            },
+                            onCreateSale        = { cid -> onCreateVente(cid) },
+                            onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
+                            onNavigateToVente   = { vente -> onOpenVente(vente) },
                             onNoVenteTap        = { msg -> transientMessage = msg },
-                            onAddClient         = { showAddClientsScreen = true },
+                            onAddClient         = { onAddClients() },
                             onReopenSaleForVisited = { cid ->
                                 confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
                             }
@@ -684,10 +605,7 @@ fun TourneesScreen(
                             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs.div(2))) {
                                 TourneeVenteRow(
                                     vente       = vente,
-                                    onClick     = {
-                                        selectedVenteInTournee = vente
-                                        venteViewModel.loadVenteDetail(vente.id)
-                                    },
+                                    onClick     = { onOpenVente(vente) },
                                     onLongClick = { longPressVenteInTournee = vente }
                                 )
                             }
@@ -711,26 +629,25 @@ fun TourneesScreen(
                 }
             }
         }
-    }
 
-    AnimatedVisibility(
-        visible = transientMessage != null,
-        modifier = Modifier.align(Alignment.Center)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(DsShapes.medium)
-                .background(DsColors.TextPrimary)
-                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+        AnimatedVisibility(
+            visible = transientMessage != null,
+            modifier = Modifier.align(Alignment.Center)
         ) {
-            Text(
-                transientMessage ?: "",
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
+            Box(
+                modifier = Modifier
+                    .clip(DsShapes.medium)
+                    .background(DsColors.TextPrimary)
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+            ) {
+                Text(
+                    transientMessage ?: "",
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
-    }
     }
 }
 

@@ -54,7 +54,6 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.purchases.PurchaseFormScreen
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.retours.RetourFournisseurFormScreen
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen

@@ -100,9 +100,6 @@ sealed class Screen(val route: String) {
     data object SuppliersDetail        : Screen("suppliers_detail/{supplierId}") {
         fun createRoute(supplierId: Int) = "suppliers_detail/$supplierId"
     }
-    data object SuppliersNewAchat      : Screen("suppliers_new_achat/{supplierId}") {
-        fun createRoute(supplierId: Int) = "suppliers_new_achat/$supplierId"
-    }
     data object SuppliersRetourForm    : Screen("suppliers_retour_form/{supplierId}") {
         fun createRoute(supplierId: Int) = "suppliers_retour_form/$supplierId"
     }
@@ -116,13 +113,25 @@ sealed class Screen(val route: String) {
     // ── Achats ──
     data object AchatsGraph  : Screen("achats_graph")
     data object AchatsHome   : Screen("achats_home")
-    data object AchatsForm   : Screen("achats_form?orderId={orderId}") {
-        fun createRoute(orderId: Int? = null) =
-            "achats_form" + if (orderId != null) "?orderId=$orderId" else ""
-    }
     data object AchatsDetail : Screen("achats_detail/{orderId}") {
         fun createRoute(orderId: Int) = "achats_detail/$orderId"
     }
+
+    // ── Purchase Form (multi-step nested graph, shared by Achats tab and Supplier "Nouvel achat") ──
+    data object PurchaseFormGraph : Screen("purchase_form_graph?orderId={orderId}&supplierId={supplierId}") {
+        fun createRoute(orderId: Int? = null, supplierId: Int? = null): String {
+            val params = buildList {
+                if (orderId != null) add("orderId=$orderId")
+                if (supplierId != null) add("supplierId=$supplierId")
+            }
+            return "purchase_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
+        }
+    }
+    data object PurchaseFormSupplier       : Screen("purchase_form_supplier")
+    data object PurchaseFormSupplierPicker : Screen("purchase_form_supplier_picker")
+    data object PurchaseFormProducts       : Screen("purchase_form_products")
+    data object PurchaseFormCart           : Screen("purchase_form_cart")
+    data object PurchaseFormValidation     : Screen("purchase_form_validation")
 
     // ── Ventes (Dépôt) ──
     data object VentesGraph  : Screen("ventes_graph")
@@ -146,4 +155,30 @@ sealed class Screen(val route: String) {
     data object VenteFormProducts     : Screen("vente_form_products")
     data object VenteFormCart         : Screen("vente_form_cart")
     data object VenteFormValidation   : Screen("vente_form_validation")
+
+    // ── Tournées ──
+    data object TourneesGraph  : Screen("tournees_graph")
+    data object TourneesHome   : Screen("tournees_home")
+    data object TourneesDetail : Screen("tournees_detail/{tourneeId}") {
+        fun createRoute(tourneeId: Int) = "tournees_detail/$tourneeId"
+    }
+    data object TourneeForm : Screen("tournee_form?tourneeId={tourneeId}") {
+        fun createRoute(tourneeId: Int? = null) =
+            "tournee_form" + if (tourneeId != null) "?tourneeId=$tourneeId" else ""
+    }
+    data object TourneesAddClients : Screen("tournees_add_clients/{tourneeId}") {
+        fun createRoute(tourneeId: Int) = "tournees_add_clients/$tourneeId"
+    }
+    data object TourneeVenteFormGraph : Screen("tournee_vente_form_graph/{tourneeId}?clientId={clientId}") {
+        fun createRoute(tourneeId: Int, clientId: Int? = null) =
+            "tournee_vente_form_graph/$tourneeId" + if (clientId != null) "?clientId=$clientId" else ""
+    }
+    data object TourneeVenteFormClient       : Screen("tournee_vente_form_client")
+    data object TourneeVenteFormClientPicker : Screen("tournee_vente_form_client_picker")
+    data object TourneeVenteFormProducts     : Screen("tournee_vente_form_products")
+    data object TourneeVenteFormCart         : Screen("tournee_vente_form_cart")
+    data object TourneeVenteFormValidation   : Screen("tournee_vente_form_validation")
+    data object TourneesVenteDetail : Screen("tournees_vente_detail/{tourneeId}/{venteId}") {
+        fun createRoute(tourneeId: Int, venteId: Int) = "tournees_vente_detail/$tourneeId/$venteId"
+    }
 }
