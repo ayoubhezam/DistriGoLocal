@@ -347,14 +347,13 @@ private fun Modifier.plusEdgeSwipeGestures(
         while (true) {
             val event = awaitPointerEvent()
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
-            if (!change.pressed) break // lifted before threshold — incomplete swipe, do nothing
 
+            // Accumulate this event's delta — including the final lift-off event — before deciding
+            // anything. Bailing on `!change.pressed` before this point (an earlier bug here) silently
+            // dropped whatever distance the last touch sample carried, undercounting real swipes.
             val delta = change.positionChange()
             totalDx += delta.x
             totalDy += delta.y
-
-            // Vertical is clearly winning (a real scroll attempt) — surrender without consuming.
-            if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break
 
             val horizontalClearlyDominates = abs(totalDx) >= abs(totalDy) * PlusSwipeDominanceRatio
             val distanceReached           = abs(totalDx) >= swipeThresholdPx
@@ -365,6 +364,11 @@ private fun Modifier.plusEdgeSwipeGestures(
                 if (fromRightEdge) onSwipeToPlus() else onSwipeBackFromPlus()
                 break
             }
+
+            if (!change.pressed) break // lifted, and even counting this last sample it never crossed the threshold
+
+            // Vertical is clearly winning (a real scroll attempt) — surrender without consuming.
+            if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break
         }
     }
 }
