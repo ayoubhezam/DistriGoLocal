@@ -5,8 +5,13 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,14 +25,15 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -50,6 +56,7 @@ import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +64,7 @@ class MainActivity : ComponentActivity() {
         com.distrigo.app.data.geo.GeoRepository.init(this)
         setContent {
             MaterialTheme {
-                Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -65,13 +72,28 @@ class MainActivity : ComponentActivity() {
                         currentRoute == Screen.TabVentes.route ||
                         currentRoute == Screen.TabProduits.route ||
                         currentRoute == Screen.TabAchats.route
-                    val isPlusRoute = currentRoute == Screen.Plus.route
+
+                    val density = LocalDensity.current
+                    val maxDrawerWidthPx = remember(maxWidth, density) {
+                        with(density) { maxWidth.toPx() } * PlusDrawerMaxWidthFraction
+                    }
+                    val flingVelocityPx = remember(density) {
+                        with(density) { PlusDrawerFlingVelocity.toPx() }
+                    }
+                    val drawerOffset = remember { Animatable(0f) }
+                    val scope = rememberCoroutineScope()
 
                     // pointerInput below runs in a coroutine keyed on Unit (never restarted), so it
                     // must read route state through rememberUpdatedState rather than closing over
-                    // isTabRoute/isPlusRoute directly, or it would keep seeing stale values.
-                    val latestIsTabRoute  = rememberUpdatedState(isTabRoute)
-                    val latestIsPlusRoute = rememberUpdatedState(isPlusRoute)
+                    // isTabRoute directly, or it would keep seeing stale values.
+                    val latestIsTabRoute = rememberUpdatedState(isTabRoute)
+
+                    fun openDrawer() {
+                        scope.launch { drawerOffset.animateTo(maxDrawerWidthPx, tween(PlusDrawerAnimationDurationMs)) }
+                    }
+                    fun closeDrawer() {
+                        scope.launch { drawerOffset.animateTo(0f, tween(PlusDrawerAnimationDurationMs)) }
+                    }
 
                     // ── Bottom-tab switch: standard "multiple back stacks" pattern —
                     // pop to the graph's start destination (saving each tab's state) before
@@ -138,7 +160,7 @@ class MainActivity : ComponentActivity() {
                                             selected = false,
                                             icon     = Icons.Default.Menu,
                                             label    = "Plus",
-                                            onClick  = { navController.navigate(Screen.Plus.route) }
+                                            onClick  = { openDrawer() }
                                         )
                                     }
                                 }
@@ -146,21 +168,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { paddingValues ->
-                    Box(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .plusEdgeSwipeGestures(
-                                isOnTabDestination  = { latestIsTabRoute.value },
-                                isOnPlusDestination = { latestIsPlusRoute.value },
-                                onSwipeToPlus       = { navController.navigate(Screen.Plus.route) },
-                                onSwipeBackFromPlus = { navController.popBackStack() }
-                            )
-                    ) {
+                    Box(modifier = Modifier.padding(paddingValues)) {
                         NavHost(
                             navController    = navController,
                             startDestination = Screen.TabDashboard.route
                         ) {
-                            // ── Bottom-tab destinations: real siblings of Plus in the same graph ──
+                            // ── Bottom-tab destinations ──
                             composable(Screen.TabDashboard.route) {
                                 com.distrigo.app.ui.navigation.DashboardNavHost()
                             }
@@ -182,21 +195,7 @@ class MainActivity : ComponentActivity() {
                                 com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
                             }
 
-                            // ── Plus: a real navigation destination, not an overlay ──
-                            composable(Screen.Plus.route) {
-                                MoreScreen(onNavigate = { route ->
-                                    when (route) {
-                                        "clients"      -> navController.navigate(Screen.PlusClients.createRoute())
-                                        "fournisseurs" -> navController.navigate(Screen.PlusFournisseurs.route)
-                                        "charges"      -> navController.navigate(Screen.PlusCharges.route)
-                                        "pertes"       -> navController.navigate(Screen.PlusPertes.route)
-                                        "inventaire"   -> navController.navigate(Screen.PlusInventaire.route)
-                                        "rapports"     -> navController.navigate(Screen.PlusRapports.route)
-                                        "parametres"   -> navController.navigate(Screen.PlusParametres.route)
-                                    }
-                                })
-                            }
-
+                            // ── Plus menu items: real destinations, reached from the drawer overlay below ──
                             composable(
                                 route     = Screen.PlusClients.route,
                                 arguments = listOf(navArgument("clientId") { type = NavType.IntType; defaultValue = -1 })
@@ -244,30 +243,94 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
+                // ── Plus drawer overlay: hugs the left edge, max 80% width, 1:1 drag-tracked ──
+                val openFraction = if (maxDrawerWidthPx > 0f) {
+                    (drawerOffset.value / maxDrawerWidthPx).coerceIn(0f, 1f)
+                } else 0f
+
+                if (openFraction > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = openFraction * PlusDrawerScrimMaxAlpha))
+                            .pointerInput(Unit) {
+                                detectTapGestures { closeDrawer() }
+                            }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(PlusDrawerMaxWidthFraction)
+                        .align(Alignment.CenterStart)
+                        .graphicsLayer { translationX = drawerOffset.value - maxDrawerWidthPx }
+                ) {
+                    ModalDrawerSheet(modifier = Modifier.fillMaxSize()) {
+                        MoreScreen(onNavigate = { route ->
+                            closeDrawer()
+                            when (route) {
+                                "clients"      -> navController.navigate(Screen.PlusClients.createRoute())
+                                "fournisseurs" -> navController.navigate(Screen.PlusFournisseurs.route)
+                                "charges"      -> navController.navigate(Screen.PlusCharges.route)
+                                "pertes"       -> navController.navigate(Screen.PlusPertes.route)
+                                "inventaire"   -> navController.navigate(Screen.PlusInventaire.route)
+                                "rapports"     -> navController.navigate(Screen.PlusRapports.route)
+                                "parametres"   -> navController.navigate(Screen.PlusParametres.route)
+                            }
+                        })
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .plusDrawerDragGestures(
+                            isEligibleToOpen = { latestIsTabRoute.value },
+                            currentOffsetPx  = { drawerOffset.value },
+                            onDrag = { deltaPx ->
+                                scope.launch {
+                                    drawerOffset.snapTo((drawerOffset.value + deltaPx).coerceIn(0f, maxDrawerWidthPx))
+                                }
+                            },
+                            onDragEnd = { velocityPxPerSec ->
+                                scope.launch {
+                                    val shouldOpen = when {
+                                        velocityPxPerSec > flingVelocityPx  -> true
+                                        velocityPxPerSec < -flingVelocityPx -> false
+                                        else -> drawerOffset.value >= maxDrawerWidthPx * PlusDrawerOpenThresholdFraction
+                                    }
+                                    drawerOffset.animateTo(
+                                        if (shouldOpen) maxDrawerWidthPx else 0f,
+                                        tween(PlusDrawerAnimationDurationMs)
+                                    )
+                                }
+                            }
+                        )
+                )
             }
         }
     }
 
-        // Gesture-nav devices reserve roughly this same band on both screen edges for the
+        // Gesture-nav devices reserve roughly this same band on the left screen edge for the
         // system's own back gesture, which otherwise swallows our edge-swipe touches before
         // Compose ever sees them. Excluding it hands that band back to the app.
-        reservePlusSwipeEdgesFromSystemGestures()
+        reservePlusDrawerEdgeFromSystemGestures()
     }
 
-    private fun reservePlusSwipeEdgesFromSystemGestures() {
+    private fun reservePlusDrawerEdgeFromSystemGestures() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         val decorView = window.decorView
         val exclusionWidthPx = with(Density(resources.displayMetrics.density)) {
-            PlusSwipeEdgeZone.toPx()
+            PlusDrawerEdgeZone.toPx()
         }.toInt()
 
         fun updateExclusionRects() {
-            val width  = decorView.width
             val height = decorView.height
-            if (width <= 0 || height <= 0) return
+            if (height <= 0) return
             decorView.systemGestureExclusionRects = listOf(
-                Rect(0, 0, exclusionWidthPx, height),
-                Rect(width - exclusionWidthPx, 0, width, height)
+                Rect(0, 0, exclusionWidthPx, height)
             )
         }
 
@@ -311,64 +374,68 @@ private fun BottomNavItem(
     }
 }
 
-// ── Edge-swipe gestures for Plus, layered on top of the existing NavHost/navController —
-// no new nav state, no overlay: a swipe that qualifies just calls navigate()/popBackStack(). ──
-private val PlusSwipeEdgeZone             : Dp = 28.dp  // how close to the screen edge the gesture must start (spec: ~24–32dp)
-private val PlusSwipeThreshold            : Dp = 96.dp  // horizontal travel required to commit (spec: ~80–120dp)
-private val PlusSwipeVerticalBailThreshold: Dp = 32.dp  // vertical travel beyond which we assume a scroll and back off
-private const val PlusSwipeDominanceRatio = 1.5f        // |dx| must be at least this many times |dy| to commit
+// ── Plus drawer: hugs the left edge, capped at 80% screen width, dragged 1:1 with the finger,
+// scrim synced to open-fraction, snaps open/closed on release by position or fling velocity. ──
+private val PlusDrawerEdgeZone              : Dp = 28.dp  // how close to the left edge a touch must start when closed (spec: ~24–32dp)
+private val PlusDrawerVerticalBailThreshold : Dp = 32.dp  // vertical travel beyond which we assume a scroll and back off
+private val PlusDrawerFlingVelocity         : Dp = 800.dp // per second — fast enough swipe forces open/closed regardless of position
+private const val PlusDrawerMaxWidthFraction      = 0.8f  // 80% of screen width, max
+private const val PlusDrawerOpenThresholdFraction = 0.5f  // 50% of the drawer's own extent == 40% of screen width
+private const val PlusDrawerScrimMaxAlpha         = 0.5f  // scrim alpha at fully open (0f..1f)
+private const val PlusDrawerAnimationDurationMs   = 300
 
-private fun Modifier.plusEdgeSwipeGestures(
-    isOnTabDestination  : () -> Boolean,
-    isOnPlusDestination : () -> Boolean,
-    onSwipeToPlus        : () -> Unit,
-    onSwipeBackFromPlus  : () -> Unit
+private fun Modifier.plusDrawerDragGestures(
+    isEligibleToOpen : () -> Boolean,
+    currentOffsetPx  : () -> Float,
+    onDrag           : (deltaPx: Float) -> Unit,
+    onDragEnd        : (velocityPxPerSec: Float) -> Unit
 ): Modifier = this.pointerInput(Unit) {
-    val edgeZonePx      = PlusSwipeEdgeZone.toPx()
-    val swipeThresholdPx = PlusSwipeThreshold.toPx()
-    val verticalBailPx  = PlusSwipeVerticalBailThreshold.toPx()
+    val edgeZonePx     = PlusDrawerEdgeZone.toPx()
+    val verticalBailPx = PlusDrawerVerticalBailThreshold.toPx()
 
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
-        val startX = down.position.x
-        val screenWidthPx = size.width.toFloat()
+        val offsetAtStart = currentOffsetPx()
 
-        // Only a down that starts inside the correct edge band — for the correct destination —
-        // is tracked at all. Everything else (middle-of-screen touches, scrolling, taps) is left
-        // completely untouched: no consume() happens until we've actually committed to the gesture.
-        val fromRightEdge = isOnTabDestination() && startX >= screenWidthPx - edgeZonePx
-        val fromLeftEdge  = isOnPlusDestination() && startX <= edgeZonePx
+        // Closed: only an edge-starting touch may begin opening it. Already open/partial: any
+        // touch on the visible drawer sheet itself (x < current offset) is left alone so its own
+        // clickable menu rows still work; only touches on the exposed scrim continue the drag.
+        val eligible = if (offsetAtStart <= 0f) {
+            isEligibleToOpen() && down.position.x <= edgeZonePx
+        } else {
+            down.position.x >= offsetAtStart
+        }
+        if (!eligible) return@awaitEachGesture
 
-        if (!fromRightEdge && !fromLeftEdge) return@awaitEachGesture
+        val velocityTracker = VelocityTracker()
+        velocityTracker.addPosition(down.uptimeMillis, down.position)
 
         var totalDx = 0f
         var totalDy = 0f
+        var committed = offsetAtStart > 0f // already (partially) open: no need to re-prove horizontal intent
 
         while (true) {
             val event = awaitPointerEvent()
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
-            // Accumulate this event's delta — including the final lift-off event — before deciding
-            // anything. Bailing on `!change.pressed` before this point (an earlier bug here) silently
-            // dropped whatever distance the last touch sample carried, undercounting real swipes.
             val delta = change.positionChange()
             totalDx += delta.x
             totalDy += delta.y
+            velocityTracker.addPosition(change.uptimeMillis, change.position)
 
-            val horizontalClearlyDominates = abs(totalDx) >= abs(totalDy) * PlusSwipeDominanceRatio
-            val distanceReached           = abs(totalDx) >= swipeThresholdPx
-            val directionMatches = if (fromRightEdge) totalDx < 0f else totalDx > 0f
-
-            if (horizontalClearlyDominates && distanceReached && directionMatches) {
-                change.consume()
-                if (fromRightEdge) onSwipeToPlus() else onSwipeBackFromPlus()
-                break
+            if (!committed) {
+                if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break // vertical wins — let it scroll
+                if (abs(totalDx) > verticalBailPx) committed = true
             }
 
-            if (!change.pressed) break // lifted, and even counting this last sample it never crossed the threshold
+            if (committed) {
+                change.consume()
+                onDrag(delta.x)
+            }
 
-            // Vertical is clearly winning (a real scroll attempt) — surrender without consuming.
-            if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break
+            if (!change.pressed) break
         }
+
+        if (committed) onDragEnd(velocityTracker.calculateVelocity().x)
     }
 }
