@@ -3,6 +3,24 @@ package com.distrigo.app.ui.navigation
 sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
 
+    // ── Outer shell (MainActivity): single root NavHost — bottom-tab destinations. "Plus" itself
+    // is an 80%-width draggable overlay drawer (not a NavHost destination); the routes below are
+    // the real destinations its menu items navigate to. ──
+    data object TabDashboard : Screen("tab_dashboard")
+    data object TabVentes    : Screen("tab_ventes")
+    data object TabProduits  : Screen("tab_produits")
+    data object TabAchats    : Screen("tab_achats")
+    data object PlusClients : Screen("plus_clients?clientId={clientId}") {
+        fun createRoute(clientId: Int? = null) =
+            "plus_clients" + if (clientId != null) "?clientId=$clientId" else ""
+    }
+    data object PlusFournisseurs : Screen("plus_fournisseurs")
+    data object PlusCharges      : Screen("plus_charges")
+    data object PlusPertes       : Screen("plus_pertes")
+    data object PlusInventaire   : Screen("plus_inventaire")
+    data object PlusRapports     : Screen("plus_rapports")
+    data object PlusParametres   : Screen("plus_parametres")
+
     // ── Chargement Form (self-contained 2-step wizard: Produits ↔ Panier) ──
     data object ChargementFormGraph    : Screen("chargement_form_graph")
     data object ChargementFormProducts : Screen("chargement_form_products")
