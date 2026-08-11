@@ -56,6 +56,7 @@ import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -83,6 +84,34 @@ class MainActivity : ComponentActivity() {
                     val drawerOffset = remember { Animatable(0f) }
                     val scope = rememberCoroutineScope()
 
+                    // Drag events are queued here and drained by a single coroutine below, so every
+                    // snapTo/animateTo call on drawerOffset happens strictly in order. Firing a
+                    // separate scope.launch { snapTo(drawerOffset.value + delta) } per pointer-move
+                    // event (the previous approach) let multiple coroutines race to read-modify-write
+                    // the same value concurrently, silently dropping most of the dragged distance.
+                    val drawerDragEvents = remember { Channel<PlusDrawerDragEvent>(Channel.UNLIMITED) }
+                    LaunchedEffect(drawerDragEvents) {
+                        for (event in drawerDragEvents) {
+                            when (event) {
+                                is PlusDrawerDragEvent.Move -> {
+                                    val target = (drawerOffset.value + event.deltaPx).coerceIn(0f, maxDrawerWidthPx)
+                                    drawerOffset.snapTo(target)
+                                }
+                                is PlusDrawerDragEvent.End -> {
+                                    val shouldOpen = when {
+                                        event.velocityPxPerSec > flingVelocityPx  -> true
+                                        event.velocityPxPerSec < -flingVelocityPx -> false
+                                        else -> drawerOffset.value >= maxDrawerWidthPx * PlusDrawerOpenThresholdFraction
+                                    }
+                                    drawerOffset.animateTo(
+                                        if (shouldOpen) maxDrawerWidthPx else 0f,
+                                        tween(PlusDrawerAnimationDurationMs)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // pointerInput below runs in a coroutine keyed on Unit (never restarted), so it
                     // must read route state through rememberUpdatedState rather than closing over
                     // isTabRoute directly, or it would keep seeing stale values.
@@ -108,6 +137,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Gesture detector is attached to this ancestor Box (not a separate
+                    // full-screen sibling on top) so Scaffold's bottom bar and the drawer's
+                    // own menu clicks still receive taps normally — this must be an ancestor
+                    // of everything it should let taps pass through to, exactly like the
+                    // previously-verified plusEdgeSwipeGestures pattern.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .plusDrawerDragGestures(
+                                isEligibleToOpen = { latestIsTabRoute.value },
+                                currentOffsetPx  = { drawerOffset.value },
+                                onDrag           = { deltaPx -> drawerDragEvents.trySend(PlusDrawerDragEvent.Move(deltaPx)) },
+                                onDragEnd        = { velocityPxPerSec -> drawerDragEvents.trySend(PlusDrawerDragEvent.End(velocityPxPerSec)) }
+                            )
+                    ) {
                     Scaffold(
                         bottomBar = {
                             if (isTabRoute && !hideBottomBar) {
@@ -283,32 +327,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .plusDrawerDragGestures(
-                            isEligibleToOpen = { latestIsTabRoute.value },
-                            currentOffsetPx  = { drawerOffset.value },
-                            onDrag = { deltaPx ->
-                                scope.launch {
-                                    drawerOffset.snapTo((drawerOffset.value + deltaPx).coerceIn(0f, maxDrawerWidthPx))
-                                }
-                            },
-                            onDragEnd = { velocityPxPerSec ->
-                                scope.launch {
-                                    val shouldOpen = when {
-                                        velocityPxPerSec > flingVelocityPx  -> true
-                                        velocityPxPerSec < -flingVelocityPx -> false
-                                        else -> drawerOffset.value >= maxDrawerWidthPx * PlusDrawerOpenThresholdFraction
-                                    }
-                                    drawerOffset.animateTo(
-                                        if (shouldOpen) maxDrawerWidthPx else 0f,
-                                        tween(PlusDrawerAnimationDurationMs)
-                                    )
-                                }
-                            }
-                        )
-                )
+                    } // closes Scaffold-wrapping gesture Box
             }
         }
     }
@@ -378,11 +397,17 @@ private fun BottomNavItem(
 // scrim synced to open-fraction, snaps open/closed on release by position or fling velocity. ──
 private val PlusDrawerEdgeZone              : Dp = 28.dp  // how close to the left edge a touch must start when closed (spec: ~24–32dp)
 private val PlusDrawerVerticalBailThreshold : Dp = 32.dp  // vertical travel beyond which we assume a scroll and back off
+private val PlusDrawerMinDragDistance       : Dp = 16.dp  // below this, treat it as a tap and let the scrim's own tap-to-close handle it instead
 private val PlusDrawerFlingVelocity         : Dp = 800.dp // per second — fast enough swipe forces open/closed regardless of position
 private const val PlusDrawerMaxWidthFraction      = 0.8f  // 80% of screen width, max
 private const val PlusDrawerOpenThresholdFraction = 0.5f  // 50% of the drawer's own extent == 40% of screen width
 private const val PlusDrawerScrimMaxAlpha         = 0.5f  // scrim alpha at fully open (0f..1f)
 private const val PlusDrawerAnimationDurationMs   = 300
+
+private sealed class PlusDrawerDragEvent {
+    data class Move(val deltaPx: Float) : PlusDrawerDragEvent()
+    data class End(val velocityPxPerSec: Float) : PlusDrawerDragEvent()
+}
 
 private fun Modifier.plusDrawerDragGestures(
     isEligibleToOpen : () -> Boolean,
@@ -392,6 +417,7 @@ private fun Modifier.plusDrawerDragGestures(
 ): Modifier = this.pointerInput(Unit) {
     val edgeZonePx     = PlusDrawerEdgeZone.toPx()
     val verticalBailPx = PlusDrawerVerticalBailThreshold.toPx()
+    val minDragPx      = PlusDrawerMinDragDistance.toPx()
 
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
@@ -410,9 +436,11 @@ private fun Modifier.plusDrawerDragGestures(
         val velocityTracker = VelocityTracker()
         velocityTracker.addPosition(down.uptimeMillis, down.position)
 
+        val alreadyOpen = offsetAtStart > 0f
+
         var totalDx = 0f
         var totalDy = 0f
-        var committed = offsetAtStart > 0f // already (partially) open: no need to re-prove horizontal intent
+        var committed = false
 
         while (true) {
             val event = awaitPointerEvent()
@@ -424,11 +452,31 @@ private fun Modifier.plusDrawerDragGestures(
             velocityTracker.addPosition(change.uptimeMillis, change.position)
 
             if (!committed) {
-                if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break // vertical wins — let it scroll
-                if (abs(totalDx) > verticalBailPx) committed = true
-            }
-
-            if (committed) {
+                if (alreadyOpen) {
+                    // A small amount of real movement (either axis) re-engages the drag — but it
+                    // must be proven first, or a plain tap on the scrim (near-zero movement, yet
+                    // still forwarded via onDrag) sends tiny snapTo nudges that interrupt/override
+                    // the scrim's own closeDrawer() call right after it starts, leaving the drawer
+                    // stuck open.
+                    if (abs(totalDx) > minDragPx || abs(totalDy) > minDragPx) {
+                        committed = true
+                        change.consume()
+                        onDrag(totalDx)
+                    }
+                } else {
+                    // Closed: require clearly-horizontal movement so vertical scrolls on tab
+                    // content aren't hijacked while opening from the edge.
+                    if (abs(totalDy) > verticalBailPx && abs(totalDy) > abs(totalDx)) break // vertical wins — let it scroll
+                    if (abs(totalDx) > verticalBailPx) {
+                        committed = true
+                        change.consume()
+                        // Catch up with everything accumulated during the "proving it's
+                        // horizontal" phase — forwarding only this event's own delta here would
+                        // silently discard that whole distance.
+                        onDrag(totalDx)
+                    }
+                }
+            } else {
                 change.consume()
                 onDrag(delta.x)
             }
@@ -436,6 +484,11 @@ private fun Modifier.plusDrawerDragGestures(
             if (!change.pressed) break
         }
 
-        if (committed) onDragEnd(velocityTracker.calculateVelocity().x)
+        // A pure tap on the scrim (negligible movement) is left entirely to the scrim's own
+        // detectTapGestures/closeDrawer() — without this check, "already open" gestures are
+        // committed from their very first pixel, so a tap's near-zero movement would still send
+        // an End event whose position-based decision trivially reaffirms "stay open," racing
+        // against and sometimes overriding the scrim's explicit close.
+        if (committed && abs(totalDx) > minDragPx) onDragEnd(velocityTracker.calculateVelocity().x)
     }
 }
