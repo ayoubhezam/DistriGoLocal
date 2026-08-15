@@ -37,9 +37,13 @@ fun SuppliersNavHost(
     val navController = rememberNavController()
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.SuppliersHome.route,
-        route            = Screen.SuppliersGraph.route
+        navController      = navController,
+        startDestination   = Screen.SuppliersHome.route,
+        route              = Screen.SuppliersGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.SuppliersHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }

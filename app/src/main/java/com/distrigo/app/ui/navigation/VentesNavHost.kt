@@ -19,9 +19,13 @@ fun VentesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     }
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.VentesHome.route,
-        route            = Screen.VentesGraph.route
+        navController      = navController,
+        startDestination   = Screen.VentesHome.route,
+        route              = Screen.VentesGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.VentesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.VentesGraph.route) }

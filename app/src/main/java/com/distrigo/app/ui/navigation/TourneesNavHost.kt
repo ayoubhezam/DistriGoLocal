@@ -26,9 +26,13 @@ fun TourneesNavHost(
     }
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.TourneesHome.route,
-        route            = Screen.TourneesGraph.route
+        navController      = navController,
+        startDestination   = Screen.TourneesHome.route,
+        route              = Screen.TourneesGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.TourneesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }

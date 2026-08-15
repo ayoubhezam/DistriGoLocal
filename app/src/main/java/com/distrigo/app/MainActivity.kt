@@ -51,6 +51,10 @@ import com.distrigo.app.ui.common.PlaceholderScreen
 import com.distrigo.app.ui.dashboard.DashboardScreen
 import com.distrigo.app.ui.more.MoreScreen
 import com.distrigo.app.ui.navigation.Screen
+import com.distrigo.app.ui.navigation.navEnterTransition
+import com.distrigo.app.ui.navigation.navExitTransition
+import com.distrigo.app.ui.navigation.navPopEnterTransition
+import com.distrigo.app.ui.navigation.navPopExitTransition
 import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
@@ -214,8 +218,12 @@ class MainActivity : ComponentActivity() {
                 ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                         NavHost(
-                            navController    = navController,
-                            startDestination = Screen.TabDashboard.route
+                            navController      = navController,
+                            startDestination   = Screen.TabDashboard.route,
+                            enterTransition    = navEnterTransition,
+                            exitTransition     = navExitTransition,
+                            popEnterTransition = navPopEnterTransition,
+                            popExitTransition  = navPopExitTransition
                         ) {
                             // ── Bottom-tab destinations ──
                             composable(Screen.TabDashboard.route) {

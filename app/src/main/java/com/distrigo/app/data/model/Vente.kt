@@ -1,18 +1,19 @@
 package com.distrigo.app.data.model
 
 data class Vente(
-    val id           : Int,
-    val client_id    : Int,
-    val client_name  : String,
-    val tournee_id   : Int?,
-    val source       : String,
-    val total        : Double,
-    val montant_paye : Double?,
-    val status       : String,
-    val note         : String?,
-    val created_at   : String?,
-    val items_count  : Int? = null,
-    val items        : List<VenteItem>? = null
+    val id             : Int,
+    val client_id      : Int,
+    val client_name    : String,
+    val tournee_id     : Int?,
+    val source         : String,
+    val total          : Double,
+    val montant_paye   : Double?,
+    val status         : String,
+    val note           : String?,
+    val created_at     : String?,
+    val items_count    : Int? = null,
+    val items          : List<VenteItem>? = null,
+    val client_image_uri: String? = null     // ← جديد
 )
 
 data class VenteItem(

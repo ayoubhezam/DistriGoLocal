@@ -146,12 +146,13 @@ class ProductRepository(
     )
 
     private suspend fun VenteEntity.toVente(items: List<VenteItem>? = null): Vente {
-        val clientName = this.client_name ?: clientDao.getClientById(this.client_id)?.name ?: "Client supprimé"
+        val clientName = clientDao.getClientById(this.client_id)?.name ?: ""
         return Vente(
             id = this.id, client_id = this.client_id, client_name = clientName,
             tournee_id = this.tournee_id, source = this.source, total = this.total,
             montant_paye = this.montant_paye, status = this.status, note = this.note,
-            created_at = this.created_at, items_count = items?.size, items = items
+            created_at = this.created_at, items_count = items?.size, items = items,
+            client_image_uri = this.client_image_uri  // ← جديد
         )
     }
     private suspend fun TourneeEntity.toTournee(): Tournee {
@@ -184,7 +185,8 @@ class ProductRepository(
         id = this.id, date = this.date, total = this.total, status = this.status,
         note = this.note, supplier_id = this.supplier_id, supplier_name = supplierName,
         items_count = items.size, created_at = this.created_at, items = items,
-        montant_paye = this.montant_paye
+        montant_paye = this.montant_paye,
+        supplier_image_uri = this.supplier_image_uri
     )
 
     private fun PriceHistoryEntity.toPriceHistory() = PriceHistory(
@@ -517,13 +519,16 @@ class ProductRepository(
 
             val now = java.time.Instant.now().toString()
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
-            val supplierName = supplierDao.getSupplierById(supplierId)?.name
+            val supplierEntity = supplierDao.getSupplierById(supplierId)
+            val supplierName   = supplierEntity?.name
+            val supplierImageUri = supplierEntity?.image_uri
 
             val orderId = db.purchaseDao().insertOrder(
                 PurchaseOrderEntity(
                     supplier_id = supplierId, date = date, total = total, status = "pending",
                     note = note, montant_paye = montantPaye, created_at = now,
-                    supplier_name = supplierName
+                    supplier_name = supplierName,
+                    supplier_image_uri = supplierImageUri  // ← جديد
                 )
             ).toInt()
 
@@ -764,13 +769,16 @@ class ProductRepository(
                 }
             }
 
-            val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
+            val clientEntity   = clientDao.getClientById(clientId)
+            val clientName     = clientEntity?.name ?: "Client inconnu"
+            val clientImageUri = clientEntity?.image_uri
 
             val venteId = db.venteDao().insertVente(
                 VenteEntity(
                     client_id = clientId, tournee_id = tourneeId, source = source,
                     total = total, montant_paye = montantPaye, status = "pending",
-                    note = note, created_at = now, client_name = clientName
+                    note = note, created_at = now, client_name = clientName,
+                    client_image_uri = clientImageUri  // ← جديد
                 )
             ).toInt()
 

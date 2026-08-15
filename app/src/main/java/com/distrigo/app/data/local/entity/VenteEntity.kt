@@ -9,11 +9,12 @@ data class VenteEntity(
     val id: Int = 0,
     val client_id: Int,
     val tournee_id: Int?,
-    val source: String,              // "depot" | "camion"
+    val source: String,
     val total: Double,
     val montant_paye: Double,
-    val status: String,              // "confirmee" | "livree"
+    val status: String,
     val note: String?,
     val created_at: String,
-    val client_name: String? = null
+    val client_name: String? = null,
+    val client_image_uri: String? = null    // ← جديد
 )

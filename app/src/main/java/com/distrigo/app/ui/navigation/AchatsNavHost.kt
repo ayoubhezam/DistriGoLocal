@@ -19,9 +19,13 @@ fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     }
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.AchatsHome.route,
-        route            = Screen.AchatsGraph.route
+        navController      = navController,
+        startDestination   = Screen.AchatsHome.route,
+        route              = Screen.AchatsGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.AchatsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.AchatsGraph.route) }

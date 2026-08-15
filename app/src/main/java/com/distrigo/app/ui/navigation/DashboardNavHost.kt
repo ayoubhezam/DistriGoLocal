@@ -9,7 +9,14 @@ import com.distrigo.app.ui.dashboard.DashboardScreen
 @Composable
 fun DashboardNavHost() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
+    NavHost(
+        navController      = navController,
+        startDestination   = Screen.Dashboard.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
+    ) {
         composable(Screen.Dashboard.route) {
             DashboardScreen()
         }

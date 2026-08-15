@@ -42,9 +42,13 @@ fun ClientsNavHost(
     }
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.ClientsHome.route,
-        route            = Screen.ClientsGraph.route
+        navController      = navController,
+        startDestination   = Screen.ClientsHome.route,
+        route              = Screen.ClientsGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.ClientsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }

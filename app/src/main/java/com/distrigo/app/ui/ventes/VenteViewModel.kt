@@ -10,6 +10,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 class VenteViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -178,6 +181,24 @@ class VenteViewModel(application: Application) : AndroidViewModel(application) {
                 onError(extractErrorMessage(e))
             }
         }
+    }
+
+
+    // ── Filter state ──
+    var searchQuery          by mutableStateOf("")
+    var filterStatus         by mutableStateOf<String?>(null)
+    var filterPaymentStatus  by mutableStateOf<String?>(null)
+    var filterClientId       by mutableStateOf<Int?>(null)
+    var filterDateFrom       by mutableStateOf<String?>(null)
+    var filterDateTo         by mutableStateOf<String?>(null)
+
+    fun clearAllFilters() {
+        searchQuery         = ""
+        filterStatus        = null
+        filterPaymentStatus = null
+        filterClientId      = null
+        filterDateFrom      = null
+        filterDateTo        = null
     }
 }
 

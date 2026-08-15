@@ -1,11 +1,17 @@
 package com.distrigo.app.ui.purchases
 
-
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,58 +24,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.PurchaseOrder
+import com.distrigo.app.ui.common.EntityAvatar
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material.icons.filled.CalendarMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchasesScreen(
-    viewModel   : PurchaseViewModel = viewModel(),
-    modifier    : Modifier = Modifier,
+    viewModel          : PurchaseViewModel = viewModel(),
+    modifier           : Modifier = Modifier,
     onFullScreenChange : (Boolean) -> Unit = {},
-    onAddOrder  : () -> Unit = {},
-    onEditOrder : (Int) -> Unit = {},
-    onOrderClick: (Int) -> Unit = {}
+    onAddOrder         : () -> Unit = {},
+    onEditOrder        : (Int) -> Unit = {},
+    onOrderClick       : (Int) -> Unit = {}
 ) {
-    val orders by viewModel.orders.collectAsState()
+    val orders    by viewModel.orders.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val error     by viewModel.error.collectAsState()
 
-    var longPressOrder by remember { mutableStateOf<PurchaseOrder?>(null) }
+    var longPressOrder   by remember { mutableStateOf<PurchaseOrder?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var deleteError by remember { mutableStateOf("") }
-    // ── Filter state ──
-    var search              by remember { mutableStateOf("") }
-    var showFilterSheet     by remember { mutableStateOf(false) }
-    var filterReceptionStatus by remember { mutableStateOf<String?>(null) } // null=Tous, "pending", "received"
-    var filterPaymentStatus   by remember { mutableStateOf<String?>(null) } // null=Tous, "paye", "impaye", "partiel"
-    var filterSupplierId      by remember { mutableStateOf<Int?>(null) }
-    var filterDateFrom        by remember { mutableStateOf<String?>(null) }  // "yyyy-MM-dd"
-    var filterDateTo          by remember { mutableStateOf<String?>(null) }  // "yyyy-MM-dd"
+    var deleteError      by remember { mutableStateOf("") }
+
+    // ── Local UI state (لا تُحفظ في ViewModel) ──
+    var showFilterSheet    by remember { mutableStateOf(false) }
     var showDateFromPicker by remember { mutableStateOf(false) }
     var showDateToPicker   by remember { mutableStateOf(false) }
-    val dateFromState = rememberDatePickerState()
-    val dateToState   = rememberDatePickerState()
-    val listState = rememberLazyListState()
+    val dateFromState      = rememberDatePickerState()
+    val dateToState        = rememberDatePickerState()
+    val listState          = rememberLazyListState()
+
     LaunchedEffect(Unit) { viewModel.loadOrders() }
 
     // ── Suppliers list (مستخرجة من الأوردرات الموجودة) ──
@@ -79,48 +65,49 @@ fun PurchasesScreen(
             .sortedBy { it.second }
     }
 
-    val hasActiveFilters = filterReceptionStatus != null || filterPaymentStatus != null ||
-            filterSupplierId != null || filterDateFrom != null || filterDateTo != null
+    val hasActiveFilters = viewModel.filterReceptionStatus != null ||
+            viewModel.filterPaymentStatus != null ||
+            viewModel.filterSupplierId != null ||
+            viewModel.filterDateFrom != null ||
+            viewModel.filterDateTo != null
 
-    val filteredOrders = remember(orders, search, filterReceptionStatus, filterPaymentStatus, filterSupplierId, filterDateFrom, filterDateTo) {
-        orders.filter { order ->
-            // بحث نصي
-            val matchSearch = search.isBlank() ||
-                    order.supplier_name.contains(search, ignoreCase = true) ||
-                    order.id.toString().contains(search)
-
-            // فلتر حالة الوصل
-            val matchReception = filterReceptionStatus == null || order.status == filterReceptionStatus
-
-            // فلتر حالة الدفع
-            val matchPayment = when (filterPaymentStatus) {
-                "paye"    -> (order.montant_paye ?: 0.0) >= order.total && order.total > 0
-                "impaye"  -> (order.montant_paye ?: 0.0) <= 0.0
-                "partiel" -> (order.montant_paye ?: 0.0) > 0.0 && (order.montant_paye ?: 0.0) < order.total
-                else      -> true
+    val filteredOrders = orders.filter { order ->
+        // بحث نصي (token-based)
+        val matchSearch = viewModel.searchQuery.isBlank() || run {
+            val tokens = viewModel.searchQuery.trim()
+                .split("\\s+".toRegex())
+                .filter { it.isNotEmpty() }
+            tokens.all { token ->
+                order.supplier_name.contains(token, ignoreCase = true) ||
+                        order.id.toString().contains(token)
             }
-
-            // فلتر المورد
-            val matchSupplier = filterSupplierId == null || order.supplier_id == filterSupplierId
-
-            // فلتر التاريخ
-            val orderDate = order.created_at?.take(10) ?: order.date.take(10)
-            val matchDateFrom = filterDateFrom == null || orderDate >= filterDateFrom!!
-            val matchDateTo   = filterDateTo   == null || orderDate <= filterDateTo!!
-
-            matchSearch && matchReception && matchPayment && matchSupplier && matchDateFrom && matchDateTo
         }
+
+        // فلتر حالة الوصل
+        val matchReception = viewModel.filterReceptionStatus == null ||
+                order.status == viewModel.filterReceptionStatus
+
+        // فلتر حالة الدفع
+        val matchPayment = when (viewModel.filterPaymentStatus) {
+            "paye"    -> (order.montant_paye ?: 0.0) >= order.total && order.total > 0
+            "impaye"  -> (order.montant_paye ?: 0.0) <= 0.0
+            "partiel" -> (order.montant_paye ?: 0.0) > 0.0 && (order.montant_paye ?: 0.0) < order.total
+            else      -> true
+        }
+
+        // فلتر المورد
+        val matchSupplier = viewModel.filterSupplierId == null ||
+                order.supplier_id == viewModel.filterSupplierId
+
+        // فلتر التاريخ
+        val orderDate     = order.created_at?.take(10) ?: order.date.take(10)
+        val dateFrom      = viewModel.filterDateFrom
+        val dateTo        = viewModel.filterDateTo
+        val matchDateFrom = dateFrom == null || orderDate >= dateFrom
+        val matchDateTo   = dateTo   == null || orderDate <= dateTo
+
+        matchSearch && matchReception && matchPayment && matchSupplier && matchDateFrom && matchDateTo
     }
-
-    fun clearAllFilters() {
-        filterReceptionStatus = null
-        filterPaymentStatus   = null
-        filterSupplierId      = null
-        filterDateFrom        = null
-        filterDateTo          = null
-    }
-
-
 
     // ── Long Press Dialog ──
     longPressOrder?.let { order ->
@@ -145,13 +132,11 @@ fun PurchasesScreen(
                             id = order.id,
                             onSuccess = {
                                 showDeleteDialog = false
-                                longPressOrder = null
-                                deleteError = ""
+                                longPressOrder   = null
+                                deleteError      = ""
                                 viewModel.loadOrders()
                             },
-                            onError = { error ->
-                                deleteError = error
-                            }
+                            onError = { err -> deleteError = err }
                         )
                     }) {
                         Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
@@ -168,13 +153,13 @@ fun PurchasesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressOrder = null },
-                title = { Text("Bon #${order.id}") },
-                confirmButton = {},
-                dismissButton = {},
-                icon = null,
-                properties = androidx.compose.ui.window.DialogProperties(),
-                shape = DsShapes.large,
-                containerColor = DsColors.Surface,
+                title            = { Text("Bon #${order.id}") },
+                confirmButton    = {},
+                dismissButton    = {},
+                icon             = null,
+                properties       = androidx.compose.ui.window.DialogProperties(),
+                shape            = DsShapes.large,
+                containerColor   = DsColors.Surface,
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         // زر التعديل
@@ -188,19 +173,19 @@ fun PurchasesScreen(
                                     onEditOrder(order.id)
                                 }
                                 .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = null,
-                                tint = DsColors.Primary,
+                                tint     = DsColors.Primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 "Modifier le bon",
-                                fontSize = DsTextSize.body,
-                                color = DsColors.Primary,
+                                fontSize   = DsTextSize.body,
+                                color      = DsColors.Primary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -212,19 +197,19 @@ fun PurchasesScreen(
                                 .background(DsColors.DangerLight)
                                 .clickable { showDeleteDialog = true }
                                 .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = null,
-                                tint = DsColors.Danger,
+                                tint     = DsColors.Danger,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 "Supprimer le bon",
-                                fontSize = DsTextSize.body,
-                                color = DsColors.Danger,
+                                fontSize   = DsTextSize.body,
+                                color      = DsColors.Danger,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -241,7 +226,7 @@ fun PurchasesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     dateFromState.selectedDateMillis?.let { millis ->
-                        filterDateFrom = java.time.Instant.ofEpochMilli(millis)
+                        viewModel.filterDateFrom = java.time.Instant.ofEpochMilli(millis)
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateFromPicker = false
@@ -259,7 +244,7 @@ fun PurchasesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     dateToState.selectedDateMillis?.let { millis ->
-                        filterDateTo = java.time.Instant.ofEpochMilli(millis)
+                        viewModel.filterDateTo = java.time.Instant.ofEpochMilli(millis)
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateToPicker = false
@@ -273,7 +258,6 @@ fun PurchasesScreen(
 
     // ── Filter Sheet ──
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    @OptIn(ExperimentalMaterial3Api::class)
     if (showFilterSheet) {
         ModalBottomSheet(
             onDismissRequest = { showFilterSheet = false },
@@ -303,15 +287,19 @@ fun PurchasesScreen(
                 // ── حالة الوصل ──
                 Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    listOf<Pair<String?, String>>(null to "Tous", "pending" to "En attente", "received" to "Reçu").forEach { (value, label) ->
-                        val active = filterReceptionStatus == value
+                    listOf<Pair<String?, String>>(
+                        null to "Tous",
+                        "pending" to "En attente",
+                        "received" to "Reçu"
+                    ).forEach { (value, label) ->
+                        val active = viewModel.filterReceptionStatus == value
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(DsShapes.medium)
                                 .background(if (active) DsColors.Primary else DsColors.Surface)
                                 .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
-                                .clickable { filterReceptionStatus = value }
+                                .clickable { viewModel.filterReceptionStatus = value }
                                 .padding(vertical = DsSpacing.sm),
                             contentAlignment = Alignment.Center
                         ) {
@@ -329,15 +317,20 @@ fun PurchasesScreen(
                 // ── حالة الدفع ──
                 Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    listOf<Pair<String?, String>>(null to "Tous", "paye" to "Payé", "impaye" to "Impayé", "partiel" to "Partiel").forEach { (value, label) ->
-                        val active = filterPaymentStatus == value
+                    listOf<Pair<String?, String>>(
+                        null to "Tous",
+                        "paye" to "Payé",
+                        "impaye" to "Impayé",
+                        "partiel" to "Partiel"
+                    ).forEach { (value, label) ->
+                        val active = viewModel.filterPaymentStatus == value
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(DsShapes.medium)
                                 .background(if (active) DsColors.Primary else DsColors.Surface)
                                 .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
-                                .clickable { filterPaymentStatus = value }
+                                .clickable { viewModel.filterPaymentStatus = value }
                                 .padding(vertical = DsSpacing.sm),
                             contentAlignment = Alignment.Center
                         ) {
@@ -359,11 +352,13 @@ fun PurchasesScreen(
                     onExpandedChange = { supplierExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = suppliers.find { it.first == filterSupplierId }?.second ?: "Tous les fournisseurs",
+                        value         = suppliers.find { it.first == viewModel.filterSupplierId }?.second ?: "Tous les fournisseurs",
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        modifier      = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape         = DsShapes.medium,
                         colors        = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = DsColors.Border,
@@ -373,12 +368,12 @@ fun PurchasesScreen(
                     ExposedDropdownMenu(expanded = supplierExpanded, onDismissRequest = { supplierExpanded = false }) {
                         DropdownMenuItem(
                             text    = { Text("Tous les fournisseurs", color = DsColors.TextSecondary) },
-                            onClick = { filterSupplierId = null; supplierExpanded = false }
+                            onClick = { viewModel.filterSupplierId = null; supplierExpanded = false }
                         )
                         suppliers.forEach { (id, name) ->
                             DropdownMenuItem(
                                 text    = { Text(name) },
-                                onClick = { filterSupplierId = id; supplierExpanded = false }
+                                onClick = { viewModel.filterSupplierId = id; supplierExpanded = false }
                             )
                         }
                     }
@@ -389,7 +384,7 @@ fun PurchasesScreen(
                 Text("Période", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
-                        value         = filterDateFrom ?: "",
+                        value         = viewModel.filterDateFrom ?: "",
                         onValueChange = {},
                         readOnly      = true,
                         placeholder   = { Text("Du", fontSize = DsTextSize.bodySmall) },
@@ -397,21 +392,23 @@ fun PurchasesScreen(
                             Icon(
                                 Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = if (filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
+                                tint = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
                             )
                         },
-                        modifier      = Modifier.weight(1f).clickable { showDateFromPicker = true },
-                        shape         = DsShapes.medium,
-                        enabled       = false,
-                        colors        = OutlinedTextFieldDefaults.colors(
-                            disabledBorderColor    = if (filterDateFrom != null) DsColors.Primary else DsColors.Border,
-                            disabledTextColor      = DsColors.TextPrimary,
-                            disabledPlaceholderColor = DsColors.TextSecondary,
-                            disabledTrailingIconColor = if (filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showDateFromPicker = true },
+                        shape    = DsShapes.medium,
+                        enabled  = false,
+                        colors   = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor       = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.Border,
+                            disabledTextColor         = DsColors.TextPrimary,
+                            disabledPlaceholderColor  = DsColors.TextSecondary,
+                            disabledTrailingIconColor = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
                         )
                     )
                     OutlinedTextField(
-                        value         = filterDateTo ?: "",
+                        value         = viewModel.filterDateTo ?: "",
                         onValueChange = {},
                         readOnly      = true,
                         placeholder   = { Text("Au", fontSize = DsTextSize.bodySmall) },
@@ -419,17 +416,19 @@ fun PurchasesScreen(
                             Icon(
                                 Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = if (filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
+                                tint = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
                             )
                         },
-                        modifier      = Modifier.weight(1f).clickable { showDateToPicker = true },
-                        shape         = DsShapes.medium,
-                        enabled       = false,
-                        colors        = OutlinedTextFieldDefaults.colors(
-                            disabledBorderColor    = if (filterDateTo != null) DsColors.Primary else DsColors.Border,
-                            disabledTextColor      = DsColors.TextPrimary,
-                            disabledPlaceholderColor = DsColors.TextSecondary,
-                            disabledTrailingIconColor = if (filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showDateToPicker = true },
+                        shape    = DsShapes.medium,
+                        enabled  = false,
+                        colors   = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor       = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.Border,
+                            disabledTextColor         = DsColors.TextPrimary,
+                            disabledPlaceholderColor  = DsColors.TextSecondary,
+                            disabledTrailingIconColor = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
                         )
                     )
                 }
@@ -438,8 +437,10 @@ fun PurchasesScreen(
                 // ── أزرار التطبيق والإعادة ──
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedButton(
-                        onClick  = { clearAllFilters() },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        onClick  = { viewModel.clearAllFilters() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                         border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
@@ -448,7 +449,9 @@ fun PurchasesScreen(
                     }
                     Button(
                         onClick  = { showFilterSheet = false },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                     ) {
@@ -459,44 +462,43 @@ fun PurchasesScreen(
         }
     }
 
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // ── Header ──
             Row(
-                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(DsSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 Text("Achats", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
-// ── Search bar ──
+            // ── Search bar ──
             OutlinedTextField(
-                value         = search,
-                onValueChange = { search = it },
+                value         = viewModel.searchQuery,
+                onValueChange = { viewModel.searchQuery = it },
                 placeholder   = { Text("Rechercher un fournisseur ou n° de bon...", fontSize = DsTextSize.bodySmall) },
                 leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
                 trailingIcon  = {
-                    if (search.isNotEmpty()) {
-                        IconButton(onClick = { search = "" }) {
+                    if (viewModel.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.searchQuery = "" }) {
                             Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
                         }
                     }
                 },
-                modifier      = Modifier
+                modifier   = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = DsSpacing.lg)
                     .clip(DsShapes.large),
-                shape         = DsShapes.large,
-                singleLine    = true,
-                colors        = OutlinedTextFieldDefaults.colors(
+                shape      = DsShapes.large,
+                singleLine = true,
+                colors     = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )
@@ -504,7 +506,7 @@ fun PurchasesScreen(
 
             Spacer(Modifier.height(DsSpacing.sm))
 
-// ── Counter + Filter button ──
+            // ── Counter + Filter button ──
             Row(
                 modifier              = Modifier
                     .fillMaxWidth()
@@ -518,7 +520,7 @@ fun PurchasesScreen(
                         .clip(DsShapes.medium)
                         .background(DsColors.SurfaceSunken)
                         .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
@@ -553,21 +555,21 @@ fun PurchasesScreen(
                                 fontSize = DsTextSize.caption,
                                 color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
                             )
-                            if (hasActiveFilters) {
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
-                            } else {
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                            }
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
                         }
                     }
-                    // نقطة حمراء عند وجود فلتر نشط
+                    // نقطة عند وجود فلتر نشط
                     if (hasActiveFilters) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .size(6.dp)
-                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .clip(CircleShape)
                                 .background(DsColors.Primary)
                         )
                     }
@@ -591,13 +593,15 @@ fun PurchasesScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.ShoppingCart, contentDescription = null,
-                            tint = DsColors.Primary.copy(alpha = 0.3f), modifier = Modifier.size(56.dp)
+                            Icons.Default.ShoppingCart,
+                            contentDescription = null,
+                            tint     = DsColors.Primary.copy(alpha = 0.3f),
+                            modifier = Modifier.size(56.dp)
                         )
                         Spacer(Modifier.height(DsSpacing.md))
                         Text(
                             "Aucun bon de commande",
-                            color = DsColors.TextSecondary,
+                            color      = DsColors.TextSecondary,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.height(4.dp))
@@ -605,8 +609,8 @@ fun PurchasesScreen(
                     }
                 }
             } else {
-                val groupedOrders = remember(filteredOrders) {
-                    filteredOrders.groupBy { order -> order.created_at?.take(10) ?: order.date.take(10) }
+                val groupedOrders = filteredOrders.groupBy { order ->
+                    order.created_at?.take(10) ?: order.date.take(10)
                 }
                 // ── List ──
                 LazyColumn(
@@ -618,28 +622,25 @@ fun PurchasesScreen(
                     groupedOrders.forEach { (date, dayOrders) ->
                         item {
                             Text(
-                                text = formatOrderDate(date),
-                                fontSize = DsTextSize.bodySmall,
+                                text       = formatOrderDate(date),
+                                fontSize   = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = DsColors.TextSecondary,
-                                modifier = Modifier.padding(vertical = DsSpacing.sm)
+                                color      = DsColors.TextSecondary,
+                                modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
                         }
                         items(dayOrders) { order ->
                             PurchaseOrderCard(
-                                order = order,
+                                order   = order,
                                 onClick = {
                                     onOrderClick(order.id)
                                     viewModel.loadOrderDetail(order.id)
                                 },
-                                onLongClick = {
-                                    longPressOrder = order
-                                }
+                                onLongClick = { longPressOrder = order }
                             )
                         }
                     }
                 }
-
             }
         }
 
@@ -656,7 +657,6 @@ fun PurchasesScreen(
     }
 }
 
-
 @Composable
 fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -667,6 +667,7 @@ fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, val
         Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: () -> Unit) {
@@ -685,20 +686,11 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
         border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier         = Modifier
-                    .size(42.dp)
-                    .clip(DsShapes.medium)
-                    .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.ShoppingCart,
-                    contentDescription = null,
-                    tint     = if (isReceived) DsColors.Success else DsColors.Warning,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            EntityAvatar(
+                name     = order.supplier_name,
+                imageUri = order.supplier_image_uri,
+                size     = 42.dp
+            )
             Spacer(Modifier.width(DsSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 // السطر 1: Bon # + الوقت
@@ -775,6 +767,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
         }
     }
 }
+
 fun formatOrderDate(dateStr: String): String {
     return try {
         val date      = java.time.LocalDate.parse(dateStr.take(10))

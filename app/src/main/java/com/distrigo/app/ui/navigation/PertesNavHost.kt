@@ -19,9 +19,13 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     val navController = rememberNavController()
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.PertesHome.route,
-        route            = Screen.PertesGraph.route
+        navController      = navController,
+        startDestination   = Screen.PertesHome.route,
+        route              = Screen.PertesGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.PertesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }

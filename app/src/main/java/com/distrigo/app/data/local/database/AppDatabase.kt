@@ -62,7 +62,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         SousCategorieEntity::class,
         MarqueEntity::class,
     ],
-    version = 31,
+    version = 32,
     exportSchema = false
 )
 

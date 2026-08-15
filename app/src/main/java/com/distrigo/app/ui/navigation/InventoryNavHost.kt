@@ -23,9 +23,13 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
     val navController = rememberNavController()
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.InventaireHome.route,
-        route            = Screen.InventaireGraph.route
+        navController      = navController,
+        startDestination   = Screen.InventaireHome.route,
+        route              = Screen.InventaireGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.InventaireHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }

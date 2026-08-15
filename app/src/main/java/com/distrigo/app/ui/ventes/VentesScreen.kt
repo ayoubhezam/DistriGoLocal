@@ -2,10 +2,15 @@ package com.distrigo.app.ui.ventes
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,10 +19,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Vente
+import com.distrigo.app.ui.common.EntityAvatar
+import com.distrigo.app.ui.components.ReceiptPreviewSheet
+import com.distrigo.app.ui.components.ShareOptionsSheet
+import com.distrigo.app.ui.components.toReceiptData
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -25,19 +36,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
-import com.distrigo.app.ui.purchases.UnifiedStatColumn
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
-import com.distrigo.app.ui.products.ProductViewModel
-import com.distrigo.app.ui.clients.ClientViewModel
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Share
-import com.distrigo.app.ui.components.ReceiptPreviewSheet
-import com.distrigo.app.ui.components.ShareOptionsSheet
-import com.distrigo.app.ui.components.toReceiptData
-import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentesScreen(
     viewModel    : VenteViewModel = viewModel(),
@@ -45,20 +45,69 @@ fun VentesScreen(
     onAddVente   : () -> Unit = {},
     onEditVente  : (Int) -> Unit = {},
     onVenteClick : (Int) -> Unit = {}
-){
-    val ventes    by viewModel.ventes.collectAsState()
+) {
+    val ventes      by viewModel.ventes.collectAsState()
     val depotVentes = ventes.filter { it.source == "depot" }
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error     by viewModel.error.collectAsState()
+    val isLoading   by viewModel.isLoading.collectAsState()
+    val error       by viewModel.error.collectAsState()
 
     var longPressVente   by remember { mutableStateOf<Vente?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var deleteError      by remember { mutableStateOf("") }
 
+    // ── Local UI state (لا تُحفظ في ViewModel) ──
+    var showFilterSheet    by remember { mutableStateOf(false) }
+    var showDateFromPicker by remember { mutableStateOf(false) }
+    var showDateToPicker   by remember { mutableStateOf(false) }
+    val dateFromState      = rememberDatePickerState()
+    val dateToState        = rememberDatePickerState()
+
     LaunchedEffect(Unit) { viewModel.loadVentes() }
 
+    // ── Clients list (مستخرجة من المبيعات الموجودة) ──
+    val clients = remember(depotVentes) {
+        depotVentes
+            .map { it.client_id to it.client_name }
+            .distinctBy { it.first }
+            .sortedBy { it.second }
+    }
 
+    val hasActiveFilters = viewModel.filterStatus != null ||
+            viewModel.filterPaymentStatus != null ||
+            viewModel.filterClientId != null ||
+            viewModel.filterDateFrom != null ||
+            viewModel.filterDateTo != null
 
+    val filteredVentes = depotVentes.filter { vente ->
+        val matchSearch = viewModel.searchQuery.isBlank() || run {
+            val tokens = viewModel.searchQuery.trim()
+                .split("\\s+".toRegex())
+                .filter { it.isNotEmpty() }
+            tokens.all { token ->
+                vente.client_name.contains(token, ignoreCase = true) ||
+                        vente.id.toString().contains(token)
+            }
+        }
+
+        val matchStatus = viewModel.filterStatus == null || vente.status == viewModel.filterStatus
+
+        val matchPayment = when (viewModel.filterPaymentStatus) {
+            "paye"    -> (vente.montant_paye ?: 0.0) >= vente.total && vente.total > 0
+            "impaye"  -> (vente.montant_paye ?: 0.0) <= 0.0
+            "partiel" -> (vente.montant_paye ?: 0.0) > 0.0 && (vente.montant_paye ?: 0.0) < vente.total
+            else      -> true
+        }
+
+        val matchClient = viewModel.filterClientId == null || vente.client_id == viewModel.filterClientId
+
+        val venteDate     = vente.created_at?.take(10) ?: ""
+        val dateFrom      = viewModel.filterDateFrom
+        val dateTo        = viewModel.filterDateTo
+        val matchDateFrom = dateFrom == null || venteDate >= dateFrom
+        val matchDateTo   = dateTo   == null || venteDate <= dateTo
+
+        matchSearch && matchStatus && matchPayment && matchClient && matchDateFrom && matchDateTo
+    }
 
     // ── Long Press Dialog ──
     longPressVente?.let { vente ->
@@ -85,9 +134,7 @@ fun VentesScreen(
                                 deleteError      = ""
                                 viewModel.loadVentes()
                             },
-                            onError = { error ->
-                                deleteError = error
-                            }
+                            onError = { err -> deleteError = err }
                         )
                     }) {
                         Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
@@ -102,13 +149,13 @@ fun VentesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressVente = null },
-                title = { Text("Vente #${vente.id}") },
-                confirmButton = {},
-                dismissButton = {},
-                icon = null,
-                properties = androidx.compose.ui.window.DialogProperties(),
-                shape = DsShapes.large,
-                containerColor = DsColors.Surface,
+                title            = { Text("Vente #${vente.id}") },
+                confirmButton    = {},
+                dismissButton    = {},
+                icon             = null,
+                properties       = androidx.compose.ui.window.DialogProperties(),
+                shape            = DsShapes.large,
+                containerColor   = DsColors.Surface,
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         Row(
@@ -146,6 +193,249 @@ fun VentesScreen(
         }
     }
 
+    // ── Date Pickers ──
+    if (showDateFromPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDateFromPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    dateFromState.selectedDateMillis?.let { millis ->
+                        viewModel.filterDateFrom = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
+                    }
+                    showDateFromPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateFromPicker = false }) { Text("Annuler") }
+            }
+        ) { DatePicker(state = dateFromState) }
+    }
+
+    if (showDateToPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDateToPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    dateToState.selectedDateMillis?.let { millis ->
+                        viewModel.filterDateTo = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
+                    }
+                    showDateToPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateToPicker = false }) { Text("Annuler") }
+            }
+        ) { DatePicker(state = dateToState) }
+    }
+
+    // ── Filter Sheet ──
+    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState       = filterSheetState,
+            containerColor   = DsColors.Surface
+        ) {
+            var clientExpanded by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxxl)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // ── عنوان ──
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                    IconButton(onClick = { showFilterSheet = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                    }
+                }
+                Spacer(Modifier.height(DsSpacing.md))
+
+                // ── حالة الوصل ──
+                Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    listOf<Pair<String?, String>>(
+                        null to "Tous",
+                        "pending" to "En attente",
+                        "delivered" to "Livré"
+                    ).forEach { (value, label) ->
+                        val active = viewModel.filterStatus == value
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(DsShapes.medium)
+                                .background(if (active) DsColors.Primary else DsColors.Surface)
+                                .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                                .clickable { viewModel.filterStatus = value }
+                                .padding(vertical = DsSpacing.sm),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                fontSize   = DsTextSize.bodySmall,
+                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = if (active) Color.White else DsColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(DsSpacing.md))
+
+                // ── حالة الدفع ──
+                Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    listOf<Pair<String?, String>>(
+                        null to "Tous",
+                        "paye" to "Payé",
+                        "impaye" to "Impayé",
+                        "partiel" to "Partiel"
+                    ).forEach { (value, label) ->
+                        val active = viewModel.filterPaymentStatus == value
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(DsShapes.medium)
+                                .background(if (active) DsColors.Primary else DsColors.Surface)
+                                .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                                .clickable { viewModel.filterPaymentStatus = value }
+                                .padding(vertical = DsSpacing.sm),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                fontSize   = DsTextSize.bodySmall,
+                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = if (active) Color.White else DsColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(DsSpacing.md))
+
+                // ── العميل ──
+                Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                ExposedDropdownMenuBox(
+                    expanded         = clientExpanded,
+                    onExpandedChange = { clientExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value         = clients.find { it.first == viewModel.filterClientId }?.second ?: "Tous les clients",
+                        onValueChange = {},
+                        readOnly      = true,
+                        trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clientExpanded) },
+                        modifier      = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        shape         = DsShapes.medium,
+                        colors        = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor   = DsColors.Primary
+                        )
+                    )
+                    ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
+                        DropdownMenuItem(
+                            text    = { Text("Tous les clients", color = DsColors.TextSecondary) },
+                            onClick = { viewModel.filterClientId = null; clientExpanded = false }
+                        )
+                        clients.forEach { (id, name) ->
+                            DropdownMenuItem(
+                                text    = { Text(name) },
+                                onClick = { viewModel.filterClientId = id; clientExpanded = false }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(DsSpacing.md))
+
+                // ── التاريخ ──
+                Text("Période", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    OutlinedTextField(
+                        value         = viewModel.filterDateFrom ?: "",
+                        onValueChange = {},
+                        readOnly      = true,
+                        placeholder   = { Text("Du", fontSize = DsTextSize.bodySmall) },
+                        trailingIcon  = {
+                            Icon(
+                                Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showDateFromPicker = true },
+                        shape    = DsShapes.medium,
+                        enabled  = false,
+                        colors   = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor       = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.Border,
+                            disabledTextColor         = DsColors.TextPrimary,
+                            disabledPlaceholderColor  = DsColors.TextSecondary,
+                            disabledTrailingIconColor = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.TextSecondary
+                        )
+                    )
+                    OutlinedTextField(
+                        value         = viewModel.filterDateTo ?: "",
+                        onValueChange = {},
+                        readOnly      = true,
+                        placeholder   = { Text("Au", fontSize = DsTextSize.bodySmall) },
+                        trailingIcon  = {
+                            Icon(
+                                Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showDateToPicker = true },
+                        shape    = DsShapes.medium,
+                        enabled  = false,
+                        colors   = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor       = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.Border,
+                            disabledTextColor         = DsColors.TextPrimary,
+                            disabledPlaceholderColor  = DsColors.TextSecondary,
+                            disabledTrailingIconColor = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.TextSecondary
+                        )
+                    )
+                }
+                Spacer(Modifier.height(DsSpacing.lg))
+
+                // ── أزرار ──
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    OutlinedButton(
+                        onClick  = { viewModel.clearAllFilters() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape    = DsShapes.medium,
+                        colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
+                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                    ) {
+                        Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                    }
+                    Button(
+                        onClick  = { showFilterSheet = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape    = DsShapes.medium,
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    ) {
+                        Text("Appliquer (${filteredVentes.size})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -154,35 +444,106 @@ fun VentesScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Header ──
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+                modifier          = Modifier
+                    .fillMaxWidth()
+                    .padding(DsSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Ventes", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
-            // ── Stats ──
-            Row(
-                modifier = Modifier
+            // ── Search bar ──
+            OutlinedTextField(
+                value         = viewModel.searchQuery,
+                onValueChange = { viewModel.searchQuery = it },
+                placeholder   = { Text("Rechercher un client ou n° de vente...", fontSize = DsTextSize.bodySmall) },
+                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
+                trailingIcon  = {
+                    if (viewModel.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
+                        }
+                    }
+                },
+                modifier   = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = DsSpacing.lg)
-                    .clip(DsShapes.large)
-                    .background(DsColors.Primary)
-                    .padding(DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                UnifiedStatColumn(icon = Icons.Default.Receipt,     value = depotVentes.size.toString(), label = "Total bons")
-                UnifiedStatColumn(icon = Icons.Default.Schedule,    value = depotVentes.count { it.status == "pending"   }.toString(), label = "En attente")
-                UnifiedStatColumn(icon = Icons.Default.CheckCircle, value = depotVentes.count { it.status == "delivered" }.toString(), label = "Reçus")
-            }
-
-            Spacer(Modifier.height(DsSpacing.md))
-
-            Text(
-                "Historique des ventes",
-                fontSize = DsTextSize.caption,
-                color    = DsColors.TextSecondary,
-                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                    .clip(DsShapes.large),
+                shape      = DsShapes.large,
+                singleLine = true,
+                colors     = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = DsColors.Border,
+                    focusedBorderColor   = DsColors.Primary
+                )
             )
+
+            Spacer(Modifier.height(DsSpacing.sm))
+
+            // ── Counter + Filter button ──
+            Row(
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(DsShapes.medium)
+                        .background(DsColors.SurfaceSunken)
+                        .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                ) {
+                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                    Text(
+                        "${filteredVentes.size} ventes",
+                        fontSize   = DsTextSize.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextSecondary
+                    )
+                }
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceSunken)
+                            .clickable { showFilterSheet = true }
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = "Filtres",
+                                tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "Filtres",
+                                fontSize = DsTextSize.caption,
+                                color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
+                            )
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                    if (hasActiveFilters) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(6.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(DsColors.Primary)
+                        )
+                    }
+                }
+            }
 
             Spacer(Modifier.height(DsSpacing.sm))
 
@@ -194,11 +555,15 @@ fun VentesScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(error ?: "", color = DsColors.Danger)
                 }
-            } else if (depotVentes.isEmpty()) {
+            } else if (filteredVentes.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.PointOfSale, contentDescription = null,
-                            tint = DsColors.TextTertiary, modifier = Modifier.size(56.dp))
+                        Icon(
+                            Icons.Default.PointOfSale,
+                            contentDescription = null,
+                            tint     = DsColors.TextTertiary,
+                            modifier = Modifier.size(56.dp)
+                        )
                         Spacer(Modifier.height(DsSpacing.md))
                         Text("Aucune vente", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(4.dp))
@@ -206,8 +571,7 @@ fun VentesScreen(
                     }
                 }
             } else {
-                val groupedVentes =
-                    depotVentes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
+                val groupedVentes = filteredVentes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
 
                 // ── List ──
                 LazyColumn(
@@ -229,12 +593,8 @@ fun VentesScreen(
                         items(dayVentes) { vente ->
                             VenteCard(
                                 vente       = vente,
-                                onClick = {
-                                    onVenteClick(vente.id)
-                                },
-                                onLongClick = {
-                                    longPressVente = vente
-                                }
+                                onClick     = { onVenteClick(vente.id) },
+                                onLongClick = { longPressVente = vente }
                             )
                         }
                     }
@@ -242,12 +602,16 @@ fun VentesScreen(
             }
         }
 
-        com.distrigo.app.ui.components.ScrollAwareFab(
-            onClick = { onAddVente() },
-            modifier = Modifier
+        FloatingActionButton(
+            onClick        = onAddVente,
+            containerColor = DsColors.Primary,
+            contentColor   = Color.White,
+            modifier       = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(DsSpacing.lg)
-        )
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
+        }
     }
 }
 
@@ -265,17 +629,16 @@ fun VenteDetailScreen(
 ) {
     BackHandler { onBack() }
 
-
     val fullVenteState by viewModel.selectedVente.collectAsState()
     val displayVente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
-    val isDelivered = displayVente.status == "delivered"
+    val isDelivered  = displayVente.status == "delivered"
     var isDelivering by remember { mutableStateOf(false) }
-    var isDeleting by remember { mutableStateOf(false) }
+    var isDeleting   by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var deleteError by remember { mutableStateOf("") }
+    var deleteError  by remember { mutableStateOf("") }
     val context = LocalContext.current
-    var showReceiptPreview by remember { mutableStateOf(false) }
-    var showShareOptions    by remember { mutableStateOf(false) }
+    var showReceiptPreview   by remember { mutableStateOf(false) }
+    var showShareOptions     by remember { mutableStateOf(false) }
     var overflowMenuExpanded by remember { mutableStateOf(false) }
 
     if (showReceiptPreview) {
@@ -284,7 +647,7 @@ fun VenteDetailScreen(
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
-                showShareOptions    = true
+                showShareOptions   = true
             }
         )
     }
@@ -295,6 +658,7 @@ fun VenteDetailScreen(
             onDismiss = { showShareOptions = false }
         )
     }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false; deleteError = "" },
@@ -315,12 +679,12 @@ fun VenteDetailScreen(
                         viewModel.deleteVente(
                             id        = displayVente.id,
                             onSuccess = {
-                                isDeleting = false
+                                isDeleting       = false
                                 showDeleteDialog = false
                                 viewModel.loadVentes()
                                 onDeleted()
                             },
-                            onError = { error -> isDeleting = false; deleteError = error }
+                            onError = { err -> isDeleting = false; deleteError = err }
                         )
                     },
                     enabled = !isDeleting
@@ -347,7 +711,9 @@ fun VenteDetailScreen(
     ) {
         // ── Header (Outside Ticket) ──
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
+            modifier          = Modifier
+                .fillMaxWidth()
+                .padding(DsSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onBack() }) {
@@ -379,15 +745,15 @@ fun VenteDetailScreen(
                     Icon(Icons.Default.MoreVert, contentDescription = "Options")
                 }
                 DropdownMenu(
-                    expanded = overflowMenuExpanded,
+                    expanded         = overflowMenuExpanded,
                     onDismissRequest = { overflowMenuExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Supprimer", color = DsColors.Danger) },
+                        text        = { Text("Supprimer", color = DsColors.Danger) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                        onClick = {
+                        onClick     = {
                             overflowMenuExpanded = false
-                            showDeleteDialog = true
+                            showDeleteDialog     = true
                         }
                     )
                 }
@@ -396,14 +762,16 @@ fun VenteDetailScreen(
 
         // ── Ticket Area ──
         LazyColumn(
-            modifier            = Modifier.weight(1f).padding(horizontal = DsSpacing.lg),
-            contentPadding      = PaddingValues(top = DsSpacing.xs, bottom = DsSpacing.xxl),
+            modifier       = Modifier
+                .weight(1f)
+                .padding(horizontal = DsSpacing.lg),
+            contentPadding = PaddingValues(top = DsSpacing.xs, bottom = DsSpacing.xxl)
         ) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = com.distrigo.app.ui.common.TicketShape(),
-                    colors = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                    modifier  = Modifier.fillMaxWidth(),
+                    shape     = com.distrigo.app.ui.common.TicketShape(),
+                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
@@ -416,7 +784,11 @@ fun VenteDetailScreen(
                                     .background(if (isDelivered) DsColors.SurfaceSunken else DsColors.PrimaryLight),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = if (isDelivered) DsColors.TextTertiary else DsColors.Primary)
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = if (isDelivered) DsColors.TextTertiary else DsColors.Primary
+                                )
                             }
                             Spacer(Modifier.width(DsSpacing.md))
                             Column {
@@ -431,9 +803,9 @@ fun VenteDetailScreen(
 
                         Text(
                             "ARTICLES (${displayVente.items?.size ?: displayVente.items_count ?: 0})",
-                            fontSize   = DsTextSize.caption,
-                            fontWeight = FontWeight.Bold,
-                            color      = DsColors.TextSecondary,
+                            fontSize      = DsTextSize.caption,
+                            fontWeight    = FontWeight.Bold,
+                            color         = DsColors.TextSecondary,
                             letterSpacing = 1.sp
                         )
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -453,7 +825,12 @@ fun VenteDetailScreen(
                                             .background(if (isDelivered) DsColors.SurfaceSunken else DsColors.PrimaryLight),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = if (isDelivered) DsColors.TextTertiary else DsColors.Primary, modifier = Modifier.size(16.dp))
+                                        Icon(
+                                            Icons.Default.ShoppingCart,
+                                            contentDescription = null,
+                                            tint     = if (isDelivered) DsColors.TextTertiary else DsColors.Primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
                                     Spacer(Modifier.width(DsSpacing.md))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -478,17 +855,28 @@ fun VenteDetailScreen(
                         }
 
                         Spacer(Modifier.height(DsSpacing.md))
-                        HorizontalDivider(color = DsColors.Border, thickness = 2.dp) // Emphasized divider
+                        HorizontalDivider(color = DsColors.Border, thickness = 2.dp)
                         Spacer(Modifier.height(DsSpacing.md))
 
                         // Total Row
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isDelivered) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
-                            Text("${"%.2f".format(displayVente.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isDelivered) DsColors.TextPrimary else DsColors.Primary)
+                            Text(
+                                "TOTAL",
+                                fontSize      = DsTextSize.caption,
+                                fontWeight    = FontWeight.Bold,
+                                color         = if (isDelivered) DsColors.TextPrimary else DsColors.Primary,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                "${"%.2f".format(displayVente.total)} DA",
+                                fontSize   = DsTextSize.headline,
+                                fontWeight = FontWeight.ExtraBold,
+                                color      = if (isDelivered) DsColors.TextPrimary else DsColors.Primary
+                            )
                         }
 
                         Spacer(Modifier.height(DsSpacing.md))
@@ -500,7 +888,7 @@ fun VenteDetailScreen(
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
                             Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                             Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
@@ -512,7 +900,7 @@ fun VenteDetailScreen(
                             Row(
                                 modifier              = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                                 Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
@@ -531,12 +919,17 @@ fun VenteDetailScreen(
                             HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
                             Spacer(Modifier.height(DsSpacing.sm))
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier              = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                                Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                Text(
+                                    note,
+                                    fontSize  = DsTextSize.caption,
+                                    color     = DsColors.TextSecondary,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                )
                             }
                         }
                     }
@@ -553,7 +946,9 @@ fun VenteDetailScreen(
         ) {
             OutlinedButton(
                 onClick  = { showReceiptPreview = true },
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
                 shape    = DsShapes.medium,
                 border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
@@ -563,7 +958,9 @@ fun VenteDetailScreen(
             }
             OutlinedButton(
                 onClick  = { showShareOptions = true },
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
                 shape    = DsShapes.medium,
                 border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
@@ -580,7 +977,7 @@ fun VenteDetailScreen(
                     viewModel.deliverVente(
                         id        = displayVente.id,
                         onSuccess = {
-                            isDelivering  = false
+                            isDelivering = false
                             viewModel.loadVentes()
                             onDelivered()
                         },
@@ -609,7 +1006,7 @@ fun VenteDetailScreen(
                     .fillMaxWidth()
                     .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
@@ -637,20 +1034,11 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
         border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier         = Modifier
-                    .size(42.dp)
-                    .clip(DsShapes.medium)
-                    .background(if (isDelivered) DsColors.SuccessLight else DsColors.WarningLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.PointOfSale,
-                    contentDescription = null,
-                    tint     = if (isDelivered) DsColors.Success else DsColors.Warning,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            EntityAvatar(
+                name     = vente.client_name,
+                imageUri = vente.client_image_uri,
+                size     = 42.dp
+            )
             Spacer(Modifier.width(DsSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Row(

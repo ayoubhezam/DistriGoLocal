@@ -21,6 +21,14 @@ sealed class Screen(val route: String) {
     data object PlusRapports     : Screen("plus_rapports")
     data object PlusParametres   : Screen("plus_parametres")
 
+    // ── Ventes Hub (TabVentes content): Dépôt Vente / Tournées / Stock Camion / Rapports ──
+    data object VentesHubGraph       : Screen("ventes_hub_graph")
+    data object VentesHubMenu        : Screen("ventes_hub_menu")
+    data object VentesHubDepotVente  : Screen("ventes_hub_depot_vente")
+    data object VentesHubTournees    : Screen("ventes_hub_tournees")
+    data object VentesHubStockCamion : Screen("ventes_hub_stock_camion")
+    data object VentesHubRapports    : Screen("ventes_hub_rapports")
+
     // ── Chargement Form (self-contained 2-step wizard: Produits ↔ Panier) ──
     data object ChargementFormGraph    : Screen("chargement_form_graph")
     data object ChargementFormProducts : Screen("chargement_form_products")

@@ -51,9 +51,13 @@ fun ChargementNavHost(
     val navController = rememberNavController()
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.ChargementFormProducts.route,
-        route            = Screen.ChargementFormGraph.route
+        navController      = navController,
+        startDestination   = Screen.ChargementFormProducts.route,
+        route              = Screen.ChargementFormGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.ChargementFormProducts.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }

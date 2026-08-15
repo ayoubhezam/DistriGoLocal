@@ -17,9 +17,13 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     val navController = rememberNavController()
 
     NavHost(
-        navController    = navController,
-        startDestination = Screen.ChargesHome.route,
-        route            = Screen.ChargesGraph.route
+        navController      = navController,
+        startDestination   = Screen.ChargesHome.route,
+        route              = Screen.ChargesGraph.route,
+        enterTransition    = navEnterTransition,
+        exitTransition     = navExitTransition,
+        popEnterTransition = navPopEnterTransition,
+        popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.ChargesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargesGraph.route) }
