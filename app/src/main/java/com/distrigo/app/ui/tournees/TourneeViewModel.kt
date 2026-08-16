@@ -6,24 +6,18 @@ import com.distrigo.app.data.api.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.TourneeClientInfo
 import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.data.model.Client
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class TourneeViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
-
+@HiltViewModel
+class TourneeViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _tournees = MutableStateFlow<List<Tournee>>(emptyList())
     val tournees: StateFlow<List<Tournee>> = _tournees

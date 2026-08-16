@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.ui.common.SearchableSelectSheet
@@ -32,7 +33,7 @@ fun TourneeFormScreen(
     tournee      : Tournee? = null,
     onBack       : () -> Unit,
     onSaved      : () -> Unit,
-    viewModel    : TourneeViewModel = viewModel()
+    viewModel    : TourneeViewModel = hiltViewModel()
 ) {
     val isEdit = tournee != null
 

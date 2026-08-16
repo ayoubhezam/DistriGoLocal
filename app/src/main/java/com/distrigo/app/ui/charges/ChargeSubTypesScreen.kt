@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.ChargeSubType
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -30,7 +31,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 @Composable
 fun ChargeSubTypesScreen(
     typeId         : Int,
-    viewModel      : ChargeViewModel = viewModel(),
+    viewModel      : ChargeViewModel = hiltViewModel(),
     onBack         : () -> Unit,
     onSubTypeClick : (Int) -> Unit
 ) {

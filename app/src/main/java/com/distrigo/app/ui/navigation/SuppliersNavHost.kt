@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -47,7 +48,7 @@ fun SuppliersNavHost(
     ) {
         composable(Screen.SuppliersHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
+            val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             SuppliersScreen(
                 viewModel       = viewModel,
                 onAddSupplier   = { navController.navigate(Screen.SuppliersForm.createRoute()) },
@@ -60,7 +61,7 @@ fun SuppliersNavHost(
             arguments = listOf(navArgument("supplierId") { type = NavType.IntType; defaultValue = -1 })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
+            val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId").takeIf { it != -1 }
             val suppliers by viewModel.suppliers.collectAsState()
             val supplier = supplierId?.let { id -> suppliers.find { it.id == id } }
@@ -78,9 +79,9 @@ fun SuppliersNavHost(
             arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
+            val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val retourViewModel: RetourFournisseurViewModel = viewModel(retourParentEntry)
+            val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
             val suppliers by viewModel.suppliers.collectAsState()
             val isLoading by viewModel.isLoading.collectAsState()
@@ -143,9 +144,9 @@ fun SuppliersNavHost(
         purchaseFormGraph(
             navController     = navController,
             graphRoute        = Screen.PurchaseFormGraph.route,
-            viewModel         = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.PurchaseFormGraph.route) }) },
-            productViewModel  = { viewModel() },
-            supplierViewModel = { viewModel() },
+            viewModel         = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PurchaseFormGraph.route) }) },
+            productViewModel  = { hiltViewModel() },
+            supplierViewModel = { hiltViewModel() },
             onBack  = { navController.popBackStack(Screen.PurchaseFormGraph.route, inclusive = true) },
             onSaved = {
                 val supplierId = navController.getBackStackEntry(Screen.PurchaseFormGraph.route)
@@ -161,8 +162,8 @@ fun SuppliersNavHost(
         retourFournisseurFormGraph(
             navController     = navController,
             graphRoute        = Screen.SuppliersRetourFormGraph.route,
-            viewModel         = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
-            supplierViewModel = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
+            viewModel         = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
+            supplierViewModel = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
             onBack  = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) }
         )
@@ -172,9 +173,9 @@ fun SuppliersNavHost(
             arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val viewModel: SupplierViewModel = viewModel(parentEntry)
+            val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val retourViewModel: RetourFournisseurViewModel = viewModel(retourParentEntry)
+            val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
             val suppliers by viewModel.suppliers.collectAsState()
             val supplier = suppliers.find { it.id == supplierId }
@@ -196,7 +197,7 @@ fun SuppliersNavHost(
             route     = Screen.SuppliersAchatHistory.route,
             arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
         ) { entry ->
-            val historyViewModel: AchatHistoryViewModel = viewModel()
+            val historyViewModel: AchatHistoryViewModel = hiltViewModel()
             val supplierId = entry.arguments!!.getInt("supplierId")
             LaunchedEffect(Unit) { historyViewModel.bind(supplierId) }
             val controller = historyViewModel.bind(supplierId)
@@ -212,7 +213,7 @@ fun SuppliersNavHost(
             var editError by remember { mutableStateOf("") }
 
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
-            val supplierViewModel: SupplierViewModel = viewModel(parentEntry)
+            val supplierViewModel: SupplierViewModel = hiltViewModel(parentEntry)
 
             PagedHistoryScreen(
                 title             = "Achats & Paiements",

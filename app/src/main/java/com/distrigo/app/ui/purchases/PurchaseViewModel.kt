@@ -7,24 +7,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.api.extractErrorMessage
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Supplier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-class PurchaseViewModel(application: Application) : AndroidViewModel(application) {
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
-
+@HiltViewModel
+class PurchaseViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _orders = MutableStateFlow<List<PurchaseOrder>>(emptyList())
     val orders: StateFlow<List<PurchaseOrder>> = _orders

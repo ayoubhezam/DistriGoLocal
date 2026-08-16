@@ -1,22 +1,22 @@
 package com.distrigo.app.ui.settings.incentive
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.dao.incentive.PolicyWithTiers
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
 import com.distrigo.app.data.local.entity.incentive.TargetPolicyEntity
 import com.distrigo.app.data.repository.IncentiveRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class IncentiveViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = IncentiveRepository(db)
+@HiltViewModel
+class IncentiveViewModel @Inject constructor(
+    private val repository: IncentiveRepository
+) : ViewModel() {
 
     private val _activePolicy = MutableStateFlow<PolicyWithTiers?>(null)
     val activePolicy: StateFlow<PolicyWithTiers?> = _activePolicy.asStateFlow()

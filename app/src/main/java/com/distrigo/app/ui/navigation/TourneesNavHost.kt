@@ -2,6 +2,7 @@ package com.distrigo.app.ui.navigation
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,7 +37,7 @@ fun TourneesNavHost(
     ) {
         composable(Screen.TourneesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
-            val viewModel: TourneeViewModel = viewModel(parentEntry)
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             TourneesScreen(
                 viewModel      = viewModel,
                 onAddTournee   = { navController.navigate(Screen.TourneeForm.createRoute()) },
@@ -49,7 +50,7 @@ fun TourneesNavHost(
             arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
-            val viewModel: TourneeViewModel = viewModel(parentEntry)
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeId = entry.arguments!!.getInt("tourneeId")
 
             TourneeDetailScreen(
@@ -58,7 +59,13 @@ fun TourneesNavHost(
                 onBack                 = { navController.popBackStack() },
                 onEditTournee          = { tournee -> navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) },
                 onAddClients           = { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
-                onCreateVente          = { clientId -> navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId, clientId)) },
+                onCreateVente          = { clientId ->
+                    if (clientId != null) {
+                        navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId))
+                    } else {
+                        navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
+                    }
+                },
                 onOpenVente            = { vente -> navController.navigate(Screen.TourneesVenteDetail.createRoute(tourneeId, vente.id)) },
                 onNavigateToChargement = onNavigateToChargement
             )
@@ -69,7 +76,7 @@ fun TourneesNavHost(
             arguments = listOf(navArgument("tourneeId") { type = NavType.IntType; defaultValue = -1 })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
-            val viewModel: TourneeViewModel = viewModel(parentEntry)
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeIdArg = entry.arguments?.getInt("tourneeId")?.takeIf { it != -1 }
             val selectedTournee by viewModel.selectedTournee.collectAsState()
             val editingTournee = tourneeIdArg?.let { id -> selectedTournee?.takeIf { it.id == id } }
@@ -87,7 +94,7 @@ fun TourneesNavHost(
             arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
-            val viewModel: TourneeViewModel = viewModel(parentEntry)
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeId = entry.arguments!!.getInt("tourneeId")
             val selectedTournee by viewModel.selectedTournee.collectAsState()
             val tourneeClients by viewModel.tourneeClients.collectAsState()
@@ -107,15 +114,33 @@ fun TourneesNavHost(
             }
         }
 
+        // Client unknown at entry (defensive — current callers always pass one, see onCreateVente
+        // above) → starts at the client-picker step.
         tourneeVenteFormGraph(
             navController    = navController,
             graphRoute       = Screen.TourneeVenteFormGraph.route,
-            viewModel        = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.TourneesGraph.route) }) },
-            venteViewModel   = { viewModel() },
-            productViewModel = { viewModel() },
-            clientViewModel  = { viewModel() },
+            routePrefix      = "tournee_vente_form",
+            viewModel        = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.TourneesGraph.route) }) },
+            venteViewModel   = { hiltViewModel() },
+            productViewModel = { hiltViewModel() },
+            clientViewModel  = { hiltViewModel() },
             onBack  = { navController.popBackStack(Screen.TourneeVenteFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.TourneeVenteFormGraph.route, inclusive = true) }
+        )
+
+        // Client already known (Tournée → City → Client → "Créer une vente") → skip straight to
+        // Products, no client step at all.
+        tourneeVenteFormGraph(
+            navController    = navController,
+            graphRoute       = Screen.TourneeVenteFormGraphDirect.route,
+            routePrefix      = "tournee_vente_form_direct",
+            skipClientStep   = true,
+            viewModel        = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.TourneesGraph.route) }) },
+            venteViewModel   = { hiltViewModel() },
+            productViewModel = { hiltViewModel() },
+            clientViewModel  = { hiltViewModel() },
+            onBack  = { navController.popBackStack(Screen.TourneeVenteFormGraphDirect.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.TourneeVenteFormGraphDirect.route, inclusive = true) }
         )
 
         composable(
@@ -126,8 +151,8 @@ fun TourneesNavHost(
             )
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
-            val viewModel: TourneeViewModel = viewModel(parentEntry)
-            val venteViewModel: VenteViewModel = viewModel()
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
+            val venteViewModel: VenteViewModel = hiltViewModel()
             val tourneeId = entry.arguments!!.getInt("tourneeId")
             val venteId = entry.arguments!!.getInt("venteId")
             val selectedTournee by viewModel.selectedTournee.collectAsState()

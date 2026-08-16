@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
@@ -27,7 +28,7 @@ import androidx.compose.runtime.setValue
 @Composable
 fun RapportVentesTab(
     modifier: Modifier = Modifier,
-    viewModel: RapportVentesViewModel = viewModel()
+    viewModel: RapportVentesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()

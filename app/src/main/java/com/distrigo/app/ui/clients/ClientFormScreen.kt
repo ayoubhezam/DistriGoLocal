@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -51,7 +52,7 @@ fun ClientFormScreen(
     client       : Client? = null,
     onBack       : () -> Unit,
     onSaved      : (Int) -> Unit,
-    viewModel    : ClientViewModel  = viewModel()
+    viewModel    : ClientViewModel  = hiltViewModel()
 ) {
     val isEdit = client != null
     val context = LocalContext.current

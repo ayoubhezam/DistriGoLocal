@@ -189,6 +189,11 @@ sealed class Screen(val route: String) {
     }
 
     // ── Vente Form (multi-step nested graph, shared by Ventes tab and Client "Nouvelle facture") ──
+    // Two entry points share the same step composables (see venteFormGraph in VenteFormNavGraph.kt):
+    //  - VenteFormGraph: client/vente unknown → starts at the "choose a client" step.
+    //  - VenteFormGraphDirect: client or vente already known (edit, or preselected client) → starts
+    //    straight at Products, so the client-picker step is never navigated to, composed, or
+    //    animated in that case.
     data object VenteFormGraph : Screen("vente_form_graph?venteId={venteId}&clientId={clientId}") {
         fun createRoute(venteId: Int? = null, clientId: Int? = null): String {
             val params = buildList {
@@ -198,11 +203,15 @@ sealed class Screen(val route: String) {
             return "vente_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }
     }
-    data object VenteFormClient       : Screen("vente_form_client")
-    data object VenteFormClientPicker : Screen("vente_form_client_picker")
-    data object VenteFormProducts     : Screen("vente_form_products")
-    data object VenteFormCart         : Screen("vente_form_cart")
-    data object VenteFormValidation   : Screen("vente_form_validation")
+    data object VenteFormGraphDirect : Screen("vente_form_graph_direct?venteId={venteId}&clientId={clientId}") {
+        fun createRoute(venteId: Int? = null, clientId: Int? = null): String {
+            val params = buildList {
+                if (venteId != null) add("venteId=$venteId")
+                if (clientId != null) add("clientId=$clientId")
+            }
+            return "vente_form_graph_direct" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
+        }
+    }
 
     // ── Tournées ──
     data object TourneesGraph  : Screen("tournees_graph")
@@ -217,15 +226,16 @@ sealed class Screen(val route: String) {
     data object TourneesAddClients : Screen("tournees_add_clients/{tourneeId}") {
         fun createRoute(tourneeId: Int) = "tournees_add_clients/$tourneeId"
     }
+    // Same direct-entry split as VenteFormGraph above — see tourneeVenteFormGraph in
+    // TourneeVenteFormNavGraph.kt.
     data object TourneeVenteFormGraph : Screen("tournee_vente_form_graph/{tourneeId}?clientId={clientId}") {
         fun createRoute(tourneeId: Int, clientId: Int? = null) =
             "tournee_vente_form_graph/$tourneeId" + if (clientId != null) "?clientId=$clientId" else ""
     }
-    data object TourneeVenteFormClient       : Screen("tournee_vente_form_client")
-    data object TourneeVenteFormClientPicker : Screen("tournee_vente_form_client_picker")
-    data object TourneeVenteFormProducts     : Screen("tournee_vente_form_products")
-    data object TourneeVenteFormCart         : Screen("tournee_vente_form_cart")
-    data object TourneeVenteFormValidation   : Screen("tournee_vente_form_validation")
+    data object TourneeVenteFormGraphDirect : Screen("tournee_vente_form_graph_direct/{tourneeId}?clientId={clientId}") {
+        fun createRoute(tourneeId: Int, clientId: Int? = null) =
+            "tournee_vente_form_graph_direct/$tourneeId" + if (clientId != null) "?clientId=$clientId" else ""
+    }
     data object TourneesVenteDetail : Screen("tournees_vente_detail/{tourneeId}/{venteId}") {
         fun createRoute(tourneeId: Int, venteId: Int) = "tournees_vente_detail/$tourneeId/$venteId"
     }

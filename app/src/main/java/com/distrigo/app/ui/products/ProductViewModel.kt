@@ -1,11 +1,10 @@
 package com.distrigo.app.ui.products
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.ProductRepository
-import com.distrigo.app.data.local.database.AppDatabase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,17 +17,12 @@ import com.distrigo.app.data.model.PriceHistory
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SousCategorie
 import com.distrigo.app.data.model.Marque
+import javax.inject.Inject
 
-class ProductViewModel(application: Application) : AndroidViewModel(application) {
-
-    // �� ProductViewModel � CategoryViewModel
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
+@HiltViewModel
+class ProductViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -41,7 +35,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     val products: StateFlow<List<Product>> = repository.observeProducts()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
@@ -54,7 +48,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table suppliers
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _priceHistory = MutableStateFlow<List<PriceHistory>>(emptyList())
     val priceHistory: StateFlow<List<PriceHistory>> = _priceHistory

@@ -23,6 +23,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.products.ProductViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.components.ReceiptPreviewSheet
 import com.distrigo.app.ui.components.ShareOptionsSheet
 import com.distrigo.app.ui.components.toReceiptData
@@ -37,7 +38,7 @@ fun PurchaseOrderDetailScreen(
     onEdit     : () -> Unit,
     onReceived : () -> Unit,
     viewModel  : PurchaseViewModel,
-    productViewModel: ProductViewModel = viewModel()
+    productViewModel: ProductViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val selectedOrder by viewModel.selectedOrder.collectAsState()

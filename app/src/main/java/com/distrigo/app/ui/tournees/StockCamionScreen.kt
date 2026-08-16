@@ -30,12 +30,13 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
+import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun StockCamionScreen(
     onBack             : () -> Unit,
     onFullScreenChange : (Boolean) -> Unit = {},
     productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel()
+        hiltViewModel()
 ) {
     val products  by productViewModel.products.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()

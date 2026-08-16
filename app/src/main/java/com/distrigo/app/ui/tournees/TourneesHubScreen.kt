@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -32,7 +33,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 @Composable
 fun TourneesHubScreen(
-    tourneeViewModel   : TourneeViewModel = viewModel(),
+    tourneeViewModel   : TourneeViewModel = hiltViewModel(),
     onFullScreenChange : (Boolean) -> Unit = {},
     onOpenClientDetail : (Int) -> Unit = {}   // ← جديد
 ) {

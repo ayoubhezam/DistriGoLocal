@@ -28,6 +28,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun ProductDetailScreen(
     product          : Product,
@@ -37,7 +38,7 @@ fun ProductDetailScreen(
     onViewMovements  : () -> Unit,
     onInfoGenerales  : () -> Unit,
     onStockPrix      : () -> Unit,
-    viewModel: ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ProductViewModel = hiltViewModel()
 ) {
     val currentProduct = viewModel.products.collectAsState().value
         .find { it.id == product.id } ?: product

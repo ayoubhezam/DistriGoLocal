@@ -29,6 +29,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.hilt.navigation.compose.hiltViewModel
 /**
  * محتوى تبويب "Tableau de bord".
  * بـ ViewModel حقيقي يجلب البيانات عبر UseCase من Room.
@@ -37,7 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 @Composable
 fun TableauDeBordTab(
     modifier: Modifier = Modifier,
-    viewModel: TableauDeBordViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: TableauDeBordViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) {
         viewModel.refresh()

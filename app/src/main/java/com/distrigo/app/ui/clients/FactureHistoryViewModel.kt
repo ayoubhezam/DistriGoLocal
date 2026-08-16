@@ -1,13 +1,12 @@
 package com.distrigo.app.ui.clients
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.core.paging.PagedListController
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.ClientTransaction
 import com.distrigo.app.data.model.FactureFilter
 import com.distrigo.app.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Independent ViewModel for the "Voir tout l'historique" overlay (Factures & Paiements).
@@ -23,15 +23,10 @@ import kotlinx.coroutines.launch
  * which keeps owning the small truncated list shown inline in ClientDetailScreen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class FactureHistoryViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db = db
-    )
+@HiltViewModel
+class FactureHistoryViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _totalCount = MutableStateFlow(0)
     val totalCount: StateFlow<Int> = _totalCount

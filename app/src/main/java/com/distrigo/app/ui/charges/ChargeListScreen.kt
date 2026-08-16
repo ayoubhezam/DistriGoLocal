@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Charge
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -34,7 +35,7 @@ import androidx.compose.material.icons.filled.Schedule
 @Composable
 fun ChargeListScreen(
     subtypeId    : Int,
-    viewModel    : ChargeViewModel = viewModel(),
+    viewModel    : ChargeViewModel = hiltViewModel(),
     onBack       : () -> Unit,
     onAddCharge  : () -> Unit,
     onEditCharge : (Charge) -> Unit

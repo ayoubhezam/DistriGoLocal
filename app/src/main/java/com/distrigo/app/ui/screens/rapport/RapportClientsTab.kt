@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.ventes.VenteDetailScreen
@@ -30,7 +31,7 @@ import kotlin.math.roundToInt
 fun RapportClientsTab(
     modifier: Modifier = Modifier,
     onOpenClientDetail: (Int) -> Unit = {},   // محتفَظ به لأجل سلسلة MainActivity القديمة — غير مستخدَم حاليًا في هذا الملف
-    viewModel: RapportClientsViewModel = viewModel()
+    viewModel: RapportClientsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()

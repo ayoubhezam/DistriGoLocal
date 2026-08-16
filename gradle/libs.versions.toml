@@ -11,6 +11,7 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
 composeBom = "2024.09.00"
+hilt = "2.56.2"
 
 [libraries]
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -37,10 +38,15 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 
 

@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -34,7 +35,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun ClientsScreen(
-    viewModel     : ClientViewModel = viewModel(),
+    viewModel     : ClientViewModel = hiltViewModel(),
     modifier      : Modifier = Modifier,
     onAddClient   : () -> Unit = {},
     onEditClient  : (Int) -> Unit = {},

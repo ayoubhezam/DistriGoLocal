@@ -1,24 +1,20 @@
 package com.distrigo.app.ui.chargements
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-// 1. �� ����� ���� ��������� ���
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Chargement
 import com.distrigo.app.data.model.ChargementSession
 import com.distrigo.app.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ChargementViewModel(application: Application) : AndroidViewModel(application) {
-
-    // 2. �� ����� ����� ������� ������� ������ ��� ��� DAOs
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(db.productDao(), db.categoryDao(),
-        db.supplierDao(),
-        db)
+@HiltViewModel
+class ChargementViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _chargements = MutableStateFlow<List<Chargement>>(emptyList())
     val chargements: StateFlow<List<Chargement>> = _chargements

@@ -1,26 +1,27 @@
 package com.distrigo.app.ui.inventory
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.InventoryItem
 import com.distrigo.app.data.model.InventorySession
 import com.distrigo.app.data.model.InventorySessionSummary
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.InventoryRepository
 import com.distrigo.app.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
-class InventoryViewModel(application: Application) : AndroidViewModel(application) {
+import javax.inject.Inject
 
-    private val db = AppDatabase.getDatabase(application)
-    private val repository        = InventoryRepository(db)
-    private val productRepository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+@HiltViewModel
+class InventoryViewModel @Inject constructor(
+    private val repository: InventoryRepository,
+    private val productRepository: ProductRepository
+) : ViewModel() {
 
     // ── Session active (Draft) ──
     private val _activeSession = MutableStateFlow<InventorySession?>(null)
@@ -32,7 +33,7 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // ── Résumé après "Terminer l'inventaire" ──
     private val _summary = MutableStateFlow<InventorySessionSummary?>(null)

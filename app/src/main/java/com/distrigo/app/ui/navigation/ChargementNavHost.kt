@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -61,8 +62,8 @@ fun ChargementNavHost(
     ) {
         composable(Screen.ChargementFormProducts.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }
-            val viewModel: ChargementViewModel = viewModel(parentEntry)
-            val productViewModel: ProductViewModel = viewModel()
+            val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
+            val productViewModel: ProductViewModel = hiltViewModel()
             val products by productViewModel.products.collectAsState()
             val cartItems by viewModel.formCartItems.collectAsState()
             val selectedChargement by viewModel.selectedChargement.collectAsState()
@@ -293,7 +294,7 @@ fun ChargementNavHost(
 
         composable(Screen.ChargementFormCart.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }
-            val viewModel: ChargementViewModel = viewModel(parentEntry)
+            val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
             val cartItems by viewModel.formCartItems.collectAsState()
             val note by viewModel.formNote.collectAsState()
             val userName by viewModel.formUserName.collectAsState()

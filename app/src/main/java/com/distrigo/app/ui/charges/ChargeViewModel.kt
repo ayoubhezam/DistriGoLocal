@@ -1,21 +1,21 @@
 package com.distrigo.app.ui.charges
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Charge
 import com.distrigo.app.data.model.ChargeSubType
 import com.distrigo.app.data.model.ChargeType
 import com.distrigo.app.data.repository.ChargeRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ChargeViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ChargeRepository(db.chargeDao())
+@HiltViewModel
+class ChargeViewModel @Inject constructor(
+    private val repository: ChargeRepository
+) : ViewModel() {
 
     // ── قائمة الأنواع (Types) ──
     private val _chargeTypes = MutableStateFlow<List<ChargeType>>(emptyList())

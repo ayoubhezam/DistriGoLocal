@@ -1,20 +1,20 @@
 package com.distrigo.app.ui.screens.rapport
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.repository.ProductRepository
-import com.distrigo.app.data.local.database.AppDatabase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import javax.inject.Inject
 
-class TableauDeBordViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db = db)
+@HiltViewModel
+class TableauDeBordViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _selectedPeriod = MutableStateFlow(ReportPeriod.SEMAINE)
     val selectedPeriod: StateFlow<ReportPeriod> = _selectedPeriod.asStateFlow()

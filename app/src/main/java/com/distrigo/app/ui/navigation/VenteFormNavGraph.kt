@@ -38,29 +38,45 @@ import com.distrigo.app.ui.ventes.*
 
 // `viewModel`/`productViewModel`/`clientViewModel` are `@Composable` providers rather than
 // pre-resolved instances: NavHost's `builder: NavGraphBuilder.() -> Unit` runs inside a plain
-// `remember { navController.createGraph(...) }` call, NOT a @Composable context, so `viewModel()`
+// `remember { navController.createGraph(...) }` call, NOT a @Composable context, so `hiltViewModel()`
 // cannot be invoked directly as an argument at the call site (in the raw NavHost{} block). Each
 // provider is instead invoked lazily inside this graph's own `composable(...) { }` content
 // lambdas, which ARE @Composable — letting the caller decide the scoping (e.g. parent-graph vs.
 // per-destination) while keeping this file compilable.
+// `routePrefix` namespaces this graph instance's child routes so the SAME function can be
+// registered twice per NavHost under two different graph routes (see Screen.VenteFormGraph /
+// Screen.VenteFormGraphDirect) without route collisions:
+//  - skipClientStep = false: client/vente unknown at entry → starts at the client-picker step.
+//  - skipClientStep = true : client or vente already known at entry → starts directly at Products.
+//    The client step composable is never registered in this mode, so it can never be navigated
+//    to, composed, or animated — not even for a single frame.
 fun NavGraphBuilder.venteFormGraph(
     navController    : NavHostController,
     graphRoute       : String,
+    routePrefix      : String,
+    skipClientStep   : Boolean = false,
     viewModel        : @Composable () -> VenteViewModel,
     productViewModel : @Composable () -> ProductViewModel,
     clientViewModel  : @Composable () -> ClientViewModel,
     onBack  : () -> Unit,
     onSaved : () -> Unit
 ) {
+    val clientRoute       = "${routePrefix}_client"
+    val clientPickerRoute = "${routePrefix}_client_picker"
+    val productsRoute     = "${routePrefix}_products"
+    val cartRoute         = "${routePrefix}_cart"
+    val validationRoute   = "${routePrefix}_validation"
+
     navigation(
-        startDestination = Screen.VenteFormClient.route,
+        startDestination = if (skipClientStep) productsRoute else clientRoute,
         route = graphRoute,
         arguments = listOf(
             navArgument("venteId")  { type = NavType.IntType; defaultValue = -1 },
             navArgument("clientId") { type = NavType.IntType; defaultValue = -1 }
         )
     ) {
-        composable(Screen.VenteFormClient.route) { entry ->
+        if (!skipClientStep) {
+        composable(clientRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
@@ -90,24 +106,17 @@ fun NavGraphBuilder.venteFormGraph(
                     viewModel.setFormClient(clients.find { it.id == clientIdArg })
                 }
             }
-            LaunchedEffect(formClient, isEdit, clientIdArg) {
-                if (formClient != null && (isEdit || clientIdArg != null)) {
-                    navController.navigate(Screen.VenteFormProducts.route) {
-                        popUpTo(Screen.VenteFormClient.route) { inclusive = false }
-                    }
-                }
-            }
 
             BackHandler { onBack() }
 
             Step1Client(
                 selectedClient = formClient,
-                onChooseClient = { navController.navigate(Screen.VenteFormClientPicker.route) },
-                onNext         = { navController.navigate(Screen.VenteFormProducts.route) }
+                onChooseClient = { navController.navigate(clientPickerRoute) },
+                onNext         = { navController.navigate(productsRoute) }
             )
         }
 
-        composable(Screen.VenteFormClientPicker.route) { entry ->
+        composable(clientPickerRoute) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
@@ -240,12 +249,15 @@ fun NavGraphBuilder.venteFormGraph(
                 }
             }
         }
+        }
 
-        composable(Screen.VenteFormProducts.route) { entry ->
+        composable(productsRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val clientViewModel = clientViewModel()
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
+            val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
             val isEdit = venteId != null
             val ventes by viewModel.ventes.collectAsState()
             val editingVente = venteId?.let { id -> ventes.find { it.id == id } }
@@ -254,6 +266,32 @@ fun NavGraphBuilder.venteFormGraph(
             val cartItems by viewModel.formCartItems.collectAsState()
             var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
+
+            if (skipClientStep) {
+                // This step is the graph's entry point in this mode (client/vente already known
+                // at navigation time) — run the same one-time init + client-resolution that the
+                // client step normally does, since that step is never entered here.
+                val clients by clientViewModel.clients.collectAsState()
+
+                var initialized by rememberSaveable { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    if (!initialized) {
+                        viewModel.resetVenteForm()
+                        if (venteId != null) viewModel.loadVenteDetail(venteId)
+                        initialized = true
+                    }
+                }
+                LaunchedEffect(clients, editingVente) {
+                    if (isEdit && formClient == null && editingVente != null && clients.isNotEmpty()) {
+                        viewModel.setFormClient(clients.find { it.id == editingVente.client_id })
+                    }
+                }
+                LaunchedEffect(clientIdArg, clients) {
+                    if (clientIdArg != null && formClient == null && !isEdit) {
+                        viewModel.setFormClient(clients.find { it.id == clientIdArg })
+                    }
+                }
+            }
 
             LaunchedEffect(products, editingVente) {
                 if (isEdit && cartItems.isEmpty() && editingVente?.items != null && products.isNotEmpty()) {
@@ -338,7 +376,7 @@ fun NavGraphBuilder.venteFormGraph(
             }
 
             BackHandler {
-                if (editingVente != null) onBack() else navController.popBackStack()
+                if (skipClientStep) onBack() else navController.popBackStack()
             }
 
             val filteredProducts = products.filter { product ->
@@ -355,7 +393,7 @@ fun NavGraphBuilder.venteFormGraph(
                     modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { if (editingVente != null) onBack() else navController.popBackStack() }) {
+                    IconButton(onClick = { if (skipClientStep) onBack() else navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
                     }
                     Column(modifier = Modifier.weight(1f)) {
@@ -542,7 +580,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 .fillMaxWidth()
                                 .clip(DsShapes.large)
                                 .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
-                                .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(Screen.VenteFormCart.route) }
+                                .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(cartRoute) }
                                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
@@ -569,7 +607,7 @@ fun NavGraphBuilder.venteFormGraph(
             }
         }
 
-        composable(Screen.VenteFormCart.route) { entry ->
+        composable(cartRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val productViewModel = productViewModel()
@@ -751,7 +789,7 @@ fun NavGraphBuilder.venteFormGraph(
                         }
 
                         Button(
-                            onClick  = { navController.navigate(Screen.VenteFormValidation.route) },
+                            onClick  = { navController.navigate(validationRoute) },
                             enabled  = cartItems.isNotEmpty(),
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.medium,
@@ -764,7 +802,7 @@ fun NavGraphBuilder.venteFormGraph(
             }
         }
 
-        composable(Screen.VenteFormValidation.route) { entry ->
+        composable(validationRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()

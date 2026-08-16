@@ -1,31 +1,33 @@
 package com.distrigo.app.ui.retours
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class RetourFournisseurViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository        = RetourFournisseurRepository(db)
-    private val productRepository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+@HiltViewModel
+class RetourFournisseurViewModel @Inject constructor(
+    private val db: AppDatabase,
+    private val repository: RetourFournisseurRepository,
+    private val productRepository: ProductRepository
+) : ViewModel() {
 
     private val _retours = MutableStateFlow<List<RetourFournisseur>>(emptyList())
     val retours: StateFlow<List<RetourFournisseur>> = _retours
 
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table products
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading

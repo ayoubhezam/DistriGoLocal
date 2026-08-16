@@ -10,23 +10,18 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.ClientTransaction
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.data.api.extractErrorMessage
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ClientViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class ClientViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
-    private val db = AppDatabase.getDatabase(application)
-
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -41,7 +36,7 @@ class ClientViewModel(application: Application) : AndroidViewModel(application) 
     val clients: StateFlow<List<Client>> = repository.observeClients()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
      * ترجع الولاية الأكثر استعمالًا إن ظهرت في زبونين أو أكثر، وإلا null.

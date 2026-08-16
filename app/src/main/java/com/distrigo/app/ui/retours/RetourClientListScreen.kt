@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.ui.designsystem.DsColors
@@ -41,7 +42,7 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 @Composable
 fun RetourClientListScreen(
     client      : Client,
-    viewModel   : RetourClientViewModel = viewModel(),
+    viewModel   : RetourClientViewModel = hiltViewModel(),
     onBack      : () -> Unit,
     onAddRetour : () -> Unit = {}
 ) {

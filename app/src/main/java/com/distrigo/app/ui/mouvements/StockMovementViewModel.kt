@@ -1,21 +1,19 @@
 package com.distrigo.app.ui.mouvements
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.StockMovement
 import com.distrigo.app.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class StockMovementViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(), db.categoryDao(), db.supplierDao(), db = db
-    )
+@HiltViewModel
+class StockMovementViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _movements = MutableStateFlow<List<StockMovement>>(emptyList())
     val movements: StateFlow<List<StockMovement>> = _movements

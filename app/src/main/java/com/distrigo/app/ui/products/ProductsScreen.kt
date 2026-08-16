@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -63,7 +64,7 @@ private fun isExpiringSoon(expiryDate: String?, withinDays: Int = 30): Boolean {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
-    viewModel      : ProductViewModel = viewModel(),
+    viewModel      : ProductViewModel = hiltViewModel(),
     modifier       : Modifier = Modifier,
     onAddProduct   : () -> Unit = {},
     onEditProduct  : (Int) -> Unit = {},

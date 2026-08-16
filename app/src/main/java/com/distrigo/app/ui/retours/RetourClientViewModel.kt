@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.retours
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Client
@@ -9,29 +8,32 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourClientRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import javax.inject.Inject
 
-class RetourClientViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository        = RetourClientRepository(db)
-    private val productRepository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+@HiltViewModel
+class RetourClientViewModel @Inject constructor(
+    private val db: AppDatabase,
+    private val repository: RetourClientRepository,
+    private val productRepository: ProductRepository
+) : ViewModel() {
 
     private val _retours = MutableStateFlow<List<RetourClient>>(emptyList())
     val retours: StateFlow<List<RetourClient>> = _retours
 
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table products
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table clients
     val clients: StateFlow<List<Client>> = productRepository.observeClients()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading

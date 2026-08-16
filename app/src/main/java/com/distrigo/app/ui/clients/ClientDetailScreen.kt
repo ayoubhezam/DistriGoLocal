@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.FactureFilter
@@ -81,8 +82,8 @@ fun ClientDetailScreen(
     onRetourForm     : () -> Unit,
     onRetourHistory  : () -> Unit,
     onFactureHistory : () -> Unit,
-    viewModel        : ClientViewModel = viewModel(),
-    retourViewModel  : RetourClientViewModel = viewModel()
+    viewModel        : ClientViewModel = hiltViewModel(),
+    retourViewModel  : RetourClientViewModel = hiltViewModel()
 ) {
     val currentClient = viewModel.clients.collectAsState().value
         .find { it.id == client.id } ?: client

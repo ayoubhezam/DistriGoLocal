@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Category
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -23,7 +24,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 
 @Composable
-fun CategoriesScreen(viewModel: CategoryViewModel = viewModel()) {
+fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
 
     val categories by viewModel.categories.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()

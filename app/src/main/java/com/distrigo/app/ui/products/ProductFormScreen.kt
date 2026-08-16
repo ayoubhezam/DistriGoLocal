@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.designsystem.DsColors
@@ -55,7 +56,7 @@ fun ProductFormScreen(
     product   : Product? = null,
     onBack    : () -> Unit,
     onSaved   : (Int) -> Unit,
-    viewModel : ProductViewModel = viewModel()
+    viewModel : ProductViewModel = hiltViewModel()
 ) {
     val isEdit = product != null
 

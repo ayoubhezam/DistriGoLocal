@@ -5,20 +5,15 @@ import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
-class CategoryViewModel(application: Application) : AndroidViewModel(application) {
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-    // �� ProductViewModel � CategoryViewModel
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
+@HiltViewModel
+class CategoryViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories

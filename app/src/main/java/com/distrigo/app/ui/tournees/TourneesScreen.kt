@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.ui.designsystem.DsColors
@@ -35,11 +37,23 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import kotlin.math.roundToInt
+
+// Item order inside TourneeDetailScreen's LazyColumn: 0 = collapsing header, 1 = sticky
+// client-avatars section, 2 = "Tickets de vente" label, 3 = first ticket row.
+private const val TICKETS_FIRST_ITEM_INDEX = 3
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
 fun TourneesScreen(
-    viewModel      : TourneeViewModel = viewModel(),
+    viewModel      : TourneeViewModel = hiltViewModel(),
     modifier       : Modifier = Modifier,
     onAddTournee   : () -> Unit = {},
     onTourneeClick : (Int) -> Unit = {}
@@ -139,13 +153,14 @@ fun TourneesScreen(
 }
 
 // ═══ LEVEL 2 — Tournée detail (Navigation Compose destination: Screen.TourneesDetail) ═══
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TourneeDetailScreen(
     tourneeId              : Int,
-    viewModel              : TourneeViewModel = viewModel(),
+    viewModel              : TourneeViewModel = hiltViewModel(),
     modifier                : Modifier = Modifier,
-    venteViewModel          : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    productViewModel        : com.distrigo.app.ui.products.ProductViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    venteViewModel          : VenteViewModel = hiltViewModel(),
+    productViewModel        : com.distrigo.app.ui.products.ProductViewModel = hiltViewModel(),
     onBack                  : () -> Unit = {},
     onEditTournee           : (Tournee) -> Unit = {},
     onAddClients            : () -> Unit = {},
@@ -174,6 +189,70 @@ fun TourneeDetailScreen(
     var deleteVenteError        by remember { mutableStateOf("") }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var transientMessage        by remember { mutableStateOf<String?>(null) }
+
+    // ── Collapsing header (exitUntilCollapsed) ──
+    var headerOffsetPx by remember { mutableStateOf(0f) }
+    var headerHeightPx by remember { mutableStateOf(0f) }
+    val listState = rememberLazyListState()
+    val headerNestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            // Recomputed once per fling in onPreFling below: true only when that fling starts
+            // deeper in the tickets than the first-ticket boundary (item
+            // TICKETS_FIRST_ITEM_INDEX), meaning it's this fling's own momentum that would
+            // carry it across that boundary. A fling that *starts* at/past the boundary
+            // already (e.g. a second, separate swipe from where the first one stopped) gets
+            // false here and is left free to fling on through normally.
+            var flingStartedBelowBoundary = false
+
+            // Collapsing (drag up, negative delta): consume into the header BEFORE the list
+            // scrolls, so the header shrinks first and the list only starts moving once it's
+            // fully collapsed.
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < 0f) {
+                    val newOffset = (headerOffsetPx + available.y).coerceIn(-headerHeightPx, 0f)
+                    val consumed = newOffset - headerOffsetPx
+                    headerOffsetPx = newOffset
+                    return Offset(0f, consumed)
+                }
+                // Scrolling toward the top (available.y > 0): a fling (source == SideEffect,
+                // i.e. post-release momentum) that started deeper in the tickets and is only
+                // now, mid-flight, reaching the first ticket gets stopped right there for the
+                // rest of its run — it can't coast on into the sticky client-avatars section
+                // above. A fling that already started at/past that boundary (a fresh, separate
+                // swipe) keeps its normal momentum and is allowed straight through. A live drag
+                // is never blocked either way.
+                if (source == NestedScrollSource.SideEffect &&
+                    flingStartedBelowBoundary &&
+                    listState.firstVisibleItemIndex <= TICKETS_FIRST_ITEM_INDEX
+                ) {
+                    return Offset(0f, available.y)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                flingStartedBelowBoundary = listState.firstVisibleItemIndex > TICKETS_FIRST_ITEM_INDEX
+                return super.onPreFling(available)
+            }
+
+            // Expanding (drag down, positive delta): only consume what's left AFTER the list
+            // itself has consumed it — i.e. only once the list is already at its own top. This
+            // is what stops a downward drag deep in the tickets list from being eaten by an
+            // off-screen header trying to re-expand instead of the list actually scrolling.
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (available.y <= 0f) return Offset.Zero
+                val newOffset = (headerOffsetPx + available.y).coerceIn(-headerHeightPx, 0f)
+                val consumedByHeader = newOffset - headerOffsetPx
+                headerOffsetPx = newOffset
+                return Offset(0f, consumedByHeader)
+            }
+        }
+    }
+    val collapsedFraction by remember {
+        derivedStateOf {
+            if (headerHeightPx <= 0f) 0f else (-headerOffsetPx / headerHeightPx).coerceIn(0f, 1f)
+        }
+    }
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
@@ -318,273 +397,309 @@ fun TourneeDetailScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DsColors.Surface)
-        ) {
-            if (current == null || current.id != tourneeId) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DsColors.Primary)
-                }
-            } else {
-                longPressVenteInTournee?.let { vente ->
-                    if (showDeleteVenteInTournee) {
-                        AlertDialog(
-                            onDismissRequest = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" },
-                            title = { Text("Supprimer ce reçu ?") },
-                            text  = {
-                                Column {
-                                    Text("Cette action est irréversible. Les quantités vendues seront remises en stock.")
-                                    if (deleteVenteError.isNotEmpty()) {
-                                        Spacer(Modifier.height(DsSpacing.sm))
-                                        Text(deleteVenteError, fontSize = DsTextSize.caption, color = DsColors.Danger)
-                                    }
+        if (current == null || current.id != tourneeId) {
+            Box(
+                Modifier.fillMaxSize().background(DsColors.Surface),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = DsColors.Primary)
+            }
+        } else {
+            longPressVenteInTournee?.let { vente ->
+                if (showDeleteVenteInTournee) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" },
+                        title = { Text("Supprimer ce reçu ?") },
+                        text  = {
+                            Column {
+                                Text("Cette action est irréversible. Les quantités vendues seront remises en stock.")
+                                if (deleteVenteError.isNotEmpty()) {
+                                    Spacer(Modifier.height(DsSpacing.sm))
+                                    Text(deleteVenteError, fontSize = DsTextSize.caption, color = DsColors.Danger)
                                 }
-                            },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    venteViewModel.deleteVente(
-                                        id        = vente.id,
-                                        onSuccess = {
-                                            showDeleteVenteInTournee = false
-                                            longPressVenteInTournee  = null
-                                            deleteVenteError         = ""
-                                            viewModel.loadTourneeDetail(tourneeId)
-                                            viewModel.refreshAfterVenteChange(tourneeId)
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                venteViewModel.deleteVente(
+                                    id        = vente.id,
+                                    onSuccess = {
+                                        showDeleteVenteInTournee = false
+                                        longPressVenteInTournee  = null
+                                        deleteVenteError         = ""
+                                        viewModel.loadTourneeDetail(tourneeId)
+                                        viewModel.refreshAfterVenteChange(tourneeId)
 
-                                        },
-                                        onError = { error -> deleteVenteError = error }
-                                    )
-                                }) {
-                                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" }) {
-                                    Text("Annuler")
-                                }
+                                    },
+                                    onError = { error -> deleteVenteError = error }
+                                )
+                            }) {
+                                Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                             }
-                        )
-                    } else {
-                        AlertDialog(
-                            onDismissRequest = { longPressVenteInTournee = null },
-                            title = { Text("Vente #${vente.id}") },
-                            confirmButton = {},
-                            dismissButton = {},
-                            text = {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(DsShapes.medium)
-                                        .background(DsColors.DangerLight)
-                                        .clickable { showDeleteVenteInTournee = true }
-                                        .padding(DsSpacing.md),
-                                    verticalAlignment     = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                                    Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
-                                }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" }) {
+                                Text("Annuler")
                             }
-                        )
+                        }
+                    )
+                } else {
+                    AlertDialog(
+                        onDismissRequest = { longPressVenteInTournee = null },
+                        title = { Text("Vente #${vente.id}") },
+                        confirmButton = {},
+                        dismissButton = {},
+                        text = {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.medium)
+                                    .background(DsColors.DangerLight)
+                                    .clickable { showDeleteVenteInTournee = true }
+                                    .padding(DsSpacing.md),
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                                Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DsColors.Surface)
+            ) {
+                // ── Top bar row: back + title + overflow menu — always fully visible, never fades/translates ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                    }
+                    Spacer(Modifier.width(DsSpacing.xs))
+                    Text(
+                        current.nom,
+                        modifier   = Modifier.weight(1f),
+                        fontSize   = DsTextSize.title,
+                        fontWeight = FontWeight.Bold,
+                        color      = DsColors.TextPrimary,
+                        maxLines   = 1
+                    )
+                    Box {
+                        IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+                        }
+                        DropdownMenu(expanded = showTourneeMenu, onDismissRequest = { showTourneeMenu = false }) {
+                            DropdownMenuItem(
+                                text        = { Text("Modifier les informations") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                                onClick     = { showTourneeMenu = false; onEditTournee(current) }
+                            )
+                            if ((current.ventes_count ?: 0) == 0) {
+                                DropdownMenuItem(
+                                    text        = { Text("Supprimer la tournée") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                    onClick     = { showTourneeMenu = false; showDeleteTourneeDialog = current }
+                                )
+                            }
+                        }
                     }
                 }
 
-                // ── Full scrollable detail body ──
+                // ── Body: single LazyColumn — collapsing header item, sticky clients section, free-scrolling tickets ──
                 LazyColumn(
-                    modifier            = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding      = PaddingValues(bottom = DsSpacing.lg)
+                    state          = listState,
+                    modifier       = Modifier.weight(1f).fillMaxWidth().nestedScroll(headerNestedScrollConnection),
+                    contentPadding = PaddingValues(bottom = DsSpacing.lg)
                 ) {
                     item {
-                        Column(modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg)) {
-
-                            // ── Carte d'informations ──
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clipToBounds()
+                                .layout { measurable, constraints ->
+                                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+                                    headerHeightPx = placeable.height.toFloat()
+                                    val collapsedHeight = (placeable.height + headerOffsetPx).coerceAtLeast(0f).roundToInt()
+                                    layout(placeable.width, collapsedHeight) {
+                                        placeable.placeRelative(0, headerOffsetPx.roundToInt())
+                                    }
+                                }
+                        ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(DsShapes.large)
-                                    .background(DsColors.Surface)
-                                    .border(1.dp, DsColors.Border, DsShapes.large)
+                                    .alpha((1f - collapsedFraction * 2f).coerceIn(0f, 1f))
                                     .padding(DsSpacing.lg)
                             ) {
-                                Row(verticalAlignment = Alignment.Top) {
-                                    Box(
-                                        modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
-                                    }
-                                    Spacer(Modifier.width(DsSpacing.md))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(current.nom, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                        Spacer(Modifier.height(4.dp))
+                                // ── Carte d'informations ──
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(DsShapes.large)
+                                        .background(DsColors.Surface)
+                                        .border(1.dp, DsColors.Border, DsShapes.large)
+                                        .padding(DsSpacing.lg)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
+                                        }
+                                        Spacer(Modifier.width(DsSpacing.md))
                                         TourneeStatusBadge(status = current.status)
                                     }
-                                    Box {
-                                        IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
-                                            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+
+                                    val details = listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ")
+                                    if (details.isNotEmpty()) {
+                                        Spacer(Modifier.height(DsSpacing.sm))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(details, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                                         }
-                                        DropdownMenu(expanded = showTourneeMenu, onDismissRequest = { showTourneeMenu = false }) {
-                                            DropdownMenuItem(
-                                                text        = { Text("Modifier les informations") },
-                                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
-                                                onClick     = { showTourneeMenu = false; onEditTournee(current) }
-                                            )
-                                            if ((current.ventes_count ?: 0) == 0) {
-                                                DropdownMenuItem(
-                                                    text        = { Text("Supprimer la tournée") },
-                                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                                    onClick     = { showTourneeMenu = false; showDeleteTourneeDialog = current }
+                                    }
+
+                                    current.date_debut?.let { date ->
+                                        Spacer(Modifier.height(4.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(formatOrderDate(date.take(10)), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(DsSpacing.md))
+
+                                // ── Action principale ──
+                                if (current.status == "ouverte") {
+                                    Button(
+                                        onClick  = { showCloseDialog = current },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        shape    = DsShapes.medium,
+                                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
+                                    ) {
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(DsSpacing.xs))
+                                        Text("Clôturer la tournée", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    }
+                                } else {
+                                    Button(
+                                        onClick  = { showReopenDialog = current },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        shape    = DsShapes.medium,
+                                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                    ) {
+                                        Text("Rouvrir", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+
+                                if (current.status == "ouverte") {
+                                    val totalCamionStock = products.sumOf { it.camion_stock }
+                                    if (totalCamionStock <= 0) {
+                                        Spacer(Modifier.height(DsSpacing.md))
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(DsShapes.large)
+                                                .background(DsColors.DangerLight)
+                                                .padding(DsSpacing.lg)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                                                Spacer(Modifier.width(DsSpacing.sm))
+                                                Text(
+                                                    "Camion vide",
+                                                    fontSize = DsTextSize.body,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DsColors.Danger
                                                 )
+                                            }
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(
+                                                "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
+                                                fontSize = DsTextSize.caption,
+                                                color = DsColors.Danger
+                                            )
+                                            Spacer(Modifier.height(DsSpacing.sm))
+                                            Button(
+                                                onClick = { onNavigateToChargement() },
+                                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                                shape = DsShapes.medium,
+                                                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
+                                            ) {
+                                                Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
                                             }
                                         }
                                     }
                                 }
 
-                                val details = listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ")
-                                if (details.isNotEmpty()) {
-                                    Spacer(Modifier.height(DsSpacing.sm))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(details, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                                    }
-                                }
-
-                                current.date_debut?.let { date ->
-                                    Spacer(Modifier.height(4.dp))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(formatOrderDate(date.take(10)), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(DsSpacing.md))
-
-                            // ── Action principale ──
-                            if (current.status == "ouverte") {
-                                Button(
-                                    onClick  = { showCloseDialog = current },
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape    = DsShapes.medium,
-                                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
-                                ) {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(DsSpacing.xs))
-                                    Text("Clôturer la tournée", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                                }
-                            } else {
-                                Button(
-                                    onClick  = { showReopenDialog = current },
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape    = DsShapes.medium,
-                                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-                                ) {
-                                    Text("Rouvrir", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                    if (current.status == "ouverte") {
-                        val totalCamionStock = products.sumOf { it.camion_stock }
-                        if (totalCamionStock <= 0) {
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = DsSpacing.lg)
-                                        .clip(DsShapes.large)
-                                        .background(DsColors.DangerLight)
-                                        .padding(DsSpacing.lg)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                                        Spacer(Modifier.width(DsSpacing.sm))
-                                        Text(
-                                            "Camion vide",
-                                            fontSize = DsTextSize.body,
-                                            fontWeight = FontWeight.Bold,
-                                            color = DsColors.Danger
-                                        )
-                                    }
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
-                                        fontSize = DsTextSize.caption,
-                                        color = DsColors.Danger
-                                    )
-                                    Spacer(Modifier.height(DsSpacing.sm))
-                                    Button(
-                                        onClick = { onNavigateToChargement() },
-                                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                                        shape = DsShapes.medium,
-                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
+                                if (current.status == "ouverte") {
+                                    Spacer(Modifier.height(DsSpacing.md))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(DsShapes.large)
+                                            .background(
+                                                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                                    colors = listOf(DsColors.Primary, DsColors.Primary.copy(alpha = 0.75f))
+                                                )
+                                            )
+                                            .clickable { onAddClients() }
+                                            .padding(DsSpacing.lg),
+                                        verticalAlignment     = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                                     ) {
-                                        Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                        Box(
+                                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(Color.White.copy(alpha = 0.2f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("Ajouter des clients", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text("Sélectionner les clients à visiter", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
+                                        }
+                                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                                     }
                                 }
+
                                 Spacer(Modifier.height(DsSpacing.md))
+                                TourneeStatsCarousel(current = current, tourneeClients = tourneeClients)
                             }
                         }
                     }
 
-
-                    if (current.status == "ouverte") {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = DsSpacing.lg)
-                                    .clip(DsShapes.large)
-                                    .background(
-                                        androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                            colors = listOf(DsColors.Primary, DsColors.Primary.copy(alpha = 0.75f))
-                                        )
-                                    )
-                                    .clickable { onAddClients() }
-                                    .padding(DsSpacing.lg),
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                            ) {
-                                Box(
-                                    modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(Color.White.copy(alpha = 0.2f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    stickyHeader {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(DsColors.Surface)
+                        ) {
+                            TourneeTrackingSection(
+                                tourneeClients      = tourneeClients,
+                                tourneeVentes       = current.ventes ?: emptyList(),
+                                isOpen              = current.status == "ouverte",
+                                onCreateSale        = { cid -> onCreateVente(cid) },
+                                onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
+                                onNavigateToVente   = { vente -> onOpenVente(vente) },
+                                onNoVenteTap        = { msg -> transientMessage = msg },
+                                onAddClient         = { onAddClients() },
+                                onReopenSaleForVisited = { cid ->
+                                    confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
                                 }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Ajouter des clients", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = Color.White)
-                                    Text("Sélectionner les clients à visiter", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
-                                }
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                            }
-                            Spacer(Modifier.height(DsSpacing.md))
+                            )
                         }
-                    }
-
-                    item {
-                        TourneeStatsCarousel(current = current, tourneeClients = tourneeClients)
-                        Spacer(Modifier.height(DsSpacing.md))
-                    }
-
-                    item {
-                        TourneeTrackingSection(
-                            tourneeClients      = tourneeClients,
-                            tourneeVentes       = current.ventes ?: emptyList(),
-                            isOpen              = current.status == "ouverte",
-                            onCreateSale        = { cid -> onCreateVente(cid) },
-                            onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
-                            onNavigateToVente   = { vente -> onOpenVente(vente) },
-                            onNoVenteTap        = { msg -> transientMessage = msg },
-                            onAddClient         = { onAddClients() },
-                            onReopenSaleForVisited = { cid ->
-                                confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
-                            }
-                        )
-                        Spacer(Modifier.height(DsSpacing.md))
                     }
 
                     val ventes = current.ventes ?: emptyList()

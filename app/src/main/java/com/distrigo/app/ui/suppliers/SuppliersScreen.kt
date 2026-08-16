@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -25,7 +26,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun SuppliersScreen(
-    viewModel       : SupplierViewModel = viewModel(),
+    viewModel       : SupplierViewModel = hiltViewModel(),
     modifier        : Modifier = Modifier,
     onAddSupplier   : () -> Unit = {},
     onSupplierClick : (Int) -> Unit = {}

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,7 +28,7 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     ) {
         composable(Screen.ChargesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargesGraph.route) }
-            val viewModel: ChargeViewModel = viewModel(parentEntry)
+            val viewModel: ChargeViewModel = hiltViewModel(parentEntry)
             ChargesScreen(
                 viewModel   = viewModel,
                 onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) }
@@ -39,7 +40,7 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             arguments = listOf(navArgument("typeId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargesGraph.route) }
-            val viewModel: ChargeViewModel = viewModel(parentEntry)
+            val viewModel: ChargeViewModel = hiltViewModel(parentEntry)
             val typeId = entry.arguments!!.getInt("typeId")
             ChargeSubTypesScreen(
                 typeId         = typeId,
@@ -54,7 +55,7 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             arguments = listOf(navArgument("subtypeId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargesGraph.route) }
-            val viewModel: ChargeViewModel = viewModel(parentEntry)
+            val viewModel: ChargeViewModel = hiltViewModel(parentEntry)
             val subtypeId = entry.arguments!!.getInt("subtypeId")
             ChargeListScreen(
                 subtypeId    = subtypeId,
@@ -68,7 +69,7 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         chargesFormGraph(
             navController = navController,
             graphRoute    = Screen.ChargesFormGraph.route,
-            viewModel     = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) }) },
+            viewModel     = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) }) },
             onBack  = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) }
         )

@@ -2,6 +2,7 @@ package com.distrigo.app.ui.navigation
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,7 +30,7 @@ fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     ) {
         composable(Screen.AchatsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.AchatsGraph.route) }
-            val viewModel: PurchaseViewModel = viewModel(parentEntry)
+            val viewModel: PurchaseViewModel = hiltViewModel(parentEntry)
             PurchasesScreen(
                 viewModel          = viewModel,
                 onFullScreenChange = onFullScreenChange,
@@ -42,9 +43,9 @@ fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         purchaseFormGraph(
             navController     = navController,
             graphRoute        = Screen.PurchaseFormGraph.route,
-            viewModel         = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.AchatsGraph.route) }) },
-            productViewModel  = { viewModel() },
-            supplierViewModel = { viewModel() },
+            viewModel         = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.AchatsGraph.route) }) },
+            productViewModel  = { hiltViewModel() },
+            supplierViewModel = { hiltViewModel() },
             onBack  = { navController.popBackStack(Screen.PurchaseFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.PurchaseFormGraph.route, inclusive = true) }
         )
@@ -54,7 +55,7 @@ fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             arguments = listOf(navArgument("orderId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.AchatsGraph.route) }
-            val viewModel: PurchaseViewModel = viewModel(parentEntry)
+            val viewModel: PurchaseViewModel = hiltViewModel(parentEntry)
             val orderId = entry.arguments!!.getInt("orderId")
             val orders by viewModel.orders.collectAsState()
             val fallbackOrder = orders.find { it.id == orderId }

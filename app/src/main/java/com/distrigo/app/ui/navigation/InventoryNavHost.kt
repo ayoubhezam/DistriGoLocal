@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -33,7 +34,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
     ) {
         composable(Screen.InventaireHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-            val viewModel: InventoryViewModel = viewModel(parentEntry)
+            val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
             InventoryHistoryScreen(
                 viewModel      = viewModel,
                 onBack         = onBack,
@@ -53,7 +54,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             arguments = listOf(navArgument("sessionId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-            val viewModel: InventoryViewModel = viewModel(parentEntry)
+            val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
             val sessionId = entry.arguments!!.getInt("sessionId")
             InventorySessionDetailScreen(
                 sessionId = sessionId,
@@ -68,7 +69,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
         ) {
             composable(Screen.InventaireSessionScan.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
 
                 LaunchedEffect(Unit) { viewModel.startOrResumeSession() }
 
@@ -141,7 +142,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 arguments = listOf(navArgument("productId") { type = NavType.IntType })
             ) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val productId = entry.arguments!!.getInt("productId")
                 val products by viewModel.products.collectAsState()
                 val product = products.find { it.id == productId }
@@ -188,7 +189,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
             composable(Screen.InventaireSessionConfirmed.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val lastResult by viewModel.lastScanResult.collectAsState()
                 val products by viewModel.products.collectAsState()
                 val currentResult = lastResult
@@ -213,7 +214,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
             composable(Screen.InventaireSessionReview.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val sessionItems by viewModel.sessionItems.collectAsState()
                 val userName by viewModel.userName.collectAsState()
                 var scanError by remember { mutableStateOf("") }
@@ -234,7 +235,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
             composable(Screen.InventaireSessionReadyToFinish.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val sessionItems by viewModel.sessionItems.collectAsState()
 
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -248,7 +249,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
             composable(Screen.InventaireSessionSummary.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = viewModel(parentEntry)
+                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val sessionItems by viewModel.sessionItems.collectAsState()
 
                 var isConfirmed      by remember { mutableStateOf(false) }

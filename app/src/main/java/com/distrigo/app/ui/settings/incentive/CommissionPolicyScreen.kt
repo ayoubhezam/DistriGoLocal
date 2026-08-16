@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.local.entity.incentive.CalculationSource
 import com.distrigo.app.data.local.entity.incentive.IncentiveType
 import com.distrigo.app.data.local.entity.incentive.PeriodType
@@ -52,8 +53,8 @@ private data class TierDraft(
 @Composable
 fun CommissionPolicyScreen(
     onBack: () -> Unit,
-    viewModel: IncentiveViewModel = viewModel(),
-    productViewModel: ProductViewModel = viewModel()   // ← جديد
+    viewModel: IncentiveViewModel = hiltViewModel(),
+    productViewModel: ProductViewModel = hiltViewModel()   // ← جديد
 
 ) {
     BackHandler { onBack() }

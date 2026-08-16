@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.StockMovement
 import com.distrigo.app.ui.designsystem.DsColors
@@ -43,7 +44,7 @@ fun MouvementsScreen(
     onBack          : () -> Unit,
     onMovementClick : (StockMovement) -> Unit,
     onFilterClick   : () -> Unit,
-    viewModel       : StockMovementViewModel = viewModel()
+    viewModel       : StockMovementViewModel = hiltViewModel()
 ) {
 
     val filters by viewModel.filters.collectAsState()

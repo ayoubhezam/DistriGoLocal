@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -39,7 +40,7 @@ import androidx.compose.material.icons.filled.Link
 @Composable
 fun PerteListScreen(
     typeId     : Int,
-    viewModel  : PerteViewModel = viewModel(),
+    viewModel  : PerteViewModel = hiltViewModel(),
     onBack     : () -> Unit,
     onAddPerte : () -> Unit,
     onEditPerte: (Perte) -> Unit

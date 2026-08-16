@@ -1,25 +1,25 @@
 package com.distrigo.app.ui.pertes
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.data.model.PerteType
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class PerteViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val repository        = PerteRepository(db)
-    private val productRepository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+@HiltViewModel
+class PerteViewModel @Inject constructor(
+    private val repository: PerteRepository,
+    private val productRepository: ProductRepository
+) : ViewModel() {
 
     // ── قائمة الأنواع ──
     private val _perteTypes = MutableStateFlow<List<PerteType>>(emptyList())
@@ -31,7 +31,7 @@ class PerteViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── المنتجات (لاختيار Produit في الفورم) — مُراقَبة مباشرة من Room، تتحدّث تلقائياً ──
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _selectedMonth = MutableStateFlow(currentMonth())
     val selectedMonth: StateFlow<String> = _selectedMonth

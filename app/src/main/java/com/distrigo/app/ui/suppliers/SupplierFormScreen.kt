@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.ui.common.DsSelectorField
@@ -53,7 +54,7 @@ fun SupplierFormScreen(
     supplier     : Supplier? = null,
     onBack       : () -> Unit,
     onSaved      : () -> Unit,
-    viewModel    : SupplierViewModel = viewModel()
+    viewModel    : SupplierViewModel = hiltViewModel()
 ) {
     val isEdit = supplier != null
 

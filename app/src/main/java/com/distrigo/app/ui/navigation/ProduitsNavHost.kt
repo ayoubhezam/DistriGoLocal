@@ -2,6 +2,7 @@ package com.distrigo.app.ui.navigation
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,7 +35,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
     ) {
         composable(Screen.ProduitsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = viewModel(parentEntry)
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             ProductsScreen(
                 viewModel      = viewModel,
                 onAddProduct   = { navController.navigate(Screen.ProduitsForm.createRoute()) },
@@ -48,7 +49,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             arguments = listOf(navArgument("productId") { type = NavType.IntType; defaultValue = -1 })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = viewModel(parentEntry)
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId").takeIf { it != -1 }
             val products by viewModel.products.collectAsState()
             val product = productId?.let { id -> products.find { it.id == id } }
@@ -66,7 +67,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = viewModel(parentEntry)
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId")
             val products by viewModel.products.collectAsState()
             val product = products.find { it.id == productId }
@@ -112,10 +113,10 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         ) {
             composable(Screen.ProduitsMovementsList.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsMovementsGraph.route) }
-                val movementsViewModel: StockMovementViewModel = viewModel(parentEntry)
+                val movementsViewModel: StockMovementViewModel = hiltViewModel(parentEntry)
                 val movementsProductId = parentEntry.arguments!!.getInt("productId")
                 val parentProductsEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-                val productsViewModel: ProductViewModel = viewModel(parentProductsEntry)
+                val productsViewModel: ProductViewModel = hiltViewModel(parentProductsEntry)
                 val products by productsViewModel.products.collectAsState()
                 val product = products.find { it.id == movementsProductId }
 
@@ -134,7 +135,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
 
             composable(Screen.ProduitsMovementFilters.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsMovementsGraph.route) }
-                val movementsViewModel: StockMovementViewModel = viewModel(parentEntry)
+                val movementsViewModel: StockMovementViewModel = hiltViewModel(parentEntry)
                 val sources by movementsViewModel.availableSources.collectAsState()
                 MovementFiltersView(
                     viewModel        = movementsViewModel,
@@ -148,7 +149,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                 arguments = listOf(navArgument("movementId") { type = NavType.IntType })
             ) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsMovementsGraph.route) }
-                val movementsViewModel: StockMovementViewModel = viewModel(parentEntry)
+                val movementsViewModel: StockMovementViewModel = hiltViewModel(parentEntry)
                 val movementId = entry.arguments!!.getInt("movementId")
                 MovementDetailView(
                     movementId = movementId,
@@ -164,7 +165,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         ) { entry ->
             val productId = entry.arguments!!.getInt("productId")
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = viewModel(parentEntry)
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val products by viewModel.products.collectAsState()
             val product = products.find { it.id == productId }
 
@@ -181,7 +182,7 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
         ) { entry ->
             val productId = entry.arguments!!.getInt("productId")
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = viewModel(parentEntry)
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val products by viewModel.products.collectAsState()
             val product = products.find { it.id == productId }
 

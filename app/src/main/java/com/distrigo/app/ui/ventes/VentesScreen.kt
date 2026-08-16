@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.ui.common.EntityAvatar
 import com.distrigo.app.ui.components.ReceiptPreviewSheet
@@ -40,7 +41,7 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentesScreen(
-    viewModel    : VenteViewModel = viewModel(),
+    viewModel    : VenteViewModel = hiltViewModel(),
     modifier     : Modifier = Modifier,
     onAddVente   : () -> Unit = {},
     onEditVente  : (Int) -> Unit = {},
@@ -619,11 +620,11 @@ fun VentesScreen(
 fun VenteDetailScreen(
     vente             : Vente,
     onBack            : () -> Unit,
-    viewModel         : VenteViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel         : VenteViewModel = hiltViewModel(),
     productViewModel  : com.distrigo.app.ui.products.ProductViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(),
+        hiltViewModel(),
     clientViewModel   : com.distrigo.app.ui.clients.ClientViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(),
+        hiltViewModel(),
     onDelivered       : () -> Unit = {},
     onDeleted         : () -> Unit = {}
 ) {

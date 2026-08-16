@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.AchatFilter
 import com.distrigo.app.data.model.Supplier
@@ -79,8 +80,8 @@ fun SupplierDetailScreen(
     onRetourForm      : () -> Unit,
     onRetourHistory   : () -> Unit,
     onAchatHistory    : () -> Unit,
-    viewModel         : SupplierViewModel = viewModel(),
-    retourViewModel   : RetourFournisseurViewModel = viewModel(),
+    viewModel         : SupplierViewModel = hiltViewModel(),
+    retourViewModel   : RetourFournisseurViewModel = hiltViewModel(),
     onNavigateToOrder : (Int) -> Unit = {}
 ) {
     val currentSupplier = viewModel.suppliers.collectAsState().value

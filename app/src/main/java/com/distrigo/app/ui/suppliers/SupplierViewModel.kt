@@ -11,20 +11,16 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.SupplierTransaction
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.local.database.AppDatabase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class SupplierViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class SupplierViewModel @Inject constructor(
+    private val repository: ProductRepository
+) : ViewModel() {
 
-    private val db = AppDatabase.getDatabase(application)
-    private val repository = ProductRepository(
-        db.productDao(),
-        db.categoryDao(),
-        db.supplierDao(),
-        db     = db
-    )
     private val _supplierProducts = MutableStateFlow<List<SupplierProduct>>(emptyList())
     val supplierProducts: StateFlow<List<SupplierProduct>> = _supplierProducts
 
@@ -39,7 +35,7 @@ class SupplierViewModel(application: Application) : AndroidViewModel(application
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun loadSupplierProducts(supplierId: Int) {
         viewModelScope.launch {

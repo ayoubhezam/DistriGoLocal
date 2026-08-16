@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -102,4 +103,9 @@ dependencies {
 
     // Navigation Compose — POC step, Dashboard tab only
     implementation("androidx.navigation:navigation-compose:2.8.4")
+
+    // Hilt — dependency injection
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 }

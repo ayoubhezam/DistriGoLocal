@@ -44,9 +44,18 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
 // not on a ViewModel scoped to this nested graph, so it's the SAME instance across all 5 steps.
 // See TourneeViewModel.formClient/formCartItems/formNote/formMontantPaye.
+// `routePrefix` namespaces this graph instance's child routes so the SAME function can be
+// registered twice per NavHost under two different graph routes (see
+// Screen.TourneeVenteFormGraph / Screen.TourneeVenteFormGraphDirect) without route collisions:
+//  - skipClientStep = false: client unknown at entry → starts at the client-picker step.
+//  - skipClientStep = true : client already known at entry → starts directly at Products. The
+//    client step composable is never registered in this mode, so it can never be navigated to,
+//    composed, or animated — not even for a single frame.
 fun NavGraphBuilder.tourneeVenteFormGraph(
     navController    : NavHostController,
     graphRoute       : String,
+    routePrefix      : String,
+    skipClientStep   : Boolean = false,
     viewModel        : @Composable () -> TourneeViewModel,
     venteViewModel   : @Composable () -> VenteViewModel,
     productViewModel : @Composable () -> ProductViewModel,
@@ -54,15 +63,22 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
     onBack  : () -> Unit,
     onSaved : () -> Unit
 ) {
+    val clientRoute       = "${routePrefix}_client"
+    val clientPickerRoute = "${routePrefix}_client_picker"
+    val productsRoute     = "${routePrefix}_products"
+    val cartRoute         = "${routePrefix}_cart"
+    val validationRoute   = "${routePrefix}_validation"
+
     navigation(
-        startDestination = Screen.TourneeVenteFormClient.route,
+        startDestination = if (skipClientStep) productsRoute else clientRoute,
         route = graphRoute,
         arguments = listOf(
             navArgument("tourneeId") { type = NavType.IntType },
             navArgument("clientId")  { type = NavType.IntType; defaultValue = -1 }
         )
     ) {
-        composable(Screen.TourneeVenteFormClient.route) { entry ->
+        if (!skipClientStep) {
+        composable(clientRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
@@ -82,24 +98,17 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     viewModel.setFormClient(clients.find { it.id == clientIdArg })
                 }
             }
-            LaunchedEffect(formClient, clientIdArg) {
-                if (formClient != null && clientIdArg != null) {
-                    navController.navigate(Screen.TourneeVenteFormProducts.route) {
-                        popUpTo(Screen.TourneeVenteFormClient.route) { inclusive = false }
-                    }
-                }
-            }
 
             BackHandler { onBack() }
 
             Step1Client(
                 selectedClient = formClient,
-                onChooseClient = { navController.navigate(Screen.TourneeVenteFormClientPicker.route) },
-                onNext         = { navController.navigate(Screen.TourneeVenteFormProducts.route) }
+                onChooseClient = { navController.navigate(clientPickerRoute) },
+                onNext         = { navController.navigate(productsRoute) }
             )
         }
 
-        composable(Screen.TourneeVenteFormClientPicker.route) { entry ->
+        composable(clientPickerRoute) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
@@ -233,10 +242,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 }
             }
         }
+        }
 
-        composable(Screen.TourneeVenteFormProducts.route) { entry ->
+        composable(productsRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val clientViewModel = clientViewModel()
             val productViewModel = productViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
@@ -245,6 +256,26 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val cartItems by viewModel.formCartItems.collectAsState()
             var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
+
+            if (skipClientStep) {
+                // This step is the graph's entry point in this mode (client already known at
+                // navigation time) — run the same one-time init + client-resolution that the
+                // client step normally does, since that step is never entered here.
+                val clients by clientViewModel.clients.collectAsState()
+
+                var initialized by rememberSaveable { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    if (!initialized) {
+                        viewModel.resetTourneeVenteForm()
+                        initialized = true
+                    }
+                }
+                LaunchedEffect(clientIdArg, clients) {
+                    if (clientIdArg != null && formClient == null) {
+                        viewModel.setFormClient(clients.find { it.id == clientIdArg })
+                    }
+                }
+            }
 
             // Because this graph's ViewModel can stay alive across multiple wizard visits
             // (graph-scoped to TourneesGraph, not to this nested graph), a product's camion_stock
@@ -277,7 +308,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             }
 
             BackHandler {
-                if (clientIdArg != null) onBack() else navController.popBackStack()
+                if (skipClientStep) onBack() else navController.popBackStack()
             }
 
             val filteredProducts = products.filter { product ->
@@ -295,7 +326,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { if (clientIdArg != null) onBack() else navController.popBackStack() }) {
+                    IconButton(onClick = { if (skipClientStep) onBack() else navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
                     }
                     Column(modifier = Modifier.weight(1f)) {
@@ -484,7 +515,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 .fillMaxWidth()
                                 .clip(DsShapes.large)
                                 .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
-                                .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(Screen.TourneeVenteFormCart.route) }
+                                .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(cartRoute) }
                                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
@@ -511,7 +542,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             }
         }
 
-        composable(Screen.TourneeVenteFormCart.route) { entry ->
+        composable(cartRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val productViewModel = productViewModel()
@@ -664,7 +695,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         }
 
                         Button(
-                            onClick  = { navController.navigate(Screen.TourneeVenteFormValidation.route) },
+                            onClick  = { navController.navigate(validationRoute) },
                             enabled  = cartItems.isNotEmpty(),
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.medium,
@@ -677,7 +708,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             }
         }
 
-        composable(Screen.TourneeVenteFormValidation.route) { entry ->
+        composable(validationRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val venteViewModel = venteViewModel()

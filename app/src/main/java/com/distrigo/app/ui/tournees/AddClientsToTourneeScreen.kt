@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.clients.ClientViewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -40,8 +41,8 @@ fun AddClientsToTourneeScreen(
     existingClientIds  : Set<Int>,
     onBack              : () -> Unit,
     onSaved              : () -> Unit,
-    tourneeViewModel      : TourneeViewModel = viewModel(),
-    clientViewModel        : ClientViewModel = viewModel()
+    tourneeViewModel      : TourneeViewModel = hiltViewModel(),
+    clientViewModel        : ClientViewModel = hiltViewModel()
 ) {
     BackHandler { onBack() }
 

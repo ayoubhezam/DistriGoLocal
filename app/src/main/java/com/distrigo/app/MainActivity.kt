@@ -62,7 +62,9 @@ import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

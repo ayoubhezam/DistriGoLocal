@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -52,7 +53,7 @@ fun ClientsNavHost(
     ) {
         composable(Screen.ClientsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
+            val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             ClientsScreen(
                 viewModel     = viewModel,
                 onAddClient   = { navController.navigate(Screen.ClientsForm.createRoute()) },
@@ -66,7 +67,7 @@ fun ClientsNavHost(
             arguments = listOf(navArgument("clientId") { type = NavType.IntType; defaultValue = -1 })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
+            val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             val clientId = entry.arguments!!.getInt("clientId").takeIf { it != -1 }
             val clients by viewModel.clients.collectAsState()
             val client = clientId?.let { id -> clients.find { it.id == id } }
@@ -84,9 +85,9 @@ fun ClientsNavHost(
             arguments = listOf(navArgument("clientId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
+            val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val retourViewModel: RetourClientViewModel = viewModel(retourParentEntry)
+            val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
             val clients by viewModel.clients.collectAsState()
             val isLoading by viewModel.isLoading.collectAsState()
@@ -102,7 +103,7 @@ fun ClientsNavHost(
                         onBack           = { navController.popBackStack() },
                         onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                         onDelete         = { showDeleteConfirm = true },
-                        onNewVente       = { navController.navigate(Screen.VenteFormGraph.createRoute(clientId = clientId)) },
+                        onNewVente       = { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId)) },
                         onRetourForm     = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) },
                         onRetourHistory  = { navController.navigate(Screen.ClientsRetourHistory.createRoute(clientId)) },
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }
@@ -136,20 +137,28 @@ fun ClientsNavHost(
             }
         }
 
+        // "Nouvelle facture" always starts from a specific client (see onNewVente above), so this
+        // only needs the direct-entry graph — the client-picker step never applies here.
         venteFormGraph(
             navController    = navController,
-            graphRoute        = Screen.VenteFormGraph.route,
-            viewModel         = { viewModel() },
-            productViewModel  = { viewModel() },
-            clientViewModel   = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
-            onBack  = { navController.popBackStack(Screen.VenteFormGraph.route, inclusive = true) },
-            onSaved = { navController.popBackStack(Screen.VenteFormGraph.route, inclusive = true) }
+            graphRoute        = Screen.VenteFormGraphDirect.route,
+            routePrefix       = "clients_vente_form",
+            skipClientStep    = true,
+            // Scoped to the Clients graph (like clientViewModel below), not a bare hiltViewModel():
+            // each of Client/Products/Cart/Validation is a separate NavBackStackEntry with its own
+            // ViewModelStore, so an unscoped hiltViewModel() would hand each step a fresh VenteViewModel
+            // and silently drop the selected client / cart between steps.
+            viewModel         = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
+            productViewModel  = { hiltViewModel() },
+            clientViewModel   = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
+            onBack  = { navController.popBackStack(Screen.VenteFormGraphDirect.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.VenteFormGraphDirect.route, inclusive = true) }
         )
 
         retourClientFormGraph(
             navController = navController,
             graphRoute    = Screen.ClientsRetourFormGraph.route,
-            viewModel     = { viewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
+            viewModel     = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
             onBack  = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) }
         )
@@ -159,9 +168,9 @@ fun ClientsNavHost(
             arguments = listOf(navArgument("clientId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val viewModel: ClientViewModel = viewModel(parentEntry)
+            val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val retourViewModel: RetourClientViewModel = viewModel(retourParentEntry)
+            val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
             val clients by viewModel.clients.collectAsState()
             val client = clients.find { it.id == clientId }
@@ -183,7 +192,7 @@ fun ClientsNavHost(
             arguments = listOf(navArgument("clientId") { type = NavType.IntType })
         ) { entry ->
             // ── FactureHistoryViewModel: محصورة بهذه الوجهة فقط، غير مشتركة مع الرسم البياني ──
-            val historyViewModel: FactureHistoryViewModel = viewModel()
+            val historyViewModel: FactureHistoryViewModel = hiltViewModel()
             val clientId = entry.arguments!!.getInt("clientId")
             LaunchedEffect(Unit) { historyViewModel.bind(clientId) }
             val controller = historyViewModel.bind(clientId)
@@ -199,7 +208,7 @@ fun ClientsNavHost(
             var editError by remember { mutableStateOf("") }
 
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
-            val clientViewModel: ClientViewModel = viewModel(parentEntry)
+            val clientViewModel: ClientViewModel = hiltViewModel(parentEntry)
 
             PagedHistoryScreen(
                 title             = "Factures & Paiements",

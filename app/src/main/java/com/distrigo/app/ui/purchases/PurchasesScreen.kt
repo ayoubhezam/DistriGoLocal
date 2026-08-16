@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.ui.common.EntityAvatar
 import com.distrigo.app.ui.designsystem.DsColors
@@ -33,7 +34,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchasesScreen(
-    viewModel          : PurchaseViewModel = viewModel(),
+    viewModel          : PurchaseViewModel = hiltViewModel(),
     modifier           : Modifier = Modifier,
     onFullScreenChange : (Boolean) -> Unit = {},
     onAddOrder         : () -> Unit = {},
