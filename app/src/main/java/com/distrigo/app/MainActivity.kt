@@ -5,21 +5,25 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -34,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -46,9 +51,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.distrigo.app.R
 import com.distrigo.app.ui.clients.ClientsScreen
 import com.distrigo.app.ui.common.PlaceholderScreen
 import com.distrigo.app.ui.dashboard.DashboardScreen
+import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsElevation
+import com.distrigo.app.ui.designsystem.DsGradients
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.more.MoreScreen
 import com.distrigo.app.ui.navigation.Screen
 import com.distrigo.app.ui.navigation.navEnterTransition
@@ -58,6 +70,7 @@ import com.distrigo.app.ui.navigation.navPopExitTransition
 import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
+import com.distrigo.app.ui.theme.DistriGoTheme
 import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
@@ -70,7 +83,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         com.distrigo.app.data.geo.GeoRepository.init(this)
         setContent {
-            MaterialTheme {
+            DistriGoTheme {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberNavController()
@@ -159,65 +172,8 @@ class MainActivity : ComponentActivity() {
                             )
                     ) {
                     Scaffold(
-                        bottomBar = {
-                            if (isTabRoute && !hideBottomBar) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(Color.Transparent)
-                                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                                ) {
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(28.dp)),
-                                    color         = Color.White,
-                                    shadowElevation = 10.dp,
-                                    tonalElevation  = 0.dp
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                        verticalAlignment     = Alignment.CenterVertically
-                                    ) {
-                                        BottomNavItem(
-                                            selected = currentRoute == Screen.TabDashboard.route,
-                                            icon     = Icons.Default.Home,
-                                            label    = "Dashboard",
-                                            onClick  = { navigateToTab(Screen.TabDashboard.route) }
-                                        )
-                                        BottomNavItem(
-                                            selected = currentRoute == Screen.TabVentes.route,
-                                            icon     = Icons.Default.LocalShipping,
-                                            label    = "Ventes",
-                                            onClick  = { navigateToTab(Screen.TabVentes.route) }
-                                        )
-                                        BottomNavItem(
-                                            selected = currentRoute == Screen.TabProduits.route,
-                                            icon     = Icons.Default.ShoppingCart,
-                                            label    = "Produits",
-                                            onClick  = { navigateToTab(Screen.TabProduits.route) }
-                                        )
-                                        BottomNavItem(
-                                            selected = currentRoute == Screen.TabAchats.route,
-                                            icon     = Icons.Default.Receipt,
-                                            label    = "Achats",
-                                            onClick  = { navigateToTab(Screen.TabAchats.route) }
-                                        )
-                                        BottomNavItem(
-                                            selected = false,
-                                            icon     = Icons.Default.Menu,
-                                            label    = "Plus",
-                                            onClick  = { openDrawer() }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ) { paddingValues ->
+                        containerColor = DsColors.Surface
+                    ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                         NavHost(
                             navController      = navController,
@@ -298,6 +254,17 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // ── Floating bottom nav: overlays NavHost content directly (Scaffold no longer
+                // reserves height for it) so scrolled screen content is genuinely visible behind
+                // the translucent pill, not just an empty painted margin. ──
+                if (isTabRoute && !hideBottomBar) {
+                    ShiftingBottomNavBar(
+                        currentRoute = currentRoute,
+                        onNavigate   = { route -> navigateToTab(route) },
+                        modifier     = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
+
                 // ── Plus drawer overlay: hugs the left edge, max 80% width, 1:1 drag-tracked ──
                 val openFraction = if (maxDrawerWidthPx > 0f) {
                     (drawerOffset.value / maxDrawerWidthPx).coerceIn(0f, 1f)
@@ -368,38 +335,125 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun BottomNavItem(
-    selected : Boolean,
-    icon     : androidx.compose.ui.graphics.vector.ImageVector,
-    label    : String,
-    onClick  : () -> Unit
-) {
-    val selectedColor   = Color(0xFF2196F3)
-    val unselectedColor = Color(0xFFB0B3B8)
+// Mirrors NavTransitions.kt's private NavTransitionMs (300); duplicated here rather than exposed
+// from that file, since this pass is scoped to leave NavTransitions.kt untouched.
+private const val ShiftingNavAnimationMs      = 300
+private const val ShiftingNavSelectedWeight   = 1.8f
+private const val ShiftingNavUnselectedWeight = 1f
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+@Composable
+private fun ShiftingBottomNavBar(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(DsSpacing.bottomNavClearance)
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(DsGradients.BottomFade)
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.Transparent)
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
+        ) {
+            Surface(
+                modifier        = Modifier.fillMaxWidth(),
+                shape           = DsShapes.pill,
+                color           = DsColors.NavBarContainerTranslucent,
+                shadowElevation = DsElevation.medium
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = DsSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShiftingNavItem(
+                        selected = currentRoute == Screen.TabDashboard.route,
+                        icon     = Icons.Default.Home,
+                        label    = stringResource(R.string.nav_dashboard),
+                        onClick  = { onNavigate(Screen.TabDashboard.route) }
+                    )
+                    ShiftingNavItem(
+                        selected = currentRoute == Screen.TabVentes.route,
+                        icon     = Icons.Default.LocalShipping,
+                        label    = stringResource(R.string.nav_ventes),
+                        onClick  = { onNavigate(Screen.TabVentes.route) }
+                    )
+                    ShiftingNavItem(
+                        selected = currentRoute == Screen.TabProduits.route,
+                        icon     = Icons.Default.ShoppingCart,
+                        label    = stringResource(R.string.nav_produits),
+                        onClick  = { onNavigate(Screen.TabProduits.route) }
+                    )
+                    ShiftingNavItem(
+                        selected = currentRoute == Screen.TabAchats.route,
+                        icon     = Icons.Default.Receipt,
+                        label    = stringResource(R.string.nav_achats),
+                        onClick  = { onNavigate(Screen.TabAchats.route) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ShiftingNavItem(
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    val weight by animateFloatAsState(
+        targetValue   = if (selected) ShiftingNavSelectedWeight else ShiftingNavUnselectedWeight,
+        animationSpec = tween(ShiftingNavAnimationMs),
+        label         = "shifting_nav_item_weight"
+    )
+    val contentColor = if (selected) DsColors.Surface else DsColors.TextTertiary
+
+    Row(
         modifier = Modifier
+            .weight(weight)
+            .clip(DsShapes.pill)
             .clickable(
                 indication = null,
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             ) { onClick() }
-            .padding(horizontal = 4.dp)
+            .padding(horizontal = DsSpacing.xs),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment     = Alignment.CenterVertically
     ) {
         Icon(
             icon,
             contentDescription = label,
-            tint     = if (selected) selectedColor else unselectedColor,
+            tint     = contentColor,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            label,
-            fontSize   = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color      = if (selected) selectedColor else unselectedColor
-        )
+        AnimatedVisibility(
+            visible = selected,
+            enter = fadeIn(tween(ShiftingNavAnimationMs)) + expandHorizontally(tween(ShiftingNavAnimationMs)),
+            exit  = fadeOut(tween(ShiftingNavAnimationMs)) + shrinkHorizontally(tween(ShiftingNavAnimationMs))
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text(
+                    label,
+                    color      = contentColor,
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines   = 1
+                )
+            }
+        }
     }
 }
 

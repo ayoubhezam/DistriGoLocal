@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">DistriGo</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_ventes">Ventes</string>
+    <string name="nav_produits">Produits</string>
+    <string name="nav_achats">Achats</string>
 </resources>

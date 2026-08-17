@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.designsystem
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,10 @@ object DsColors {
     val SurfaceMuted   = Color(0xFFF9FAFB)
     val SurfaceSunken  = Color(0xFFF2F4F7)
 
+    // Navigation — Shifting Bottom Navigation dark pill container
+    val NavBarContainer = Color(0xFF18181B)
+    val NavBarContainerTranslucent = NavBarContainer.copy(alpha = 0.6f)
+
     // Category tag palette (soft, for customer type badges)
     val TagRetail      = Color(0xFF5B6EF5) to Color(0xFFEEF0FE)
     val TagWholesale   = Color(0xFF9333EA) to Color(0xFFF5F0FF)
@@ -52,6 +57,16 @@ object DsSpacing {
     val xl  = 20.dp
     val xxl = 24.dp
     val xxxl = 32.dp
+
+    // Clears the floating ShiftingBottomNavBar: 48dp pill + 16dp outer margin + 24dp breathing room
+    val bottomNavClearance = 88.dp
+}
+
+// ═══════════════════════════════════════════════════════════
+// GRADIENTS — content fade behind floating chrome
+// ═══════════════════════════════════════════════════════════
+object DsGradients {
+    val BottomFade = Brush.verticalGradient(colors = listOf(Color.Transparent, DsColors.Surface))
 }
 
 // ═══════════════════════════════════════════════════════════

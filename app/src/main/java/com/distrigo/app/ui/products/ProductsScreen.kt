@@ -816,7 +816,7 @@ fun ProductsScreen(
             } else {
                 if (!isGridView) {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.bottomNavClearance),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(sorted) { product ->
@@ -829,7 +829,7 @@ fun ProductsScreen(
                 } else {
                     LazyVerticalGrid(
                         columns             = GridCells.Fixed(2),
-                        contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.bottomNavClearance),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -847,7 +847,7 @@ fun ProductsScreen(
             onClick        = { onAddProduct() },
             containerColor = DsColors.Primary,
             contentColor   = Color.White,
-            modifier       = Modifier.align(Alignment.BottomEnd).padding(DsSpacing.lg)
+            modifier       = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.bottomNavClearance)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un produit")
         }
