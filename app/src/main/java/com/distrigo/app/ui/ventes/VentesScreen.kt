@@ -609,7 +609,10 @@ fun VentesScreen(
             contentColor   = Color.White,
             modifier       = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(DsSpacing.lg)
+                .padding(
+                    end = DsSpacing.lg,
+                    bottom = DsSpacing.bottomNavClearance
+                )
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
         }

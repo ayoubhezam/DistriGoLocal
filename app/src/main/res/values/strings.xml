@@ -4,4 +4,7 @@
     <string name="nav_ventes">Ventes</string>
     <string name="nav_produits">Produits</string>
     <string name="nav_achats">Achats</string>
+    <string name="client_picker_title">Choisir un client</string>
+    <string name="client_picker_search_placeholder">Rechercher par nom ou téléphone…</string>
+    <string name="client_picker_add_new">Nouveau client</string>
 </resources>

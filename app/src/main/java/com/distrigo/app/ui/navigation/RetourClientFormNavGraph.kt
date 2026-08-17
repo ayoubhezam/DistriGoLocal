@@ -180,69 +180,19 @@ fun NavGraphBuilder.retourClientFormGraph(
             val viewModel = viewModel()
             val clients by viewModel.clients.collectAsState()
             val formClient by viewModel.formClient.collectAsState()
-            var clientSearch by remember { mutableStateOf("") }
 
             BackHandler { navController.popBackStack() }
 
-            Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Text("Choisir un client", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
-                OutlinedTextField(
-                    value = clientSearch, onValueChange = { clientSearch = it },
-                    placeholder = { Text("Rechercher par nom ou téléphone…", fontSize = DsTextSize.body) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape = DsShapes.large, singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
-                )
-                Spacer(Modifier.height(DsSpacing.sm))
-                val filteredClients = clients.filter { client ->
-                    val tokens = clientSearch.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-                    tokens.isEmpty() || tokens.all { token ->
-                        client.name.contains(token, ignoreCase = true) || (client.phone?.contains(token, ignoreCase = true) == true)
-                    }
-                }
-                LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    items(filteredClients, key = { it.id }) { client ->
-                        val typeColors = when (client.customer_type) {
-                            "wholesale" -> DsColors.TagWholesale
-                            "business"  -> DsColors.TagBusiness
-                            else        -> DsColors.TagRetail
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
-                                .border(1.dp, if (formClient?.id == client.id) DsColors.Primary else DsColors.Border, DsShapes.large)
-                                .clickable {
-                                    viewModel.setFormClient(client)
-                                    navController.popBackStack()
-                                }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val initials = client.name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
-                            Box(modifier = Modifier.size(42.dp).clip(DsShapes.medium).background(typeColors.second), contentAlignment = Alignment.Center) {
-                                Text(initials, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = typeColors.first)
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(client.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, maxLines = 1)
-                                Text(client.phone ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                            }
-                            if (formClient?.id == client.id) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
+            com.distrigo.app.ui.common.ClientSearchPicker(
+                clients          = clients,
+                selectedClientId = formClient?.id,
+                onClientSelected = { client ->
+                    viewModel.setFormClient(client)
+                    navController.popBackStack()
+                },
+                onBack      = { navController.popBackStack() },
+                showBalance = false
+            )
         }
 
         composable(Screen.ClientsRetourFormProducts.route) { entry ->
