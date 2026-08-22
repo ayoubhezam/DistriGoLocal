@@ -96,7 +96,10 @@ fun RetourClientDetailScreen(
                     )
                 }) { Text("Supprimer", color = DsColors.Danger) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 }

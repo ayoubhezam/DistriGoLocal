@@ -16,6 +16,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @Composable
 internal fun StepIndicator(currentStep: Int) {
@@ -87,7 +88,7 @@ internal fun DsFormField(
             singleLine = minLines == 1 && maxLines == 1, minLines = minLines, maxLines = maxLines,
             isError = error.isNotEmpty(), modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary, errorBorderColor = DsColors.Danger
             )
         )

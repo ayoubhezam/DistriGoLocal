@@ -130,7 +130,10 @@ fun ProductDetailScreen(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -549,7 +552,10 @@ fun StockPrixDetailScreen(
                     StockInfoExplainRow("Camion", "Quantité actuellement chargée dans le camion de tournée.")
                     StockInfoExplainRow("Seuil minimum", "En dessous de cette quantité, le produit est considéré en stock faible.")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 

@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
@@ -157,7 +158,7 @@ fun ChargementNavHost(
                             modifier      = Modifier.fillMaxWidth(),
                             shape         = DsShapes.large,
                             singleLine    = true,
-                            colors = OutlinedTextFieldDefaults.colors(
+                            colors = dsTextFieldColors(
                                 unfocusedBorderColor = DsColors.Border,
                                 focusedBorderColor   = DsColors.Primary
                             )
@@ -406,7 +407,7 @@ fun ChargementNavHost(
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
                                 singleLine    = true,
-                                colors = OutlinedTextFieldDefaults.colors(
+                                colors = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )
@@ -421,7 +422,7 @@ fun ChargementNavHost(
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
                                 minLines      = 2,
-                                colors = OutlinedTextFieldDefaults.colors(
+                                colors = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )

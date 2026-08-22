@@ -437,7 +437,10 @@ fun ColumnScope.InventoryReviewStep(
                     editingItem = null
                 }) { Text("Enregistrer") }
             },
-            dismissButton = { TextButton(onClick = { editingItem = null }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { editingItem = null }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -451,7 +454,10 @@ fun ColumnScope.InventoryReviewStep(
                     Text("Supprimer", color = DsColors.Danger)
                 }
             },
-            dismissButton = { TextButton(onClick = { deletingItem = null }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { deletingItem = null }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 }

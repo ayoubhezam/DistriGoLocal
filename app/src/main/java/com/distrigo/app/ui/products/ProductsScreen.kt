@@ -21,6 +21,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -211,7 +212,10 @@ fun ProductsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -258,7 +262,9 @@ fun ProductsScreen(
                         Text("Supprimer", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                     }
                 }
-            }
+            },
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -338,7 +344,7 @@ fun ProductsScreen(
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterCategoryExpanded) },
                         modifier      = Modifier.fillMaxWidth().menuAnchor(),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -377,7 +383,7 @@ fun ProductsScreen(
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterSousCategorieExpanded) },
                         modifier      = Modifier.fillMaxWidth().menuAnchor(),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary,
                             disabledBorderColor  = DsColors.Border.copy(alpha = 0.5f),
@@ -411,7 +417,7 @@ fun ProductsScreen(
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterMarqueExpanded) },
                         modifier      = Modifier.fillMaxWidth().menuAnchor(),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -443,7 +449,7 @@ fun ProductsScreen(
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterSupplierExpanded) },
                         modifier      = Modifier.fillMaxWidth().menuAnchor(),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -505,7 +511,7 @@ fun ProductsScreen(
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterStockLevelExpanded) },
                         modifier      = Modifier.fillMaxWidth().menuAnchor(),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -536,7 +542,7 @@ fun ProductsScreen(
                         modifier        = Modifier.weight(1f),
                         shape           = DsShapes.medium,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors          = OutlinedTextFieldDefaults.colors(
+                        colors          = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -549,7 +555,7 @@ fun ProductsScreen(
                         modifier        = Modifier.weight(1f),
                         shape           = DsShapes.medium,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors          = OutlinedTextFieldDefaults.colors(
+                        colors          = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -636,7 +642,7 @@ fun ProductsScreen(
                     .clip(DsShapes.large),
                 shape = DsShapes.large,
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor = DsColors.Primary,
                 )

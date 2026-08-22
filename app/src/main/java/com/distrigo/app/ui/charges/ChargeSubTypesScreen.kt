@@ -139,7 +139,10 @@ fun ChargeSubTypesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showAddSubTypeDialog = false; newSubTypeName = ""; newSubTypeHasFourn = false }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -168,7 +171,10 @@ fun ChargeSubTypesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteSubTypeDialog = false; deleteSubTypeError = "" }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 }

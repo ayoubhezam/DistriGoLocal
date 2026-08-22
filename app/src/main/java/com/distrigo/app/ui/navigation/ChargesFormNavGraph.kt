@@ -203,7 +203,10 @@ fun NavGraphBuilder.chargesFormGraph(
                             showTimePicker = false
                         }) { Text("OK") }
                     },
-                    dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annuler") } }
+                    dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annuler") } },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
         }

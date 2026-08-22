@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import kotlinx.coroutines.launch
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -355,7 +356,10 @@ fun ProductFormScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showMarginWarn = false }) { Text("Corriger") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -373,7 +377,7 @@ fun ProductFormScreen(
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             focusedBorderColor   = DsColors.Primary,
                             unfocusedBorderColor = DsColors.Border
                         )
@@ -385,7 +389,7 @@ fun ProductFormScreen(
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             focusedBorderColor   = DsColors.Primary,
                             unfocusedBorderColor = DsColors.Border
                         )
@@ -414,7 +418,10 @@ fun ProductFormScreen(
                     newSupplierName  = ""
                     newSupplierPhone = ""
                 }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -432,7 +439,7 @@ fun ProductFormScreen(
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         focusedBorderColor   = DsColors.Primary,
                         unfocusedBorderColor = DsColors.Border
                     )
@@ -456,7 +463,10 @@ fun ProductFormScreen(
                 TextButton(onClick = { showAddCategoryDialog = false; newCategoryName = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -473,7 +483,7 @@ fun ProductFormScreen(
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         focusedBorderColor   = DsColors.Primary,
                         unfocusedBorderColor = DsColors.Border
                     )
@@ -498,7 +508,10 @@ fun ProductFormScreen(
                 TextButton(onClick = { showAddSousCategorieDialog = false; newSousCategorieName = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -515,7 +528,7 @@ fun ProductFormScreen(
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         focusedBorderColor   = DsColors.Primary,
                         unfocusedBorderColor = DsColors.Border
                     )
@@ -539,7 +552,10 @@ fun ProductFormScreen(
                 TextButton(onClick = { showAddMarqueDialog = false; newMarqueName = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -750,7 +766,7 @@ fun ProductFormScreen(
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
                                 modifier      = Modifier.fillMaxWidth().menuAnchor(),
                                 shape         = DsShapes.medium,
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )
@@ -976,7 +992,7 @@ fun ProductFormScreen(
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                                 modifier      = Modifier.fillMaxWidth().menuAnchor(),
                                 shape         = DsShapes.medium,
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )
@@ -1034,7 +1050,7 @@ fun ProductFormScreen(
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sousCategorieExpanded) },
                                 modifier      = Modifier.fillMaxWidth().menuAnchor(),
                                 shape         = DsShapes.medium,
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary,
                                     disabledBorderColor  = DsColors.Border.copy(alpha = 0.5f),
@@ -1088,7 +1104,7 @@ fun ProductFormScreen(
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = marqueExpanded) },
                                 modifier      = Modifier.fillMaxWidth().menuAnchor(),
                                 shape         = DsShapes.medium,
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )
@@ -1229,7 +1245,7 @@ fun FormField(
                 onNext = { onNext?.invoke() ?: focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) },
                 onDone = { focusManager.clearFocus() }
             ),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary,
                 errorBorderColor     = DsColors.Danger

@@ -27,6 +27,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.suppliers.formatDZD
 
 internal fun formatQty(v: Double): String =
@@ -381,7 +382,7 @@ internal fun Step3Validation(
                         shape           = DsShapes.medium,
                         singleLine      = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors          = OutlinedTextFieldDefaults.colors(
+                        colors          = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -435,7 +436,7 @@ internal fun Step3Validation(
                     shape         = DsShapes.medium,
                     minLines      = 2,
                     maxLines      = 3,
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary
                     )

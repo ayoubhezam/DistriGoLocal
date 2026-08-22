@@ -30,6 +30,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,7 +150,10 @@ fun PurchasesScreen(
                     }) {
                         Text("Annuler")
                     }
-                }
+                },
+                containerColor    = DsColors.Surface,
+                titleContentColor = DsColors.TextPrimary,
+                textContentColor  = DsColors.TextSecondary
             )
         } else {
             AlertDialog(
@@ -215,7 +219,9 @@ fun PurchasesScreen(
                             )
                         }
                     }
-                }
+                },
+                titleContentColor = DsColors.TextPrimary,
+                textContentColor  = DsColors.TextSecondary
             )
         }
     }
@@ -361,7 +367,7 @@ fun PurchasesScreen(
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -401,7 +407,7 @@ fun PurchasesScreen(
                             .clickable { showDateFromPicker = true },
                         shape    = DsShapes.medium,
                         enabled  = false,
-                        colors   = OutlinedTextFieldDefaults.colors(
+                        colors   = dsTextFieldColors(
                             disabledBorderColor       = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.Border,
                             disabledTextColor         = DsColors.TextPrimary,
                             disabledPlaceholderColor  = DsColors.TextSecondary,
@@ -425,7 +431,7 @@ fun PurchasesScreen(
                             .clickable { showDateToPicker = true },
                         shape    = DsShapes.medium,
                         enabled  = false,
-                        colors   = OutlinedTextFieldDefaults.colors(
+                        colors   = dsTextFieldColors(
                             disabledBorderColor       = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.Border,
                             disabledTextColor         = DsColors.TextPrimary,
                             disabledPlaceholderColor  = DsColors.TextSecondary,
@@ -499,7 +505,7 @@ fun PurchasesScreen(
                     .clip(DsShapes.large),
                 shape      = DsShapes.large,
                 singleLine = true,
-                colors     = OutlinedTextFieldDefaults.colors(
+                colors     = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )

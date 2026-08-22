@@ -25,6 +25,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
 
@@ -122,7 +123,10 @@ fun ClientsNavHost(
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },
-                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Annuler") } }
+                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Annuler") } },
+                            containerColor    = DsColors.Surface,
+                            titleContentColor = DsColors.TextPrimary,
+                            textContentColor  = DsColors.TextSecondary
                         )
                     }
                 }
@@ -241,7 +245,10 @@ fun ClientsNavHost(
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeletePayment = true }) { Text("Supprimer", color = DsColors.Danger) }
-                    }
+                    },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
             if (longPressPayment != null && showDeletePayment) {
@@ -263,7 +270,10 @@ fun ClientsNavHost(
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                         ) { Text("Supprimer", color = androidx.compose.ui.graphics.Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) { Text("Annuler") } }
+                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) { Text("Annuler") } },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
             if (longPressPayment != null && showEditPayment) {
@@ -282,7 +292,10 @@ fun ClientsNavHost(
                                 singleLine = true,
                                 isError = editError.isNotEmpty(),
                                 shape = DsShapes.medium,
-                                colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
+                                colors = dsTextFieldColors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor = DsColors.Primary
+                                )
                             )
                             if (editError.isNotEmpty()) {
                                 Text(editError, color = DsColors.Danger, fontSize = DsTextSize.caption)
@@ -305,7 +318,10 @@ fun ClientsNavHost(
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                         ) { Text("Confirmer", color = androidx.compose.ui.graphics.Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } }
+                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
         }

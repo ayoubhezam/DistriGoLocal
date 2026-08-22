@@ -26,6 +26,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import com.distrigo.app.ui.suppliers.*
@@ -126,7 +127,10 @@ fun SuppliersNavHost(
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },
-                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false; deleteError = "" }) { Text("Annuler") } }
+                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false; deleteError = "" }) { Text("Annuler") } },
+                            containerColor    = DsColors.Surface,
+                            titleContentColor = DsColors.TextPrimary,
+                            textContentColor  = DsColors.TextSecondary
                         )
                     }
                 }
@@ -249,7 +253,10 @@ fun SuppliersNavHost(
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeletePayment = true }) { Text("Supprimer", color = DsColors.Danger) }
-                    }
+                    },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
             if (longPressPayment != null && showDeletePayment) {
@@ -271,7 +278,10 @@ fun SuppliersNavHost(
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                         ) { Text("Supprimer", color = Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) { Text("Annuler") } }
+                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) { Text("Annuler") } },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
             if (longPressPayment != null && showEditPayment) {
@@ -290,7 +300,10 @@ fun SuppliersNavHost(
                                 singleLine = true,
                                 isError = editError.isNotEmpty(),
                                 shape = DsShapes.medium,
-                                colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
+                                colors = dsTextFieldColors(
+                                    unfocusedBorderColor = DsColors.Border,
+                                    focusedBorderColor = DsColors.Primary
+                                )
                             )
                             if (editError.isNotEmpty()) {
                                 Text(editError, color = DsColors.Danger, fontSize = DsTextSize.caption)
@@ -313,7 +326,10 @@ fun SuppliersNavHost(
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                         ) { Text("Confirmer", color = Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } }
+                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
         }

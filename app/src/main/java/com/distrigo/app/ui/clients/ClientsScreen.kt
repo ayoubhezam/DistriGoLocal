@@ -32,6 +32,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun ClientsScreen(
@@ -67,7 +68,10 @@ fun ClientsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -115,7 +119,9 @@ fun ClientsScreen(
                         Text("Supprimer", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                     }
                 }
-            }
+            },
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -226,7 +232,7 @@ fun ClientsScreen(
                     shape         = DsShapes.large,
                     singleLine    = true,
                     textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
-                    colors = OutlinedTextFieldDefaults.colors(
+                    colors = dsTextFieldColors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary
                     )

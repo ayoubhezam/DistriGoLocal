@@ -98,7 +98,10 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
                         },
                         dismissButton = {
                             TextButton(onClick = { showDeleteConfirm = false }) { Text("Annuler") }
-                        }
+                        },
+                        containerColor    = DsColors.Surface,
+                        titleContentColor = DsColors.TextPrimary,
+                        textContentColor  = DsColors.TextSecondary
                     )
                 }
             } else {

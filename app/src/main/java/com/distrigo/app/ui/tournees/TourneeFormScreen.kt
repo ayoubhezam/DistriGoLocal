@@ -28,6 +28,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 @Composable
 fun TourneeFormScreen(
     tournee      : Tournee? = null,
@@ -252,7 +253,7 @@ private fun DsFormField(
             modifier        = Modifier.fillMaxWidth(),
             shape           = DsShapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary,
                 errorBorderColor     = DsColors.Danger

@@ -35,6 +35,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourCartItem
 import com.distrigo.app.ui.retours.RetourClientViewModel
 import com.distrigo.app.ui.retours.RetourProductRow
@@ -320,7 +321,10 @@ fun NavGraphBuilder.retourClientFormGraph(
                                         },
                                         modifier   = Modifier.fillMaxWidth(),
                                         shape      = DsShapes.large, singleLine = true,
-                                        colors     = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
+                                        colors     = dsTextFieldColors(
+                                            unfocusedBorderColor = DsColors.Border,
+                                            focusedBorderColor = DsColors.Primary
+                                        )
                                     )
                                     Spacer(Modifier.height(DsSpacing.xs))
                                     HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)

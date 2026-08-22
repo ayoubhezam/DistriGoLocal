@@ -72,6 +72,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -313,7 +314,7 @@ fun QuantityStepper(
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { commit(); focusManager.clearFocus() }),
-                colors          = OutlinedTextFieldDefaults.colors(
+                colors          = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )
@@ -364,7 +365,7 @@ fun PriceFieldWithHistory(
                 singleLine      = true,
                 shape           = DsShapes.medium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors          = OutlinedTextFieldDefaults.colors(
+                colors          = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )
@@ -490,7 +491,7 @@ fun ExpiryToggleField(
                     modifier      = Modifier.fillMaxWidth().clickable { showExpiryPicker = true },
                     shape         = DsShapes.medium,
                     enabled       = false,
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         disabledBorderColor      = DsColors.Border,
                         disabledTextColor        = DsColors.TextPrimary,
                         disabledLabelColor       = DsColors.TextSecondary,

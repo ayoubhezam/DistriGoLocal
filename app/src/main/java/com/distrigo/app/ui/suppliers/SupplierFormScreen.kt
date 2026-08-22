@@ -34,6 +34,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -339,7 +340,7 @@ fun SupplierFormScreen(
             shape         = DsShapes.medium,
             minLines      = 2,
             maxLines      = 4,
-            colors        = OutlinedTextFieldDefaults.colors(
+            colors        = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary
             )

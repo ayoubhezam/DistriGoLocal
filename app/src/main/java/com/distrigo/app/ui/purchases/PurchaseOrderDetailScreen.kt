@@ -86,7 +86,10 @@ fun PurchaseOrderDetailScreen(
                 TextButton(onClick = { showReopenDialog = false }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -123,7 +126,10 @@ fun PurchaseOrderDetailScreen(
                 TextButton(onClick = { showDeleteDialog = false; deleteError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -471,7 +477,10 @@ fun PurchaseOrderDetailScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { showReceiveDialog = false }) { Text("Annuler") }
-                }
+                },
+                containerColor    = DsColors.Surface,
+                titleContentColor = DsColors.TextPrimary,
+                textContentColor  = DsColors.TextSecondary
             )
         }
     }

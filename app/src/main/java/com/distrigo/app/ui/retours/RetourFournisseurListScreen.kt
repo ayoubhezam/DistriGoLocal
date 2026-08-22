@@ -35,6 +35,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 
@@ -130,7 +131,10 @@ fun RetourFournisseurListScreen(
                     modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                     shape         = DsShapes.large,
                     singleLine    = true,
-                    colors        = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
+                    colors        = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor = DsColors.Primary
+                    )
                 )
 
                 Spacer(Modifier.height(DsSpacing.sm))

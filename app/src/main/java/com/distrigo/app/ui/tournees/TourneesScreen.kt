@@ -296,7 +296,10 @@ fun TourneeDetailScreen(
                 TextButton(onClick = { showCloseDialog = null; actionError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -318,7 +321,10 @@ fun TourneeDetailScreen(
                 TextButton(onClick = { confirmReopenSaleClient = null }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
     showDeleteTourneeDialog?.let { target ->
@@ -353,7 +359,10 @@ fun TourneeDetailScreen(
                 TextButton(onClick = { showDeleteTourneeDialog = null; deleteTourneeError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -392,7 +401,10 @@ fun TourneeDetailScreen(
                 TextButton(onClick = { showReopenDialog = null; actionError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -441,7 +453,10 @@ fun TourneeDetailScreen(
                             TextButton(onClick = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" }) {
                                 Text("Annuler")
                             }
-                        }
+                        },
+                        containerColor    = DsColors.Surface,
+                        titleContentColor = DsColors.TextPrimary,
+                        textContentColor  = DsColors.TextSecondary
                     )
                 } else {
                     AlertDialog(
@@ -463,7 +478,10 @@ fun TourneeDetailScreen(
                                 Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
                                 Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                             }
-                        }
+                        },
+                        containerColor    = DsColors.Surface,
+                        titleContentColor = DsColors.TextPrimary,
+                        textContentColor  = DsColors.TextSecondary
                     )
                 }
             }

@@ -28,6 +28,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -107,7 +108,9 @@ fun StockCamionScreen(
                     Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                     Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                 }
-            }
+            },
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -146,7 +149,7 @@ fun StockCamionScreen(
                 modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                 shape         = DsShapes.large,
                 singleLine    = true,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )

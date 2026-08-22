@@ -30,6 +30,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.tournees.TourneeVenteCartItem
@@ -361,7 +362,7 @@ fun NavGraphBuilder.venteFormGraph(
                                     .padding(top = DsSpacing.md),
                                 shape         = DsShapes.large,
                                 singleLine    = true,
-                                colors = OutlinedTextFieldDefaults.colors(
+                                colors = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )
@@ -655,7 +656,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
                                 minLines      = 2,
-                                colors = OutlinedTextFieldDefaults.colors(
+                                colors = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )

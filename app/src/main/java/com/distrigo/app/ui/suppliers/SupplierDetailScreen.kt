@@ -55,6 +55,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurRow
@@ -186,7 +187,7 @@ fun SupplierDetailScreen(
                         singleLine = true,
                         isError = payError.isNotEmpty(),
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -199,7 +200,7 @@ fun SupplierDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -265,7 +266,10 @@ fun SupplierDetailScreen(
                 }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -287,7 +291,10 @@ fun SupplierDetailScreen(
                 TextButton(onClick = { showDeletePayment = true }) {
                     Text("Supprimer", color = DsColors.Danger)
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -317,7 +324,10 @@ fun SupplierDetailScreen(
                 TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -338,7 +348,7 @@ fun SupplierDetailScreen(
                         singleLine = true,
                         isError = editError.isNotEmpty(),
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -373,7 +383,10 @@ fun SupplierDetailScreen(
                 TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 

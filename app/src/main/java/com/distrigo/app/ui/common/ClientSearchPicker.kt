@@ -26,6 +26,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 /**
  * Shared "pick a client via search" screen body: header + search field + filtered client list,
@@ -79,7 +80,7 @@ fun ClientSearchPicker(
             shape         = DsShapes.large,
             singleLine    = true,
             textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary
             )

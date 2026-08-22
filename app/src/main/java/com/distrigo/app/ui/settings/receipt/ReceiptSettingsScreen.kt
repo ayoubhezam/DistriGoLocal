@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @Composable
 fun ReceiptSettingsScreen(onBack: () -> Unit) {
@@ -139,7 +140,7 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
                 modifier        = Modifier.fillMaxWidth(),
                 shape           = DsShapes.medium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )

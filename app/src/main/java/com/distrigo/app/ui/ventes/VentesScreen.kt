@@ -34,6 +34,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
@@ -145,7 +146,10 @@ fun VentesScreen(
                     TextButton(onClick = { showDeleteDialog = false; longPressVente = null; deleteError = "" }) {
                         Text("Annuler")
                     }
-                }
+                },
+                containerColor    = DsColors.Surface,
+                titleContentColor = DsColors.TextPrimary,
+                textContentColor  = DsColors.TextSecondary
             )
         } else {
             AlertDialog(
@@ -189,7 +193,9 @@ fun VentesScreen(
                             Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                         }
                     }
-                }
+                },
+                titleContentColor = DsColors.TextPrimary,
+                textContentColor  = DsColors.TextSecondary
             )
         }
     }
@@ -335,7 +341,7 @@ fun VentesScreen(
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape         = DsShapes.medium,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -375,7 +381,7 @@ fun VentesScreen(
                             .clickable { showDateFromPicker = true },
                         shape    = DsShapes.medium,
                         enabled  = false,
-                        colors   = OutlinedTextFieldDefaults.colors(
+                        colors   = dsTextFieldColors(
                             disabledBorderColor       = if (viewModel.filterDateFrom != null) DsColors.Primary else DsColors.Border,
                             disabledTextColor         = DsColors.TextPrimary,
                             disabledPlaceholderColor  = DsColors.TextSecondary,
@@ -399,7 +405,7 @@ fun VentesScreen(
                             .clickable { showDateToPicker = true },
                         shape    = DsShapes.medium,
                         enabled  = false,
-                        colors   = OutlinedTextFieldDefaults.colors(
+                        colors   = dsTextFieldColors(
                             disabledBorderColor       = if (viewModel.filterDateTo != null) DsColors.Primary else DsColors.Border,
                             disabledTextColor         = DsColors.TextPrimary,
                             disabledPlaceholderColor  = DsColors.TextSecondary,
@@ -472,7 +478,7 @@ fun VentesScreen(
                     .clip(DsShapes.large),
                 shape      = DsShapes.large,
                 singleLine = true,
-                colors     = OutlinedTextFieldDefaults.colors(
+                colors     = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary
                 )
@@ -704,7 +710,10 @@ fun VenteDetailScreen(
                 TextButton(onClick = { showDeleteDialog = false; deleteError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 

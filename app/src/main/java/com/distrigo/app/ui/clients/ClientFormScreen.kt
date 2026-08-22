@@ -35,6 +35,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
@@ -526,7 +527,7 @@ private fun DsFormField(
             modifier        = Modifier.fillMaxWidth(),
             shape           = DsShapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary,
                 errorBorderColor     = DsColors.Danger

@@ -50,6 +50,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
@@ -210,7 +211,7 @@ fun ClientDetailScreen(
                         singleLine = true,
                         isError = payError.isNotEmpty(),
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -223,7 +224,7 @@ fun ClientDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -289,7 +290,10 @@ fun ClientDetailScreen(
                 }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -311,7 +315,10 @@ fun ClientDetailScreen(
                 TextButton(onClick = { showDeletePayment = true }) {
                     Text("Supprimer", color = DsColors.Danger)
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -341,7 +348,10 @@ fun ClientDetailScreen(
                 TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -362,7 +372,7 @@ fun ClientDetailScreen(
                         singleLine = true,
                         isError = editError.isNotEmpty(),
                         shape = DsShapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor = DsColors.Primary
                         )
@@ -401,7 +411,10 @@ fun ClientDetailScreen(
                 }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 

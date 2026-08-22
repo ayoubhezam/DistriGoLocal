@@ -22,6 +22,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @Composable
 fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
@@ -51,7 +52,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             focusedBorderColor   = DsColors.Primary,
                             unfocusedBorderColor = DsColors.Border,
                             errorBorderColor     = DsColors.Danger
@@ -89,7 +90,10 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
                 TextButton(onClick = { showAddDialog = false; newName = ""; nameError = "" }) {
                     Text("Annuler")
                 }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -109,7 +113,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             focusedBorderColor   = DsColors.Primary,
                             unfocusedBorderColor = DsColors.Border,
                             errorBorderColor     = DsColors.Danger
@@ -136,7 +140,10 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
             },
             dismissButton = {
                 TextButton(onClick = { editCategory = null }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -174,7 +181,10 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
             },
             dismissButton = {
                 TextButton(onClick = { deleteCategory = null; deleteError = "" }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 

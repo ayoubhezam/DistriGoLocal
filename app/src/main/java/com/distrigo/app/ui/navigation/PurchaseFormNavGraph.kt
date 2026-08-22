@@ -39,6 +39,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.suppliers.SupplierViewModel
@@ -230,7 +231,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 singleLine    = true,
                                 shape         = DsShapes.medium,
                                 modifier      = Modifier.fillMaxWidth(),
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     focusedBorderColor   = DsColors.Primary,
                                     unfocusedBorderColor = DsColors.Border
                                 )
@@ -242,7 +243,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 singleLine    = true,
                                 shape         = DsShapes.medium,
                                 modifier      = Modifier.fillMaxWidth(),
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     focusedBorderColor   = DsColors.Primary,
                                     unfocusedBorderColor = DsColors.Border
                                 )
@@ -276,7 +277,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                         TextButton(onClick = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" }) {
                             Text("Annuler")
                         }
-                    }
+                    },
+                    containerColor    = DsColors.Surface,
+                    titleContentColor = DsColors.TextPrimary,
+                    textContentColor  = DsColors.TextSecondary
                 )
             }
 
@@ -319,7 +323,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         .clip(DsShapes.large),
                     shape         = DsShapes.large,
                     singleLine    = true,
-                    colors        = OutlinedTextFieldDefaults.colors(
+                    colors        = dsTextFieldColors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary
                     )
@@ -532,7 +536,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             .clip(DsShapes.large),
                         shape         = DsShapes.large,
                         singleLine    = true,
-                        colors        = OutlinedTextFieldDefaults.colors(
+                        colors        = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
                             focusedBorderColor   = DsColors.Primary
                         )
@@ -840,7 +844,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 singleLine      = true,
                                                 shape           = DsShapes.medium,
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                colors          = OutlinedTextFieldDefaults.colors(
+                                                colors          = dsTextFieldColors(
                                                     unfocusedBorderColor = DsColors.Border,
                                                     focusedBorderColor   = DsColors.Primary
                                                 )
@@ -870,7 +874,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 singleLine      = true,
                                                 shape           = DsShapes.medium,
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                colors          = OutlinedTextFieldDefaults.colors(
+                                                colors          = dsTextFieldColors(
                                                     unfocusedBorderColor = DsColors.Border,
                                                     focusedBorderColor   = DsColors.Primary
                                                 )
@@ -960,7 +964,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 shape         = DsShapes.medium,
                                 minLines      = 2,
                                 maxLines      = 3,
-                                colors        = OutlinedTextFieldDefaults.colors(
+                                colors        = dsTextFieldColors(
                                     unfocusedBorderColor = DsColors.Border,
                                     focusedBorderColor   = DsColors.Primary
                                 )

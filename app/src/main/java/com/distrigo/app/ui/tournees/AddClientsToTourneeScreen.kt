@@ -25,6 +25,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.GridView
@@ -122,7 +123,7 @@ fun AddClientsToTourneeScreen(
             modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
             shape         = DsShapes.large,
             singleLine    = true,
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor   = DsColors.Primary
             )

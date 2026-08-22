@@ -27,6 +27,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 private fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
@@ -328,7 +329,7 @@ fun MovementFiltersView(
                 trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
                 modifier      = Modifier.fillMaxWidth().clickable { showDateFromPicker = true },
                 shape         = DsShapes.medium,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary,
                     disabledBorderColor  = DsColors.Border
@@ -343,7 +344,7 @@ fun MovementFiltersView(
                 trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
                 modifier      = Modifier.fillMaxWidth().clickable { showDateToPicker = true },
                 shape         = DsShapes.medium,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
                     focusedBorderColor   = DsColors.Primary,
                     disabledBorderColor  = DsColors.Border
@@ -368,7 +369,7 @@ fun MovementFiltersView(
                     modifier      = Modifier.fillMaxWidth().clickable { sourceMenuExpanded = true },
                     shape         = DsShapes.medium,
                     enabled       = false,
-                    colors = OutlinedTextFieldDefaults.colors(
+                    colors = dsTextFieldColors(
                         disabledBorderColor = DsColors.Border,
                         disabledTextColor   = DsColors.TextPrimary,
                         disabledTrailingIconColor = DsColors.TextSecondary

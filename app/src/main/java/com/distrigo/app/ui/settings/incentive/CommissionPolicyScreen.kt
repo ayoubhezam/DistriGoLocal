@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.time.Instant
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -283,7 +284,7 @@ fun CommissionPolicyScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = DsShapes.medium,
-                            colors = OutlinedTextFieldDefaults.colors(
+                            colors = dsTextFieldColors(
                                 unfocusedBorderColor = DsColors.Border,
                                 focusedBorderColor = DsColors.Primary
                             )
@@ -511,7 +512,7 @@ private fun DsFormField(
             modifier = Modifier.fillMaxWidth(),
             shape = DsShapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = dsTextFieldColors(
                 unfocusedBorderColor = DsColors.Border,
                 focusedBorderColor = DsColors.Primary,
                 errorBorderColor = DsColors.Danger

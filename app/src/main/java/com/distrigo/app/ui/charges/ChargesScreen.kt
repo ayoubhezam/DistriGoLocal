@@ -131,7 +131,10 @@ fun ChargesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showAddTypeDialog = false; newTypeName = "" }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 
@@ -159,7 +162,10 @@ fun ChargesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteTypeDialog = false; deleteTypeError = "" }) { Text("Annuler") }
-            }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
         )
     }
 }
