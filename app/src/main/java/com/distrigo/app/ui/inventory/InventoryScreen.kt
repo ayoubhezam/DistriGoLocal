@@ -27,6 +27,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.InventorySessionSummary
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -74,18 +76,11 @@ fun ColumnScope.InventoryScanStep(
     onReview          : () -> Unit,
     onFinish          : () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-        }
-        Spacer(Modifier.width(DsSpacing.sm))
-        Column {
-            Text("Inventaire", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            if (numero.isNotEmpty()) {
-                Text(numero, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
-            }
-        }
-    }
+    DsTopAppBar(
+        title    = "Inventaire",
+        subtitle = numero.ifEmpty { null },
+        leading  = DsTopBarLeading.Back(onBack)
+    )
 
     Column(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
@@ -177,17 +172,10 @@ fun ColumnScope.InventoryQuantityStep(
     val qtePhysique = qtePhysiqueText.toDoubleOrNull()
     val ecart = qtePhysique?.let { it - product.stock }
 
-    Row(
-        Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+    DsTopAppBar(
+        title   = "Inventaire",
+        leading = DsTopBarLeading.Back(onCancel)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onCancel) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text("Inventaire", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
         IconButton(onClick = onCancel) {
             Icon(Icons.Default.Delete, contentDescription = "Annuler", tint = DsColors.TextTertiary)
         }
@@ -353,13 +341,10 @@ fun ColumnScope.InventoryReviewStep(
     var editQtyText  by remember { mutableStateOf("") }
     var deletingItem by remember { mutableStateOf<com.distrigo.app.data.model.InventoryItem?>(null) }
 
-    Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-        }
-        Spacer(Modifier.width(DsSpacing.sm))
-        Text("Produits scannés (${items.size})", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-    }
+    DsTopAppBar(
+        title   = "Produits scannés (${items.size})",
+        leading = DsTopBarLeading.Back(onBack)
+    )
 
     if (items.isEmpty()) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -469,13 +454,10 @@ fun ColumnScope.InventoryReadyToFinishStep(
     onBack        : () -> Unit,
     onShowSummary : () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-        }
-        Spacer(Modifier.width(DsSpacing.sm))
-        Text("Inventaire", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-    }
+    DsTopAppBar(
+        title   = "Inventaire",
+        leading = DsTopBarLeading.Back(onBack)
+    )
 
     Column(
         modifier = Modifier.weight(1f).fillMaxSize().padding(DsSpacing.lg),
@@ -522,13 +504,20 @@ fun ColumnScope.InventorySummaryStep(
     onViewDetail    : () -> Unit,
     onReturnHistory : () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack, enabled = !isConfirmed) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = if (isConfirmed) DsColors.TextTertiary else DsColors.TextPrimary)
+    DsTopAppBar(
+        title   = "Résumé de l'inventaire",
+        // Back greys out and stops responding once the session is confirmed — a state
+        // DsTopBarLeading.Back has no way to express, so the button rides in Custom.
+        leading = DsTopBarLeading.Custom {
+            IconButton(onClick = onBack, enabled = !isConfirmed) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Retour",
+                    tint = if (isConfirmed) DsColors.TextTertiary else DsColors.TextPrimary
+                )
+            }
         }
-        Spacer(Modifier.width(DsSpacing.sm))
-        Text("Résumé de l'inventaire", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-    }
+    )
 
     Column(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),

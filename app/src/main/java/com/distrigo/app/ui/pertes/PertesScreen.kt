@@ -25,11 +25,15 @@ import com.distrigo.app.data.model.PerteType
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
 
 @Composable
 fun PertesScreen(
     viewModel   : PerteViewModel = hiltViewModel(),
+    onBack      : (() -> Unit)? = null,
     onTypeClick : (Int) -> Unit
 ) {
     val perteTypes by viewModel.perteTypes.collectAsState()
@@ -47,11 +51,16 @@ fun PertesScreen(
 
     // ── Accueil : Types de pertes ──
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment     = Alignment.CenterVertically
-        )  {
+        // This root carried no title at all — only the add button — while its sibling Charges
+        // named itself. It is titled now, worded to match.
+        // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
+        // affordance; null-safe because the screen is still usable as a root.
+        DsTopAppBar(
+            title    = "Types de pertes",
+            subtitle = "Gérez vos catégories de pertes",
+            leading  = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+            size     = DsTopBarSize.Large
+        ) {
             Box(
                 modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showAddTypeDialog = true },
                 contentAlignment = Alignment.Center

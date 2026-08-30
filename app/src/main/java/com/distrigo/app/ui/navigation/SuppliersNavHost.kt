@@ -34,7 +34,8 @@ import com.distrigo.app.ui.suppliers.*
 @Composable
 fun SuppliersNavHost(
     onFullScreenChange : (Boolean) -> Unit = {},
-    onNavigateToOrder  : (Int) -> Unit = {}
+    onNavigateToOrder  : (Int) -> Unit = {},
+    onBack             : (() -> Unit)? = null
 ) {
     val navController = rememberNavController()
 
@@ -52,6 +53,7 @@ fun SuppliersNavHost(
             val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             SuppliersScreen(
                 viewModel       = viewModel,
+                onBack          = onBack,
                 onAddSupplier   = { navController.navigate(Screen.SuppliersForm.createRoute()) },
                 onSupplierClick = { supplierId -> navController.navigate(Screen.SuppliersDetail.createRoute(supplierId)) }
             )

@@ -16,7 +16,10 @@ import com.distrigo.app.ui.pertes.PerteViewModel
 import com.distrigo.app.ui.pertes.PertesScreen
 
 @Composable
-fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
+fun PertesNavHost(
+    onFullScreenChange: (Boolean) -> Unit = {},
+    onBack            : (() -> Unit)? = null
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -33,6 +36,7 @@ fun PertesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             val viewModel: PerteViewModel = hiltViewModel(parentEntry)
             PertesScreen(
                 viewModel   = viewModel,
+                onBack      = onBack,
                 onTypeClick = { typeId -> navController.navigate(Screen.PertesList.createRoute(typeId)) }
             )
         }

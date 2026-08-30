@@ -16,14 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -41,6 +39,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @Composable
@@ -63,18 +63,17 @@ fun <Filter, T : Any> PagedHistoryScreen(
 ) {
     Column(modifier = modifier.fillMaxSize().background(DsColors.Surface)) {
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Column(modifier = Modifier.padding(start = 2.dp)) {
-                Text(title, fontSize = DsTextSize.title, color = DsColors.TextPrimary)
-                Text(countLabel, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-        }
+        // One bar serves both paged history routes, so the count line rides in the subtitle slot
+        // the hand-rolled header spent a second Text on.
+        DsTopAppBar(
+            title    = title,
+            subtitle = countLabel,
+            leading  = DsTopBarLeading.Back(onBack)
+        )
+
+        // The old header carried 8dp of its own bottom padding; the fixed-height bar does not, so
+        // the gap above the search field is restored here.
+        Spacer(modifier = Modifier.height(DsSpacing.sm))
 
         OutlinedTextField(
             value = query,

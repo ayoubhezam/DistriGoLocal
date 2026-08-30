@@ -1,6 +1,7 @@
 package com.distrigo.app
 
 import android.graphics.Rect
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -33,11 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -51,6 +54,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.core.view.WindowCompat
 import com.distrigo.app.R
 import com.distrigo.app.ui.clients.ClientsScreen
 import com.distrigo.app.ui.common.PlaceholderScreen
@@ -84,7 +88,7 @@ class MainActivity : ComponentActivity() {
         com.distrigo.app.data.geo.GeoRepository.init(this)
         setContent {
             DistriGoTheme {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -172,6 +176,7 @@ class MainActivity : ComponentActivity() {
                             )
                     ) {
                     Scaffold(
+                        modifier       = Modifier.navigationBarsPadding(),
                         containerColor = DsColors.Surface
                     ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
@@ -184,13 +189,24 @@ class MainActivity : ComponentActivity() {
                             popExitTransition  = navPopExitTransition
                         ) {
                             // ── Bottom-tab destinations ──
+                            // The menu opens the same Plus drawer the edge swipe does — until now that
+                            // swipe was the only way in, with nothing on screen advertising it.
+                            // Notifications and profile are visual only for now: the callbacks land
+                            // here so the wiring is one edit away once those screens exist.
                             composable(Screen.TabDashboard.route) {
-                                com.distrigo.app.ui.navigation.DashboardNavHost()
+                                com.distrigo.app.ui.navigation.DashboardNavHost(
+                                    onOpenMenu           = { openDrawer() },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { /* TODO: profile */ }
+                                )
                             }
 
                             composable(Screen.TabVentes.route) {
                                 TourneesHubScreen(
                                     onFullScreenChange = { hideBottomBar = it },
+                                    onOpenMenu           = { openDrawer() },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { /* TODO: profile */ },
                                     onOpenClientDetail = { clientId ->
                                         navController.navigate(Screen.PlusClients.createRoute(clientId))
                                     }
@@ -198,11 +214,21 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Screen.TabProduits.route) {
-                                com.distrigo.app.ui.navigation.ProduitsNavHost(onFullScreenChange = { hideBottomBar = it })
+                                com.distrigo.app.ui.navigation.ProduitsNavHost(
+                                    onFullScreenChange   = { hideBottomBar = it },
+                                    onOpenMenu           = { openDrawer() },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { /* TODO: profile */ }
+                                )
                             }
 
                             composable(Screen.TabAchats.route) {
-                                com.distrigo.app.ui.navigation.AchatsNavHost(onFullScreenChange = { hideBottomBar = it })
+                                com.distrigo.app.ui.navigation.AchatsNavHost(
+                                    onFullScreenChange   = { hideBottomBar = it },
+                                    onOpenMenu           = { openDrawer() },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { /* TODO: profile */ }
+                                )
                             }
 
                             // ── Plus menu items: real destinations, reached from the drawer overlay below ──
@@ -219,15 +245,24 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Screen.PlusFournisseurs.route) {
-                                com.distrigo.app.ui.navigation.SuppliersNavHost(onFullScreenChange = { hideBottomBar = it })
+                                com.distrigo.app.ui.navigation.SuppliersNavHost(
+                                    onFullScreenChange = { hideBottomBar = it },
+                                    onBack             = { navController.popBackStack() }
+                                )
                             }
 
                             composable(Screen.PlusCharges.route) {
-                                com.distrigo.app.ui.navigation.ChargesNavHost(onFullScreenChange = { hideBottomBar = it })
+                                com.distrigo.app.ui.navigation.ChargesNavHost(
+                                    onFullScreenChange = { hideBottomBar = it },
+                                    onBack             = { navController.popBackStack() }
+                                )
                             }
 
                             composable(Screen.PlusPertes.route) {
-                                com.distrigo.app.ui.navigation.PertesNavHost(onFullScreenChange = { hideBottomBar = it })
+                                com.distrigo.app.ui.navigation.PertesNavHost(
+                                    onFullScreenChange = { hideBottomBar = it },
+                                    onBack             = { navController.popBackStack() }
+                                )
                             }
 
                             composable(Screen.PlusInventaire.route) {
@@ -254,9 +289,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // ── Floating bottom nav: overlays NavHost content directly (Scaffold no longer
-                // reserves height for it) so scrolled screen content is genuinely visible behind
-                // the translucent pill, not just an empty painted margin. ──
+                // ── Edge-to-edge bottom nav: full-width, flush with the screen bottom, overlaying NavHost
+                // content directly (Scaffold no longer reserves height for it) so scrolled screen
+                // content scrolls up to meet it. ──
                 if (isTabRoute && !hideBottomBar) {
                     ShiftingBottomNavBar(
                         currentRoute = currentRoute,
@@ -286,6 +321,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxHeight()
                         .fillMaxWidth(PlusDrawerMaxWidthFraction)
                         .align(Alignment.CenterStart)
+                        .navigationBarsPadding()
                         .graphicsLayer { translationX = drawerOffset.value - maxDrawerWidthPx }
                 ) {
                     ModalDrawerSheet(modifier = Modifier.fillMaxSize()) {
@@ -347,10 +383,27 @@ private fun ShiftingBottomNavBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // The bar sits behind the system navigation bar, so the gesture handle is drawn over it and
+    // has to contrast with the container. Which appearance that needs follows from the container
+    // itself, so re-theming the bar carries the handle with it; the theme's own light default is
+    // handed back when the bar leaves.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        DisposableEffect(view) {
+            val controller = WindowCompat.getInsetsController((view.context as Activity).window, view)
+            controller.isAppearanceLightNavigationBars = DsColors.NavBarNeedsDarkSystemIcons
+            onDispose { controller.isAppearanceLightNavigationBars = true }
+        }
+    }
+
+    // The bar is edge-to-edge and flush with the screen bottom, so it paints behind the system
+    // navigation bar; its inset is added on top of the clearance here and re-applied as padding
+    // on the item Row below, keeping the icons above the gesture handle.
+    val systemNavInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(DsSpacing.bottomNavClearance)
+            .height(DsSpacing.bottomNavClearance + systemNavInset)
     ) {
         Box(
             modifier = Modifier
@@ -361,19 +414,23 @@ private fun ShiftingBottomNavBar(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color.Transparent)
-                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
         ) {
             Surface(
                 modifier        = Modifier.fillMaxWidth(),
-                shape           = DsShapes.pill,
-                color           = DsColors.NavBarContainerTranslucent,
-                shadowElevation = DsElevation.medium
+                shape           = RectangleShape,
+                color           = DsColors.NavBarContainer,
+                shadowElevation = DsElevation.none
             ) {
+              Column(modifier = Modifier.fillMaxWidth()) {
+                // A container that shares the content's own surface cannot lean on a shadow to
+                // separate itself from what scrolls up to meet it, so it takes a hairline instead.
+                HorizontalDivider(thickness = 1.dp, color = DsColors.NavBarBorder)
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = DsSpacing.md),
+                        .padding(vertical = DsSpacing.md)
+                        .padding(bottom = systemNavInset),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ShiftingNavItem(
@@ -401,6 +458,7 @@ private fun ShiftingBottomNavBar(
                         onClick  = { onNavigate(Screen.TabAchats.route) }
                     )
                 }
+              }
             }
         }
     }
@@ -418,7 +476,7 @@ private fun RowScope.ShiftingNavItem(
         animationSpec = tween(ShiftingNavAnimationMs),
         label         = "shifting_nav_item_weight"
     )
-    val contentColor = if (selected) DsColors.Surface else DsColors.TextTertiary
+    val contentColor = if (selected) DsColors.NavBarSelected else DsColors.NavBarUnselected
 
     Row(
         modifier = Modifier

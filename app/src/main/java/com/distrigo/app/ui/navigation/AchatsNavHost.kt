@@ -12,7 +12,12 @@ import androidx.navigation.navArgument
 import com.distrigo.app.ui.purchases.*
 
 @Composable
-fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
+fun AchatsNavHost(
+    onFullScreenChange   : (Boolean) -> Unit = {},
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {}
+) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
@@ -33,6 +38,10 @@ fun AchatsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             val viewModel: PurchaseViewModel = hiltViewModel(parentEntry)
             PurchasesScreen(
                 viewModel          = viewModel,
+                onOpenMenu           = onOpenMenu,
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick,
+
                 onFullScreenChange = onFullScreenChange,
                 onAddOrder         = { navController.navigate(Screen.PurchaseFormGraph.createRoute()) },
                 onEditOrder        = { orderId -> navController.navigate(Screen.PurchaseFormGraph.createRoute(orderId = orderId)) },

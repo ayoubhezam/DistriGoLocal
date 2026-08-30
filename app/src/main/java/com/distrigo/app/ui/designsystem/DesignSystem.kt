@@ -2,6 +2,7 @@ package com.distrigo.app.ui.designsystem
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,9 +37,20 @@ object DsColors {
     val SurfaceMuted   = Color(0xFFF9FAFB)
     val SurfaceSunken  = Color(0xFFF2F4F7)
 
-    // Navigation — Shifting Bottom Navigation dark pill container
-    val NavBarContainer = Color(0xFF18181B)
-    val NavBarContainerTranslucent = NavBarContainer.copy(alpha = 0.6f)
+    // ── Navigation: the Shifting Bottom Navigation bar ──
+    // Semantic slots rather than raw colours, so a dark theme re-points this block alone and no
+    // call site changes. Everything the bar paints comes from here.
+    val NavBarContainer  = Surface
+    val NavBarSelected   = Primary
+    val NavBarUnselected = TextPrimary
+    val NavBarBorder     = Border
+
+    /**
+     * Whether the system-navigation icons drawn over [NavBarContainer] have to be dark to stay
+     * legible. Derived from the container rather than hardcoded, so re-theming the bar keeps the
+     * gesture handle readable without a second edit.
+     */
+    val NavBarNeedsDarkSystemIcons: Boolean get() = NavBarContainer.luminance() > 0.5f
 
     // Category tag palette (soft, for customer type badges)
     val TagRetail      = Color(0xFF5B6EF5) to Color(0xFFEEF0FE)
@@ -58,8 +70,13 @@ object DsSpacing {
     val xxl = 24.dp
     val xxxl = 32.dp
 
-    // Clears the floating ShiftingBottomNavBar: 48dp pill + 16dp outer margin + 24dp breathing room
+    // Clears the edge-to-edge ShiftingBottomNavBar: 48dp bar + 40dp breathing room. The system
+    // navigation-bar inset sits under the bar itself and is added on top of this at the call site.
     val bottomNavClearance = 88.dp
+
+    // Bottom offset for a FAB on a tab screen: clears the nav bar with a comfortable gap above it,
+    // so the button never crowds or overlaps the bar the way a plain lg-padded FAB does.
+    val fabBottomClearance = bottomNavClearance + lg
 }
 
 // ═══════════════════════════════════════════════════════════

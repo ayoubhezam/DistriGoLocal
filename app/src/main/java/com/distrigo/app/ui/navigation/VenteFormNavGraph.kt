@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.distrigo.app.ui.clients.ClientViewModel
+import com.distrigo.app.ui.designsystem.DsStepBadge
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -296,34 +300,15 @@ fun NavGraphBuilder.venteFormGraph(
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
+                DsTopAppBar(
+                    title         = if (isEdit) "Modifier la vente #$venteId" else "Vente dépôt",
+                    subtitle      = formClient?.name ?: "Choisir un client",
+                    // Blue once a client is chosen, grey while the step is still open.
+                    subtitleColor = if (formClient != null) DsColors.Primary else DsColors.TextSecondary,
+                    leading       = DsTopBarLeading.Back({ if (skipClientStep) onBack() else navController.popBackStack() })
                 ) {
-                    IconButton(onClick = { if (skipClientStep) onBack() else navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isEdit) "Modifier la vente #$venteId" else "Vente dépôt", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text(
-                            formClient?.name ?: "Choisir un client",
-                            fontSize = DsTextSize.caption,
-                            color    = if (formClient != null) DsColors.Primary else DsColors.TextSecondary
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.pill)
-                            .background(DsColors.PrimaryLight)
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            "Produits · 2/3",
-                            fontSize   = DsTextSize.caption,
-                            fontWeight = FontWeight.Bold,
-                            color      = DsColors.Primary
-                        )
-                    }
+                    DsStepBadge("Produits", 2, 3)
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
@@ -552,26 +537,18 @@ fun NavGraphBuilder.venteFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                DsTopAppBar(
+                    title    = "Ma sélection",
+                    subtitle = "${cartItems.size} article(s)",
+                    leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                        }
-                        Spacer(Modifier.width(DsSpacing.xs))
-                        Column {
-                            Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                            Text("${cartItems.size} article(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                        }
-                    }
                     if (cartItems.isNotEmpty()) {
                         TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
+                    // TextButton brings its own inset; this makes up the standard end margin.
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
 
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -690,7 +667,7 @@ fun NavGraphBuilder.venteFormGraph(
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.medium
                         ) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(DsSpacing.sm))
                             Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }

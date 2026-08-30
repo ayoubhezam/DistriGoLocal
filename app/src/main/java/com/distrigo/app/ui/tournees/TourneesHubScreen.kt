@@ -23,6 +23,10 @@ import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.navigation.Screen
 import com.distrigo.app.ui.navigation.navEnterTransition
@@ -35,6 +39,10 @@ import androidx.compose.foundation.verticalScroll
 fun TourneesHubScreen(
     tourneeViewModel   : TourneeViewModel = hiltViewModel(),
     onFullScreenChange : (Boolean) -> Unit = {},
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
+
     onOpenClientDetail : (Int) -> Unit = {}   // ← جديد
 ) {
     val navController = rememberNavController()
@@ -52,13 +60,17 @@ fun TourneesHubScreen(
         popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.VentesHubDepotVente.route) {
-            com.distrigo.app.ui.navigation.VentesNavHost(onFullScreenChange = onFullScreenChange)
+            com.distrigo.app.ui.navigation.VentesNavHost(
+                onFullScreenChange = onFullScreenChange,
+                onBack             = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.VentesHubTournees.route) {
             com.distrigo.app.ui.navigation.TourneesNavHost(
                 onFullScreenChange = onFullScreenChange,
-                onNavigateToChargement = { navController.navigate(Screen.VentesHubStockCamion.route) }
+                onNavigateToChargement = { navController.navigate(Screen.VentesHubStockCamion.route) },
+                onBack                 = { navController.popBackStack() }
             )
         }
 
@@ -85,93 +97,102 @@ fun TourneesHubScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(DsColors.Surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(DsSpacing.lg)
             ) {
-                // ── Header ──
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier         = Modifier.size(48.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(24.dp))
-                    }
-                    Spacer(Modifier.width(DsSpacing.md))
-                    Column {
-                        Text("Ventes", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text("Gérez vos ventes et vos opérations", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                }
-
-                Spacer(Modifier.height(DsSpacing.lg))
-
-                // ── Stats banner ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Primary)
-                        .padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                // The shipping badge used to ride in the leading slot as the hub's identity cue.
+                // The menu is a navigation control and outranks it, and the other three tab roots
+                // carry no badge either, so the four now open identically.
+                //
+                // The subtitle went with it: the menu plus two trailing controls cost enough title
+                // width that "Gérez vos ventes et vos opérations" ellipsized, and no other tab root
+                // carries one.
+                DsTopAppBar(
+                    title   = "Ventes",
+                    leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
+                    size    = DsTopBarSize.Large
                 ) {
-                    HubStatColumn(
-                        icon  = Icons.Default.LocalShipping,
-                        value = "$activeTournees",
-                        label = "Tournées actives"
-                    )
-                    HubStatColumn(
-                        icon  = Icons.Default.CheckCircle,
-                        value = "$closedTournees",
-                        label = "Tournées fermées"
-                    )
-                    HubStatColumn(
-                        icon  = Icons.Default.TrendingUp,
-                        value = "${"%.0f".format(totalRevenue)} DA",
-                        label = "Chiffre d'affaires"
+                    DsTopBarRootActions(
+                        onNotificationsClick = onNotificationsClick,
+                        onProfileClick       = onProfileClick
                     )
                 }
 
-                Text(
-                    "Gestion",
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = DsColors.TextSecondary,
-                    modifier   = Modifier.padding(top = DsSpacing.lg, bottom = DsSpacing.sm)
-                )
+                // The screen-wide inset moved off the root so the bar can run edge to edge; the
+                // scrolling body carries it instead.
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(DsSpacing.lg)
+                ) {
+                    // ── Stats banner ──
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.large)
+                            .background(DsColors.Primary)
+                            .padding(DsSpacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        HubStatColumn(
+                            icon  = Icons.Default.LocalShipping,
+                            value = "$activeTournees",
+                            label = "Tournées actives"
+                        )
+                        HubStatColumn(
+                            icon  = Icons.Default.CheckCircle,
+                            value = "$closedTournees",
+                            label = "Tournées fermées"
+                        )
+                        HubStatColumn(
+                            icon  = Icons.Default.TrendingUp,
+                            value = "${"%.0f".format(totalRevenue)} DA",
+                            label = "Chiffre d'affaires"
+                        )
+                    }
 
-                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    HubNavCard(
-                        icon        = Icons.Default.Storefront,
-                        iconBg      = DsColors.WarningLight,
-                        iconTint    = DsColors.Warning,
-                        title       = "Dépôt Vente",
-                        subtitle    = "Ventes depuis le dépôt",
-                        onClick     = { navController.navigate(Screen.VentesHubDepotVente.route) }
+                    Text(
+                        "Gestion",
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextSecondary,
+                        modifier   = Modifier.padding(top = DsSpacing.lg, bottom = DsSpacing.sm)
                     )
-                    HubNavCard(
-                        icon        = Icons.Default.LocalShipping,
-                        iconBg      = DsColors.PrimaryLight,
-                        iconTint    = DsColors.Primary,
-                        title       = "Tournées",
-                        subtitle    = "Voir et gérer vos tournées actives et fermées",
-                        onClick     = { navController.navigate(Screen.VentesHubTournees.route) }
-                    )
-                    HubNavCard(
-                        icon        = Icons.Default.Inventory2,
-                        iconBg      = DsColors.SuccessLight,
-                        iconTint    = DsColors.Success,
-                        title       = "Stock Camion",
-                        subtitle    = "Consulter le stock et les produits disponibles dans les camions",
-                        onClick     = { navController.navigate(Screen.VentesHubStockCamion.route) }
-                    )
-                    HubNavCard(
-                        icon        = Icons.Default.PieChart,
-                        iconBg      = DsColors.PrimaryLight,
-                        iconTint    = DsColors.Primary,
-                        title       = "Rapports",
-                        subtitle    = "Analysez vos performances de vente",
-                        onClick     = { navController.navigate(Screen.VentesHubRapports.route) }
-                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                        HubNavCard(
+                            icon        = Icons.Default.Storefront,
+                            iconBg      = DsColors.WarningLight,
+                            iconTint    = DsColors.Warning,
+                            title       = "Dépôt Vente",
+                            subtitle    = "Ventes depuis le dépôt",
+                            onClick     = { navController.navigate(Screen.VentesHubDepotVente.route) }
+                        )
+                        HubNavCard(
+                            icon        = Icons.Default.LocalShipping,
+                            iconBg      = DsColors.PrimaryLight,
+                            iconTint    = DsColors.Primary,
+                            title       = "Tournées",
+                            subtitle    = "Voir et gérer vos tournées actives et fermées",
+                            onClick     = { navController.navigate(Screen.VentesHubTournees.route) }
+                        )
+                        HubNavCard(
+                            icon        = Icons.Default.Inventory2,
+                            iconBg      = DsColors.SuccessLight,
+                            iconTint    = DsColors.Success,
+                            title       = "Stock Camion",
+                            subtitle    = "Consulter le stock et les produits disponibles dans les camions",
+                            onClick     = { navController.navigate(Screen.VentesHubStockCamion.route) }
+                        )
+                        HubNavCard(
+                            icon        = Icons.Default.PieChart,
+                            iconBg      = DsColors.PrimaryLight,
+                            iconTint    = DsColors.Primary,
+                            title       = "Rapports",
+                            subtitle    = "Analysez vos performances de vente",
+                            onClick     = { navController.navigate(Screen.VentesHubRapports.route) }
+                        )
+                    }
                 }
             }
         }

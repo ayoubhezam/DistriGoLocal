@@ -30,12 +30,20 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchasesScreen(
     viewModel          : PurchaseViewModel = hiltViewModel(),
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
+
     modifier           : Modifier = Modifier,
     onFullScreenChange : (Boolean) -> Unit = {},
     onAddOrder         : () -> Unit = {},
@@ -475,15 +483,17 @@ fun PurchasesScreen(
             .background(DsColors.Surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── Header ──
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .padding(DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
+            // The tab roots are the only screens with no back arrow, so the menu takes the
+            // leading slot and the global controls take the trailing one.
+            DsTopAppBar(
+                title   = "Achats",
+                leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
+                size    = DsTopBarSize.Large
             ) {
-                Text("Achats", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                DsTopBarRootActions(
+                    onNotificationsClick = onNotificationsClick,
+                    onProfileClick       = onProfileClick
+                )
             }
 
             // ── Search bar ──
@@ -622,7 +632,7 @@ fun PurchasesScreen(
                 // ── List ──
                 LazyColumn(
                     state               = listState,
-                    contentPadding      = PaddingValues(start = DsSpacing.lg, top = DsSpacing.xs, end = DsSpacing.lg, bottom = 140.dp),
+                    contentPadding      = PaddingValues(start = DsSpacing.lg, top = DsSpacing.xs, end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance + 56.dp),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
@@ -657,7 +667,7 @@ fun PurchasesScreen(
             contentColor   = Color.White,
             modifier       = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(DsSpacing.lg)
+                .padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouveau bon")
         }

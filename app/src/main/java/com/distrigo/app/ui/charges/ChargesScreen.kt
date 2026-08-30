@@ -23,12 +23,16 @@ import com.distrigo.app.data.model.ChargeType
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.Text
 @Composable
 fun ChargesScreen(
     viewModel   : ChargeViewModel = hiltViewModel(),
+    onBack      : (() -> Unit)? = null,
     onTypeClick : (Int) -> Unit
 ) {
     val chargeTypes by viewModel.chargeTypes.collectAsState()
@@ -47,15 +51,14 @@ fun ChargesScreen(
 
     // ── Types de charges (accueil) ──
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
+        // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
+        // affordance; null-safe because the screen is still usable as a root.
+        DsTopAppBar(
+            title    = "Types de charges",
+            subtitle = "Gérez vos catégories de charges",
+            leading  = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+            size     = DsTopBarSize.Large
         ) {
-            Column {
-                Text("Types de charges", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-                Text("Gérez vos catégories de charges", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-            }
             Box(
                 modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showAddTypeDialog = true },
                 contentAlignment = Alignment.Center

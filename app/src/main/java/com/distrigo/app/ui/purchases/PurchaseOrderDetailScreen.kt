@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.PurchaseOrder
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -157,20 +159,13 @@ fun PurchaseOrderDetailScreen(
             .background(DsColors.SurfaceSunken)
     ) {
         // ── Header (Outside Ticket) ──
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment     = Alignment.CenterVertically
-        )
-        {
-            IconButton(onClick = { onBack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Column {
-                Text("Achat #${displayOrder.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(displayOrder.supplier_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-            Spacer(Modifier.weight(1f))
+        DsTopAppBar(
+            title          = "Achat #${displayOrder.id}",
+            subtitle       = displayOrder.supplier_name,
+            leading        = DsTopBarLeading.Back({ onBack() }),
+            // Painted on SurfaceSunken like the vente ticket, so the bar matches.
+            containerColor = DsColors.SurfaceSunken
+        ) {
             Box(
                 modifier = Modifier
                     .clip(DsShapes.pill)
@@ -385,21 +380,43 @@ fun PurchaseOrderDetailScreen(
                 onClick  = { showReceiptPreview = true },
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape    = DsShapes.medium,
-                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border),
+                // Both buttons split the row evenly, so ButtonDefaults' 24dp-per-side content
+                // padding costs more than the longer label can spare. Trimmed on both, so the
+                // two stay identical.
+                contentPadding = PaddingValues(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
             ) {
                 Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Aperçu & Imprimer",
+                    fontSize   = DsTextSize.bodySmall,
+                    color      = DsColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines   = 1,
+                    softWrap   = false
+                )
             }
             OutlinedButton(
                 onClick  = { showShareOptions = true },
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape    = DsShapes.medium,
-                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border),
+                // Both buttons split the row evenly, so ButtonDefaults' 24dp-per-side content
+                // padding costs more than the longer label can spare. Trimmed on both, so the
+                // two stay identical.
+                contentPadding = PaddingValues(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Partager", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Partager",
+                    fontSize   = DsTextSize.bodySmall,
+                    color      = DsColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines   = 1,
+                    softWrap   = false
+                )
             }
         }
 

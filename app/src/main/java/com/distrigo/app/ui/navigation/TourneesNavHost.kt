@@ -18,7 +18,8 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 @Composable
 fun TourneesNavHost(
     onFullScreenChange: (Boolean) -> Unit = {},
-    onNavigateToChargement: () -> Unit = {}
+    onNavigateToChargement: () -> Unit = {},
+    onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -40,6 +41,7 @@ fun TourneesNavHost(
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             TourneesScreen(
                 viewModel      = viewModel,
+                onBack         = onBack,
                 onAddTournee   = { navController.navigate(Screen.TourneeForm.createRoute()) },
                 onTourneeClick = { tourneeId -> navController.navigate(Screen.TourneesDetail.createRoute(tourneeId)) }
             )

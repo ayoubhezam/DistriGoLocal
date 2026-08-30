@@ -32,6 +32,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.RetourClient
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -88,23 +90,15 @@ fun RetourClientListScreen(
             )
         } else {
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                DsTopAppBar(
+                    title    = "Retours",
+                    subtitle = "Historique des retours effectués",
+                    leading  = DsTopBarLeading.Back(onBack)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                        }
-                        Spacer(Modifier.width(DsSpacing.xs))
-                        Column {
-                            Text("Retours", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                            Text("Historique des retours effectués", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                        }
-                    }
                     Box(
-                        modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddRetour() },
+                        // A 40dp pill, not a 48dp icon button, so it supplies the difference to
+                        // the bar's standard end margin itself.
+                        modifier         = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddRetour() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Nouveau retour", tint = Color.White)

@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +38,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
@@ -147,21 +148,12 @@ fun CommissionPolicyScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        // ── Header ──
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)            }
-            Text(
-                "Politique de commission",
-                fontSize = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color = DsColors.TextPrimary,
-                modifier = Modifier.padding(start = DsSpacing.xs)
-            )
-        }
+        DsTopAppBar(
+            title   = "Politique de commission",
+            leading = DsTopBarLeading.Back(onBack)
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         Column(
             modifier = Modifier

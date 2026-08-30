@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,9 @@ import com.distrigo.app.ui.common.QuantityStepper
 import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.components.CollapsibleHeader
 import com.distrigo.app.ui.components.rememberScrollCollapsed
+import com.distrigo.app.ui.designsystem.DsStepBadge
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -62,39 +66,15 @@ private fun PurchaseFormHeader(
     currentStep  : Int,
     onBackClick  : () -> Unit
 ) {
-    Row(
-        modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    DsTopAppBar(
+        title         = if (isEdit) "Modifier le bon #$orderId" else "Nouveau bon",
+        subtitle      = supplierName ?: "Choisir un fournisseur",
+        // Blue once a supplier is chosen, grey while the step is still open.
+        subtitleColor = if (supplierName != null) DsColors.Primary else DsColors.TextSecondary,
+        leading       = DsTopBarLeading.Back(onBackClick)
     ) {
-        IconButton(onClick = onBackClick) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                if (isEdit) "Modifier le bon #$orderId" else "Nouveau bon",
-                fontSize   = DsTextSize.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
-            )
-            Text(
-                supplierName ?: "Choisir un fournisseur",
-                fontSize = DsTextSize.caption,
-                color    = if (supplierName != null) DsColors.Primary else DsColors.TextSecondary
-            )
-        }
-        Box(
-            modifier = Modifier
-                .clip(DsShapes.pill)
-                .background(DsColors.PrimaryLight)
-                .padding(horizontal = DsSpacing.sm, vertical = 5.dp)
-        ) {
-            Text(
-                "$stepLabel · $currentStep/3",
-                fontSize   = DsTextSize.caption,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.Primary
-            )
-        }
+        DsStepBadge(stepLabel, currentStep, 3)
+        Spacer(Modifier.width(DsSpacing.xs))
     }
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 }
@@ -291,17 +271,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                     .fillMaxSize()
                     .background(DsColors.Surface)
             ) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                DsTopAppBar(
+                    title   = "Choisir un fournisseur",
+                    leading = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-                        }
-                        Text("Choisir un fournisseur", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                    }
                     OutlinedButton(
                         onClick = { showAddSupplierDialog = true },
                         shape   = DsShapes.pill,
@@ -311,6 +284,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                         Spacer(Modifier.width(4.dp))
                         Text("", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                     }
+                    // OutlinedButton brings its own inset; this makes up the standard end margin.
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
                 OutlinedTextField(
                     value         = supplierSearch,
@@ -729,25 +704,18 @@ fun NavGraphBuilder.purchaseFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                DsTopAppBar(
+                    title    = "Ma sélection",
+                    subtitle = formSupplier?.name ?: "",
+                    leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-                        }
-                        Column {
-                            Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                            Text(formSupplier?.name ?: "", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                        }
-                    }
                     if (cartItems.isNotEmpty()) {
                         TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
+                    // TextButton brings its own inset; this makes up the standard end margin.
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
 
                 if (cartItems.isEmpty()) {
@@ -1003,7 +971,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.large
                         ) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(DsSpacing.sm))
                             Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }

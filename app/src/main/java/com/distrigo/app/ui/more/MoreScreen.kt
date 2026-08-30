@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -46,17 +48,11 @@ fun MoreScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
     ) {
-        Text(
-            "Plus",
-            fontSize   = DsTextSize.headline,
-            fontWeight = FontWeight.ExtraBold,
-            color      = DsColors.TextPrimary,
-            modifier   = Modifier.padding(DsSpacing.lg)
-        )
+        DsTopAppBar(title = "Plus", size = DsTopBarSize.Large)
 
-        Column {
+        // The bar is pinned, so scrolling moved off the root onto the menu list below it.
+        Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             MORE_MENU_ENTRIES.forEachIndexed { index, entry ->
                 MoreMenuItem(
                     icon     = entry.icon,

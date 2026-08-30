@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Receipt
@@ -20,6 +19,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 
 @Composable
 fun ParametresScreen(onBack: () -> Unit) {
@@ -46,25 +47,16 @@ fun ParametresScreen(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .padding(DsSpacing.lg)
     ) {
-        // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                "Paramètres",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
-            )
-        }
+        DsTopAppBar(
+            title   = "Paramètres",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Spacer(Modifier.height(DsSpacing.lg))
-
-        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+        Column(
+            modifier            = Modifier.padding(DsSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+        ) {
             SettingsNavCard(
                 icon     = Icons.Default.Receipt,
                 iconBg   = DsColors.SuccessLight,

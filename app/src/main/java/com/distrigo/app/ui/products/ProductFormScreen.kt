@@ -38,6 +38,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -565,25 +567,11 @@ fun ProductFormScreen(
             .background(DsColors.Surface)
     ) {
         // ── Header ──
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Column {
-                Text(
-                    if (isEdit) "Modifier le produit" else "Nouveau produit",
-                    fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
-                )
-                Text(
-                    if (isEdit) "Modifiez les informations du produit" else "Créez un nouveau produit facilement",
-                    fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
-                )
-            }
-        }
+        DsTopAppBar(
+            title    = if (isEdit) "Modifier le produit" else "Nouveau produit",
+            subtitle = if (isEdit) "Modifiez les informations du produit" else "Créez un nouveau produit facilement",
+            leading  = DsTopBarLeading.Back(onBack)
+        )
 
 // ── Tabs (pill segmented control, elastic indicator) ──
         val density      = LocalDensity.current

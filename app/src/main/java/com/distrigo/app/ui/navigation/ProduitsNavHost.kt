@@ -18,7 +18,12 @@ import com.distrigo.app.ui.mouvements.MouvementsScreen
 import androidx.navigation.compose.navigation
 import com.distrigo.app.ui.mouvements.*
 @Composable
-fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
+fun ProduitsNavHost(
+    onFullScreenChange   : (Boolean) -> Unit = {},
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {}
+) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
@@ -38,6 +43,10 @@ fun ProduitsNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             ProductsScreen(
                 viewModel      = viewModel,
+                onOpenMenu           = onOpenMenu,
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick,
+
                 onAddProduct   = { navController.navigate(Screen.ProduitsForm.createRoute()) },
                 onEditProduct  = { productId -> navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
                 onProductClick = { productId -> navController.navigate(Screen.ProduitsDetail.createRoute(productId)) }

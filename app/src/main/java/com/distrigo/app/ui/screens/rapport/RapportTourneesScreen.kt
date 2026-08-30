@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
@@ -72,28 +74,11 @@ private fun RapportTopBar(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(DsColors.Surface)
-            .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Retour",
-                tint = DsColors.TextPrimary
-            )
-        }
-        Text(
-            text = "Rapports",
-            fontSize = DsTextSize.title,
-            fontWeight = FontWeight.SemiBold,
-            color = DsColors.TextPrimary,
-            modifier = Modifier.padding(start = DsSpacing.xs)
-        )
-    }
+    DsTopAppBar(
+        title    = "Rapports",
+        modifier = modifier,
+        leading  = DsTopBarLeading.Back(onBack)
+    )
 }
 
 @Composable

@@ -12,7 +12,10 @@ import androidx.navigation.navArgument
 import com.distrigo.app.ui.ventes.*
 
 @Composable
-fun VentesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
+fun VentesNavHost(
+    onFullScreenChange: (Boolean) -> Unit = {},
+    onBack            : (() -> Unit)? = null
+) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
@@ -33,6 +36,7 @@ fun VentesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             val viewModel: VenteViewModel = hiltViewModel(parentEntry)
             VentesScreen(
                 viewModel    = viewModel,
+                onBack       = onBack,
                 onAddVente   = { navController.navigate(Screen.VenteFormGraph.createRoute()) },
                 onEditVente  = { venteId -> navController.navigate(Screen.VenteFormGraphDirect.createRoute(venteId = venteId)) },
                 onVenteClick = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) }

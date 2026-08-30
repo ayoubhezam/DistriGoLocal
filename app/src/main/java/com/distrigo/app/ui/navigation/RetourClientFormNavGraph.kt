@@ -31,6 +31,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.distrigo.app.ui.designsystem.DsStepBadge
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -55,24 +58,15 @@ private fun RetourClientFormHeader(
     currentStep : Int,
     onBackClick : () -> Unit
 ) {
-    Row(
-        modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically
+    DsTopAppBar(
+        title         = "Retour client",
+        subtitle      = clientName ?: "Choisir un client",
+        // Blue once a client is chosen, grey while the step is still open.
+        subtitleColor = if (clientName != null) DsColors.Primary else DsColors.TextSecondary,
+        leading       = DsTopBarLeading.Back(onBackClick)
     ) {
-        IconButton(onClick = onBackClick) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-        }
-        Column(Modifier.weight(1f)) {
-            Text("Retour client", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            Text(
-                clientName ?: "Choisir un client",
-                fontSize = DsTextSize.caption,
-                color    = if (clientName != null) DsColors.Primary else DsColors.TextSecondary
-            )
-        }
-        Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 10.dp, vertical = 5.dp)) {
-            Text("$stepLabel · $currentStep/3", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-        }
+        DsStepBadge(stepLabel, currentStep, 3)
+        Spacer(Modifier.width(DsSpacing.xs))
     }
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 }
@@ -411,16 +405,11 @@ fun NavGraphBuilder.retourClientFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Column {
-                        Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text("${cartItems.size} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                }
+                DsTopAppBar(
+                    title    = "Ma sélection",
+                    subtitle = "${cartItems.size} produit(s)",
+                    leading  = DsTopBarLeading.Back({ navController.popBackStack() })
+                )
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
                 LazyColumn(

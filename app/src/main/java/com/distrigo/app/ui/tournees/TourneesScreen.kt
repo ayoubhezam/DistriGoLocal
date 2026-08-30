@@ -37,14 +37,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.Constraints
-import kotlin.math.roundToInt
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.designsystem.dsCollapsingHeader
+import com.distrigo.app.ui.designsystem.rememberDsCollapsingHeaderState
 
 // Item order inside TourneeDetailScreen's LazyColumn: 0 = collapsing header, 1 = sticky
 // client-avatars section, 2 = "Tickets de vente" label, 3 = first ticket row.
@@ -55,6 +53,7 @@ private const val TICKETS_FIRST_ITEM_INDEX = 3
 fun TourneesScreen(
     viewModel      : TourneeViewModel = hiltViewModel(),
     modifier       : Modifier = Modifier,
+    onBack         : (() -> Unit)? = null,
     onAddTournee   : () -> Unit = {},
     onTourneeClick : (Int) -> Unit = {}
 ) {
@@ -71,12 +70,13 @@ fun TourneesScreen(
             .background(DsColors.Surface)
     ) {
         // ── Header ──
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
+        // Pushed from the Ventes hub, so it takes a back affordance; null-safe because the
+        // screen is still usable as a root, where None is right.
+        DsTopAppBar(
+            title   = "Tournées",
+            leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+            size    = DsTopBarSize.Large
         ) {
-            Text("Tournées", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
             FloatingActionButton(
                 onClick        = onAddTournee,
                 containerColor = DsColors.Primary,
@@ -191,68 +191,12 @@ fun TourneeDetailScreen(
     var transientMessage        by remember { mutableStateOf<String?>(null) }
 
     // ── Collapsing header (exitUntilCollapsed) ──
-    var headerOffsetPx by remember { mutableStateOf(0f) }
-    var headerHeightPx by remember { mutableStateOf(0f) }
     val listState = rememberLazyListState()
-    val headerNestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            // Recomputed once per fling in onPreFling below: true only when that fling starts
-            // deeper in the tickets than the first-ticket boundary (item
-            // TICKETS_FIRST_ITEM_INDEX), meaning it's this fling's own momentum that would
-            // carry it across that boundary. A fling that *starts* at/past the boundary
-            // already (e.g. a second, separate swipe from where the first one stopped) gets
-            // false here and is left free to fling on through normally.
-            var flingStartedBelowBoundary = false
-
-            // Collapsing (drag up, negative delta): consume into the header BEFORE the list
-            // scrolls, so the header shrinks first and the list only starts moving once it's
-            // fully collapsed.
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < 0f) {
-                    val newOffset = (headerOffsetPx + available.y).coerceIn(-headerHeightPx, 0f)
-                    val consumed = newOffset - headerOffsetPx
-                    headerOffsetPx = newOffset
-                    return Offset(0f, consumed)
-                }
-                // Scrolling toward the top (available.y > 0): a fling (source == SideEffect,
-                // i.e. post-release momentum) that started deeper in the tickets and is only
-                // now, mid-flight, reaching the first ticket gets stopped right there for the
-                // rest of its run — it can't coast on into the sticky client-avatars section
-                // above. A fling that already started at/past that boundary (a fresh, separate
-                // swipe) keeps its normal momentum and is allowed straight through. A live drag
-                // is never blocked either way.
-                if (source == NestedScrollSource.SideEffect &&
-                    flingStartedBelowBoundary &&
-                    listState.firstVisibleItemIndex <= TICKETS_FIRST_ITEM_INDEX
-                ) {
-                    return Offset(0f, available.y)
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
-                flingStartedBelowBoundary = listState.firstVisibleItemIndex > TICKETS_FIRST_ITEM_INDEX
-                return super.onPreFling(available)
-            }
-
-            // Expanding (drag down, positive delta): only consume what's left AFTER the list
-            // itself has consumed it — i.e. only once the list is already at its own top. This
-            // is what stops a downward drag deep in the tickets list from being eaten by an
-            // off-screen header trying to re-expand instead of the list actually scrolling.
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                if (available.y <= 0f) return Offset.Zero
-                val newOffset = (headerOffsetPx + available.y).coerceIn(-headerHeightPx, 0f)
-                val consumedByHeader = newOffset - headerOffsetPx
-                headerOffsetPx = newOffset
-                return Offset(0f, consumedByHeader)
-            }
-        }
-    }
-    val collapsedFraction by remember {
-        derivedStateOf {
-            if (headerHeightPx <= 0f) 0f else (-headerOffsetPx / headerHeightPx).coerceIn(0f, 1f)
-        }
-    }
+    // The fling guard keeps a fling that started down in the tickets from coasting on through the
+    // sticky client-avatars section above; see DsCollapsingHeaderState.
+    val collapsingHeader = rememberDsCollapsingHeaderState(
+        isAtFlingBoundary = { listState.firstVisibleItemIndex <= TICKETS_FIRST_ITEM_INDEX }
+    )
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
@@ -491,25 +435,12 @@ fun TourneeDetailScreen(
                     .fillMaxSize()
                     .background(DsColors.Surface)
             ) {
-                // ── Top bar row: back + title + overflow menu — always fully visible, never fades/translates ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
+                // The bar is always fully visible — it never fades or translates; only the stats
+                // banner inside the list below it collapses.
+                DsTopAppBar(
+                    title   = current.nom,
+                    leading = DsTopBarLeading.Back(onBack)
                 ) {
-                    IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Text(
-                        current.nom,
-                        modifier   = Modifier.weight(1f),
-                        fontSize   = DsTextSize.title,
-                        fontWeight = FontWeight.Bold,
-                        color      = DsColors.TextPrimary,
-                        maxLines   = 1
-                    )
                     Box {
                         IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
@@ -529,32 +460,27 @@ fun TourneeDetailScreen(
                             }
                         }
                     }
+                    // A 32dp overflow button, not a 48dp icon button, so it makes up the
+                    // difference to the bar's standard end margin itself.
+                    Spacer(Modifier.width(DsSpacing.md))
                 }
 
                 // ── Body: single LazyColumn — collapsing header item, sticky clients section, free-scrolling tickets ──
                 LazyColumn(
                     state          = listState,
-                    modifier       = Modifier.weight(1f).fillMaxWidth().nestedScroll(headerNestedScrollConnection),
+                    modifier       = Modifier.weight(1f).fillMaxWidth().nestedScroll(collapsingHeader.nestedScrollConnection),
                     contentPadding = PaddingValues(bottom = DsSpacing.lg)
                 ) {
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clipToBounds()
-                                .layout { measurable, constraints ->
-                                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
-                                    headerHeightPx = placeable.height.toFloat()
-                                    val collapsedHeight = (placeable.height + headerOffsetPx).coerceAtLeast(0f).roundToInt()
-                                    layout(placeable.width, collapsedHeight) {
-                                        placeable.placeRelative(0, headerOffsetPx.roundToInt())
-                                    }
-                                }
+                                .dsCollapsingHeader(collapsingHeader)
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .alpha((1f - collapsedFraction * 2f).coerceIn(0f, 1f))
+                                    .alpha((1f - collapsingHeader.collapsedFraction * 2f).coerceIn(0f, 1f))
                                     .padding(DsSpacing.lg)
                             ) {
                                 // ── Carte d'informations ──

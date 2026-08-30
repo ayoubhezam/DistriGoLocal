@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +37,9 @@ import com.google.maps.android.compose.rememberMarkerState
 import androidx.compose.material.icons.filled.Layers
 import com.google.maps.android.compose.MapType
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarHeight
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
@@ -195,22 +199,31 @@ fun MapPickerScreen(
         }
 
         // ── Header ──
-        Row(
+        // This one floats over the map rather than sitting above content, so the bar itself stays
+        // transparent and the map shows through. On satellite tiles that left the dark title and
+        // back arrow sitting on dark imagery, so a short gradient scrim gives them a light ground
+        // without hiding the map. It carries no pointer input, so the map still pans underneath.
+        Box(
             modifier = Modifier
+                .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopStart),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick  = onBack,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(8.dp))
-            Text("Choisir l'emplacement", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+                .height(DsTopBarHeight + DsSpacing.xxl)
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to DsColors.Surface.copy(alpha = 0.92f),
+                        0.6f to DsColors.Surface.copy(alpha = 0.55f),
+                        1.0f to Color.Transparent
+                    )
+                )
+        )
+
+        // Emitted before the map-type toggle below, so that toggle stays on top and clickable.
+        DsTopAppBar(
+            title          = "Choisir l'emplacement",
+            modifier       = Modifier.align(Alignment.TopStart).padding(horizontal = DsSpacing.sm),
+            leading        = DsTopBarLeading.Back(onBack),
+            containerColor = Color.Transparent
+        )
 
         if (isOnline) {
             IconButton(

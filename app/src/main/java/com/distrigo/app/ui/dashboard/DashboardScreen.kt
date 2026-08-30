@@ -15,16 +15,37 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
+        // The tab roots are the only screens with no back arrow, so the menu takes the
+        // leading slot and the global controls take the trailing one.
+        DsTopAppBar(
+            title   = "Dashboard",
+            leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
+            size    = DsTopBarSize.Large
+        ) {
+            DsTopBarRootActions(
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick
+            )
+        }
+
         Box(
-            modifier         = Modifier.fillMaxSize(),
+            modifier         = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

@@ -7,7 +7,11 @@ import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.dashboard.DashboardScreen
 
 @Composable
-fun DashboardNavHost() {
+fun DashboardNavHost(
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {}
+) {
     val navController = rememberNavController()
     NavHost(
         navController      = navController,
@@ -18,7 +22,11 @@ fun DashboardNavHost() {
         popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen()
+            DashboardScreen(
+                onOpenMenu           = onOpenMenu,
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick
+            )
         }
     }
 }

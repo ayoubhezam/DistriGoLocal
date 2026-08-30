@@ -5,8 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,15 +37,11 @@ fun RetourClientDetailScreen(
     LaunchedEffect(retourSummary.id) { viewModel.loadRetourDetail(retourSummary.id) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Column(Modifier.weight(1f)) {
-                Text("Retour #${display.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(display.client_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
+        DsTopAppBar(
+            title    = "Retour #${display.id}",
+            subtitle = display.client_name,
+            leading  = DsTopBarLeading.Back(onBack)
+        ) {
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
             }

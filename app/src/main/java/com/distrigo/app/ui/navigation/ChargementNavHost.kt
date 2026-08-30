@@ -29,6 +29,8 @@ import com.distrigo.app.ui.chargements.ChargementCartItem
 import com.distrigo.app.ui.chargements.ChargementCartRow
 import com.distrigo.app.ui.chargements.ChargementViewModel
 import com.distrigo.app.ui.chargements.formatQty
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -121,28 +123,13 @@ fun ChargementNavHost(
             }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Column {
-                        Text(
-                            if (correctionChargementId != null) "Correction du mouvement #$correctionChargementId" else "Chargement / Déchargement",
-                            fontSize   = DsTextSize.title,
-                            fontWeight = FontWeight.Bold,
-                            color      = DsColors.TextPrimary
-                        )
-                        Text(
-                            if (cartItems.isNotEmpty()) "${cartItems.size} article(s)" else "Sélectionnez des produits",
-                            fontSize = DsTextSize.caption,
-                            color    = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextSecondary
-                        )
-                    }
-                }
+                DsTopAppBar(
+                    title         = if (correctionChargementId != null) "Correction du mouvement #$correctionChargementId" else "Chargement / Déchargement",
+                    subtitle      = if (cartItems.isNotEmpty()) "${cartItems.size} article(s)" else "Sélectionnez des produits",
+                    // Blue once something is in the cart, grey while the step is still empty.
+                    subtitleColor = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextSecondary,
+                    leading       = DsTopBarLeading.Back(onBack)
+                )
 
                 LazyColumn(
                     modifier            = Modifier.weight(1f),
@@ -329,30 +316,18 @@ fun ChargementNavHost(
             BackHandler { navController.popBackStack() }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                DsTopAppBar(
+                    title    = "Ma sélection",
+                    subtitle = "${cartItems.size} article(s)",
+                    leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                        }
-                        Spacer(Modifier.width(DsSpacing.xs))
-                        Column {
-                            Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                            Text(
-                                "${cartItems.size} article(s)",
-                                fontSize = DsTextSize.caption,
-                                color    = DsColors.TextSecondary
-                            )
-                        }
-                    }
                     if (cartItems.isNotEmpty()) {
                         TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
+                    // TextButton brings its own inset; this makes up the standard end margin.
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
 
                 if (cartItems.isEmpty()) {

@@ -22,6 +22,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 fun SuppliersScreen(
     viewModel       : SupplierViewModel = hiltViewModel(),
     modifier        : Modifier = Modifier,
+    onBack          : (() -> Unit)? = null,
     onAddSupplier   : () -> Unit = {},
     onSupplierClick : (Int) -> Unit = {}
 ) {
@@ -49,120 +53,121 @@ fun SuppliersScreen(
 
 
 
-    LazyColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-        item {
-            // ── Header ──
-            Row(
-                modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
+        // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
+        // affordance; null-safe because the screen is still usable as a root.
+        DsTopAppBar(
+            title   = "Fournisseurs",
+            leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+            size    = DsTopBarSize.Large
+        ) {
+            FloatingActionButton(
+                onClick        = { onAddSupplier() },
+                containerColor = DsColors.Primary,
+                contentColor   = Color.White,
+                modifier       = Modifier.size(40.dp),
+                shape          = DsShapes.pill
             ) {
-                Text("Fournisseurs", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-                FloatingActionButton(
-                    onClick        = { onAddSupplier()},
-                    containerColor = DsColors.Primary,
-                    contentColor   = Color.White,
-                    modifier       = Modifier.size(40.dp),
-                    shape          = DsShapes.pill
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Ajouter")
-                }
+                Icon(Icons.Default.Add, contentDescription = "Ajouter")
             }
         }
 
-        if (totalDebt > 0) {
-            item {
-                Column {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = DsSpacing.lg)
-                            .clip(DsShapes.large)
-                            .background(DsColors.DangerLight)
-                            .padding(DsSpacing.lg)
-                    ) {
-                        Row(
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        // Pinned bar, so the list below it carries only the list — see ClientsScreen.
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            if (totalDebt > 0) {
+                item {
+                    Column {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = DsSpacing.lg)
+                                .clip(DsShapes.large)
+                                .background(DsColors.DangerLight)
+                                .padding(DsSpacing.lg)
                         ) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
-                            Text("Total des dettes", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                            Row(
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
+                                Text("Total des dettes", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                            }
+                            Text(
+                                "${formatDZD(totalDebt)} DA",
+                                fontSize   = DsTextSize.bodyLarge,
+                                color      = DsColors.Danger,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        Text(
-                            "${formatDZD(totalDebt)} DA",
-                            fontSize   = DsTextSize.bodyLarge,
-                            color      = DsColors.Danger,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Spacer(Modifier.height(DsSpacing.md))
                     }
-                    Spacer(Modifier.height(DsSpacing.md))
+                }
+            }
+
+            stickyHeader {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DsColors.Surface)
+                ) {
+                    // ── Search ──
+                    OutlinedTextField(
+                        value         = search,
+                        onValueChange = { search = it },
+                        placeholder   = {
+                            Text(
+                                "Rechercher par nom ou téléphone…",
+                                fontSize = DsTextSize.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        trailingIcon  = {
+                            if (search.isNotEmpty()) {
+                                IconButton(onClick = { search = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                        shape         = DsShapes.large,
+                        singleLine    = true,
+                        textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
+                        colors = dsTextFieldColors(
+                            unfocusedBorderColor = DsColors.Border,
+                            focusedBorderColor   = DsColors.Primary
+                        )
+                    )
+
+                    Spacer(Modifier.height(DsSpacing.sm))
+
+                    Text(
+                        "${filtered.size} fournisseur(s)",
+                        fontSize = DsTextSize.caption,
+                        color    = DsColors.TextSecondary,
+                        modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                    )
+
+                    Spacer(Modifier.height(DsSpacing.xs))
+                }
+            }
+
+            items(filtered, key = { it.id }) { supplier ->
+                Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                    SupplierCard(
+                        supplier = supplier,
+                        onClick  = { onSupplierClick(supplier.id) }
+                    )
                 }
             }
         }
-
-        stickyHeader {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DsColors.Surface)
-            ) {
-                // ── Search ──
-                OutlinedTextField(
-                    value         = search,
-                    onValueChange = { search = it },
-                    placeholder   = {
-                        Text(
-                            "Rechercher par nom ou téléphone…",
-                            fontSize = DsTextSize.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    trailingIcon  = {
-                        if (search.isNotEmpty()) {
-                            IconButton(onClick = { search = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    },
-                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape         = DsShapes.large,
-                    singleLine    = true,
-                    textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
-                    colors = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
-                )
-
-                Spacer(Modifier.height(DsSpacing.sm))
-
-                Text(
-                    "${filtered.size} fournisseur(s)",
-                    fontSize = DsTextSize.caption,
-                    color    = DsColors.TextSecondary,
-                    modifier = Modifier.padding(horizontal = DsSpacing.lg)
-                )
-
-                Spacer(Modifier.height(DsSpacing.xs))
-            }
-        }
-
-        items(filtered, key = { it.id }) { supplier ->
-            Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                SupplierCard(
-                    supplier = supplier,
-                    onClick  = { onSupplierClick(supplier.id) }
-                )
-            }
-        }
     }
-    }
+}
 
 
 @Composable

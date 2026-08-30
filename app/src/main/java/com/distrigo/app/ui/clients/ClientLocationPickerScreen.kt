@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
@@ -22,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -149,16 +150,10 @@ fun ClientLocationPickerScreen(
     ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = "Permission refusée." }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Position du client", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Position du client",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (isOnline) {

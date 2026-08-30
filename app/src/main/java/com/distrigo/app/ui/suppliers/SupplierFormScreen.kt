@@ -30,6 +30,8 @@ import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.products.FormField
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -181,217 +183,219 @@ fun SupplierFormScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
     ) {
-        // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Text(
-                if (isEdit) "Modifier le fournisseur" else "Nouveau fournisseur",
-                fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
-            )
-        }
+        DsTopAppBar(
+            title   = if (isEdit) "Modifier le fournisseur" else "Nouveau fournisseur",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Spacer(Modifier.height(16.dp))
-
-        // ── Photo ──
-        Box(
+        // The screen-wide inset moved off the root so the bar can run edge to edge; the
+        // scrolling body carries it instead.
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(140.dp)
-                .clip(DsShapes.large)
-                .background(DsColors.SurfaceSunken)
-                .clickable { photoPicker.launch("image/*") },
-            contentAlignment = Alignment.Center
+                .verticalScroll(rememberScrollState())
+                .padding(DsSpacing.lg)
         ) {
-            if (imageBase64 != null) {
-                val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                bitmap?.let {
-                    Image(
-                        bitmap             = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier           = Modifier.fillMaxSize(),
-                        contentScale       = ContentScale.Crop
-                    )
-                }
-            } else if (name.isNotEmpty()) {
-                Box(
-                    modifier         = Modifier.size(64.dp).clip(DsShapes.pill),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
-                    Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = color)
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        tint     = DsColors.Primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── Photo ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(DsShapes.large)
+                    .background(DsColors.SurfaceSunken)
+                    .clickable { photoPicker.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageBase64 != null) {
+                    val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
+                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    bitmap?.let {
+                        Image(
+                            bitmap             = it.asImageBitmap(),
+                            contentDescription = null,
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop
+                        )
+                    }
+                } else if (name.isNotEmpty()) {
+                    Box(
+                        modifier         = Modifier.size(64.dp).clip(DsShapes.pill),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().background(color.copy(alpha = 0.13f)))
+                        Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = color)
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint     = DsColors.Primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                    }
                 }
             }
-        }
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-        // ── Nom ──
-        FormField(
-            label         = "Nom du fournisseur *",
-            value         = name,
-            onValueChange = { name = it; nameError = "" },
-            error         = nameError,
-            placeholder   = "Ex: Société Al Baraka"
-        )
-        Spacer(Modifier.height(12.dp))
+            // ── Nom ──
+            FormField(
+                label         = "Nom du fournisseur *",
+                value         = name,
+                onValueChange = { name = it; nameError = "" },
+                error         = nameError,
+                placeholder   = "Ex: Société Al Baraka"
+            )
+            Spacer(Modifier.height(12.dp))
 
-        // ── Téléphone ──
-        FormField(
-            label         = "Numéro de téléphone",
-            value         = phone,
-            onValueChange = { phone = it; phoneError = "" },
-            error         = phoneError,
-            placeholder   = "05XX XXX XXX",
-            isNumber      = true
-        )
-        Spacer(Modifier.height(12.dp))
+            // ── Téléphone ──
+            FormField(
+                label         = "Numéro de téléphone",
+                value         = phone,
+                onValueChange = { phone = it; phoneError = "" },
+                error         = phoneError,
+                placeholder   = "05XX XXX XXX",
+                isNumber      = true
+            )
+            Spacer(Modifier.height(12.dp))
 
-        // ── Localisation ──
-        Text("Localisation", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
-        OutlinedButton(
-            onClick  = { showMapPicker = true },
-            modifier = Modifier.fillMaxWidth(),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
-            border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-        ) {
-            Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
+            // ── Localisation ──
+            Text("Localisation", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+            OutlinedButton(
+                onClick  = { showMapPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+            ) {
+                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (latitude != null && longitude != null)
+                        "${"%.4f".format(latitude)}, ${"%.4f".format(longitude)}"
+                    else
+                        "Choisir sur la carte",
+                    fontSize = DsTextSize.body
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ── Wilaya + Commune ──
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    DsSelectorField(
+                        label       = "Wilaya",
+                        value       = wilayaName,
+                        placeholder = "Sélectionner une wilaya",
+                        onClick     = { showWilayaSheet = true }
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    DsSelectorField(
+                        label       = "Commune",
+                        value       = communeName,
+                        placeholder = "Sélectionner une commune",
+                        onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // ── Adresse ──
+            FormField(
+                label         = "Adresse",
+                value         = address,
+                onValueChange = { address = it },
+                placeholder   = "Rue, ville…"
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // ── Solde initial ──
+            FormField(
+                label         = "Solde initial (DA)",
+                value         = balance,
+                onValueChange = { balance = it },
+                placeholder   = "0",
+                isNumber      = true
+            )
             Text(
-                if (latitude != null && longitude != null)
-                    "${"%.4f".format(latitude)}, ${"%.4f".format(longitude)}"
-                else
-                    "Choisir sur la carte",
-                fontSize = DsTextSize.body
+                "Montant que vous devez à ce fournisseur au départ",
+                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
-        }
+            Spacer(Modifier.height(12.dp))
 
-        Spacer(Modifier.height(12.dp))
+            // ── Note ──
+            Text("Note (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+            OutlinedTextField(
+                value         = note,
+                onValueChange = { note = it },
+                placeholder   = { Text("Informations supplémentaires…", fontSize = DsTextSize.body) },
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = DsShapes.medium,
+                minLines      = 2,
+                maxLines      = 4,
+                colors        = dsTextFieldColors(
+                    unfocusedBorderColor = DsColors.Border,
+                    focusedBorderColor   = DsColors.Primary
+                )
+            )
 
-        // ── Wilaya + Commune ──
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(modifier = Modifier.weight(1f)) {
-                DsSelectorField(
-                    label       = "Wilaya",
-                    value       = wilayaName,
-                    placeholder = "Sélectionner une wilaya",
-                    onClick     = { showWilayaSheet = true }
+            Spacer(Modifier.height(24.dp))
+
+            // ── Save ──
+            Button(
+                onClick  = { save() },
+                enabled  = !isSaving,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = DsShapes.large,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                else Text(
+                    if (isEdit) "Enregistrer les modifications" else "Ajouter le fournisseur",
+                    fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                DsSelectorField(
-                    label       = "Commune",
-                    value       = communeName,
-                    placeholder = "Sélectionner une commune",
-                    onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
-                )
-            }
+
+            Spacer(Modifier.height(16.dp))
         }
-        Spacer(Modifier.height(12.dp))
 
-        // ── Adresse ──
-        FormField(
-            label         = "Adresse",
-            value         = address,
-            onValueChange = { address = it },
-            placeholder   = "Rue, ville…"
-        )
-        Spacer(Modifier.height(12.dp))
-
-        // ── Solde initial ──
-        FormField(
-            label         = "Solde initial (DA)",
-            value         = balance,
-            onValueChange = { balance = it },
-            placeholder   = "0",
-            isNumber      = true
-        )
-        Text(
-            "Montant que vous devez à ce fournisseur au départ",
-            fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
-            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-        )
-        Spacer(Modifier.height(12.dp))
-
-        // ── Note ──
-        Text("Note (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
-        OutlinedTextField(
-            value         = note,
-            onValueChange = { note = it },
-            placeholder   = { Text("Informations supplémentaires…", fontSize = DsTextSize.body) },
-            modifier      = Modifier.fillMaxWidth(),
-            shape         = DsShapes.medium,
-            minLines      = 2,
-            maxLines      = 4,
-            colors        = dsTextFieldColors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor   = DsColors.Primary
-            )
-        )
-
-        Spacer(Modifier.height(24.dp))
-
-        // ── Save ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.large,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            else Text(
-                if (isEdit) "Enregistrer les modifications" else "Ajouter le fournisseur",
-                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
+        if (showWilayaSheet) {
+            SearchableSelectSheet(
+                title      = "Sélectionner une wilaya",
+                items      = GeoRepository.getWilayas(),
+                itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+                onDismiss  = { showWilayaSheet = false },
+                onSelect   = { wilaya ->
+                    wilayaName         = wilaya.nameFr
+                    selectedWilayaCode = wilaya.wilayaCode
+                    communeName        = ""
+                }
             )
         }
 
-        Spacer(Modifier.height(16.dp))
-    }
-
-    if (showWilayaSheet) {
-        SearchableSelectSheet(
-            title      = "Sélectionner une wilaya",
-            items      = GeoRepository.getWilayas(),
-            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
-            onDismiss  = { showWilayaSheet = false },
-            onSelect   = { wilaya ->
-                wilayaName         = wilaya.nameFr
-                selectedWilayaCode = wilaya.wilayaCode
-                communeName        = ""
+        if (showCommuneSheet && selectedWilayaCode != null) {
+            val sortedCommunes = remember(selectedWilayaCode) {
+                GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
-        )
-    }
-
-    if (showCommuneSheet && selectedWilayaCode != null) {
-        val sortedCommunes = remember(selectedWilayaCode) {
-            GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
+            SearchableSelectSheet(
+                title      = "Sélectionner une commune",
+                items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
+                itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+                onDismiss  = { showCommuneSheet = false },
+                onSelect   = { (_, commune) ->
+                    communeName = commune.nameFr
+                }
+            )
         }
-        SearchableSelectSheet(
-            title      = "Sélectionner une commune",
-            items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
-            itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
-            onDismiss  = { showCommuneSheet = false },
-            onSelect   = { (_, commune) ->
-                communeName = commune.nameFr
-            }
-        )
     }
 }

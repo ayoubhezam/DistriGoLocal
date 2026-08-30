@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.Supplier
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -229,16 +231,10 @@ internal fun Step3Validation(
     onConfirm               : () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // ── Header ──
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Text("Validation", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Validation",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),

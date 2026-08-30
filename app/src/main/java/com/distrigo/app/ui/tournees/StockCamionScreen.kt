@@ -28,6 +28,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
@@ -122,22 +124,10 @@ fun StockCamionScreen(
                 .fillMaxSize()
                 .background(DsColors.Surface)
         ) {
-            // ── Header ──
-            Row(
-                modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                }
-                Spacer(Modifier.width(DsSpacing.xs))
-                Text(
-                    "Stock Camion",
-                    fontSize   = DsTextSize.title,
-                    fontWeight = FontWeight.Bold,
-                    color      = DsColors.TextPrimary
-                )
-            }
+            DsTopAppBar(
+                title   = "Stock Camion",
+                leading = DsTopBarLeading.Back(onBack)
+            )
             Spacer(Modifier.height(DsSpacing.md))
 
             // ── Search ──
@@ -188,7 +178,8 @@ fun StockCamionScreen(
                                 onLongClick = { longPressProduct = product }
                             )
                         }
-                        item { Spacer(Modifier.height(72.dp)) }
+                        // Lets the last row scroll clear of the raised FAB (clearance + 56dp FAB)
+                        item { Spacer(Modifier.height(DsSpacing.fabBottomClearance + 56.dp)) }
                     }
                 }
             }
@@ -201,7 +192,7 @@ fun StockCamionScreen(
             contentColor    = Color.White,
             modifier        = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(DsSpacing.lg)
+                .padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter des produits")
         }

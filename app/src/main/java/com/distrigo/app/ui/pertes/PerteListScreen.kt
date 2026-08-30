@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.*
@@ -58,25 +60,28 @@ fun PerteListScreen(
     val totalQty   = pertes.sumOf { it.quantity }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            type?.let {
-                Box(
-                    modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(PerteIconMapper.colorFor(it.color_hex).copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(PerteIconMapper.iconFor(it.icon), contentDescription = null, tint = PerteIconMapper.colorFor(it.color_hex), modifier = Modifier.size(20.dp))
+        DsTopAppBar(
+            title    = type?.name ?: "",
+            subtitle = type?.description ?: "",
+            leading  = DsTopBarLeading.Custom {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                    }
+                    type?.let {
+                        Box(
+                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(PerteIconMapper.colorFor(it.color_hex).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(PerteIconMapper.iconFor(it.icon), contentDescription = null, tint = PerteIconMapper.colorFor(it.color_hex), modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(DsSpacing.sm))
                 }
             }
-            Spacer(Modifier.width(DsSpacing.md))
-            Column {
-                Text(type?.name ?: "", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(type?.description ?: "", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-        }
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         // ── Carte résumé ──
         Card(

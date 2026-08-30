@@ -26,6 +26,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -120,13 +122,10 @@ fun NavGraphBuilder.pertesFormGraph(
             BackHandler { onBack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text(if (isEdit) "Modifier la perte" else "Nouvelle perte", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
+                DsTopAppBar(
+                    title   = if (isEdit) "Modifier la perte" else "Nouvelle perte",
+                    leading = DsTopBarLeading.Back(onBack)
+                )
                 StepIndicator(1)
                 Spacer(Modifier.height(DsSpacing.md))
 
@@ -337,13 +336,10 @@ fun NavGraphBuilder.pertesFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text(if (isEdit) "Modifier la perte" else "Nouvelle perte", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
+                DsTopAppBar(
+                    title   = if (isEdit) "Modifier la perte" else "Nouvelle perte",
+                    leading = DsTopBarLeading.Back({ navController.popBackStack() })
+                )
                 StepIndicator(2)
                 Spacer(Modifier.height(DsSpacing.md))
 

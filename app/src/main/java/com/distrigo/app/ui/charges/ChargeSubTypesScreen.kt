@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,28 +53,30 @@ fun ChargeSubTypesScreen(
     LaunchedEffect(typeId) { viewModel.loadSubTypes(typeId) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier           = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment  = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            type?.let {
-                Box(
-                    modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(ChargeIconMapper.colorFor(it.color_hex).copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = ChargeIconMapper.colorFor(it.color_hex), modifier = Modifier.size(22.dp))
+        DsTopAppBar(
+            title    = type?.name ?: "",
+            subtitle = "${subTypes.size} sous-types",
+            // The colour-coded type badge rides in the leading slot beside the back arrow, so the
+            // bar keeps the identity cue the hand-rolled header carried.
+            leading  = DsTopBarLeading.Custom {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                    }
+                    type?.let {
+                        Box(
+                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(ChargeIconMapper.colorFor(it.color_hex).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = ChargeIconMapper.colorFor(it.color_hex), modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(DsSpacing.sm))
                 }
             }
-            Spacer(Modifier.width(DsSpacing.md))
-            Column(Modifier.weight(1f)) {
-                Text(type?.name ?: "", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text("${subTypes.size} sous-types", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-            }
-        }
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         if (subTypes.isEmpty()) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {

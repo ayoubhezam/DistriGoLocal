@@ -27,6 +27,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 private fun formatQty(v: Double): String =
@@ -70,24 +72,11 @@ fun MouvementsScreen(
     BackHandler { onBack() }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        // ── Header ──
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
+        DsTopAppBar(
+            title   = "Mouvements",
+            leading = DsTopBarLeading.Back(onBack)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                "Mouvements",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary,
-                modifier   = Modifier.weight(1f)
-            )
             IconButton(onClick = onFilterClick) {
-
                 Icon(
                     Icons.Default.FilterList,
                     contentDescription = "Filtres",
@@ -95,6 +84,8 @@ fun MouvementsScreen(
                 )
             }
         }
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         // ── Product row ──
         Row(
@@ -304,16 +295,12 @@ fun MovementFiltersView(
     BackHandler { onBack() }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Mouvements", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Mouvements",
+            leading = DsTopBarLeading.Back(onBack)
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         Column(
             modifier            = Modifier.weight(1f).fillMaxWidth().padding(horizontal = DsSpacing.lg),
@@ -456,16 +443,12 @@ fun MovementDetailView(
     BackHandler { onBack() }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Détail du mouvement", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Détail du mouvement",
+            leading = DsTopBarLeading.Back(onBack)
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         Column(
             modifier            = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),

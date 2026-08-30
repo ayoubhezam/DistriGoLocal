@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +24,8 @@ import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.PendingActions
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 @Composable
 
 fun InventoryHistoryScreen(
@@ -47,25 +48,21 @@ fun InventoryHistoryScreen(
     }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        DsTopAppBar(
+            title   = "Historique des inventaires",
+            leading = DsTopBarLeading.Back(onBack)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                }
-                Spacer(Modifier.width(DsSpacing.sm))
-                Text("Historique des inventaires", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            }
+            // The bar's end inset assumes a 48dp icon button; this pill is 40dp, so it supplies the
+            // difference itself to land on the same margin as every other action.
             Box(
-                modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddNew() },
+                modifier         = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddNew() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Ajouter un inventaire", tint = Color.White)
             }
         }
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         OutlinedTextField(
             value = search, onValueChange = { search = it },
@@ -172,13 +169,12 @@ fun InventorySessionDetailScreen(
     LaunchedEffect(sessionId) { viewModel.loadHistoryItems(sessionId) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text("Détail de l'inventaire", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Détail de l'inventaire",
+            leading = DsTopBarLeading.Back(onBack)
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         if (items.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

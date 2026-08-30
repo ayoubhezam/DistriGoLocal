@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -21,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.clients.ClientViewModel
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -95,21 +96,16 @@ fun AddClientsToTourneeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
+        DsTopAppBar(
+            title    = "Ajouter des clients",
+            subtitle = tourneeNom,
+            leading  = DsTopBarLeading.Back(onBack)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Ajouter des clients", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(tourneeNom, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
             IconButton(
                 onClick  = { showAddClientScreen = true },
-                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                // A 40dp square, not a 48dp icon button, so it supplies the difference to the
+                // bar's standard end margin itself.
+                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
             ) {
                 Icon(Icons.Default.PersonAdd, contentDescription = "Nouveau client", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
             }

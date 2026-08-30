@@ -34,6 +34,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
@@ -44,6 +47,7 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 fun VentesScreen(
     viewModel    : VenteViewModel = hiltViewModel(),
     modifier     : Modifier = Modifier,
+    onBack       : (() -> Unit)? = null,
     onAddVente   : () -> Unit = {},
     onEditVente  : (Int) -> Unit = {},
     onVenteClick : (Int) -> Unit = {}
@@ -449,15 +453,14 @@ fun VentesScreen(
             .background(DsColors.Surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── Header ──
-            Row(
-                modifier          = Modifier
-                    .fillMaxWidth()
-                    .padding(DsSpacing.lg),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Ventes", fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            }
+            // Reached by being pushed from the Ventes hub, so it needs a back affordance —
+            // system back already popped the hub, but nothing on screen said so. Null-safe
+            // because the screen is still usable as a root, where None is right.
+            DsTopAppBar(
+                title   = "Ventes",
+                leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+                size    = DsTopBarSize.Large
+            )
 
             // ── Search bar ──
             OutlinedTextField(
@@ -582,7 +585,14 @@ fun VentesScreen(
 
                 // ── List ──
                 LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    // Bottom pad clears the raised FAB (clearance + 56dp FAB), so the last card
+                    // scrolls out from under it rather than sitting behind the button and nav bar.
+                    contentPadding      = PaddingValues(
+                        start  = DsSpacing.lg,
+                        end    = DsSpacing.lg,
+                        top    = DsSpacing.xs,
+                        bottom = DsSpacing.fabBottomClearance + 56.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
@@ -617,7 +627,7 @@ fun VentesScreen(
                 .align(Alignment.BottomEnd)
                 .padding(
                     end = DsSpacing.lg,
-                    bottom = DsSpacing.bottomNavClearance
+                    bottom = DsSpacing.fabBottomClearance
                 )
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
@@ -723,21 +733,14 @@ fun VenteDetailScreen(
             .background(DsColors.SurfaceSunken)
     ) {
         // ── Header (Outside Ticket) ──
-        Row(
-            modifier          = Modifier
-                .fillMaxWidth()
-                .padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
+        DsTopAppBar(
+            title          = "Vente #${displayVente.id}",
+            subtitle       = displayVente.client_name,
+            leading        = DsTopBarLeading.Back({ onBack() }),
+            // This screen is painted on SurfaceSunken, so the bar matches rather than
+            // floating on a different white.
+            containerColor = DsColors.SurfaceSunken
         ) {
-            IconButton(onClick = { onBack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Column {
-                Text("Vente #${displayVente.id}", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text(displayVente.client_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-            Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
                     .clip(DsShapes.pill)
@@ -963,11 +966,22 @@ fun VenteDetailScreen(
                     .weight(1f)
                     .height(48.dp),
                 shape    = DsShapes.medium,
-                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border),
+                // Both buttons split the row evenly, so ButtonDefaults' 24dp-per-side content
+                // padding costs more than the longer label can spare. Trimmed on both, so the
+                // two stay identical.
+                contentPadding = PaddingValues(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
             ) {
                 Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Aperçu & Imprimer", fontSize = DsTextSize.caption, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Aperçu & Imprimer",
+                    fontSize   = DsTextSize.bodySmall,
+                    color      = DsColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines   = 1,
+                    softWrap   = false
+                )
             }
             OutlinedButton(
                 onClick  = { showShareOptions = true },
@@ -975,11 +989,22 @@ fun VenteDetailScreen(
                     .weight(1f)
                     .height(48.dp),
                 shape    = DsShapes.medium,
-                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border),
+                // Both buttons split the row evenly, so ButtonDefaults' 24dp-per-side content
+                // padding costs more than the longer label can spare. Trimmed on both, so the
+                // two stay identical.
+                contentPadding = PaddingValues(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Partager", fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Partager",
+                    fontSize   = DsTextSize.bodySmall,
+                    color      = DsColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines   = 1,
+                    softWrap   = false
+                )
             }
         }
 

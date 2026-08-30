@@ -21,6 +21,10 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -66,6 +70,10 @@ private fun isExpiringSoon(expiryDate: String?, withinDays: Int = 30): Boolean {
 @Composable
 fun ProductsScreen(
     viewModel      : ProductViewModel = hiltViewModel(),
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
+
     modifier       : Modifier = Modifier,
     onAddProduct   : () -> Unit = {},
     onEditProduct  : (Int) -> Unit = {},
@@ -609,12 +617,17 @@ fun ProductsScreen(
                 .fillMaxSize()
                 .background(DsColors.Surface)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // The tab roots are the only screens with no back arrow, so the menu takes the
+            // leading slot and the global controls take the trailing one.
+            DsTopAppBar(
+                title   = "Produits",
+                leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
+                size    = DsTopBarSize.Large
             ) {
-                Text("Produits", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+                DsTopBarRootActions(
+                    onNotificationsClick = onNotificationsClick,
+                    onProfileClick       = onProfileClick
+                )
             }
 
             OutlinedTextField(
@@ -822,7 +835,7 @@ fun ProductsScreen(
             } else {
                 if (!isGridView) {
                     LazyColumn(
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.bottomNavClearance),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(sorted) { product ->
@@ -835,7 +848,7 @@ fun ProductsScreen(
                 } else {
                     LazyVerticalGrid(
                         columns             = GridCells.Fixed(2),
-                        contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.bottomNavClearance),
+                        contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -853,7 +866,7 @@ fun ProductsScreen(
             onClick        = { onAddProduct() },
             containerColor = DsColors.Primary,
             contentColor   = Color.White,
-            modifier       = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.bottomNavClearance)
+            modifier       = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un produit")
         }

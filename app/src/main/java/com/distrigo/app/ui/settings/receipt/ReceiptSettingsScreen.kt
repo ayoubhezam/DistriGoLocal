@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +32,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 @Composable
@@ -67,108 +68,106 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
-            .padding(DsSpacing.lg)
     ) {
-        // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                "Paramètres du reçu",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
-            )
-        }
+        DsTopAppBar(
+            title   = "Paramètres du reçu",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Logo ──
-        Box(
+        // The screen-wide inset moved off the root so the bar can run edge to edge; the scrolling
+        // body carries it instead.
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(140.dp)
-                .clip(DsShapes.large)
-                .background(DsColors.SurfaceMuted)
-                .clickable { imagePicker.launch("image/*") },
-            contentAlignment = Alignment.Center
+                .verticalScroll(rememberScrollState())
+                .padding(DsSpacing.lg)
         ) {
-            if (logoFile != null) {
-                key(logoVersion) {
-                    val bitmap = BitmapFactory.decodeFile(logoFile!!.absolutePath)
-                    bitmap?.let {
-                        Image(
-                            bitmap             = it.asImageBitmap(),
+
+            // ── Logo ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(DsShapes.large)
+                    .background(DsColors.SurfaceMuted)
+                    .clickable { imagePicker.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (logoFile != null) {
+                    key(logoVersion) {
+                        val bitmap = BitmapFactory.decodeFile(logoFile!!.absolutePath)
+                        bitmap?.let {
+                            Image(
+                                bitmap             = it.asImageBitmap(),
+                                contentDescription = null,
+                                modifier           = Modifier.fillMaxSize(),
+                                contentScale       = ContentScale.Crop
+                            )
+                        }
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.CameraAlt,
                             contentDescription = null,
-                            modifier           = Modifier.fillMaxSize(),
-                            contentScale       = ContentScale.Crop
+                            tint     = DsColors.Primary,
+                            modifier = Modifier.size(32.dp)
                         )
+                        Spacer(Modifier.height(DsSpacing.xs))
+                        Text("Ajouter un logo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        tint     = DsColors.Primary,
-                        modifier = Modifier.size(32.dp)
+            }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Nom du commerce ──
+            Column {
+                Text(
+                    "Nom du commerce",
+                    fontSize = DsTextSize.bodySmall,
+                    color    = DsColors.TextSecondary,
+                    modifier = Modifier.padding(bottom = DsSpacing.xs)
+                )
+                OutlinedTextField(
+                    value           = name,
+                    onValueChange   = { name = it },
+                    placeholder     = { Text("Ex: DISTRIGO", fontSize = DsTextSize.body) },
+                    singleLine      = true,
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = DsShapes.medium,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
+                    colors = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
                     )
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text("Ajouter un logo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                )
+            }
+
+            Spacer(Modifier.height(DsSpacing.xxl))
+
+            // ── Enregistrer ──
+            Button(
+                onClick  = { save() },
+                enabled  = !isSaving,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Text(
+                        "Enregistrer",
+                        fontSize   = DsTextSize.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White
+                    )
                 }
             }
+
+            Spacer(Modifier.height(DsSpacing.lg))
         }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Nom du commerce ──
-        Column {
-            Text(
-                "Nom du commerce",
-                fontSize = DsTextSize.bodySmall,
-                color    = DsColors.TextSecondary,
-                modifier = Modifier.padding(bottom = DsSpacing.xs)
-            )
-            OutlinedTextField(
-                value           = name,
-                onValueChange   = { name = it },
-                placeholder     = { Text("Ex: DISTRIGO", fontSize = DsTextSize.body) },
-                singleLine      = true,
-                modifier        = Modifier.fillMaxWidth(),
-                shape           = DsShapes.medium,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
-                colors = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
-            )
-        }
-
-        Spacer(Modifier.height(DsSpacing.xxl))
-
-        // ── Enregistrer ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            } else {
-                Text(
-                    "Enregistrer",
-                    fontSize   = DsTextSize.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color.White
-                )
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.lg))
     }
 }

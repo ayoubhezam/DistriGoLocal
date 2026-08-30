@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,6 +17,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 
 @Composable
 fun PlaceholderScreen(
@@ -33,16 +34,9 @@ fun PlaceholderScreen(
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-        onBack?.let {
-            Row(
-                modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = it) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                }
-            }
-        }
+        // Title stays empty on purpose — the placeholder already states it in the centred body,
+        // and repeating it in the bar would read as a duplicate.
+        onBack?.let { DsTopAppBar(title = "", leading = DsTopBarLeading.Back(it)) }
 
         Box(
             modifier         = Modifier.fillMaxSize(),

@@ -29,6 +29,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.distrigo.app.ui.designsystem.DsStepBadge
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -114,22 +117,14 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
             }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
+                DsTopAppBar(
+                    title         = "Nouveau retour",
+                    subtitle      = supplierName,
+                    subtitleColor = DsColors.Primary,
+                    leading       = DsTopBarLeading.Back(onBack)
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Nouveau retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text(supplierName, fontSize = DsTextSize.caption, color = DsColors.Primary)
-                    }
-                    Box(
-                        modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text("Produits · 1/2", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    }
+                    DsStepBadge("Produits", 1, 2)
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
@@ -318,16 +313,11 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Column {
-                        Text("Ma sélection", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text("${cartItems.size} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                }
+                DsTopAppBar(
+                    title    = "Ma sélection",
+                    subtitle = "${cartItems.size} produit(s)",
+                    leading  = DsTopBarLeading.Back({ navController.popBackStack() })
+                )
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
                 LazyColumn(
@@ -432,22 +422,14 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
+                DsTopAppBar(
+                    title         = "Nouveau retour",
+                    subtitle      = supplierName,
+                    subtitleColor = DsColors.Primary,
+                    leading       = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Nouveau retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text(supplierName, fontSize = DsTextSize.caption, color = DsColors.Primary)
-                    }
-                    Box(
-                        modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text("Résumé · 2/2", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    }
+                    DsStepBadge("Résumé", 2, 2)
+                    Spacer(Modifier.width(DsSpacing.xs))
                 }
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 

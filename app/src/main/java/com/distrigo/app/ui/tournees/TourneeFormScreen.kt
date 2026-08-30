@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +23,8 @@ import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -95,129 +96,129 @@ fun TourneeFormScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
-            .padding(DsSpacing.lg)
     ) {
-        // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                if (isEdit) "Modifier la tournée" else "Nouvelle tournée",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
-            )
-        }
+        DsTopAppBar(
+            title   = if (isEdit) "Modifier la tournée" else "Nouvelle tournée",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Bandeau d'info ──
-        Row(
+        // The screen-wide inset moved off the root so the bar can run edge to edge; the
+        // scrolling body carries it instead.
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .background(DsColors.PrimaryLight, DsShapes.medium)
-                .padding(DsSpacing.md),
-            verticalAlignment = Alignment.Top
+                .verticalScroll(rememberScrollState())
+                .padding(DsSpacing.lg)
         ) {
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                "La tournée sera identifiée par la wilaya, la commune et le secteur (si spécifié).",
-                fontSize = DsTextSize.bodySmall,
-                color    = DsColors.Primary
-            )
-        }
 
-        Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Wilaya ──
-        DsSelectorField(
-            label       = "Wilaya *",
-            value       = wilayaName,
-            placeholder = "Sélectionner une wilaya",
-            onClick     = { showWilayaSheet = true }
-        )
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Commune ──
-        DsSelectorField(
-            label       = "Commune *",
-            value       = communeName,
-            placeholder = "Sélectionner une commune",
-            error       = communeError,
-            onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
-        )
-
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Note ──
-        DsFormField(
-            label         = "Note (optionnel)",
-            value         = note,
-            onValueChange = { note = it },
-            placeholder   = "Remarques sur cette tournée",
-            minLines      = 2,
-            maxLines      = 3,
-            imeAction     = ImeAction.Done
-        )
-
-        Spacer(Modifier.height(DsSpacing.xxl))
-
-        // ── Enregistrer ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            } else {
+            // ── Bandeau d'info ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DsColors.PrimaryLight, DsShapes.medium)
+                    .padding(DsSpacing.md),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(DsSpacing.xs))
                 Text(
-                    if (isEdit) "Enregistrer les modifications" else "Créer la tournée",
-                    fontSize   = DsTextSize.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color.White
+                    "La tournée sera identifiée par la wilaya, la commune et le secteur (si spécifié).",
+                    fontSize = DsTextSize.bodySmall,
+                    color    = DsColors.Primary
                 )
             }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Wilaya ──
+            DsSelectorField(
+                label       = "Wilaya *",
+                value       = wilayaName,
+                placeholder = "Sélectionner une wilaya",
+                onClick     = { showWilayaSheet = true }
+            )
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Commune ──
+            DsSelectorField(
+                label       = "Commune *",
+                value       = communeName,
+                placeholder = "Sélectionner une commune",
+                error       = communeError,
+                onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
+            )
+
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Note ──
+            DsFormField(
+                label         = "Note (optionnel)",
+                value         = note,
+                onValueChange = { note = it },
+                placeholder   = "Remarques sur cette tournée",
+                minLines      = 2,
+                maxLines      = 3,
+                imeAction     = ImeAction.Done
+            )
+
+            Spacer(Modifier.height(DsSpacing.xxl))
+
+            // ── Enregistrer ──
+            Button(
+                onClick  = { save() },
+                enabled  = !isSaving,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Text(
+                        if (isEdit) "Enregistrer les modifications" else "Créer la tournée",
+                        fontSize   = DsTextSize.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(DsSpacing.lg))
         }
 
-        Spacer(Modifier.height(DsSpacing.lg))
-    }
-
-    // ── Sheets ──
-    if (showWilayaSheet) {
-        SearchableSelectSheet(
-            title      = "Sélectionner une wilaya",
-            items      = GeoRepository.getWilayas(),
-            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
-            onDismiss  = { showWilayaSheet = false },
-            onSelect   = { wilaya ->
-                wilayaName         = wilaya.nameFr
-                selectedWilayaCode = wilaya.wilayaCode
-                communeName        = ""
-            }
-        )
-    }
-    if (showCommuneSheet && selectedWilayaCode != null) {
-        val sortedCommunes = remember(selectedWilayaCode) {
-            GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
+        // ── Sheets ──
+        if (showWilayaSheet) {
+            SearchableSelectSheet(
+                title      = "Sélectionner une wilaya",
+                items      = GeoRepository.getWilayas(),
+                itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+                onDismiss  = { showWilayaSheet = false },
+                onSelect   = { wilaya ->
+                    wilayaName         = wilaya.nameFr
+                    selectedWilayaCode = wilaya.wilayaCode
+                    communeName        = ""
+                }
+            )
         }
-        SearchableSelectSheet(
-            title      = "Sélectionner une commune",
-            items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
-            itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
-            onDismiss  = { showCommuneSheet = false },
-            onSelect   = { (_, commune) ->
-                communeName = commune.nameFr
+        if (showCommuneSheet && selectedWilayaCode != null) {
+            val sortedCommunes = remember(selectedWilayaCode) {
+                GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
-        )
+            SearchableSelectSheet(
+                title      = "Sélectionner une commune",
+                items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
+                itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+                onDismiss  = { showCommuneSheet = false },
+                onSelect   = { (_, commune) ->
+                    communeName = commune.nameFr
+                }
+            )
+        }
     }
 }
 

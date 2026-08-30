@@ -50,6 +50,11 @@ import com.distrigo.app.ui.common.ElasticUnderlineTabRow
 import com.distrigo.app.ui.common.QuickActionButton
 import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.WhatsAppIcon
+import com.distrigo.app.ui.designsystem.DsCollapsingHeaderState
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.dsCollapsingHeader
+import com.distrigo.app.ui.designsystem.rememberDsCollapsingHeaderState
 import com.distrigo.app.ui.components.paging.PagedHistoryScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -60,15 +65,8 @@ import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
-import kotlin.math.roundToInt
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.Constraints
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -404,71 +402,43 @@ fun SupplierDetailScreen(
 
     val pagerState = rememberPagerState(pageCount = { 3 })
     val density = LocalDensity.current
-    var headerOffsetPx by remember { mutableStateOf(0f) }
-    var headerHeightPx by remember { mutableStateOf(0f) }
-
-    val headerNestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val newOffset = (headerOffsetPx + delta).coerceIn(-headerHeightPx, 0f)
-                val consumed = newOffset - headerOffsetPx
-                headerOffsetPx = newOffset
-                return Offset(0f, consumed)
-            }
-        }
-    }
+    val collapsingHeader = rememberDsCollapsingHeaderState()
     val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.SurfaceMuted)
-            .nestedScroll(headerNestedScrollConnection)
+            .nestedScroll(collapsingHeader.nestedScrollConnection)
     ) {
-        // ── Header ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(DsSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // The bar stays put; only the identity block below it collapses.
+        DsTopAppBar(
+            title          = "Fournisseur",
+            leading        = DsTopBarLeading.Back(onBack),
+            containerColor = DsColors.SurfaceMuted
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                }
-                Spacer(Modifier.width(DsSpacing.xs))
-                Text("Fournisseur", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            IconButton(
+                onClick  = onDelete,
+                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(20.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                IconButton(
-                    onClick  = onDelete,
-                    modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                }
-                IconButton(
-                    onClick  = onEdit,
-                    modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                }
+            Spacer(Modifier.width(DsSpacing.sm))
+            IconButton(
+                onClick  = onEdit,
+                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
+            // These are 40dp tinted squares rather than 48dp icon buttons, so they make up the
+            // difference to the bar's standard end margin themselves.
+            Spacer(Modifier.width(DsSpacing.md))
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clipToBounds()
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
-                    headerHeightPx = placeable.height.toFloat()
-                    val collapsedHeight = (placeable.height + headerOffsetPx).coerceAtLeast(0f).roundToInt()
-                    layout(placeable.width, collapsedHeight) {
-                        placeable.placeRelative(0, headerOffsetPx.roundToInt())
-                    }
-                }
+                .dsCollapsingHeader(collapsingHeader)
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {

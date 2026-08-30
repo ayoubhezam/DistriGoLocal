@@ -57,6 +57,7 @@ fun ClientsNavHost(
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             ClientsScreen(
                 viewModel     = viewModel,
+                onBack        = onBack,
                 onAddClient   = { navController.navigate(Screen.ClientsForm.createRoute()) },
                 onEditClient  = { clientId -> navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                 onClientClick = { clientId -> navController.navigate(Screen.ClientsDetail.createRoute(clientId)) }

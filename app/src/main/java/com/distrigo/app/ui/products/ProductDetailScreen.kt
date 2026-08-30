@@ -24,6 +24,8 @@ import com.distrigo.app.data.model.Product
 import androidx.compose.foundation.clickable
 import com.distrigo.app.ui.suppliers.formatDZD
 import androidx.activity.compose.BackHandler
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -144,47 +146,32 @@ fun ProductDetailScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // ── Header ──
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        // Delete and edit used to sit on a second row under the title; on the bar they ride
+        // beside it, the way the client and supplier details already did.
+        DsTopAppBar(
+            title   = "Détails du produit",
+            leading = DsTopBarLeading.Back(onBack)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-                }
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text       = "Détails du produit",
-                    fontSize   = DsTextSize.title,
-                    fontWeight = FontWeight.Bold,
-                    color      = DsColors.TextPrimary
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment     = Alignment.CenterVertically
+            IconButton(
+                onClick  = { showDeleteDialog = true },
+                modifier = Modifier
+                    .clip(DsShapes.medium)
+                    .background(DsColors.DangerLight)
             ) {
-                IconButton(
-                    onClick  = { showDeleteDialog = true },
-                    modifier = Modifier
-                        .clip(DsShapes.medium)
-                        .background(DsColors.DangerLight)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
-                }
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick  = onEdit,
-                    modifier = Modifier
-                        .clip(DsShapes.medium)
-                        .background(DsColors.PrimaryLight)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary)
-                }
+                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
             }
+            Spacer(Modifier.width(DsSpacing.sm))
+            IconButton(
+                onClick  = onEdit,
+                modifier = Modifier
+                    .clip(DsShapes.medium)
+                    .background(DsColors.PrimaryLight)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary)
+            }
+            // The tinted square is the button's full 48dp, so it needs the difference to the
+            // bar's standard end margin — matching the client and supplier details.
+            Spacer(Modifier.width(DsSpacing.md))
         }
 
         // ── Image ──
@@ -428,92 +415,98 @@ fun InfoGeneralesDetailScreen(product: Product, onBack: () -> Unit) {
             java.time.LocalDate.parse(product.expiry_date.take(10))
                 .isBefore(java.time.LocalDate.now().plusDays(30))
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface).verticalScroll(rememberScrollState())) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Text("Informations générales", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+        DsTopAppBar(
+            title   = "Informations générales",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Card(
-                modifier  = Modifier.fillMaxWidth(),
-                shape     = DsShapes.large,
-                colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                elevation = CardDefaults.cardElevation(1.dp),
-                border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(product.name, fontWeight = FontWeight.Bold, fontSize = DsTextSize.title, color = DsColors.TextPrimary)
-                    Spacer(Modifier.height(4.dp))
-                    Box(
-                        modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            product.category_name ?: "Sans catégorie",
-                            fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.Medium
-                        )
-                    }
-                    if (!product.barcode.isNullOrEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(product.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                        }
-                    }
-                }
-            }
+        // The bar is pinned, so scrolling moved off the root onto the body below it.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
 
-            InfoCard(modifier = Modifier.fillMaxWidth(), label = "Fournisseur", value = product.supplier_name ?: "—", valueColor = DsColors.TextPrimary)
-
-            if (product.has_expiry == 1) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = DsShapes.large,
                     colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    border    = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Border
-                    )
+                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Row(
-                        modifier              = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                Icons.Default.CalendarToday, contentDescription = null,
-                                tint     = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Primary,
-                                modifier = Modifier.size(18.dp)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(product.name, fontWeight = FontWeight.Bold, fontSize = DsTextSize.title, color = DsColors.TextPrimary)
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                product.category_name ?: "Sans catégorie",
+                                fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.Medium
                             )
-                            Column {
-                                Text("Date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                Text(
-                                    product.expiry_date?.take(10) ?: "Non définie",
-                                    fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
-                                    color = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.TextPrimary
-                                )
-                            }
                         }
-                        if (isExpired) {
-                            Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.DangerLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                Text("Expiré", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
-                            }
-                        } else if (isNearExpiry) {
-                            Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.WarningLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                Text("Expire bientôt", fontSize = DsTextSize.caption, color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
+                        if (!product.barcode.isNullOrEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(product.barcode, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(16.dp))
+                InfoCard(modifier = Modifier.fillMaxWidth(), label = "Fournisseur", value = product.supplier_name ?: "—", valueColor = DsColors.TextPrimary)
+
+                if (product.has_expiry == 1) {
+                    Card(
+                        modifier  = Modifier.fillMaxWidth(),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                        elevation = CardDefaults.cardElevation(1.dp),
+                        border    = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Border
+                        )
+                    ) {
+                        Row(
+                            modifier              = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    Icons.Default.CalendarToday, contentDescription = null,
+                                    tint     = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.Primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text("Date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(
+                                        product.expiry_date?.take(10) ?: "Non définie",
+                                        fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+                                        color = if (isExpired) DsColors.Danger else if (isNearExpiry) DsColors.Warning else DsColors.TextPrimary
+                                    )
+                                }
+                            }
+                            if (isExpired) {
+                                Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.DangerLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                    Text("Expiré", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                                }
+                            } else if (isNearExpiry) {
+                                Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.WarningLight).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                    Text("Expire bientôt", fontSize = DsTextSize.caption, color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -559,145 +552,46 @@ fun StockPrixDetailScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface).verticalScroll(rememberScrollState())) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-            }
-            Spacer(Modifier.width(4.dp))
-            Text("Stock et prix", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+        DsTopAppBar(
+            title   = "Stock et prix",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
-        Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoCard(
-                    modifier   = Modifier.weight(1f),
-                    label      = "Prix de vente",
-                    value      = "${product.selling_price} DA",
-                    valueColor = DsColors.Primary,
-                    icon       = Icons.Default.LocalOffer
-                )
-                InfoCard(
-                    modifier   = Modifier.weight(1f),
-                    label      = "Prix d'achat",
-                    value      = "${product.purchase_price} DA",
-                    valueColor = DsColors.Success,
-                    icon       = Icons.Default.ShoppingCart
-                )
-            }
-            InfoCard(
-                modifier   = Modifier.fillMaxWidth(),
-                label      = "Marge",
-                value      = "${"%.1f".format(margin)}%",
-                valueColor = Color(0xFFF57C00),
-                icon       = Icons.Default.TrendingUp
-            )
+        // The bar is pinned, so scrolling moved off the root onto the body below it.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
 
-            // ── Informations de stock ──
-            Card(
-                modifier  = Modifier.fillMaxWidth(),
-                shape     = DsShapes.large,
-                colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                elevation = CardDefaults.cardElevation(1.dp),
-                border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text("Informations de stock", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                        IconButton(onClick = { showStockInfoDialog = true }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Info, contentDescription = "En savoir plus", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-
-                    // ── Stock total ──
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.large)
-                            .background(DsColors.PrimaryLight)
-                            .padding(vertical = 22.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Inventory2,
-                            contentDescription = null,
-                            tint     = DsColors.Primary.copy(alpha = 0.12f),
-                            modifier = Modifier.size(96.dp)
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("STOCK TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary, letterSpacing = 1.sp)
-                            Spacer(Modifier.height(4.dp))
-                            Text(formatQty(product.stock), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
-                            Text(pluralUnit(product.stock, product.unit_type), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    // ── Dépôt / Camion ──
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StockLocationCard(
-                            modifier   = Modifier.weight(1f),
-                            icon       = Icons.Default.Warehouse,
-                            label      = "DÉPÔT",
-                            value      = formatQty(depotStock),
-                            unit       = pluralUnit(depotStock, product.unit_type),
-                            color      = DsColors.Success,
-                            background = DsColors.SuccessLight,
-                            progress   = depotFraction
-                        )
-                        StockLocationCard(
-                            modifier   = Modifier.weight(1f),
-                            icon       = Icons.Default.LocalShipping,
-                            label      = "CAMION",
-                            value      = formatQty(camionStock),
-                            unit       = pluralUnit(camionStock, product.unit_type),
-                            color      = DsColors.Warning,
-                            background = DsColors.WarningLight,
-                            progress   = camionFraction
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    // ── Seuil minimum ──
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.medium)
-                            .background(DsColors.SurfaceSunken)
-                            .clickable { onEdit() }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(
-                                modifier         = Modifier.size(28.dp).clip(DsShapes.pill).background(Color(0xFFEDE7F6)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF6A1B9A), modifier = Modifier.size(14.dp))
-                            }
-                            Text("SEUIL MINIMUM", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = Color(0xFF6A1B9A), letterSpacing = 0.5.sp)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                "${product.min_stock} ${pluralUnit(product.min_stock.toDouble(), product.unit_type)}",
-                                fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
-                            )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                        }
-                    }
+            Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    InfoCard(
+                        modifier   = Modifier.weight(1f),
+                        label      = "Prix de vente",
+                        value      = "${product.selling_price} DA",
+                        valueColor = DsColors.Primary,
+                        icon       = Icons.Default.LocalOffer
+                    )
+                    InfoCard(
+                        modifier   = Modifier.weight(1f),
+                        label      = "Prix d'achat",
+                        value      = "${product.purchase_price} DA",
+                        valueColor = DsColors.Success,
+                        icon       = Icons.Default.ShoppingCart
+                    )
                 }
-            }
+                InfoCard(
+                    modifier   = Modifier.fillMaxWidth(),
+                    label      = "Marge",
+                    value      = "${"%.1f".format(margin)}%",
+                    valueColor = Color(0xFFF57C00),
+                    icon       = Icons.Default.TrendingUp
+                )
 
-            // ── Historique des prix (بدون أي تغيير) ──
-            if (priceHistory.isNotEmpty()) {
+                // ── Informations de stock ──
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = DsShapes.large,
@@ -711,66 +605,171 @@ fun StockPrixDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Historique des prix", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                            val minPrice     = priceHistory.minOf { it.unit_cost }
-                            val bestSupplier = priceHistory.find { it.unit_cost == minPrice }
-                            bestSupplier?.let {
-                                Box(
-                                    modifier = Modifier.clip(DsShapes.pill).background(DsColors.SuccessLight).padding(horizontal = 8.dp, vertical = 3.dp)
-                                ) {
-                                    Text("✓ ${it.supplier_name}", fontSize = 10.sp, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
-                                }
+                            Text("Informations de stock", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                            IconButton(onClick = { showStockInfoDialog = true }, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Info, contentDescription = "En savoir plus", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                             }
                         }
-                        Spacer(Modifier.height(10.dp))
-                        priceHistory.forEachIndexed { index, history ->
-                            val isFirst = index == 0
-                            val isMin   = history.unit_cost == priceHistory.minOf { it.unit_cost }
-                            val isMax   = history.unit_cost == priceHistory.maxOf { it.unit_cost }
+                        Spacer(Modifier.height(8.dp))
 
-                            Row(
-                                modifier              = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment     = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(
-                                        modifier = Modifier.size(8.dp).clip(DsShapes.pill).background(
-                                            when {
-                                                isMin   -> DsColors.Success
-                                                isMax   -> DsColors.Danger
-                                                isFirst -> DsColors.Primary
-                                                else    -> DsColors.Border
-                                            }
-                                        )
-                                    )
-                                    Column {
-                                        Text(history.supplier_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                        Text(history.date.take(10), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                    }
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (isFirst) {
-                                        Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                                            Text("Dernier", fontSize = 9.sp, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
-                                    Text(
-                                        "${formatDZD(history.unit_cost)} DA",
-                                        fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
-                                        color = when { isMin -> DsColors.Success; isMax -> DsColors.Danger; else -> DsColors.TextPrimary }
-                                    )
-                                }
+                        // ── Stock total ──
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.large)
+                                .background(DsColors.PrimaryLight)
+                                .padding(vertical = 22.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Inventory2,
+                                contentDescription = null,
+                                tint     = DsColors.Primary.copy(alpha = 0.12f),
+                                modifier = Modifier.size(96.dp)
+                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("STOCK TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary, letterSpacing = 1.sp)
+                                Spacer(Modifier.height(4.dp))
+                                Text(formatQty(product.stock), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text(pluralUnit(product.stock, product.unit_type), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
                             }
-                            if (index < priceHistory.size - 1) {
-                                HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // ── Dépôt / Camion ──
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StockLocationCard(
+                                modifier   = Modifier.weight(1f),
+                                icon       = Icons.Default.Warehouse,
+                                label      = "DÉPÔT",
+                                value      = formatQty(depotStock),
+                                unit       = pluralUnit(depotStock, product.unit_type),
+                                color      = DsColors.Success,
+                                background = DsColors.SuccessLight,
+                                progress   = depotFraction
+                            )
+                            StockLocationCard(
+                                modifier   = Modifier.weight(1f),
+                                icon       = Icons.Default.LocalShipping,
+                                label      = "CAMION",
+                                value      = formatQty(camionStock),
+                                unit       = pluralUnit(camionStock, product.unit_type),
+                                color      = DsColors.Warning,
+                                background = DsColors.WarningLight,
+                                progress   = camionFraction
+                            )
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // ── Seuil minimum ──
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceSunken)
+                                .clickable { onEdit() }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(
+                                    modifier         = Modifier.size(28.dp).clip(DsShapes.pill).background(Color(0xFFEDE7F6)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF6A1B9A), modifier = Modifier.size(14.dp))
+                                }
+                                Text("SEUIL MINIMUM", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = Color(0xFF6A1B9A), letterSpacing = 0.5.sp)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    "${product.min_stock} ${pluralUnit(product.min_stock.toDouble(), product.unit_type)}",
+                                    fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
+                                )
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(16.dp))
+                // ── Historique des prix (بدون أي تغيير) ──
+                if (priceHistory.isNotEmpty()) {
+                    Card(
+                        modifier  = Modifier.fillMaxWidth(),
+                        shape     = DsShapes.large,
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                        elevation = CardDefaults.cardElevation(1.dp),
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text("Historique des prix", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                                val minPrice     = priceHistory.minOf { it.unit_cost }
+                                val bestSupplier = priceHistory.find { it.unit_cost == minPrice }
+                                bestSupplier?.let {
+                                    Box(
+                                        modifier = Modifier.clip(DsShapes.pill).background(DsColors.SuccessLight).padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text("✓ ${it.supplier_name}", fontSize = 10.sp, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            priceHistory.forEachIndexed { index, history ->
+                                val isFirst = index == 0
+                                val isMin   = history.unit_cost == priceHistory.minOf { it.unit_cost }
+                                val isMax   = history.unit_cost == priceHistory.maxOf { it.unit_cost }
+
+                                Row(
+                                    modifier              = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment     = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Box(
+                                            modifier = Modifier.size(8.dp).clip(DsShapes.pill).background(
+                                                when {
+                                                    isMin   -> DsColors.Success
+                                                    isMax   -> DsColors.Danger
+                                                    isFirst -> DsColors.Primary
+                                                    else    -> DsColors.Border
+                                                }
+                                            )
+                                        )
+                                        Column {
+                                            Text(history.supplier_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                                            Text(history.date.take(10), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                        }
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        if (isFirst) {
+                                            Box(modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                                Text("Dernier", fontSize = 9.sp, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+                                        Text(
+                                            "${formatDZD(history.unit_cost)} DA",
+                                            fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                                            color = when { isMin -> DsColors.Success; isMax -> DsColors.Danger; else -> DsColors.TextPrimary }
+                                        )
+                                    }
+                                }
+                                if (index < priceHistory.size - 1) {
+                                    HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
         }
     }
 }

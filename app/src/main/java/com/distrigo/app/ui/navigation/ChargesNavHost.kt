@@ -14,7 +14,10 @@ import com.distrigo.app.ui.charges.*
 import androidx.compose.runtime.remember
 
 @Composable
-fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
+fun ChargesNavHost(
+    onFullScreenChange: (Boolean) -> Unit = {},
+    onBack            : (() -> Unit)? = null
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -31,6 +34,7 @@ fun ChargesNavHost(onFullScreenChange: (Boolean) -> Unit = {}) {
             val viewModel: ChargeViewModel = hiltViewModel(parentEntry)
             ChargesScreen(
                 viewModel   = viewModel,
+                onBack      = onBack,
                 onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) }
             )
         }

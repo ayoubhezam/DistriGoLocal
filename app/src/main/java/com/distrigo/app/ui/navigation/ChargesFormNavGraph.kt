@@ -27,6 +27,8 @@ import com.distrigo.app.ui.charges.DsFormField
 import com.distrigo.app.ui.charges.FixedInfoField
 import com.distrigo.app.ui.charges.StepIndicator
 import com.distrigo.app.ui.charges.SummaryRow
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -108,13 +110,10 @@ fun NavGraphBuilder.chargesFormGraph(
             BackHandler { onBack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text(if (isEdit) "Modifier la dépense" else "Nouvelle dépense", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
+                DsTopAppBar(
+                    title   = if (isEdit) "Modifier la dépense" else "Nouvelle dépense",
+                    leading = DsTopBarLeading.Back(onBack)
+                )
                 StepIndicator(currentStep = 1)
                 Spacer(Modifier.height(DsSpacing.md))
 
@@ -260,13 +259,10 @@ fun NavGraphBuilder.chargesFormGraph(
             BackHandler { navController.popBackStack() }
 
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text(if (isEdit) "Modifier la dépense" else "Nouvelle dépense", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
+                DsTopAppBar(
+                    title   = if (isEdit) "Modifier la dépense" else "Nouvelle dépense",
+                    leading = DsTopBarLeading.Back({ navController.popBackStack() })
+                )
                 StepIndicator(currentStep = 2)
                 Spacer(Modifier.height(DsSpacing.md))
 

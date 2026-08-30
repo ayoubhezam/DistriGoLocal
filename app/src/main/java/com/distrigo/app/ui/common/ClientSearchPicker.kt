@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.R
 import com.distrigo.app.data.model.Client
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -53,16 +55,10 @@ fun ClientSearchPicker(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(stringResource(R.string.client_picker_title), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = stringResource(R.string.client_picker_title),
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
         OutlinedTextField(
             value         = clientSearch,

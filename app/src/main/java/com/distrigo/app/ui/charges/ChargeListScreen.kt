@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
@@ -29,6 +29,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import androidx.compose.material.icons.filled.Schedule
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -53,25 +55,27 @@ fun ChargeListScreen(
     val avgPerCharge = if (charges.isNotEmpty()) monthTotal / charges.size else 0.0
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Spacer(Modifier.width(DsSpacing.xs))
-            subType?.let {
-                Box(
-                    modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        DsTopAppBar(
+            title   = subType?.name ?: "",
+            leading = DsTopBarLeading.Custom {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                    }
+                    subType?.let {
+                        Box(
+                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(DsSpacing.sm))
                 }
             }
-            Spacer(Modifier.width(DsSpacing.md))
-            Text(subType?.name ?: "", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        )
+
+        Spacer(Modifier.height(DsSpacing.md))
 
         // ── Carte statistique ──
         Card(

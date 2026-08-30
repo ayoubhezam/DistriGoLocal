@@ -28,6 +28,8 @@ import com.distrigo.app.ui.common.CartStatusTone
 import com.distrigo.app.ui.common.PriceFieldWithHistory
 import com.distrigo.app.ui.common.QuantityStepper
 import com.distrigo.app.ui.common.SelectionCartCard
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -237,15 +239,10 @@ internal fun Step3Validation(
     onConfirm           : () -> Unit
 )    {
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
-            }
-            Text("Validation", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        }
+        DsTopAppBar(
+            title   = "Validation",
+            leading = DsTopBarLeading.Back(onBack)
+        )
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),

@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -185,315 +186,315 @@ fun ClientFormScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.Surface)
-            .verticalScroll(rememberScrollState())
-            .padding(DsSpacing.lg)
     ) {
-        // ── Header ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+        DsTopAppBar(
+            title   = if (isEdit) "Modifier le client" else "Nouveau client",
+            leading = DsTopBarLeading.Back(onBack)
+        )
+
+        // The screen-wide inset moved off the root so the bar can run edge to edge; the
+        // scrolling body carries it instead.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(DsSpacing.lg)
+        ) {
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Photo ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(DsShapes.large)
+                    .background(DsColors.SurfaceMuted)
+                    .clickable { imagePicker.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageBase64 != null) {
+                    val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
+                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    bitmap?.let {
+                        Image(
+                            bitmap             = it.asImageBitmap(),
+                            contentDescription = null,
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint     = DsColors.Primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(Modifier.height(DsSpacing.xs))
+                        Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                    }
+                }
             }
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text(
-                if (isEdit) "Modifier le client" else "Nouveau client",
-                fontSize   = DsTextSize.title,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Type de client ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(DsShapes.medium)
+                    .background(DsColors.SurfaceSunken)
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                listOf(
+                    "retail"     to "Détail",
+                    "wholesale"  to "Gros",
+                    "business"   to "Société"
+                ).forEach { (value, label) ->
+                    val active = customerType == value
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(DsShapes.small)
+                            .background(if (active) DsColors.Primary else Color.Transparent)
+                            .clickable { customerType = value }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            fontSize   = DsTextSize.bodySmall,
+                            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                            color      = if (active) Color.White else DsColors.TextSecondary
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Nom ──
+            DsFormField(
+                label         = "Nom du client *",
+                value         = name,
+                onValueChange = { name = it; nameError = "" },
+                error         = nameError,
+                placeholder   = "Ex: Ahmed Benali"
             )
-        }
 
-        Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Photo ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(DsShapes.large)
-                .background(DsColors.SurfaceMuted)
-                .clickable { imagePicker.launch("image/*") },
-            contentAlignment = Alignment.Center
-        ) {
-            if (imageBase64 != null) {
-                val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                bitmap?.let {
-                    Image(
-                        bitmap             = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier           = Modifier.fillMaxSize(),
-                        contentScale       = ContentScale.Crop
+            // ── Téléphone ──
+            DsFormField(
+                label         = "Téléphone",
+                value         = phone,
+                onValueChange = { phone = it },
+                placeholder   = "0555 12 34 56",
+                keyboardType  = KeyboardType.Phone
+            )
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+    // ── Wilaya + Commune ──
+            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    DsSelectorField(
+                        label       = "Wilaya",
+                        value       = wilayaName,
+                        placeholder = "Sélectionner une wilaya",
+                        onClick     = { showWilayaSheet = true }
                     )
                 }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        tint     = DsColors.Primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Type de client ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(DsShapes.medium)
-                .background(DsColors.SurfaceSunken)
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            listOf(
-                "retail"     to "Détail",
-                "wholesale"  to "Gros",
-                "business"   to "Société"
-            ).forEach { (value, label) ->
-                val active = customerType == value
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(DsShapes.small)
-                        .background(if (active) DsColors.Primary else Color.Transparent)
-                        .clickable { customerType = value }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        label,
-                        fontSize   = DsTextSize.bodySmall,
-                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                        color      = if (active) Color.White else DsColors.TextSecondary
+                Box(modifier = Modifier.weight(1f)) {
+                    DsSelectorField(
+                        label       = "Commune",
+                        value       = communeName,
+                        placeholder = "Sélectionner une commune",
+                        onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                     )
                 }
             }
-        }
 
-        Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Nom ──
-        DsFormField(
-            label         = "Nom du client *",
-            value         = name,
-            onValueChange = { name = it; nameError = "" },
-            error         = nameError,
-            placeholder   = "Ex: Ahmed Benali"
-        )
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Téléphone ──
-        DsFormField(
-            label         = "Téléphone",
-            value         = phone,
-            onValueChange = { phone = it },
-            placeholder   = "0555 12 34 56",
-            keyboardType  = KeyboardType.Phone
-        )
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-// ── Wilaya + Commune ──
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            Box(modifier = Modifier.weight(1f)) {
+            // ── Secteur (optionnel) ──
+            Column {
+                Text(
+                    "Secteur (optionnel)",
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = DsColors.TextPrimary
+                )
+                Spacer(Modifier.height(2.dp))
                 DsSelectorField(
-                    label       = "Wilaya",
-                    value       = wilayaName,
-                    placeholder = "Sélectionner une wilaya",
-                    onClick     = { showWilayaSheet = true }
+                    label       = null,
+                    value       = secteurName,
+                    placeholder = "Sélectionner un secteur",
+                    onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                DsSelectorField(
-                    label       = "Commune",
-                    value       = communeName,
-                    placeholder = "Sélectionner une commune",
-                    onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
-                )
-            }
-        }
 
-        Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
+            // ── Adresse ──
+            DsFormField(
+                label         = "Adresse",
+                value         = address,
+                onValueChange = { address = it },
+                placeholder   = "Adresse complète",
+                minLines      = 2,
+                maxLines      = 2
+            )
 
-        // ── Secteur (optionnel) ──
-        Column {
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Localisation (pour navigation GPS) ──
             Text(
-                "Secteur (optionnel)",
+                "Localisation (optionnel)",
                 fontSize   = DsTextSize.bodySmall,
                 fontWeight = FontWeight.SemiBold,
-                color      = DsColors.TextPrimary
+                color      = DsColors.TextSecondary
             )
-            Spacer(Modifier.height(2.dp))
-            DsSelectorField(
-                label       = null,
-                value       = secteurName,
-                placeholder = "Sélectionner un secteur",
-                onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
-            )
-        }
-
-        Spacer(Modifier.height(DsSpacing.md))
-        // ── Adresse ──
-        DsFormField(
-            label         = "Adresse",
-            value         = address,
-            onValueChange = { address = it },
-            placeholder   = "Adresse complète",
-            minLines      = 2,
-            maxLines      = 2
-        )
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Localisation (pour navigation GPS) ──
-        Text(
-            "Localisation (optionnel)",
-            fontSize   = DsTextSize.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color      = DsColors.TextSecondary
-        )
-        Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Latitude",
-                    value         = latitudeStr,
-                    onValueChange = { latitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
-                    placeholder   = "Ex: 36.7538",
-                    keyboardType  = KeyboardType.Number
-                )
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                DsFormField(
-                    label         = "Longitude",
-                    value         = longitudeStr,
-                    onValueChange = { longitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
-                    placeholder   = "Ex: 3.0588",
-                    keyboardType  = KeyboardType.Number
-                )
-            }
-        }
-        Spacer(Modifier.height(DsSpacing.sm))
-
-
-        Spacer(Modifier.height(DsSpacing.xs))
-
-        OutlinedButton(
-            onClick  = { showLocationPicker = true },
-            modifier = Modifier.fillMaxWidth().height(44.dp),
-            shape    = DsShapes.medium
-        ) {
-            Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Choisir sur la carte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-        }
-
-        if (locationError.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
-            Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
+            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    DsFormField(
+                        label         = "Latitude",
+                        value         = latitudeStr,
+                        onValueChange = { latitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
+                        placeholder   = "Ex: 36.7538",
+                        keyboardType  = KeyboardType.Number
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    DsFormField(
+                        label         = "Longitude",
+                        value         = longitudeStr,
+                        onValueChange = { longitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
+                        placeholder   = "Ex: 3.0588",
+                        keyboardType  = KeyboardType.Number
+                    )
+                }
+            }
+            Spacer(Modifier.height(DsSpacing.sm))
+
+
+            Spacer(Modifier.height(DsSpacing.xs))
+
+            OutlinedButton(
+                onClick  = { showLocationPicker = true },
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                shape    = DsShapes.medium
+            ) {
+                Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Choisir sur la carte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            }
+
+            if (locationError.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text(locationError, fontSize = DsTextSize.caption, color = DsColors.Danger)
+            }
+
+
+
+            // ── Note ──
+            DsFormField(
+                label         = "Note (optionnel)",
+                value         = note,
+                onValueChange = { note = it },
+                placeholder   = "Remarques sur ce client",
+                minLines      = 2,
+                maxLines      = 3,
+                imeAction     = ImeAction.Done
+            )
+
+            Spacer(Modifier.height(DsSpacing.xxl))
+
+            // ── Enregistrer ──
+            Button(
+                onClick  = { save() },
+                enabled  = !isSaving,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Text(
+                        if (isEdit) "Enregistrer les modifications" else "Ajouter le client",
+                        fontSize   = DsTextSize.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(DsSpacing.lg))
         }
 
-
-
-        // ── Note ──
-        DsFormField(
-            label         = "Note (optionnel)",
-            value         = note,
-            onValueChange = { note = it },
-            placeholder   = "Remarques sur ce client",
-            minLines      = 2,
-            maxLines      = 3,
-            imeAction     = ImeAction.Done
-        )
-
-        Spacer(Modifier.height(DsSpacing.xxl))
-
-        // ── Enregistrer ──
-        Button(
-            onClick  = { save() },
-            enabled  = !isSaving,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            } else {
-                Text(
-                    if (isEdit) "Enregistrer les modifications" else "Ajouter le client",
-                    fontSize   = DsTextSize.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color.White
-                )
-            }
+        //ayoub
+        if (showWilayaSheet) {
+            SearchableSelectSheet(
+                title      = "Sélectionner une wilaya",
+                items      = GeoRepository.getWilayas(),
+                itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+                onDismiss  = { showWilayaSheet = false },
+                onSelect   = { wilaya ->
+                    wilayaName         = wilaya.nameFr
+                    selectedWilayaCode = wilaya.wilayaCode
+                    communeName        = ""
+                    secteurId          = null
+                    secteurName        = ""
+                }
+            )
         }
 
-        Spacer(Modifier.height(DsSpacing.lg))
-    }
-
-    //ayoub
-    if (showWilayaSheet) {
-        SearchableSelectSheet(
-            title      = "Sélectionner une wilaya",
-            items      = GeoRepository.getWilayas(),
-            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
-            onDismiss  = { showWilayaSheet = false },
-            onSelect   = { wilaya ->
-                wilayaName         = wilaya.nameFr
-                selectedWilayaCode = wilaya.wilayaCode
-                communeName        = ""
-                secteurId          = null
-                secteurName        = ""
+        if (showCommuneSheet && selectedWilayaCode != null) {
+            val sortedCommunes = remember(selectedWilayaCode) {
+                GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
-        )
-    }
-
-    if (showCommuneSheet && selectedWilayaCode != null) {
-        val sortedCommunes = remember(selectedWilayaCode) {
-            GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
+            SearchableSelectSheet(
+                title      = "Sélectionner une commune",
+                items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
+                itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+                onDismiss  = { showCommuneSheet = false },
+                onSelect   = { (_, commune) ->
+                    communeName = commune.nameFr
+                    secteurId   = null
+                    secteurName = ""
+                }
+            )
         }
-        SearchableSelectSheet(
-            title      = "Sélectionner une commune",
-            items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
-            itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
-            onDismiss  = { showCommuneSheet = false },
-            onSelect   = { (_, commune) ->
-                communeName = commune.nameFr
-                secteurId   = null
-                secteurName = ""
-            }
-        )
-    }
 
-    if (showSecteurSheet) {
-        SecteurPickerSheet(
-            communeName = communeName,
-            wilayaName  = wilayaName,
-            secteurs    = secteurs,
-            onDismiss   = { showSecteurSheet = false },
-            onSelect    = { secteur ->
-                secteurId   = secteur.id
-                secteurName = secteur.nom
-            },
-            onAddNew    = { nom ->
-                viewModel.createSecteur(
-                    nom         = nom,
-                    communeName = communeName,
-                    wilayaName  = wilayaName.ifEmpty { null },
-                    onSuccess   = { secteur ->
-                        secteurId   = secteur.id
-                        secteurName = secteur.nom
-                    },
-                    onError     = { }
-                )
-            }
-        )
+        if (showSecteurSheet) {
+            SecteurPickerSheet(
+                communeName = communeName,
+                wilayaName  = wilayaName,
+                secteurs    = secteurs,
+                onDismiss   = { showSecteurSheet = false },
+                onSelect    = { secteur ->
+                    secteurId   = secteur.id
+                    secteurName = secteur.nom
+                },
+                onAddNew    = { nom ->
+                    viewModel.createSecteur(
+                        nom         = nom,
+                        communeName = communeName,
+                        wilayaName  = wilayaName.ifEmpty { null },
+                        onSuccess   = { secteur ->
+                            secteurId   = secteur.id
+                            secteurName = secteur.nom
+                        },
+                        onError     = { }
+                    )
+                }
+            )
+        }
     }
 }
 
