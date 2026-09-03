@@ -39,7 +39,14 @@ data class PurchaseDraftEntity(
     val montant_paye : String,    // the raw user string, not a Double — see PurchaseViewModel
     val item_count   : Int,       // card + "Brouillons (N)" without parsing the JSON
     val total        : Double,    // card only
-    val last_step    : String,    // route of the deepest step reached
+    /**
+     * Route of the destination that was on screen at the last write.
+     *
+     * Recorded for a resume that lands on the step the user left. Nothing reads it yet — a resume
+     * opens at the graph's start destination — so it is a stored fact rather than a behaviour.
+     * Note it is not the *deepest* step reached: backing out rewrites it with the shallower one.
+     */
+    val last_step    : String,
     val created_at   : String,
     val updated_at   : String,    // drives "il y a 12 min", and orders the list
 

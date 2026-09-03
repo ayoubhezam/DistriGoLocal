@@ -54,7 +54,8 @@ data class VenteDraftEntity(
 
     val item_count : Int,       // card + "Brouillons (N)" without parsing the JSON
     val total      : Double,    // card only
-    val last_step  : String,    // route of the deepest step reached
+    /** See [PurchaseDraftEntity.last_step]. */
+    val last_step  : String,
     val created_at : String,
     val updated_at : String,    // drives "il y a 12 min", and orders the list
 

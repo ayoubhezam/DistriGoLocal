@@ -112,8 +112,8 @@ private fun purchaseFormSession(
     val draftId = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
     LaunchedEffect(session) { session.beginOrResumeSession(orderId, draftId) }
 
-    // Record where the user is, so a resume can land on the step they left, and keep the ON_STOP
-    // flush attached to whichever step is actually on screen.
+    // Record where the user is — for a future resume that lands on the step they left; nothing
+    // reads it yet — and keep the ON_STOP flush attached to whichever step is actually on screen.
     LaunchedEffect(route) { route?.let { session.setLastStep(it) } }
     FlushDraftOnStop(session)
 

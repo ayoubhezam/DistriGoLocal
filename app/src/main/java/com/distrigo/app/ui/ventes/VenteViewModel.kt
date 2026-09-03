@@ -1,10 +1,15 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.data.model.DraftBaseState
 import com.distrigo.app.data.model.Vente
+import com.distrigo.app.data.model.VenteDraft
 import com.distrigo.app.data.repository.ProductRepository
+import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.data.api.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,8 +21,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class VenteViewModel @Inject constructor(
-    private val repository: ProductRepository
+    private val repository: ProductRepository,
+    private val draftRepository: VenteDraftRepository
 ) : ViewModel() {
+
+    // ── Brouillons ──
+    // Room-observed, so the "Brouillons (N)" chip and the list stay live while a draft is being
+    // written from the form graph. Reads only — a draft is created and deleted by the session
+    // ViewModel and by the commit transaction, never from here.
+    val drafts: StateFlow<List<VenteDraft>> = draftRepository.observeDrafts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val draftCount: StateFlow<Int> = draftRepository.observeCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** The pending edit draft for a vente, if any. Every route into edit mode has to ask first. */
+    suspend fun draftForVente(venteId: Int): VenteDraft? = draftRepository.draftForVente(venteId)
+
+    /** Whether a draft can still be applied, once its vente has been re-read. */
+    suspend fun resolveDraftBase(draft: VenteDraft): DraftBaseState =
+        draftRepository.resolveBaseState(draft)
+
+    fun deleteDraft(id: Int) { viewModelScope.launch { draftRepository.delete(id) } }
 
     private val _ventes = MutableStateFlow<List<Vente>>(emptyList())
     val ventes: StateFlow<List<Vente>> = _ventes

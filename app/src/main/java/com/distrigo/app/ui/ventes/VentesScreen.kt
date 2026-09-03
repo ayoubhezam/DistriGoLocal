@@ -51,9 +51,13 @@ fun VentesScreen(
     onBack       : (() -> Unit)? = null,
     onAddVente   : () -> Unit = {},
     onEditVente  : (Int) -> Unit = {},
-    onVenteClick : (Int) -> Unit = {}
+    onVenteClick : (Int) -> Unit = {},
+    onResumeDraft    : (com.distrigo.app.data.model.VenteDraft) -> Unit = {},
+    onOpenBrouillons : () -> Unit = {}
 ) {
     val ventes      by viewModel.ventes.collectAsState()
+    val drafts      by viewModel.drafts.collectAsState()
+    var showDraftsSheet by remember { mutableStateOf(false) }
     val depotVentes = ventes.filter { it.source == "depot" }
     val isLoading   by viewModel.isLoading.collectAsState()
     val error       by viewModel.error.collectAsState()
@@ -514,6 +518,30 @@ fun VentesScreen(
                         color      = DsColors.TextSecondary
                     )
                 }
+
+                // Brouillons live beside the ventes count rather than in a tab strip: they are a
+                // distinct list with its own screen, but they are not a peer view of the same data.
+                if (drafts.isNotEmpty()) {
+                    Spacer(Modifier.width(DsSpacing.xs))
+                    Row(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .clickable { onOpenBrouillons() }
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                    ) {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                        Text(
+                            "Brouillons (${drafts.size})",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.Primary
+                        )
+                    }
+                }
+
                 Box {
                     Box(
                         modifier = Modifier
@@ -621,7 +649,10 @@ fun VentesScreen(
         }
 
         FloatingActionButton(
-            onClick        = onAddVente,
+            // The resume decision is made here, before the form graph is entered — which is what
+            // keeps a process-death return from ever prompting, since that path re-enters the
+            // graph without passing through this button.
+            onClick        = { if (drafts.isEmpty()) onAddVente() else showDraftsSheet = true },
             containerColor = DsColors.Primary,
             contentColor   = Color.White,
             modifier       = Modifier
@@ -633,6 +664,17 @@ fun VentesScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
         }
+    }
+
+    if (showDraftsSheet) {
+        VenteBrouillonsSheet(
+            drafts     = drafts,
+            onResume   = { showDraftsSheet = false; onResumeDraft(it) },
+            // Starting a new vente leaves every existing draft exactly where it is.
+            onStartNew = { showDraftsSheet = false; onAddVente() },
+            onSeeAll   = { showDraftsSheet = false; onOpenBrouillons() },
+            onDismiss  = { showDraftsSheet = false }
+        )
     }
 }
 

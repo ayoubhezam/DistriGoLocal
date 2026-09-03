@@ -192,6 +192,7 @@ sealed class Screen(val route: String) {
     // ── Ventes (Dépôt) ──
     data object VentesGraph  : Screen("ventes_graph")
     data object VentesHome   : Screen("ventes_home")
+    data object VentesBrouillons : Screen("ventes_brouillons")
     data object VentesDetail : Screen("ventes_detail/{venteId}") {
         fun createRoute(venteId: Int) = "ventes_detail/$venteId"
     }

@@ -9,7 +9,44 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.rememberCoroutineScope
 import com.distrigo.app.ui.ventes.*
+import kotlinx.coroutines.launch
+
+
+/** Opens the vente form graph, carrying the resume decision made before it is entered. */
+@Composable
+private fun openVenteFormAction(
+    navController: androidx.navigation.NavHostController
+): (Int?, Int?) -> Unit = { venteId, draftId ->
+    // A vente being edited is already known, so it takes the direct graph and skips the client
+    // step; a resumed new-vente draft still has a client step to come back to.
+    if (venteId != null)
+        navController.navigate(Screen.VenteFormGraphDirect.createRoute(venteId = venteId, draftId = draftId))
+    else
+        navController.navigate(Screen.VenteFormGraph.createRoute(draftId = draftId))
+}
+
+/**
+ * "Modifier la vente" has to ask whether that vente already has an unsaved edit draft before it
+ * opens a second, invisible one — otherwise two parallel edits race and whichever saves last
+ * silently wins. Every entry point into edit mode goes through here.
+ */
+@Composable
+private fun editVenteAction(
+    viewModel  : VenteViewModel,
+    openForm   : (Int?, Int?) -> Unit,
+    resumeDraft: (com.distrigo.app.data.model.VenteDraft) -> Unit
+): (Int) -> Unit {
+    val scope = rememberCoroutineScope()
+    return { venteId ->
+        scope.launch {
+            val existing = viewModel.draftForVente(venteId)
+            if (existing == null) openForm(venteId, null) else resumeDraft(existing)
+        }
+        Unit
+    }
+}
 
 @Composable
 fun VentesNavHost(
@@ -34,12 +71,37 @@ fun VentesNavHost(
         composable(Screen.VentesHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.VentesGraph.route) }
             val viewModel: VenteViewModel = hiltViewModel(parentEntry)
+            val openForm = openVenteFormAction(navController)
+            val resumeDraft = venteDraftResumeAction(
+                viewModel   = viewModel,
+                onOpenForm  = openForm,
+                onViewVente = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) }
+            )
+            val editVente = editVenteAction(viewModel, openForm, resumeDraft)
+
             VentesScreen(
-                viewModel    = viewModel,
-                onBack       = onBack,
-                onAddVente   = { navController.navigate(Screen.VenteFormGraph.createRoute()) },
-                onEditVente  = { venteId -> navController.navigate(Screen.VenteFormGraphDirect.createRoute(venteId = venteId)) },
-                onVenteClick = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) }
+                viewModel        = viewModel,
+                onBack           = onBack,
+                onAddVente       = { navController.navigate(Screen.VenteFormGraph.createRoute()) },
+                onEditVente      = editVente,
+                onVenteClick     = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) },
+                onResumeDraft    = resumeDraft,
+                onOpenBrouillons = { navController.navigate(Screen.VentesBrouillons.route) }
+            )
+        }
+
+        composable(Screen.VentesBrouillons.route) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.VentesGraph.route) }
+            val viewModel: VenteViewModel = hiltViewModel(parentEntry)
+            val resumeDraft = venteDraftResumeAction(
+                viewModel   = viewModel,
+                onOpenForm  = openVenteFormAction(navController),
+                onViewVente = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) }
+            )
+            VenteBrouillonsScreen(
+                viewModel = viewModel,
+                onBack    = { navController.popBackStack() },
+                onResume  = resumeDraft
             )
         }
 
