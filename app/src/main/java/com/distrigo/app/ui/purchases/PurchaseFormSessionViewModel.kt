@@ -8,19 +8,14 @@ import com.distrigo.app.data.model.DraftSnapshot
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.PurchaseDraft
 import com.distrigo.app.data.model.Supplier
-import com.distrigo.app.data.repository.DraftFingerprint
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.PurchaseDraftRepository
+import com.distrigo.app.data.repository.PurchaseFingerprint
+import com.distrigo.app.ui.common.DraftAutosave
+import com.distrigo.app.ui.common.DraftAutosaveHost
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -65,13 +60,12 @@ enum class SessionPhase {
  * `PurchaseViewModel` keeps orders, selectedOrder, the create/update/receive commands and the list
  * filters, and keeps its existing scoping in both hosts.
  */
-@OptIn(FlowPreview::class)
 @HiltViewModel
 class PurchaseFormSessionViewModel @Inject constructor(
     private val draftRepository  : PurchaseDraftRepository,
     private val productRepository: ProductRepository,
     private val savedState       : SavedStateHandle
-) : ViewModel() {
+) : ViewModel(), DraftAutosaveHost<DraftSnapshot> {
 
     // ── Form state (moved off PurchaseViewModel) ─────────────────────────────
 
@@ -108,8 +102,6 @@ class PurchaseFormSessionViewModel @Inject constructor(
     private val _missingProductIds = MutableStateFlow<Set<Int>>(emptySet())
     val missingProductIds: StateFlow<Set<Int>> = _missingProductIds
 
-    private var armed = false
-
     /**
      * Synchronous guard against double entry. During a navigation transition the outgoing and
      * incoming destinations are both composed, so [beginOrResumeSession] can be called twice
@@ -120,60 +112,37 @@ class PurchaseFormSessionViewModel @Inject constructor(
     /** The draft row this session owns, once it has one. Null until the form is first dirtied. */
     val draftId: Int? get() = savedState[KEY_DRAFT_ID]
 
-    private val sourceOrderId : Int?    get() = savedState[KEY_SOURCE_ORDER]
-    private val baseFingerprint: String? get() = savedState[KEY_BASE_FP]
+    private val sourceOrderId : Int? get() = savedState[KEY_SOURCE_ORDER]
 
     // ── Autosave ─────────────────────────────────────────────────────────────
 
-    init {
-        combine(_formSupplier, _formCartItems, _formNote, _formMontantPaye) { _, _, _, _ ->
-            snapshot()
-        }
-            // combine emits the current tuple the instant it is collected — here, during init.
-            // The armed filter below would already stop it, but dropping it makes the intent
-            // explicit: arming a session must never itself be a reason to write.
-            .drop(1)
-            .filter { armed }
-            .debounce(AUTOSAVE_DEBOUNCE_MS)
-            .onEach { persist(it) }
-            .launchIn(viewModelScope)
-    }
+    private val autosave = DraftAutosave(
+        host    = this,
+        scope   = viewModelScope,
+        signals = listOf(_formSupplier, _formCartItems, _formNote, _formMontantPaye)
+    )
 
-    /**
-     * Writes the current form now instead of waiting out the debounce window. Called on
-     * `Lifecycle.Event.ON_STOP`, which is the real durability point: `debounce` drops its tail if
-     * the process dies inside the window. ON_STOP is not guaranteed on a hard kill, but it covers
-     * home-then-killed, which is nearly all of it.
-     *
-     * The in-flight debounced write is not cancelled — [persist] is idempotent, so a later
-     * duplicate is harmless.
-     */
-    fun flushDraft() {
-        if (!armed) return
-        viewModelScope.launch { persist(snapshot()) }
-    }
+    /** Writes the current form now rather than waiting out the debounce — see [DraftAutosave.flush]. */
+    fun flushDraft() = autosave.flush()
 
-    private suspend fun persist(snap: DraftSnapshot) {
-        val dirty = if (snap.sourceOrderId != null) {
-            // An edit form is prefilled, so it is non-empty from its first emission and the
-            // emptiness rule below would fire on sight. Comparing against the base recorded at
-            // edit-start answers the question that actually matters: has anything changed yet?
-            DraftFingerprint.of(snap) != baseFingerprint
-        } else {
-            !snap.isEmpty
-        }
+    // ── DraftAutosaveHost ────────────────────────────────────────────────────
 
-        val existing = draftId
-        if (dirty) {
-            savedState[KEY_DRAFT_ID] = draftRepository.upsert(existing, snap)
-        } else if (existing != null) {
-            // Edited, then undone back to the original values — leave nothing behind.
-            draftRepository.delete(existing)
-            savedState[KEY_DRAFT_ID] = null
-        }
-    }
+    override val baseFingerprint: String? get() = savedState[KEY_BASE_FP]
 
-    private fun snapshot() = DraftSnapshot(
+    override var draftRowId: Int?
+        get()      = savedState[KEY_DRAFT_ID]
+        set(value) { savedState[KEY_DRAFT_ID] = value }
+
+    override fun isEdit(snapshot: DraftSnapshot)   = snapshot.sourceOrderId != null
+    override fun isEmpty(snapshot: DraftSnapshot)  = snapshot.isEmpty
+    override fun fingerprintOf(snapshot: DraftSnapshot) = PurchaseFingerprint.of(snapshot)
+
+    override suspend fun upsertDraft(existing: Int?, snapshot: DraftSnapshot): Int =
+        draftRepository.upsert(existing, snapshot)
+
+    override suspend fun deleteDraft(id: Int) = draftRepository.delete(id)
+
+    override fun snapshot() = DraftSnapshot(
         supplierId      = _formSupplier.value?.id,
         supplierName    = _formSupplier.value?.name,
         lines           = _formCartItems.value.map { it.toDraftLine() },
@@ -396,7 +365,7 @@ class PurchaseFormSessionViewModel @Inject constructor(
     }
 
     private fun arm() {
-        armed = true
+        autosave.arm()
         _phase.value = SessionPhase.READY
     }
 
@@ -406,13 +375,11 @@ class PurchaseFormSessionViewModel @Inject constructor(
      * pointing at a row that no longer exists.
      */
     fun onCommitted() {
-        armed = false
+        autosave.disarm()
         savedState[KEY_DRAFT_ID] = null
     }
 
     private companion object {
-        const val AUTOSAVE_DEBOUNCE_MS = 500L
-
         const val KEY_STARTED          = "draft_session_started"
         const val KEY_DRAFT_ID         = "draft_id"
         const val KEY_SOURCE_ORDER     = "draft_source_order_id"

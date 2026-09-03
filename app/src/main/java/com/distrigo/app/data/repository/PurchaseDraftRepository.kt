@@ -134,7 +134,7 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
 
     private suspend fun committedFingerprint(order: PurchaseOrderEntity): String {
         val items = purchaseDao.getItemsForOrder(order.id)
-        return DraftFingerprint.of(
+        return PurchaseFingerprint.of(
             supplierId  = order.supplier_id,
             montantPaye = prefilledMontantPaye(order),
             note        = order.note.orEmpty(),
