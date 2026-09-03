@@ -35,10 +35,12 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import java.util.Locale
 
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 data class TourneeVenteCartItem(
     val product   : Product,
@@ -355,7 +357,9 @@ internal fun Step3Validation(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Text("Montant payé (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        TextButton(onClick = { onMontantPayeChange("%.2f".format(total)) }) {
+                        // Locale.ROOT — see PurchaseFormScreen: the field is parsed back with
+                        // String.toDoubleOrNull(), which only accepts a '.' decimal separator.
+                        TextButton(onClick = { onMontantPayeChange(String.format(Locale.ROOT, "%.2f", total)) }) {
                             Text("Tout réglé", fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }

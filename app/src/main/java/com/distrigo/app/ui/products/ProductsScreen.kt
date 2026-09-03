@@ -45,9 +45,11 @@ import com.distrigo.app.data.model.Product
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import java.util.Locale
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),

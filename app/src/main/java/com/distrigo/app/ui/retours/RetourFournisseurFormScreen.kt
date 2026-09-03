@@ -23,9 +23,11 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import java.util.Locale
 
 internal fun formatRetourQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 internal val RETOUR_FOURNISSEUR_MOTIFS = com.distrigo.app.data.model.RetourFournisseurMotifs.ALL.map { it.id }
 

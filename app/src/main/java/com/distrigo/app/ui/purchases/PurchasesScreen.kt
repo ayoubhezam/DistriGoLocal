@@ -20,10 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.data.model.PurchaseDraft
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.ui.common.EntityAvatar
 import com.distrigo.app.ui.designsystem.DsColors
@@ -48,11 +52,16 @@ fun PurchasesScreen(
     onFullScreenChange : (Boolean) -> Unit = {},
     onAddOrder         : () -> Unit = {},
     onEditOrder        : (Int) -> Unit = {},
-    onOrderClick       : (Int) -> Unit = {}
+    onOrderClick       : (Int) -> Unit = {},
+    onResumeDraft      : (PurchaseDraft) -> Unit = {},
+    onOpenBrouillons   : () -> Unit = {}
 ) {
     val orders    by viewModel.orders.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error     by viewModel.error.collectAsState()
+    val drafts    by viewModel.drafts.collectAsState()
+
+    var showDraftsSheet by remember { mutableStateOf(false) }
 
     var longPressOrder   by remember { mutableStateOf<PurchaseOrder?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -549,6 +558,29 @@ fun PurchasesScreen(
                     )
                 }
 
+                // Brouillons live beside the Bons count rather than in a tab strip: they are a
+                // distinct list with its own screen, but they are not a peer view of the same data.
+                if (drafts.isNotEmpty()) {
+                    Spacer(Modifier.width(DsSpacing.xs))
+                    Row(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .clickable { onOpenBrouillons() }
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                    ) {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                        Text(
+                            "Brouillons (${drafts.size})",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.Primary
+                        )
+                    }
+                }
+
                 // زر الفلترة
                 Box {
                     Box(
@@ -662,7 +694,10 @@ fun PurchasesScreen(
         }
 
         FloatingActionButton(
-            onClick        = onAddOrder,
+            // The resume decision is made here, before the form graph is entered — which is what
+            // keeps a process-death return from ever prompting, since that path re-enters the
+            // graph without passing through this button.
+            onClick        = { if (drafts.isEmpty()) onAddOrder() else showDraftsSheet = true },
             containerColor = DsColors.Primary,
             contentColor   = Color.White,
             modifier       = Modifier
@@ -671,6 +706,17 @@ fun PurchasesScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouveau bon")
         }
+    }
+
+    if (showDraftsSheet) {
+        BrouillonsSheet(
+            drafts     = drafts,
+            onResume   = { showDraftsSheet = false; onResumeDraft(it) },
+            // Starting a new bon leaves every existing draft exactly where it is.
+            onStartNew = { showDraftsSheet = false; onAddOrder() },
+            onSeeAll   = { showDraftsSheet = false; onOpenBrouillons() },
+            onDismiss  = { showDraftsSheet = false }
+        )
     }
 }
 
@@ -685,10 +731,25 @@ fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, val
     }
 }
 
+/** Payment status derived the same way as the "Filtres" payment filter, for the corner ribbon. */
+private fun paymentStatusOf(order: PurchaseOrder): String {
+    val montantPaye = order.montant_paye ?: 0.0
+    return when {
+        montantPaye >= order.total && order.total > 0 -> "paye"
+        montantPaye > 0.0                              -> "partiel"
+        else                                            -> "impaye"
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: () -> Unit) {
     val isReceived = order.status == "received"
+    val (ribbonLabel, ribbonColor) = when (paymentStatusOf(order)) {
+        "paye"    -> "PAYÉ"    to DsColors.Success
+        "partiel" -> "PARTIEL" to DsColors.Warning
+        else      -> "IMPAYÉ"  to DsColors.Danger
+    }
 
     Card(
         modifier = Modifier
@@ -702,6 +763,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
         elevation = CardDefaults.cardElevation(1.dp),
         border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             EntityAvatar(
                 name     = order.supplier_name,
@@ -782,6 +844,52 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
             Spacer(Modifier.width(DsSpacing.sm))
             Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
         }
+        CornerRibbon(
+            label    = ribbonLabel,
+            color    = ribbonColor,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
+      }
+    }
+}
+
+/**
+ * Diagonal corner ribbon (à la e-commerce "SALE" badge) for a status flag on a card/row — payment
+ * status on the Achats and Dépôt Vente cards, delivery status on the Tournée Vente rows, etc.
+ *
+ * [edgeReach] is how far the flag reaches along the container's top and right edges — the only
+ * knob that controls how compact it looks. The strip is centered on the midpoint of that (top,
+ * right) pair, i.e. exactly on the line the flag's hypotenuse should follow, but drawn far longer
+ * than [edgeReach] so both of its ends bleed well past the container's actual edges instead of
+ * stopping a hair short of them — it's the container's own rounded-shape clip (a Card's Material3
+ * Surface, or a plain `Modifier.clip(...)`, both draw with clip = true) that trims the overshoot
+ * back down, flush with the straight edges and rounded off at the tip. `wrapContentSize(unbounded
+ * = true)` is required so the strip's `.width(90.dp)` actually measures at 90dp instead of being
+ * clamped to the [edgeReach] (40dp) box it's centered in — a plain Box passes its own tight
+ * constraints down to children, so without this the strip's true ends land barely past the edges
+ * (sub-dp), which reads as a floating diamond rather than a ribbon anchored to the corner.
+ *
+ * Caller must place this as a child of a Box/Card that both clips to a rounded shape and aligns
+ * this composable to `Alignment.TopEnd`, so the corner it's centered on is the container's own.
+ */
+@Composable
+fun CornerRibbon(label: String, color: Color, modifier: Modifier = Modifier) {
+    val edgeReach = 40.dp
+    Box(modifier = modifier.size(edgeReach), contentAlignment = Alignment.Center) {
+        Text(
+            text       = label,
+            color      = Color.White,
+            fontSize   = 7.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines   = 1,
+            textAlign  = TextAlign.Center,
+            modifier   = Modifier
+                .wrapContentSize(unbounded = true)
+                .graphicsLayer { rotationZ = 45f }
+                .width(90.dp)
+                .background(color)
+                .padding(vertical = 2.dp)
+        )
     }
 }
 

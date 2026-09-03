@@ -13,7 +13,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +51,9 @@ import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.suppliers.SupplierViewModel
 import com.distrigo.app.ui.purchases.CartItem
+import com.distrigo.app.ui.purchases.PurchaseFormSessionViewModel
 import com.distrigo.app.ui.purchases.PurchaseViewModel
+import com.distrigo.app.ui.purchases.SessionPhase
 import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
 import com.distrigo.app.ui.purchases.formatQty
@@ -79,6 +84,58 @@ private fun PurchaseFormHeader(
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 }
 
+/**
+ * The session ViewModel for this pass through the form, plus everything that has to happen on
+ * every destination.
+ *
+ * It is scoped to the form graph's own back stack entry — resolved here rather than passed in by
+ * the host, so AchatsNavHost and SuppliersNavHost get the identical lifetime no matter how they
+ * scope PurchaseViewModel. That lifetime is the design: the entry (and its SavedStateHandle) is
+ * saved and restored across process death, and destroyed when the user pops the graph. Restoring
+ * means "carry on silently"; a fresh entry means the caller was free to ask
+ * "Reprendre ou recommencer ?".
+ */
+@Composable
+private fun purchaseFormSession(
+    navController: NavHostController,
+    graphRoute   : String,
+    route        : String?
+): PurchaseFormSessionViewModel {
+    val graphEntry = remember(navController, graphRoute) { navController.getBackStackEntry(graphRoute) }
+    val session: PurchaseFormSessionViewModel = hiltViewModel(graphEntry)
+
+    // Entering the session happens here, on every destination, rather than in the first one only.
+    // Process death restores the back stack to whichever step the user was on, so the first
+    // destination may never compose — a session entry that lived there alone would leave a restored
+    // Cart or Validation step staring at an empty form. The call is idempotent.
+    val orderId = graphEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
+    val draftId = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
+    LaunchedEffect(session) { session.beginOrResumeSession(orderId, draftId) }
+
+    // Record where the user is, so a resume can land on the step they left, and keep the ON_STOP
+    // flush attached to whichever step is actually on screen.
+    LaunchedEffect(route) { route?.let { session.setLastStep(it) } }
+    FlushDraftOnStop(session)
+
+    return session
+}
+
+/**
+ * Writes the draft on ON_STOP rather than waiting out the autosave debounce, which would otherwise
+ * lose its tail if the process died inside the window.
+ */
+@Composable
+private fun FlushDraftOnStop(session: PurchaseFormSessionViewModel) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, session) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) session.flushDraft()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
 // Mirrors venteFormGraph/tourneeVenteFormGraph: form state (supplier/cart/note/montantPaye)
 // lives on the PurchaseViewModel instance the caller provides — graph-scoped to AchatsGraph when
 // invoked from AchatsNavHost (reusing the same instance AchatsHome/AchatsDetail already share, so
@@ -99,26 +156,35 @@ fun NavGraphBuilder.purchaseFormGraph(
         route = graphRoute,
         arguments = listOf(
             navArgument("orderId")    { type = NavType.IntType; defaultValue = -1 },
-            navArgument("supplierId") { type = NavType.IntType; defaultValue = -1 }
+            navArgument("supplierId") { type = NavType.IntType; defaultValue = -1 },
+            navArgument("draftId")    { type = NavType.IntType; defaultValue = -1 }
         )
     ) {
         composable(Screen.PurchaseFormSupplier.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val supplierViewModel = supplierViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val supplierIdArg = parentEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
             val selectedOrder by viewModel.selectedOrder.collectAsState()
             val suppliers by supplierViewModel.suppliers.collectAsState()
-            val formSupplier by viewModel.formSupplier.collectAsState()
+            val formSupplier by session.formSupplier.collectAsState()
+            val phase by session.phase.collectAsState()
 
-            var initialized by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (!initialized) {
-                    viewModel.resetPurchaseForm()
-                    if (orderIdArg != null) viewModel.loadOrderDetail(orderIdArg)
-                    initialized = true
+            // `var initialized by rememberSaveable` used to live here. It survived process death
+            // while the ViewModel it described did not, so after a kill it reported "already set
+            // up" against an empty ViewModel — skipping loadOrderDetail and leaving the edit-mode
+            // gate below spinning forever. The session answers that question from a
+            // SavedStateHandle with exactly the ViewModel's lifetime, so it cannot disagree with
+            // it, and it is entered in purchaseFormSession() rather than in this one destination.
+
+            // Unconditional, and guarded on the data rather than on a boolean: after process death
+            // this re-issues the load the old flag suppressed.
+            LaunchedEffect(orderIdArg, selectedOrder?.id) {
+                if (orderIdArg != null && selectedOrder?.id != orderIdArg) {
+                    viewModel.loadOrderDetail(orderIdArg)
                 }
             }
 
@@ -131,30 +197,32 @@ fun NavGraphBuilder.purchaseFormGraph(
             }
             val editingOrder = if (isEdit) selectedOrder else null
 
-            var orderPrefillDone by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(editingOrder) {
-                if (isEdit && editingOrder != null && !orderPrefillDone) {
-                    viewModel.setFormNote(editingOrder.note ?: "")
-                    orderPrefillDone = true
-                }
-            }
-            LaunchedEffect(suppliers, editingOrder) {
-                if (isEdit && formSupplier == null && editingOrder != null) {
-                    viewModel.setFormSupplier(suppliers.find { it.id == editingOrder.supplier_id })
+            // Edit prefill (note, supplier, cart) belongs to the session, for the same reason
+            // session entry does: it must not depend on which destination happens to be composed.
+            // This effect only covers the case where the suppliers list arrives after the session
+            // has already prefilled, which would otherwise leave the header without a name.
+            LaunchedEffect(suppliers, editingOrder, phase) {
+                if (isEdit && formSupplier == null && editingOrder != null &&
+                    phase == SessionPhase.READY
+                ) {
+                    session.setFormSupplier(suppliers.find { it.id == editingOrder.supplier_id })
                 }
             }
             LaunchedEffect(supplierIdArg, suppliers) {
                 if (supplierIdArg != null && formSupplier == null && !isEdit) {
-                    viewModel.setFormSupplier(suppliers.find { it.id == supplierIdArg })
+                    session.setFormSupplier(suppliers.find { it.id == supplierIdArg })
                 }
             }
-            LaunchedEffect(formSupplier, isEdit, supplierIdArg) {
-                if (formSupplier != null && (isEdit || supplierIdArg != null)) {
-                    navController.navigate(Screen.PurchaseFormProducts.route) {
-                        popUpTo(Screen.PurchaseFormSupplier.route) { inclusive = false }
-                    }
-                }
-            }
+            // An auto-advance to Step 2 used to live here, firing whenever a supplier was known.
+            // "A supplier is known" is a *state* — permanently true in edit mode and after a
+            // supplier is picked — not the *event* "the user just chose one", so it re-fired every
+            // time Step 1 came back into composition. With `popUpTo(inclusive = false)` keeping
+            // Step 1 on the back stack, Back from Step 2 popped to Step 1 and was immediately
+            // pushed forward again: Step 1 could be seen but never reached, and a reopened bon
+            // could only be left by saving it.
+            //
+            // Forward navigation is Step1Fournisseur's own "Suivant" button, which is an actual
+            // user event. Step 1 is a real destination on every path into the graph.
 
             BackHandler { onBack() }
 
@@ -168,9 +236,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                     onBackClick  = onBack
                 )
                 Step1Fournisseur(
-                    selectedSupplier = formSupplier,
-                    onChooseSupplier = { navController.navigate(Screen.PurchaseFormSupplierPicker.route) },
-                    onNext           = { navController.navigate(Screen.PurchaseFormProducts.route) }
+                    selectedSupplier   = formSupplier,
+                    canChangeSupplier  = !isEdit,
+                    onChooseSupplier   = { navController.navigate(Screen.PurchaseFormSupplierPicker.route) },
+                    onNext             = { navController.navigate(Screen.PurchaseFormProducts.route) }
                 )
             }
         }
@@ -178,9 +247,10 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormSupplierPicker.route) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val supplierViewModel = supplierViewModel()
             val suppliers by supplierViewModel.suppliers.collectAsState()
-            val formSupplier by viewModel.formSupplier.collectAsState()
+            val formSupplier by session.formSupplier.collectAsState()
             var supplierSearch by remember { mutableStateOf("") }
             var showAddSupplierDialog by remember { mutableStateOf(false) }
             var newSupplierName by remember { mutableStateOf("") }
@@ -193,7 +263,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             LaunchedEffect(suppliers, pendingNewSupplierName) {
                 val name = pendingNewSupplierName ?: return@LaunchedEffect
                 val newSupplier = suppliers.find { it.name == name } ?: return@LaunchedEffect
-                viewModel.setFormSupplier(newSupplier)
+                session.setFormSupplier(newSupplier)
                 pendingNewSupplierName = null
                 navController.popBackStack()
             }
@@ -318,7 +388,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     items(filteredSuppliers) { supplier ->
                         Card(
                             modifier  = Modifier.fillMaxWidth().clickable {
-                                viewModel.setFormSupplier(supplier)
+                                session.setFormSupplier(supplier)
                                 navController.popBackStack()
                             },
                             shape     = DsShapes.large,
@@ -367,15 +437,14 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormProducts.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val productViewModel = productViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val supplierIdArg = parentEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val selectedOrder by viewModel.selectedOrder.collectAsState()
-            val editingOrder = if (isEdit) selectedOrder?.takeIf { it.id == orderIdArg } else null
             val products by productViewModel.products.collectAsState()
-            val formSupplier by viewModel.formSupplier.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
+            val formSupplier by session.formSupplier.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
             var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
             var showAddProductScreen by remember { mutableStateOf(false) }
@@ -391,7 +460,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                 val id = pendingNewProductId ?: return@LaunchedEffect
                 val newProduct = products.find { it.id == id } ?: return@LaunchedEffect
                 if (cartItems.none { it.product.id == id }) {
-                    viewModel.setFormCartItems(
+                    session.setFormCartItems(
                         cartItems + CartItem(
                             product  = newProduct,
                             quantity = 1.0,
@@ -402,40 +471,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                 pendingNewProductId = null
             }
 
-            LaunchedEffect(products) {
-                if (isEdit && cartItems.isEmpty() && editingOrder?.items != null) {
-                    viewModel.setFormCartItems(editingOrder.items.map { item ->
-                        val product = products.find { it.id == item.product_id }
-                            ?: com.distrigo.app.data.model.Product(
-                                id             = item.product_id,
-                                name           = item.product_name,
-                                barcode        = null,
-                                selling_price  = 0.0,
-                                purchase_price = item.unit_cost,
-                                stock          = 0.0,
-                                min_stock      = 0,
-                                unit_type      = item.unit_type,
-                                packages       = 0,
-                                pack_size      = 0,
-                                has_expiry     = 0,
-                                expiry_date    = null,
-                                image_uri      = null,
-                                category_name  = null,
-                                category_id    = null,
-                                supplier_name  = null,
-                                supplier_id    = null,
-                                camion_stock   = 0.0
-                            )
-                        CartItem(
-                            product       = product,
-                            quantity      = item.quantity,
-                            unitCost      = item.unit_cost,
-                            nbColis       = item.quantity,
-                            uniteParColis = 1
-                        )
-                    })
-                }
-            }
+            // Edit prefill lives on PurchaseFormSessionViewModel, which is the only writer of the
+            // form state and the only place the draft fingerprint is captured. A second prefill
+            // here would re-add the original lines with defaulted colis/expiry values whenever an
+            // edit's cart was emptied, silently rewriting the bon on the next save.
 
             if (showAddProductScreen) {
                 BackHandler { showAddProductScreen = false }
@@ -621,7 +660,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     if (!isInCart) {
                                         IconButton(
                                             onClick = {
-                                                viewModel.setFormCartItems(
+                                                session.setFormCartItems(
                                                     cartItems + CartItem(
                                                         product       = product,
                                                         quantity      = 1.0,
@@ -637,7 +676,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         }
                                     } else {
                                         IconButton(
-                                            onClick = { viewModel.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
+                                            onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                             modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                         ) {
                                             Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
@@ -690,14 +729,16 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormCart.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val productViewModel = productViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
             val selectedOrder by viewModel.selectedOrder.collectAsState()
             val editingOrder = if (isEdit) selectedOrder?.takeIf { it.id == orderIdArg } else null
-            val formSupplier by viewModel.formSupplier.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
+            val formSupplier by session.formSupplier.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
@@ -710,7 +751,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
-                        TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
+                        TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
@@ -764,6 +805,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                             else
                                 "${formatQty(item.quantity)} carton × ${"%.2f".format(item.unitCost)} DA"
 
+                            // A restored draft can name a product that has since been deleted. The
+                            // line stays visible, under the name the draft stored, because dropping
+                            // it silently would change a total the user remembers — but validation
+                            // is blocked until they remove it themselves.
+                            val isMissingProduct = item.product.id in missingProductIds
+
                             SelectionCartCard(
                                 avatarIcon      = Icons.Default.ShoppingCart,
                                 title           = item.product.name,
@@ -772,7 +819,11 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 isExpanded      = isExpanded,
                                 onToggleExpand  = { expandedCartItemId = if (isExpanded) null else item.product.id },
                                 statusLine      = {
-                                    CartStatusLine(
+                                    if (isMissingProduct) CartStatusLine(
+                                        icon = Icons.Default.WarningAmber,
+                                        text = "Produit supprimé — retirez cette ligne pour continuer",
+                                        tone = CartStatusTone.DANGER
+                                    ) else CartStatusLine(
                                         icon = Icons.Default.ArrowUpward,
                                         text = "Stock ${formatQty(item.product.stock)} → ${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
                                         tone = CartStatusTone.OK
@@ -800,7 +851,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                     nbColisStr = filtered
                                                     val nb = filtered.toDoubleOrNull()
                                                     if (nb != null && nb >= 1) {
-                                                        viewModel.setFormCartItems(cartItems.map { ci ->
+                                                        session.setFormCartItems(cartItems.map { ci ->
                                                             if (ci.product.id == item.product.id)
                                                                 ci.copy(nbColis = nb, quantity = nb * ci.uniteParColis)
                                                             else ci
@@ -830,7 +881,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                     uniteParColisStr = digits
                                                     val upe = digits.toIntOrNull()
                                                     if (upe != null && upe >= 1) {
-                                                        viewModel.setFormCartItems(cartItems.map { ci ->
+                                                        session.setFormCartItems(cartItems.map { ci ->
                                                             if (ci.product.id == item.product.id)
                                                                 ci.copy(uniteParColis = upe, quantity = ci.nbColis * upe)
                                                             else ci
@@ -871,7 +922,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             label         = "Nombre de cartons",
                                             value         = item.quantity,
                                             onValueChange = { newQty ->
-                                                viewModel.setFormCartItems(cartItems.map { ci ->
+                                                session.setFormCartItems(cartItems.map { ci ->
                                                     if (ci.product.id == item.product.id) ci.copy(nbColis = newQty, quantity = newQty) else ci
                                                 })
                                             },
@@ -885,7 +936,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     PriceFieldWithHistory(
                                         price         = item.unitCost,
                                         onPriceChange = { newCost ->
-                                            viewModel.setFormCartItems(cartItems.map { ci ->
+                                            session.setFormCartItems(cartItems.map { ci ->
                                                 if (ci.product.id == item.product.id) ci.copy(unitCost = newCost) else ci
                                             })
                                         },
@@ -898,12 +949,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         hasExpiry          = item.hasExpiry,
                                         expiryDate         = item.expiryDate,
                                         onHasExpiryChange  = { checked ->
-                                            viewModel.setFormCartItems(cartItems.map { ci ->
+                                            session.setFormCartItems(cartItems.map { ci ->
                                                 if (ci.product.id == item.product.id) ci.copy(hasExpiry = checked) else ci
                                             })
                                         },
                                         onExpiryDateChange = { date ->
-                                            viewModel.setFormCartItems(cartItems.map { ci ->
+                                            session.setFormCartItems(cartItems.map { ci ->
                                                 if (ci.product.id == item.product.id) ci.copy(expiryDate = date) else ci
                                             })
                                         }
@@ -912,7 +963,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     Spacer(Modifier.height(4.dp))
 
                                     TextButton(
-                                        onClick  = { viewModel.setFormCartItems(cartItems.filter { it.product.id != item.product.id }) },
+                                        onClick  = { session.setFormCartItems(cartItems.filter { it.product.id != item.product.id }) },
                                         modifier = Modifier.align(Alignment.End)
                                     ) {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
@@ -926,7 +977,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         item {
                             OutlinedTextField(
                                 value         = note,
-                                onValueChange = { viewModel.setFormNote(it) },
+                                onValueChange = { session.setFormNote(it) },
                                 placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
@@ -997,17 +1048,24 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormValidation.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val formSupplier by viewModel.formSupplier.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
-            val montantPaye by viewModel.formMontantPaye.collectAsState()
+            val formSupplier by session.formSupplier.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val montantPaye by session.formMontantPaye.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
             fun doSave() {
                 if (formSupplier == null) return
+                // A restored draft can reference a product that has since been deleted. Saving
+                // anyway would throw "Produit introuvable" deep inside the transaction and roll
+                // back with nothing the user can act on, so the line has to go first. Part 3 marks
+                // it in the cart; this is the block behind that marker.
+                if (missingProductIds.isNotEmpty()) return
                 isSaving = true
                 val orderItems = cartItems.map { ci ->
                     mapOf(
@@ -1027,7 +1085,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                         items       = orderItems,
                         note        = note.trim().ifEmpty { null },
                         montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
-                        onSuccess   = { onSaved() },
+                        draftId     = session.draftId,
+                        onSuccess   = { session.onCommitted(); onSaved() },
                         onError     = { isSaving = false }
                     )
                 } else {
@@ -1037,7 +1096,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                         items       = orderItems,
                         note        = note.trim().ifEmpty { null },
                         montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
-                        onSuccess   = { onSaved() },
+                        draftId     = session.draftId,
+                        onSuccess   = { session.onCommitted(); onSaved() },
                         onError     = { isSaving = false }
                     )
                 }
@@ -1059,11 +1119,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                     cartItems           = cartItems,
                     total               = total,
                     montantPaye         = montantPaye,
-                    onMontantPayeChange = { viewModel.setFormMontantPaye(it) },
+                    onMontantPayeChange = { session.setFormMontantPaye(it) },
                     note                = note,
-                    onNoteChange        = { viewModel.setFormNote(it) },
+                    onNoteChange        = { session.setFormNote(it) },
                     isEdit              = isEdit,
                     isSaving            = isSaving,
+                    hasMissingProducts  = missingProductIds.isNotEmpty(),
                     onBack              = { navController.popBackStack() },
                     onConfirm           = { doSave() }
                 )

@@ -178,7 +178,8 @@ class ProductRepository(
         id = this.id, quantity = this.quantity, unit_cost = this.unit_cost,
         total_cost = this.total_cost, product_id = this.product_id,
         product_name = this.product_name, unit_type = this.unit_type,
-        nb_colis = this.nb_colis, unite_par_colis = this.unite_par_colis
+        nb_colis = this.nb_colis, unite_par_colis = this.unite_par_colis,
+        has_expiry = this.has_expiry, expiry_date = this.expiry_date
     )
 
     private fun PurchaseOrderEntity.toOrder(items: List<PurchaseOrderItem>, supplierName: String) = PurchaseOrder(
@@ -508,7 +509,14 @@ class ProductRepository(
         return order.toOrder(items, supplierName)
     }
 
-    suspend fun createPurchaseOrder(order: Map<String, Any?>): Map<String, Any> {
+    /**
+     * [draftId] — the Brouillon this bon was composed in, if any. It is deleted as the final
+     * statement *inside* the transaction, so the draft outlives any failure: if the insert, the
+     * price history or the balance recalculation throws, the rollback takes the delete with it and
+     * the user's work is still there. "Deleted only after the purchase commits" is enforced by
+     * SQLite rather than by callback ordering.
+     */
+    suspend fun createPurchaseOrder(order: Map<String, Any?>, draftId: Int? = null): Map<String, Any> {
         db.withTransaction {
             val supplierId = (order["supplier_id"] as Number).toInt()
             val date = order["date"] as? String ?: java.time.LocalDate.now().toString()
@@ -563,6 +571,7 @@ class ProductRepository(
             db.purchaseDao().insertItems(itemEntities)
             db.purchaseDao().insertPriceHistory(historyEntities)
             recalculateSupplierBalance(supplierId)
+            draftId?.let { db.purchaseDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Bon créé avec succès")
     }
@@ -621,7 +630,14 @@ class ProductRepository(
         return mapOf("message" to "Bon marqué comme reçu")
     }
 
-    suspend fun updatePurchaseOrder(id: Int, order: Map<String, Any?>): Map<String, Any> {
+    /**
+     * [draftId] — the Brouillon this bon was composed in, if any. It is deleted as the final
+     * statement *inside* the transaction, so the draft outlives any failure: if the insert, the
+     * price history or the balance recalculation throws, the rollback takes the delete with it and
+     * the user's work is still there. "Deleted only after the purchase commits" is enforced by
+     * SQLite rather than by callback ordering.
+     */
+    suspend fun updatePurchaseOrder(id: Int, order: Map<String, Any?>, draftId: Int? = null): Map<String, Any> {
         db.withTransaction {
             val note = order["note"] as? String
             val montantPaye = (order["montant_paye"] as? Number)?.toDouble() ?: 0.0
@@ -670,6 +686,7 @@ class ProductRepository(
             db.purchaseDao().updateOrderFields(id, note, montantPaye, total)
 
             recalculateSupplierBalance(existing.supplier_id)
+            draftId?.let { db.purchaseDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Bon mis à jour avec succès")
     }

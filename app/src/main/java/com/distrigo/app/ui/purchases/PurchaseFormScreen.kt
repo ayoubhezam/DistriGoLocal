@@ -31,9 +31,11 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.suppliers.formatDZD
+import java.util.Locale
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 data class CartItem(
     val product       : Product,
@@ -49,6 +51,14 @@ data class CartItem(
 @Composable
 internal fun Step1Fournisseur(
     selectedSupplier : Supplier?,
+    /**
+     * False in edit mode. A committed bon's supplier cannot be changed — `updatePurchaseOrder`
+     * reads `existing.supplier_id` and never writes one — so offering "Changer" there promises an
+     * edit the save silently discards. The "Choisir un fournisseur" button in the empty branch is
+     * deliberately left alone: it is the only way out if the bon's supplier has been deleted,
+     * since "Suivant" stays disabled while the selection is null.
+     */
+    canChangeSupplier : Boolean = true,
     onChooseSupplier : () -> Unit,
     onNext           : () -> Unit
 ) {
@@ -186,13 +196,15 @@ internal fun Step1Fournisseur(
                             }
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
                         }
-                        Spacer(Modifier.height(DsSpacing.md))
-                        OutlinedButton(
-                            onClick  = onChooseSupplier,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape    = DsShapes.medium
-                        ) {
-                            Text("Changer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
+                        if (canChangeSupplier) {
+                            Spacer(Modifier.height(DsSpacing.md))
+                            OutlinedButton(
+                                onClick  = onChooseSupplier,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape    = DsShapes.medium
+                            ) {
+                                Text("Changer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
+                            }
                         }
                     }
                 }
@@ -227,6 +239,13 @@ internal fun Step3Validation(
     onNoteChange            : (String) -> Unit,
     isEdit                  : Boolean,
     isSaving                : Boolean,
+    /**
+     * A restored draft may reference a product that has since been deleted. Saving would throw
+     * "Produit introuvable" deep inside the commit transaction and roll back with nothing the user
+     * can act on, so the button goes dead until the offending line is removed — the cart step marks
+     * which one it is.
+     */
+    hasMissingProducts      : Boolean = false,
     onBack                  : () -> Unit,
     onConfirm               : () -> Unit
 ) {
@@ -364,7 +383,11 @@ internal fun Step3Validation(
                     ) {
                         Text("Montant payé (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         TextButton(
-                            onClick = { onMontantPayeChange("%.2f".format(total)) }
+                            // Locale.ROOT: this string goes straight into the field that is read
+                            // back with String.toDoubleOrNull(), which accepts only a '.' decimal
+                            // separator. On a French-locale device the default format yields
+                            // "2880,00", which parses as 0 — "Tout réglé" would record nothing paid.
+                            onClick = { onMontantPayeChange(String.format(Locale.ROOT, "%.2f", total)) }
                         ) {
                             Text("Tout réglé", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
@@ -443,7 +466,8 @@ internal fun Step3Validation(
         // ── Confirm button ──
         Button(
             onClick  = onConfirm,
-            enabled  = !isSaving && selectedSupplier != null && (cartItems.isNotEmpty() || isEdit),
+            enabled  = !isSaving && !hasMissingProducts && selectedSupplier != null &&
+                       (cartItems.isNotEmpty() || isEdit),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)

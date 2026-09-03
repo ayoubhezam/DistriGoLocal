@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.distrigo.app.ui.purchases.CornerRibbon
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Vente
@@ -1054,10 +1055,25 @@ fun VenteDetailScreen(
     }
 }
 
+/** Payment status derived the same way as the "Filtres" payment filter, for the corner ribbon. */
+private fun paymentStatusOf(vente: Vente): String {
+    val montantPaye = vente.montant_paye ?: 0.0
+    return when {
+        montantPaye >= vente.total && vente.total > 0 -> "paye"
+        montantPaye > 0.0                              -> "partiel"
+        else                                            -> "impaye"
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
     val isDelivered = vente.status == "delivered"
+    val (ribbonLabel, ribbonColor) = when (paymentStatusOf(vente)) {
+        "paye"    -> "PAYÉ"    to DsColors.Success
+        "partiel" -> "PARTIEL" to DsColors.Warning
+        else      -> "IMPAYÉ"  to DsColors.Danger
+    }
 
     Card(
         modifier = Modifier
@@ -1071,6 +1087,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(1.dp),
         border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
     ) {
+      Box(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             EntityAvatar(
                 name     = vente.client_name,
@@ -1148,5 +1165,11 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
             Spacer(Modifier.width(DsSpacing.sm))
             Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
         }
+        CornerRibbon(
+            label    = ribbonLabel,
+            color    = ribbonColor,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
+      }
     }
 }

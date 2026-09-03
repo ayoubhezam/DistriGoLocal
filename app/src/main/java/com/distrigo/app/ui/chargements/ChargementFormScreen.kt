@@ -25,6 +25,7 @@ import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import java.util.Locale
 
 
 data class ChargementCartItem(
@@ -33,7 +34,8 @@ data class ChargementCartItem(
 )
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 @Composable
 internal fun ChargementCartRow(

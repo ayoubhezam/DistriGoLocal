@@ -50,6 +50,14 @@ android {
     }
 }
 
+// Room schema export. Until now every version bump relied on fallbackToDestructiveMigration(),
+// so no schema was ever recorded and the on-device v32 DDL is not recoverable from this repo.
+// Exporting from 33 onward is what makes the generated CREATE TABLE available to copy verbatim
+// into a Migration, and every future migration verifiable.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

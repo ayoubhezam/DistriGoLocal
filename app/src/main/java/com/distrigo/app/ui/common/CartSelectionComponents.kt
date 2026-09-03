@@ -81,6 +81,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import java.util.Locale
 /**
  * Shared "Ma sélection" cart-item card, used identically by Achat, Vente (Dépôt)
  * and Vente (Tournée). See docs/design/distrigo_ma_selection_unifiee.html for the
@@ -338,7 +339,10 @@ fun PriceFieldWithHistory(
     priceHistory: List<Double> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    var priceStr    by remember(price) { mutableStateOf("%.2f".format(price)) }
+    // Locale.ROOT: this seeds an editable field whose onValueChange keeps only digits and '.',
+    // and whose value is parsed back with toDoubleOrNull(). A French-locale "120,00" would lose
+    // its separator on the first keystroke and become 12000.
+    var priceStr    by remember(price) { mutableStateOf(String.format(Locale.ROOT, "%.2f", price)) }
     var showHistory by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -407,7 +411,7 @@ fun PriceFieldWithHistory(
                                     )
                                 },
                                 onClick = {
-                                    priceStr = "%.2f".format(p)
+                                    priceStr = String.format(Locale.ROOT, "%.2f", p)
                                     onPriceChange(p)
                                     showHistory = false
                                 }
@@ -508,7 +512,8 @@ fun ExpiryToggleField(
 // ═══════════════════════════════════════════════════════════
 
 private fun formatPreviewQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 @Preview(showBackground = true, widthDp = 380, name = "Ma sélection — cartes unifiées")
 @Composable

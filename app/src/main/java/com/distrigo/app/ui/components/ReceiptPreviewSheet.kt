@@ -36,6 +36,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import java.util.Locale
 
 private val Ink       = Color(0xFF14213D)
 private val InkLight  = Color(0xFF1B3FCF)
@@ -49,7 +50,8 @@ private fun referenceNumber(documentTitle: String) =
     documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.let { formatQty(it) } ?: "-"
 private fun unitePerColisText(item: ReceiptLineItem): String =

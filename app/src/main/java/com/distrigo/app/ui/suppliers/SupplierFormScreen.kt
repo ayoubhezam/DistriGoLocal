@@ -40,14 +40,22 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import java.util.Locale
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
     return digits.chunked(2).joinToString(" ")
 }
 
+/**
+ * "2 880,00" — the Algerian/French way of writing an amount, built by hand.
+ *
+ * The two replaces below only make sense on an en-style "2,880.00", so the format has to be
+ * pinned to [Locale.ROOT]. Left to the default locale, a French device already returns
+ * "2 880,00" and the replaces then destroy the decimal separator, printing "2 880 00".
+ */
 fun formatDZD(amount: Double): String {
-    return String.format("%,.2f", amount)
+    return String.format(Locale.ROOT, "%,.2f", amount)
         .replace(",", " ")
         .replace(".", ",")
 }

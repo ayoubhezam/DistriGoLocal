@@ -44,7 +44,12 @@ fun PurchaseOrderDetailScreen(
 ) {
     val context = LocalContext.current
     val selectedOrder by viewModel.selectedOrder.collectAsState()
-    val displayOrder  = selectedOrder ?: order
+    // Id-guarded: `selectedOrder` is shared across the whole Achats graph and refreshed
+    // asynchronously, so between this screen composing and `loadOrderDetail` returning it still
+    // holds whichever bon was opened last. Reading it unguarded computed `isReceived` from the
+    // wrong bon, and the overflow menu offered "Rouvrir le bon" on a pending one (and vice versa).
+    // `order` is the correct bon from the list, so the fallback is always right.
+    val displayOrder  = selectedOrder?.takeIf { it.id == order.id } ?: order
     val isReceived    = displayOrder.status == "received"
     var isLoading     by remember { mutableStateOf(false) }
     var showReceiveDialog by remember { mutableStateOf(false) }

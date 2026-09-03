@@ -26,6 +26,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.purchases.CornerRibbon
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.ventes.VenteViewModel
@@ -1412,7 +1413,15 @@ private fun TourneeVenteRow(
         else      -> DsColors.DangerLight
     }
 
-    Row(
+    // Corner ribbon shows delivery status, distinct from the payment-status pill kept below.
+    val isDelivered = vente.status == "delivered"
+    val (ribbonLabel, ribbonColor) = if (isDelivered) {
+        "LIVRÉ" to DsColors.Success
+    } else {
+        "EN ATTENTE" to DsColors.Warning
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
@@ -1422,9 +1431,13 @@ private fun TourneeVenteRow(
                 onClick     = onClick,
                 onLongClick = onLongClick
             )
+    ) {
+      Row(
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
-    ) {
+      ) {
         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
 
         Spacer(Modifier.width(DsSpacing.md))
@@ -1450,5 +1463,11 @@ private fun TourneeVenteRow(
                 Text(statut, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor)
             }
         }
+      }
+        CornerRibbon(
+            label    = ribbonLabel,
+            color    = ribbonColor,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
     }
 }

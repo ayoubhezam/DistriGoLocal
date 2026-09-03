@@ -35,11 +35,13 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import java.util.Locale
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
 internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+    if (v == v.toLong().toDouble()) v.toLong().toString()
+    else String.format(Locale.ROOT, "%.2f", v)
 
 private sealed class InvStep {
     data object Scan : InvStep()

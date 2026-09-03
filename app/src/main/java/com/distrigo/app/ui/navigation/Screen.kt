@@ -161,16 +161,24 @@ sealed class Screen(val route: String) {
     // ── Achats ──
     data object AchatsGraph  : Screen("achats_graph")
     data object AchatsHome   : Screen("achats_home")
+    data object AchatsBrouillons : Screen("achats_brouillons")
     data object AchatsDetail : Screen("achats_detail/{orderId}") {
         fun createRoute(orderId: Int) = "achats_detail/$orderId"
     }
 
     // ── Purchase Form (multi-step nested graph, shared by Achats tab and Supplier "Nouvel achat") ──
-    data object PurchaseFormGraph : Screen("purchase_form_graph?orderId={orderId}&supplierId={supplierId}") {
-        fun createRoute(orderId: Int? = null, supplierId: Int? = null): String {
+    data object PurchaseFormGraph : Screen("purchase_form_graph?orderId={orderId}&supplierId={supplierId}&draftId={draftId}") {
+        /**
+         * [draftId] carries the resume decision into the graph. It is made *before* the graph is
+         * entered — at the FAB, or by tapping a Brouillon card — which is what keeps a
+         * process-death return from ever prompting: that path re-enters the graph without passing
+         * through either.
+         */
+        fun createRoute(orderId: Int? = null, supplierId: Int? = null, draftId: Int? = null): String {
             val params = buildList {
                 if (orderId != null) add("orderId=$orderId")
                 if (supplierId != null) add("supplierId=$supplierId")
+                if (draftId != null) add("draftId=$draftId")
             }
             return "purchase_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }

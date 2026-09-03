@@ -10,6 +10,7 @@ import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 
 object ReceiptPdfGenerator {
 
@@ -20,7 +21,8 @@ object ReceiptPdfGenerator {
     private fun formatAmount(value: Double): String = "%.2f".format(value)
 
     private fun formatQty(v: Double): String =
-        if (v == v.toLong().toDouble()) v.toLong().toString() else "%.2f".format(v)
+        if (v == v.toLong().toDouble()) v.toLong().toString()
+        else String.format(Locale.ROOT, "%.2f", v)
 
     private fun badgeLabel(documentTitle: String) =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
