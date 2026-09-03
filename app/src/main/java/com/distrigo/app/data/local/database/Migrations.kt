@@ -47,3 +47,44 @@ val MIGRATION_32_33 = object : Migration(32, 33) {
         )
     }
 }
+
+/**
+ * Adds `vente_drafts` for the Dépôt Vente Brouillons, exactly as [MIGRATION_32_33] added
+ * `purchase_drafts`.
+ *
+ * The same warning applies, and for the same reason: both statements are copied verbatim from
+ * Room's own generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/34.json`, identity hash
+ * 4001e9baa761802df6de9e9945fc3356), with the table-name placeholder substituted. Room validates the resulting schema after the migration runs and throws
+ * if the column order, types, nullability or indices differ by so much as a space. **Do not
+ * hand-edit these strings** — regenerate the schema and re-copy.
+ *
+ * The unique index is as load-bearing as the table: it is what makes a second concurrent edit
+ * draft for the same vente impossible. Omitting it would pass a smoke test and fail validation.
+ */
+val MIGRATION_33_34 = object : Migration(33, 34) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `vente_drafts` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`client_id` INTEGER, " +
+                "`client_name` TEXT, " +
+                "`items_json` TEXT NOT NULL, " +
+                "`note` TEXT NOT NULL, " +
+                "`montant_paye` TEXT NOT NULL, " +
+                "`user_name` TEXT NOT NULL, " +
+                "`item_count` INTEGER NOT NULL, " +
+                "`total` REAL NOT NULL, " +
+                "`last_step` TEXT NOT NULL, " +
+                "`created_at` TEXT NOT NULL, " +
+                "`updated_at` TEXT NOT NULL, " +
+                "`source_vente_id` INTEGER, " +
+                "`base_fingerprint` TEXT, " +
+                "`base_captured_at` TEXT)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vente_drafts_source_vente_id` " +
+                "ON `vente_drafts` (`source_vente_id`)"
+        )
+    }
+}

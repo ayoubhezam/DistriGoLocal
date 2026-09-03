@@ -8,6 +8,7 @@ import com.distrigo.app.data.repository.InventoryRepository
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.PurchaseDraftRepository
+import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.data.repository.RetourClientRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
 import dagger.Module
@@ -40,6 +41,11 @@ object AppModule {
     @Singleton
     fun providePurchaseDraftRepository(db: AppDatabase): PurchaseDraftRepository =
         PurchaseDraftRepository(db = db)
+
+    @Provides
+    @Singleton
+    fun provideVenteDraftRepository(db: AppDatabase): VenteDraftRepository =
+        VenteDraftRepository(db = db)
 
     @Provides
     @Singleton

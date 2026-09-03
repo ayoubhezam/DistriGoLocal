@@ -62,8 +62,9 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         SousCategorieEntity::class,
         MarqueEntity::class,
         PurchaseDraftEntity::class,
+        VenteDraftEntity::class,
     ],
-    version = 33,
+    version = 34,
     exportSchema = true
 )
 
@@ -74,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun supplierDao(): SupplierDao
     abstract fun purchaseDao(): PurchaseDao
     abstract fun purchaseDraftDao(): PurchaseDraftDao
+    abstract fun venteDraftDao(): VenteDraftDao
 
     abstract fun chargementDao(): ChargementDao
 
@@ -114,10 +116,10 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    // Room prefers a registered path over destructive fallback, so 32 -> 33
+                    // Room prefers a registered path over destructive fallback, so 32 -> 34
                     // migrates without wiping. The fallback stays for pre-32 installs, where
                     // removing it would replace today's wipe with a crash.
-                    .addMigrations(MIGRATION_32_33)
+                    .addMigrations(MIGRATION_32_33, MIGRATION_33_34)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

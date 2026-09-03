@@ -53,36 +53,6 @@ data class PurchaseDraft(
     val isEdit: Boolean get() = sourceOrderId != null
 }
 
-/** What the drafts list can tell about an edit draft's bon without loading its items. */
-enum class DraftBlock {
-    /** A new-purchase draft, or an edit whose bon is still present and pending. */
-    NONE,
-
-    /** The bon was received; reception already moved stock, so the draft can no longer be applied. */
-    RECEIVED,
-
-    /** The bon is gone. Nothing left to edit. */
-    DELETED
-}
-
-/** The full answer at resume time, once the bon's items have been read. */
-enum class DraftBaseState {
-    /** A new-purchase draft — there is no base. Resume silently. */
-    NONE,
-
-    /** The bon is exactly as it was when the edit began. Resume silently. */
-    UNCHANGED,
-
-    /** The bon still exists and is pending, but its contents moved. Ask before opening the form. */
-    CHANGED,
-
-    /** Hard block — see [DraftBlock.RECEIVED]. */
-    RECEIVED,
-
-    /** Hard block — see [DraftBlock.DELETED]. */
-    DELETED
-}
-
 /**
  * The form as it stands right now, handed to the repository for a write.
  *
