@@ -1,6 +1,10 @@
 package com.distrigo.app.ui.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +44,57 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.tournees.TourneeVenteCartItem
 import com.distrigo.app.ui.tournees.TourneeVenteCartRow
 import com.distrigo.app.ui.ventes.*
+import com.distrigo.app.ui.ventes.VenteFormSessionViewModel
+
+/**
+ * Resolves the session that owns this pass through the form, and enters it.
+ *
+ * Scoped to the graph's back stack entry, so it lives exactly as long as one visit to the form:
+ * restored with the entry after process death, destroyed with it when the user leaves. A restored
+ * session means "carry on silently"; a fresh entry means the caller was free to ask
+ * "Reprendre ou recommencer ?".
+ */
+@Composable
+private fun venteFormSession(
+    navController: NavHostController,
+    graphRoute   : String,
+    route        : String
+): VenteFormSessionViewModel {
+    val graphEntry = remember(navController, graphRoute) { navController.getBackStackEntry(graphRoute) }
+    val session: VenteFormSessionViewModel = hiltViewModel(graphEntry)
+
+    // Entering the session happens here, on every destination, rather than in the first one only.
+    // Process death restores the back stack to whichever step the user was on, so the first
+    // destination may never compose — a session entry that lived there alone would leave a restored
+    // Cart or Validation step staring at an empty form. The call is idempotent.
+    val venteId  = graphEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
+    val clientId = graphEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
+    val draftId  = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
+    LaunchedEffect(session) { session.beginOrResumeSession(venteId, clientId, draftId) }
+
+    // Record where the user is, so a resume can land on the step they left, and keep the ON_STOP
+    // flush attached to whichever step is actually on screen.
+    LaunchedEffect(route) { session.setLastStep(route) }
+    FlushDraftOnStop(session)
+
+    return session
+}
+
+/**
+ * Writes the draft on ON_STOP rather than waiting out the autosave debounce, which would otherwise
+ * lose its tail if the process died inside the window.
+ */
+@Composable
+private fun FlushDraftOnStop(session: VenteFormSessionViewModel) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, session) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) session.flushDraft()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
 
 // `viewModel`/`productViewModel`/`clientViewModel` are `@Composable` providers rather than
 // pre-resolved instances: NavHost's `builder: NavGraphBuilder.() -> Unit` runs inside a plain
@@ -55,6 +110,11 @@ import com.distrigo.app.ui.ventes.*
 //  - skipClientStep = true : client or vente already known at entry → starts directly at Products.
 //    The client step composable is never registered in this mode, so it can never be navigated
 //    to, composed, or animated — not even for a single frame.
+//
+// The form's own state (client / cart / note / userName / montantPaye) is NOT on the
+// `viewModel` provider any more: it lives on VenteFormSessionViewModel, scoped to this graph's
+// back stack entry, which is also what enters the session and keeps its Brouillon. The provider
+// still supplies the ventes list and the create/update commands. See venteFormSession above.
 fun NavGraphBuilder.venteFormGraph(
     navController    : NavHostController,
     graphRoute       : String,
@@ -77,40 +137,22 @@ fun NavGraphBuilder.venteFormGraph(
         route = graphRoute,
         arguments = listOf(
             navArgument("venteId")  { type = NavType.IntType; defaultValue = -1 },
-            navArgument("clientId") { type = NavType.IntType; defaultValue = -1 }
+            navArgument("clientId") { type = NavType.IntType; defaultValue = -1 },
+            navArgument("draftId")  { type = NavType.IntType; defaultValue = -1 }
         )
     ) {
         if (!skipClientStep) {
         composable(clientRoute) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
-            val viewModel = viewModel()
-            val clientViewModel = clientViewModel()
-            val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
-            val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val isEdit = venteId != null
-            val ventes by viewModel.ventes.collectAsState()
-            val editingVente = venteId?.let { id -> ventes.find { it.id == id } }
-            val clients by clientViewModel.clients.collectAsState()
-            val formClient by viewModel.formClient.collectAsState()
+            remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = venteFormSession(navController, graphRoute, clientRoute)
+            val formClient by session.formClient.collectAsState()
 
-            var initialized by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (!initialized) {
-                    viewModel.resetVenteForm()
-                    if (venteId != null) viewModel.loadVenteDetail(venteId)
-                    initialized = true
-                }
-            }
-            LaunchedEffect(clients, editingVente) {
-                if (isEdit && formClient == null && editingVente != null && clients.isNotEmpty()) {
-                    viewModel.setFormClient(clients.find { it.id == editingVente.client_id })
-                }
-            }
-            LaunchedEffect(clientIdArg, clients) {
-                if (clientIdArg != null && formClient == null && !isEdit) {
-                    viewModel.setFormClient(clients.find { it.id == clientIdArg })
-                }
-            }
+            // The one-time init that used to live here -- resetVenteForm() behind a
+            // rememberSaveable("initialized") flag, plus two effects resolving the client from the
+            // vente or from the clientId argument -- is now the session's beginOrResumeSession.
+            // It had to be duplicated on the products step for the skipClientStep entry, and the
+            // flag outlived the ViewModel it described across process death. The session owns both
+            // halves and cannot get out of step with itself.
 
             BackHandler { onBack() }
 
@@ -123,7 +165,7 @@ fun NavGraphBuilder.venteFormGraph(
 
         composable(clientPickerRoute) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
-            val viewModel = viewModel()
+            val session = venteFormSession(navController, graphRoute, clientPickerRoute)
             val clientViewModel = clientViewModel()
             val clients by clientViewModel.clients.collectAsState()
             var showAddClientScreen by remember { mutableStateOf(false) }
@@ -136,7 +178,7 @@ fun NavGraphBuilder.venteFormGraph(
                         showAddClientScreen = false
                         clientViewModel.loadClientsAndUpdate(newClientId) { newClient ->
                             if (newClient != null) {
-                                viewModel.setFormClient(newClient)
+                                session.setFormClient(newClient)
                                 navController.popBackStack()
                             }
                         }
@@ -147,13 +189,13 @@ fun NavGraphBuilder.venteFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            val selectedClient = viewModel.formClient.collectAsState().value
+            val selectedClient = session.formClient.collectAsState().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
                 clients          = clients,
                 selectedClientId = selectedClient?.id,
                 onClientSelected = { client ->
-                    viewModel.setFormClient(client)
+                    session.setFormClient(client)
                     navController.popBackStack()
                 },
                 onBack         = { navController.popBackStack() },
@@ -164,94 +206,24 @@ fun NavGraphBuilder.venteFormGraph(
 
         composable(productsRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
-            val viewModel = viewModel()
-            val clientViewModel = clientViewModel()
+            val session = venteFormSession(navController, graphRoute, productsRoute)
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
-            val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val isEdit = venteId != null
-            val ventes by viewModel.ventes.collectAsState()
-            val editingVente = venteId?.let { id -> ventes.find { it.id == id } }
+            val editSource by session.editSource.collectAsState()
             val products by productViewModel.products.collectAsState()
-            val formClient by viewModel.formClient.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
+            val formClient by session.formClient.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
             var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
 
-            if (skipClientStep) {
-                // This step is the graph's entry point in this mode (client/vente already known
-                // at navigation time) — run the same one-time init + client-resolution that the
-                // client step normally does, since that step is never entered here.
-                val clients by clientViewModel.clients.collectAsState()
-
-                var initialized by rememberSaveable { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    if (!initialized) {
-                        viewModel.resetVenteForm()
-                        if (venteId != null) viewModel.loadVenteDetail(venteId)
-                        initialized = true
-                    }
-                }
-                LaunchedEffect(clients, editingVente) {
-                    if (isEdit && formClient == null && editingVente != null && clients.isNotEmpty()) {
-                        viewModel.setFormClient(clients.find { it.id == editingVente.client_id })
-                    }
-                }
-                LaunchedEffect(clientIdArg, clients) {
-                    if (clientIdArg != null && formClient == null && !isEdit) {
-                        viewModel.setFormClient(clients.find { it.id == clientIdArg })
-                    }
-                }
-            }
-
-            LaunchedEffect(products, editingVente) {
-                if (isEdit && cartItems.isEmpty() && editingVente?.items != null && products.isNotEmpty()) {
-                    val newCartItems = editingVente.items!!.map { item ->
-                        val liveProduct = products.find { it.id == item.product_id }
-                            ?: com.distrigo.app.data.model.Product(
-                                id             = item.product_id,
-                                name           = item.product_name,
-                                barcode        = null,
-                                selling_price  = item.unit_price,
-                                purchase_price = 0.0,
-                                stock          = 0.0,
-                                min_stock      = 0,
-                                unit_type      = item.unit_type,
-                                packages       = 0,
-                                pack_size      = 0,
-                                has_expiry     = 0,
-                                expiry_date    = null,
-                                image_uri      = null,
-                                category_name  = null,
-                                category_id    = null,
-                                supplier_name  = null,
-                                supplier_id    = null,
-                                camion_stock   = 0.0
-                            )
-                        // `liveProduct.stock`/`camion_stock` already reflect this sale's own deduction
-                        // (applyStockDelta was applied at save time), so the raw live snapshot understates
-                        // what was actually available when this sale was made — restore this item's own
-                        // reservation onto the snapshot before it's used for display, mirroring
-                        // ProductRepository.updateVente's own reversal math, but only in local UI state —
-                        // never persisted.
-                        val editBaselineProduct = if (editingVente.source == "camion") {
-                            liveProduct.copy(
-                                stock        = liveProduct.stock + item.quantity,
-                                camion_stock = liveProduct.camion_stock + item.quantity
-                            )
-                        } else {
-                            liveProduct.copy(stock = liveProduct.stock + item.quantity)
-                        }
-                        VenteCartItem(
-                            product             = editBaselineProduct,
-                            quantity            = item.quantity,
-                            unitPrice           = item.unit_price,
-                            originalReservedQty = item.quantity
-                        )
-                    }
-                    viewModel.setFormCartItems(newCartItems)
-                }
-            }
+            // Two blocks used to live here and are now the session's:
+            //  - a copy of the client step's one-time init, needed because in skipClientStep mode
+            //    that step is never entered. The session enters on every destination, so there is
+            //    nothing left to duplicate.
+            //  - the edit prefill that rebuilt the cart from the vente. It ran off whichever
+            //    destination happened to compose first, which a process-death restore does not
+            //    guarantee; prefillEditFromVente runs on every path into the graph instead, and
+            //    it is also the half that has to stay in step with the fingerprint's mirror of it.
 
             // Keep each cart line's product snapshot synced with the live products flow. For
             // edit-mode lines, re-apply the original saved reservation on every sync — see
@@ -262,7 +234,7 @@ fun NavGraphBuilder.venteFormGraph(
                 val resynced = cartItems.map { ci ->
                     val fresh = products.find { it.id == ci.product.id } ?: return@map ci
                     val adjusted = ci.originalReservedQty?.let { reserved ->
-                        if (editingVente?.source == "camion")
+                        if (editSource == "camion")
                             fresh.copy(stock = fresh.stock + reserved, camion_stock = fresh.camion_stock + reserved)
                         else
                             fresh.copy(stock = fresh.stock + reserved)
@@ -274,7 +246,7 @@ fun NavGraphBuilder.venteFormGraph(
                         ci.copy(product = adjusted)
                     }
                 }
-                if (changed) viewModel.setFormCartItems(resynced)
+                if (changed) session.setFormCartItems(resynced)
             }
 
             if (showScanner) {
@@ -301,7 +273,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
-                    title         = if (isEdit) "Modifier la vente #$venteId" else "Vente dépôt",
+                    title         = if (venteId != null) "Modifier la vente #$venteId" else "Vente dépôt",
                     subtitle      = formClient?.name ?: "Choisir un client",
                     // Blue once a client is chosen, grey while the step is still open.
                     subtitleColor = if (formClient != null) DsColors.Primary else DsColors.TextSecondary,
@@ -434,7 +406,7 @@ fun NavGraphBuilder.venteFormGraph(
                                         if (!isInCart) {
                                             IconButton(
                                                 onClick = {
-                                                    viewModel.setFormCartItems(
+                                                    session.setFormCartItems(
                                                         cartItems + VenteCartItem(
                                                             product   = product,
                                                             quantity  = 1.0,
@@ -448,7 +420,7 @@ fun NavGraphBuilder.venteFormGraph(
                                             }
                                         } else {
                                             IconButton(
-                                                onClick = { viewModel.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
+                                                onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                             ) {
                                                 Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
@@ -501,14 +473,13 @@ fun NavGraphBuilder.venteFormGraph(
 
         composable(cartRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
-            val viewModel = viewModel()
+            val session = venteFormSession(navController, graphRoute, cartRoute)
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
-            val ventes by viewModel.ventes.collectAsState()
-            val editingVente = venteId?.let { id -> ventes.find { it.id == id } }
+            val editSource by session.editSource.collectAsState()
             val products by productViewModel.products.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             LaunchedEffect(products) {
@@ -517,7 +488,7 @@ fun NavGraphBuilder.venteFormGraph(
                 val resynced = cartItems.map { ci ->
                     val fresh = products.find { it.id == ci.product.id } ?: return@map ci
                     val adjusted = ci.originalReservedQty?.let { reserved ->
-                        if (editingVente?.source == "camion")
+                        if (editSource == "camion")
                             fresh.copy(stock = fresh.stock + reserved, camion_stock = fresh.camion_stock + reserved)
                         else
                             fresh.copy(stock = fresh.stock + reserved)
@@ -529,7 +500,7 @@ fun NavGraphBuilder.venteFormGraph(
                         ci.copy(product = adjusted)
                     }
                 }
-                if (changed) viewModel.setFormCartItems(resynced)
+                if (changed) session.setFormCartItems(resynced)
             }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -543,7 +514,7 @@ fun NavGraphBuilder.venteFormGraph(
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
-                        TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
+                        TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
@@ -587,20 +558,20 @@ fun NavGraphBuilder.venteFormGraph(
                                 expandedCartItemId = if (isRowExpanded) null else item.product.id
                             }
                             val changeQuantity: (Double) -> Unit = { newQty ->
-                                viewModel.setFormCartItems(cartItems.map {
+                                session.setFormCartItems(cartItems.map {
                                     if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
                                 })
                             }
                             val changePrice: (Double) -> Unit = { newPrice ->
-                                viewModel.setFormCartItems(cartItems.map {
+                                session.setFormCartItems(cartItems.map {
                                     if (it.product.id == item.product.id) it.copy(unitPrice = newPrice) else it
                                 })
                             }
                             val removeItem: () -> Unit = {
-                                viewModel.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
+                                session.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
                             }
 
-                            if (editingVente?.source == "camion") {
+                            if (editSource == "camion") {
                                 TourneeVenteCartRow(
                                     item = TourneeVenteCartItem(
                                         product   = item.product,
@@ -628,7 +599,7 @@ fun NavGraphBuilder.venteFormGraph(
                         item {
                             OutlinedTextField(
                                 value         = note,
-                                onValueChange = { viewModel.setFormNote(it) },
+                                onValueChange = { session.setFormNote(it) },
                                 placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
@@ -689,14 +660,15 @@ fun NavGraphBuilder.venteFormGraph(
         composable(validationRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
+            val session = venteFormSession(navController, graphRoute, validationRoute)
             val clientViewModel = clientViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
             val isEdit = venteId != null
-            val formClient by viewModel.formClient.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
-            val userName by viewModel.formUserName.collectAsState()
-            val montantPaye by viewModel.formMontantPaye.collectAsState()
+            val formClient by session.formClient.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val userName by session.formUserName.collectAsState()
+            val montantPaye by session.formMontantPaye.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -712,7 +684,12 @@ fun NavGraphBuilder.venteFormGraph(
                         id = venteId!!, clientId = formClient!!.id, items = items,
                         note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
                         userName = userName.trim().ifEmpty { null },
-                        onSuccess = { clientViewModel.loadTransactions(formClient!!.id); onSaved() },
+                        draftId = session.draftId,
+                        onSuccess = {
+                            session.onCommitted()
+                            clientViewModel.loadTransactions(formClient!!.id)
+                            onSaved()
+                        },
                         onError = { error -> isSaving = false; saveError = error }
                     )
                 } else {
@@ -720,7 +697,12 @@ fun NavGraphBuilder.venteFormGraph(
                         clientId = formClient!!.id, tourneeId = null, source = "depot", items = items,
                         note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
                         userName = userName.trim().ifEmpty { null },
-                        onSuccess = { clientViewModel.loadTransactions(formClient!!.id); onSaved() },
+                        draftId = session.draftId,
+                        onSuccess = {
+                            session.onCommitted()
+                            clientViewModel.loadTransactions(formClient!!.id)
+                            onSaved()
+                        },
                         onError = { error -> isSaving = false; saveError = error }
                     )
                 }
@@ -733,11 +715,11 @@ fun NavGraphBuilder.venteFormGraph(
                 cartItems           = cartItems,
                 total               = total,
                 montantPaye         = montantPaye,
-                onMontantPayeChange = { viewModel.setFormMontantPaye(it) },
+                onMontantPayeChange = { session.setFormMontantPaye(it) },
                 note                = note,
-                onNoteChange        = { viewModel.setFormNote(it) },
+                onNoteChange        = { session.setFormNote(it) },
                 userName            = userName,
-                onUserNameChange    = { viewModel.setFormUserName(it) },
+                onUserNameChange    = { session.setFormUserName(it) },
                 isSaving            = isSaving,
                 saveError           = saveError,
                 onBack              = { navController.popBackStack() },

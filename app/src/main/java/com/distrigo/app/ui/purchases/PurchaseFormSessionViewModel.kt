@@ -13,27 +13,12 @@ import com.distrigo.app.data.repository.PurchaseDraftRepository
 import com.distrigo.app.data.repository.PurchaseFingerprint
 import com.distrigo.app.ui.common.DraftAutosave
 import com.distrigo.app.ui.common.DraftAutosaveHost
+import com.distrigo.app.ui.common.SessionPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-/** Where a form session is in its lifecycle. Drives what the graph is allowed to do. */
-enum class SessionPhase {
-    /** Nothing decided yet. The graph must call [PurchaseFormSessionViewModel.beginOrResumeSession]. */
-    UNDECIDED,
-
-    /**
-     * A fresh edit of a committed bon. The graph still has to prefill the form from the order;
-     * autosave stays disarmed until it signals completion, because an empty form measured against
-     * a non-empty base would read as a huge edit and persist it.
-     */
-    PREFILLING_EDIT,
-
-    /** The form holds what it should. Autosave is armed. */
-    READY
-}
 
 /**
  * Owns one pass through the Achats form: the form's own state, whether this pass is new / resumed

@@ -761,10 +761,17 @@ class ProductRepository(
         return entity.toVente(items)
     }
 
+    /**
+     * [draftId] — the Brouillon this vente was composed in, if any. It is deleted as the final
+     * statement *inside* the transaction, so the draft outlives any failure: if the insert, the
+     * stock deltas or the balance recalculation throw, the whole thing rolls back and the user's
+     * unsaved work is still there to resume.
+     */
     suspend fun createVente(
         clientId: Int, tourneeId: Int?, source: String,
         items: List<Map<String, Any?>>, note: String?, montantPaye: Double,
-        userName: String? = null
+        userName: String? = null,
+        draftId: Int? = null
     ): Map<String, Any> {
         db.withTransaction {
             val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
@@ -836,14 +843,22 @@ class ProductRepository(
             db.venteDao().insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
             recalculateClientBalance(clientId)
+            draftId?.let { db.venteDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Vente créée avec succès")
     }
 
+    /**
+     * [draftId] — the Brouillon this vente was composed in, if any. It is deleted as the final
+     * statement *inside* the transaction, so the draft outlives any failure: if the insert, the
+     * stock deltas or the balance recalculation throw, the whole thing rolls back and the user's
+     * unsaved work is still there to resume.
+     */
     suspend fun updateVente(
         id: Int, clientId: Int, items: List<Map<String, Any?>>,
         note: String?, montantPaye: Double,
-        userName: String? = null
+        userName: String? = null,
+        draftId: Int? = null
     ): Map<String, Any> {
         db.withTransaction {
             val existing = db.venteDao().getVenteById(id)
@@ -914,6 +929,7 @@ class ProductRepository(
             db.stockMovementDao().insertAll(movementEntities)
             db.venteDao().updateVenteFields(id, note, montantPaye, total)
             recalculateClientBalance(clientId)
+            draftId?.let { db.venteDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Vente mise à jour avec succès")
     }

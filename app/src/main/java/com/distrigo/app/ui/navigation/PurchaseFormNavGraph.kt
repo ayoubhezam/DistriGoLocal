@@ -50,10 +50,10 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.ui.suppliers.SupplierViewModel
+import com.distrigo.app.ui.common.SessionPhase
 import com.distrigo.app.ui.purchases.CartItem
 import com.distrigo.app.ui.purchases.PurchaseFormSessionViewModel
 import com.distrigo.app.ui.purchases.PurchaseViewModel
-import com.distrigo.app.ui.purchases.SessionPhase
 import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
 import com.distrigo.app.ui.purchases.formatQty
@@ -136,12 +136,14 @@ private fun FlushDraftOnStop(session: PurchaseFormSessionViewModel) {
     }
 }
 
-// Mirrors venteFormGraph/tourneeVenteFormGraph: form state (supplier/cart/note/montantPaye)
-// lives on the PurchaseViewModel instance the caller provides — graph-scoped to AchatsGraph when
-// invoked from AchatsNavHost (reusing the same instance AchatsHome/AchatsDetail already share, so
-// edit-mode's selectedOrder lookup works), or scoped to this graph's own entry when invoked from
-// SuppliersNavHost (no outer PurchaseViewModel to reuse there). See
-// PurchaseViewModel.formSupplier/formCartItems/formNote/formMontantPaye.
+// The form's own state (supplier/cart/note/montantPaye) lives on PurchaseFormSessionViewModel,
+// scoped to this graph's back stack entry — see purchaseFormSession above. It used to live on the
+// PurchaseViewModel instance the caller provides, which outlived the form and could not survive
+// process death; that provider now supplies only the orders list, selectedOrder and the
+// create/update/receive commands. It stays graph-scoped to AchatsGraph when invoked from
+// AchatsNavHost (reusing the same instance AchatsHome/AchatsDetail already share, so edit-mode's
+// selectedOrder lookup works), or scoped to this graph's own entry when invoked from
+// SuppliersNavHost (no outer PurchaseViewModel to reuse there).
 fun NavGraphBuilder.purchaseFormGraph(
     navController     : NavHostController,
     graphRoute        : String,

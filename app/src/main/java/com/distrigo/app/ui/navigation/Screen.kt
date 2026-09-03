@@ -202,20 +202,29 @@ sealed class Screen(val route: String) {
     //  - VenteFormGraphDirect: client or vente already known (edit, or preselected client) → starts
     //    straight at Products, so the client-picker step is never navigated to, composed, or
     //    animated in that case.
-    data object VenteFormGraph : Screen("vente_form_graph?venteId={venteId}&clientId={clientId}") {
-        fun createRoute(venteId: Int? = null, clientId: Int? = null): String {
+    data object VenteFormGraph : Screen("vente_form_graph?venteId={venteId}&clientId={clientId}&draftId={draftId}") {
+        /**
+         * [draftId] carries the resume decision into the graph. It is made *before* the graph is
+         * entered — at the FAB, or by tapping a Brouillon card — which is what keeps a
+         * process-death return from ever prompting: that path re-enters the graph without passing
+         * through either.
+         */
+        fun createRoute(venteId: Int? = null, clientId: Int? = null, draftId: Int? = null): String {
             val params = buildList {
                 if (venteId != null) add("venteId=$venteId")
                 if (clientId != null) add("clientId=$clientId")
+                if (draftId != null) add("draftId=$draftId")
             }
             return "vente_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }
     }
-    data object VenteFormGraphDirect : Screen("vente_form_graph_direct?venteId={venteId}&clientId={clientId}") {
-        fun createRoute(venteId: Int? = null, clientId: Int? = null): String {
+    data object VenteFormGraphDirect : Screen("vente_form_graph_direct?venteId={venteId}&clientId={clientId}&draftId={draftId}") {
+        /** See [VenteFormGraph.createRoute] — same arguments, entered straight at Products. */
+        fun createRoute(venteId: Int? = null, clientId: Int? = null, draftId: Int? = null): String {
             val params = buildList {
                 if (venteId != null) add("venteId=$venteId")
                 if (clientId != null) add("clientId=$clientId")
+                if (draftId != null) add("draftId=$draftId")
             }
             return "vente_form_graph_direct" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }
