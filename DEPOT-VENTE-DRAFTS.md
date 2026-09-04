@@ -2,14 +2,16 @@
 
 **Date:** 2026-09-03
 **Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Phases 1–3 committed and merged to `main`. Phase 4 built and verified, **not yet committed**.
+**Status:** Phases 1–4 committed and merged to `main`. Phase 5 (verification) found two defects; both are now fixed and verified, uncommitted at the time of writing.
 
 | Phase | Commit | State |
 |---|---|---|
 | 1 — shared draft machinery | `43cc4f4` | merged |
 | 2 — Vente draft storage | `a65a712` | merged |
 | 3 — Vente form session | `f8e8709` | merged |
-| 4 — Brouillons surfaced in the UI | *uncommitted* | verified |
+| 4 — Brouillons surfaced in the UI | `96788f6` | merged |
+| 5 — full device verification | — | run; two defects found |
+| 6 — both defects fixed | *uncommitted* | verified |
 
 ---
 
@@ -103,7 +105,7 @@ Net **−322 lines** in Achats-specific code. No behaviour change.
 
 ---
 
-## 5. Phase 4 — Brouillons in the UI (uncommitted)
+## 5. Phase 4 — Brouillons in the UI (`96788f6`)
 
 `VenteBrouillonComponents.kt` (card title/meta, blocked label, sheet and conflict copy, `venteDraftResumeAction`) and `VenteBrouillonsScreen.kt`, both thin over the Phase-1 generics. `VenteViewModel` gained the Room-observed `drafts`/`draftCount`, `draftForVente`, `resolveDraftBase`, `deleteDraft`. `VentesScreen` gained the chip and the FAB sheet. `VentesNavHost` gained `openVenteFormAction`, the `editVenteAction` gate and the `VentesBrouillons` destination.
 
@@ -125,6 +127,73 @@ Net **−322 lines** in Achats-specific code. No behaviour change.
 
 ---
 
+## 5b. Phase 5 — full device verification
+
+Run against `main` after a clean rebuild. Covers what Phases 3–4 had not exercised end to end.
+
+| # | Scenario | Result |
+|---|---|---|
+| A1 | Achats list after the Phase 3–4 changes (shared `SessionPhase`, `ProductRepository` signatures) | PASS — 13 bons, chip, all data intact |
+| A2 | Achats untouched edit → no new draft | PASS — session still correct |
+| B1 | Client page → "Nouvelle facture" → opens at Produits with the client preselected | PASS |
+| B1b | Add a product on that entry → draft written (`last_step = clients_vente_form_products`) | PASS |
+| B2 | Type, then Home immediately → **ON_STOP flush** writes the draft | PASS |
+| B4 | Resume a draft → confirm the sale → vente created, **draft deleted in the same transaction** | PASS |
+| B6 | CHANGED → **"Repartir de la vente actuelle"** → draft deleted, form re-prefilled from the *current* vente (50.00, empty note) | PASS |
+| B5 | **End-to-end DELETED**: edit → back out → delete the vente → open Brouillons | **FAIL — see Defect 1** |
+| B5b | Resume that draft anyway → "Vente introuvable" dialog | PASS — the gate is not stale |
+
+### Defect 1 — the block badge did not refresh when the source record changed
+
+Deleting a vente left its edit draft rendering as a **normal** edit card: no OBSOLÈTE badge, no "Vente supprimée". Leaving and re-entering the screen did not fix it (the ViewModel is graph-scoped and `stateIn(WhileSubscribed(5_000))` keeps the upstream alive).
+
+**Cause.** `observeDrafts()` observed `dao.observeAll()`, a Room query on `vente_drafts` only. `existingVenteIds(...)` was called inside `.map { }`, so it was not part of the observed query — Room's invalidation tracker never saw a change to `ventes` and the flow never re-emitted. `PurchaseDraftRepository.observeDrafts()` had the identical structure, so Achats carried the same latent defect.
+
+**Severity: cosmetic, not a data risk.** `resolveBaseState` is a fresh suspend query at resume time, so the gate still blocked correctly — verified: the stale-badged draft still raised "Vente introuvable" on resume (B5b). Nothing could be overwritten; the list just told the truth late.
+
+**Note on how it was missed:** Phase 4's P8a "passed" because it simulated the deletion by patching the database and **restarting the app** — a fresh collection recomputes the badge. Only the end-to-end path, with the app running, exposes it. This is exactly the gap a simulated divergence leaves.
+
+**Fix.** Both DAOs gained an *observed*, unfiltered query — `observeVenteIds()` / `observeOrderStatuses()` — and each repository now `combine`s it with `observeAll()` instead of doing a suspend lookup inside the mapping. Unfiltered rather than `WHERE id IN (:ids)` is the point: Room re-runs a Flow only when a table that query itself reads is written.
+
+**Verified live**, with the app running and no restart: with a draft on bon #11, marking the bon received flipped its card to OBSOLÈTE / "Bon déjà réceptionné"; reopening the bon flipped it straight back to a normal edit card.
+
+### Defect 2 — a Brouillon was created before anything about the bon had been entered
+
+**The reported scenario:** ACHATS → Nouveau bon → select a supplier → press Back. No product, no quantity, no note, no amount. A Brouillon was created anyway.
+
+**Reproduced:** `purchase_drafts` went 0 → 1 (`item_count 0`, `total 0.0`, empty note, empty `montant_paye`) **the instant the supplier was selected** — before Back was involved at all.
+
+**Cause.** `DraftSnapshot.isEmpty` was `supplierId == null && lines.isEmpty()`, so a chosen supplier alone made the snapshot non-empty. Selecting one writes `_formSupplier`, the autosave `combine` emits, the session is already armed, and `persist` reads `dirty = !isEmpty` → INSERT.
+
+**Fix.** The supplier is no longer counted. Choosing one is the *precondition* for entering anything about the bon — the form refuses to go further without it — not content in itself:
+
+```kotlin
+val isEmpty get() = lines.isEmpty() && note.isBlank() && montantPaye.isBlank()
+```
+
+The same rule was then applied to `VenteDraftSnapshot`, with one deliberate difference: **`userName` does count there.** "Effectué par" is written onto the stock movements rather than onto the `ventes` row, so a draft is the only place it can survive — unlike the client, which the form re-derives on every entry.
+
+**A second, independent contributor**, found while investigating: the `ON_STOP` flush would write a form nobody had touched since arming — that is how arriving from a *supplier page* and backing straight out left an empty draft. `DraftAutosave` now tracks `touched`, set on the first armed emission and checked by `flush()`. Being armed is not the same as having something to save: a session can be armed over a form populated *before* arming — an edit prefill, a hydrated draft, or a record chosen on the page the form was opened from — and none of that is the user entering anything.
+
+**Verified on both flows** — supplier/client selected for real (screenshots confirm the green check and an enabled "Suivant"):
+
+| Check | Achats | Dépôt Vente |
+|---|---|---|
+| Select supplier / client only | 0 drafts | 0 drafts |
+| Press Back | 0 drafts | 0 drafts |
+| Add a product | 1 draft | 1 draft |
+| Remove it again | 0 drafts | 0 drafts |
+
+### Correction to this section's earlier text
+
+An earlier version of this document reported Defect 2 as "the preselected client/supplier is inconsistent between the two flows", and attributed it to `preselectClient` running before `arm()` in Vente and the graph applying `supplierIdArg` after arming in Achats.
+
+**That diagnosis was wrong, and the evidence behind it was unsound.** The comparison sampled two different moments — Vente was checked *while still in the form*, Achats *after backing out* — so it was never a like-for-like test. Moving the Achats preselect before `arm()` did not fix the reported behaviour, which is what exposed the error. The real causes are the two above: an emptiness rule that counted the supplier, and a flush that wrote untouched forms.
+
+The entry path that actually mattered — ACHATS → Nouveau bon → select a supplier — was never exercised in Phase 5 at all. The path that was tested, "Nouvel achat" from a supplier page, reaches the form a different way and hid the emptiness rule behind the flush.
+
+---
+
 ## 6. Disclosures
 
 * **P8 used a simulated divergence.** For the `DELETED` case a draft was repointed at a nonexistent vente (`source_vente_id = 9999`) rather than deleting a real sale. It exercises the same `resolveBaseState` branch and the same badge query, but it is not an end-to-end delete.
@@ -136,9 +205,10 @@ Net **−322 lines** in Achats-specific code. No behaviour change.
 ## 7. Open items
 
 1. **Bidi rendering in the card meta line.** With an Arabic client or supplier name the meta renders as `4 · جلاال produits · il y a…` instead of `جلاال · 4 produits · il y a…` — joining RTL and LTR segments with `·` lets the bidi algorithm reorder them. Cosmetic, pre-existing in the same shape on the Achats side, and fixable by wrapping the name in bidi isolates (`U+2068` / `U+2069`) in both `cardMeta` functions. **Not fixed.**
-2. **Phase 4 is not committed.**
-3. **Phase 5** — the full device verification pass — not started.
-4. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
+2. **Title truncation when a blocked draft also has a price.** With the OBSOLÈTE badge, the total and the delete icon all competing for width, the title ellipsised to "Modification ·…" — hiding the bon number that the two-line title fix exists to protect. Only occurs for a blocked draft with a non-zero total. **Not fixed.**
+3. **Sheet with more than 4 drafts** — the "Voir tout (N)" overflow link was never exercised; at most 2 drafts existed at once.
+4. **`missingProductIds` blocking** — a draft referencing a since-deleted product was never tested.
+5. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
 
 ---
 

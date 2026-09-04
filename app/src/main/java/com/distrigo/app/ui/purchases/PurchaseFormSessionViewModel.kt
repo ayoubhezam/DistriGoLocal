@@ -151,15 +151,17 @@ class PurchaseFormSessionViewModel @Inject constructor(
      * the graph without passing through those, so it cannot prompt — not by choosing not to, but
      * because there is no code here that could.
      *
-     * @param orderId the bon being edited, or null for a new purchase
-     * @param draftId a Brouillon to resume, or null to start clean
+     * @param orderId    the bon being edited, or null for a new purchase
+     * @param supplierId a supplier chosen before the form opened ("Nouvel achat" from a supplier
+     *                   page), or null. Ignored in edit mode, where the bon names its own supplier.
+     * @param draftId    a Brouillon to resume, or null to start clean
      */
-    fun beginOrResumeSession(orderId: Int?, draftId: Int?) {
+    fun beginOrResumeSession(orderId: Int?, supplierId: Int?, draftId: Int?) {
         if (entering || _phase.value != SessionPhase.UNDECIDED) return
         entering = true
 
         if (savedState.get<Boolean>(KEY_STARTED) == true) {
-            restoreAfterProcessDeath(orderId)
+            restoreAfterProcessDeath(orderId, supplierId)
             return
         }
         savedState[KEY_STARTED] = true
@@ -184,6 +186,12 @@ class PurchaseFormSessionViewModel @Inject constructor(
 
                 else -> {
                     resetForm()
+                    // Before arming, deliberately. Arriving from a supplier page is navigation, not
+                    // data entry: on its own it must not spawn a Brouillon, or every stray tap on
+                    // "Nouvel achat" leaves one behind. Nothing is lost — reopening gives the
+                    // identical starting state. The first thing the user actually enters arms the
+                    // draft. Dépôt Vente's preselected client works the same way.
+                    if (supplierId != null) preselectSupplier(supplierId)
                     arm()
                 }
             }
@@ -250,7 +258,7 @@ class PurchaseFormSessionViewModel @Inject constructor(
      * The base cannot have moved while the process was dead: this app is the only writer to
      * `purchase_orders`, and it was not running.
      */
-    private fun restoreAfterProcessDeath(orderId: Int?) {
+    private fun restoreAfterProcessDeath(orderId: Int?, supplierId: Int?) {
         viewModelScope.launch {
             val id = draftId
             if (id != null) {
@@ -264,9 +272,17 @@ class PurchaseFormSessionViewModel @Inject constructor(
             }
             // Nothing was ever dirtied, so there is no draft to restore. An edit reloads from its
             // bon (the base is already recorded and will not be recaptured); a new purchase simply
-            // starts clean again.
-            if (orderId != null) prefillEditFromOrder(orderId) else arm()
+            // starts clean again, keeping any supplier it was opened with.
+            when {
+                orderId != null    -> prefillEditFromOrder(orderId)
+                supplierId != null -> { preselectSupplier(supplierId); arm() }
+                else               -> arm()
+            }
         }
+    }
+
+    private suspend fun preselectSupplier(supplierId: Int) {
+        _formSupplier.value = productRepository.getSuppliers().find { it.id == supplierId }
     }
 
     // ── Hydration ────────────────────────────────────────────────────────────

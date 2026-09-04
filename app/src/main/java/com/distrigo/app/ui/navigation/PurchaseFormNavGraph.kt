@@ -108,9 +108,10 @@ private fun purchaseFormSession(
     // Process death restores the back stack to whichever step the user was on, so the first
     // destination may never compose — a session entry that lived there alone would leave a restored
     // Cart or Validation step staring at an empty form. The call is idempotent.
-    val orderId = graphEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
-    val draftId = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
-    LaunchedEffect(session) { session.beginOrResumeSession(orderId, draftId) }
+    val orderId    = graphEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
+    val supplierId = graphEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
+    val draftId    = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
+    LaunchedEffect(session) { session.beginOrResumeSession(orderId, supplierId, draftId) }
 
     // Record where the user is — for a future resume that lands on the step they left; nothing
     // reads it yet — and keep the ON_STOP flush attached to whichever step is actually on screen.
@@ -168,7 +169,6 @@ fun NavGraphBuilder.purchaseFormGraph(
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val supplierViewModel = supplierViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
-            val supplierIdArg = parentEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
             val selectedOrder by viewModel.selectedOrder.collectAsState()
             val suppliers by supplierViewModel.suppliers.collectAsState()
@@ -210,11 +210,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                     session.setFormSupplier(suppliers.find { it.id == editingOrder.supplier_id })
                 }
             }
-            LaunchedEffect(supplierIdArg, suppliers) {
-                if (supplierIdArg != null && formSupplier == null && !isEdit) {
-                    session.setFormSupplier(suppliers.find { it.id == supplierIdArg })
-                }
-            }
+            // The supplier carried in by "Nouvel achat" from a supplier page is applied by the
+            // session, before autosave is armed — arriving from a supplier page is navigation, not
+            // data entry, and on its own it must not spawn a Brouillon. It used to be set from here,
+            // after arming, which left an empty draft behind on every stray tap.
             // An auto-advance to Step 2 used to live here, firing whenever a supplier was known.
             // "A supplier is known" is a *state* — permanently true in edit mode and after a
             // supplier is picked — not the *event* "the user just chose one", so it re-fired every

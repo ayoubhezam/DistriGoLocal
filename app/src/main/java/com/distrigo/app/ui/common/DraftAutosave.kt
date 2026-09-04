@@ -71,6 +71,19 @@ class DraftAutosave<S>(
 ) {
     private var armed = false
 
+    /**
+     * Whether anything has actually changed since [arm].
+     *
+     * Being armed is not the same as having something to save. A session can be armed over a form
+     * that was populated *before* arming — an edit prefill, a hydrated draft, or a record chosen on
+     * the page the form was opened from — and none of that is the user entering anything. Without
+     * this flag [flush] would happily write such a form out on the way past, which is how a stray
+     * tap on "Nouvel achat" from a supplier page used to leave an empty Brouillon behind.
+     *
+     * Set before the debounce, so a change still counts even if the write itself never ran.
+     */
+    private var touched = false
+
     init {
         combine(signals) { host.snapshot() }
             // combine emits the current tuple the instant it is collected — here, during init.
@@ -78,6 +91,7 @@ class DraftAutosave<S>(
             // explicit: arming a session must never itself be a reason to write.
             .drop(1)
             .filter { armed }
+            .onEach { touched = true }
             .debounce(debounceMs)
             .onEach { persist(it) }
             .launchIn(scope)
@@ -99,9 +113,11 @@ class DraftAutosave<S>(
      *
      * The in-flight debounced write is not cancelled — [persist] is idempotent, so a later
      * duplicate is harmless.
+     *
+     * Does nothing for a form nobody has touched since [arm] — see [touched].
      */
     fun flush() {
-        if (!armed) return
+        if (!armed || !touched) return
         scope.launch { persist(host.snapshot()) }
     }
 

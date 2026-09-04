@@ -68,11 +68,23 @@ data class VenteDraftSnapshot(
     val baseFingerprint: String? = null
 ) {
     /**
-     * A client alone is enough to be worth keeping — it is the first real decision the form asks
-     * for, and the step the user would otherwise have to redo. `userName` is not counted: on its
-     * own it identifies no sale.
+     * Whether there is nothing here worth keeping.
+     *
+     * The client is deliberately *not* counted, matching Achats' supplier. Choosing one is the
+     * precondition for entering anything about the vente — the form refuses to go further without
+     * it — not content in itself, and counting it meant that opening a new vente, picking a client
+     * and pressing Back left a Brouillon behind with no product, no quantity and no note in it.
+     *
+     * What does count is what a person actually entered about the vente: its lines, its note, the
+     * amount paid, or who made the sale. `userName` counts for a reason the others do not need:
+     * it is written onto the stock movements rather than onto the `ventes` row, so if it is not
+     * kept here it cannot be recovered from anywhere.
+     *
+     * Only consulted for a new vente. An edit is measured against its base fingerprint instead,
+     * since it is non-empty from its very first emission.
      */
-    val isEmpty: Boolean get() = clientId == null && lines.isEmpty()
+    val isEmpty: Boolean
+        get() = lines.isEmpty() && note.isBlank() && montantPaye.isBlank() && userName.isBlank()
 
     val total: Double get() = lines.sumOf { it.quantity * it.unit_price }
 }

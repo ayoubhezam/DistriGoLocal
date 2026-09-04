@@ -69,6 +69,20 @@ data class DraftSnapshot(
     val sourceOrderId  : Int?    = null,
     val baseFingerprint: String? = null
 ) {
-    val isEmpty: Boolean get() = supplierId == null && lines.isEmpty()
+    /**
+     * Whether there is nothing here worth keeping.
+     *
+     * The supplier is deliberately *not* counted. Choosing one is the precondition for entering
+     * anything about the bon — the form refuses to go further without it — not content in itself,
+     * and counting it meant that opening "Nouveau bon", picking a supplier and pressing Back left a
+     * Brouillon behind with no product, no quantity, no note and no amount in it.
+     *
+     * What does count is what a person actually entered about the bon: its lines, its note, or the
+     * amount paid. Any one of them makes the draft worth resuming.
+     *
+     * Only consulted for a new bon. An edit is measured against its base fingerprint instead, since
+     * it is non-empty from its very first emission.
+     */
+    val isEmpty: Boolean get() = lines.isEmpty() && note.isBlank() && montantPaye.isBlank()
     val total: Double get() = lines.sumOf { it.quantity * it.unit_cost }
 }
