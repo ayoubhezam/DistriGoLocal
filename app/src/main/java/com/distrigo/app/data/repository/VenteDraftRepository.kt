@@ -12,7 +12,7 @@ import com.distrigo.app.data.model.VenteDraftSnapshot
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.time.Instant
 import java.util.Locale
 
@@ -27,14 +27,15 @@ class VenteDraftRepository(private val db: AppDatabase) {
     // ── Reads ────────────────────────────────────────────────────────────────
 
     /**
-     * Newest first. Each edit draft is badged from whether its vente still exists, in a single
-     * extra query for the whole list, not one per row.
+     * Newest first, each edit draft badged from whether its vente still exists.
+     *
+     * Both halves are *observed* queries combined, not one query plus a lookup inside the mapping.
+     * Room re-runs a Flow only when a table that query reads is written, so a suspend lookup in the
+     * `map` would never re-run when a vente was deleted — see [VenteDraftDao.observeVenteIds].
      */
     fun observeDrafts(): Flow<List<VenteDraft>> =
-        dao.observeAll().map { rows ->
-            val venteIds = rows.mapNotNull { it.source_vente_id }.distinct()
-            val existing = if (venteIds.isEmpty()) emptySet()
-                           else dao.existingVenteIds(venteIds).map { it.id }.toSet()
+        combine(dao.observeAll(), dao.observeVenteIds()) { rows, venteIds ->
+            val existing = venteIds.toSet()
             rows.map { row ->
                 val block = when {
                     row.source_vente_id == null      -> DraftBlock.NONE

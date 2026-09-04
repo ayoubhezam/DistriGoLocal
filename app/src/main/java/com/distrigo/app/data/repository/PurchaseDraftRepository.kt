@@ -12,7 +12,7 @@ import com.distrigo.app.data.model.PurchaseDraft
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.time.Instant
 import java.util.Locale
 
@@ -27,14 +27,16 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
     // ── Reads ────────────────────────────────────────────────────────────────
 
     /**
-     * Newest first. Each edit draft is badged from its bon's status in a single extra query for
-     * the whole list, not one per row.
+     * Newest first, each edit draft badged from its bon's status.
+     *
+     * Both halves are *observed* queries combined, not one query plus a lookup inside the mapping.
+     * Room re-runs a Flow only when a table that query reads is written, so a suspend lookup in the
+     * `map` would never re-run when a bon was received or deleted — see
+     * [PurchaseDraftDao.observeOrderStatuses].
      */
     fun observeDrafts(): Flow<List<PurchaseDraft>> =
-        dao.observeAll().map { rows ->
-            val orderIds = rows.mapNotNull { it.source_order_id }.distinct()
-            val statuses = if (orderIds.isEmpty()) emptyMap()
-                           else dao.orderStatuses(orderIds).associate { it.id to it.status }
+        combine(dao.observeAll(), dao.observeOrderStatuses()) { rows, orderStatuses ->
+            val statuses = orderStatuses.associate { it.id to it.status }
             rows.map { row ->
                 val block = when {
                     row.source_order_id == null                     -> DraftBlock.NONE

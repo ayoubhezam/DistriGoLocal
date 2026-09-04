@@ -8,7 +8,7 @@ import androidx.room.Update
 import com.distrigo.app.data.local.entity.PurchaseDraftEntity
 import kotlinx.coroutines.flow.Flow
 
-/** `id`/`status` projection for the drafts list — see [PurchaseDraftDao.orderStatuses]. */
+/** `id`/`status` projection for the drafts list — see [PurchaseDraftDao.observeOrderStatuses]. */
 data class DraftOrderStatus(val id: Int, val status: String)
 
 @Dao
@@ -52,7 +52,14 @@ interface PurchaseDraftDao {
      * One statement for the whole list, not one per row — the badge needs only the status, so the
      * expensive check (comparing contents through DraftFingerprint) is left to resume, which is
      * the only moment it changes what happens.
+     *
+     * Observed rather than fetched inside the mapping, and unfiltered rather than
+     * `WHERE id IN (:ids)`, because **this is what makes the badge live**. Room invalidates a Flow
+     * only when a table the query itself reads is written, so a suspend call made inside
+     * `observeDrafts`'s `map` would never re-run when a bon was received or deleted — the badge
+     * would go on claiming the draft was fine until something else touched `purchase_drafts`.
+     * Reading two columns for every bon is the price of the list telling the truth.
      */
-    @Query("SELECT id, status FROM purchase_orders WHERE id IN (:orderIds)")
-    suspend fun orderStatuses(orderIds: List<Int>): List<DraftOrderStatus>
+    @Query("SELECT id, status FROM purchase_orders")
+    fun observeOrderStatuses(): Flow<List<DraftOrderStatus>>
 }
