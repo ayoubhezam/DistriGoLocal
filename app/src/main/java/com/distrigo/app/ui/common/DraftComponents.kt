@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.model.DraftBaseState
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -85,44 +84,31 @@ fun DraftRow(
         }
 
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    card.title,
-                    fontSize   = DsTextSize.body,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = DsColors.TextPrimary,
-                    // Two lines rather than one: the record number is the last thing in an edit
-                    // draft's title and the only thing that tells two of them apart, so it is
-                    // exactly what a single-line ellipsis eats once the price, the delete button
-                    // and the OBSOLETE badge have taken their width.
-                    maxLines   = 2,
-                    overflow   = TextOverflow.Ellipsis,
-                    modifier   = Modifier.weight(1f, fill = false)
-                )
-                if (card.blocked) {
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.pill)
-                            .background(DsColors.DangerLight)
-                            .padding(horizontal = 6.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            "OBSOLÈTE",
-                            fontSize   = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color      = DsColors.Danger
-                        )
-                    }
-                }
-            }
+            Text(
+                card.title,
+                fontSize   = DsTextSize.body,
+                fontWeight = FontWeight.SemiBold,
+                color      = DsColors.TextPrimary,
+                // Two lines, and nothing shares the row. The record number is the last thing in an
+                // edit draft's title and the only thing that tells two of them apart, so it is
+                // exactly what an ellipsis eats first. On a 360dp screen a priced draft leaves this
+                // column 122dp; an "OBSOLÈTE" pill beside the title took 60 of them and cut
+                // "Modification · bon #11" down to "Modification ·…" — the number gone, which is
+                // the one thing the title exists to carry. The pill said nothing the red glyph and
+                // the red reason line below do not already say, so it went rather than the number.
+                maxLines   = 2,
+                overflow   = TextOverflow.Ellipsis
+            )
             Spacer(Modifier.height(2.dp))
             Text(
                 card.blockedReason ?: card.meta,
-                fontSize = DsTextSize.caption,
-                color    = if (card.blocked) DsColors.Danger else DsColors.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                fontSize   = DsTextSize.caption,
+                // Carries the blocked state on its own now: bold and in the danger tone, and saying
+                // *why* rather than merely that something is wrong.
+                fontWeight = if (card.blocked) FontWeight.SemiBold else FontWeight.Normal,
+                color      = if (card.blocked) DsColors.Danger else DsColors.TextSecondary,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
             )
         }
 
