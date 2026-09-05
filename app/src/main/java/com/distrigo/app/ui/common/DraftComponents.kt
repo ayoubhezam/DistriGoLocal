@@ -3,6 +3,8 @@ package com.distrigo.app.ui.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
@@ -60,6 +62,7 @@ fun DraftRow(
     card: DraftCardUi,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    totalText: String? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     val (tint, container, icon) = when {
@@ -84,21 +87,39 @@ fun DraftRow(
         }
 
         Column(Modifier.weight(1f)) {
-            Text(
-                card.title,
-                fontSize   = DsTextSize.body,
-                fontWeight = FontWeight.SemiBold,
-                color      = DsColors.TextPrimary,
-                // Two lines, and nothing shares the row. The record number is the last thing in an
-                // edit draft's title and the only thing that tells two of them apart, so it is
-                // exactly what an ellipsis eats first. On a 360dp screen a priced draft leaves this
-                // column 122dp; an "OBSOLÈTE" pill beside the title took 60 of them and cut
-                // "Modification · bon #11" down to "Modification ·…" — the number gone, which is
-                // the one thing the title exists to carry. The pill said nothing the red glyph and
-                // the red reason line below do not already say, so it went rather than the number.
-                maxLines   = 2,
-                overflow   = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    card.title,
+                    fontSize   = DsTextSize.body,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = DsColors.TextPrimary,
+                    // Two lines. The record number is the last thing in an edit draft's title and
+                    // the only thing that tells two of them apart, so it is exactly what an
+                    // ellipsis eats first — an "OBSOLÈTE" pill used to sit here and cut
+                    // "Modification · bon #11" down to "Modification ·…". Only the amount shares
+                    // this row now, and only where the caller asks for it.
+                    maxLines   = 2,
+                    overflow   = TextOverflow.Ellipsis,
+                    // Fills the row rather than hugging its text, so the amount after it is pushed
+                    // to the column's right edge and every row's amount lands on the same edge.
+                    modifier   = Modifier.weight(1f)
+                )
+                // The amount belongs on the title line, not in a trailing slot spanning both
+                // lines. Spanning cost the meta line the amount's full width on every row, and a
+                // five-figure total ("77 040,00 DA") is wide enough that "3 produits · il y a 3
+                // min" no longer fit. Here it takes width from the title — which has two lines and
+                // room to spare — and leaves the meta line the whole column.
+                if (totalText != null) {
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text(
+                        totalText,
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextPrimary,
+                        maxLines   = 1
+                    )
+                }
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 card.blockedReason ?: card.meta,
@@ -149,10 +170,20 @@ fun <D> DraftsSheet(
     onSeeAll  : () -> Unit,
     onDismiss : () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
-    // Four rows plus the header and the separated action sit inside a partially expanded sheet
-    // without a drag; beyond that the sheet stops being a quick decision and the full screen is
-    // the better place.
+    // Opens straight to its full content height, skipping the half-screen detent a bottom sheet
+    // otherwise starts at.
+    //
+    // The detent is exactly half the screen — 390dp of the 780dp this was measured on — and the
+    // sheet's content runs to about 520dp once four rows are in it. It used to open at the detent,
+    // which cut the fourth row through the middle and put both "Voir tout" and "Commencer un
+    // nouveau bon" off-screen: every action that is not "resume one of the first three drafts"
+    // needed a drag first, with nothing on screen to say so. Three rows already overflowed it, so
+    // the detent was never the right size for this sheet rather than being wrong only at four.
+    //
+    // The content is capped — at most MAX_SHEET_ROWS rows, whatever the draft count — so the
+    // height has a ceiling and cannot grow with the list. The scroll below is for the cases that
+    // ceiling still does not cover: a short screen, or a large accessibility font scale.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val shown = drafts.take(MAX_SHEET_ROWS)
 
     ModalBottomSheet(
@@ -161,11 +192,13 @@ fun <D> DraftsSheet(
         containerColor   = DsColors.Surface
     ) {
         Column(
-            Modifier.padding(
-                start  = DsSpacing.lg,
-                end    = DsSpacing.lg,
-                bottom = DsSpacing.xxxl
-            )
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start  = DsSpacing.lg,
+                    end    = DsSpacing.lg,
+                    bottom = DsSpacing.xxxl
+                )
         ) {
             Text(
                 if (drafts.size > 1) copy.titleMany else copy.titleOne,

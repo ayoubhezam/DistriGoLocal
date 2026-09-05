@@ -68,12 +68,14 @@ internal fun VenteDraftRow(
     draft: VenteDraft,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    totalText: String? = null,
     trailing: @Composable (() -> Unit)? = null
 ) = com.distrigo.app.ui.common.DraftRow(
-    card     = draft.toCardUi(),
-    onClick  = onClick,
-    modifier = modifier,
-    trailing = trailing
+    card      = draft.toCardUi(),
+    onClick   = onClick,
+    modifier  = modifier,
+    totalText = totalText,
+    trailing  = trailing
 )
 
 @Composable

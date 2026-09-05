@@ -75,24 +75,17 @@ fun BrouillonsScreen(
                         DraftRow(
                             draft   = draft,
                             onClick = { onResume(draft) },
+                            // The amount goes to the row rather than into the trailing slot, so it
+                            // shares width with the title instead of narrowing the meta line.
+                            totalText = if (draft.total > 0) "${formatDZD(draft.total)} DA" else null,
                             trailing = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (draft.total > 0) {
-                                        Text(
-                                            "${formatDZD(draft.total)} DA",
-                                            fontSize   = DsTextSize.bodySmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color      = DsColors.TextPrimary
-                                        )
-                                    }
-                                    IconButton(onClick = { pendingDelete = draft }) {
-                                        Icon(
-                                            Icons.Default.DeleteOutline,
-                                            contentDescription = "Supprimer le brouillon",
-                                            tint = DsColors.TextTertiary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                IconButton(onClick = { pendingDelete = draft }) {
+                                    Icon(
+                                        Icons.Default.DeleteOutline,
+                                        contentDescription = "Supprimer le brouillon",
+                                        tint = DsColors.TextTertiary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                             }
                         )
