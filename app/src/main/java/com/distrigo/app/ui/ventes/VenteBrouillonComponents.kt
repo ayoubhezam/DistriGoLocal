@@ -8,6 +8,7 @@ import com.distrigo.app.ui.common.DraftCardUi
 import com.distrigo.app.ui.common.DraftConflictCopy
 import com.distrigo.app.ui.common.DraftSheetCopy
 import com.distrigo.app.ui.common.DraftsSheet
+import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.common.formatRelativeFr
 import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
 
@@ -23,14 +24,19 @@ import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
  */
 internal fun VenteDraft.cardTitle(): String = when {
     sourceVenteId != null -> "Modification · vente #$sourceVenteId"
-    clientName != null    -> clientName
+    clientName != null    -> bidiIsolate(clientName)
     else                  -> "Client non choisi"
 }
 
-/** "سوسن · 5 produits · il y a 3 h" */
+/**
+ * "سوسن · 5 produits · il y a 3 h"
+ *
+ * The client name is bidi-isolated because it is joined to French text here — see [bidiIsolate]
+ * for what an Arabic name does to the separators around it otherwise.
+ */
 internal fun VenteDraft.cardMeta(): String {
     val parts = buildList {
-        if (sourceVenteId != null && clientName != null) add(clientName)
+        if (sourceVenteId != null && clientName != null) add(bidiIsolate(clientName))
         add(if (itemCount <= 1) "$itemCount produit" else "$itemCount produits")
         formatRelativeFr(updatedAt)?.let { add(it) }
     }

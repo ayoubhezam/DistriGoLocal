@@ -8,6 +8,7 @@ import com.distrigo.app.ui.common.DraftCardUi
 import com.distrigo.app.ui.common.DraftConflictCopy
 import com.distrigo.app.ui.common.DraftSheetCopy
 import com.distrigo.app.ui.common.DraftsSheet
+import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.common.formatRelativeFr
 import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
 
@@ -23,14 +24,19 @@ import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
  */
 internal fun PurchaseDraft.cardTitle(): String = when {
     sourceOrderId != null -> "Modification · bon #$sourceOrderId"
-    supplierName != null  -> supplierName
+    supplierName != null  -> bidiIsolate(supplierName)
     else                  -> "Fournisseur non choisi"
 }
 
-/** "ETS Belkacem · 5 produits · il y a 3 h" */
+/**
+ * "ETS Belkacem · 5 produits · il y a 3 h"
+ *
+ * The supplier name is bidi-isolated because it is joined to French text here — see
+ * [bidiIsolate] for what an Arabic name does to the separators around it otherwise.
+ */
 internal fun PurchaseDraft.cardMeta(): String {
     val parts = buildList {
-        if (sourceOrderId != null && supplierName != null) add(supplierName)
+        if (sourceOrderId != null && supplierName != null) add(bidiIsolate(supplierName))
         add(if (itemCount <= 1) "$itemCount produit" else "$itemCount produits")
         formatRelativeFr(updatedAt)?.let { add(it) }
     }
