@@ -1040,6 +1040,25 @@ private fun TourneeTrackingSection(
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
+            // "Ajouter un client" leads the strip rather than trailing it. At the end it sat past
+            // however many clients the tournée has and needed a scroll to reach; at the head it is
+            // always in the same place, and the rule after it keeps it from reading as the first
+            // client in the row.
+            if (isOpen) {
+                item(key = "add_client") {
+                    TourneeAddClientAvatarItem(onClick = onAddClient)
+                }
+                item(key = "add_client_divider") {
+                    VerticalDivider(
+                        // Matches the avatar circle rather than the whole item, so the rule stops
+                        // level with the circles instead of running down past their labels.
+                        modifier  = Modifier.height(64.dp),
+                        color     = DsColors.Border,
+                        thickness = 1.dp
+                    )
+                }
+            }
+
             items(tourneeClients, key = { it.client.id }) { info ->
                 TourneeClientAvatarItem(
                     info      = info,
@@ -1063,11 +1082,6 @@ private fun TourneeTrackingSection(
                         }
                     }
                 )
-            }
-            if (isOpen) {
-                item(key = "add_client") {
-                    TourneeAddClientAvatarItem(onClick = onAddClient)
-                }
             }
         }
 
