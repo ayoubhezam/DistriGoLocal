@@ -33,6 +33,7 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
@@ -44,10 +45,6 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsCollapsingHeader
 import com.distrigo.app.ui.designsystem.rememberDsCollapsingHeaderState
-
-// Item order inside TourneeDetailScreen's LazyColumn: 0 = collapsing header, 1 = sticky
-// client-avatars section, 2 = "Tickets de vente" label, 3 = first ticket row.
-private const val TICKETS_FIRST_ITEM_INDEX = 3
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -193,11 +190,15 @@ fun TourneeDetailScreen(
 
     // ── Collapsing header (exitUntilCollapsed) ──
     val listState = rememberLazyListState()
-    // The fling guard keeps a fling that started down in the tickets from coasting on through the
-    // sticky client-avatars section above; see DsCollapsingHeaderState.
-    val collapsingHeader = rememberDsCollapsingHeaderState(
-        isAtFlingBoundary = { listState.firstVisibleItemIndex <= TICKETS_FIRST_ITEM_INDEX }
-    )
+    // No fling guard. This screen used to pass one that swallowed a fling's scroll deltas once the
+    // list reached the tickets boundary, to stop momentum coasting up into the sticky avatars
+    // section. Two things were wrong with it: the boundary was the fourth item, so nearly every
+    // upward fling crossed it immediately, and swallowing deltas in onPreScroll does not end the
+    // fling — the animation kept running, unable to move anything, so the list sat frozen for the
+    // rest of the decay and ignored further input. Measured on device: 450ms after release, not a
+    // single pixel had changed. The client and supplier details use this same header with no
+    // guard and scroll normally, which is the behaviour restored here.
+    val collapsingHeader = rememberDsCollapsingHeaderState()
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
@@ -481,7 +482,16 @@ fun TourneeDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .alpha((1f - collapsingHeader.collapsedFraction * 2f).coerceIn(0f, 1f))
+                                    // Read in the draw phase, not in composition. collapsedFraction
+                                    // changes every frame the header moves, and a composition-phase
+                                    // read of it recomposed this whole block — the info card, the
+                                    // action button, the stat pages — on each of those frames.
+                                    // graphicsLayer's lambda defers it to draw, so a collapse
+                                    // re-draws instead of re-composing.
+                                    .graphicsLayer {
+                                        alpha = (1f - collapsingHeader.collapsedFraction * 2f)
+                                            .coerceIn(0f, 1f)
+                                    }
                                     .padding(DsSpacing.lg)
                             ) {
                                 // ── Carte d'informations ──
