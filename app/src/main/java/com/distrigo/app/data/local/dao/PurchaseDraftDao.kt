@@ -39,7 +39,16 @@ interface PurchaseDraftDao {
     suspend fun update(draft: PurchaseDraftEntity)
 
     @Query("DELETE FROM purchase_drafts WHERE id = :id")
-    suspend fun deleteById(id: Int)
+    suspend fun deleteById(id: Int)
+
+    /**
+     * Bulk delete for the Brouillons screen's selection mode.
+     *
+     * One statement rather than a loop of [deleteById]: Room invalidates `purchase_drafts` once, so the
+     * list recomposes once instead of N times, and the whole selection goes or none of it does.
+     */
+    @Query("DELETE FROM purchase_drafts WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Int>)
 
     @Query("DELETE FROM purchase_drafts WHERE source_order_id = :orderId")
     suspend fun deleteForOrder(orderId: Int)

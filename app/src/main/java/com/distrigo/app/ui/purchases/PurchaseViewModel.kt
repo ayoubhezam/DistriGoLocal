@@ -45,6 +45,12 @@ class PurchaseViewModel @Inject constructor(
 
     fun deleteDraft(id: Int) { viewModelScope.launch { draftRepository.delete(id) } }
 
+    /** Deletes every selected draft in one statement. Empty input is a no-op. */
+    fun deleteDrafts(ids: Collection<Int>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch { draftRepository.deleteAll(ids.toList()) }
+    }
+
     private val _orders = MutableStateFlow<List<PurchaseOrder>>(emptyList())
     val orders: StateFlow<List<PurchaseOrder>> = _orders
 

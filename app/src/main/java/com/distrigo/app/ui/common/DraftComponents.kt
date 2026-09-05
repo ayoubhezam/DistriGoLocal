@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,6 +65,9 @@ fun DraftRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     totalText: String? = null,
+    // Non-null puts the row in selection mode: the leading glyph becomes a checkbox and the tap
+    // toggles instead of resuming. Null is the ordinary row, and is what every other caller gets.
+    selected: Boolean? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     val (tint, container, icon) = when {
@@ -79,11 +84,37 @@ fun DraftRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
+        // In selection mode the glyph gives up its slot to the checkbox rather than sitting beside
+        // it: two 38dp marks on one row is noise, and which draft is ticked matters more here than
+        // which kind it is — the kind is still carried by the title and the meta line.
         Box(
-            modifier = Modifier.size(38.dp).clip(DsShapes.small).background(container),
+            modifier = Modifier
+                .size(38.dp)
+                .clip(if (selected == null) DsShapes.small else DsShapes.pill)
+                .background(
+                    when {
+                        selected == null -> container
+                        selected         -> DsColors.Primary
+                        else             -> DsColors.SurfaceSunken
+                    }
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
+            when (selected) {
+                null  -> Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
+                true  -> Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Sélectionné",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                false -> Box(
+                    Modifier
+                        .size(20.dp)
+                        .clip(DsShapes.pill)
+                        .background(DsColors.Surface)
+                )
+            }
         }
 
         Column(Modifier.weight(1f)) {

@@ -108,6 +108,9 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
 
     suspend fun delete(id: Int) = dao.deleteById(id)
 
+    /** Deletes a whole selection at once — see [PurchaseDraftDao.deleteByIds]. */
+    suspend fun deleteAll(ids: List<Int>) = dao.deleteByIds(ids)
+
     suspend fun deleteForOrder(orderId: Int) = dao.deleteForOrder(orderId)
 
     // ── Edit-mode base ───────────────────────────────────────────────────────
