@@ -1,13 +1,10 @@
 package com.distrigo.app.ui.designsystem
 
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -16,7 +13,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Velocity
 import kotlin.math.roundToInt
 
 /**
@@ -34,13 +30,7 @@ import kotlin.math.roundToInt
  * container and put [dsCollapsingHeader] on the block that should collapse.
  */
 @Stable
-class DsCollapsingHeaderState internal constructor(
-    /**
-     * Optional, and only the tournée screen passes one: reports whether the list is currently at or
-     * above the boundary that a fling must not coast past. Null disables the guard entirely.
-     */
-    private val isAtFlingBoundary: State<(() -> Boolean)?>
-) {
+class DsCollapsingHeaderState internal constructor() {
     /** How far the header is pushed up, in pixels. 0f expanded, -[heightPx] fully collapsed. */
     internal var offsetPx by mutableFloatStateOf(0f)
 
@@ -50,13 +40,6 @@ class DsCollapsingHeaderState internal constructor(
     /** 0f fully expanded, 1f fully collapsed — for fading header content as it goes. */
     val collapsedFraction: Float
         get() = if (heightPx <= 0f) 0f else (-offsetPx / heightPx).coerceIn(0f, 1f)
-
-    /**
-     * Recomputed once per fling: true only when that fling started deeper in the list than the
-     * boundary, meaning it is this fling's own momentum that would carry it across. A fling that
-     * starts at or past the boundary already — a fresh, separate swipe — is left free to run.
-     */
-    private var flingStartedBelowBoundary = false
 
     val nestedScrollConnection: NestedScrollConnection = object : NestedScrollConnection {
 
@@ -70,24 +53,9 @@ class DsCollapsingHeaderState internal constructor(
                 return Offset(0f, consumed)
             }
 
-            // Scrolling toward the top: a fling (post-release momentum) that started deeper in the
-            // list and is only now reaching the boundary gets stopped there for the rest of its
-            // run. A live drag is never blocked.
-            val guard = isAtFlingBoundary.value
-            if (source == NestedScrollSource.SideEffect &&
-                flingStartedBelowBoundary &&
-                guard != null &&
-                guard()
-            ) {
-                return Offset(0f, available.y)
-            }
+            // Scrolling toward the top: left entirely to the list, so a fling decays the way the
+            // platform decays it. The header's turn comes in onPostScroll, once the list is done.
             return Offset.Zero
-        }
-
-        override suspend fun onPreFling(available: Velocity): Velocity {
-            val guard = isAtFlingBoundary.value
-            flingStartedBelowBoundary = guard != null && !guard()
-            return super.onPreFling(available)
         }
 
         // Expanding (drag down, positive delta): only consume what is left AFTER the list itself
@@ -102,21 +70,9 @@ class DsCollapsingHeaderState internal constructor(
     }
 }
 
-/**
- * @param isAtFlingBoundary see [DsCollapsingHeaderState.isAtFlingBoundary]. Leave null unless the
- *   screen has a section a fling must not coast into; [rememberDsFlingBoundary] builds the usual one.
- */
 @Composable
-fun rememberDsCollapsingHeaderState(
-    isAtFlingBoundary: (() -> Boolean)? = null
-): DsCollapsingHeaderState {
-    val guard = rememberUpdatedState(isAtFlingBoundary)
-    return remember { DsCollapsingHeaderState(guard) }
-}
-
-/** The usual fling guard: "the list is at or above item [boundaryItemIndex]". */
-fun rememberDsFlingBoundary(listState: LazyListState, boundaryItemIndex: Int): () -> Boolean =
-    { listState.firstVisibleItemIndex <= boundaryItemIndex }
+fun rememberDsCollapsingHeaderState(): DsCollapsingHeaderState =
+    remember { DsCollapsingHeaderState() }
 
 /**
  * Put on the content that should collapse. It measures its own natural height, reports it to
