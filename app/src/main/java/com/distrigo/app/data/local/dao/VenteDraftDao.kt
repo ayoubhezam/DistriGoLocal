@@ -36,7 +36,7 @@ interface VenteDraftDao {
     suspend fun update(draft: VenteDraftEntity)
 
     @Query("DELETE FROM vente_drafts WHERE id = :id")
-    suspend fun deleteById(id: Int)
+    suspend fun deleteById(id: Int)
 
     /**
      * Bulk delete for the Brouillons screen's selection mode.

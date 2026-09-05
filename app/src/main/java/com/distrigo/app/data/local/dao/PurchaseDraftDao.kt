@@ -39,7 +39,7 @@ interface PurchaseDraftDao {
     suspend fun update(draft: PurchaseDraftEntity)
 
     @Query("DELETE FROM purchase_drafts WHERE id = :id")
-    suspend fun deleteById(id: Int)
+    suspend fun deleteById(id: Int)
 
     /**
      * Bulk delete for the Brouillons screen's selection mode.
