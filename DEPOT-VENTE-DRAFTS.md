@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03
 **Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Phases 1–4 committed and merged to `main`. Phase 5 (verification) found two defects; both are now fixed and verified, uncommitted at the time of writing.
+**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open.
 
 | Phase | Commit | State |
 |---|---|---|
@@ -11,7 +11,8 @@
 | 3 — Vente form session | `f8e8709` | merged |
 | 4 — Brouillons surfaced in the UI | `96788f6` | merged |
 | 5 — full device verification | — | run; two defects found |
-| 6 — both defects fixed | *uncommitted* | verified |
+| 6 — both defects fixed | `0008048`, `a090fbd` | merged |
+| 7 — card cosmetics fixed | `34fd840`, `6652bf9` | merged |
 
 ---
 
@@ -204,8 +205,8 @@ The entry path that actually mattered — ACHATS → Nouveau bon → select a su
 
 ## 7. Open items
 
-1. **Bidi rendering in the card meta line.** With an Arabic client or supplier name the meta renders as `4 · جلاال produits · il y a…` instead of `جلاال · 4 produits · il y a…` — joining RTL and LTR segments with `·` lets the bidi algorithm reorder them. Cosmetic, pre-existing in the same shape on the Achats side, and fixable by wrapping the name in bidi isolates (`U+2068` / `U+2069`) in both `cardMeta` functions. **Not fixed.**
-2. **Title truncation when a blocked draft also has a price.** With the OBSOLÈTE badge, the total and the delete icon all competing for width, the title ellipsised to "Modification ·…" — hiding the bon number that the two-line title fix exists to protect. Only occurs for a blocked draft with a non-zero total. **Not fixed.**
+1. ~~Bidi rendering in the card meta line.~~ **Fixed in `34fd840`** — see §9 below.
+2. ~~Title truncation when a blocked draft also has a price.~~ **Fixed in `6652bf9`** — see §9 below.
 3. **Sheet with more than 4 drafts** — the "Voir tout (N)" overflow link was never exercised; at most 2 drafts existed at once.
 4. **`missingProductIds` blocking** — a draft referencing a since-deleted product was never tested.
 5. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
@@ -226,3 +227,57 @@ Everything restored to the pre-test baseline:
 | vente #17 | total 750, `montant_paye` 0.0, note empty, status `pending` — fully restored |
 
 Test records created during the run (vente #22, and the Achats test bon's mutations) were removed or reverted through the app's own paths where possible. No crash lines in logcat; screen timeout restored.
+
+---
+
+## 9. Phase 7 — the two cosmetic card bugs
+
+Both were found during Phase 5, recorded unfixed, and fixed here. Both are cosmetic: no draft was ever lost or misapplied by either.
+
+### Bidi reordering in the meta line (`34fd840`)
+
+A meta line joins a name to French text with `·` separators. Those separators are bidi-*neutral*, so the algorithm resolved them against the strongest neighbour — the RTL name — rather than against the LTR paragraph, and pulled the digit after the separator into the name's run:
+
+| | |
+|---|---|
+| intended | `جلاال · 4 produits · il y a 3 h` |
+| rendered | `4 · جلاال produits · il y a 3 h` |
+
+The count was torn away from the noun it counts. Most clients and suppliers in this database have Arabic names, so this was the *normal* rendering, not an edge case.
+
+The fix wraps the name in isolate marks — `U+2068` FIRST STRONG ISOLATE and `U+2069` POP DIRECTIONAL ISOLATE — via a new `ui/common/BidiText.kt`. The name's own direction is still resolved from its first strong character, so it renders right to left internally; it just presents itself to the surrounding run as one neutral object and stops moving anything else. Both marks are zero-width, so no width changes.
+
+Applied in both flows' `cardMeta`, and in the name-only `cardTitle` branch as well — that string is interpolated into a French sentence in the delete confirmation dialog.
+
+### The OBSOLÈTE badge eating the record number (`6652bf9`)
+
+An edit draft's title ends in the record number, which is the only thing that distinguishes two of them. On a blocked draft that *also* had a price, it was ellipsised away.
+
+The width budget on the 360dp screen this was found on:
+
+| | |
+|---|---|
+| screen | 360dp |
+| less screen padding (16 × 2) and card padding (12 × 2) | 304dp |
+| less the leading icon (38) and two 12dp gaps | — |
+| less the trailing price (~72) and delete button (48) | **122dp for the text column** |
+| less the "OBSOLÈTE" pill and its spacer | **62dp for the title** |
+
+62dp is about 18 characters over two lines, against a 22-character title — which is exactly the observed `Modification ·…`. The two-line title added in Phase 4 could not save it, because the pill narrowed both lines.
+
+The pill was removed rather than relocated. It was the fourth element on the card carrying the same information: the leading glyph is already a red warning triangle in a red container, and the line beneath already names the *cause* — "Bon déjà réceptionné", "Vente supprimée" — which says more than "OBSOLÈTE" did. That line now carries the state alone, in semibold. Relocating the pill to the meta line was considered and rejected: at 122dp it would have truncated the reason instead, trading one lost string for another.
+
+### Verification
+
+On device, against the worst case in each flow:
+
+| Case | Result |
+|---|---|
+| Achats draft on **received** bon #14, 1 200,00 DA | Title `Modification · bon #14` in full; `Bon déjà réceptionné` — the longest reason string — untruncated |
+| Dépôt Vente draft on **deleted** vente #99, 1 250,00 DA | Title `Modification · vente #99` in full; `Vente supprimée` untruncated |
+| Achats draft on bon #13, supplier بوجمعة | `بوجمعة · 3 produits · il y …` — correct order |
+| Dépôt Vente draft on vente #5, client جلاال | `جلاال · 4 produits · il y a…` — correct order |
+
+Checked in both surfaces that render a card: the Brouillons screen (narrow column — price and delete button present) and the FAB sheet (wide column — chevron only). In the sheet both titles fit on one line and the meta line renders in full.
+
+**Device state:** the four test drafts were inserted directly into a copy of the database, and the pre-test snapshot was restored afterwards. Back to `vente_drafts` 0, `purchase_drafts` 0, ventes 21, orders 13. No crash lines in logcat; screen timeout restored.
