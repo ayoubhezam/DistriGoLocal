@@ -1,8 +1,8 @@
-# Dépôt Vente — Brouillons (Phases 1–4)
+# Dépôt Vente — Brouillons (Phases 1–9)
 
 **Date:** 2026-09-03
 **Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open.
+**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection.
 
 | Phase | Commit | State |
 |---|---|---|
@@ -13,6 +13,8 @@
 | 5 — full device verification | — | run; two defects found |
 | 6 — both defects fixed | `0008048`, `a090fbd` | merged |
 | 7 — card cosmetics fixed | `34fd840`, `6652bf9` | merged |
+| 8 — sheet height and meta line | `fd0545d` | merged |
+| 9 — filter and multi-selection | `2437778`, `c2bc82d` | merged |
 
 ---
 
@@ -207,9 +209,10 @@ The entry path that actually mattered — ACHATS → Nouveau bon → select a su
 
 1. ~~Bidi rendering in the card meta line.~~ **Fixed in `34fd840`** — see §9 below.
 2. ~~Title truncation when a blocked draft also has a price.~~ **Fixed in `6652bf9`** — see §9 below.
-3. **Sheet with more than 4 drafts** — the "Voir tout (N)" overflow link was never exercised; at most 2 drafts existed at once.
-4. **`missingProductIds` blocking** — a draft referencing a since-deleted product was never tested.
-5. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
+3. ~~Sheet with more than 4 drafts.~~ **Tested and fixed in `fd0545d`** — the overflow link was correct; the height the sheet opened at was not. See §10 below.
+4. **`missingProductIds` blocking** — a draft referencing a since-deleted product was never tested. Now the oldest untested item on the feature.
+5. **The sheet's `verticalScroll` has never run** — added in `fd0545d` for a screen short enough, or a font scale large enough, that even the row-capped content overflows. No device here is small enough to trigger it. See §10.
+6. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
 
 ---
 
@@ -281,3 +284,112 @@ On device, against the worst case in each flow:
 Checked in both surfaces that render a card: the Brouillons screen (narrow column — price and delete button present) and the FAB sheet (wide column — chevron only). In the sheet both titles fit on one line and the meta line renders in full.
 
 **Device state:** the four test drafts were inserted directly into a copy of the database, and the pre-test snapshot was restored afterwards. Back to `vente_drafts` 0, `purchase_drafts` 0, ventes 21, orders 13. No crash lines in logcat; screen timeout restored.
+
+---
+
+## 10. Phase 8 — the sheet at full height, and the meta line (`fd0545d`)
+
+Open item 3 — the sheet beyond four drafts — became testable once 6, then 10, real drafts existed. The overflow link itself was correct. The sheet around it was not.
+
+### What the test found
+
+With 6 Achats drafts the preview capped at `MAX_SHEET_ROWS` = 4 as designed, "Voir tout (6)" appeared, tapping it opened the full Brouillons screen, and all 6 were reachable and resumable there. Navigation and ordering were sound.
+
+But the sheet opened at Material3's partial detent, which is exactly half the screen — 390dp of the 780dp measured here — while the content runs past 500dp once four rows are in it. The fourth row was cut through the middle, and both "Voir tout" and "Commencer un nouveau bon" sat below the fold with nothing on screen to say they were there. Every action that was not "resume one of the first three drafts" needed a drag first.
+
+### A correction to my own framing
+
+I first recorded this as a problem that starts at **4 or more** drafts, and it was accepted and specified as one. It is not. **Three rows already overflow the detent.** Half the screen was never the right size for this sheet — it was wrong at three and merely more obviously wrong at four.
+
+So the fix is not a taller detent for long lists but `skipPartiallyExpanded` for every list: the sheet opens at its content height whatever the count. The height still has a ceiling, because the content is capped at `MAX_SHEET_ROWS` rows however long the draft list grows.
+
+### The meta line
+
+Separately, the Brouillons screen passed the amount into `DraftRow`'s trailing slot, where it spanned both lines and so narrowed the meta line on **every** row. Against a four-figure total, "3 produits · il y a 3 min" no longer fit.
+
+The amount moved onto the title line, which has two lines and room to spare, leaving the meta line the whole column. The title takes `Modifier.weight(1f)` — filling the row rather than hugging its text — so every row's amount lands on the same right edge. An earlier attempt used `weight(1f, fill = false)` and produced ragged amounts.
+
+That leaves a blocked draft's title 102dp over two lines against a 22-character worst case, against the 62dp Phase 7's pill had left it.
+
+### Verification, and what was not verified
+
+Verified on device against 10 Achats drafts, including a five-figure 77 040,00 DA: the sheet opens complete with no drag, all ten rows show their meta line in full, and the list scrolls to the last card.
+
+**Not re-verified on device:** Dépôt Vente, which shares `DraftRow` but had no drafts to show at the time, and the blocked-draft title, which no current draft produces. Both are arithmetic-safe by the budget above.
+
+**A new untested path was added, deliberately.** The `verticalScroll` on the sheet's Column covers what the row cap does not — a screen short enough, or an accessibility font scale large enough, that even the capped content overflows. It exists so the fix does not trade "must drag" for "cannot reach". On this hardware it has never run, and cannot be made to. Recorded as open item 5.
+
+---
+
+## 11. Phase 9 — filter and multi-selection (`2437778`, `c2bc82d`)
+
+Both Brouillons screens gained a filter strip and a selection mode. As in Phase 1 the machinery was written generic and put in `ui/common` beside the draft card and sheet — `DraftFiltering.kt` and `DraftSelection.kt` — so Achats and Dépôt Vente share it rather than becoming a fourth and fifth copy. The flows differ only in wording ("Fournisseur" vs "Client") and in which facts a draft reports through `DraftFilterFacts`.
+
+### Filter
+
+A "Filtres ▾" pill under the top bar opens the same "Filtres avancés" sheet the Achats and Ventes lists already use — segmented rows for the closed sets, a dropdown for the open one, Réinitialiser / Appliquer at the foot with the resulting count on the button. Three axes:
+
+| Axis | Values |
+|---|---|
+| type | tous / nouveaux / modifications |
+| état | tous / actifs / obsolètes |
+| fournisseur *or* client | tous, then the names actually present |
+
+Two decisions worth recording:
+
+* **The name picker offers only names present among the drafts.** Listing every supplier in the database would be mostly dead options that filter to nothing.
+* **Filtering is by name, not by id.** The name is what a draft stores, and a draft may carry no id at all before its first step is done.
+
+`DraftFilterState` saves through a `listSaver`, so a filter survives rotation and process death.
+
+### Selection
+
+"Sélectionner" swaps the top bar for a contextual one (count, close) and docks a bulk action bar at the bottom. A row's leading glyph becomes a checkbox, a tap ticks instead of resuming, and the per-row delete button goes — the destructive control is never left adjacent to the one that merely opens something. `DraftRow` carries all of this on one nullable parameter, `selected: Boolean?`: non-null puts the row in selection mode, null is the ordinary row that every other caller gets.
+
+"Supprimer" sits at the far end of the bar from "Tout sélectionner", those being the two actions most costly to confuse, and the count rides on the button label so it always states its own blast radius. Back leaves selection before it leaves the screen.
+
+### The two dialogs
+
+Deleting some of the drafts is an ordinary destructive confirm. Deleting *all* of them gets a heavier one — warning glyph, its own title, and "Tout supprimer" rather than "Supprimer" — because that is the case with nothing left to recover from, and it is one mis-tap away from "Tout sélectionner". Its wording says "de cette liste", which stays honest when a filter is applied.
+
+### Correctness
+
+The selection is intersected with what is on screen on every pass:
+
+```kotlin
+val shown        = remember(drafts, filter) { drafts.filter { filter.accepts(it.filterFacts()) } }
+val visibleIds   = remember(shown) { shown.map { it.id }.toSet() }
+val effectiveSel = remember(selected, visibleIds) { selected intersect visibleIds }
+```
+
+so a draft that vanishes underneath it — committed elsewhere, or deleted — can neither be deleted by a stale id nor leave the count outrunning the list.
+
+The bulk delete is one statement, so Room invalidates the table once and the whole selection goes or none of it does:
+
+```kotlin
+@Query("DELETE FROM purchase_drafts WHERE id IN (:ids)")
+suspend fun deleteByIds(ids: List<Int>)
+```
+
+**Nothing about persistence, navigation or ordering moved.** Filter and selection are screen state, the drafts flow is untouched, and both are gone with the screen.
+
+### Verification
+
+On device, against 10 Achats and 10 Dépôt Vente drafts:
+
+| Check | Result |
+|---|---|
+| Filter by type | 0 of 10 — empty state renders |
+| Filter by supplier | 3 of 10 |
+| Tout sélectionner | every row ticked, label flips to Tout désélectionner |
+| Partial confirm dialog | ordinary register, count in the title |
+| Full confirm dialog | warning glyph, "Tout supprimer" |
+| Real bulk delete | exactly the 2 selected rows removed, no others |
+| Back while selecting | leaves selection, stays on the screen |
+| Per-flow wording | "Fournisseur" on Achats, "Client" on Dépôt Vente |
+
+Test data restored afterwards.
+
+### A process note (`c2bc82d`)
+
+The two DAOs were edited by a script that did not preserve line endings and flipped them to CRLF, turning a 9-line addition to each into a 74-line whole-file diff. The repo stores LF and `core.autocrlf` is `true`, so any rewrite that ignores endings will do this again. Corrected in a separate `style:` commit; the net change across the two commits is exactly the new method.
