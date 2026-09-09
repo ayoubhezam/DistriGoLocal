@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.DraftBaseState
@@ -270,12 +271,22 @@ fun <D> DraftsSheet(
 
             OutlinedButton(
                 onClick  = onStartNew,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                // A minimum, not a fixed height. At 50.dp exactly, a large accessibility font
+                // scale left the label no second line to wrap onto and it was clipped instead:
+                // at scale 2.0 the sheet's only action read "Commencer un". The button grows
+                // to fit its label and keeps its 50.dp touch target at every ordinary scale.
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 shape    = DsShapes.large,
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
                 border   = androidx.compose.foundation.BorderStroke(1.5.dp, DsColors.Primary)
             ) {
-                Text(copy.startNew, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold)
+                Text(
+                    copy.startNew,
+                    fontSize   = DsTextSize.body,
+                    fontWeight = FontWeight.SemiBold,
+                    // Centres the second line too, once there is one.
+                    textAlign  = TextAlign.Center
+                )
             }
         }
     }
