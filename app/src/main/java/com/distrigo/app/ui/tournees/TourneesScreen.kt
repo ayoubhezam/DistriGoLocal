@@ -25,6 +25,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.CornerRibbon
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
@@ -34,8 +35,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -182,6 +181,7 @@ fun TourneeDetailScreen(
     var deleteVenteError        by remember { mutableStateOf("") }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var transientMessage        by remember { mutableStateOf<String?>(null) }
+    var venteQuery              by remember { mutableStateOf("") }
 
 
     LaunchedEffect(transientMessage) {
@@ -476,14 +476,98 @@ fun TourneeDetailScreen(
                     Spacer(Modifier.width(DsSpacing.md))
                 }
 
-                // ── Body: sticky clients section, then the bons ──
+                val ventes = current.ventes ?: emptyList()
+                // Matched on the two things written on a row: who it is for, and its number.
+                val shownVentes = remember(ventes, venteQuery) {
+                    val q = venteQuery.trim()
+                    if (q.isEmpty()) ventes
+                    else ventes.filter { v ->
+                        v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q)
+                    }
+                }
+
+                // ── Fixed above the list: progress, clients, search, count ──
+                //
+                // None of this scrolls, and none of it is a stickyHeader any more. A sticky header
+                // pins only until the next one arrives, so making "Bons" sticky in turn would have
+                // pushed the clients out of the way exactly when the list started moving. Outside
+                // the LazyColumn the whole block simply stays, and the list is the only thing left
+                // that can scroll.
+                TourneeTrackingSection(
+                    tourneeClients      = tourneeClients,
+                    // The unfiltered list on purpose: the avatars report what actually happened on
+                    // the tournée, which is not a function of what is typed in the search box.
+                    tourneeVentes       = ventes,
+                    isOpen              = current.status == "ouverte",
+                    onCreateSale        = { cid -> onCreateVente(cid) },
+                    onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
+                    onNavigateToVente   = { vente -> onOpenVente(vente) },
+                    onNoVenteTap        = { msg -> transientMessage = msg },
+                    onReopenSaleForVisited = { cid ->
+                        confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
+                    }
+                )
+
+                OutlinedTextField(
+                    value         = venteQuery,
+                    onValueChange = { venteQuery = it },
+                    placeholder   = { Text("Rechercher un client ou n° de bon...", fontSize = DsTextSize.bodySmall) },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
+                    trailingIcon  = {
+                        if (venteQuery.isNotEmpty()) {
+                            IconButton(onClick = { venteQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
+                            }
+                        }
+                    },
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = DsSpacing.lg)
+                        .clip(DsShapes.large),
+                    shape      = DsShapes.large,
+                    singleLine = true,
+                    colors     = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                // The counter chip Achats and Dépôt Vente head their lists with — sunken pill,
+                // 14dp receipt — and like theirs it counts what the search actually left.
+                Row(
+                    modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceSunken)
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                    ) {
+                        Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                        Text(
+                            "${shownVentes.size} bons",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                // ── The only thing that scrolls ──
                 LazyColumn(
                     modifier       = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = DsSpacing.lg)
                 ) {
-                    // All that survives of the old header. This is not tournée information
-                    // and not a statistic — it is a block on selling from an empty truck, and it
-                    // carries the way to fix that, so it stays.
+                    // Not tournée information and not a statistic — a block on selling from an
+                    // empty truck, carrying the way to fix it. It rides with the list rather than
+                    // the fixed block above, which is already as tall as it should get.
                     if (current.status == "ouverte") {
                         val totalCamionStock = products.sumOf { it.camion_stock }
                         if (totalCamionStock <= 0) {
@@ -491,7 +575,8 @@ fun TourneeDetailScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+                                        .padding(horizontal = DsSpacing.lg)
+                                        .padding(bottom = DsSpacing.md)
                                         .clip(DsShapes.large)
                                         .background(DsColors.DangerLight)
                                         .padding(DsSpacing.lg)
@@ -521,58 +606,8 @@ fun TourneeDetailScreen(
                         }
                     }
 
-                    stickyHeader {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(DsColors.Surface)
-                        ) {
-                            TourneeTrackingSection(
-                                tourneeClients      = tourneeClients,
-                                tourneeVentes       = current.ventes ?: emptyList(),
-                                isOpen              = current.status == "ouverte",
-                                onCreateSale        = { cid -> onCreateVente(cid) },
-                                onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
-                                onNavigateToVente   = { vente -> onOpenVente(vente) },
-                                onNoVenteTap        = { msg -> transientMessage = msg },
-                                onReopenSaleForVisited = { cid ->
-                                    confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
-                                }
-                            )
-                        }
-                    }
-
-                    val ventes = current.ventes ?: emptyList()
-
-                    if (ventes.isNotEmpty()) {
-                        item {
-                            // The counter chip Achats and Dépôt Vente head their lists with,
-                            // down to the sunken pill and the 14dp receipt, so the three read as
-                            // one family rather than three dialects.
-                            Row(
-                                modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(DsShapes.medium)
-                                        .background(DsColors.SurfaceSunken)
-                                        .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
-                                    verticalAlignment     = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
-                                ) {
-                                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
-                                    Text(
-                                        "${ventes.size} bons",
-                                        fontSize   = DsTextSize.caption,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color      = DsColors.TextSecondary
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(DsSpacing.sm))
-                        }
-                        items(ventes, key = { it.id }) { vente ->
+                    if (shownVentes.isNotEmpty()) {
+                        items(shownVentes, key = { it.id }) { vente ->
                             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs.div(2))) {
                                 TourneeVenteRow(
                                     vente       = vente,
@@ -588,7 +623,10 @@ fun TourneeDetailScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    "Aucune vente enregistrée dans cette tournée pour le moment.",
+                                    // Two different nothings: a tournée with no sales yet, and a
+                                    // search that matched none of the sales it does have.
+                                    if (ventes.isEmpty()) "Aucune vente enregistrée dans cette tournée pour le moment."
+                                    else                  "Aucun bon ne correspond à cette recherche.",
                                     fontSize  = DsTextSize.bodySmall,
                                     color     = DsColors.TextSecondary,
                                     textAlign = TextAlign.Center,
