@@ -1,8 +1,8 @@
-# Dépôt Vente — Brouillons (Phases 1–9)
+# Dépôt Vente — Brouillons (Phases 1–10)
 
 **Date:** 2026-09-03
 **Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection.
+**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection. Phase 10 closed the last untested path — a draft referencing a deleted product — and found six defects behind it, none of them a data risk and all of them the app misinforming the user.
 
 | Phase | Commit | State |
 |---|---|---|
@@ -15,6 +15,7 @@
 | 7 — card cosmetics fixed | `34fd840`, `6652bf9` | merged |
 | 8 — sheet height and meta line | `fd0545d` | merged |
 | 9 — filter and multi-selection | `2437778`, `c2bc82d` | merged |
+| 10 — the deleted-product block | `5fb56c9` | merged |
 
 ---
 
@@ -210,7 +211,7 @@ The entry path that actually mattered — ACHATS → Nouveau bon → select a su
 1. ~~Bidi rendering in the card meta line.~~ **Fixed in `34fd840`** — see §9 below.
 2. ~~Title truncation when a blocked draft also has a price.~~ **Fixed in `6652bf9`** — see §9 below.
 3. ~~Sheet with more than 4 drafts.~~ **Tested and fixed in `fd0545d`** — the overflow link was correct; the height the sheet opened at was not. See §10 below.
-4. **`missingProductIds` blocking** — a draft referencing a since-deleted product was never tested. Now the oldest untested item on the feature.
+4. ~~`missingProductIds` blocking.~~ **Tested and fixed in `5fb56c9`** — the path worked on Achats but could not be cleared, and did not exist at all on Dépôt Vente. Six defects in total; see §12 below.
 5. **The sheet's `verticalScroll` has never run** — added in `fd0545d` for a screen short enough, or a font scale large enough, that even the row-capped content overflows. No device here is small enough to trigger it. See §10.
 6. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
 
@@ -393,3 +394,102 @@ Test data restored afterwards.
 ### A process note (`c2bc82d`)
 
 The two DAOs were edited by a script that did not preserve line endings and flipped them to CRLF, turning a 9-line addition to each into a 74-line whole-file diff. The repo stores LF and `core.autocrlf` is `true`, so any rewrite that ignores endings will do this again. Corrected in a separate `style:` commit; the net change across the two commits is exactly the new method.
+
+---
+
+## 12. Phase 10 — the deleted-product block (`5fb56c9`)
+
+Open item 4 — a draft referencing a since-deleted product — was the last untested path on the feature. Testing it end to end found **six** defects, two of them substantive. Nothing was ever corrupted by any of them; every one was a matter of the app telling the user the wrong thing, or nothing.
+
+### How it was tested
+
+Throwaway products (`ZZ_ACHAT`, `ZZ_VENTE`) were created through the UI, put into a draft alongside a real product, and then deleted through the app's own delete path — no simulated divergence, unlike Phase 5's P8. Each draft was then resumed, corrected, and **completed**, and the resulting records were removed afterwards.
+
+### Defect 1 — Achats told the user to remove the line, then ignored them
+
+The block itself was right: the line survived under its stored name, the red status line named the cause, the confirm button was dead, and tapping it created nothing. Then the user did the one thing the message asked — and the button stayed dead.
+
+**Cause.** `_missingProductIds` was written only by `hydrate()` and cleared only by `resetForm()` / `onCommitted()`. `setFormCartItems` never touched it, so removing the offending line left its id in the set forever.
+
+**Severity: no data risk, but a dead end.** The draft on disk was already correct — 1 line, 80 DA, no missing product — while the form stayed un-saveable. The only escape was to leave the form entirely and resume the draft, which nothing on screen suggested. Proven rather than inferred: after the removal the button was still grey; after backing out and resuming the same draft it was green.
+
+**Fix.** Both session ViewModels prune the set in `setFormCartItems`:
+
+```kotlin
+private fun pruneMissingProducts(presentIds: Collection<Int>) {
+    val missing = _missingProductIds.value
+    if (missing.isEmpty()) return
+    _missingProductIds.value = missing intersect presentIds.toSet()
+}
+```
+
+Pruning only, never adding. Discovering that a product is missing takes a live catalogue lookup, which is `hydrate`'s job; this only lets the block lift.
+
+### Defect 2 — Dépôt Vente had no gate at all
+
+`VenteFormSessionViewModel` computed `missingProductIds` exactly as Achats did, and **nothing read it**. The confirm button stayed enabled.
+
+Pressing it threw `IllegalStateException("Produit introuvable: …")` from inside `createVente`'s `db.withTransaction`. Verified on device: ventes stayed at 21, the draft survived, no stock movements were written. The transaction is atomic, so this was never a data risk — but the button appeared to do nothing whatsoever, because of Defect 4 below.
+
+**Fix.** The same block Achats has: `missingProductIds.isNotEmpty()` guards `doSave`, and `hasMissingProducts` disables the button.
+
+### Defect 3 — Dépôt Vente reported the wrong problem
+
+A deleted product's placeholder carries stock 0, so the rupture branch fired and the cart line read **"Rupture — dépassement de 1 carton"** — telling the user to restock something the catalogue no longer holds. Advice that cannot be followed, on the one line that most needed to be understood.
+
+**Fix.** The missing state takes precedence over the stock state, in the wording Achats already used, and the stock progress bar goes with it — there is no stock to report on.
+
+### Defect 4 — the Validation step gave no reason
+
+Achats disabled the button and said nothing about why; the only marker was back on the cart step. Dépôt Vente's `saveError` banner existed but was the **last item of the validation LazyColumn**, which on a full screen sits below the fold *behind* the pinned confirm button — a failed save changed nothing the user could see.
+
+**Fix.** A shared `CartBlockingBanner`, docked between the scrolling form and the button so it cannot be scrolled away from the control it explains. Both flows use it for the block; Dépôt Vente's save error moves into the same slot. It carries a **"Corriger"** action, which is what makes it actionable rather than merely informative.
+
+**A per-flow difference, deliberately.** "Corriger" must land on the cart, and the two graphs leave different stacks behind them: the Achats cart's "Suivant" does `popUpTo(products)`, which pops the cart off, so Achats navigates to the cart route; the Vente cart is still the previous destination, so Vente pops back. Each graph passes what actually reaches the cart rather than sharing one assumption that is wrong in one of them.
+
+### Defect 5 — the instruction was truncated
+
+`CartStatusLine` was `maxLines = 1`, which suits a stock reading ("Reste 5 carton") but cut *"Produit supprimé — retirez cette ligne pour continuer"* at **"…pour co…"** — losing precisely the half that says what to do.
+
+**Fix.** `CartStatusLine` takes a `maxLines` parameter defaulting to 1. Only the missing-product callers pass 2, so every other status line in all three cart screens renders unchanged.
+
+### Defect 6 — deleting a product left the Produits tab blank
+
+Found incidentally while setting the test up, and unrelated to drafts.
+
+**Cause.** Two dialogs asked the same question — one owned by `ProductDetailScreen`, one by `ProduitsNavHost` — and both paths popped: the nav host's confirm button called `popBackStack()`, while the `product == null` branch below it popped as well once the row vanished. Two pops took two destinations off the stack.
+
+**Fix.** The duplicate dialog is gone. The surviving one names the product (which is what the removed one contributed) and keeps the supplier-unlink warning (which is what it contributed). `onDelete` now only deletes; the null branch does the single pop.
+
+### Verification
+
+On device, against both flows, with a real product alongside the deleted one so the healthy path stayed observable:
+
+| Check | Achats | Dépôt Vente |
+|---|---|---|
+| Line kept, named from the draft, total preserved | 280,00 DA | 370,00 DA |
+| Status line | "Produit supprimé…" in full, two lines | same (was "Rupture — dépassement") |
+| Healthy line unaffected | "Stock 10 → 11 carton" | "Reste 9 carton" + bar |
+| Confirm button | disabled | disabled (was enabled) |
+| Reason docked above the button | yes | yes |
+| "Corriger" opens the cart | yes | yes |
+| Removing the line re-enables the button **without leaving the form** | yes | yes |
+| Draft completes | bon #15, 80,00 DA | vente #24, 120,00 DA |
+| Draft deleted in the commit transaction | yes | yes |
+| Product deletion lands on the Produits list | one dialog, naming the product, no blank screen | — |
+
+### Device state after testing
+
+Everything created during the run was removed through the app's own paths — both test products, both drafts, and both completed records:
+
+| | |
+|---|---|
+| products | 34 |
+| ventes | 21 |
+| purchase orders | 13 |
+| `purchase_drafts` / `vente_drafts` | 0 / 0 |
+| product 34 stock | 10.0 (deducted then restored by deleting the vente) |
+| supplier AHMED | 360,00 DA |
+| client سوسن | 120,00 DA |
+
+No stock movements left referencing the test products, no `price_history` rows for them, and no DistriGo crash lines in logcat. Screen timeout restored.
