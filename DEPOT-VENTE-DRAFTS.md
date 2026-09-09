@@ -1,8 +1,8 @@
-# Dépôt Vente — Brouillons (Phases 1–10)
+# Dépôt Vente — Brouillons (Phases 1–11)
 
 **Date:** 2026-09-03
 **Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection. Phase 10 closed the last untested path — a draft referencing a deleted product — and found six defects behind it, none of them a data risk and all of them the app misinforming the user.
+**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection. Phase 10 closed the last untested path — a draft referencing a deleted product — and found six defects behind it, none of them a data risk and all of them the app misinforming the user. Phase 11 finally exercised the sheet's scroll guard, by font scale rather than by screen size, and closes the last open item that was ever testable here.
 
 | Phase | Commit | State |
 |---|---|---|
@@ -16,6 +16,7 @@
 | 8 — sheet height and meta line | `fd0545d` | merged |
 | 9 — filter and multi-selection | `2437778`, `c2bc82d` | merged |
 | 10 — the deleted-product block | `5fb56c9` | merged |
+| 11 — the sheet's scroll, at font scale 2.0 | `f914290` | merged |
 
 ---
 
@@ -212,7 +213,7 @@ The entry path that actually mattered — ACHATS → Nouveau bon → select a su
 2. ~~Title truncation when a blocked draft also has a price.~~ **Fixed in `6652bf9`** — see §9 below.
 3. ~~Sheet with more than 4 drafts.~~ **Tested and fixed in `fd0545d`** — the overflow link was correct; the height the sheet opened at was not. See §10 below.
 4. ~~`missingProductIds` blocking.~~ **Tested and fixed in `5fb56c9`** — the path worked on Achats but could not be cleared, and did not exist at all on Dépôt Vente. Six defects in total; see §12 below.
-5. **The sheet's `verticalScroll` has never run** — added in `fd0545d` for a screen short enough, or a font scale large enough, that even the row-capped content overflows. No device here is small enough to trigger it. See §10.
+5. ~~The sheet's `verticalScroll` has never run.~~ **Exercised and confirmed in Phase 11** — no device here is short enough, but `font_scale` 2.0 reaches the same condition. The scroll works; the test also found the sheet's action label clipped at that scale, fixed in `f914290`. See §13.
 6. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
 
 ---
@@ -493,3 +494,39 @@ Everything created during the run was removed through the app's own paths — bo
 | client سوسن | 120,00 DA |
 
 No stock movements left referencing the test products, no `price_history` rows for them, and no DistriGo crash lines in logcat. Screen timeout restored.
+
+---
+
+## 13. Phase 11 — the sheet's scroll, exercised at last (`f914290`)
+
+Open item 5 — the `verticalScroll` added in `fd0545d` for a screen or font scale the row cap does not cover — had never run. No device here is short enough to trigger it, but a **font scale** reaches the same condition from the other side, and `adb shell settings put system font_scale` sets one past anything the Settings UI offers.
+
+### The measurement
+
+Five Achats drafts, so the sheet renders its maximum content: `MAX_SHEET_ROWS` = 4 rows, plus "Voir tout (5)", the divider and "Commencer un nouveau bon".
+
+| `font_scale` | Result |
+|---|---|
+| 1.0 | Fits with room to spare — about 553dp of content on a 780dp screen. No scroll. |
+| 1.3 — Android's standard maximum | Sheet nearly fills the screen. Still fits, still no scroll. |
+| 2.0 — accessibility extreme | **Overflows.** The fourth row sits at the screen edge; "Voir tout (5)", the divider and the action are all below the fold. |
+
+At 2.0 the guard did exactly its job: swiping up scrolled the content, brought both hidden controls into reach, and stopped at the end — a second swipe changed nothing. Tapping the action *reachable only through that scroll* opened a new bon.
+
+So the scroll is not dead code. Without it, at 2.0 the sheet would trade `fd0545d`'s "must drag" for "cannot reach" — precisely the failure it was written against, and precisely what could not be demonstrated when it was written.
+
+**Two data points, not a sweep.** Where between 1.3 and 2.0 the overflow actually begins was not established, and does not need to be: the guard covers whatever is past it.
+
+### What the test found: the action's label was clipped
+
+At 2.0 the sheet's only action read **"Commencer un"**. `OutlinedButton` carried `Modifier.height(50.dp)` — a fixed height, so the label had no second line to wrap onto and was cut instead.
+
+**Fix.** `heightIn(min = 50.dp)`. The button keeps its 50dp touch target at every ordinary scale and grows to fit the label when it has to; the label gains `TextAlign.Center` so a wrapped second line is centred too. Verified at 2.0 — "Commencer un / nouveau bon" over two centred lines, still tappable, still opens a new bon — and at 1.0, where the sheet renders pixel-identically to before the change.
+
+### A wider observation, deliberately not acted on
+
+The same fixed-height clipping appears elsewhere at 2.0: the purchase form's top bar reads "Nou…" and its supplier button "Choisir un". This looks like an app-wide pattern rather than anything about the sheet, but it was only seen on the screens this test happened to cross, and no attempt was made to survey it. Recorded as an observation, not a finding.
+
+### Device state after testing
+
+Five drafts were created through the UI and removed afterwards with the multi-select bulk delete from Phase 9 — which incidentally exercised "Tout sélectionner", the heavier all-of-them confirmation, and a real `DELETE … WHERE id IN` of five rows. Back to 34 products, 21 ventes, 13 orders, both draft tables empty. `font_scale` restored to 1.0, screen timeout restored, no DistriGo crash lines.
