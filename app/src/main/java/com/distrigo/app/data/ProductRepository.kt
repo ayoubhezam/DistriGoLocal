@@ -1573,6 +1573,18 @@ class ProductRepository(
         id = this.id, nom = this.nom, communeName = this.commune_name, wilayaName = this.wilaya_name
     )
 
+    /**
+     * Detaches a client from a tournée's plan.
+     *
+     * The client record and any ventes already made to them are untouched: this removes a planned
+     * visit, not history. A vente made to this client stays on the tournée and keeps counting
+     * towards its total, which is why nothing else needs reversing here.
+     */
+    suspend fun removeClientFromTournee(tourneeId: Int, clientId: Int): Map<String, Any> {
+        db.tourneeClientDao().remove(tourneeId, clientId)
+        return mapOf("message" to "Client retiré de la tournée")
+    }
+
     suspend fun addClientsToTournee(tourneeId: Int, clientIds: List<Int>): Map<String, Any> {
         val existing = db.tourneeClientDao().getClientIdsForTournee(tourneeId).toSet()
         val toAdd = clientIds.filter { it !in existing }

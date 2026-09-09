@@ -93,6 +93,23 @@ class TourneeViewModel @Inject constructor(
         }
     }
 
+    fun removeClientFromTournee(
+        tourneeId : Int,
+        clientId  : Int,
+        onSuccess : () -> Unit,
+        onError   : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                repository.removeClientFromTournee(tourneeId, clientId)
+                loadTourneeClients(tourneeId)
+                onSuccess()
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
+
     fun setCurrentTourneeClient(
         tourneeId : Int,
         clientId  : Int,

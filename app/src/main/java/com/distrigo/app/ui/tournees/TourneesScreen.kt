@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.data.model.Vente
+import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -180,16 +181,10 @@ fun TourneeDetailScreen(
     var showDeleteVenteInTournee by remember { mutableStateOf(false) }
     var deleteVenteError        by remember { mutableStateOf("") }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
-    var transientMessage        by remember { mutableStateOf<String?>(null) }
     var venteQuery              by remember { mutableStateOf("") }
+    var confirmRemoveClient     by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
+    var removeClientError       by remember { mutableStateOf("") }
 
-
-    LaunchedEffect(transientMessage) {
-        if (transientMessage != null) {
-            kotlinx.coroutines.delay(2000)
-            transientMessage = null
-        }
-    }
 
     // ── Close Confirmation Dialog ──
     showCloseDialog?.let { tournee ->
@@ -224,6 +219,45 @@ fun TourneeDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCloseDialog = null; actionError = "" }) {
+                    Text("Annuler")
+                }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+
+    confirmRemoveClient?.let { info ->
+        AlertDialog(
+            onDismissRequest = { confirmRemoveClient = null; removeClientError = "" },
+            title = { Text("Retirer ce client ?", fontWeight = FontWeight.Bold) },
+            text  = {
+                Column {
+                    Text(
+                        "« ${bidiIsolate(info.client.name)} » sera retiré de la liste de cette " +
+                        "tournée. Les ventes déjà enregistrées pour ce client ne sont pas supprimées."
+                    )
+                    if (removeClientError.isNotEmpty()) {
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text(removeClientError, color = DsColors.Danger, fontSize = DsTextSize.caption)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeClientFromTournee(
+                        tourneeId = tourneeId,
+                        clientId  = info.client.id,
+                        onSuccess = { confirmRemoveClient = null; removeClientError = "" },
+                        onError   = { removeClientError = it }
+                    )
+                }) {
+                    Text("Retirer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemoveClient = null; removeClientError = "" }) {
                     Text("Annuler")
                 }
             },
@@ -501,8 +535,9 @@ fun TourneeDetailScreen(
                     isOpen              = current.status == "ouverte",
                     onCreateSale        = { cid -> onCreateVente(cid) },
                     onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
-                    onNavigateToVente   = { vente -> onOpenVente(vente) },
-                    onNoVenteTap        = { msg -> transientMessage = msg },
+                    onRemoveClient      = { cid ->
+                        confirmRemoveClient = tourneeClients.find { it.client.id == cid }
+                    },
                     onReopenSaleForVisited = { cid ->
                         confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
                     }
@@ -638,164 +673,213 @@ fun TourneeDetailScreen(
                 }
             }
         }
-
-        AnimatedVisibility(
-            visible = transientMessage != null,
-            modifier = Modifier.align(Alignment.Center)
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(DsShapes.medium)
-                    .background(DsColors.TextPrimary)
-                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-            ) {
-                Text(
-                    transientMessage ?: "",
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
     }
 }
 
 
-//TourneeClientQuickActionsCard بطاقة البيع الجديدة
+/**
+ * Everything a client circle can do, in one sheet.
+ *
+ * Replaces an inline card that expanded under the strip and pushed the whole list down, plus a
+ * long-press on the same circle that did something different again. One tap, one surface, every
+ * action visible at once — including the two the card had no room for.
+ *
+ * Rows are not hidden when their prerequisite is missing: a client with no phone still shows
+ * "Appeler", and says why when tapped. A row that vanishes teaches nothing; a row that explains
+ * itself sends the user to the client's file to fix it.
+ *
+ * Those explanations are Toasts rather than the screen's own transient banner, which draws
+ * inside the screen's Box and therefore *under* this sheet's window — it showed nothing at all.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TourneeClientQuickActionsCard(
+private fun TourneeClientActionsSheet(
     info          : com.distrigo.app.data.model.TourneeClientInfo,
     hasVente      : Boolean,
     isOpen        : Boolean,
     onCreateSale  : () -> Unit,
     onMarkVisited : () -> Unit,
-    onOpenVente   : () -> Unit,
-    onShowMessage : (String) -> Unit
+    onRemove      : () -> Unit,
+    onDismiss     : () -> Unit
 ) {
-    val client = info.client
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val client      = info.client
+    val context     = androidx.compose.ui.platform.LocalContext.current
     val hasLocation = client.latitude != null && client.longitude != null
-    val hasPhone = !client.phone.isNullOrBlank()
+    val hasPhone    = !client.phone.isNullOrBlank()
+    val isVisited   = info.status == "visite"
 
-    val isPending      = info.status == "a_visiter"
-    val isVisitedNoSale = info.status == "visite" && !hasVente
-    val isVisitedWithSale = info.status == "visite" && hasVente
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Primary, DsShapes.large)
-            .padding(DsSpacing.lg)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = DsColors.Surface
     ) {
-        Text(client.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        val address = listOfNotNull(client.address, client.commune_name, client.wilaya_name).joinToString(", ")
-        if (address.isNotEmpty()) {
-            Spacer(Modifier.height(2.dp))
-            Text(address, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        // ── Naviguer + Appeler (communes aux 3 cas) ──
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            if (hasLocation) {
-                Button(
-                    onClick = {
-                        try {
-                            val uri = android.net.Uri.parse("google.navigation:q=${client.latitude},${client.longitude}")
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri).apply {
-                                setPackage("com.google.android.apps.maps")
-                            }
-                            context.startActivity(intent)
-                        } catch (e: android.content.ActivityNotFoundException) {
-                            onShowMessage("Google Maps n'est pas installé sur cet appareil")
+        Column(Modifier.padding(bottom = DsSpacing.xxxl)) {
+            Column(Modifier.padding(horizontal = DsSpacing.lg)) {
+                Text(
+                    client.name,
+                    fontSize   = DsTextSize.headline,
+                    fontWeight = FontWeight.Bold,
+                    color      = DsColors.TextPrimary
+                )
+                // The address if there is one, the customer type otherwise: the sheet covers the
+                // client's own circle, so it has to say which client it is talking about.
+                val subtitle = listOfNotNull(client.address, client.commune_name)
+                    .joinToString(", ")
+                    .ifEmpty {
+                        when (client.customer_type) {
+                            "wholesale" -> "Gros"
+                            "business"  -> "Société"
+                            else        -> "Détail"
                         }
-                    },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-                ) {
-                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Naviguer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
-            }
-            OutlinedButton(
-                onClick = {
-                    if (hasPhone) {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:${client.phone}"))
-                        context.startActivity(intent)
-                    } else {
-                        onShowMessage("Ce client n'a pas de numéro de téléphone enregistré")
                     }
-                },
-                modifier = Modifier.weight(1f).height(44.dp),
-                shape    = DsShapes.medium
+                Spacer(Modifier.height(2.dp))
+                Text(subtitle, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+            }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            if (isOpen) {
+                TourneeClientActionRow(
+                    icon     = Icons.Default.ShoppingCart,
+                    tint     = DsColors.Primary,
+                    bg       = DsColors.PrimaryLight,
+                    title    = "Créer une vente",
+                    subtitle = "Nouvelle vente pour ce client",
+                    onClick  = onCreateSale
+                )
+            }
+
+            TourneeClientActionRow(
+                icon     = Icons.Default.Navigation,
+                tint     = DsColors.Success,
+                bg       = DsColors.SuccessLight,
+                title    = "Naviguer",
+                subtitle = "Ouvrir l'itinéraire dans la carte",
+                onClick  = {
+                    if (!hasLocation) {
+                        toast(context, "Aucune position enregistrée pour ce client")
+                    } else try {
+                        val uri = android.net.Uri.parse("google.navigation:q=${client.latitude},${client.longitude}")
+                        context.startActivity(
+                            android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                                .apply { setPackage("com.google.android.apps.maps") }
+                        )
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        toast(context, "Google Maps n'est pas installé sur cet appareil")
+                    }
+                }
+            )
+
+            TourneeClientActionRow(
+                icon     = Icons.Default.Call,
+                tint     = DsColors.Primary,
+                bg       = DsColors.PrimaryLight,
+                title    = "Appeler",
+                subtitle = "Appeler ce client",
+                onClick  = {
+                    if (!hasPhone) {
+                        toast(context, "Ce client n'a pas de numéro de téléphone enregistré")
+                    } else {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_DIAL,
+                                android.net.Uri.parse("tel:${client.phone}")
+                            )
+                        )
+                    }
+                }
+            )
+
+            // Nothing to mark on a closed tournée, and nothing to mark on a client already
+            // visited — the row would be a control that cannot change anything.
+            if (isOpen && !isVisited) {
+                TourneeClientActionRow(
+                    icon     = Icons.Default.RemoveShoppingCart,
+                    tint     = DsColors.Warning,
+                    bg       = DsColors.WarningLight,
+                    title    = "Marquer sans vente",
+                    subtitle = "Visité, mais aucune vente réalisée",
+                    onClick  = onMarkVisited
+                )
+            }
+
+            if (isOpen) {
+                TourneeClientActionRow(
+                    icon     = Icons.Default.Delete,
+                    tint     = DsColors.Danger,
+                    bg       = DsColors.DangerLight,
+                    title    = "Supprimer de la tournée",
+                    subtitle = if (hasVente) "Ses ventes restent enregistrées"
+                               else          "Retirer ce client de la liste",
+                    danger   = true,
+                    onClick  = onRemove
+                )
+            }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            OutlinedButton(
+                onClick  = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DsSpacing.lg)
+                    .heightIn(min = 50.dp),
+                shape    = DsShapes.large,
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
+                border   = androidx.compose.foundation.BorderStroke(1.5.dp, DsColors.Border)
             ) {
-                Icon(Icons.Default.Call, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(15.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Appeler", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        when {
-            // ── Cas 1 : Pas encore visité ──
-            isPending -> {
-                Button(
-                    onClick  = onCreateSale,
-                    enabled  = isOpen,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-                ) {
-                    Text("Créer une vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
-                Spacer(Modifier.height(DsSpacing.xs))
-                TextButton(
-                    onClick  = onMarkVisited,
-                    enabled  = isOpen,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Marquer visité (sans vente)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                }
-            }
-
-            // ── Cas 2 : Visité, sans vente ──
-            isVisitedNoSale -> {
-                Button(
-                    onClick  = onCreateSale,
-                    enabled  = isOpen,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.TextPrimary)
-                ) {
-                    Text("Créer une vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
-            }
-
-            // ── Cas 3 : Visité + vente ──
-            isVisitedWithSale -> {
-                OutlinedButton(
-                    onClick  = onOpenVente,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    shape    = DsShapes.medium
-                ) {
-                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Présenter le reçu de vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-                }
+                Text("Annuler", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
+private fun toast(context: android.content.Context, message: String) {
+    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+}
 
+@Composable
+private fun TourneeClientActionRow(
+    icon     : androidx.compose.ui.graphics.vector.ImageVector,
+    tint     : Color,
+    bg       : Color,
+    title    : String,
+    subtitle : String,
+    danger   : Boolean = false,
+    onClick  : () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
+    ) {
+        Box(
+            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(bg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                fontSize   = DsTextSize.body,
+                fontWeight = FontWeight.SemiBold,
+                color      = if (danger) DsColors.Danger else DsColors.TextPrimary
+            )
+            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        }
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint     = DsColors.TextTertiary,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun TourneeClientAvatarItem(
     info        : com.distrigo.app.data.model.TourneeClientInfo,
@@ -930,13 +1014,12 @@ private fun TourneeTrackingSection(
     isOpen              : Boolean,
     onCreateSale        : (Int) -> Unit,
     onMarkVisitedNoSale : (Int) -> Unit,
-    onNavigateToVente   : (Vente) -> Unit,
-    onNoVenteTap        : (String) -> Unit,
+    onRemoveClient      : (Int) -> Unit,
     onReopenSaleForVisited : (Int) -> Unit
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
     val total   = tourneeClients.size
-    var expandedClientId by remember { mutableStateOf<Int?>(null) }
+    var sheetClientId by remember { mutableStateOf<Int?>(null) }
     var showStatusLegend by remember { mutableStateOf(false) }
     if (total == 0) return
     val percent = (visited.size * 100) / total
@@ -1002,46 +1085,30 @@ private fun TourneeTrackingSection(
                     info      = info,
                     hasVente  = info.client.id in clientIdsWithVente,
                     enabled   = isOpen,
-                    onTap     = {
-                        expandedClientId = if (expandedClientId == info.client.id) null else info.client.id
-                    },
-                    onLongTap = {
-                        val hasVenteAlready = info.client.id in clientIdsWithVente
-                        when {
-                            info.status == "visite" && hasVenteAlready -> {
-                                val vente = tourneeVentes.filter { it.client_id == info.client.id }
-                                    .maxByOrNull { it.created_at ?: "" }
-                                if (vente != null) onNavigateToVente(vente)
-                            }
-                            info.status == "visite" && !hasVenteAlready -> {
-                                onNoVenteTap("${info.client.name} : aucune vente enregistrée")
-                            }
-                            else -> Unit
-                        }
-                    }
+                    onTap     = { sheetClientId = info.client.id },
+                    onLongTap = { sheetClientId = info.client.id }
                 )
             }
         }
 
         Spacer(Modifier.height(DsSpacing.sm))
 
-        expandedClientId?.let { expId ->
-            val expandedInfo = tourneeClients.find { it.client.id == expId }
-            if (expandedInfo != null) {
-                Spacer(Modifier.height(DsSpacing.md))
-                val hasVenteAlready = expId in clientIdsWithVente
-                TourneeClientQuickActionsCard(
-                    info          = expandedInfo,
-                    hasVente      = hasVenteAlready,
+        sheetClientId?.let { cid ->
+            val sheetInfo = tourneeClients.find { it.client.id == cid }
+            if (sheetInfo != null) {
+                TourneeClientActionsSheet(
+                    info          = sheetInfo,
+                    hasVente      = cid in clientIdsWithVente,
                     isOpen        = isOpen,
-                    onCreateSale  = { onCreateSale(expId) },
-                    onMarkVisited = { onMarkVisitedNoSale(expId); expandedClientId = null },
-                    onOpenVente   = {
-                        val vente = tourneeVentes.filter { it.client_id == expId }
-                            .maxByOrNull { it.created_at ?: "" }
-                        if (vente != null) onNavigateToVente(vente)
+                    // Same guard the inline card had: a client already served asks before a
+                    // second sale is opened for them, rather than silently starting one.
+                    onCreateSale  = {
+                        sheetClientId = null
+                        if (cid in clientIdsWithVente) onReopenSaleForVisited(cid) else onCreateSale(cid)
                     },
-                    onShowMessage = onNoVenteTap
+                    onMarkVisited = { sheetClientId = null; onMarkVisitedNoSale(cid) },
+                    onRemove      = { sheetClientId = null; onRemoveClient(cid) },
+                    onDismiss     = { sheetClientId = null }
                 )
             }
         }
