@@ -1314,10 +1314,6 @@ private fun TourneeVenteRow(
             .padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
-
-        Spacer(Modifier.width(DsSpacing.md))
-
         Column(modifier = Modifier.weight(1f)) {
             // The number a bon is actually referred to by, in the caption/Medium/secondary the
             // Dépôt Vente list already gives it — the two lists show the same records, so they
@@ -1336,7 +1332,10 @@ private fun TourneeVenteRow(
             )
         }
 
-        Column(horizontalAlignment = Alignment.End) {
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier            = Modifier.padding(end = 28.dp)
+        ) {
             Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
             Spacer(Modifier.height(4.dp))
             Box(
