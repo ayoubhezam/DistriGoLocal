@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.model.Product
 import androidx.compose.foundation.clickable
+import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.suppliers.formatDZD
 import androidx.activity.compose.BackHandler
 import com.distrigo.app.ui.designsystem.DsTopAppBar
@@ -114,10 +115,15 @@ fun ProductDetailScreen(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Supprimer le produit ?") },
             text  = {
+                // Naming the product is the point of the confirmation, and it is what the second
+                // dialog behind this one used to contribute before it was removed as redundant.
+                // Isolated because most names in this catalogue are Arabic and this is a sentence.
+                val name = bidiIsolate(currentProduct.name)
                 if (currentProduct.supplier_name != null) {
-                    Text("Ce produit est lié au fournisseur ${currentProduct.supplier_name}. Il sera dissocié puis supprimé définitivement.")
+                    Text("« $name » est lié au fournisseur ${bidiIsolate(currentProduct.supplier_name)}. " +
+                         "Il sera dissocié puis supprimé définitivement.")
                 } else {
-                    Text("Voulez-vous supprimer ce produit définitivement ?")
+                    Text("« $name » sera supprimé définitivement. Cette action est irréversible.")
                 }
             },
             confirmButton = {

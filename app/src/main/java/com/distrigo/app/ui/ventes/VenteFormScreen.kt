@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.ui.common.CartBlockingBanner
 import com.distrigo.app.ui.common.CartStatusLine
 import com.distrigo.app.ui.common.CartStatusTone
 import com.distrigo.app.ui.common.PriceFieldWithHistory
@@ -237,7 +238,16 @@ internal fun Step3Validation(
     onUserNameChange    : (String) -> Unit,
     isSaving            : Boolean,
     saveError           : String,
+    /**
+     * A restored draft may reference a product that has since been deleted. Saving would throw
+     * "Produit introuvable" inside the commit transaction: it rolls back cleanly, so nothing is
+     * corrupted, but the user is left pressing a button that silently does nothing. The button
+     * goes dead until the offending line is removed — the cart step marks which one it is.
+     */
+    hasMissingProducts  : Boolean = false,
     onBack              : () -> Unit,
+    /** Where "Corriger" goes. Here the cart is the previous destination, so it is [onBack]. */
+    onFixMissing        : () -> Unit = onBack,
     onConfirm           : () -> Unit
 )    {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -454,28 +464,28 @@ internal fun Step3Validation(
                 )
             }
 
-            // ── Erreur de sauvegarde ──
-            item {
-                if (saveError.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.medium)
-                            .background(DsColors.DangerLight)
-                            .padding(DsSpacing.md),
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(18.dp))
-                        Text(saveError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
-                    }
-                }
-            }
+        }
+
+        // Both reasons a save cannot proceed, docked against the button they concern. The save
+        // error used to be the last item of the list above, which on a full validation screen
+        // sits below the fold behind this button: a failed save changed nothing the user could
+        // see. They are mutually exclusive — the gate below means a missing product can no
+        // longer be the thing that produced an error.
+        if (hasMissingProducts) {
+            CartBlockingBanner(
+                text        = "Un produit de cette vente n'existe plus dans le catalogue. " +
+                              "Retirez sa ligne de la sélection pour pouvoir enregistrer.",
+                actionLabel = "Corriger",
+                onAction    = onFixMissing
+            )
+        } else if (saveError.isNotEmpty()) {
+            CartBlockingBanner(text = saveError)
         }
 
         // ── Confirm button ──
         Button(
             onClick  = onConfirm,
-            enabled  = !isSaving && selectedClient != null && cartItems.isNotEmpty(),
+            enabled  = !isSaving && !hasMissingProducts && selectedClient != null && cartItems.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
@@ -502,6 +512,8 @@ internal fun Step3Validation(
 @Composable
 internal fun VenteCartRow(
     item             : VenteCartItem,
+    /** The catalogue no longer has this product; the line survives on the draft's own copy. */
+    isMissingProduct : Boolean = false,
     isExpanded       : Boolean,
     onToggleExpand   : () -> Unit,
     onQuantityChange : (Double) -> Unit,
@@ -525,15 +537,22 @@ internal fun VenteCartRow(
         }
     }
 
+    // A product that no longer exists is not a stock problem, and must not be reported as one.
+    // Its placeholder carries stock 0, so the rupture branch fires and tells the user to restock
+    // something the catalogue no longer holds — advice that cannot be followed. The missing
+    // state takes precedence, in the wording Achats already uses for it.
     val tone = when {
-        isNegative -> CartStatusTone.DANGER
-        isLow      -> CartStatusTone.WARNING
-        else       -> CartStatusTone.OK
+        isMissingProduct -> CartStatusTone.DANGER
+        isNegative       -> CartStatusTone.DANGER
+        isLow            -> CartStatusTone.WARNING
+        else             -> CartStatusTone.OK
     }
-    val statusText = if (isNegative)
-        "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} ${item.product.unit_type}"
-    else
-        "Reste ${formatQty(remainingAfter)} ${item.product.unit_type}"
+    val statusText = when {
+        isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
+        isNegative       ->
+            "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} ${item.product.unit_type}"
+        else             -> "Reste ${formatQty(remainingAfter)} ${item.product.unit_type}"
+    }
 
     SelectionCartCard(
         avatarIcon      = Icons.Default.ShoppingCart,
@@ -542,13 +561,16 @@ internal fun VenteCartRow(
         totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
         isExpanded      = isExpanded,
         onToggleExpand  = onToggleExpand,
-        isDanger        = isNegative,
+        isDanger        = isNegative || isMissingProduct,
         statusLine = {
             CartStatusLine(
-                icon             = if (isNegative) Icons.Default.Warning else Icons.Default.Inventory2,
+                icon             = if (isNegative || isMissingProduct) Icons.Default.Warning
+                                   else Icons.Default.Inventory2,
                 text             = statusText,
                 tone             = tone,
-                progressFraction = progressFraction
+                // No stock bar for a product with no stock to report on.
+                progressFraction = if (isMissingProduct) null else progressFraction,
+                maxLines         = if (isMissingProduct) 2 else 1
             )
         },
         expandedContent = {

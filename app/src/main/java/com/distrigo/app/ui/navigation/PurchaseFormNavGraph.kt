@@ -823,7 +823,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     if (isMissingProduct) CartStatusLine(
                                         icon = Icons.Default.WarningAmber,
                                         text = "Produit supprimé — retirez cette ligne pour continuer",
-                                        tone = CartStatusTone.DANGER
+                                        tone = CartStatusTone.DANGER,
+                                        // Two lines: this one is an instruction, and at one line the
+                                        // column cut it at "pour co…" — the actionable half.
+                                        maxLines = 2
                                     ) else CartStatusLine(
                                         icon = Icons.Default.ArrowUpward,
                                         text = "Stock ${formatQty(item.product.stock)} → ${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
@@ -1127,6 +1130,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isSaving            = isSaving,
                     hasMissingProducts  = missingProductIds.isNotEmpty(),
                     onBack              = { navController.popBackStack() },
+                    // The cart, not popBackStack: reaching this step pops the cart off
+                    // (see the cart's own "Suivant", which popUpTo's the product list), so
+                    // going back would land on the products rather than on the line to remove.
+                    onFixMissing        = { navController.navigate(Screen.PurchaseFormCart.route) },
                     onConfirm           = { doSave() }
                 )
             }

@@ -195,6 +195,10 @@ fun CartStatusLine(
     text: String,
     tone: CartStatusTone,
     progressFraction: Float? = null,
+    // One line suits a stock reading ("Reste 5 carton"). It does not suit an instruction:
+    // "Produit supprimé — retirez cette ligne pour continuer" was being cut at "pour co…",
+    // losing exactly the half that tells the user what to do about it.
+    maxLines: Int = 1,
     modifier: Modifier = Modifier
 ) {
     val (bg, content) = when (tone) {
@@ -220,7 +224,7 @@ fun CartStatusLine(
             fontSize   = DsTextSize.caption,
             fontWeight = FontWeight.SemiBold,
             color      = content,
-            maxLines   = 1,
+            maxLines   = maxLines,
             overflow   = TextOverflow.Ellipsis,
             modifier   = Modifier.weight(1f)
         )
@@ -238,6 +242,62 @@ fun CartStatusLine(
                         .fillMaxWidth(progressFraction.coerceIn(0f, 1f))
                         .clip(DsShapes.pill)
                         .background(content)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The docked reason a save is blocked or has just failed.
+ *
+ * Docked, not the last item of the scrolling form: that is where the Dépôt Vente save error used
+ * to live, and on a full validation screen it sat below the fold *behind* the pinned confirm
+ * button — a save could fail with nothing visible changing at all. Here it is pressed against the
+ * control it explains, so it cannot be scrolled away from it.
+ *
+ * [actionLabel]/[onAction] are what make it actionable rather than merely informative: a blocked
+ * save can offer the step that clears it, instead of leaving the user to guess which one that is.
+ */
+@Composable
+fun CartBlockingBanner(
+    text        : String,
+    modifier    : Modifier = Modifier,
+    actionLabel : String? = null,
+    onAction    : (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = DsSpacing.lg)
+            .padding(top = DsSpacing.md)
+            .clip(DsShapes.medium)
+            .background(DsColors.DangerLight)
+            .padding(start = DsSpacing.md, end = if (actionLabel == null) DsSpacing.md else DsSpacing.xs)
+            .padding(vertical = if (actionLabel == null) DsSpacing.md else DsSpacing.xs),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+    ) {
+        Icon(
+            Icons.Default.Warning,
+            contentDescription = null,
+            tint     = DsColors.Danger,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text,
+            fontSize   = DsTextSize.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color      = DsColors.Danger,
+            modifier   = Modifier.weight(1f)
+        )
+        if (actionLabel != null && onAction != null) {
+            TextButton(onClick = onAction) {
+                Text(
+                    actionLabel,
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = DsColors.Danger
                 )
             }
         }

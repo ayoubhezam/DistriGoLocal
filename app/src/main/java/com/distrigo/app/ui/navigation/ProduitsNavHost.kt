@@ -9,10 +9,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.distrigo.app.ui.products.*
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.distrigo.app.ui.designsystem.DsColors
-import androidx.compose.material3.Text
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.distrigo.app.ui.mouvements.MouvementsScreen
 import androidx.navigation.compose.navigation
@@ -80,39 +76,25 @@ fun ProduitsNavHost(
             val productId = entry.arguments!!.getInt("productId")
             val products by viewModel.products.collectAsState()
             val product = products.find { it.id == productId }
-            var showDeleteConfirm by remember { mutableStateOf(false) }
 
             if (product != null) {
                 ProductDetailScreen(
                     product         = product,
                     viewModel       = viewModel,
                     onBack          = { navController.popBackStack() },
-                    onDelete        = { showDeleteConfirm = true },
+                    // Deletes, and does not pop. The screen owns the confirmation, and the branch
+                    // below already pops once the product is gone from the catalogue.
+                    //
+                    // Doing both raced, and the race is what left the Produits tab blank: the row
+                    // vanished, `product` went null, the branch below popped the detail — and the
+                    // pop that used to sit here took a second destination off the stack with it.
+                    // A second dialog lived here too, asking what the screen had just asked.
+                    onDelete        = { viewModel.deleteProduct(productId) },
                     onEdit          = { navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
                     onViewMovements = { navController.navigate(Screen.ProduitsMovementsGraph.createRoute(productId)) },
                     onInfoGenerales = { navController.navigate(Screen.ProduitsInfoGenerales.createRoute(productId)) },
                     onStockPrix     = { navController.navigate(Screen.ProduitsStockPrix.createRoute(productId)) }
                 )
-                if (showDeleteConfirm) {
-                    AlertDialog(
-                        onDismissRequest = { showDeleteConfirm = false },
-                        title = { Text("Supprimer le produit") },
-                        text  = { Text("Voulez-vous supprimer \"${product.name}\" ?") },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                viewModel.deleteProduct(productId)
-                                showDeleteConfirm = false
-                                navController.popBackStack()
-                            }) { Text("Supprimer", color = DsColors.Danger) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showDeleteConfirm = false }) { Text("Annuler") }
-                        },
-                        containerColor    = DsColors.Surface,
-                        titleContentColor = DsColors.TextPrimary,
-                        textContentColor  = DsColors.TextSecondary
-                    )
-                }
             } else {
                 LaunchedEffect(Unit) { navController.popBackStack() }
             }

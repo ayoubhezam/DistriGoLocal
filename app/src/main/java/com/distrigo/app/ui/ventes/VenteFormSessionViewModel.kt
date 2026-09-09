@@ -70,7 +70,10 @@ class VenteFormSessionViewModel @Inject constructor(
     val formMontantPaye: StateFlow<String> = _formMontantPaye
 
     fun setFormClient(client: Client?) { _formClient.value = client }
-    fun setFormCartItems(items: List<VenteCartItem>) { _formCartItems.value = items }
+    fun setFormCartItems(items: List<VenteCartItem>) {
+        _formCartItems.value = items
+        pruneMissingProducts(items.map { it.product.id })
+    }
     fun setFormNote(note: String) { _formNote.value = note }
     fun setFormUserName(name: String) { _formUserName.value = name }
     fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
@@ -90,6 +93,23 @@ class VenteFormSessionViewModel @Inject constructor(
      */
     private val _missingProductIds = MutableStateFlow<Set<Int>>(emptySet())
     val missingProductIds: StateFlow<Set<Int>> = _missingProductIds
+
+    /**
+     * Drops ids whose cart line has gone.
+     *
+     * Only [hydrate] can *discover* that a product is missing — that needs a live catalogue lookup
+     * — so this never adds to the set. It only lets the block lift when the user does the very
+     * thing the cart line asks of them.
+     *
+     * Without it the block outlived its cause: "retirez cette ligne pour continuer" removed the
+     * line, the id stayed behind, and the form stayed un-saveable until the user backed out and
+     * resumed the draft — a way out that nothing on screen suggested.
+     */
+    private fun pruneMissingProducts(presentIds: Collection<Int>) {
+        val missing = _missingProductIds.value
+        if (missing.isEmpty()) return
+        _missingProductIds.value = missing intersect presentIds.toSet()
+    }
 
     /**
      * The committed vente's `source` ("depot" / "camion") in edit mode, null for a new vente.

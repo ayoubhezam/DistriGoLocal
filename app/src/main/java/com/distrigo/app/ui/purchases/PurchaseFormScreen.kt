@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.Supplier
+import com.distrigo.app.ui.common.CartBlockingBanner
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
@@ -247,6 +248,12 @@ internal fun Step3Validation(
      */
     hasMissingProducts      : Boolean = false,
     onBack                  : () -> Unit,
+    /**
+     * Where "Corriger" on the blocking banner goes: the cart, the only place the offending
+     * line can be removed. Separate from [onBack] because the cart is popped off the stack on
+     * the way to this step, so going back lands on the product list instead.
+     */
+    onFixMissing            : () -> Unit = onBack,
     onConfirm               : () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -461,6 +468,18 @@ internal fun Step3Validation(
                     )
                 )
             }
+        }
+
+        // The reason for a dead button, docked against the button itself. Before this the
+        // only marker was back on the cart step, so this screen offered a greyed-out control
+        // and no account of why — the one thing the user needed in order to act.
+        if (hasMissingProducts) {
+            CartBlockingBanner(
+                text        = "Un produit de ce bon n'existe plus dans le catalogue. " +
+                              "Retirez sa ligne de la sélection pour pouvoir enregistrer.",
+                actionLabel = "Corriger",
+                onAction    = onFixMissing
+            )
         }
 
         // ── Confirm button ──

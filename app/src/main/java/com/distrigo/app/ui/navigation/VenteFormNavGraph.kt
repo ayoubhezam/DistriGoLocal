@@ -480,6 +480,7 @@ fun NavGraphBuilder.venteFormGraph(
             val products by productViewModel.products.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             LaunchedEffect(products) {
@@ -587,6 +588,12 @@ fun NavGraphBuilder.venteFormGraph(
                             } else {
                                 VenteCartRow(
                                     item             = item,
+                                    // A restored draft can name a product that has since been
+                                    // deleted. The line stays visible, under the name the draft
+                                    // stored, because dropping it silently would change a total
+                                    // the user remembers — but validation is blocked until they
+                                    // remove it themselves.
+                                    isMissingProduct = item.product.id in missingProductIds,
                                     isExpanded       = isRowExpanded,
                                     onToggleExpand   = toggleExpand,
                                     onQuantityChange = changeQuantity,
@@ -669,12 +676,19 @@ fun NavGraphBuilder.venteFormGraph(
             val note by session.formNote.collectAsState()
             val userName by session.formUserName.collectAsState()
             val montantPaye by session.formMontantPaye.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
             fun doSave() {
                 if (formClient == null) return
+                // A restored draft can reference a product that has since been deleted. Saving
+                // anyway throws "Produit introuvable" inside the commit transaction — it rolls
+                // back, so nothing is corrupted, but the button appears to do nothing at all.
+                // The line has to go first. The cart step marks it; this is the block behind
+                // that marker, matching what Achats has always done.
+                if (missingProductIds.isNotEmpty()) return
                 isSaving = true; saveError = ""
                 val items = cartItems.map { ci ->
                     mapOf("product_id" to ci.product.id, "quantity" to ci.quantity, "unit_price" to ci.unitPrice)
@@ -722,6 +736,7 @@ fun NavGraphBuilder.venteFormGraph(
                 onUserNameChange    = { session.setFormUserName(it) },
                 isSaving            = isSaving,
                 saveError           = saveError,
+                hasMissingProducts  = missingProductIds.isNotEmpty(),
                 onBack              = { navController.popBackStack() },
                 onConfirm           = { doSave() }
             )
