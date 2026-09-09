@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,18 +32,14 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
-import com.distrigo.app.ui.designsystem.dsCollapsingHeader
-import com.distrigo.app.ui.designsystem.rememberDsCollapsingHeaderState
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -188,17 +183,6 @@ fun TourneeDetailScreen(
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var transientMessage        by remember { mutableStateOf<String?>(null) }
 
-    // ── Collapsing header (exitUntilCollapsed) ──
-    val listState = rememberLazyListState()
-    // No fling guard. This screen used to pass one that swallowed a fling's scroll deltas once the
-    // list reached the tickets boundary, to stop momentum coasting up into the sticky avatars
-    // section. Two things were wrong with it: the boundary was the fourth item, so nearly every
-    // upward fling crossed it immediately, and swallowing deltas in onPreScroll does not end the
-    // fling — the animation kept running, unable to move anything, so the list sat frozen for the
-    // rest of the decay and ignored further input. Measured on device: 450ms after release, not a
-    // single pixel had changed. The client and supplier details use this same header with no
-    // guard and scroll normally, which is the behaviour restored here.
-    val collapsingHeader = rememberDsCollapsingHeaderState()
 
     LaunchedEffect(transientMessage) {
         if (transientMessage != null) {
@@ -447,12 +431,37 @@ fun TourneeDetailScreen(
                         IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
                         }
+                        // Both of the screen's former in-body actions live here now. The body
+                        // is the list of clients and bons; adding a client and closing the tournée
+                        // are things you do to the tournée, not things you read off it.
                         DropdownMenu(expanded = showTourneeMenu, onDismissRequest = { showTourneeMenu = false }) {
+                            if (current.status == "ouverte") {
+                                DropdownMenuItem(
+                                    text        = { Text("Ajouter un client") },
+                                    leadingIcon = { Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary) },
+                                    onClick     = { showTourneeMenu = false; onAddClients() }
+                                )
+                            }
                             DropdownMenuItem(
                                 text        = { Text("Modifier les informations") },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                                 onClick     = { showTourneeMenu = false; onEditTournee(current) }
                             )
+                            if (current.status == "ouverte") {
+                                DropdownMenuItem(
+                                    text        = { Text("Clôturer la tournée") },
+                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = DsColors.Danger) },
+                                    onClick     = { showTourneeMenu = false; showCloseDialog = current }
+                                )
+                            } else {
+                                // Not asked for, but it shared the block that was removed, and
+                                // dropping it would leave a closed tournée with no way to reopen.
+                                DropdownMenuItem(
+                                    text        = { Text("Rouvrir") },
+                                    leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Primary) },
+                                    onClick     = { showTourneeMenu = false; showReopenDialog = current }
+                                )
+                            }
                             if ((current.ventes_count ?: 0) == 0) {
                                 DropdownMenuItem(
                                     text        = { Text("Supprimer la tournée") },
@@ -467,170 +476,47 @@ fun TourneeDetailScreen(
                     Spacer(Modifier.width(DsSpacing.md))
                 }
 
-                // ── Body: single LazyColumn — collapsing header item, sticky clients section, free-scrolling tickets ──
+                // ── Body: sticky clients section, then the bons ──
                 LazyColumn(
-                    state          = listState,
-                    modifier       = Modifier.weight(1f).fillMaxWidth().nestedScroll(collapsingHeader.nestedScrollConnection),
+                    modifier       = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = DsSpacing.lg)
                 ) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .dsCollapsingHeader(collapsingHeader)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    // Read in the draw phase, not in composition. collapsedFraction
-                                    // changes every frame the header moves, and a composition-phase
-                                    // read of it recomposed this whole block — the info card, the
-                                    // action button, the stat pages — on each of those frames.
-                                    // graphicsLayer's lambda defers it to draw, so a collapse
-                                    // re-draws instead of re-composing.
-                                    .graphicsLayer {
-                                        alpha = (1f - collapsingHeader.collapsedFraction * 2f)
-                                            .coerceIn(0f, 1f)
-                                    }
-                                    .padding(DsSpacing.lg)
-                            ) {
-                                // ── Carte d'informations ──
+                    // All that survives of the old header. This is not tournée information
+                    // and not a statistic — it is a block on selling from an empty truck, and it
+                    // carries the way to fix that, so it stays.
+                    if (current.status == "ouverte") {
+                        val totalCamionStock = products.sumOf { it.camion_stock }
+                        if (totalCamionStock <= 0) {
+                            item {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                                         .clip(DsShapes.large)
-                                        .background(DsColors.Surface)
-                                        .border(1.dp, DsColors.Border, DsShapes.large)
+                                        .background(DsColors.DangerLight)
                                         .padding(DsSpacing.lg)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
-                                        }
-                                        Spacer(Modifier.width(DsSpacing.md))
-                                        TourneeStatusBadge(status = current.status)
+                                        Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(DsSpacing.sm))
+                                        Text("Camion vide", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                                     }
-
-                                    val details = listOfNotNull(current.commune_name, current.wilaya_name).joinToString(", ")
-                                    if (details.isNotEmpty()) {
-                                        Spacer(Modifier.height(DsSpacing.sm))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
-                                            Spacer(Modifier.width(6.dp))
-                                            Text(details, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                                        }
-                                    }
-
-                                    current.date_debut?.let { date ->
-                                        Spacer(Modifier.height(4.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
-                                            Spacer(Modifier.width(6.dp))
-                                            Text(formatOrderDate(date.take(10)), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                                        }
-                                    }
-                                }
-
-                                Spacer(Modifier.height(DsSpacing.md))
-
-                                // ── Action principale ──
-                                if (current.status == "ouverte") {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
+                                        fontSize = DsTextSize.caption,
+                                        color    = DsColors.Danger
+                                    )
+                                    Spacer(Modifier.height(DsSpacing.sm))
                                     Button(
-                                        onClick  = { showCloseDialog = current },
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        onClick  = { onNavigateToChargement() },
+                                        modifier = Modifier.fillMaxWidth().height(44.dp),
                                         shape    = DsShapes.medium,
                                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                                     ) {
-                                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                        Spacer(Modifier.width(DsSpacing.xs))
-                                        Text("Clôturer la tournée", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                } else {
-                                    Button(
-                                        onClick  = { showReopenDialog = current },
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        shape    = DsShapes.medium,
-                                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-                                    ) {
-                                        Text("Rouvrir", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
                                     }
                                 }
-
-                                if (current.status == "ouverte") {
-                                    val totalCamionStock = products.sumOf { it.camion_stock }
-                                    if (totalCamionStock <= 0) {
-                                        Spacer(Modifier.height(DsSpacing.md))
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(DsShapes.large)
-                                                .background(DsColors.DangerLight)
-                                                .padding(DsSpacing.lg)
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                                                Spacer(Modifier.width(DsSpacing.sm))
-                                                Text(
-                                                    "Camion vide",
-                                                    fontSize = DsTextSize.body,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = DsColors.Danger
-                                                )
-                                            }
-                                            Spacer(Modifier.height(4.dp))
-                                            Text(
-                                                "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
-                                                fontSize = DsTextSize.caption,
-                                                color = DsColors.Danger
-                                            )
-                                            Spacer(Modifier.height(DsSpacing.sm))
-                                            Button(
-                                                onClick = { onNavigateToChargement() },
-                                                modifier = Modifier.fillMaxWidth().height(44.dp),
-                                                shape = DsShapes.medium,
-                                                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
-                                            ) {
-                                                Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (current.status == "ouverte") {
-                                    Spacer(Modifier.height(DsSpacing.md))
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(DsShapes.large)
-                                            .background(
-                                                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                                    colors = listOf(DsColors.Primary, DsColors.Primary.copy(alpha = 0.75f))
-                                                )
-                                            )
-                                            .clickable { onAddClients() }
-                                            .padding(DsSpacing.lg),
-                                        verticalAlignment     = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                                    ) {
-                                        Box(
-                                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(Color.White.copy(alpha = 0.2f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                        }
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("Ajouter des clients", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = Color.White)
-                                            Text("Sélectionner les clients à visiter", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.85f))
-                                        }
-                                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                    }
-                                }
-
-                                Spacer(Modifier.height(DsSpacing.md))
-                                TourneeStatsCarousel(current = current, tourneeClients = tourneeClients)
                             }
                         }
                     }
@@ -649,7 +535,6 @@ fun TourneeDetailScreen(
                                 onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
                                 onNavigateToVente   = { vente -> onOpenVente(vente) },
                                 onNoVenteTap        = { msg -> transientMessage = msg },
-                                onAddClient         = { onAddClients() },
                                 onReopenSaleForVisited = { cid ->
                                     confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
                                 }
@@ -661,13 +546,29 @@ fun TourneeDetailScreen(
 
                     if (ventes.isNotEmpty()) {
                         item {
+                            // The counter chip Achats and Dépôt Vente head their lists with,
+                            // down to the sunken pill and the 14dp receipt, so the three read as
+                            // one family rather than three dialects.
                             Row(
-                                modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                                verticalAlignment     = Alignment.CenterVertically
+                                modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Tickets de vente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                Row(
+                                    modifier = Modifier
+                                        .clip(DsShapes.medium)
+                                        .background(DsColors.SurfaceSunken)
+                                        .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                                ) {
+                                    Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                                    Text(
+                                        "${ventes.size} bons",
+                                        fontSize   = DsTextSize.caption,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = DsColors.TextSecondary
+                                    )
+                                }
                             }
                             Spacer(Modifier.height(DsSpacing.sm))
                         }
@@ -972,37 +873,6 @@ private fun TourneeClientAvatarItem(
 }
 
 @Composable
-private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(72.dp)
-            .clickable { onClick() }
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(DsShapes.pill)
-                .background(DsColors.PrimaryLight)
-                .border(1.5.dp, DsColors.Primary, DsShapes.pill),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(24.dp))
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Ajouter un client",
-            fontSize = DsTextSize.caption,
-            fontWeight = FontWeight.Bold,
-            color = DsColors.Primary,
-            maxLines = 2,
-            textAlign = TextAlign.Center,
-            lineHeight = 12.sp
-        )
-    }
-}
-
-@Composable
 private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
@@ -1024,19 +894,58 @@ private fun TourneeTrackingSection(
     onMarkVisitedNoSale : (Int) -> Unit,
     onNavigateToVente   : (Vente) -> Unit,
     onNoVenteTap        : (String) -> Unit,
-    onAddClient         : () -> Unit,
     onReopenSaleForVisited : (Int) -> Unit
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
     val total   = tourneeClients.size
     var expandedClientId by remember { mutableStateOf<Int?>(null) }
+    var showStatusLegend by remember { mutableStateOf(false) }
     if (total == 0) return
     val percent = (visited.size * 100) / total
 
+    // The three visit statuses used to sit in a permanent bar under the avatars, spending a row
+    // of the screen on something you need once — when you first meet the colours — and never
+    // again. On demand instead, from the line directly above the avatars it explains.
+    if (showStatusLegend) {
+        AlertDialog(
+            onDismissRequest = { showStatusLegend = false },
+            title = { Text("Statuts de visite", fontWeight = FontWeight.Bold) },
+            text  = {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                    TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente")
+                    TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente")
+                    TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showStatusLegend = false }) {
+                    Text("Compris", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+
     Column(modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
             Text("${visited.size}/$total clients visités", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            Text("$percent%", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("$percent%", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                IconButton(onClick = { showStatusLegend = true }, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = "Statuts de visite",
+                        tint               = DsColors.TextSecondary,
+                        modifier           = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(6.dp))
         Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill).background(DsColors.Border)) {
@@ -1050,25 +959,6 @@ private fun TourneeTrackingSection(
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
-            // "Ajouter un client" leads the strip rather than trailing it. At the end it sat past
-            // however many clients the tournée has and needed a scroll to reach; at the head it is
-            // always in the same place, and the rule after it keeps it from reading as the first
-            // client in the row.
-            if (isOpen) {
-                item(key = "add_client") {
-                    TourneeAddClientAvatarItem(onClick = onAddClient)
-                }
-                item(key = "add_client_divider") {
-                    VerticalDivider(
-                        // Matches the avatar circle rather than the whole item, so the rule stops
-                        // level with the circles instead of running down past their labels.
-                        modifier  = Modifier.height(64.dp),
-                        color     = DsColors.Border,
-                        thickness = 1.dp
-                    )
-                }
-            }
-
             items(tourneeClients, key = { it.client.id }) { info ->
                 TourneeClientAvatarItem(
                     info      = info,
@@ -1116,19 +1006,6 @@ private fun TourneeTrackingSection(
                     onShowMessage = onNoVenteTap
                 )
             }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(DsShapes.medium)
-                .background(DsColors.SurfaceMuted)
-                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            TourneeAvatarLegendDot(color = DsColors.Success, icon = Icons.Default.Check, label = "Visité + vente")
-            TourneeAvatarLegendDot(color = DsColors.Warning, icon = Icons.Default.ShoppingCart, label = "Visité, sans vente")
-            TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule, label = "Pas encore visité")
         }
 
         Spacer(Modifier.height(DsSpacing.md))
@@ -1279,136 +1156,6 @@ private fun TourneeStatBox(modifier: Modifier = Modifier, label: String, value: 
         Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
         Spacer(Modifier.height(4.dp))
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-    }
-}
-
-@Composable
-private fun TourneeIconStatBox(
-    modifier : Modifier = Modifier,
-    icon     : androidx.compose.ui.graphics.vector.ImageVector,
-    iconBg   : Color,
-    iconTint : Color,
-    value    : String,
-    label    : String
-) {
-    Column(
-        modifier = modifier
-            .clip(DsShapes.large)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .background(DsColors.Surface)
-            .padding(DsSpacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.sm))
-        Text(value, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary, maxLines = 1)
-        Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, maxLines = 1)
-    }
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun TourneeStatsCarousel(
-    current        : Tournee,
-    tourneeClients : List<com.distrigo.app.data.model.TourneeClientInfo>
-) {
-    val visited = tourneeClients.filter { it.status == "visite" }
-    val pending = tourneeClients.filter { it.status == "a_visiter" }
-    val total   = tourneeClients.size
-    val percent = if (total > 0) (visited.size * 100) / total else 0
-
-    val clientIdsWithVente = (current.ventes ?: emptyList()).map { it.client_id }.toSet()
-    val avecVente = visited.count { it.client.id in clientIdsWithVente }
-    val sansVente = visited.size - avecVente
-
-    val pagerState = rememberPagerState(pageCount = { 2 })
-
-    Column {
-        HorizontalPager(
-            state    = pagerState,
-            modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-            ) {
-                if (page == 0) {
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.TrendingUp,
-                        iconBg   = DsColors.PrimaryLight,
-                        iconTint = DsColors.Primary,
-                        value    = "$percent%",
-                        label    = "Progression"
-                    )
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.Payments,
-                        iconBg   = DsColors.WarningLight,
-                        iconTint = DsColors.Warning,
-                        value    = "${"%.0f".format(current.total_ventes ?: 0.0)} DA",
-                        label    = "Vente totale"
-                    )
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.AccountBalanceWallet,
-                        iconBg   = if ((current.reste_total ?: 0.0) > 0) DsColors.DangerLight else DsColors.SuccessLight,
-                        iconTint = if ((current.reste_total ?: 0.0) > 0) DsColors.Danger else DsColors.Success,
-                        value    = "${"%.0f".format(current.reste_total ?: 0.0)} DA",
-                        label    = "Le reste"
-                    )
-                } else {
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.Check,
-                        iconBg   = DsColors.SuccessLight,
-                        iconTint = DsColors.Success,
-                        value    = "$avecVente",
-                        label    = "Avec vente"
-                    )
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.ShoppingCart,
-                        iconBg   = DsColors.WarningLight,
-                        iconTint = DsColors.Warning,
-                        value    = "$sansVente",
-                        label    = "Sans vente"
-                    )
-                    TourneeIconStatBox(
-                        modifier = Modifier.weight(1f),
-                        icon     = Icons.Default.Schedule,
-                        iconBg   = DsColors.SurfaceMuted,
-                        iconTint = DsColors.TextTertiary,
-                        value    = "${pending.size}",
-                        label    = "À visiter"
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            repeat(2) { index ->
-                val selected = pagerState.currentPage == index
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 3.dp)
-                        .size(if (selected) 8.dp else 6.dp)
-                        .clip(DsShapes.pill)
-                        .background(if (selected) DsColors.Primary else DsColors.Border)
-                )
-            }
-        }
     }
 }
 
