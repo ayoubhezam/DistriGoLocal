@@ -1319,6 +1319,15 @@ private fun TourneeVenteRow(
         Spacer(Modifier.width(DsSpacing.md))
 
         Column(modifier = Modifier.weight(1f)) {
+            // The number a bon is actually referred to by, in the caption/Medium/secondary the
+            // Dépôt Vente list already gives it — the two lists show the same records, so they
+            // should name them the same way.
+            Text(
+                "Vente #${vente.id}",
+                fontSize   = DsTextSize.caption,
+                fontWeight = FontWeight.Medium,
+                color      = DsColors.TextSecondary
+            )
             Text(vente.client_name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
                 "${vente.items_count ?: vente.items?.size ?: 0} article(s) · ${formatOrderTime(vente.created_at)}",
