@@ -162,6 +162,7 @@ fun TourneeDetailScreen(
     onAddClients            : () -> Unit = {},
     onCreateVente           : (Int?) -> Unit = {},
     onOpenVente             : (Vente) -> Unit = {},
+    onOpenBrouillons        : () -> Unit = {},
     onNavigateToChargement  : () -> Unit = {}
 ) {
     val tournee by viewModel.selectedTournee.collectAsState()
@@ -172,7 +173,9 @@ fun TourneeDetailScreen(
     LaunchedEffect(tourneeId) {
         viewModel.loadTourneeDetail(tourneeId)
         viewModel.loadTourneeClients(tourneeId)
+        viewModel.observeVenteDrafts(tourneeId)
     }
+    val venteDrafts by viewModel.venteDrafts.collectAsState()
 
     var showCloseDialog         by remember { mutableStateOf<Tournee?>(null) }
     var showReopenDialog        by remember { mutableStateOf<Tournee?>(null) }
@@ -630,6 +633,29 @@ fun TourneeDetailScreen(
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.TextSecondary
                         )
+                    }
+
+                    // Brouillons live beside the bons count rather than in a tab strip: they are
+                    // a distinct list with its own screen, but they are not a peer view of the
+                    // same data. Same placement the other two flows give theirs.
+                    if (venteDrafts.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .clip(DsShapes.medium)
+                                .background(DsColors.PrimaryLight)
+                                .clickable { onOpenBrouillons() }
+                                .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                        ) {
+                            Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Brouillons (${venteDrafts.size})",
+                                fontSize   = DsTextSize.caption,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = DsColors.Primary
+                            )
+                        }
                     }
 
                     Box(

@@ -88,3 +88,43 @@ val MIGRATION_33_34 = object : Migration(33, 34) {
         )
     }
 }
+
+/**
+ * 34 → 35 — adds `tournee_vente_drafts`.
+ *
+ * Additive, like the two before it: one CREATE TABLE and one index, no existing table touched, so
+ * nothing already on a device can be lost by running it.
+ *
+ * The same warning applies as above. Both statements are copied from Room's own generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/35.json`) with the table-name
+ * placeholder substituted, and Room validates the result after the migration runs — it throws if
+ * the column order, types, nullability or indices differ by so much as a space. **Do not hand-edit
+ * these strings** — regenerate the schema and re-copy.
+ *
+ * The index here is not unique, unlike `vente_drafts`'. There is nothing to make unique: the
+ * tournée form is create-only, so a tournée can carry any number of unfinished sales at once, and
+ * the index exists because every read of this table is "the drafts of one tournée".
+ */
+val MIGRATION_34_35 = object : Migration(34, 35) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `tournee_vente_drafts` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`tournee_id` INTEGER NOT NULL, " +
+                "`client_id` INTEGER, " +
+                "`client_name` TEXT, " +
+                "`items_json` TEXT NOT NULL, " +
+                "`note` TEXT NOT NULL, " +
+                "`montant_paye` TEXT NOT NULL, " +
+                "`item_count` INTEGER NOT NULL, " +
+                "`total` REAL NOT NULL, " +
+                "`last_step` TEXT NOT NULL, " +
+                "`created_at` TEXT NOT NULL, " +
+                "`updated_at` TEXT NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_tournee_vente_drafts_tournee_id` " +
+                "ON `tournee_vente_drafts` (`tournee_id`)"
+        )
+    }
+}

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
@@ -41,6 +42,7 @@ import com.distrigo.app.ui.tournees.Step1Client
 import com.distrigo.app.ui.tournees.Step3Validation
 import com.distrigo.app.ui.tournees.TourneeVenteCartItem
 import com.distrigo.app.ui.tournees.TourneeVenteCartRow
+import com.distrigo.app.ui.tournees.TourneeVenteFormSessionViewModel
 import com.distrigo.app.ui.tournees.TourneeViewModel
 import com.distrigo.app.ui.tournees.formatQty
 import com.distrigo.app.ui.ventes.VenteViewModel
@@ -56,6 +58,35 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 //  - skipClientStep = true : client already known at entry → starts directly at Products. The
 //    client step composable is never registered in this mode, so it can never be navigated to,
 //    composed, or animated — not even for a single frame.
+/**
+ * Resolves the session that owns this pass through the form, and enters it.
+ *
+ * Scoped to the graph's back stack entry, so it lives exactly as long as one visit to the form:
+ * restored with the entry after process death, destroyed with it when the user leaves. A restored
+ * session means "carry on silently"; a fresh entry means the caller was free to ask
+ * "Reprendre ou recommencer ?".
+ *
+ * Entering happens here, on every destination, rather than in the first one only. Process death
+ * restores the back stack to whichever step the user was on, so the first destination may never
+ * compose — a session entry that lived there alone would leave a restored Cart or Validation step
+ * staring at an empty form. The call is idempotent.
+ */
+@Composable
+private fun tourneeVenteFormSession(
+    navController: NavHostController,
+    graphRoute   : String
+): TourneeVenteFormSessionViewModel {
+    val graphEntry = remember(navController, graphRoute) { navController.getBackStackEntry(graphRoute) }
+    val session: TourneeVenteFormSessionViewModel = hiltViewModel(graphEntry)
+
+    val tourneeId = graphEntry.arguments?.getInt("tourneeId") ?: 0
+    val clientId  = graphEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
+    val draftId   = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
+    LaunchedEffect(Unit) { session.beginOrResumeSession(tourneeId, clientId, draftId) }
+
+    return session
+}
+
 fun NavGraphBuilder.tourneeVenteFormGraph(
     navController    : NavHostController,
     graphRoute       : String,
@@ -79,30 +110,19 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
         route = graphRoute,
         arguments = listOf(
             navArgument("tourneeId") { type = NavType.IntType },
-            navArgument("clientId")  { type = NavType.IntType; defaultValue = -1 }
+            navArgument("clientId")  { type = NavType.IntType; defaultValue = -1 },
+            navArgument("draftId")   { type = NavType.IntType; defaultValue = -1 }
         )
     ) {
         if (!skipClientStep) {
         composable(clientRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
             val clients by clientViewModel.clients.collectAsState()
-            val formClient by viewModel.formClient.collectAsState()
-
-            var initialized by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (!initialized) {
-                    viewModel.resetTourneeVenteForm()
-                    initialized = true
-                }
-            }
-            LaunchedEffect(clientIdArg, clients) {
-                if (clientIdArg != null && formClient == null) {
-                    viewModel.setFormClient(clients.find { it.id == clientIdArg })
-                }
-            }
+            val formClient by session.formClient.collectAsState()
 
             BackHandler { onBack() }
 
@@ -115,6 +135,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
         composable(clientPickerRoute) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
             val clients by clientViewModel.clients.collectAsState()
@@ -128,7 +149,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         showAddClientScreen = false
                         clientViewModel.loadClientsAndUpdate(newClientId) { newClient ->
                             if (newClient != null) {
-                                viewModel.setFormClient(newClient)
+                                session.setFormClient(newClient)
                                 navController.popBackStack()
                             }
                         }
@@ -139,13 +160,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            val selectedClient = viewModel.formClient.collectAsState().value
+            val selectedClient = session.formClient.collectAsState().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
                 clients          = clients,
                 selectedClientId = selectedClient?.id,
                 onClientSelected = { client ->
-                    viewModel.setFormClient(client)
+                    session.setFormClient(client)
                     navController.popBackStack()
                 },
                 onBack         = { navController.popBackStack() },
@@ -156,14 +177,15 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
         composable(productsRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
             val productViewModel = productViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
             val products by productViewModel.products.collectAsState()
-            val formClient by viewModel.formClient.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
+            val formClient by session.formClient.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
             var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
 
@@ -182,7 +204,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 }
                 LaunchedEffect(clientIdArg, clients) {
                     if (clientIdArg != null && formClient == null) {
-                        viewModel.setFormClient(clients.find { it.id == clientIdArg })
+                        session.setFormClient(clients.find { it.id == clientIdArg })
                     }
                 }
             }
@@ -205,7 +227,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         ci.copy(product = fresh)
                     }
                 }
-                if (changed) viewModel.setFormCartItems(resynced)
+                if (changed) session.setFormCartItems(resynced)
             }
 
             if (showScanner) {
@@ -367,7 +389,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                         if (!isInCart) {
                                             IconButton(
                                                 onClick = {
-                                                    viewModel.setFormCartItems(
+                                                    session.setFormCartItems(
                                                         cartItems + TourneeVenteCartItem(
                                                             product   = product,
                                                             quantity  = 1.0,
@@ -381,7 +403,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                             }
                                         } else {
                                             IconButton(
-                                                onClick = { viewModel.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
+                                                onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                             ) {
                                                 Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
@@ -435,11 +457,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
         composable(cartRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val productViewModel = productViewModel()
             val products by productViewModel.products.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             LaunchedEffect(products) {
@@ -454,7 +478,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         ci.copy(product = fresh)
                     }
                 }
-                if (changed) viewModel.setFormCartItems(resynced)
+                if (changed) session.setFormCartItems(resynced)
             }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -468,7 +492,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
-                        TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
+                        TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
@@ -509,22 +533,27 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         items(cartItems, key = { "cart_${it.product.id}" }) { item ->
                             TourneeVenteCartRow(
                                 item             = item,
+                                isMissingProduct = item.product.id in missingProductIds,
                                 isExpanded       = expandedCartItemId == item.product.id,
                                 onToggleExpand   = {
                                     expandedCartItemId = if (expandedCartItemId == item.product.id) null else item.product.id
                                 },
                                 onQuantityChange = { newQty ->
-                                    viewModel.setFormCartItems(cartItems.map {
+                                    session.setFormCartItems(cartItems.map {
                                         if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
                                     })
+                                    // An over-stock line has a second cure the others do not:
+                                    // asking for less. Re-checked here so lowering the quantity
+                                    // lifts the block without the line having to go.
+                                    session.reviseOverStock()
                                 },
                                 onPriceChange = { newPrice ->
-                                    viewModel.setFormCartItems(cartItems.map {
+                                    session.setFormCartItems(cartItems.map {
                                         if (it.product.id == item.product.id) it.copy(unitPrice = newPrice) else it
                                     })
                                 },
                                 onRemove = {
-                                    viewModel.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
+                                    session.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
                                 }
                             )
                         }
@@ -532,7 +561,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         item {
                             OutlinedTextField(
                                 value         = note,
-                                onValueChange = { viewModel.setFormNote(it) },
+                                onValueChange = { session.setFormNote(it) },
                                 placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
@@ -593,19 +622,39 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
         composable(validationRoute) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
+            val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val venteViewModel = venteViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val formClient by viewModel.formClient.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
-            val montantPaye by viewModel.formMontantPaye.collectAsState()
+            val formClient by session.formClient.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val montantPaye by session.formMontantPaye.collectAsState()
+            val missingProductIds by session.missingProductIds.collectAsState()
+            val overStockProductIds by session.overStockProductIds.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
+            // One reason at a time, deleted first: a product that no longer exists cannot also be
+            // over-stocked, and telling someone to reduce a quantity on a line they have to remove
+            // anyway would send them the wrong way.
+            val blockedReason = when {
+                missingProductIds.isNotEmpty() ->
+                    "Un produit de cette vente n'existe plus dans le catalogue. " +
+                    "Retirez sa ligne de la sélection pour pouvoir enregistrer."
+                overStockProductIds.isNotEmpty() ->
+                    "Le stock du camion a changé depuis ce brouillon. " +
+                    "Réduisez les quantités concernées pour pouvoir enregistrer."
+                else -> null
+            }
+
             fun doSave() {
                 if (formClient == null) return
+                // The block behind the marker on the cart line. Saving anyway would throw inside
+                // createVente's transaction — it rolls back, so nothing is corrupted, but the
+                // button would appear to do nothing at all.
+                if (blockedReason != null) return
                 isSaving = true
                 val items = cartItems.map { ci ->
                     mapOf(
@@ -621,7 +670,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     items       = items,
                     note        = note.trim().ifEmpty { null },
                     montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                    // Deleted as the final statement inside the sale's transaction, so the draft
+                    // outlives any failure: if the insert, the stock deltas or the balance
+                    // recalculation throw, the whole thing rolls back and the unsaved work is
+                    // still there to resume.
+                    tourneeDraftId = session.draftId,
                     onSuccess   = {
+                        session.onCommitted()
                         viewModel.refreshAfterVenteChange(tourneeId)
                         if (clientIdArg != null) {
                             viewModel.markTourneeClientVisited(
@@ -645,11 +700,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 cartItems           = cartItems,
                 total               = total,
                 montantPaye         = montantPaye,
-                onMontantPayeChange = { viewModel.setFormMontantPaye(it) },
+                onMontantPayeChange = { session.setFormMontantPaye(it) },
                 note                = note,
-                onNoteChange        = { viewModel.setFormNote(it) },
+                onNoteChange        = { session.setFormNote(it) },
                 isSaving            = isSaving,
+                blockedReason       = blockedReason,
                 onBack              = { navController.popBackStack() },
+                onFixBlocked        = { navController.navigate(cartRoute) },
                 onConfirm           = { doSave() }
             )
         }

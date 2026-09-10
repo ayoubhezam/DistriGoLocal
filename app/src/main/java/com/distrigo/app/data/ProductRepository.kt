@@ -767,11 +767,19 @@ class ProductRepository(
      * stock deltas or the balance recalculation throw, the whole thing rolls back and the user's
      * unsaved work is still there to resume.
      */
+    /**
+     * @param draftId          a `vente_drafts` row to delete on success — a Dépôt Vente draft.
+     * @param tourneeDraftId   a `tournee_vente_drafts` row to delete on success — a van-sale draft.
+     *
+     * Two parameters rather than one because they name rows in two different tables, and a single
+     * id would have to be told which. At most one is ever set: a sale is composed in one form.
+     */
     suspend fun createVente(
         clientId: Int, tourneeId: Int?, source: String,
         items: List<Map<String, Any?>>, note: String?, montantPaye: Double,
         userName: String? = null,
-        draftId: Int? = null
+        draftId: Int? = null,
+        tourneeDraftId: Int? = null
     ): Map<String, Any> {
         db.withTransaction {
             val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
@@ -844,6 +852,9 @@ class ProductRepository(
             db.stockMovementDao().insertAll(movementEntities)
             recalculateClientBalance(clientId)
             draftId?.let { db.venteDraftDao().deleteById(it) }
+            // Inside the same transaction as the sale, for the same reason: if anything
+            // above throws, the draft is still there to resume.
+            tourneeDraftId?.let { db.tourneeVenteDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Vente créée avec succès")
     }

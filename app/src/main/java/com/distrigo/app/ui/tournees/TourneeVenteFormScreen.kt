@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.ui.common.CartBlockingBanner
 import com.distrigo.app.ui.common.CartStatusLine
 import com.distrigo.app.ui.common.CartStatusTone
 import com.distrigo.app.ui.common.PriceFieldWithHistory
@@ -227,7 +228,16 @@ internal fun Step3Validation(
     note                : String,
     onNoteChange        : (String) -> Unit,
     isSaving            : Boolean,
+    /**
+     * A resumed draft can name a product that has since been deleted, or ask for more of one than
+     * the camion still holds. Either way the sale cannot be made: `createVente` would throw inside
+     * its own transaction, roll back, and leave a button that looked like it did nothing. The cart
+     * step marks the offending line; this is the block behind that marker.
+     */
+    blockedReason       : String? = null,
     onBack              : () -> Unit,
+    /** Where "Corriger" goes. Defaults to [onBack], which on this graph is the cart. */
+    onFixBlocked        : () -> Unit = onBack,
     onConfirm           : () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -430,9 +440,19 @@ internal fun Step3Validation(
         }
 
         // ── Confirm button ──
+        // Docked against the button it explains, not trailing the scrolling form — a reason
+        // that can be scrolled away from its control is a reason nobody reads.
+        blockedReason?.let { reason ->
+            CartBlockingBanner(
+                text        = reason,
+                actionLabel = "Corriger",
+                onAction    = onFixBlocked
+            )
+        }
+
         Button(
             onClick  = onConfirm,
-            enabled  = !isSaving && selectedClient != null && cartItems.isNotEmpty(),
+            enabled  = !isSaving && blockedReason == null && selectedClient != null && cartItems.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
@@ -461,6 +481,8 @@ internal fun Step3Validation(
 @Composable
 fun TourneeVenteCartRow(
     item             : TourneeVenteCartItem,
+    /** The catalogue no longer has this product; the line survives on the draft's own copy. */
+    isMissingProduct : Boolean = false,
     isExpanded       : Boolean,
     onToggleExpand   : () -> Unit,
     onQuantityChange : (Double) -> Unit,
@@ -468,7 +490,11 @@ fun TourneeVenteCartRow(
     onRemove         : () -> Unit
 ) {
     val availableStock = item.product.camion_stock
-    val isLow          = item.quantity > availableStock
+
+    // Only reachable on a resumed draft. Live, the stepper's own ceiling makes it impossible to
+    // ask for more than the van holds — so if the cart is over it, the stock moved after the draft
+    // was written, and the sale is blocked until the quantity comes down.
+    val overStock = item.quantity > availableStock
 
     SelectionCartCard(
         avatarIcon      = Icons.Default.ShoppingCart,
@@ -477,11 +503,22 @@ fun TourneeVenteCartRow(
         totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
         isExpanded      = isExpanded,
         onToggleExpand  = onToggleExpand,
+        isDanger   = isMissingProduct || overStock,
         statusLine = {
             CartStatusLine(
-                icon = if (isLow) Icons.Default.Warning else Icons.Default.LocalShipping,
-                text = "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}",
-                tone = if (isLow) CartStatusTone.WARNING else CartStatusTone.NEUTRAL
+                icon = if (isMissingProduct || overStock) Icons.Default.Warning
+                       else Icons.Default.LocalShipping,
+                text = when {
+                    isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
+                    overStock        -> "Stock camion insuffisant — disponible : " +
+                                        "${formatQty(availableStock)} ${item.product.unit_type}"
+                    else             -> "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}"
+                },
+                tone = if (isMissingProduct || overStock) CartStatusTone.DANGER
+                       else CartStatusTone.NEUTRAL,
+                // Both blocking lines are instructions, and an instruction cut in half is worse
+                // than none — the readings they replace fit on one line and still do.
+                maxLines = if (isMissingProduct || overStock) 2 else 1
             )
         },
         expandedContent = {
@@ -489,7 +526,10 @@ fun TourneeVenteCartRow(
                 label         = "Quantité",
                 value         = item.quantity,
                 onValueChange = onQuantityChange,
-                max           = availableStock,
+                // No ceiling while the line is over it: clamping to the live stock would silently
+                // rewrite a quantity the user entered, and the whole point of the block is that
+                // they get to decide what to do about it.
+                max           = if (overStock) null else availableStock,
                 formatValue   = ::formatQty,
                 min = 0.01,
             )

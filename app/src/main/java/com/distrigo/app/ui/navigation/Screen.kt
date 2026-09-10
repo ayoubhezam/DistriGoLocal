@@ -246,9 +246,18 @@ sealed class Screen(val route: String) {
     }
     // Same direct-entry split as VenteFormGraph above — see tourneeVenteFormGraph in
     // TourneeVenteFormNavGraph.kt.
-    data object TourneeVenteFormGraph : Screen("tournee_vente_form_graph/{tourneeId}?clientId={clientId}") {
-        fun createRoute(tourneeId: Int, clientId: Int? = null) =
-            "tournee_vente_form_graph/$tourneeId" + if (clientId != null) "?clientId=$clientId" else ""
+    data object TourneeVenteFormGraph : Screen("tournee_vente_form_graph/{tourneeId}?clientId={clientId}&draftId={draftId}") {
+        fun createRoute(tourneeId: Int, clientId: Int? = null, draftId: Int? = null) =
+            "tournee_vente_form_graph/$tourneeId" +
+                listOfNotNull(
+                    clientId?.let { "clientId=$it" },
+                    draftId?.let { "draftId=$it" }
+                ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+    }
+
+    /** One tournée's unfinished van sales. Scoped: a draft belongs to the round it was made on. */
+    data object TourneeVenteBrouillons : Screen("tournee_vente_brouillons/{tourneeId}") {
+        fun createRoute(tourneeId: Int) = "tournee_vente_brouillons/$tourneeId"
     }
     data object TourneeVenteFormGraphDirect : Screen("tournee_vente_form_graph_direct/{tourneeId}?clientId={clientId}") {
         fun createRoute(tourneeId: Int, clientId: Int? = null) =

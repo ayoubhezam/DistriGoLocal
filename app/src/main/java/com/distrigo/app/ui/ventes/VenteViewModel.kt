@@ -117,12 +117,14 @@ class VenteViewModel @Inject constructor(
         montantPaye : Double,
         userName    : String? = null,
         draftId     : Int? = null,
+        /** A `tournee_vente_drafts` row to delete inside the sale's own transaction. */
+        tourneeDraftId : Int? = null,
         onSuccess   : () -> Unit,
         onError     : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.createVente(clientId, tourneeId, source, items, note, montantPaye, userName, draftId)
+                repository.createVente(clientId, tourneeId, source, items, note, montantPaye, userName, draftId, tourneeDraftId)
                 loadVentes()
                 onSuccess()
             } catch (e: Exception) {

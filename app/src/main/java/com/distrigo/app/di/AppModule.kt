@@ -8,6 +8,7 @@ import com.distrigo.app.data.repository.InventoryRepository
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.PurchaseDraftRepository
+import com.distrigo.app.data.repository.TourneeVenteDraftRepository
 import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.data.repository.RetourClientRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
@@ -46,6 +47,11 @@ object AppModule {
     @Singleton
     fun provideVenteDraftRepository(db: AppDatabase): VenteDraftRepository =
         VenteDraftRepository(db = db)
+
+    @Provides
+    @Singleton
+    fun provideTourneeVenteDraftRepository(db: AppDatabase): TourneeVenteDraftRepository =
+        TourneeVenteDraftRepository(db = db)
 
     @Provides
     @Singleton

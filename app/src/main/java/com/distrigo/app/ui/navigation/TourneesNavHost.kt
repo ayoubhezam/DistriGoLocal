@@ -69,6 +69,7 @@ fun TourneesNavHost(
                     }
                 },
                 onOpenVente            = { vente -> navController.navigate(Screen.TourneesVenteDetail.createRoute(tourneeId, vente.id)) },
+                onOpenBrouillons       = { navController.navigate(Screen.TourneeVenteBrouillons.createRoute(tourneeId)) },
                 onNavigateToChargement = onNavigateToChargement
             )
         }
@@ -114,6 +115,34 @@ fun TourneesNavHost(
                     tourneeViewModel  = viewModel
                 )
             }
+        }
+
+        composable(
+            route     = Screen.TourneeVenteBrouillons.route,
+            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
+            val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
+            val tourneeId = entry.arguments!!.getInt("tourneeId")
+            val tournee by viewModel.selectedTournee.collectAsState()
+
+            TourneeVenteBrouillonsScreen(
+                tourneeId   = tourneeId,
+                tourneeName = tournee?.takeIf { it.id == tourneeId }?.nom ?: "",
+                viewModel   = viewModel,
+                onBack      = { navController.popBackStack() },
+                // Straight through, with no gate: a van-sale draft edits no committed record, so
+                // there is nothing to check it against before opening it.
+                onResume    = { draft ->
+                    navController.navigate(
+                        Screen.TourneeVenteFormGraph.createRoute(
+                            tourneeId = tourneeId,
+                            clientId  = draft.clientId,
+                            draftId   = draft.id
+                        )
+                    )
+                }
+            )
         }
 
         // Client unknown at entry (defensive — current callers always pass one, see onCreateVente

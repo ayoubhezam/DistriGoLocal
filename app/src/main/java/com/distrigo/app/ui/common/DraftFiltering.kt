@@ -238,7 +238,16 @@ fun DraftFilterSheet(
     onDismiss  : () -> Unit,
     partyNames : List<String>,
     matchCount : Int,
-    copy       : DraftFilterCopy
+    copy       : DraftFilterCopy,
+    /**
+     * Whether "Type de brouillon" and "État" are worth offering.
+     *
+     * False for a flow with no source record to edit and nothing that can block a resume: every
+     * draft in such a list is new and active, so both axes would return either everything or
+     * nothing, whatever the user picked. A control that cannot partition its list is not a filter,
+     * it is a trap — Tournée Vente hides them and keeps the party axis, which does partition.
+     */
+    showRecordAxes : Boolean = true
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var partyExpanded by remember { mutableStateOf(false) }
@@ -270,21 +279,23 @@ fun DraftFilterSheet(
             }
             Spacer(Modifier.height(DsSpacing.md))
 
-            FilterFieldLabel("Type de brouillon")
-            SegmentedRow(
-                options  = DraftTypeFilter.entries.map { it to it.label },
-                selected = filter.type,
-                onSelect = { onChange(filter.copy(type = it)) }
-            )
-            Spacer(Modifier.height(DsSpacing.md))
+            if (showRecordAxes) {
+                FilterFieldLabel("Type de brouillon")
+                SegmentedRow(
+                    options  = DraftTypeFilter.entries.map { it to it.label },
+                    selected = filter.type,
+                    onSelect = { onChange(filter.copy(type = it)) }
+                )
+                Spacer(Modifier.height(DsSpacing.md))
 
-            FilterFieldLabel("État")
-            SegmentedRow(
-                options  = DraftStateFilter.entries.map { it to it.label },
-                selected = filter.state,
-                onSelect = { onChange(filter.copy(state = it)) }
-            )
-            Spacer(Modifier.height(DsSpacing.md))
+                FilterFieldLabel("État")
+                SegmentedRow(
+                    options  = DraftStateFilter.entries.map { it to it.label },
+                    selected = filter.state,
+                    onSelect = { onChange(filter.copy(state = it)) }
+                )
+                Spacer(Modifier.height(DsSpacing.md))
+            }
 
             // Only the names actually present among the drafts are offered — a picker listing every
             // supplier in the database would be mostly dead options that filter to nothing.

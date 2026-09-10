@@ -1,7 +1,11 @@
 package com.distrigo.app.ui.tournees
 
 import com.distrigo.app.data.model.Tournee
+import com.distrigo.app.data.model.TourneeVenteDraft
 import com.distrigo.app.data.repository.ProductRepository
+import com.distrigo.app.data.repository.TourneeVenteDraftRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import com.distrigo.app.data.api.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TourneeViewModel @Inject constructor(
-    private val repository: ProductRepository
+    private val repository     : ProductRepository,
+    private val draftRepository: TourneeVenteDraftRepository
 ) : ViewModel() {
 
     private val _tournees = MutableStateFlow<List<Tournee>>(emptyList())
@@ -36,6 +41,41 @@ class TourneeViewModel @Inject constructor(
 
     private val _tourneeClients = MutableStateFlow<List<TourneeClientInfo>>(emptyList())
     val tourneeClients: StateFlow<List<TourneeClientInfo>> = _tourneeClients
+
+    // ── Brouillons of the tournée currently on screen ────────────────────────
+    //
+    // Scoped rather than global: a van sale belongs to the round it was made on, so "the drafts"
+    // is always one tournée's. The collection is re-pointed when the screen changes tournée, and
+    // the previous one cancelled — two open collectors would race to publish into the same flow.
+
+    private val _venteDrafts = MutableStateFlow<List<TourneeVenteDraft>>(emptyList())
+    val venteDrafts: StateFlow<List<TourneeVenteDraft>> = _venteDrafts
+
+    private var venteDraftsJob: Job? = null
+    private var venteDraftsTourneeId: Int? = null
+
+    fun observeVenteDrafts(tourneeId: Int) {
+        if (venteDraftsTourneeId == tourneeId && venteDraftsJob?.isActive == true) return
+        venteDraftsTourneeId = tourneeId
+        venteDraftsJob?.cancel()
+        // Cleared rather than left showing the previous tournée's drafts until the first emission.
+        _venteDrafts.value = emptyList()
+        venteDraftsJob = viewModelScope.launch {
+            draftRepository.observeDrafts(tourneeId).collectLatest { _venteDrafts.value = it }
+        }
+    }
+
+    fun deleteVenteDraft(id: Int) {
+        viewModelScope.launch { draftRepository.delete(id) }
+    }
+
+    /** Bulk delete for the Brouillons screen's selection mode. One statement, one invalidation. */
+    fun deleteVenteDrafts(ids: Collection<Int>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch { draftRepository.deleteAll(ids.toList()) }
+    }
+
+    suspend fun venteDraft(id: Int): TourneeVenteDraft? = draftRepository.getDraft(id)
 
     // ── Tournée vente form (wizard) state — shared across TourneeVenteFormNavGraph steps ──
     private val _formClient = MutableStateFlow<Client?>(null)
@@ -276,6 +316,9 @@ class TourneeViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                // Before the tournée goes, so a failure leaves both intact. There is no foreign
+                // key to cascade, so nothing else would ever reach these rows again.
+                draftRepository.deleteForTournee(id)
                 val result = repository.deleteTournee(id)
                 if (result.containsKey("error")) {
                     onError(result["error"] as String)
