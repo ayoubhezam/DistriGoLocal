@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -520,28 +521,16 @@ fun TourneeDetailScreen(
                     }
                 }
 
-                // ── Fixed above the list: progress, clients, search, count ──
+                // ── Fixed above the list: progress, search, clients, count ──
                 //
                 // None of this scrolls, and none of it is a stickyHeader any more. A sticky header
                 // pins only until the next one arrives, so making "Bons" sticky in turn would have
                 // pushed the clients out of the way exactly when the list started moving. Outside
                 // the LazyColumn the whole block simply stays, and the list is the only thing left
                 // that can scroll.
-                TourneeTrackingSection(
-                    tourneeClients      = tourneeClients,
-                    // The unfiltered list on purpose: the avatars report what actually happened on
-                    // the tournée, which is not a function of what is typed in the search box.
-                    tourneeVentes       = ventes,
-                    isOpen              = current.status == "ouverte",
-                    onCreateSale        = { cid -> onCreateVente(cid) },
-                    onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
-                    onRemoveClient      = { cid ->
-                        confirmRemoveClient = tourneeClients.find { it.client.id == cid }
-                    },
-                    onReopenSaleForVisited = { cid ->
-                        confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
-                    }
-                )
+                TourneeProgressHeader(tourneeClients = tourneeClients)
+
+                Spacer(Modifier.height(DsSpacing.md))
 
                 OutlinedTextField(
                     value         = venteQuery,
@@ -565,6 +554,25 @@ fun TourneeDetailScreen(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary
                     )
+                )
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
+                TourneeClientStrip(
+                    tourneeClients      = tourneeClients,
+                    // The unfiltered list on purpose: the avatars report what actually happened on
+                    // the tournée, which is not a function of what is typed in the search box.
+                    tourneeVentes       = ventes,
+                    isOpen              = current.status == "ouverte",
+                    onCreateSale        = { cid -> onCreateVente(cid) },
+                    onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
+                    onAddClient         = { onAddClients() },
+                    onRemoveClient      = { cid ->
+                        confirmRemoveClient = tourneeClients.find { it.client.id == cid }
+                    },
+                    onReopenSaleForVisited = { cid ->
+                        confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
+                    }
                 )
 
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -920,7 +928,7 @@ private fun TourneeClientAvatarItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(72.dp)
+            .width(58.dp)
             .combinedClickable(
                 enabled     = enabled,
                 onClick     = onTap,
@@ -930,7 +938,7 @@ private fun TourneeClientAvatarItem(
         Box {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(52.dp)
                     .clip(DsShapes.pill)
                     .background(if (isPending) DsColors.SurfaceMuted else DsColors.SurfaceMuted)
                     .border(2.dp, ringColor, DsShapes.pill),
@@ -947,7 +955,7 @@ private fun TourneeClientAvatarItem(
                     val initials = client.name.split(" ").take(2)
                         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                     Text(
-                        initials, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                        initials, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                         color = if (isPending) DsColors.TextTertiary else DsColors.TextSecondary
                     )
                 }
@@ -956,7 +964,7 @@ private fun TourneeClientAvatarItem(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(22.dp)
+                        .size(20.dp)
                         .clip(DsShapes.pill)
                         .background(Color.White)
                         .padding(2.dp)
@@ -964,13 +972,13 @@ private fun TourneeClientAvatarItem(
                         .background(badgeColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(badgeIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    Icon(badgeIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
                 }
             } else if (isPending) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(22.dp)
+                        .size(20.dp)
                         .clip(DsShapes.pill)
                         .background(Color.White)
                         .padding(2.dp)
@@ -978,7 +986,7 @@ private fun TourneeClientAvatarItem(
                         .background(DsColors.TextTertiary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Schedule, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    Icon(Icons.Default.Schedule, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
                 }
             }
         }
@@ -989,6 +997,7 @@ private fun TourneeClientAvatarItem(
             fontWeight = FontWeight.Bold,
             color = if (isPending) DsColors.TextTertiary else DsColors.TextPrimary,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
     }
@@ -1008,25 +1017,18 @@ private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graph
 }
 
 @Composable
-private fun TourneeTrackingSection(
-    tourneeClients      : List<com.distrigo.app.data.model.TourneeClientInfo>,
-    tourneeVentes       : List<Vente>,
-    isOpen              : Boolean,
-    onCreateSale        : (Int) -> Unit,
-    onMarkVisitedNoSale : (Int) -> Unit,
-    onRemoveClient      : (Int) -> Unit,
-    onReopenSaleForVisited : (Int) -> Unit
+private fun TourneeProgressHeader(
+    tourneeClients : List<com.distrigo.app.data.model.TourneeClientInfo>
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
     val total   = tourneeClients.size
-    var sheetClientId by remember { mutableStateOf<Int?>(null) }
     var showStatusLegend by remember { mutableStateOf(false) }
     if (total == 0) return
     val percent = (visited.size * 100) / total
 
     // The three visit statuses used to sit in a permanent bar under the avatars, spending a row
     // of the screen on something you need once — when you first meet the colours — and never
-    // again. On demand instead, from the line directly above the avatars it explains.
+    // again. On demand instead, from the line the circles hang under.
     if (showStatusLegend) {
         AlertDialog(
             onDismissRequest = { showStatusLegend = false },
@@ -1072,49 +1074,106 @@ private fun TourneeTrackingSection(
         Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill).background(DsColors.Border)) {
             Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(DsShapes.pill).background(DsColors.Primary))
         }
-        Spacer(Modifier.height(DsSpacing.md))
+    }
+}
 
-        val clientIdsWithVente = tourneeVentes.map { it.client_id }.toSet()
+/**
+ * The client circles, and the sheet a tap on one opens.
+ *
+ * Sized so five fit across: on the 360dp screen this is built for, the strip has 328dp between
+ * the screen's own margins, and 5 × 58 + 4 × 8 = 322. At the old 72dp item and 12dp gap only
+ * four fitted, and the fifth client — on a tournée that routinely has eighteen — was behind a
+ * scroll before you knew there were more.
+ *
+ * Unlike the progress header this renders with no clients at all, because the first circle is
+ * how you get some.
+ */
+@Composable
+private fun TourneeClientStrip(
+    tourneeClients      : List<com.distrigo.app.data.model.TourneeClientInfo>,
+    tourneeVentes       : List<Vente>,
+    isOpen              : Boolean,
+    onCreateSale        : (Int) -> Unit,
+    onMarkVisitedNoSale : (Int) -> Unit,
+    onAddClient         : () -> Unit,
+    onRemoveClient      : (Int) -> Unit,
+    onReopenSaleForVisited : (Int) -> Unit
+) {
+    var sheetClientId by remember { mutableStateOf<Int?>(null) }
+    val clientIdsWithVente = tourneeVentes.map { it.client_id }.toSet()
 
-        androidx.compose.foundation.lazy.LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
-            contentPadding = PaddingValues(vertical = 4.dp)
+    androidx.compose.foundation.lazy.LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+        contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = 4.dp)
+    ) {
+        // Leads the strip rather than trailing it: at the end it sat past however many clients
+        // the tournée has and needed a scroll to reach, while here it is always in the same place.
+        if (isOpen) {
+            item(key = "add_client") {
+                TourneeAddClientAvatarItem(onClick = onAddClient)
+            }
+        }
+
+        items(tourneeClients, key = { it.client.id }) { info ->
+            TourneeClientAvatarItem(
+                info      = info,
+                hasVente  = info.client.id in clientIdsWithVente,
+                enabled   = isOpen,
+                onTap     = { sheetClientId = info.client.id },
+                onLongTap = { sheetClientId = info.client.id }
+            )
+        }
+    }
+
+    sheetClientId?.let { cid ->
+        val sheetInfo = tourneeClients.find { it.client.id == cid }
+        if (sheetInfo != null) {
+            TourneeClientActionsSheet(
+                info          = sheetInfo,
+                hasVente      = cid in clientIdsWithVente,
+                isOpen        = isOpen,
+                // Same guard the inline card had: a client already served asks before a
+                // second sale is opened for them, rather than silently starting one.
+                onCreateSale  = {
+                    sheetClientId = null
+                    if (cid in clientIdsWithVente) onReopenSaleForVisited(cid) else onCreateSale(cid)
+                },
+                onMarkVisited = { sheetClientId = null; onMarkVisitedNoSale(cid) },
+                onRemove      = { sheetClientId = null; onRemoveClient(cid) },
+                onDismiss     = { sheetClientId = null }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(58.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(DsShapes.pill)
+                .background(DsColors.PrimaryLight)
+                .border(1.5.dp, DsColors.Primary, DsShapes.pill),
+            contentAlignment = Alignment.Center
         ) {
-            items(tourneeClients, key = { it.client.id }) { info ->
-                TourneeClientAvatarItem(
-                    info      = info,
-                    hasVente  = info.client.id in clientIdsWithVente,
-                    enabled   = isOpen,
-                    onTap     = { sheetClientId = info.client.id },
-                    onLongTap = { sheetClientId = info.client.id }
-                )
-            }
+            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
         }
-
-        Spacer(Modifier.height(DsSpacing.sm))
-
-        sheetClientId?.let { cid ->
-            val sheetInfo = tourneeClients.find { it.client.id == cid }
-            if (sheetInfo != null) {
-                TourneeClientActionsSheet(
-                    info          = sheetInfo,
-                    hasVente      = cid in clientIdsWithVente,
-                    isOpen        = isOpen,
-                    // Same guard the inline card had: a client already served asks before a
-                    // second sale is opened for them, rather than silently starting one.
-                    onCreateSale  = {
-                        sheetClientId = null
-                        if (cid in clientIdsWithVente) onReopenSaleForVisited(cid) else onCreateSale(cid)
-                    },
-                    onMarkVisited = { sheetClientId = null; onMarkVisitedNoSale(cid) },
-                    onRemove      = { sheetClientId = null; onRemoveClient(cid) },
-                    onDismiss     = { sheetClientId = null }
-                )
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Ajouter un client",
+            fontSize   = DsTextSize.caption,
+            fontWeight = FontWeight.Bold,
+            color      = DsColors.Primary,
+            maxLines   = 2,
+            textAlign  = TextAlign.Center,
+            lineHeight = 12.sp
+        )
     }
 }
 
