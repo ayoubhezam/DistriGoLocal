@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -183,6 +185,14 @@ fun TourneeDetailScreen(
     var deleteVenteError        by remember { mutableStateOf("") }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var venteQuery              by remember { mutableStateOf("") }
+    // Screen state, not ViewModel state, exactly like venteQuery above. Achats and Dépôt
+    // Vente hang their filters off a shared ViewModel because those lists are one screen each;
+    // this one is per-tournée, and a filter left over from the last tournée you opened would
+    // be a puzzle rather than a convenience.
+    var filterStatus            by remember { mutableStateOf<String?>(null) }
+    var filterPaymentStatus     by remember { mutableStateOf<String?>(null) }
+    var filterClientId          by remember { mutableStateOf<Int?>(null) }
+    var showFilterSheet         by remember { mutableStateOf(false) }
     var confirmRemoveClient     by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var removeClientError       by remember { mutableStateOf("") }
 
@@ -512,13 +522,34 @@ fun TourneeDetailScreen(
                 }
 
                 val ventes = current.ventes ?: emptyList()
-                // Matched on the two things written on a row: who it is for, and its number.
-                val shownVentes = remember(ventes, venteQuery) {
+                val hasActiveFilters = filterStatus != null || filterPaymentStatus != null || filterClientId != null
+
+                // Search and filters narrow the same list, in the order Achats and Dépôt Vente
+                // apply them: the text first, then each axis, all of them ANDed.
+                val shownVentes = remember(ventes, venteQuery, filterStatus, filterPaymentStatus, filterClientId) {
                     val q = venteQuery.trim()
-                    if (q.isEmpty()) ventes
-                    else ventes.filter { v ->
-                        v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q)
+                    ventes.filter { v ->
+                        // Matched on the two things written on a row: who it is for, and its number.
+                        val matchSearch = q.isEmpty() ||
+                            v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q)
+                        val matchStatus = filterStatus == null || v.status == filterStatus
+                        val paye = v.montant_paye ?: 0.0
+                        val matchPayment = when (filterPaymentStatus) {
+                            "paye"    -> paye >= v.total && v.total > 0
+                            "impaye"  -> paye <= 0.0
+                            "partiel" -> paye > 0.0 && paye < v.total
+                            else      -> true
+                        }
+                        val matchClient = filterClientId == null || v.client_id == filterClientId
+                        matchSearch && matchStatus && matchPayment && matchClient
                     }
+                }
+
+                // Only the clients this tournée actually sold to. The full client list would be
+                // mostly options that filter to nothing, which is the same rule the Brouillons
+                // party filter follows.
+                val filterClients = remember(ventes) {
+                    ventes.map { it.client_id to it.client_name }.distinct().sortedBy { it.second }
                 }
 
                 // ── Fixed above the list: progress, search, clients, count ──
@@ -580,8 +611,9 @@ fun TourneeDetailScreen(
                 // The counter chip Achats and Dépôt Vente head their lists with — sunken pill,
                 // 14dp receipt — and like theirs it counts what the search actually left.
                 Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier
@@ -599,6 +631,53 @@ fun TourneeDetailScreen(
                             color      = DsColors.TextSecondary
                         )
                     }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceSunken)
+                            .clickable { showFilterSheet = true }
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = "Filtres",
+                                tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "Filtres",
+                                fontSize = DsTextSize.caption,
+                                color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
+                            )
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (showFilterSheet) {
+                    TourneeVenteFilterSheet(
+                        clients             = filterClients,
+                        filterStatus        = filterStatus,
+                        filterPaymentStatus = filterPaymentStatus,
+                        filterClientId      = filterClientId,
+                        resultCount         = shownVentes.size,
+                        onStatus            = { filterStatus = it },
+                        onPaymentStatus     = { filterPaymentStatus = it },
+                        onClient            = { filterClientId = it },
+                        onReset             = {
+                            filterStatus = null; filterPaymentStatus = null; filterClientId = null
+                        },
+                        onDismiss           = { showFilterSheet = false }
+                    )
                 }
 
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -1320,6 +1399,157 @@ private fun TourneeStatBox(modifier: Modifier = Modifier, label: String, value: 
         Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
         Spacer(Modifier.height(4.dp))
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+    }
+}
+
+/**
+ * The "Filtres avancés" sheet Achats and Dépôt Vente already use, on this list's own terms.
+ *
+ * Same three closed axes and the same footer — Réinitialiser beside Appliquer with the resulting
+ * count on it, so the button says what it will leave you looking at before you commit to it.
+ *
+ * No date range, which those two screens do offer. A tournée is one day's driving; every bon on
+ * it shares a date, so a period filter here could only ever return all of them or none.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TourneeVenteFilterSheet(
+    clients             : List<Pair<Int, String>>,
+    filterStatus        : String?,
+    filterPaymentStatus : String?,
+    filterClientId      : Int?,
+    resultCount         : Int,
+    onStatus            : (String?) -> Unit,
+    onPaymentStatus     : (String?) -> Unit,
+    onClient            : (Int?) -> Unit,
+    onReset             : () -> Unit,
+    onDismiss           : () -> Unit
+) {
+    var clientExpanded by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = DsColors.Surface
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxxl)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                }
+            }
+            Spacer(Modifier.height(DsSpacing.md))
+
+            Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            TourneeFilterSegments(
+                options  = listOf(null to "Tous", "pending" to "En attente", "delivered" to "Livré"),
+                selected = filterStatus,
+                onSelect = onStatus
+            )
+            Spacer(Modifier.height(DsSpacing.md))
+
+            Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            TourneeFilterSegments(
+                options  = listOf(null to "Tous", "paye" to "Payé", "impaye" to "Impayé", "partiel" to "Partiel"),
+                selected = filterPaymentStatus,
+                onSelect = onPaymentStatus
+            )
+            Spacer(Modifier.height(DsSpacing.md))
+
+            Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            ExposedDropdownMenuBox(
+                expanded         = clientExpanded,
+                onExpandedChange = { clientExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value         = clients.find { it.first == filterClientId }?.second ?: "Tous les clients",
+                    onValueChange = {},
+                    readOnly      = true,
+                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clientExpanded) },
+                    modifier      = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    shape         = DsShapes.medium,
+                    colors        = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+                ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
+                    DropdownMenuItem(
+                        text    = { Text("Tous les clients", color = DsColors.TextSecondary) },
+                        onClick = { onClient(null); clientExpanded = false }
+                    )
+                    clients.forEach { (id, name) ->
+                        DropdownMenuItem(
+                            text    = { Text(name) },
+                            onClick = { onClient(id); clientExpanded = false }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(DsSpacing.lg))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                OutlinedButton(
+                    onClick  = onReset,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
+                    border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                ) {
+                    Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                }
+                Button(
+                    onClick  = onDismiss,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                ) {
+                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+/** One row of mutually exclusive pills, as both other filter sheets draw their closed sets. */
+@Composable
+private fun <T> TourneeFilterSegments(
+    options  : List<Pair<T?, String>>,
+    selected : T?,
+    onSelect : (T?) -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+        options.forEach { (value, label) ->
+            val active = selected == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(DsShapes.medium)
+                    .background(if (active) DsColors.Primary else DsColors.Surface)
+                    .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                    .clickable { onSelect(value) }
+                    .padding(vertical = DsSpacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    color      = if (active) Color.White else DsColors.TextPrimary
+                )
+            }
+        }
     }
 }
 
