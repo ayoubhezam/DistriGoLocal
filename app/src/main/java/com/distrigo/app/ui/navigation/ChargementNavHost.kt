@@ -131,27 +131,30 @@ fun ChargementNavHost(
                     leading       = DsTopBarLeading.Back(onBack)
                 )
 
+                // Outside the list, not its first item: a search box that scrolls away is gone
+                // exactly when a long list makes it useful. Fixed here, as Stock Camion and the
+                // tournée detail already have theirs, so only the products move.
+                OutlinedTextField(
+                    value         = search,
+                    onValueChange = { search = it },
+                    placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
+                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    shape         = DsShapes.large,
+                    singleLine    = true,
+                    colors = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+
+                Spacer(Modifier.height(DsSpacing.sm))
+
                 LazyColumn(
                     modifier            = Modifier.weight(1f),
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                 ) {
-                    item {
-                        OutlinedTextField(
-                            value         = search,
-                            onValueChange = { search = it },
-                            placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
-                            leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                            modifier      = Modifier.fillMaxWidth(),
-                            shape         = DsShapes.large,
-                            singleLine    = true,
-                            colors = dsTextFieldColors(
-                                unfocusedBorderColor = DsColors.Border,
-                                focusedBorderColor   = DsColors.Primary
-                            )
-                        )
-                    }
-
                     items(filteredProducts, key = { "product_${it.id}" }) { product ->
                         val isInCart = cartItems.any { it.product.id == product.id }
 
