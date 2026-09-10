@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -741,115 +742,104 @@ private fun paymentStatusOf(order: PurchaseOrder): String {
     }
 }
 
+/**
+ * Same shape as the Tournée's bon rows, line for line.
+ *
+ * Three lists show the same kind of record and used to lay it out three ways. The Tournée row is
+ * the one that reads fastest, so it is the one the other two follow: number, then who, then the
+ * quiet meta line; amount and payment on the right, kept clear of the ribbon.
+ *
+ * The two status signals swap places to match it. The ribbon carries fulfilment — whether the
+ * goods have moved — and the pill carries money. Before this the two screens had them the other
+ * way round from the Tournée, so the same colour in the same corner meant different things
+ * depending on which list you were looking at.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: () -> Unit) {
     val isReceived = order.status == "received"
-    val (ribbonLabel, ribbonColor) = when (paymentStatusOf(order)) {
-        "paye"    -> "PAYÉ"    to DsColors.Success
-        "partiel" -> "PARTIEL" to DsColors.Warning
-        else      -> "IMPAYÉ"  to DsColors.Danger
+    val (ribbonLabel, ribbonColor) =
+        if (isReceived) "REÇU" to DsColors.Success else "EN ATTENTE" to DsColors.Warning
+    val (statut, statusColor, statusColorLight) = when (paymentStatusOf(order)) {
+        "paye"    -> Triple("Payé",    DsColors.Success, DsColors.SuccessLight)
+        "partiel" -> Triple("Partiel", DsColors.Warning, DsColors.WarningLight)
+        else      -> Triple("Impayé",  DsColors.Danger,  DsColors.DangerLight)
     }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .combinedClickable(
                 onClick     = { onClick() },
                 onLongClick = { onLongClick() }
-            ),
-        shape     = DsShapes.large,
-        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-        elevation = CardDefaults.cardElevation(1.dp),
-        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+            )
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier          = Modifier.fillMaxWidth().padding(DsSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Kept from this card's older layout: unlike the Tournée, these lists are scanned by
+            // who the record is for across hundreds of rows, and the face is how you find them.
             EntityAvatar(
                 name     = order.supplier_name,
                 imageUri = order.supplier_image_uri,
                 size     = 42.dp
             )
             Spacer(Modifier.width(DsSpacing.md))
+
             Column(modifier = Modifier.weight(1f)) {
-                // السطر 1: Bon # + الوقت
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                Text(
+                    "Bon #${order.id}",
+                    fontSize   = DsTextSize.caption,
+                    fontWeight = FontWeight.Medium,
+                    color      = DsColors.TextSecondary
+                )
+                Text(
+                    order.supplier_name,
+                    fontSize   = DsTextSize.body,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = DsColors.TextPrimary,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+                Text(
+                    "${order.items_count ?: order.items?.size ?: 0} article(s) · ${formatOrderTime(order.created_at)}",
+                    fontSize = DsTextSize.caption,
+                    color    = DsColors.TextSecondary
+                )
+            }
+
+            // Inset past the ribbon, which is drawn over this row and would otherwise take the
+            // end of the amount with it.
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier            = Modifier.padding(end = 28.dp)
+            ) {
+                Text(
+                    "${"%.2f".format(order.total)} DA",
+                    fontSize   = DsTextSize.body,
+                    fontWeight = FontWeight.Bold,
+                    color      = DsColors.Primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(DsShapes.pill)
+                        .background(statusColorLight)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text(
-                        "Bon #${order.id}",
-                        fontSize   = DsTextSize.caption,
-                        fontWeight = FontWeight.Medium,
-                        color      = DsColors.TextSecondary
-                    )
-                    Text(
-                        formatOrderTime(order.created_at),
-                        fontSize   = DsTextSize.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color      = DsColors.TextSecondary
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
-                // السطر 2: اسم المورد + badge
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text(
-                        order.supplier_name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = DsTextSize.bodyLarge,
-                        color      = DsColors.TextPrimary,
-                        maxLines   = 1,
-                        modifier   = Modifier.weight(1f)
-                    )
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.pill)
-                            .background(if (isReceived) DsColors.SuccessLight else DsColors.WarningLight)
-                            .padding(horizontal = DsSpacing.sm, vertical = 2.dp)
-                    ) {
-                        Text(
-                            if (isReceived) "Reçu" else "En attente",
-                            fontSize   = DsTextSize.caption,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = if (isReceived) DsColors.Success else DsColors.Warning
-                        )
-                    }
-                }
-                Spacer(Modifier.height(2.dp))
-                // السطر 3: المبلغ + عدد المنتجات
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "${"%.2f".format(order.total)} DA",
-                        fontSize   = DsTextSize.body,
-                        fontWeight = FontWeight.Bold,
-                        color      = DsColors.Primary
-                    )
-                    Text(
-                        "· ${order.items_count ?: order.items?.size ?: 0} article(s)",
-                        fontSize = DsTextSize.caption,
-                        color    = DsColors.TextSecondary
-                    )
+                    Text(statut, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor)
                 }
             }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
         }
         CornerRibbon(
             label    = ribbonLabel,
             color    = ribbonColor,
             modifier = Modifier.align(Alignment.TopEnd)
         )
-      }
     }
 }
 
