@@ -128,3 +128,40 @@ val MIGRATION_34_35 = object : Migration(34, 35) {
         )
     }
 }
+
+/**
+ * 35 -> 36 - adds `chargement_drafts`.
+ *
+ * Additive like the three before it: one CREATE TABLE and one index, no existing table touched, so
+ * nothing already on a device can be lost by running it.
+ *
+ * Both statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/36.json`) with the table-name
+ * placeholder substituted, and Room validates the result after the migration runs - it throws if
+ * the column order, types, nullability or indices differ by so much as a space. **Do not hand-edit
+ * these strings** - regenerate the schema and re-copy.
+ *
+ * The index is unique, and on a nullable column, which is the whole design. It makes "at most one
+ * pending edit per product" a fact about the database rather than a convention the UI has to
+ * remember, while SQLite's treatment of NULLs as distinct lets any number of ordinary Brouillons
+ * coexist alongside.
+ */
+val MIGRATION_35_36 = object : Migration(35, 36) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `chargement_drafts` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`single_product_id` INTEGER, " +
+                "`items_json` TEXT NOT NULL, " +
+                "`note` TEXT NOT NULL, " +
+                "`user_name` TEXT NOT NULL, " +
+                "`item_count` INTEGER NOT NULL, " +
+                "`created_at` TEXT NOT NULL, " +
+                "`updated_at` TEXT NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_chargement_drafts_single_product_id` " +
+                "ON `chargement_drafts` (`single_product_id`)"
+        )
+    }
+}

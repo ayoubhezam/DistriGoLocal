@@ -46,6 +46,21 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
  * Guarding one and not the other would be worse than guarding neither, because the unguarded one
  * is the one that eventually gets used. The warning appears only when there is something to lose:
  * a changed quantity, or text in either field. Backing out of an untouched card just leaves.
+ *
+ * ### Surviving a crash
+ *
+ * A dialog only protects against the user pressing Back. It does nothing about a crash, a flat
+ * battery, or the task being swiped away — and none of those ask first. So the edit is also written
+ * to disk as it is made, into `chargement_drafts` with `single_product_id` set.
+ *
+ * That row is **not** a Brouillon. The repository's list query excludes it, so it never appears on
+ * the Brouillons screen or in its count: it is durable, not visible. Reopening the same product's
+ * card restores it silently, exactly as a process-death return does in the other three flows —
+ * there is nothing to decide, because the user never chose to abandon it.
+ *
+ * It leaves in exactly two ways: "Enregistrer le mouvement" finalises it, deleting it inside the
+ * movement's own transaction, and "Quitter" throws it away, because that is the one moment the user
+ * has said the changes are not wanted.
  */
 @Composable
 fun ChargementProduitScreen(
@@ -63,14 +78,57 @@ fun ChargementProduitScreen(
     var showDiscard  by remember { mutableStateOf(false) }
     var saveError    by remember { mutableStateOf("") }
 
+    // The row id of this product's pending edit, once there is one. Null until something is typed.
+    var draftId  by remember(product.id) { mutableStateOf<Int?>(null) }
+    // Until the pending edit has been read back, the fields hold the truck's figures rather than
+    // the user's, and writing from them would overwrite what we are about to restore.
+    var restored by remember(product.id) { mutableStateOf(false) }
+
+    // Silent, like a process-death return: the user never chose to abandon this, so there is
+    // nothing to ask them about.
+    LaunchedEffect(product.id) {
+        val pending = viewModel.productDraft(product.id)
+        if (pending != null) {
+            draftId      = pending.id
+            pending.lines.firstOrNull()?.let { targetCamion = it.target_camion }
+            note         = pending.note
+            userName     = pending.userName
+        }
+        restored = true
+    }
+
     val delta = targetCamion - product.camion_stock
 
     // Anything that would be written counts, not just the quantity: a note typed and then lost to
     // a back gesture is the same broken promise as a quantity typed and lost.
     val isDirty = delta != 0.0 || note.isNotBlank() || userName.isNotBlank()
 
+    // Written on every change rather than on the way out, because the events this protects against
+    // — a crash, a flat battery, a swipe-away — do not run any code on the way out. Nothing is
+    // written until there is something to write, and once dirty the row is kept in step; when the
+    // card is brought back to a zero delta with both fields empty, the row goes with it rather than
+    // lingering as a pending edit that would restore nothing.
+    LaunchedEffect(restored, targetCamion, note, userName) {
+        if (!restored) return@LaunchedEffect
+        draftId = viewModel.saveProductDraft(
+            draftId  = draftId,
+            product  = product,
+            target   = targetCamion,
+            note     = note,
+            userName = userName,
+            isDirty  = isDirty
+        )
+    }
+
     fun attemptBack() {
         if (isDirty) showDiscard = true else onBack()
+    }
+
+    /** "Quitter": the one moment the user has said these changes are not wanted. */
+    fun discardAndLeave() {
+        viewModel.discardProductDraft(product.id)
+        showDiscard = false
+        onBack()
     }
 
     BackHandler { attemptBack() }
@@ -90,7 +148,7 @@ fun ChargementProduitScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showDiscard = false; onBack() }) {
+                TextButton(onClick = { discardAndLeave() }) {
                     Text("Quitter", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
@@ -176,6 +234,9 @@ fun ChargementProduitScreen(
                             "direction"  to if (delta > 0) "vers_camion" else "vers_depot"
                         )
                     ),
+                    // Finalised, not discarded: the pending edit is deleted inside the
+                    // movement's own transaction, so a failure leaves it there to come back to.
+                    draftId   = draftId,
                     onSuccess = { onSaved() },
                     onError   = { isSaving = false; saveError = it }
                 )

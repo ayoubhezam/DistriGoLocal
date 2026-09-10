@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.chargements.ChargementCartItem
 import com.distrigo.app.ui.chargements.ChargementCartRow
+import com.distrigo.app.ui.chargements.ChargementFormSessionViewModel
 import com.distrigo.app.ui.chargements.ChargementViewModel
 import com.distrigo.app.ui.chargements.formatQty
 import com.distrigo.app.ui.designsystem.DsTopAppBar
@@ -50,7 +51,9 @@ fun ChargementNavHost(
     onBack                 : () -> Unit,
     onSaved                : () -> Unit,
     correctionChargementId : Int? = null,
-    preSelectedProductId   : Int? = null
+    preSelectedProductId   : Int? = null,
+    /** A Brouillon to resume, or null to start clean. */
+    draftId                : Int? = null
 ) {
     val navController = rememberNavController()
 
@@ -66,19 +69,16 @@ fun ChargementNavHost(
         composable(Screen.ChargementFormProducts.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }
             val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
+            val session: ChargementFormSessionViewModel = hiltViewModel(parentEntry)
+            LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
             val productViewModel: ProductViewModel = hiltViewModel()
             val products by productViewModel.products.collectAsState()
-            val cartItems by viewModel.formCartItems.collectAsState()
+            val cartItems by session.formCartItems.collectAsState()
             val selectedChargement by viewModel.selectedChargement.collectAsState()
             var search by remember { mutableStateOf("") }
 
-            var initialized by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (!initialized) {
-                    viewModel.resetChargementForm()
-                    if (correctionChargementId != null) viewModel.loadChargementDetail(correctionChargementId)
-                    initialized = true
-                }
+            LaunchedEffect(correctionChargementId) {
+                if (correctionChargementId != null) viewModel.loadChargementDetail(correctionChargementId)
             }
 
             // preSelectedProduct: jump straight to the cart/review screen with that one product
@@ -88,7 +88,7 @@ fun ChargementNavHost(
                 if (preSelectedProductId != null && cartItems.isEmpty() && products.isNotEmpty()) {
                     val product = products.find { it.id == preSelectedProductId }
                     if (product != null) {
-                        viewModel.setFormCartItems(listOf(ChargementCartItem(product = product, targetCamion = product.camion_stock)))
+                        session.setFormCartItems(listOf(ChargementCartItem(product = product, targetCamion = product.camion_stock)))
                         navController.navigate(Screen.ChargementFormCart.route) {
                             popUpTo(Screen.ChargementFormProducts.route) { inclusive = false }
                         }
@@ -105,12 +105,12 @@ fun ChargementNavHost(
                     cartItems.isEmpty() && products.isNotEmpty()
                 ) {
                     val chargement = selectedChargement!!
-                    viewModel.setFormCartItems(
+                    session.setFormCartItems(
                         chargement.items?.mapNotNull { item ->
                             products.find { it.id == item.product_id }?.let { ChargementCartItem(product = it, targetCamion = it.camion_stock) }
                         } ?: emptyList()
                     )
-                    viewModel.setFormNote("Correction du mouvement #${chargement.id}")
+                    session.setFormNote("Correction du mouvement #${chargement.id}")
                 }
             }
 
@@ -213,7 +213,7 @@ fun ChargementNavHost(
                             if (!isInCart) {
                                 Button(
                                     onClick = {
-                                        viewModel.setFormCartItems(
+                                        session.setFormCartItems(
                                             cartItems + ChargementCartItem(product = product, targetCamion = product.camion_stock)
                                         )
                                     },
@@ -233,7 +233,7 @@ fun ChargementNavHost(
                                     modifier = Modifier
                                         .clip(DsShapes.pill)
                                         .background(DsColors.SuccessLight)
-                                        .clickable { viewModel.setFormCartItems(cartItems.filter { it.product.id != product.id }) }
+                                        .clickable { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
                                     Row(
@@ -286,9 +286,11 @@ fun ChargementNavHost(
         composable(Screen.ChargementFormCart.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }
             val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
-            val cartItems by viewModel.formCartItems.collectAsState()
-            val note by viewModel.formNote.collectAsState()
-            val userName by viewModel.formUserName.collectAsState()
+            val session: ChargementFormSessionViewModel = hiltViewModel(parentEntry)
+            LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
+            val cartItems by session.formCartItems.collectAsState()
+            val note by session.formNote.collectAsState()
+            val userName by session.formUserName.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
 
             fun save() {
@@ -308,10 +310,13 @@ fun ChargementNavHost(
                     return
                 }
                 viewModel.createChargement(
+                    // Deleted as the final statement inside the movement's own transaction, so the
+                    // draft outlives any failure.
+                    draftId   = session.draftId,
                     note      = note.trim().ifEmpty { null },
                     userName  = userName.trim().ifEmpty { null },
                     items     = items,
-                    onSuccess = { onSaved() },
+                    onSuccess = { session.onCommitted(); onSaved() },
                     onError   = { isSaving = false }
                 )
             }
@@ -325,7 +330,7 @@ fun ChargementNavHost(
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
-                        TextButton(onClick = { viewModel.setFormCartItems(emptyList()) }) {
+                        TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
                             Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
@@ -366,12 +371,12 @@ fun ChargementNavHost(
                                 item              = item,
                                 initiallyExpanded = preSelectedProductId == item.product.id,
                                 onQuantityChange  = { newTarget ->
-                                    viewModel.setFormCartItems(cartItems.map {
+                                    session.setFormCartItems(cartItems.map {
                                         if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0.0)) else it
                                     })
                                 },
                                 onRemove = {
-                                    viewModel.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
+                                    session.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
                                 }
                             )
                         }
@@ -379,7 +384,7 @@ fun ChargementNavHost(
                         item {
                             OutlinedTextField(
                                 value         = userName,
-                                onValueChange = { viewModel.setFormUserName(it) },
+                                onValueChange = { session.setFormUserName(it) },
                                 placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
                                 leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
                                 modifier      = Modifier.fillMaxWidth(),
@@ -395,7 +400,7 @@ fun ChargementNavHost(
                         item {
                             OutlinedTextField(
                                 value         = note,
-                                onValueChange = { viewModel.setFormNote(it) },
+                                onValueChange = { session.setFormNote(it) },
                                 placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,

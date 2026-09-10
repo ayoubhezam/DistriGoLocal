@@ -64,8 +64,9 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         PurchaseDraftEntity::class,
         VenteDraftEntity::class,
         TourneeVenteDraftEntity::class,
+        ChargementDraftEntity::class,
     ],
-    version = 35,
+    version = 36,
     exportSchema = true
 )
 
@@ -78,6 +79,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun purchaseDraftDao(): PurchaseDraftDao
     abstract fun venteDraftDao(): VenteDraftDao
     abstract fun tourneeVenteDraftDao(): TourneeVenteDraftDao
+    abstract fun chargementDraftDao(): ChargementDraftDao
 
     abstract fun chargementDao(): ChargementDao
 
@@ -121,7 +123,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // Room prefers a registered path over destructive fallback, so 32 -> 34
                     // migrates without wiping. The fallback stays for pre-32 installs, where
                     // removing it would replace today's wipe with a crash.
-                    .addMigrations(MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35)
+                    .addMigrations(MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

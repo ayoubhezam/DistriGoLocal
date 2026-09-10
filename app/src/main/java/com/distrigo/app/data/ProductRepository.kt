@@ -1308,10 +1308,16 @@ class ProductRepository(
         return entity.toChargement(items)
     }
 
+    /**
+     * @param draftId a `chargement_drafts` row to delete on success — either a listed Brouillon or
+     *   the single-product card's private editing state, since both live in that table and both
+     *   are finalised the same way.
+     */
     suspend fun createChargement(
         note: String?,
         items: List<Map<String, Any?>>,
-        userName: String? = null
+        userName: String? = null,
+        draftId: Int? = null
     ): Map<String, Any> {
         db.withTransaction {
             val today = java.time.LocalDate.now().toString()
@@ -1357,6 +1363,9 @@ class ProductRepository(
                 )
             }
             db.chargementDao().insertItems(itemEntities)
+            // Last, and inside the transaction: if anything above throws, the whole thing rolls
+            // back and the draft is still there to resume.
+            draftId?.let { db.chargementDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Chargement créé avec succès")
     }

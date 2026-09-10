@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -24,7 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.navigation.ChargementNavHost
+import com.distrigo.app.ui.chargements.ChargementBrouillonsScreen
+import com.distrigo.app.ui.chargements.ChargementBrouillonsSheet
 import com.distrigo.app.ui.chargements.ChargementProduitScreen
+import com.distrigo.app.ui.chargements.ChargementViewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -50,6 +54,12 @@ fun StockCamionScreen(
     var showNewChargement by remember { mutableStateOf(false) }
     var editingProduct    by remember { mutableStateOf<Product?>(null) }
     var longPressProduct  by remember { mutableStateOf<Product?>(null) }
+    var showDraftsSheet   by remember { mutableStateOf(false) }
+    var showBrouillons    by remember { mutableStateOf(false) }
+    var resumingDraftId   by remember { mutableStateOf<Int?>(null) }
+
+    val chargementViewModel: ChargementViewModel = hiltViewModel()
+    val drafts by chargementViewModel.drafts.collectAsState()
 
     val camionProducts = products.filter { it.camion_stock > 0 }
     val filtered = camionProducts.filter { it.name.contains(search, ignoreCase = true) }
@@ -60,10 +70,33 @@ fun StockCamionScreen(
     if (showNewChargement) {
         onFullScreenChange(true)
         ChargementNavHost(
-            onBack  = { showNewChargement = false; onFullScreenChange(false) },
+            draftId = resumingDraftId,
+            onBack  = {
+                showNewChargement = false
+                resumingDraftId   = null
+                onFullScreenChange(false)
+            },
             onSaved = {
                 showNewChargement = false
+                resumingDraftId   = null
                 onFullScreenChange(false)
+            }
+        )
+        return
+    }
+
+    // ── Brouillons: the whole list, its own screen ──
+    if (showBrouillons) {
+        onFullScreenChange(true)
+        ChargementBrouillonsScreen(
+            viewModel = chargementViewModel,
+            onBack    = { showBrouillons = false; onFullScreenChange(false) },
+            // Straight through, with no gate: a chargement draft edits no committed record, so
+            // there is nothing to check it against before opening it.
+            onResume  = { draft ->
+                showBrouillons  = false
+                resumingDraftId = draft.id
+                showNewChargement = true
             }
         )
         return
@@ -152,6 +185,34 @@ fun StockCamionScreen(
                 )
             )
 
+            // Brouillons live beside the list they belong to, as they do on the other three
+            // screens. Absent when there are none, so the row costs nothing in the ordinary case.
+            if (drafts.isNotEmpty()) {
+                Spacer(Modifier.height(DsSpacing.sm))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .clickable { showBrouillons = true }
+                            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                    ) {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                        Text(
+                            "Brouillons (${drafts.size})",
+                            fontSize   = DsTextSize.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.Primary
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(DsSpacing.sm))
 
             when {
@@ -193,8 +254,14 @@ fun StockCamionScreen(
         }
 
         // ── FAB: ajouter plusieurs produits ──
+        //
+        // With Brouillons waiting, the FAB opens them rather than starting a fifth one straight
+        // over the top — the same rule Achats and Dépôt Vente follow. With none, it does what it
+        // always did.
         FloatingActionButton(
-            onClick         = { showNewChargement = true },
+            onClick         = {
+                if (drafts.isNotEmpty()) showDraftsSheet = true else showNewChargement = true
+            },
             containerColor  = DsColors.Primary,
             contentColor    = Color.White,
             modifier        = Modifier
@@ -202,6 +269,24 @@ fun StockCamionScreen(
                 .padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter des produits")
+        }
+
+        if (showDraftsSheet) {
+            ChargementBrouillonsSheet(
+                drafts     = drafts,
+                onResume   = { draft ->
+                    showDraftsSheet   = false
+                    resumingDraftId   = draft.id
+                    showNewChargement = true
+                },
+                onStartNew = {
+                    showDraftsSheet   = false
+                    resumingDraftId   = null
+                    showNewChargement = true
+                },
+                onSeeAll   = { showDraftsSheet = false; showBrouillons = true },
+                onDismiss  = { showDraftsSheet = false }
+            )
         }
     }
 }
