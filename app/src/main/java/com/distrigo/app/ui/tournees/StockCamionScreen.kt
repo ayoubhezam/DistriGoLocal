@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.navigation.ChargementNavHost
+import com.distrigo.app.ui.chargements.ChargementProduitScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -68,11 +69,17 @@ fun StockCamionScreen(
         return
     }
 
-    // ── Modifier Screen (produit unique pré-sélectionné) ──
+    // ── Modifier: one product, one card, no wizard ──
+    //
+    // This used to mount the whole ChargementNavHost for a single row. That host starts at the
+    // product catalogue and jumped straight to the cart with popUpTo(products, inclusive = false),
+    // deliberately leaving the catalogue on the back stack — so changing one number meant two
+    // screens, and Back landed on a list nobody had asked for. ChargementProduitScreen is the card
+    // on its own, and it guards Back when there is unsaved work.
     editingProduct?.let { product ->
         onFullScreenChange(true)
-        ChargementNavHost(
-            preSelectedProductId = product.id,
+        ChargementProduitScreen(
+            product = product,
             onBack  = { editingProduct = null; onFullScreenChange(false) },
             onSaved = {
                 editingProduct = null
