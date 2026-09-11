@@ -43,14 +43,13 @@ import com.distrigo.app.ui.products.ProductViewModel
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
 // are invoked from TourneesHubScreen. Not a nested graph: ChargementFormScreen had exactly one
 // caller (StockCamionScreen), so there's no cross-NavHost sharing need like Vente/Tournée/
-// Purchase/Retour had, and preSelectedProductId/correctionChargementId are passed as ordinary
-// composable parameters (closed over directly) rather than threaded through nav route args, since
-// this NavHost is entered via a fresh function call, not via navController.navigate(...).
+// Purchase/Retour had, and preSelectedProductId/draftId are passed as ordinary composable
+// parameters (closed over directly) rather than threaded through nav route args, since this
+// NavHost is entered via a fresh function call, not via navController.navigate(...).
 @Composable
 fun ChargementNavHost(
     onBack                 : () -> Unit,
     onSaved                : () -> Unit,
-    correctionChargementId : Int? = null,
     preSelectedProductId   : Int? = null,
     /** A Brouillon to resume, or null to start clean. */
     draftId                : Int? = null
@@ -68,18 +67,14 @@ fun ChargementNavHost(
     ) {
         composable(Screen.ChargementFormProducts.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ChargementFormGraph.route) }
-            val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
+            // No ChargementViewModel here any more: the only thing this step ever asked it for was
+            // selectedChargement, which existed to pre-fill a correction that nothing ever started.
             val session: ChargementFormSessionViewModel = hiltViewModel(parentEntry)
             LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
             val productViewModel: ProductViewModel = hiltViewModel()
             val products by productViewModel.products.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
-            val selectedChargement by viewModel.selectedChargement.collectAsState()
             var search by remember { mutableStateOf("") }
-
-            LaunchedEffect(correctionChargementId) {
-                if (correctionChargementId != null) viewModel.loadChargementDetail(correctionChargementId)
-            }
 
             // preSelectedProduct: jump straight to the cart/review screen with that one product
             // pre-added — matches the original's `showCart = preSelectedProduct != null` initial
@@ -96,24 +91,6 @@ fun ChargementNavHost(
                 }
             }
 
-            // correctionChargementId: pre-fill the cart in the background (so "isInCart" badges
-            // show correctly below) but stay on the products list — does NOT auto-jump to cart,
-            // unlike preSelectedProductId. Matches the original's LaunchedEffect(correctionSource,
-            // products), which never touched `showCart`.
-            LaunchedEffect(correctionChargementId, selectedChargement, products) {
-                if (correctionChargementId != null && selectedChargement?.id == correctionChargementId &&
-                    cartItems.isEmpty() && products.isNotEmpty()
-                ) {
-                    val chargement = selectedChargement!!
-                    session.setFormCartItems(
-                        chargement.items?.mapNotNull { item ->
-                            products.find { it.id == item.product_id }?.let { ChargementCartItem(product = it, targetCamion = it.camion_stock) }
-                        } ?: emptyList()
-                    )
-                    session.setFormNote("Correction du mouvement #${chargement.id}")
-                }
-            }
-
             BackHandler { onBack() }
 
             val filteredProducts = products.filter { product ->
@@ -124,7 +101,7 @@ fun ChargementNavHost(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
-                    title         = if (correctionChargementId != null) "Correction du mouvement #$correctionChargementId" else "Chargement / Déchargement",
+                    title         = "Chargement / Déchargement",
                     subtitle      = if (cartItems.isNotEmpty()) "${cartItems.size} article(s)" else "Sélectionnez des produits",
                     // Blue once something is in the cart, grey while the step is still empty.
                     subtitleColor = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextSecondary,
@@ -293,6 +270,12 @@ fun ChargementNavHost(
             val userName by session.formUserName.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
 
+            // Exactly the condition save() uses to decide whether to write anything: a line counts
+            // only when its target differs from what the truck currently holds. Derived from
+            // cartItems rather than tracked separately, so the button cannot drift out of step with
+            // what the save would actually do.
+            val hasChanges = cartItems.any { it.targetCamion != it.product.camion_stock }
+
             fun save() {
                 isSaving = true
                 val items = cartItems.mapNotNull { ci ->
@@ -413,9 +396,14 @@ fun ChargementNavHost(
                         }
                     }
 
+                    // A cart full of untouched lines has a zero delta on every one of them,
+                    // and save() already returns without writing in that case — so the button was
+                    // live and did nothing, which looks like a failure rather than a no-op. The
+                    // same rule the single-product card uses: the control is dead when there is
+                    // nothing for it to do, and says so.
                     Button(
                         onClick  = { save() },
-                        enabled  = cartItems.isNotEmpty() && !isSaving,
+                        enabled  = hasChanges && !isSaving,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)

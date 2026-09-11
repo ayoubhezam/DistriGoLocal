@@ -28,11 +28,12 @@ import javax.inject.Inject
  *
  * ### Create-only, like Tournée Vente
  *
- * `ProductRepository` has no `updateChargement`, and `correctionChargementId` — the one parameter
- * that ever hinted at editing an existing movement — is passed by nobody. So there is no committed
- * record a draft can be an unsaved edit of: no base fingerprint, no conflict check, no OBSOLÈTE
- * state. [isEdit] is constantly false, which makes the shared [DraftAutosave] take its new-record
- * path, where emptiness alone decides whether a write happens.
+ * `ProductRepository` has no `updateChargement`. A `correctionChargementId` parameter on the form
+ * host once hinted at editing an existing movement, but nothing ever passed it and it has since
+ * been removed. So there is no committed record a draft can be an unsaved edit of: no base
+ * fingerprint, no conflict check, no OBSOLÈTE state. [isEdit] is constantly false, which makes the
+ * shared [DraftAutosave] take its new-record path, where emptiness alone decides whether a write
+ * happens.
  *
  * ### What a line means
  *
