@@ -22,8 +22,13 @@ fun ProduitsNavHost(
 ) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    LaunchedEffect(currentRoute) {
-        onFullScreenChange(currentRoute != Screen.ProduitsHome.route)
+
+    // Two things can want the bottom nav out of the way: being on any route other than the list,
+    // and the list itself opening the photo viewer over the top of it. Combining them here keeps
+    // one source of truth — two separate callers would race, and whichever fired last would win.
+    var photoViewerOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(currentRoute, photoViewerOpen) {
+        onFullScreenChange(currentRoute != Screen.ProduitsHome.route || photoViewerOpen)
     }
     NavHost(
         navController      = navController,
@@ -42,6 +47,7 @@ fun ProduitsNavHost(
                 onOpenMenu           = onOpenMenu,
                 onNotificationsClick = onNotificationsClick,
                 onProfileClick       = onProfileClick,
+                onFullScreenChange   = { photoViewerOpen = it },
 
                 onAddProduct   = { navController.navigate(Screen.ProduitsForm.createRoute()) },
                 onEditProduct  = { productId -> navController.navigate(Screen.ProduitsForm.createRoute(productId)) },

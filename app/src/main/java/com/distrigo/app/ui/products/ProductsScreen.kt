@@ -78,6 +78,10 @@ fun ProductsScreen(
     onProfileClick       : () -> Unit = {},
 
     modifier       : Modifier = Modifier,
+    // Raised while the photo viewer is open, so the host hides the bottom nav and the viewer gets
+    // the whole screen. This is the same signal every full-screen destination in the app already
+    // uses; the viewer is not a destination, so it has to say so itself.
+    onFullScreenChange   : (Boolean) -> Unit = {},
     onAddProduct   : () -> Unit = {},
     onEditProduct  : (Int) -> Unit = {},
     onProductClick : (Int) -> Unit = {}
@@ -99,6 +103,12 @@ fun ProductsScreen(
     LaunchedEffect(viewerProduct?.id) {
         viewerProduct?.let { viewModel.observeGalleryFor(it.id) }
     }
+
+    val viewerOpen = viewerProduct != null
+    LaunchedEffect(viewerOpen) { onFullScreenChange(viewerOpen) }
+    // Leaving the screen with the flag still raised would strand the bottom nav hidden, since
+    // nothing else here would ever lower it.
+    DisposableEffect(Unit) { onDispose { onFullScreenChange(false) } }
 
     var search           by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf<Product?>(null) }
