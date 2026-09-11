@@ -22,7 +22,7 @@ import java.io.ByteArrayOutputStream
  *     makes the decoder do the first reduction itself, so nothing larger than roughly twice
  *     [MAX_EDGE] is ever held.
  *  2. **They upscaled small images.** The scale ratio was never clamped, so a 64x64 source was
- *     enlarged to 400x400 — interpolated detail that JPEG then has to encode, measured at 5x the
+ *     enlarged to fill it — interpolated detail that JPEG then has to encode, measured at 5x the
  *     bytes of the original for no added information. Hence [coerceAtMost].
  *  3. **They assumed the decode succeeded.** `decodeStream` returns null for a corrupt or
  *     unsupported file and the next line read `.width` off it. Every failure path here returns
@@ -34,8 +34,30 @@ import java.io.ByteArrayOutputStream
  */
 object ImageCapture {
 
-    /** Longest edge of the stored image, in pixels. The value the five call sites all used. */
-    const val MAX_EDGE = 400
+    /**
+     * Longest edge of the stored image, in pixels.
+     *
+     * 400 was the value the five call sites this replaced all used, and it was never revisited.
+     * It is below what the screen asks for: the gallery lays a photo out at about 608 px and the
+     * full-screen viewer at about 990 px on a 1080 px display, so a 400 px file was being upscaled
+     * 1.5x and 2.5x respectively before anyone pinched anything.
+     *
+     * 1024 covers the viewer's unzoomed layout with a little margin and leaves the gallery
+     * comfortably inside it. Going further has sharply diminishing returns -- a phone screen cannot
+     * show more, and the file grows with the square of this number.
+     *
+     * The cost lands in three places, none of them on the surfaces that show photos most:
+     *
+     *  - **Disk.** Roughly 6x the bytes per photo. Files are never deleted, so this compounds; see
+     *    the orphan note in [com.distrigo.app.data.image.ImageStore].
+     *  - **Peak memory during a capture, not after it.** [sampleSizeFor] now stops one halving
+     *    earlier, so the intermediate bitmap it decodes is around four times larger. It is
+     *    transient, recycled in [compressFromUri], and off the main thread.
+     *  - **Nothing at display time.** Coil sizes every decode to the measured layout, so an avatar
+     *    still decodes ~118 px whatever the file holds. That only stays true while every surface
+     *    goes through EntityImage, which since the viewer migrated is all of them.
+     */
+    const val MAX_EDGE = 1024
 
     /**
      * JPEG quality of the stored image.
@@ -53,9 +75,8 @@ object ImageCapture {
      * stored keep their q50 encoding; the catalogue improves as pictures are retaken, not on
      * upgrade.
      *
-     * Resolution is a separate lever, deliberately not pulled at the same time: [MAX_EDGE] has not
-     * moved, so nothing about decode cost or heap changes here, and the only thing to look at is
-     * whether the pictures got better.
+     * Resolution is a separate lever and was moved separately, one step later; the measurement
+     * above is from when [MAX_EDGE] was still 400, which is why the output it quotes is 345x399.
      */
     const val JPEG_QUALITY = 80
 
@@ -137,8 +158,11 @@ object ImageCapture {
      * The largest power-of-two reduction that still leaves the longer edge at or above [MAX_EDGE],
      * so the final [scaleToFit] always has enough source pixels to work from.
      *
-     * A 4032x3024 photo comes back at 8: the decoder produces 504x378 (0.7 MB) instead of
-     * 4032x3024 (46.5 MB).
+     * A 4032x3024 photo comes back at 2: the decoder produces 2016x1512 (12.2 MB) instead of
+     * 4032x3024 (46.5 MB). At [MAX_EDGE] 400 the same photo came back at 8, for 504x378 and
+     * 0.7 MB — raising the edge moves this number, and it is the largest allocation the capture
+     * path makes. It lives on [kotlinx.coroutines.Dispatchers.IO], is recycled as soon as the
+     * scaled copy exists, and never reaches the main thread.
      */
     private fun sampleSizeFor(width: Int, height: Int): Int {
         var sample = 1

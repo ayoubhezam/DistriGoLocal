@@ -31,10 +31,11 @@ import java.nio.ByteBuffer
  *
  * ### Why Coil rather than BitmapFactory
  *
- * Stored images are 400px, which is 640 KB of ARGB_8888. Most of them are drawn into a 34–44dp
- * avatar — about 126px on a 3x screen, or 64 KB. Decoding the whole thing to fill a tenth of it was
- * the cost the hand-rolled decodes all paid, repeated per screen because a `remember` is scoped to
- * one composable and thrown away when a list row scrolls off.
+ * Stored images are 1024px, which is 4 MB of ARGB_8888. Most of them are drawn into a 34–44dp
+ * avatar — about 126px on a 3x screen, or 64 KB. Decoding the whole thing to fill a sixtieth of it
+ * was the cost the hand-rolled decodes all paid, repeated per screen because a `remember` is scoped
+ * to one composable and thrown away when a list row scrolls off. That ratio is why the stored edge
+ * could be raised at all: nothing here decodes a file at its stored size.
  *
  * Coil sizes the decode to the measured layout, keeps an LRU memory cache across screens and
  * scrolls, and does the work off the composition thread. The first load of an image shows
