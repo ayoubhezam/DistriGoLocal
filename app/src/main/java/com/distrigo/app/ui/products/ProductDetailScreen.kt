@@ -75,40 +75,6 @@ fun ProductDetailScreen(
     BackHandler { onBack() }
     BackHandler(enabled = !showFullImage) { onBack() }
     BackHandler(enabled = showFullImage) { showFullImage = false }
-    if (showFullImage) {
-        productBitmap?.let {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
-                    .clickable { showFullImage = false },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    bitmap             = it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentScale       = ContentScale.Fit
-                )
-                // زر الإغلاق
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .size(36.dp)
-                        .clip(DsShapes.pill)
-                        .background(Color.White.copy(alpha = 0.2f))
-                        .clickable { showFullImage = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-                }
-            }
-        }
-    }
-
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -272,6 +238,44 @@ fun ProductDetailScreen(
             )
 
             Spacer(Modifier.height(16.dp))
+        }
+    }
+
+    // Emitted after the scrolling Column, not before it. Siblings here are stacked by the host in
+    // emission order, so the overlay used to be painted *underneath* an opaque full-screen Column
+    // and was never visible: tapping the photo set showFullImage, the viewer drew, nothing showed,
+    // and the next Back press was silently eaten closing a viewer the user could not see.
+    if (showFullImage) {
+        productBitmap?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { showFullImage = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap             = it.asImageBitmap(),
+                    contentDescription = null,
+                    modifier           = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentScale       = ContentScale.Fit
+                )
+                // زر الإغلاق
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(36.dp)
+                        .clip(DsShapes.pill)
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .clickable { showFullImage = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
+                }
+            }
         }
     }
 }
