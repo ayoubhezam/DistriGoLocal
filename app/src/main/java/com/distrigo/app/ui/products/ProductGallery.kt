@@ -103,12 +103,15 @@ fun ProductGallery(
 
     Column(modifier = modifier) {
 
+        // White, not the muted surface. The photo is drawn Fit, so the frame shows around it —
+        // and product shots are overwhelmingly cut out on white, which a grey frame turns into a
+        // visible rectangle behind the product.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(240.dp)
                 .clip(DsShapes.large)
-                .background(DsColors.SurfaceMuted)
+                .background(DsColors.Surface)
         ) {
             HorizontalPager(
                 state    = pagerState,
