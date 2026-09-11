@@ -7,7 +7,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroidSize
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +59,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /** The viewer's ground. Near-black rather than pure black, matching the app's ink. */
 private val ViewerBackground = Color(0xFF0B0D12)
@@ -166,23 +172,69 @@ fun ProductImageViewer(
                                         onTap = { if (zoom <= 1f) onClose() }
                                     )
                                 }
+                                // detectTransformGestures would be the obvious thing here, and it
+                                // was — but once past touch slop it consumes every change that
+                                // moved, one finger included. The pager sits above this in the
+                                // tree and only ever sees what this leaves unconsumed, so a
+                                // single-finger drag was swallowed and the photos could not be
+                                // swiped. This is that detector with one condition added: the
+                                // gesture is claimed only when a second finger is down, or when
+                                // the photo is already magnified — which is exactly when the pager
+                                // is disabled anyway. A one-finger drag at rest is left alone and
+                                // reaches the pager. Zoom and pan are unchanged.
                                 .pointerInput(Unit) {
-                                    detectTransformGestures { _, pan, gestureZoom, _ ->
-                                        val next = (zoom * gestureZoom).coerceIn(1f, 5f)
-                                        // Panning is only meaningful while magnified, and the
-                                        // travel is bounded by how far the image overflows,
-                                        // so it can never be dragged off screen entirely.
-                                        offset = if (next <= 1f) {
-                                            Offset.Zero
-                                        } else {
-                                            val maxX = size.width * (next - 1f) / 2f
-                                            val maxY = size.height * (next - 1f) / 2f
-                                            Offset(
-                                                (offset.x + pan.x).coerceIn(-maxX, maxX),
-                                                (offset.y + pan.y).coerceIn(-maxY, maxY)
-                                            )
-                                        }
-                                        zoom = next
+                                    val scope = this
+                                    awaitEachGesture {
+                                        var pastTouchSlop = false
+                                        var zoomAccum = 1f
+                                        var panAccum = Offset.Zero
+                                        val touchSlop = viewConfiguration.touchSlop
+
+                                        awaitFirstDown(requireUnconsumed = false)
+                                        do {
+                                            val event = awaitPointerEvent()
+                                            val canceled = event.changes.any { it.isConsumed }
+                                            if (!canceled && (event.changes.size > 1 || zoom > 1f)) {
+                                                val zoomChange = event.calculateZoom()
+                                                val panChange = event.calculatePan()
+
+                                                if (!pastTouchSlop) {
+                                                    zoomAccum *= zoomChange
+                                                    panAccum += panChange
+                                                    val centroidSize =
+                                                        event.calculateCentroidSize(useCurrent = false)
+                                                    val zoomMotion = abs(1 - zoomAccum) * centroidSize
+                                                    val panMotion = panAccum.getDistance()
+                                                    if (zoomMotion > touchSlop || panMotion > touchSlop) {
+                                                        pastTouchSlop = true
+                                                    }
+                                                }
+
+                                                if (pastTouchSlop) {
+                                                    if (zoomChange != 1f || panChange != Offset.Zero) {
+                                                        val next = (zoom * zoomChange).coerceIn(1f, 5f)
+                                                        // Panning is only meaningful while magnified,
+                                                        // and the travel is bounded by how far the
+                                                        // image overflows, so it can never be dragged
+                                                        // off screen entirely.
+                                                        offset = if (next <= 1f) {
+                                                            Offset.Zero
+                                                        } else {
+                                                            val maxX = scope.size.width * (next - 1f) / 2f
+                                                            val maxY = scope.size.height * (next - 1f) / 2f
+                                                            Offset(
+                                                                (offset.x + panChange.x).coerceIn(-maxX, maxX),
+                                                                (offset.y + panChange.y).coerceIn(-maxY, maxY)
+                                                            )
+                                                        }
+                                                        zoom = next
+                                                    }
+                                                    event.changes.forEach {
+                                                        if (it.positionChanged()) it.consume()
+                                                    }
+                                                }
+                                            }
+                                        } while (!canceled && event.changes.any { it.pressed })
                                     }
                                 }
                         )
