@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Kotlin compiler error dumps and JVM crash dumps. Both are build detritus that lands in the
+# working tree on a failure, and both got picked up by "git add -A" before this entry existed.
+.kotlin/
+hs_err_pid*.log
+replay_pid*.log
