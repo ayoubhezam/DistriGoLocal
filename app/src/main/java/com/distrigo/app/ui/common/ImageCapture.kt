@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
+import com.distrigo.app.data.image.ImageStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -28,9 +28,9 @@ import java.io.ByteArrayOutputStream
  *     unsupported file and the next line read `.width` off it. Every failure path here returns
  *     null instead, and callers are expected to tell the user rather than appear to do nothing.
  *
- * The output format is deliberately unchanged: a `data:image/jpeg;base64,...` URI, exactly what the
- * five call sites produced before. Moving that payload out of the database and onto disk is a
- * separate change, and this one is meant to be a drop-in that can ship on its own.
+ * The output is an [ImageStore] reference — `img:<sha256>` — which the caller puts in the same
+ * column the base64 payload used to occupy, so a row now carries ~70 bytes where it carried ~14 KB.
+ * The three fixes above are independent of that move and shipped ahead of it.
  */
 object ImageCapture {
 
@@ -40,23 +40,38 @@ object ImageCapture {
     /** JPEG quality of the stored image. Also unchanged from the call sites. */
     const val JPEG_QUALITY = 50
 
-    private const val DATA_URI_PREFIX = "data:image/jpeg;base64,"
-
     /**
-     * Reads [uri], downscales it to fit [MAX_EDGE], and returns it as a data URI — or null if the
-     * image could not be read at all.
+     * Reads [uri], downscales it to fit [MAX_EDGE], writes it to [ImageStore], and returns the
+     * `img:<hash>` reference to put in the entity's column — or null if the image could not be
+     * read or could not be written.
      *
      * Runs on [Dispatchers.IO]: the picker callback this is called from runs on the main thread,
-     * and decode, scale, JPEG encode and base64 encode are all real work.
+     * and decode, scale, JPEG encode, hashing and the file write are all real work.
+     *
+     * This used to return a `data:image/jpeg;base64,...` payload for the caller to store in the
+     * row. Callers are unchanged otherwise — they still take the returned string and put it in the
+     * same column; it is simply ~70 bytes now instead of ~14 KB.
      */
-    suspend fun encodeFromUri(context: Context, uri: Uri): String? = withContext(Dispatchers.IO) {
+    suspend fun captureToStore(context: Context, uri: Uri): String? = withContext(Dispatchers.IO) {
+        val jpeg = compressFromUri(context, uri) ?: return@withContext null
+        ImageStore.put(context, jpeg)
+    }
+
+    /**
+     * The decode-scale-compress half on its own, as JPEG bytes.
+     *
+     * Separate from [captureToStore] because the backfill needs the same guarantees about size
+     * and orientation when it re-encodes nothing — and because a caller that already has bytes
+     * should not have to round-trip through a Uri to store them.
+     */
+    suspend fun compressFromUri(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
         val decoded = decodeDownsampled(context, uri) ?: return@withContext null
         try {
             val scaled = scaleToFit(decoded)
             try {
                 val out = ByteArrayOutputStream()
                 scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
-                DATA_URI_PREFIX + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+                out.toByteArray()
             } finally {
                 if (scaled !== decoded) scaled.recycle()
             }

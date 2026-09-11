@@ -70,7 +70,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalDensity
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientDetailScreen(
@@ -132,7 +132,7 @@ fun ClientDetailScreen(
     ) { uri ->
         uri?.let {
             imageScope.launch {
-                val newImageUri = ImageCapture.encodeFromUri(context, it)
+                val newImageUri = ImageCapture.captureToStore(context, it)
                 if (newImageUri == null) {
                     Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
                     return@launch
@@ -480,7 +480,7 @@ fun ClientDetailScreen(
                                 .background(Color.White.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            val headerBitmap = rememberBase64Bitmap(currentClient.image_uri)
+                            val headerBitmap = rememberEntityBitmap(currentClient.image_uri)
                             if (currentClient.image_uri != null) {
                                 headerBitmap?.let {
                                     Image(

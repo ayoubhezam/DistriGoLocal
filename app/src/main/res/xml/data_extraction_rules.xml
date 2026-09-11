@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+   Android 12+ (API 31 and above). Pre-31 devices read backup_rules.xml instead, which carries the
+   same exclusion.
+
+   Entity photos live in filesDir/images/ and are deliberately NOT backed up to the cloud, while the
+   database is. The reason is the auto-backup quota: an app that goes past roughly 25 MB stops being
+   backed up at all, silently. The image corpus is by far the largest thing this app stores, so
+   including it would eventually cost the backup of the ledger — and a photo can be taken again
+   where a year of sales cannot.
+
+   Consequence to keep in mind: a restored device has the database but no image files, so every
+   img: reference dangles. ImageStore.loadBitmap returns null for a reference whose file is missing
+   and every call site already draws its placeholder, so this shows up as entities with no photo
+   rather than as a crash.
+
+   device-transfer is left at its default, which includes everything: a direct device-to-device
+   transfer has no quota, so there is no reason to drop the photos on that path.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="images" />
     </cloud-backup>
-    <!--
-    <device-transfer>
-        <include .../>
-        <exclude .../>
-    </device-transfer>
-    -->
 </data-extraction-rules>

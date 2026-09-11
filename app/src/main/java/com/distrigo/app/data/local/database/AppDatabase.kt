@@ -107,6 +107,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sousCategorieDao(): SousCategorieDao
     abstract fun marqueDao(): MarqueDao
 
+    /** Used once, to move base64 payloads out to files — see ImageBackfill. */
+    abstract fun imageBackfillDao(): ImageBackfillDao
+
 
 
     companion object {

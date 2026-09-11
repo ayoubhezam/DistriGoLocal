@@ -38,6 +38,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -316,12 +317,7 @@ internal fun Step3Validation(
                         modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                         contentAlignment = Alignment.Center
                     ) {
-                        val bitmap = remember(item.product.image_uri) {
-                            item.product.image_uri?.let { uri ->
-                                val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                            }
-                        }
+                        val bitmap = rememberEntityBitmap(item.product.image_uri)
                         if (bitmap != null) {
                             androidx.compose.foundation.Image(
                                 bitmap = bitmap.asImageBitmap(), contentDescription = null,

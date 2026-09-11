@@ -46,6 +46,7 @@ import com.distrigo.app.ui.tournees.TourneeVenteFormSessionViewModel
 import com.distrigo.app.ui.tournees.TourneeViewModel
 import com.distrigo.app.ui.tournees.formatQty
 import com.distrigo.app.ui.ventes.VenteViewModel
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -341,12 +342,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                 .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            val bitmap = remember(product.image_uri) {
-                                                product.image_uri?.let { uri ->
-                                                    val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                                    android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                                }
-                                            }
+                                            val bitmap = rememberEntityBitmap(product.image_uri)
                                             if (bitmap != null) {
                                                 androidx.compose.foundation.Image(
                                                     bitmap = bitmap.asImageBitmap(), contentDescription = null,

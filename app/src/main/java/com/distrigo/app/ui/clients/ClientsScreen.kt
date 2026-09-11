@@ -35,7 +35,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -351,7 +351,7 @@ private fun ClientCard(
                 .background(typeColors.second),
             contentAlignment = Alignment.Center
         ) {
-            val bitmap = rememberBase64Bitmap(client.image_uri)
+            val bitmap = rememberEntityBitmap(client.image_uri)
             if (client.image_uri != null) {
                 bitmap?.let {
                     Image(

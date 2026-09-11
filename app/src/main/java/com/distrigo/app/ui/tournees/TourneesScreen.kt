@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -1022,14 +1023,7 @@ private fun TourneeClientAvatarItem(
         else      -> Color.Transparent
     }
 
-    val bitmap = remember(client.image_uri) {
-        client.image_uri?.let { uri ->
-            try {
-                val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-            } catch (e: Exception) { null }
-        }
-    }
+    val bitmap = rememberEntityBitmap(client.image_uri)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

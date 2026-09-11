@@ -46,6 +46,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -896,12 +897,7 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 modifier         = Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = remember(product.image_uri) {
-                    product.image_uri?.let { uri ->
-                        val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                        android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    }
-                }
+                val bitmap = rememberEntityBitmap(product.image_uri)
                 if (bitmap != null) {
                     androidx.compose.foundation.Image(
                         bitmap = bitmap.asImageBitmap(), contentDescription = null,
@@ -983,12 +979,7 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                 modifier         = Modifier.fillMaxWidth().height(110.dp).background(DsColors.SurfaceMuted),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = remember(product.image_uri) {
-                    product.image_uri?.let { uri ->
-                        val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                        android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    }
-                }
+                val bitmap = rememberEntityBitmap(product.image_uri)
                 if (bitmap != null) {
                     androidx.compose.foundation.Image(
                         bitmap = bitmap.asImageBitmap(), contentDescription = null,

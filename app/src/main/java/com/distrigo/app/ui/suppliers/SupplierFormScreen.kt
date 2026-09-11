@@ -42,7 +42,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
@@ -104,7 +104,7 @@ fun SupplierFormScreen(
     ) { uri ->
         uri?.let {
             imageScope.launch {
-                val encoded = ImageCapture.encodeFromUri(context, it)
+                val encoded = ImageCapture.captureToStore(context, it)
                 if (encoded != null) imageBase64 = encoded
                 else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
             }
@@ -215,7 +215,7 @@ fun SupplierFormScreen(
                     .clickable { photoPicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                val previewBitmap = rememberBase64Bitmap(imageBase64)
+                val previewBitmap = rememberEntityBitmap(imageBase64)
                 if (imageBase64 != null) {
                     previewBitmap?.let {
                         Image(

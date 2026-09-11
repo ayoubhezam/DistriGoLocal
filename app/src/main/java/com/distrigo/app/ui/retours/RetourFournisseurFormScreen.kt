@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.retours
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +22,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 internal fun formatRetourQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -58,12 +57,7 @@ internal fun RetourProductRow(
             modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(if (isInCart) DsColors.SuccessLight else DsColors.SurfaceMuted),
             contentAlignment = Alignment.Center
         ) {
-            val bitmap = remember(product.image_uri) {
-                product.image_uri?.let { uri ->
-                    val bytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                }
-            }
+            val bitmap = rememberEntityBitmap(product.image_uri)
             if (bitmap != null) {
                 Image(bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {

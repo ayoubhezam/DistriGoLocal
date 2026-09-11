@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.tournees
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -39,6 +37,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.ui.common.rememberEntityBitmap
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -313,12 +312,7 @@ private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             // ── بعد ──
-            val bitmap = remember(product.image_uri) {
-                product.image_uri?.let { uri ->
-                    val imageBytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
-                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                }
-            }
+            val bitmap = rememberEntityBitmap(product.image_uri)
             if (bitmap != null) {
                 Image(
                     bitmap             = bitmap.asImageBitmap(),

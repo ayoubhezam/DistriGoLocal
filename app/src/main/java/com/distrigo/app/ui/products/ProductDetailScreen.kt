@@ -30,7 +30,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 @Composable
 fun ProductDetailScreen(
     product          : Product,
@@ -68,7 +68,7 @@ fun ProductDetailScreen(
 
     // One decode for both the banner and the full-screen viewer below: they render the same
     // image, and until now each decoded its own copy of it.
-    val productBitmap = rememberBase64Bitmap(currentProduct.image_uri)
+    val productBitmap = rememberEntityBitmap(currentProduct.image_uri)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
 

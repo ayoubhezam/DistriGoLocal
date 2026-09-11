@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.pertes
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +28,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -126,12 +125,7 @@ private fun ProductPickerRow(product: Product, onClick: () -> Unit) {
                 modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = remember(product.image_uri) {
-                    product.image_uri?.let { uri ->
-                        val bytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }
-                }
+                val bitmap = rememberEntityBitmap(product.image_uri)
                 if (bitmap != null) {
                     Image(
                         bitmap = bitmap.asImageBitmap(), contentDescription = null,

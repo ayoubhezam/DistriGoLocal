@@ -45,6 +45,7 @@ import com.distrigo.app.ui.tournees.TourneeVenteCartItem
 import com.distrigo.app.ui.tournees.TourneeVenteCartRow
 import com.distrigo.app.ui.ventes.*
 import com.distrigo.app.ui.ventes.VenteFormSessionViewModel
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 /**
  * Resolves the session that owns this pass through the form, and enters it.
@@ -359,12 +360,7 @@ fun NavGraphBuilder.venteFormGraph(
                                                 .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            val bitmap = remember(product.image_uri) {
-                                                product.image_uri?.let { uri ->
-                                                    val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                                    android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                                }
-                                            }
+                                            val bitmap = rememberEntityBitmap(product.image_uri)
                                             if (bitmap != null) {
                                                 androidx.compose.foundation.Image(
                                                     bitmap = bitmap.asImageBitmap(), contentDescription = null,

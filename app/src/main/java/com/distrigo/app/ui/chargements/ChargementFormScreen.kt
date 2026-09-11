@@ -20,12 +20,11 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 
 data class ChargementCartItem(
@@ -68,12 +67,7 @@ internal fun ChargementCartRow(
                 .padding(DsSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val bitmap = remember(item.product.image_uri) {
-                item.product.image_uri?.let { uri ->
-                    val imageBytes = Base64.decode(uri.substringAfter("base64,"), Base64.NO_WRAP)
-                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                }
-            }
+            val bitmap = rememberEntityBitmap(item.product.image_uri)
             Box(
                 modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center

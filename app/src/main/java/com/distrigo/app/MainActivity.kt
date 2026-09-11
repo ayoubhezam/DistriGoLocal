@@ -79,10 +79,15 @@ import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @javax.inject.Inject
+    lateinit var database: com.distrigo.app.data.local.database.AppDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.distrigo.app.data.geo.GeoRepository.init(this)
@@ -349,6 +354,13 @@ class MainActivity : ComponentActivity() {
         // system's own back gesture, which otherwise swallows our edge-swipe touches before
         // Compose ever sees them. Excluding it hands that band back to the app.
         reservePlusDrawerEdgeFromSystemGestures()
+
+        // Moves any base64 image payloads left in the database out to files. After setContent and
+        // on Dispatchers.IO, so it costs the first frame nothing; it does its own no-op check, and
+        // a run that never finishes is resumed next launch — see ImageBackfill.
+        lifecycleScope.launch {
+            com.distrigo.app.data.image.ImageBackfill.runIfNeeded(this@MainActivity, database)
+        }
     }
 
     private fun reservePlusDrawerEdgeFromSystemGestures() {

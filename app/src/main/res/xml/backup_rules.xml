@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Pre-Android-12 devices (API 30 and below). Android 12+ reads data_extraction_rules.xml, which
+   carries the same exclusion and explains the reasoning.
+
+   Entity photos in filesDir/images/ are excluded; the database is not. A dangling img: reference
+   after a restore resolves to null and draws the placeholder, not a crash.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="file" path="images" />
 </full-backup-content>

@@ -38,6 +38,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
@@ -144,12 +145,7 @@ fun ChargementNavHost(
                                 .padding(DsSpacing.md),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val bitmap = remember(product.image_uri) {
-                                product.image_uri?.let { uri ->
-                                    val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                    android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                }
-                            }
+                            val bitmap = rememberEntityBitmap(product.image_uri)
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)

@@ -50,7 +50,7 @@ import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
@@ -107,7 +107,7 @@ fun ClientFormScreen(
     ) { uri ->
         uri?.let {
             imageScope.launch {
-                val encoded = ImageCapture.encodeFromUri(context, it)
+                val encoded = ImageCapture.captureToStore(context, it)
                 if (encoded != null) imageBase64 = encoded
                 else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
             }
@@ -208,7 +208,7 @@ fun ClientFormScreen(
                     .clickable { imagePicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                val previewBitmap = rememberBase64Bitmap(imageBase64)
+                val previewBitmap = rememberEntityBitmap(imageBase64)
                 if (imageBase64 != null) {
                     previewBitmap?.let {
                         Image(

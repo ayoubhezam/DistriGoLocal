@@ -58,6 +58,7 @@ import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
 import com.distrigo.app.ui.purchases.formatQty
 import java.time.LocalDate
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -617,12 +618,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceSunken),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        val bitmap = remember(product.image_uri) {
-                                            product.image_uri?.let { uri ->
-                                                val imageBytes = android.util.Base64.decode(uri.substringAfter("base64,"), android.util.Base64.NO_WRAP)
-                                                android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                            }
-                                        }
+                                        val bitmap = rememberEntityBitmap(product.image_uri)
                                         if (bitmap != null) {
                                             androidx.compose.foundation.Image(
                                                 bitmap = bitmap.asImageBitmap(), contentDescription = null,

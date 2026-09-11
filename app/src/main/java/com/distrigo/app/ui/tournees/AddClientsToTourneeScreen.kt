@@ -30,11 +30,10 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.GridView
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -194,14 +193,7 @@ fun AddClientsToTourneeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             if (!client.image_uri.isNullOrBlank()) {
-                                val bitmap = remember(client.image_uri) {
-                                    try {
-                                        val bytes = Base64.decode(client.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
-                                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                    } catch (e: Exception) {
-                                        null
-                                    }
-                                }
+                                val bitmap = rememberEntityBitmap(client.image_uri)
                                 if (bitmap != null) {
                                     Image(
                                         bitmap             = bitmap.asImageBitmap(),

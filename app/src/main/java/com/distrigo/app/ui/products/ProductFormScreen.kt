@@ -50,7 +50,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -139,7 +139,7 @@ fun ProductFormScreen(
     ) { uri ->
         uri?.let {
             coroutineScope.launch {
-                val encoded = com.distrigo.app.ui.common.ImageCapture.encodeFromUri(context, it)
+                val encoded = com.distrigo.app.ui.common.ImageCapture.captureToStore(context, it)
                 if (encoded != null) imageBase64 = encoded
                 else android.widget.Toast.makeText(
                     context, "Image illisible", android.widget.Toast.LENGTH_SHORT
@@ -908,7 +908,7 @@ fun ProductFormScreen(
                             .clickable { imagePicker.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
-                        val previewBitmap = rememberBase64Bitmap(imageBase64)
+                        val previewBitmap = rememberEntityBitmap(imageBase64)
                         if (imageBase64 != null) {
                             previewBitmap?.let {
                                 Image(

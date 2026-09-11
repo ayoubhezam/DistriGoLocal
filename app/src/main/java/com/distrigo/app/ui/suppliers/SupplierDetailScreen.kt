@@ -67,7 +67,7 @@ import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import com.distrigo.app.ui.common.rememberBase64Bitmap
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -119,7 +119,7 @@ fun SupplierDetailScreen(
     ) { uri ->
         uri?.let {
             imageScope.launch {
-                val newImageUri = ImageCapture.encodeFromUri(context, it)
+                val newImageUri = ImageCapture.captureToStore(context, it)
                 if (newImageUri == null) {
                     Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
                     return@launch
@@ -461,7 +461,7 @@ fun SupplierDetailScreen(
                                 .background(Color.White.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            val headerBitmap = rememberBase64Bitmap(currentSupplier.image_uri)
+                            val headerBitmap = rememberEntityBitmap(currentSupplier.image_uri)
                             if (currentSupplier.image_uri != null) {
                                 headerBitmap?.let {
                                     Image(

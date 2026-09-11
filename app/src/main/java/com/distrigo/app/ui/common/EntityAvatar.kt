@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.common.rememberEntityBitmap
 
 private val avatarColors = listOf(
     Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A),
@@ -37,7 +38,7 @@ fun EntityAvatar(
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }
         .joinToString("")
 
-    val bitmap = rememberBase64Bitmap(imageUri)
+    val bitmap = rememberEntityBitmap(imageUri)
 
     Box(
         modifier         = modifier
