@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.data.model.ProductImage
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -89,6 +90,15 @@ fun ProductsScreen(
     val marques        by viewModel.marques.collectAsState()
     val suppliers       by viewModel.suppliers.collectAsState()
     var longPressProduct by remember { mutableStateOf<Product?>(null) }
+
+    // Tapping a row's photo opens the viewer on that product's gallery rather than the product.
+    // The gallery lives in its own table, so it has to be fetched for whichever product was
+    // tapped; until it arrives the cover the row was already showing stands in for it.
+    var viewerProduct by remember { mutableStateOf<Product?>(null) }
+    val galleryImages by viewModel.productImages.collectAsState()
+    LaunchedEffect(viewerProduct?.id) {
+        viewerProduct?.let { viewModel.observeGalleryFor(it.id) }
+    }
 
     var search           by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf<Product?>(null) }
@@ -843,6 +853,12 @@ fun ProductsScreen(
                         items(sorted) { product ->
                             ProductCard(product = product,
                                 onClick = { onProductClick(product.id) },
+                                onImageClick = {
+                                    // A product with no photo has no gallery to show, so its
+                                    // placeholder behaves like the rest of the card.
+                                    if (product.image_uri.isNullOrBlank()) onProductClick(product.id)
+                                    else viewerProduct = product
+                                },
                                 onLongClick = { longPressProduct = product }
                             )
                         }
@@ -857,6 +873,10 @@ fun ProductsScreen(
                         items(sorted) { product ->
                             ProductGridCard(product = product,
                                 onClick = { onProductClick(product.id) },
+                                onImageClick = {
+                                    if (product.image_uri.isNullOrBlank()) onProductClick(product.id)
+                                    else viewerProduct = product
+                                },
                                 onLongClick = { longPressProduct = product })
                         }
                     }
@@ -872,12 +892,40 @@ fun ProductsScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un produit")
         }
+
+        // Last sibling in the Box: siblings stack in emission order, so the viewer has to be
+        // emitted after the list and the FAB to draw over them.
+        viewerProduct?.let { product ->
+            val gallery = galleryImages
+                .filter { it.productId == product.id }
+                .ifEmpty {
+                    // The gallery is one Room emission away. Standing the cover in for it means
+                    // the viewer opens on the picture that was tapped instead of on a blank
+                    // frame, and the real gallery replaces it as soon as it lands.
+                    listOfNotNull(
+                        product.image_uri
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { ProductImage(id = 0, productId = product.id, ref = it, position = 0) }
+                    )
+                }
+            if (gallery.isNotEmpty()) {
+                ProductImageViewer(
+                    images       = gallery,
+                    initialIndex = 0,
+                    onClose      = { viewerProduct = null }
+                )
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Unit = {}
+fun ProductCard(
+    product: Product,
+    onClick: () -> Unit,
+    onImageClick: () -> Unit = onClick,
+    onLongClick : () -> Unit = {}
 ) {
     val isLow = product.stock < product.min_stock
 
@@ -893,7 +941,18 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier         = Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
+                modifier         = Modifier
+                    .size(36.dp)
+                    .clip(DsShapes.small)
+                    .background(DsColors.PrimaryLight)
+                    // Nested inside the card's own click: a child sees the event first, so a tap
+                    // here opens the photo and a tap anywhere else on the row opens the product.
+                    // combinedClickable rather than clickable, so the long press that opens the
+                    // row's menu still works when it lands on the thumbnail.
+                    .combinedClickable(
+                        onClick     = { onImageClick() },
+                        onLongClick = { onLongClick() }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 EntityImage(
@@ -959,7 +1018,11 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
 }
 
 @Composable
-fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Unit = {}
+fun ProductGridCard(
+    product: Product,
+    onClick: () -> Unit,
+    onImageClick: () -> Unit = onClick,
+    onLongClick : () -> Unit = {}
 ) {
     val isLow = product.stock < product.min_stock
 
@@ -973,7 +1036,13 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
         Column {
             // ── Image ──
             Box(
-                modifier         = Modifier.fillMaxWidth().height(110.dp).background(DsColors.SurfaceMuted),
+                modifier         = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(DsColors.SurfaceMuted)
+                    // Only this panel opens the photo. The name, the price and every other part
+                    // of the card fall through to the card's own click and open the product.
+                    .clickable { onImageClick() },
                 contentAlignment = Alignment.Center
             ) {
                 EntityImage(
