@@ -33,7 +33,7 @@ class InventoryViewModel @Inject constructor(
 
     // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Résumé après "Terminer l'inventaire" ──
     private val _summary = MutableStateFlow<InventorySessionSummary?>(null)

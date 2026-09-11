@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.clients
 
-import android.graphics.BitmapFactory
-import android.util.Base64
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Client
+import com.distrigo.app.ui.common.ImageCapture
+import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
@@ -49,6 +50,7 @@ import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
@@ -58,6 +60,7 @@ fun ClientFormScreen(
 ) {
     val isEdit = client != null
     val context = LocalContext.current
+    val imageScope = rememberCoroutineScope()
 
     var name         by remember { mutableStateOf(client?.name ?: "") }
     var phone        by remember { mutableStateOf(client?.phone ?: "") }
@@ -103,20 +106,11 @@ fun ClientFormScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val stream         = context.contentResolver.openInputStream(it)
-            val originalBitmap = BitmapFactory.decodeStream(stream)
-            stream?.close()
-            val maxSize = 400
-            val width   = originalBitmap.width
-            val height  = originalBitmap.height
-            val ratio   = minOf(maxSize.toFloat() / width, maxSize.toFloat() / height)
-            val resized = android.graphics.Bitmap.createScaledBitmap(
-                originalBitmap, (width * ratio).toInt(), (height * ratio).toInt(), true
-            )
-            val outputStream = java.io.ByteArrayOutputStream()
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
-            imageBase64 = "data:image/jpeg;base64," +
-                    Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+            imageScope.launch {
+                val encoded = ImageCapture.encodeFromUri(context, it)
+                if (encoded != null) imageBase64 = encoded
+                else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+            }
         }
     }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -214,10 +208,9 @@ fun ClientFormScreen(
                     .clickable { imagePicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
+                val previewBitmap = rememberBase64Bitmap(imageBase64)
                 if (imageBase64 != null) {
-                    val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    bitmap?.let {
+                    previewBitmap?.let {
                         Image(
                             bitmap             = it.asImageBitmap(),
                             contentDescription = null,

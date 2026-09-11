@@ -1,8 +1,5 @@
 package com.distrigo.app.ui.common
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -28,13 +25,6 @@ private val avatarColors = listOf(
     Color(0xFFC62828), Color(0xFFE65100), Color(0xFF00695C)
 )
 
-private fun decodeBase64Bitmap(imageUri: String): Bitmap? = try {
-    val bytes = Base64.decode(imageUri.substringAfter("base64,"), Base64.NO_WRAP)
-    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-} catch (e: Exception) {
-    null
-}
-
 @Composable
 fun EntityAvatar(
     name     : String,
@@ -47,9 +37,7 @@ fun EntityAvatar(
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }
         .joinToString("")
 
-    val bitmap = remember(imageUri) {
-        imageUri?.let { decodeBase64Bitmap(it) }
-    }
+    val bitmap = rememberBase64Bitmap(imageUri)
 
     Box(
         modifier         = modifier

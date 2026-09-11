@@ -35,7 +35,7 @@ class SupplierViewModel @Inject constructor(
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun loadSupplierProducts(supplierId: Int) {
         viewModelScope.launch {

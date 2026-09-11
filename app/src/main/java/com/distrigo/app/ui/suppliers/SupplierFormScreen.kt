@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
-import android.graphics.BitmapFactory
-import android.util.Base64
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,8 +27,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.ImageCapture
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.products.FormField
+import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors
@@ -41,6 +42,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.Locale
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
@@ -96,22 +98,16 @@ fun SupplierFormScreen(
     val initials = name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 
     val context = LocalContext.current
+    val imageScope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val stream         = context.contentResolver.openInputStream(it)
-            val originalBitmap = BitmapFactory.decodeStream(stream)
-            stream?.close()
-            val maxSize = 400
-            val ratio   = minOf(maxSize.toFloat() / originalBitmap.width, maxSize.toFloat() / originalBitmap.height)
-            val resized = android.graphics.Bitmap.createScaledBitmap(
-                originalBitmap, (originalBitmap.width * ratio).toInt(), (originalBitmap.height * ratio).toInt(), true
-            )
-            val outputStream = java.io.ByteArrayOutputStream()
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
-            imageBase64 = "data:image/jpeg;base64," +
-                    Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+            imageScope.launch {
+                val encoded = ImageCapture.encodeFromUri(context, it)
+                if (encoded != null) imageBase64 = encoded
+                else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -219,10 +215,9 @@ fun SupplierFormScreen(
                     .clickable { photoPicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
+                val previewBitmap = rememberBase64Bitmap(imageBase64)
                 if (imageBase64 != null) {
-                    val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                    val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    bitmap?.let {
+                    previewBitmap?.let {
                         Image(
                             bitmap             = it.asImageBitmap(),
                             contentDescription = null,

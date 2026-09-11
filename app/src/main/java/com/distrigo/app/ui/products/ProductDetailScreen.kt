@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.products
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -32,6 +30,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 @Composable
 fun ProductDetailScreen(
     product          : Product,
@@ -66,6 +65,10 @@ fun ProductDetailScreen(
     }
     val priceHistory by viewModel.priceHistory.collectAsState()
     var showFullImage by remember { mutableStateOf(false) }
+
+    // One decode for both the banner and the full-screen viewer below: they render the same
+    // image, and until now each decoded its own copy of it.
+    val productBitmap = rememberBase64Bitmap(currentProduct.image_uri)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
 
@@ -73,38 +76,34 @@ fun ProductDetailScreen(
     BackHandler(enabled = !showFullImage) { onBack() }
     BackHandler(enabled = showFullImage) { showFullImage = false }
     if (showFullImage) {
-        currentProduct.image_uri?.let { base64 ->
-            val imageBytes = Base64.decode(base64.substringAfter("base64,"), Base64.NO_WRAP)
-            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-            bitmap?.let {
+        productBitmap?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { showFullImage = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap             = it.asImageBitmap(),
+                    contentDescription = null,
+                    modifier           = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentScale       = ContentScale.Fit
+                )
+                // زر الإغلاق
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.9f))
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(36.dp)
+                        .clip(DsShapes.pill)
+                        .background(Color.White.copy(alpha = 0.2f))
                         .clickable { showFullImage = false },
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        bitmap             = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier           = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentScale       = ContentScale.Fit
-                    )
-                    // زر الإغلاق
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                            .size(36.dp)
-                            .clip(DsShapes.pill)
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable { showFullImage = false },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-                    }
+                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
                 }
             }
         }
@@ -181,26 +180,20 @@ fun ProductDetailScreen(
         }
 
         // ── Image ──
-        currentProduct.image_uri?.let { base64 ->
-            val imageBytes = Base64.decode(
-                base64.substringAfter("base64,"), Base64.NO_WRAP
-            )
-            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-            bitmap?.let {
-                Image(
-                    bitmap             = it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(horizontal = 16.dp)
-                        .clip(DsShapes.large)
-                        .clickable { showFullImage = true },  // ← أضف هذا
+        productBitmap?.let {
+            Image(
+                bitmap             = it.asImageBitmap(),
+                contentDescription = null,
+                modifier           = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .padding(horizontal = 16.dp)
+                    .clip(DsShapes.large)
+                    .clickable { showFullImage = true },  // ← أضف هذا
 
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(Modifier.height(12.dp))
-            }
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.height(12.dp))
         }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {

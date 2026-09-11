@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.clients
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -37,6 +35,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 @Composable
 fun ClientsScreen(
     viewModel     : ClientViewModel = hiltViewModel(),
@@ -351,9 +350,8 @@ private fun ClientCard(
                 .background(typeColors.second),
             contentAlignment = Alignment.Center
         ) {
+            val bitmap = rememberBase64Bitmap(client.image_uri)
             if (client.image_uri != null) {
-                val imageBytes = Base64.decode(client.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
-                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                 bitmap?.let {
                     Image(
                         bitmap             = it.asImageBitmap(),

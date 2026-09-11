@@ -2,9 +2,7 @@ package com.distrigo.app.ui.suppliers
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,9 +45,11 @@ import com.distrigo.app.data.model.AchatFilter
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SupplierTransaction
 import com.distrigo.app.ui.common.ElasticUnderlineTabRow
+import com.distrigo.app.ui.common.ImageCapture
 import com.distrigo.app.ui.common.QuickActionButton
 import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.WhatsAppIcon
+import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsCollapsingHeaderState
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -67,6 +67,7 @@ import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -112,27 +113,24 @@ fun SupplierDetailScreen(
     val supplierTransactions by viewModel.transactions.collectAsState()
 
     val context = LocalContext.current
+    val imageScope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val stream         = context.contentResolver.openInputStream(it)
-            val originalBitmap = BitmapFactory.decodeStream(stream)
-            stream?.close()
-            val maxSize = 400
-            val ratio   = minOf(maxSize.toFloat() / originalBitmap.width, maxSize.toFloat() / originalBitmap.height)
-            val resized = android.graphics.Bitmap.createScaledBitmap(
-                originalBitmap, (originalBitmap.width * ratio).toInt(), (originalBitmap.height * ratio).toInt(), true
-            )
-            val outputStream = java.io.ByteArrayOutputStream()
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
-            val newImageUri = "data:image/jpeg;base64," + Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-            viewModel.updateSupplier(
-                id        = currentSupplier.id,
-                supplier  = supplierToUpdateMap(currentSupplier, newImageUri),
-                onSuccess = {},
-                onError   = {}
-            )
+            imageScope.launch {
+                val newImageUri = ImageCapture.encodeFromUri(context, it)
+                if (newImageUri == null) {
+                    Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                viewModel.updateSupplier(
+                    id        = currentSupplier.id,
+                    supplier  = supplierToUpdateMap(currentSupplier, newImageUri),
+                    onSuccess = {},
+                    onError   = {}
+                )
+            }
         }
     }
 
@@ -463,10 +461,9 @@ fun SupplierDetailScreen(
                                 .background(Color.White.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
+                            val headerBitmap = rememberBase64Bitmap(currentSupplier.image_uri)
                             if (currentSupplier.image_uri != null) {
-                                val imageBytes = Base64.decode(currentSupplier.image_uri.substringAfter("base64,"), Base64.NO_WRAP)
-                                val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                bitmap?.let {
+                                headerBitmap?.let {
                                     Image(
                                         bitmap             = it.asImageBitmap(),
                                         contentDescription = null,

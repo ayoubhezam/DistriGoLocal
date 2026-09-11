@@ -1,7 +1,5 @@
 package com.distrigo.app.ui.products
 
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,6 +50,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
+import com.distrigo.app.ui.common.rememberBase64Bitmap
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -139,20 +138,13 @@ fun ProductFormScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val stream         = context.contentResolver.openInputStream(it)
-            val originalBitmap = android.graphics.BitmapFactory.decodeStream(stream)
-            stream?.close()
-            val maxSize  = 400
-            val width    = originalBitmap.width
-            val height   = originalBitmap.height
-            val ratio    = minOf(maxSize.toFloat() / width, maxSize.toFloat() / height)
-            val resized  = android.graphics.Bitmap.createScaledBitmap(
-                originalBitmap, (width * ratio).toInt(), (height * ratio).toInt(), true
-            )
-            val outputStream = java.io.ByteArrayOutputStream()
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
-            imageBase64 = "data:image/jpeg;base64," +
-                    android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+            coroutineScope.launch {
+                val encoded = com.distrigo.app.ui.common.ImageCapture.encodeFromUri(context, it)
+                if (encoded != null) imageBase64 = encoded
+                else android.widget.Toast.makeText(
+                    context, "Image illisible", android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
@@ -916,10 +908,9 @@ fun ProductFormScreen(
                             .clickable { imagePicker.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
+                        val previewBitmap = rememberBase64Bitmap(imageBase64)
                         if (imageBase64 != null) {
-                            val imageBytes = Base64.decode(imageBase64!!.substringAfter("base64,"), Base64.NO_WRAP)
-                            val bitmap     = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                            bitmap?.let {
+                            previewBitmap?.let {
                                 Image(
                                     bitmap             = it.asImageBitmap(),
                                     contentDescription = null,

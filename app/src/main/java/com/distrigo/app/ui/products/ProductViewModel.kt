@@ -35,7 +35,7 @@ class ProductViewModel @Inject constructor(
     val products: StateFlow<List<Product>> = repository.observeProducts()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
@@ -48,7 +48,7 @@ class ProductViewModel @Inject constructor(
 
     // Observés depuis Room — mise à jour automatique à chaque écriture sur la table suppliers
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _priceHistory = MutableStateFlow<List<PriceHistory>>(emptyList())
     val priceHistory: StateFlow<List<PriceHistory>> = _priceHistory

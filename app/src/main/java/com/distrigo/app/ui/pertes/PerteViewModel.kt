@@ -31,7 +31,7 @@ class PerteViewModel @Inject constructor(
 
     // ── المنتجات (لاختيار Produit في الفورم) — مُراقَبة مباشرة من Room، تتحدّث تلقائياً ──
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedMonth = MutableStateFlow(currentMonth())
     val selectedMonth: StateFlow<String> = _selectedMonth
