@@ -92,8 +92,13 @@ object ImageCapture {
     private fun decodeDownsampled(context: Context, uri: Uri): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         try {
-            context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                ?: return null
+            // Null-check the *stream*, not the decode. With inJustDecodeBounds the decoder returns
+            // null by design — it fills outWidth/outHeight and allocates nothing — so an elvis on
+            // the decode result treats every successful bounds read as a failure. That is exactly
+            // what this did until it was caught on a device: every photo pick ended in
+            // "Image illisible" and wrote nothing.
+            val stream = context.contentResolver.openInputStream(uri) ?: return null
+            stream.use { BitmapFactory.decodeStream(it, null, bounds) }
         } catch (e: Exception) {
             return null
         }

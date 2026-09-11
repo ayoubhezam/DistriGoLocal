@@ -1,6 +1,8 @@
 package com.distrigo.app.ui.common
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -73,17 +75,29 @@ fun EntityImage(
         model = ImageRequest.Builder(context).data(model).build()
     )
 
-    when (painter.state) {
-        is AsyncImagePainter.State.Success ->
-            Image(
-                painter = painter,
-                contentDescription = contentDescription,
-                modifier = modifier,
-                contentScale = contentScale
-            )
+    // The Image is always in the tree, even while the painter has nothing to draw. That is not a
+    // detail — it is what makes the load happen at all.
+    //
+    // rememberAsyncImagePainter sizes its request from the painter's *draw* bounds, so the request
+    // suspends until the painter has been drawn once. An earlier version here drew the Image only
+    // once the state was Success, which cannot happen: Success needs the load, the load needs a
+    // size, and the size needs the draw that was being withheld. Every photo in the app sat on its
+    // placeholder forever, and nothing in the logs said so.
+    //
+    // Drawing it unconditionally breaks the cycle. Until the load finishes the painter draws
+    // nothing, so the placeholder below shows through; once it succeeds the image covers it.
+    Box(contentAlignment = Alignment.Center) {
         // Loading, Error and Empty all show the caller's own placeholder: a decode that fails is
         // the same outcome to the reader as no photo, and briefly showing initials beats a gap.
-        else -> placeholder()
+        if (painter.state !is AsyncImagePainter.State.Success) {
+            placeholder()
+        }
+        Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = contentScale
+        )
     }
 }
 
