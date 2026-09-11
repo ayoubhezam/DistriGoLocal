@@ -939,12 +939,21 @@ fun ProductCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) DsColors.DangerLight else DsColors.Border)
     ) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        // The start padding is 8.dp rather than 14.dp because the photo's touch target below is
+        // 48.dp around a 36.dp image, which puts 6.dp of slack on each side of it. Taking that
+        // 6.dp back here, and another 6.dp off the spacer after it, leaves the image and the text
+        // on exactly the pixels they were on when the target was 36.dp.
+        Row(
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, end = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 48.dp of touch around 36.dp of picture. The visible square is the inner Box; this
+            // outer one is invisible and exists only so the target clears the 48.dp minimum —
+            // a 36.dp target is small enough to miss, and missing it opens the product instead,
+            // which is the wrong screen and costs a trip back.
             Box(
                 modifier         = Modifier
-                    .size(36.dp)
-                    .clip(DsShapes.small)
-                    .background(DsColors.PrimaryLight)
+                    .size(48.dp)
                     // Nested inside the card's own click: a child sees the event first, so a tap
                     // here opens the photo and a tap anywhere else on the row opens the product.
                     // combinedClickable rather than clickable, so the long press that opens the
@@ -955,15 +964,23 @@ fun ProductCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                EntityImage(
-                    ref                = product.image_uri,
-                    contentDescription = null,
-                    modifier           = Modifier.fillMaxSize()
+                Box(
+                    modifier         = Modifier
+                        .size(36.dp)
+                        .clip(DsShapes.small)
+                        .background(DsColors.PrimaryLight),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                    EntityImage(
+                        ref                = product.image_uri,
+                        contentDescription = null,
+                        modifier           = Modifier.fillMaxSize()
+                    ) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(6.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 // ── السطر 1 : الاسم لوحده ──
