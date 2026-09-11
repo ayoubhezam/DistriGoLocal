@@ -37,8 +37,27 @@ object ImageCapture {
     /** Longest edge of the stored image, in pixels. The value the five call sites all used. */
     const val MAX_EDGE = 400
 
-    /** JPEG quality of the stored image. Also unchanged from the call sites. */
-    const val JPEG_QUALITY = 50
+    /**
+     * JPEG quality of the stored image.
+     *
+     * The five call sites this replaced all used 50, and it stayed 50 through the move to files,
+     * because nothing about that move argued either way.
+     *
+     * It is the wrong value for this app. What DALEEL photographs is packaging: small text, logos
+     * and flat colour fields, which is exactly the content JPEG ringing shows up on first. Measured
+     * end to end on a real carton -- a 640x740 source through this pipeline, out at 345x399 -- the
+     * move from 50 to 80 takes a photo from 9.0 KB to 13.4 KB: 4.6 KB more, 1.5x, for 2.8 dB
+     * closer to the source. That is not a budget worth defending.
+     *
+     * Note this is forward-only. Files are named by the hash of their bytes, so photos already
+     * stored keep their q50 encoding; the catalogue improves as pictures are retaken, not on
+     * upgrade.
+     *
+     * Resolution is a separate lever, deliberately not pulled at the same time: [MAX_EDGE] has not
+     * moved, so nothing about decode cost or heap changes here, and the only thing to look at is
+     * whether the pictures got better.
+     */
+    const val JPEG_QUALITY = 80
 
     /**
      * Reads [uri], downscales it to fit [MAX_EDGE], writes it to [ImageStore], and returns the
