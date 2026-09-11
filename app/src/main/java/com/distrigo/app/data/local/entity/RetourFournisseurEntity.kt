@@ -1,9 +1,13 @@
 package com.distrigo.app.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "retour_fournisseur")
+@Entity(
+    tableName = "retour_fournisseur",
+    indices = [Index(value = ["supplier_id", "date"])]
+)
 data class RetourFournisseurEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

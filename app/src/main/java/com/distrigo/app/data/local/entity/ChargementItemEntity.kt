@@ -1,9 +1,13 @@
 package com.distrigo.app.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "chargement_items")
+@Entity(
+    tableName = "chargement_items",
+    indices = [Index(value = ["chargement_id"])]
+)
 data class ChargementItemEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

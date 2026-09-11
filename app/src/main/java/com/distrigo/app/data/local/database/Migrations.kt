@@ -165,3 +165,83 @@ val MIGRATION_35_36 = object : Migration(35, 36) {
         )
     }
 }
+
+/**
+ * 36 -> 37 - the first migration that adds nothing and indexes everything.
+ *
+ * Until now this database had exactly four indexes, all of them on draft tables, all of them
+ * created because a uniqueness rule needed enforcing. Nothing else was indexed, so every lookup
+ * that was not by primary key was a full table scan: `getItemsForVente` scanned all of
+ * `vente_items`, `getVentesForClient` scanned all of `ventes`, `deleteBySource` scanned all of
+ * `stock_movements` on every edit of a bon, and the keyset cursors that make the client and
+ * supplier ledgers paginate scanned the table once per page. That is invisible at a few thousand
+ * rows and superlinear after that.
+ *
+ * The thirty indexes below are derived from the DAOs rather than from a rule of thumb: each one
+ * covers a column that some `@Query` actually filters on, in the order that query filters and then
+ * orders. Columns that are only ever *sorted* on a full-table read get no index, because the read
+ * is O(n) whether or not the sort is - the point is to stop scanning, not to shave a sort. Config
+ * tables bounded by what a user curates (categories, marques, perte_types, charge_subtypes,
+ * secteurs) get none either, for the same reason: a scan of eighty rows costs nothing, and an index
+ * on it is maintenance with no reader.
+ *
+ * `products.barcode` is deliberately *not* indexed. Barcode search happens in Kotlin over the
+ * in-memory catalogue today; there is no SQL query to serve, so an index would sit unused. It
+ * belongs with the change that moves that search into SQLite, not here.
+ *
+ * Unlike 32->33 through 35->36 this migration touches existing tables - but only by adding indexes
+ * to them, so no column, row or table can be lost by running it. On a large database it is the
+ * slowest migration so far: SQLite builds each index by sorting the table once. That is a one-time
+ * cost paid at upgrade, and `IF NOT EXISTS` makes every statement safe to re-run.
+ *
+ * The names and column lists are Room's own, copied from the generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/37.json`). Room validates the
+ * result after the migration runs and throws if an index it expects is missing or shaped
+ * differently, so these have to match exactly. **Do not hand-edit these strings** - change the
+ * `@Entity(indices = ...)` declaration, rebuild, and re-copy from the schema.
+ */
+val MIGRATION_36_37 = object : Migration(36, 37) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // The read paths behind every ledger, detail screen and report
+        listOf(
+            "CREATE INDEX IF NOT EXISTS `index_ventes_client_id_created_at` ON `ventes` (`client_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_ventes_tournee_id` ON `ventes` (`tournee_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_ventes_created_at` ON `ventes` (`created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_ventes_source_created_at` ON `ventes` (`source`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_vente_items_vente_id` ON `vente_items` (`vente_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_purchase_orders_supplier_id_created_at` ON `purchase_orders` (`supplier_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_purchase_order_items_purchase_order_id` ON `purchase_order_items` (`purchase_order_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_client_payments_client_id_created_at` ON `client_payments` (`client_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_client_payments_created_at` ON `client_payments` (`created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_supplier_payments_supplier_id_created_at` ON `supplier_payments` (`supplier_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_price_history_product_id_created_at` ON `price_history` (`product_id`, `created_at`)",
+        ).forEach(db::execSQL)
+
+        // Stock movements - the fastest-growing table, and the one edits delete from by source
+        listOf(
+            "CREATE INDEX IF NOT EXISTS `index_stock_movements_product_id_created_at` ON `stock_movements` (`product_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_stock_movements_source_type_source_id` ON `stock_movements` (`source_type`, `source_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stock_movements_created_at` ON `stock_movements` (`created_at`)",
+        ).forEach(db::execSQL)
+
+        // Tournees, inventaire, pertes, charges, chargements, retours
+        listOf(
+            "CREATE INDEX IF NOT EXISTS `index_products_supplier_id` ON `products` (`supplier_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_tournees_status` ON `tournees` (`status`)",
+            "CREATE INDEX IF NOT EXISTS `index_tournee_clients_tournee_id_order_index` ON `tournee_clients` (`tournee_id`, `order_index`)",
+            "CREATE INDEX IF NOT EXISTS `index_inventory_sessions_status` ON `inventory_sessions` (`status`)",
+            "CREATE INDEX IF NOT EXISTS `index_inventory_items_session_id_created_at` ON `inventory_items` (`session_id`, `created_at`)",
+            "CREATE INDEX IF NOT EXISTS `index_inventory_items_session_id_product_id` ON `inventory_items` (`session_id`, `product_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_pertes_type_id_date_time` ON `pertes` (`type_id`, `date_time`)",
+            "CREATE INDEX IF NOT EXISTS `index_pertes_source_type_source_id` ON `pertes` (`source_type`, `source_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_charges_subtype_id_date_time` ON `charges` (`subtype_id`, `date_time`)",
+            "CREATE INDEX IF NOT EXISTS `index_chargements_session_id` ON `chargements` (`session_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_chargement_items_chargement_id` ON `chargement_items` (`chargement_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_chargement_sessions_session_date` ON `chargement_sessions` (`session_date`)",
+            "CREATE INDEX IF NOT EXISTS `index_retour_client_client_id_date` ON `retour_client` (`client_id`, `date`)",
+            "CREATE INDEX IF NOT EXISTS `index_retour_client_items_retour_id` ON `retour_client_items` (`retour_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_retour_fournisseur_supplier_id_date` ON `retour_fournisseur` (`supplier_id`, `date`)",
+            "CREATE INDEX IF NOT EXISTS `index_retour_fournisseur_items_retour_id` ON `retour_fournisseur_items` (`retour_id`)",
+        ).forEach(db::execSQL)
+    }
+}

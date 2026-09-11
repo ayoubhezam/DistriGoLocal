@@ -1,9 +1,17 @@
 package com.distrigo.app.data.local.entity.mouvement
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "stock_movements")
+@Entity(
+    tableName = "stock_movements",
+    indices = [
+        Index(value = ["product_id", "created_at"]),
+        Index(value = ["source_type", "source_id"]),
+        Index(value = ["created_at"]),
+    ]
+)
 data class StockMovementEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
