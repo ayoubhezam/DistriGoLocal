@@ -1,8 +1,8 @@
-# Dépôt Vente — Brouillons (Phases 1–11)
+# Dépôt Vente — Brouillons (Phases 1–13)
 
-**Date:** 2026-09-03
-**Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it.
-**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection. Phase 10 closed the last untested path — a draft referencing a deleted product — and found six defects behind it, none of them a data risk and all of them the app misinforming the user. Phase 11 finally exercised the sheet's scroll guard, by font scale rather than by screen size, and closes the last open item that was ever testable here.
+**Date:** 2026-09-03 · last updated 2026-09-11
+**Scope:** the Draft/Brouillon feature for Dépôt Vente, plus the shared machinery extracted out of Achats to support it — and, since Phase 12, the two further flows built on that machinery: Tournée Vente and Stock camion. All four flows now have Brouillons.
+**Status:** Complete and merged to `main`. Phase 5 (verification) found two defects; Phase 6 fixed them. Phase 7 fixed the two cosmetic card bugs Phase 5 had left open. Phase 8 closed the last untested item on the list — the sheet beyond four drafts — and found the sheet had been opening at the wrong height all along. Phase 9 added filter and multi-selection. Phase 10 closed the last untested path — a draft referencing a deleted product — and found six defects behind it, none of them a data risk and all of them the app misinforming the user. Phase 11 finally exercised the sheet's scroll guard, by font scale rather than by screen size, and closed the last open item that was ever testable here. Phases 12 and 13 took the shared machinery to its third and fourth consumers — Tournée Vente and Stock camion — which is what it was extracted for; between them they needed one new parameter on one shared component, and no change to the autosave at all.
 
 | Phase | Commit | State |
 |---|---|---|
@@ -17,6 +17,8 @@
 | 9 — filter and multi-selection | `2437778`, `c2bc82d` | merged |
 | 10 — the deleted-product block | `5fb56c9` | merged |
 | 11 — the sheet's scroll, at font scale 2.0 | `f914290` | merged |
+| 12 — Brouillons for Tournée Vente | `dc94aab` | merged |
+| 13 — Brouillons for Stock camion | `71a6a42`, `30dbe8f`, `b26f99e`, `0ca531b` | merged |
 
 ---
 
@@ -214,7 +216,8 @@ The entry path that actually mattered — ACHATS → Nouveau bon → select a su
 3. ~~Sheet with more than 4 drafts.~~ **Tested and fixed in `fd0545d`** — the overflow link was correct; the height the sheet opened at was not. See §10 below.
 4. ~~`missingProductIds` blocking.~~ **Tested and fixed in `5fb56c9`** — the path worked on Achats but could not be cleared, and did not exist at all on Dépôt Vente. Six defects in total; see §12 below.
 5. ~~The sheet's `verticalScroll` has never run.~~ **Exercised and confirmed in Phase 11** — no device here is short enough, but `font_scale` 2.0 reaches the same condition. The scroll works; the test also found the sheet's action label clipped at that scale, fixed in `f914290`. See §13.
-6. **Not started, deferred:** the Chargement and Tournée-Vente Draft flows, Notifications, WorkManager.
+6. ~~The Chargement and Tournée-Vente draft flows.~~ **Both built** — Tournée Vente in Phase 12 (`dc94aab`, §14), Stock camion in Phase 13 (`b26f99e` and friends, §15). Each carries its own unverified items, listed in its section rather than here.
+7. **Not started, deferred:** Notifications, WorkManager.
 
 ---
 
@@ -530,3 +533,149 @@ The same fixed-height clipping appears elsewhere at 2.0: the purchase form's top
 ### Device state after testing
 
 Five drafts were created through the UI and removed afterwards with the multi-select bulk delete from Phase 9 — which incidentally exercised "Tout sélectionner", the heavier all-of-them confirmation, and a real `DELETE … WHERE id IN` of five rows. Back to 34 products, 21 ventes, 13 orders, both draft tables empty. `font_scale` restored to 1.0, screen timeout restored, no DistriGo crash lines.
+
+---
+
+## 14. Phase 12 — Brouillons for Tournée Vente (`dc94aab`)
+
+The third flow, and the first real test of whether Phase 1's extraction was sized right. `DraftAutosave`, `DraftRow`, `DraftsSheet`, `DraftFiltering` and `DraftSelection` were reused **unchanged**; one shared component gained one parameter (below). What is new is one table, one repository, one session ViewModel and one screen.
+
+### Scoped to a tournée, not global
+
+A van sale belongs to the round it was made on. `tournee_vente_drafts` carries a **non-null** `tournee_id`, every read is "the drafts of *this* tournée", and the Brouillons chip sits on the tournée detail beside its bons count. There is no global list of van-sale drafts, because there is no screen on which one would mean anything.
+
+Deleting a tournée now drops its drafts first. There is no foreign key to cascade through, so without that the rows would outlive the only screen that could ever reach them.
+
+### Thinner than the other two, on purpose
+
+The tournée form is create-only: no `venteId` argument, no `updateVente` path into it. With no committed record a draft could be an unsaved edit *of*, five things simply do not exist here:
+
+| | Dépôt Vente | Tournée Vente |
+|---|---|---|
+| `baseFingerprint` | the source vente's | always `null` |
+| `isEdit` | true for an edit session | constantly `false` |
+| Conflict dialog | yes | none — nothing to conflict with |
+| OBSOLÈTE / BLOQUÉ badge | yes | none |
+| Resume gate | asks first | goes straight through |
+
+`isEdit == false` is what makes the shared autosave take its new-record path, where emptiness alone decides whether a row is written. Nothing had to be added to `DraftAutosave` to get that; the branch was already there, unused by anything until now.
+
+### Two blocks, and the second has no analogue elsewhere
+
+1. **A product deleted from the catalogue** — the same block Achats and Dépôt Vente grew in Phase 10, in the same words.
+2. **A camion whose stock moved.** The stepper enforces a live ceiling, so a cart can only exceed what the van holds on a **resumed** draft: the goods were sold to somebody else in between. This is the only one of the four flows where the resource a draft claims can be spent behind its back and still be worth reporting — Achats draws on a supplier, Dépôt Vente on the dépôt, and neither has a stepper bounded by a figure that drifts.
+
+Both are decided at `hydrate`, marked on the cart line, and reported by the `CartBlockingBanner` docked against the confirm button.
+
+Two details that matter more than they look:
+
+* **The stepper's ceiling is lifted while a line is over it.** Clamping would silently rewrite a quantity the user entered — the same class of mistake as Phase 10's Defect 3, telling the user something untrue about their own line.
+* **Lowering the quantity lifts the block**, via `reviseOverStock()`, without the line having to go. The deleted-product block can only be cured by removing the line; this one has a better cure, and offering only the worse one would have repeated Phase 10's Defect 1 in a new place.
+
+### One shared component changed: `showRecordAxes`
+
+`DraftFilterSheet` gained a flag, default `true`, that hides "Type de brouillon" and "État". In a list where every draft is new and active, both axes return either everything or nothing whatever the user picks. A control that cannot partition its list is not a filter, it is a trap. Tournée Vente passes `false` and keeps the party axis, which does partition.
+
+### The commit path
+
+`createVente` now takes `tourneeDraftId` alongside `draftId` — two parameters, not one, because they name rows in two different tables and a single id would have to be told which. At most one is ever set: a sale is composed in one form. Both deletes happen **inside the sale's own transaction**, so a failure anywhere above leaves the work to resume.
+
+### Migration 34 → 35
+
+Additive — one `CREATE TABLE`, one index, no existing table touched. Both statements were diffed against Room's generated `35.json` before being run on live data.
+
+### Verification
+
+Run in two sittings; the first stopped mid-flow because the phone was in use, and the commit was made with that gap recorded rather than papered over.
+
+| Check | Result |
+|---|---|
+| Migration on the live database | `user_version` 35, no data loss — 24 ventes, 18 clients, 34 products, 19 tournée clients intact |
+| A sale left mid-form | draft written; chip on the tournée detail; card reads "manafaa · 1 produit · à l'instant · 120,00 DA" |
+| Resume hydrates | manafaa selected, "mini book hippone" marked in-cart, *Ma sélection · 1 · 120,00 DA* |
+| Cart line on resume | "Disponible : 8 carton", neutral tone — no false block, since 1 ≤ 8 |
+| Commit | vente **#28** created (manafaa, 120,00, source `camion`, tournée 1); `tournee_vente_drafts` → 0 in the same transaction; camion stock 8 → 7 |
+| After commit | Brouillons screen shows its empty state, chip gone from the detail |
+
+### Device state after testing
+
+Test vente #28 was removed through the app's own path afterwards:
+
+| | |
+|---|---|
+| ventes | 24 |
+| all three draft tables | 0 / 0 / 0 |
+| products / clients | 34 / 18 |
+| camion stock (mini book hippone) | 8.0, restored |
+| client manafaa balance | 3 890,00 DA, restored |
+
+No DistriGo crash lines; screen timeout restored.
+
+### Not verified
+
+* **Both blocks are code-only.** Triggering either needs a draft plus a catalogue or stock change made behind its back, which means a throwaway product or moving real truck stock. Not done — deliberately, rather than churn live data again without asking.
+* **Bulk delete and the filter** on this screen are unexercised: one draft cannot demonstrate either.
+
+---
+
+## 15. Phase 13 — Brouillons for Stock camion, and a crash-proof single-product edit (`71a6a42`, `30dbe8f`, `b26f99e`, `0ca531b`)
+
+The fourth and last flow. Again `DraftAutosave`, `DraftRow`, `DraftsSheet` and `DraftSelection` were reused unchanged; again what is new is one table, one repository, one session ViewModel and one screen. Four consumers in, the Phase 1 extraction has needed exactly one new parameter (`showRecordAxes`, Phase 12) across the three flows built on it.
+
+### The screen it needed first (`71a6a42`, `30dbe8f`)
+
+"Modifier" on a Stock camion product used to mount the whole `ChargementNavHost` for one row: the catalogue, then a jump to the cart with `popUpTo(products, inclusive = false)` — deliberately leaving the catalogue on the back stack. Two screens to change one number, and a Back that landed on a list nobody asked to see.
+
+`ChargementProduitScreen` is the card on its own: the product, its stepper, the dépôt/camion previews it already computes, "Effectué par" and the note. No list, no cart, nothing behind it. `30dbe8f` then lifted the chargement product list's search field out of the `LazyColumn`, where it had been the first item and scrolled away exactly when a list long enough to need it started moving.
+
+### A line stores the target, not the delta
+
+`target_camion` — "15 in the truck" — and the delta is computed against the truck **at save time**. So a draft says what you wanted the truck to hold, and if the truck reached that figure by itself while the draft sat unsaved, the save writes nothing and the button says so by being disabled.
+
+This is the one flow where a draft's meaning is deliberately re-evaluated against the present rather than replayed from the past, and it is why there is no camion-drift block here of the kind Phase 12 needed: drift does not invalidate the intent, it satisfies it.
+
+### One table, two kinds, and `single_product_id` is the difference
+
+| `single_product_id` | What the row is | Listed | Counted | Resumable from the sheet |
+|---|---|---|---|---|
+| `null` | an ordinary Brouillon from "Nouveau chargement" | yes | yes | yes |
+| set | the single-product "Modifier" card's private editing state | **no** | **no** | reopened silently, never offered |
+
+The second kind is the answer to the constraint this phase was given: a dialog only protects against Back, while a crash, a flat battery and a swipe-away ask nothing first. So the edit is written to disk **as it is made**, restored silently when the same card is reopened — as a process-death return does in the other three flows, because the user never chose to abandon it — finalised by "Enregistrer le mouvement" inside the movement's own transaction, and thrown away by "Quitter", which is the one moment the user has said the changes are not wanted.
+
+Durable, not visible. That the two never mix is guaranteed by the query, not by the screen: `observeDrafts` and `observeCount` both carry `WHERE single_product_id IS NULL`.
+
+**The unique index is on a nullable column, and that is the design.** It makes "at most one pending edit per product" a fact about the database rather than a promise in a ViewModel, while SQLite's treatment of NULLs as distinct lets any number of ordinary Brouillons coexist in the same table.
+
+### No filter bar
+
+All three axes the shared `DraftFilterState` offers need something this flow has not: type and état need a source record to edit and a block to be in, and the party axis needs a supplier or a client. A stock movement has neither. Phase 12 hid two axes; here the whole bar goes.
+
+### One bug caught before it shipped
+
+`discardProductDraft` was first launched on the screen's `rememberCoroutineScope`. The screen calls it and immediately navigates away — which leaves the scope cancelled and the delete never run, leaving behind exactly the pending edit the user had just asked to throw away. Moved to `viewModelScope`.
+
+### Migration 35 → 36
+
+Additive, and diffed against Room's generated `36.json` before being run on live data.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Migration on the live database | `user_version` 36, no data loss — 43 products, 6 chargements, 25 ventes |
+| Edit survives a kill | "cafe dozia" edited, `am force-stop`, reopened — back at 4, **no dialog**, and no Brouillon anywhere in the list or the count |
+| "Quitter" discards it | row removed, stock untouched |
+| Ordinary Brouillon | chip shown, sheet opens, resumes with its line intact |
+| Commit | draft deleted inside the movement's own transaction; chargement **#7** created |
+
+Database restored from a byte-exact backup and re-migrated afterwards.
+
+### Two cleanups after the fact (`0ca531b`)
+
+* **The multi-product cart's save button** was enabled whenever the cart was non-empty, but `save()` writes only lines whose target differs from what the truck holds — so an untouched cart gave a live button that wrote nothing and navigated nowhere, which reads as a failure rather than as a no-op. It now uses `cartItems.any { it.targetCamion != it.product.camion_stock }`, derived from the cart rather than tracked separately so it cannot drift from what the save would do. The save logic itself is unchanged. Verified grey → blue → grey across a `+1` and back.
+* **`correctionChargementId` removed.** A parameter for editing an existing movement that no caller ever passed, and that could not have worked: `ProductRepository` has no `updateChargement`, so a "correction" would have written a second movement on top of the first. Gone with it: the detail load, the cart pre-fill, the "Correction du mouvement #n" title and note, and the `ChargementViewModel` the products step held only to read `selectedChargement`. `loadChargementDetail` and `selectedChargement` are left on the ViewModel — plain repository accessors, not dead branches.
+
+### Device state after testing
+
+Everything created during the runs came out through the app's own paths. The cart test's Brouillon was removed by emptying the cart with "Vider", which let the autosave delete the row itself — the empty-snapshot path, exercised incidentally. `chargement_drafts` back to 0, no movement written, screen timeout restored. `testDebugUnitTest` and `assembleDebug` both pass.
