@@ -36,14 +36,13 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.ventes.VenteViewModel
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -1023,8 +1022,6 @@ private fun TourneeClientAvatarItem(
         else      -> Color.Transparent
     }
 
-    val bitmap = rememberEntityBitmap(client.image_uri)
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -1044,14 +1041,11 @@ private fun TourneeClientAvatarItem(
                     .border(2.dp, ringColor, DsShapes.pill),
                 contentAlignment = Alignment.Center
             ) {
-                if (bitmap != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().clip(DsShapes.pill).alpha(if (isPending) 0.55f else 1f),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                } else {
+                EntityImage(
+                    ref                = client.image_uri,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize().clip(DsShapes.pill).alpha(if (isPending) 0.55f else 1f)
+                ) {
                     val initials = client.name.split(" ").take(2)
                         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                     Text(

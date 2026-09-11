@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -37,7 +36,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 
 internal fun formatQty(v: Double): String =
@@ -307,13 +306,11 @@ internal fun Step3Validation(
                         modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                         contentAlignment = Alignment.Center
                     ) {
-                        val bitmap = rememberEntityBitmap(item.product.image_uri)
-                        if (bitmap != null) {
-                            androidx.compose.foundation.Image(
-                                bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                                modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
-                        } else {
+                        EntityImage(
+                            ref                = item.product.image_uri,
+                            contentDescription = null,
+                            modifier           = Modifier.fillMaxSize()
+                        ) {
                             Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                         }
                     }

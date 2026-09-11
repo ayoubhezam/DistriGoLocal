@@ -19,8 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -50,7 +48,7 @@ import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
@@ -208,17 +206,11 @@ fun ClientFormScreen(
                     .clickable { imagePicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                val previewBitmap = rememberEntityBitmap(imageBase64)
-                if (imageBase64 != null) {
-                    previewBitmap?.let {
-                        Image(
-                            bitmap             = it.asImageBitmap(),
-                            contentDescription = null,
-                            modifier           = Modifier.fillMaxSize(),
-                            contentScale       = ContentScale.Crop
-                        )
-                    }
-                } else {
+                EntityImage(
+                    ref                = imageBase64,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize()
+                ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Default.CameraAlt,

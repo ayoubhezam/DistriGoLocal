@@ -2,7 +2,6 @@ package com.distrigo.app.ui.tournees
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -17,8 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
@@ -37,7 +34,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -312,15 +309,11 @@ private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             // ── بعد ──
-            val bitmap = rememberEntityBitmap(product.image_uri)
-            if (bitmap != null) {
-                Image(
-                    bitmap             = bitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
-                    contentScale       = ContentScale.Crop
-                )
-            } else {
+            EntityImage(
+                ref                = product.image_uri,
+                contentDescription = null,
+                modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+            ) {
                 Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
             }
         }

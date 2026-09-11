@@ -28,9 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -70,7 +68,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalDensity
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientDetailScreen(
@@ -480,17 +478,11 @@ fun ClientDetailScreen(
                                 .background(Color.White.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            val headerBitmap = rememberEntityBitmap(currentClient.image_uri)
-                            if (currentClient.image_uri != null) {
-                                headerBitmap?.let {
-                                    Image(
-                                        bitmap             = it.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier           = Modifier.fillMaxSize().clip(DsShapes.pill),
-                                        contentScale       = ContentScale.Crop
-                                    )
-                                }
-                            } else {
+                            EntityImage(
+                                ref                = currentClient.image_uri,
+                                contentDescription = null,
+                                modifier           = Modifier.fillMaxSize().clip(DsShapes.pill)
+                            ) {
                                 Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }

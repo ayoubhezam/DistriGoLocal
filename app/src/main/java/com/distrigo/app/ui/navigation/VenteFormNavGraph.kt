@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
@@ -45,7 +44,7 @@ import com.distrigo.app.ui.tournees.TourneeVenteCartItem
 import com.distrigo.app.ui.tournees.TourneeVenteCartRow
 import com.distrigo.app.ui.ventes.*
 import com.distrigo.app.ui.ventes.VenteFormSessionViewModel
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 /**
  * Resolves the session that owns this pass through the form, and enters it.
@@ -360,13 +359,11 @@ fun NavGraphBuilder.venteFormGraph(
                                                 .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            val bitmap = rememberEntityBitmap(product.image_uri)
-                                            if (bitmap != null) {
-                                                androidx.compose.foundation.Image(
-                                                    bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                                                    modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                                )
-                                            } else {
+                                            EntityImage(
+                                                ref                = product.image_uri,
+                                                contentDescription = null,
+                                                modifier           = Modifier.fillMaxSize()
+                                            ) {
                                                 Icon(
                                                     if (isInCart) Icons.Default.Check else Icons.Default.ShoppingCart,
                                                     contentDescription = null,

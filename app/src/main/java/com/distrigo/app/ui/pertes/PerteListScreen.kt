@@ -29,14 +29,11 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.Inventory2
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Link
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PerteListScreen(
@@ -214,13 +211,11 @@ private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLon
                 modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = rememberEntityBitmap(perte.product_image_uri)
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-                    )
-                } else {
+                EntityImage(
+                    ref                = perte.product_image_uri,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize()
+                ) {
                     Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }

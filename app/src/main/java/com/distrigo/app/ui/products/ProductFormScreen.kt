@@ -22,9 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -50,7 +48,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -908,18 +906,14 @@ fun ProductFormScreen(
                             .clickable { imagePicker.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
-                        val previewBitmap = rememberEntityBitmap(imageBase64)
                         if (imageBase64 != null) {
-                            previewBitmap?.let {
-                                Image(
-                                    bitmap             = it.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier           = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer { rotationZ = imageRotation },
-                                    contentScale       = ContentScale.Crop
-                                )
-                            }
+                            EntityImage(
+                                ref                = imageBase64,
+                                contentDescription = null,
+                                modifier           = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { rotationZ = imageRotation }
+                            ) {}
                             Row(
                                 modifier              = Modifier.align(Alignment.BottomEnd).padding(8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)

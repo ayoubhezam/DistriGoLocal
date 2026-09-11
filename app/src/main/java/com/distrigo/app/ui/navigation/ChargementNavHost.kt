@@ -16,8 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,7 +36,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
@@ -145,7 +143,6 @@ fun ChargementNavHost(
                                 .padding(DsSpacing.md),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val bitmap = rememberEntityBitmap(product.image_uri)
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)
@@ -153,15 +150,16 @@ fun ChargementNavHost(
                                     .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
                                 contentAlignment = Alignment.Center
                             ) {
-                                when {
-                                    isInCart -> Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                                    bitmap != null -> androidx.compose.foundation.Image(
-                                        bitmap             = bitmap.asImageBitmap(),
+                                if (isInCart) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                                } else {
+                                    EntityImage(
+                                        ref                = product.image_uri,
                                         contentDescription = null,
-                                        modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
-                                        contentScale       = ContentScale.Crop
-                                    )
-                                    else -> Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+                                        modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+                                    ) {
+                                        Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+                                    }
                                 }
                             }
 

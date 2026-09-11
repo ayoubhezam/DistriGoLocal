@@ -31,7 +31,6 @@ import com.distrigo.app.ui.components.ShareOptionsSheet
 import com.distrigo.app.ui.components.toReceiptData
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.sp
 @Composable
 fun PurchaseOrderDetailScreen(

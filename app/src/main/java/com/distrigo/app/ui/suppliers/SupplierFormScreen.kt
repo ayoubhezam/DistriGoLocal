@@ -15,8 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,7 +40,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
@@ -215,16 +213,12 @@ fun SupplierFormScreen(
                     .clickable { photoPicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                val previewBitmap = rememberEntityBitmap(imageBase64)
                 if (imageBase64 != null) {
-                    previewBitmap?.let {
-                        Image(
-                            bitmap             = it.asImageBitmap(),
-                            contentDescription = null,
-                            modifier           = Modifier.fillMaxSize(),
-                            contentScale       = ContentScale.Crop
-                        )
-                    }
+                    EntityImage(
+                        ref                = imageBase64,
+                        contentDescription = null,
+                        modifier           = Modifier.fillMaxSize()
+                    ) {}
                 } else if (name.isNotEmpty()) {
                     Box(
                         modifier         = Modifier.size(64.dp).clip(DsShapes.pill),

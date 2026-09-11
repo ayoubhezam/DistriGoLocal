@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -58,7 +57,7 @@ import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
 import com.distrigo.app.ui.purchases.formatQty
 import java.time.LocalDate
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -618,13 +617,11 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceSunken),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        val bitmap = rememberEntityBitmap(product.image_uri)
-                                        if (bitmap != null) {
-                                            androidx.compose.foundation.Image(
-                                                bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                            )
-                                        } else {
+                                        EntityImage(
+                                            ref                = product.image_uri,
+                                            contentDescription = null,
+                                            modifier           = Modifier.fillMaxSize()
+                                        ) {
                                             Icon(
                                                 if (isInCart) Icons.Default.Check else Icons.Default.ShoppingCart,
                                                 contentDescription = null,

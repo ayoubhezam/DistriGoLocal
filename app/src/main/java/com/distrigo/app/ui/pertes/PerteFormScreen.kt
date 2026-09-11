@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.pertes
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,8 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -28,7 +25,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -125,13 +122,11 @@ private fun ProductPickerRow(product: Product, onClick: () -> Unit) {
                 modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = rememberEntityBitmap(product.image_uri)
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-                    )
-                } else {
+                EntityImage(
+                    ref                = product.image_uri,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize()
+                ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }

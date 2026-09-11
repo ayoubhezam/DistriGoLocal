@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,7 +45,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -897,13 +896,11 @@ fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Un
                 modifier         = Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = rememberEntityBitmap(product.image_uri)
-                if (bitmap != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                } else {
+                EntityImage(
+                    ref                = product.image_uri,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize()
+                ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }
@@ -979,14 +976,12 @@ fun ProductGridCard(product: Product, onClick: () -> Unit,    onLongClick : () -
                 modifier         = Modifier.fillMaxWidth().height(110.dp).background(DsColors.SurfaceMuted),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = rememberEntityBitmap(product.image_uri)
-                if (bitmap != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(10.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
-                    )
-                } else {
+                EntityImage(
+                    ref                = product.image_uri,
+                    contentDescription = null,
+                    modifier           = Modifier.fillMaxSize().padding(10.dp),
+                    contentScale       = androidx.compose.ui.layout.ContentScale.Fit
+                ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary.copy(alpha = 0.5f), modifier = Modifier.size(32.dp))
                 }
                 // Stock badge

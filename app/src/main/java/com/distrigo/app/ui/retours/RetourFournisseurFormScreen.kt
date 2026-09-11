@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.retours
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,8 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.Product
@@ -22,7 +19,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 internal fun formatRetourQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -57,10 +54,11 @@ internal fun RetourProductRow(
             modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(if (isInCart) DsColors.SuccessLight else DsColors.SurfaceMuted),
             contentAlignment = Alignment.Center
         ) {
-            val bitmap = rememberEntityBitmap(product.image_uri)
-            if (bitmap != null) {
-                Image(bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else {
+            EntityImage(
+                ref                = product.image_uri,
+                contentDescription = null,
+                modifier           = Modifier.fillMaxSize()
+            ) {
                 Icon(Icons.Default.Inventory2, contentDescription = null, tint = if (isInCart) DsColors.Success else DsColors.TextSecondary, modifier = Modifier.size(20.dp))
             }
         }

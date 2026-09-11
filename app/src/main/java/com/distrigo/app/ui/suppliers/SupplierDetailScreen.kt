@@ -30,10 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,7 +65,7 @@ import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -461,17 +459,11 @@ fun SupplierDetailScreen(
                                 .background(Color.White.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            val headerBitmap = rememberEntityBitmap(currentSupplier.image_uri)
-                            if (currentSupplier.image_uri != null) {
-                                headerBitmap?.let {
-                                    Image(
-                                        bitmap             = it.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier           = Modifier.fillMaxSize().clip(DsShapes.pill),
-                                        contentScale       = ContentScale.Crop
-                                    )
-                                }
-                            } else {
+                            EntityImage(
+                                ref                = currentSupplier.image_uri,
+                                contentDescription = null,
+                                modifier           = Modifier.fillMaxSize().clip(DsShapes.pill)
+                            ) {
                                 Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }

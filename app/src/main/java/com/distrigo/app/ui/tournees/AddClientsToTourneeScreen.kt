@@ -30,10 +30,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -193,15 +190,11 @@ fun AddClientsToTourneeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             if (!client.image_uri.isNullOrBlank()) {
-                                val bitmap = rememberEntityBitmap(client.image_uri)
-                                if (bitmap != null) {
-                                    Image(
-                                        bitmap             = bitmap.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier           = Modifier.fillMaxSize(),
-                                        contentScale       = ContentScale.Crop
-                                    )
-                                } else {
+                                EntityImage(
+                                    ref                = client.image_uri,
+                                    contentDescription = null,
+                                    modifier           = Modifier.fillMaxSize()
+                                ) {
                                     Text(initials, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.TextSecondary)
                                 }
                             } else {

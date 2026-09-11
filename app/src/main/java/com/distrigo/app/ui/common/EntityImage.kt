@@ -1,37 +1,106 @@
 package com.distrigo.app.ui.common
 
-import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.distrigo.app.data.image.ImageStore
+import java.nio.ByteBuffer
 
 /**
- * The bitmap behind an entity's image column, whichever form that column is in.
+ * An entity's photo, drawn at the size it is actually displayed at, or [placeholder] if there
+ * isn't one.
+ *
+ * ### Why this exists
  *
  * Every image column in the app — `products.image_uri`, `clients.image_uri`,
- * `suppliers.image_uri`, and the four denormalised copies on `ventes`, `purchase_orders`,
- * `inventory_items` and `pertes` — now holds one of three things:
+ * `suppliers.image_uri`, and the denormalised copies on `ventes`, `purchase_orders`,
+ * `inventory_items` and `pertes` — holds one of three things: an [ImageStore] reference
+ * (`img:<sha256>`), a `data:image/jpeg;base64,...` payload written before photos moved to disk, or
+ * nothing. This resolves all three, and draws [placeholder] for the third — and for a payload that
+ * will not decode, and for a reference whose file has gone missing. Nothing here throws; a missing
+ * file reads as "this entity has no picture", which is what a restored device sees, since the
+ * database is backed up and the image directory deliberately is not.
  *
- *  - `img:<sha256>`, a reference into [ImageStore]; the normal case going forward.
- *  - `data:image/jpeg;base64,...`, a payload written before images moved to disk. Still read, so
- *    an upgraded device renders correctly from the first launch, before the backfill has run and
- *    whether or not it ever finishes.
- *  - null, or something unrecognised.
+ * ### Why Coil rather than BitmapFactory
  *
- * All three, plus a reference whose file has gone missing, resolve to null here, and every call
- * site already draws its own placeholder in that case. Nothing throws.
+ * Stored images are 400px, which is 640 KB of ARGB_8888. Most of them are drawn into a 34–44dp
+ * avatar — about 126px on a 3x screen, or 64 KB. Decoding the whole thing to fill a tenth of it was
+ * the cost the hand-rolled decodes all paid, repeated per screen because a `remember` is scoped to
+ * one composable and thrown away when a list row scrolls off.
  *
- * Keyed on the column value, so the decode happens once per image rather than once per
- * recomposition — the property the inline decodes this replaced did not have.
+ * Coil sizes the decode to the measured layout, keeps an LRU memory cache across screens and
+ * scrolls, and does the work off the composition thread. The first load of an image shows
+ * [placeholder] for a frame; every later one is served from cache.
  *
- * Still a synchronous, full-size decode during composition: a 400px bitmap is 640 KB whatever it
- * is drawn into, and a 42dp avatar needs a sixteenth of that. Decoding at display size, caching
- * across screens, and getting the work off the composition thread are all the image loader's job,
- * in the change after this one.
+ * [rememberAsyncImagePainter] rather than `AsyncImage`/`SubcomposeAsyncImage`: the callers each
+ * draw their own placeholder — a tinted icon, initials, a "add a photo" prompt — and reading the
+ * painter's state directly picks between them without the subcomposition `SubcomposeAsyncImage`
+ * would add to every avatar in a list.
  */
 @Composable
-fun rememberEntityBitmap(ref: String?): Bitmap? {
+fun EntityImage(
+    ref: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    placeholder: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+
+    // Coil takes a File for a stored reference and the raw bytes for a legacy payload; both are
+    // sized and cached the same way from there. A null model leaves the painter Empty, which falls
+    // through to the placeholder below.
+    val model = remember(ref) {
+        when {
+            ImageStore.isStoredRef(ref) -> ImageStore.fileFor(context, ref)?.takeIf { it.isFile }
+            ImageStore.isLegacyDataUri(ref) -> ImageStore.legacyBytes(ref)?.let(ByteBuffer::wrap)
+            else -> null
+        }
+    }
+
+    if (model == null) {
+        placeholder()
+        return
+    }
+
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context).data(model).build()
+    )
+
+    when (painter.state) {
+        is AsyncImagePainter.State.Success ->
+            Image(
+                painter = painter,
+                contentDescription = contentDescription,
+                modifier = modifier,
+                contentScale = contentScale
+            )
+        // Loading, Error and Empty all show the caller's own placeholder: a decode that fails is
+        // the same outcome to the reader as no photo, and briefly showing initials beats a gap.
+        else -> placeholder()
+    }
+}
+
+/**
+ * The whole bitmap behind an image column, for the places that genuinely want all of it.
+ *
+ * [EntityImage] is the right choice almost everywhere: it decodes to the measured layout and
+ * caches, which is what a 42dp avatar wants. The exception is a surface that fills the screen —
+ * the product photo viewer, and the 200dp banner behind it, which on a 3x screen is already
+ * wider than the 400px stored image. Sizing those to the layout would decode the same pixels
+ * through more machinery, and routing the viewer through an async painter would mean a frame of
+ * black where today there is a picture.
+ *
+ * One caller, deliberately. Anything avatar-shaped belongs in [EntityImage].
+ */
+@Composable
+fun rememberEntityBitmap(ref: String?): android.graphics.Bitmap? {
     val context = LocalContext.current
     return remember(ref) { ImageStore.loadBitmap(context, ref) }
 }

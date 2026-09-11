@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.common
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,14 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.common.EntityImage
 
 private val avatarColors = listOf(
     Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A),
@@ -38,8 +35,6 @@ fun EntityAvatar(
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }
         .joinToString("")
 
-    val bitmap = rememberEntityBitmap(imageUri)
-
     Box(
         modifier         = modifier
             .size(size)
@@ -47,14 +42,11 @@ fun EntityAvatar(
             .background(color.copy(alpha = 0.13f)),
         contentAlignment = Alignment.Center
     ) {
-        if (bitmap != null) {
-            Image(
-                bitmap             = bitmap.asImageBitmap(),
-                contentDescription = name,
-                modifier           = Modifier.fillMaxSize().clip(DsShapes.medium),
-                contentScale       = ContentScale.Crop
-            )
-        } else {
+        EntityImage(
+            ref                = imageUri,
+            contentDescription = name,
+            modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+        ) {
             Text(
                 text       = initials,
                 fontSize   = DsTextSize.body,
