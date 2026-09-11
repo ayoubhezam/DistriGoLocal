@@ -40,6 +40,11 @@ import java.nio.ByteBuffer
  * scrolls, and does the work off the composition thread. The first load of an image shows
  * [placeholder] for a frame; every later one is served from cache.
  *
+ * Every image surface in the app goes through here, the full-screen viewer included. It used to be
+ * the one exception, decoding whole files by hand; the helper that did that had no callers left
+ * once it was migrated and is gone. `ImageStore.loadBitmap` is what it called and is now
+ * unreferenced — left in place deliberately, as the store's own API, rather than removed here.
+ *
  * [rememberAsyncImagePainter] rather than `AsyncImage`/`SubcomposeAsyncImage`: the callers each
  * draw their own placeholder — a tinted icon, initials, a "add a photo" prompt — and reading the
  * painter's state directly picks between them without the subcomposition `SubcomposeAsyncImage`
@@ -99,22 +104,4 @@ fun EntityImage(
             contentScale = contentScale
         )
     }
-}
-
-/**
- * The whole bitmap behind an image column, for the places that genuinely want all of it.
- *
- * [EntityImage] is the right choice almost everywhere: it decodes to the measured layout and
- * caches, which is what a 42dp avatar wants. The exception is a surface that fills the screen —
- * the product photo viewer, and the 200dp banner behind it, which on a 3x screen is already
- * wider than the 400px stored image. Sizing those to the layout would decode the same pixels
- * through more machinery, and routing the viewer through an async painter would mean a frame of
- * black where today there is a picture.
- *
- * One caller, deliberately. Anything avatar-shaped belongs in [EntityImage].
- */
-@Composable
-fun rememberEntityBitmap(ref: String?): android.graphics.Bitmap? {
-    val context = LocalContext.current
-    return remember(ref) { ImageStore.loadBitmap(context, ref) }
 }

@@ -2,7 +2,6 @@ package com.distrigo.app.ui.products
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -52,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.ui.common.EntityImage
-import com.distrigo.app.ui.common.rememberEntityBitmap
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
@@ -64,12 +61,20 @@ private val ViewerBackground = Color(0xFF0B0D12)
 /**
  * Full-screen photo viewer: swipe between the product's photos, pinch or double-tap to zoom.
  *
- * ### Why this one still decodes at full size
+ * ### This goes through Coil like everything else
  *
- * Everything avatar-shaped in the app goes through Coil at its display size. This does not: it is
- * the one surface that shows a photo as large as the screen allows, and once zoomed it is asking
- * for every pixel the stored image has. [rememberEntityBitmap] hands it the whole bitmap, which at
- * 400 px is 640 KB — worth it here, and only here.
+ * It used to decode the whole file by hand, on the composition thread, on the argument that a
+ * full-screen surface wants every pixel the file has. That argument does not survive the
+ * measurements: the viewer lays out at about 990 px on a 1080 px screen, so a 400 px file is
+ * already being upscaled 2.5x before anyone pinches anything — the whole file was never the
+ * question. What the hand-rolled decode did buy was a main-thread stall that grew with the stored
+ * resolution, which is exactly the thing that would have broken as soon as the stored resolution
+ * went up.
+ *
+ * So it uses [EntityImage] now. Coil sizes the decode to the layout, does it off the composition
+ * thread, and serves it from the same memory cache the rest of the app shares — and because Coil
+ * never upscales, the bitmap the gallery already decoded for this photo satisfies the viewer's
+ * larger request too. One decode, reused.
  *
  * ### Zoom and paging have to agree
  *
@@ -136,66 +141,70 @@ fun ProductImageViewer(
             userScrollEnabled = zoom <= 1f,
             pageSpacing       = DsSpacing.lg
         ) { page ->
-            val bitmap = rememberEntityBitmap(images[page].ref)
             val isCurrent = page == pagerState.currentPage
 
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (bitmap == null) {
+                EntityImage(
+                    ref                = images[page].ref,
+                    contentDescription = "Photo ${page + 1} sur ${images.size}",
+                    contentScale       = ContentScale.Fit,
+                    modifier           = Modifier
+                        .fillMaxSize()
+                        .padding(DsSpacing.lg)
+                        // Only the visible page is interactive, so a neighbour half-dragged
+                        // into view cannot quietly take the gesture.
+                        .then(
+                            if (!isCurrent) Modifier else Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onDoubleTap = {
+                                            if (zoom > 1f) resetZoom() else zoom = 2.5f
+                                        },
+                                        onTap = { if (zoom <= 1f) onClose() }
+                                    )
+                                }
+                                .pointerInput(Unit) {
+                                    detectTransformGestures { _, pan, gestureZoom, _ ->
+                                        val next = (zoom * gestureZoom).coerceIn(1f, 5f)
+                                        // Panning is only meaningful while magnified, and the
+                                        // travel is bounded by how far the image overflows,
+                                        // so it can never be dragged off screen entirely.
+                                        offset = if (next <= 1f) {
+                                            Offset.Zero
+                                        } else {
+                                            val maxX = size.width * (next - 1f) / 2f
+                                            val maxY = size.height * (next - 1f) / 2f
+                                            Offset(
+                                                (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                                (offset.y + pan.y).coerceIn(-maxY, maxY)
+                                            )
+                                        }
+                                        zoom = next
+                                    }
+                                }
+                        )
+                        // Zoom is a draw-time transform, so it does not change the layout bounds
+                        // Coil sizes its request from. A magnified photo is the decoded bitmap
+                        // scaled up — exactly what it was when this decoded the file by hand.
+                        .graphicsLayer {
+                            if (isCurrent) {
+                                scaleX = zoom; scaleY = zoom
+                                translationX = offset.x; translationY = offset.y
+                            }
+                        }
+                ) {
+                    // Drawn while the decode is in flight as well as when the file is gone. Today
+                    // it is never seen: the gallery behind the viewer has already put this exact
+                    // bitmap in Coil's memory cache, and the entry is valid at this larger size
+                    // because Coil does not upscale — one decode serves every surface.
                     Icon(
                         Icons.Default.ImageNotSupported,
                         contentDescription = "Photo indisponible",
                         tint     = Color.White.copy(alpha = 0.4f),
                         modifier = Modifier.size(56.dp)
-                    )
-                } else {
-                    Image(
-                        bitmap             = bitmap.asImageBitmap(),
-                        contentDescription = "Photo ${page + 1} sur ${images.size}",
-                        contentScale       = ContentScale.Fit,
-                        modifier           = Modifier
-                            .fillMaxSize()
-                            .padding(DsSpacing.lg)
-                            // Only the visible page is interactive, so a neighbour half-dragged
-                            // into view cannot quietly take the gesture.
-                            .then(
-                                if (!isCurrent) Modifier else Modifier
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onDoubleTap = {
-                                                if (zoom > 1f) resetZoom() else zoom = 2.5f
-                                            },
-                                            onTap = { if (zoom <= 1f) onClose() }
-                                        )
-                                    }
-                                    .pointerInput(Unit) {
-                                        detectTransformGestures { _, pan, gestureZoom, _ ->
-                                            val next = (zoom * gestureZoom).coerceIn(1f, 5f)
-                                            // Panning is only meaningful while magnified, and the
-                                            // travel is bounded by how far the image overflows,
-                                            // so it can never be dragged off screen entirely.
-                                            offset = if (next <= 1f) {
-                                                Offset.Zero
-                                            } else {
-                                                val maxX = size.width * (next - 1f) / 2f
-                                                val maxY = size.height * (next - 1f) / 2f
-                                                Offset(
-                                                    (offset.x + pan.x).coerceIn(-maxX, maxX),
-                                                    (offset.y + pan.y).coerceIn(-maxY, maxY)
-                                                )
-                                            }
-                                            zoom = next
-                                        }
-                                    }
-                            )
-                            .graphicsLayer {
-                                if (isCurrent) {
-                                    scaleX = zoom; scaleY = zoom
-                                    translationX = offset.x; translationY = offset.y
-                                }
-                            }
                     )
                 }
             }
