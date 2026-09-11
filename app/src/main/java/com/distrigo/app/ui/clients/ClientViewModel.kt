@@ -41,15 +41,14 @@ class ClientViewModel @Inject constructor(
     /**
      * ترجع الولاية الأكثر استعمالًا إن ظهرت في زبونين أو أكثر، وإلا null.
      * تُستعمل لتعبئة حقل Wilaya تلقائيًا عند إضافة زبون جديد (قابل للتغيير من المستخدم).
+     *
+     * Asks the database rather than reading [clients]. This used to count over `clients.value`,
+     * which meant it only worked while something else was collecting that flow — an invisible
+     * dependency on which screen happened to be composed, and one that
+     * `SharingStarted.WhileSubscribed` could have quietly broken. See
+     * [com.distrigo.app.data.local.dao.ClientDao.getMostCommonWilaya].
      */
-    fun getDefaultWilaya(): String? {
-        val counts = clients.value
-            .mapNotNull { it.wilaya_name?.takeIf { name -> name.isNotBlank() } }
-            .groupingBy { it }
-            .eachCount()
-        val (name, count) = counts.maxByOrNull { it.value } ?: return null
-        return if (count >= 2) name else null
-    }
+    suspend fun getDefaultWilaya(): String? = repository.getMostCommonClientWilaya()
 
     fun loadSecteurs(communeName: String) {
         viewModelScope.launch {

@@ -46,6 +46,7 @@ import com.distrigo.app.ui.retours.formatRetourQty
 import com.distrigo.app.ui.suppliers.SupplierViewModel
 import java.time.Instant
 import java.time.ZoneOffset
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 // Mirrors retourClientFormGraph: form state (date/motif/cart) lives on the SuppliersGraph-scoped
 // RetourFournisseurViewModel instance — the same one SupplierDetailScreen/
@@ -58,7 +59,7 @@ import java.time.ZoneOffset
 // original's lack of a client-selection step. supplierName isn't exposed by
 // RetourFournisseurViewModel (unlike RetourClientViewModel, which has `clients`), so it's looked
 // up via a separate supplierViewModel provider instead.
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun NavGraphBuilder.retourFournisseurFormGraph(
     navController     : NavHostController,
     graphRoute        : String,

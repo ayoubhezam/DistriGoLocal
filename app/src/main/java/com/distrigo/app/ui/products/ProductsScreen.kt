@@ -875,6 +875,7 @@ fun ProductsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProductCard(product: Product, onClick: () -> Unit,    onLongClick : () -> Unit = {}
 ) {

@@ -28,6 +28,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.ExperimentalFoundationApi
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
     viewModel       : SupplierViewModel = hiltViewModel(),

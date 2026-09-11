@@ -39,6 +39,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
     onBack             : () -> Unit,

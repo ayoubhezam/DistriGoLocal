@@ -993,6 +993,7 @@ private fun TourneeClientActionRow(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun TourneeClientAvatarItem(
     info        : com.distrigo.app.data.model.TourneeClientInfo,

@@ -46,6 +46,7 @@ import com.distrigo.app.ui.retours.RetourSummaryRow
 import com.distrigo.app.ui.retours.formatRetourQty
 import java.time.Instant
 import java.time.ZoneOffset
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 internal val RETOUR_CLIENT_MOTIFS = com.distrigo.app.data.model.RetourClientMotifs.ALL.map { it.id }
 
@@ -75,7 +76,7 @@ private fun RetourClientFormHeader(
 // cart) lives on the RetourClientViewModel instance the caller provides — graph-scoped to
 // ClientsGraph (the same instance ClientDetailScreen/RetourClientListScreen already share). See
 // RetourClientViewModel.formClient/formDate/formMotif/formCartItems.
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun NavGraphBuilder.retourClientFormGraph(
     navController : NavHostController,
     graphRoute    : String,

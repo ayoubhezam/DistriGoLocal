@@ -1238,6 +1238,9 @@ class ProductRepository(
 
 // ── Clients (محلي بالكامل للبيانات الأساسية) ──
 
+    /** The wilaya to prefill when adding a client — see [ClientDao.getMostCommonWilaya]. */
+    suspend fun getMostCommonClientWilaya(): String? = clientDao.getMostCommonWilaya()
+
     suspend fun getClients(): List<Client> {
         return clientDao.getAllClients().map { it.toClient() }
     }

@@ -33,4 +33,27 @@ interface ClientDao {
 
     @Query("SELECT * FROM clients WHERE id IN (:ids)")
     suspend fun getClientsByIds(ids: List<Int>): List<ClientEntity>
+
+    /**
+     * The wilaya most of this distributor's clients are in, used to prefill the field when adding
+     * one — or null if no wilaya has been used at least twice, which is the point at which
+     * guessing stops being helpful.
+     *
+     * Counted in SQL rather than over an observed list. The Kotlin version read
+     * `clients.value` off a `StateFlow` it did not itself collect, so it silently returned null
+     * whenever nothing else happened to be subscribed; correct only by the accident of which
+     * screen was on top. It also pulled every client row into memory to count a string.
+     *
+     * The `wilaya_name ASC` tiebreak is what makes a tie deterministic; `maxByOrNull` over a map
+     * resolved one by iteration order.
+     */
+    @Query("""
+        SELECT wilaya_name FROM clients
+        WHERE wilaya_name IS NOT NULL AND TRIM(wilaya_name) != ''
+        GROUP BY wilaya_name
+        HAVING COUNT(*) >= 2
+        ORDER BY COUNT(*) DESC, wilaya_name ASC
+        LIMIT 1
+    """)
+    suspend fun getMostCommonWilaya(): String?
 }

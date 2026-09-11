@@ -36,6 +36,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
 import com.distrigo.app.ui.common.rememberBase64Bitmap
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
     viewModel     : ClientViewModel = hiltViewModel(),
