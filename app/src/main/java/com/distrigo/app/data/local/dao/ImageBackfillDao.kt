@@ -70,4 +70,16 @@ interface ImageBackfillDao {
 
     @Query("UPDATE pertes SET product_image_uri = :ref WHERE id = :id")
     suspend fun setPerte(id: Int, ref: String)
+
+    // ── The gallery ──
+    // Migration 37 -> 38 seeds this table from products.image_uri, copying whatever that column
+    // held. On a device upgrading from before the files change that is a legacy payload, so the
+    // walk has to cover it too. Content addressing means it converges on the same img: reference
+    // as the products row whichever of the two is converted first.
+
+    @Query("SELECT id, image_ref AS payload FROM product_images WHERE image_ref LIKE 'data:%' AND id > :afterId ORDER BY id LIMIT :limit")
+    suspend fun productImages(afterId: Int, limit: Int): List<LegacyImageRow>
+
+    @Query("UPDATE product_images SET image_ref = :ref WHERE id = :id")
+    suspend fun setProductImage(id: Int, ref: String)
 }

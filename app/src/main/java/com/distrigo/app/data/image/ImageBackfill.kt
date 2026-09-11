@@ -79,6 +79,7 @@ object ImageBackfill {
                 Table("purchase_orders", dao::purchaseOrders, dao::setPurchaseOrder),
                 Table("inventory_items", dao::inventoryItems, dao::setInventoryItem),
                 Table("pertes", dao::pertes, dao::setPerte),
+                Table("product_images", dao::productImages, dao::setProductImage),
             )
             for (table in tables) {
                 val result = convert(context, table)

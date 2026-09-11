@@ -7,6 +7,9 @@ import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
 import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import com.distrigo.app.data.local.entity.ProductImageEntity
+import com.distrigo.app.data.local.entity.MAX_IMAGES_PER_PRODUCT
+import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.data.local.entity.SecteurEntity
 import com.distrigo.app.data.model.Secteur
 import kotlinx.coroutines.flow.Flow
@@ -256,6 +259,10 @@ class ProductRepository(
         )
 
         val newId = productDao.insertProduct(entity)
+        // A product created with a photo starts its gallery with that photo as the cover, so the
+        // form's single-image field and the gallery never disagree about what the product looks
+        // like. See adoptCoverImage.
+        entity.image_uri?.let { adoptCoverImage(newId.toInt(), it) }
         return mapOf("id" to newId.toDouble(), "message" to "Product added successfully")
     }
 
@@ -295,6 +302,11 @@ class ProductRepository(
         )
 
         productDao.updateProduct(updatedEntity)
+        // The edit form still carries a single image field. Picking a photo there means "this is
+        // the cover", so it is adopted into the gallery rather than left to contradict it.
+        if (product.containsKey("image_uri")) {
+            (product["image_uri"] as? String)?.let { adoptCoverImage(id, it) }
+        }
         return mapOf("message" to "Product updated successfully")
     }
 
@@ -330,6 +342,147 @@ class ProductRepository(
     suspend fun deleteProduct(id: Int): Map<String, Any> {
         productDao.deleteProductById(id)
         return mapOf("message" to "Product deleted successfully")
+    }
+
+    // -- Product images (gallery) -------------------------------------------------
+    //
+    // `product_images` holds the gallery; `products.image_uri` holds the cover. Every mutation below
+    // runs in one transaction and leaves two invariants true:
+    //
+    //   1. positions are dense and zero-based within the product, and
+    //   2. `products.image_uri` equals the reference at position 0, or null when there are none.
+    //
+    // The second is what lets every single-image surface in the app -- the product rows, the cart
+    // lines, the pickers, and the denormalised snapshots on ventes, purchase_orders, inventory_items
+    // and pertes -- carry on reading one column and know nothing about galleries.
+
+    private fun ProductImageEntity.toProductImage() = ProductImage(
+        id = this.id, productId = this.product_id, ref = this.image_ref, position = this.position
+    )
+
+    /** The product's photos, cover first. Re-emits on every write to the gallery. */
+    fun observeProductImages(productId: Int): Flow<List<ProductImage>> =
+        db.productImageDao().observeForProduct(productId)
+            .map { rows -> rows.map { it.toProductImage() } }
+
+    suspend fun getProductImages(productId: Int): List<ProductImage> =
+        db.productImageDao().getForProduct(productId).map { it.toProductImage() }
+
+    /**
+     * Appends [ref] to the product's gallery.
+     *
+     * Refuses past [MAX_IMAGES_PER_PRODUCT]. Adding a photo the product already has is reported
+     * rather than duplicated -- with content addressing two identical photos are the same
+     * reference, and a gallery showing one picture twice is never what was meant.
+     */
+    suspend fun addProductImage(productId: Int, ref: String): Map<String, Any> {
+        if (ref.isBlank()) return mapOf("error" to "Image invalide")
+        var result: Map<String, Any> = mapOf("message" to "Photo ajoutée")
+        db.withTransaction {
+            val dao = db.productImageDao()
+            if (dao.findByRef(productId, ref) != null) {
+                result = mapOf("error" to "Cette photo est déjà dans la galerie")
+                return@withTransaction
+            }
+            val existing = dao.getForProduct(productId)
+            if (existing.size >= MAX_IMAGES_PER_PRODUCT) {
+                result = mapOf("error" to "Maximum " + MAX_IMAGES_PER_PRODUCT + " photos par produit")
+                return@withTransaction
+            }
+            dao.insert(
+                ProductImageEntity(
+                    product_id = productId,
+                    image_ref  = ref,
+                    position   = existing.size,
+                    created_at = java.time.Instant.now().toString()
+                )
+            )
+            syncCover(productId)
+        }
+        return result
+    }
+
+    /**
+     * Removes one photo and closes the gap its position left.
+     *
+     * Deleting the cover promotes whatever was next; deleting the last photo leaves the product
+     * with none and nulls `products.image_uri`, which every caller already draws as a placeholder.
+     *
+     * The file itself is deliberately not deleted. It is content-addressed, so another product --
+     * or a sale, or a loss, recording what this product looked like at the time -- may still point
+     * at it.
+     */
+    suspend fun deleteProductImage(imageId: Int): Map<String, Any> {
+        db.withTransaction {
+            val dao = db.productImageDao()
+            val image = dao.getById(imageId) ?: return@withTransaction
+            dao.deleteById(imageId)
+            renumber(image.product_id)
+            syncCover(image.product_id)
+        }
+        return mapOf("message" to "Photo supprimée")
+    }
+
+    /** Moves one photo to position 0, keeping the order of the rest. */
+    suspend fun setPrimaryProductImage(imageId: Int): Map<String, Any> {
+        db.withTransaction {
+            val dao = db.productImageDao()
+            val image = dao.getById(imageId) ?: return@withTransaction
+            val ordered = dao.getForProduct(image.product_id)
+                .sortedBy { if (it.id == imageId) -1 else it.position }
+            ordered.forEachIndexed { index, row -> dao.setPosition(row.id, index) }
+            syncCover(image.product_id)
+        }
+        return mapOf("message" to "Photo principale mise à jour")
+    }
+
+    /**
+     * Takes a reference arriving from the single-image edit form and makes it the cover.
+     *
+     * Already in the gallery -- promote it. Not there and there is room -- insert it at the front.
+     * Not there and the gallery is full -- replace the current cover, because the form's field *is*
+     * the cover, and silently ignoring the user's pick would be worse than dropping the photo it
+     * replaces.
+     */
+    private suspend fun adoptCoverImage(productId: Int, ref: String) {
+        if (ref.isBlank()) return
+        db.withTransaction {
+            val dao = db.productImageDao()
+            val existing = dao.findByRef(productId, ref)
+            if (existing != null) {
+                val ordered = dao.getForProduct(productId)
+                    .sortedBy { if (it.id == existing.id) -1 else it.position }
+                ordered.forEachIndexed { index, row -> dao.setPosition(row.id, index) }
+            } else {
+                val all = dao.getForProduct(productId)
+                if (all.size >= MAX_IMAGES_PER_PRODUCT) all.firstOrNull()?.let { dao.deleteById(it.id) }
+                dao.insert(
+                    ProductImageEntity(
+                        product_id = productId,
+                        image_ref  = ref,
+                        position   = -1, // renumber() sorts it to the front
+                        created_at = java.time.Instant.now().toString()
+                    )
+                )
+                renumber(productId)
+            }
+            syncCover(productId)
+        }
+    }
+
+    /** Rewrites positions to 0..n-1 in their current order. */
+    private suspend fun renumber(productId: Int) {
+        val dao = db.productImageDao()
+        dao.getForProduct(productId).forEachIndexed { index, row ->
+            if (row.position != index) dao.setPosition(row.id, index)
+        }
+    }
+
+    /** Points `products.image_uri` at position 0, or null when the gallery is empty. */
+    private suspend fun syncCover(productId: Int) {
+        val cover = db.productImageDao().getCover(productId)?.image_ref
+        val product = productDao.getProductById(productId) ?: return
+        if (product.image_uri != cover) productDao.updateProduct(product.copy(image_uri = cover))
     }
 
     // 3. استبدل دوال الفئات الأربعة القديمة بهذه:

@@ -245,3 +245,56 @@ val MIGRATION_36_37 = object : Migration(36, 37) {
         ).forEach(db::execSQL)
     }
 }
+
+/**
+ * 37 -> 38 - adds `product_images`, the table behind the product photo gallery.
+ *
+ * Two statements create the table and its index; the third is the only data migration in this
+ * project so far, and it is deliberately trivial: every product that already has a photo gets that
+ * photo as its gallery's first and only entry.
+ *
+ *     INSERT INTO product_images (...) SELECT id, image_uri, 0, ... FROM products WHERE ...
+ *
+ * That runs entirely inside SQLite - no files are read, nothing is decoded, nothing can half-finish
+ * the way moving bytes onto the filesystem could. It is safe in a Migration for exactly the reason
+ * ImageBackfill is not.
+ *
+ * `products.image_uri` is left alone, and stays the cover. Everything that wants one picture - the
+ * product rows, the cart lines, the pickers, and the denormalised snapshots on ventes,
+ * purchase_orders, inventory_items and pertes - keeps reading it and is untouched by this change.
+ * The repository keeps it equal to position 0 from here on.
+ *
+ * The WHERE clause copies whatever the column holds, `img:` reference or legacy `data:` payload.
+ * On a device whose backfill has not run yet that means a payload lands in `image_ref` - which is
+ * why `product_images` was added to ImageBackfill's walk. Content addressing makes the two converge
+ * on the same `img:` reference regardless of which is converted first.
+ *
+ * The statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/38.json`) with the table-name
+ * placeholder substituted. **Do not hand-edit these strings** - change the entity, rebuild, and
+ * re-copy.
+ */
+val MIGRATION_37_38 = object : Migration(37, 38) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `product_images` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`product_id` INTEGER NOT NULL, " +
+                "`image_ref` TEXT NOT NULL, " +
+                "`position` INTEGER NOT NULL, " +
+                "`created_at` TEXT NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_product_images_product_id_position` " +
+                "ON `product_images` (`product_id`, `position`)"
+        )
+        // Seed each existing photo as its product's cover. TRIM guards the empty string, which is
+        // not the same as NULL and would otherwise become a gallery entry pointing at nothing.
+        db.execSQL(
+            "INSERT INTO `product_images` (`product_id`, `image_ref`, `position`, `created_at`) " +
+                "SELECT `id`, `image_uri`, 0, '1970-01-01T00:00:00Z' FROM `products` " +
+                "WHERE `image_uri` IS NOT NULL AND TRIM(`image_uri`) != ''"
+        )
+    }
+}
+

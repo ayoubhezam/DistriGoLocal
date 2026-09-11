@@ -63,10 +63,11 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         MarqueEntity::class,
         PurchaseDraftEntity::class,
         VenteDraftEntity::class,
+        ProductImageEntity::class,
         TourneeVenteDraftEntity::class,
         ChargementDraftEntity::class,
     ],
-    version = 37,
+    version = 38,
     exportSchema = true
 )
 
@@ -107,6 +108,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sousCategorieDao(): SousCategorieDao
     abstract fun marqueDao(): MarqueDao
 
+    /** The product photo gallery — see ProductImageEntity. */
+    abstract fun productImageDao(): ProductImageDao
+
     /** Used once, to move base64 payloads out to files — see ImageBackfill. */
     abstract fun imageBackfillDao(): ImageBackfillDao
 
@@ -128,7 +132,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // removing it would replace today's wipe with a crash.
                     .addMigrations(
                         MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
-                        MIGRATION_36_37
+                        MIGRATION_36_37, MIGRATION_37_38
                     )
                     .fallbackToDestructiveMigration()
                     .build()

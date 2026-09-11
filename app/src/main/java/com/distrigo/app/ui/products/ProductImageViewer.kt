@@ -1,0 +1,303 @@
+package com.distrigo.app.ui.products
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ImageNotSupported
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.distrigo.app.data.model.ProductImage
+import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.rememberEntityBitmap
+import com.distrigo.app.ui.designsystem.DsShapes
+import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.designsystem.DsTextSize
+import kotlinx.coroutines.launch
+
+/** The viewer's ground. Near-black rather than pure black, matching the app's ink. */
+private val ViewerBackground = Color(0xFF0B0D12)
+
+/**
+ * Full-screen photo viewer: swipe between the product's photos, pinch or double-tap to zoom.
+ *
+ * ### Why this one still decodes at full size
+ *
+ * Everything avatar-shaped in the app goes through Coil at its display size. This does not: it is
+ * the one surface that shows a photo as large as the screen allows, and once zoomed it is asking
+ * for every pixel the stored image has. [rememberEntityBitmap] hands it the whole bitmap, which at
+ * 400 px is 640 KB — worth it here, and only here.
+ *
+ * ### Zoom and paging have to agree
+ *
+ * A pinch and a page-swipe are the same gesture until one of them wins. The pager is disabled
+ * while any page is zoomed in, so dragging a magnified photo pans it rather than flicking to the
+ * next one; zooming back out hands paging back. Changing page resets the zoom, so a photo is never
+ * inherited mid-magnification.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ProductImageViewer(
+    images       : List<ProductImage>,
+    initialIndex : Int,
+    onClose      : () -> Unit
+) {
+    if (images.isEmpty()) {
+        // Nothing to show. Closing rather than drawing an empty black screen is the only sensible
+        // answer, and it is reachable: deleting the last photo while the viewer is open.
+        LaunchedEffect(Unit) { onClose() }
+        return
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex.coerceIn(0, images.size - 1),
+        pageCount   = { images.size }
+    )
+    val stripState = rememberLazyListState()
+
+    var zoom by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
+
+    fun resetZoom() { zoom = 1f; offset = Offset.Zero }
+
+    // A new page always starts unzoomed.
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            resetZoom()
+            if (page < images.size) stripState.animateScrollToItem(page)
+        }
+    }
+
+    BackHandler {
+        // Back steps out of zoom first, then out of the viewer — the same order the user got in.
+        if (zoom > 1f) resetZoom() else onClose()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            // Opaque, not a translucent scrim. This draws over the detail screen rather than in a
+            // window of its own, so any transparency lets the screen underneath show through and
+            // the photo ends up competing with the product card behind it.
+            .background(ViewerBackground)
+            // Swallows taps so nothing underneath reacts to a press meant for the viewer.
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { if (zoom > 1f) resetZoom() else onClose() }
+    ) {
+        HorizontalPager(
+            state             = pagerState,
+            modifier          = Modifier.fillMaxSize(),
+            userScrollEnabled = zoom <= 1f,
+            pageSpacing       = DsSpacing.lg
+        ) { page ->
+            val bitmap = rememberEntityBitmap(images[page].ref)
+            val isCurrent = page == pagerState.currentPage
+
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap == null) {
+                    Icon(
+                        Icons.Default.ImageNotSupported,
+                        contentDescription = "Photo indisponible",
+                        tint     = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(56.dp)
+                    )
+                } else {
+                    Image(
+                        bitmap             = bitmap.asImageBitmap(),
+                        contentDescription = "Photo ${page + 1} sur ${images.size}",
+                        contentScale       = ContentScale.Fit,
+                        modifier           = Modifier
+                            .fillMaxSize()
+                            .padding(DsSpacing.lg)
+                            // Only the visible page is interactive, so a neighbour half-dragged
+                            // into view cannot quietly take the gesture.
+                            .then(
+                                if (!isCurrent) Modifier else Modifier
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onDoubleTap = {
+                                                if (zoom > 1f) resetZoom() else zoom = 2.5f
+                                            },
+                                            onTap = { if (zoom <= 1f) onClose() }
+                                        )
+                                    }
+                                    .pointerInput(Unit) {
+                                        detectTransformGestures { _, pan, gestureZoom, _ ->
+                                            val next = (zoom * gestureZoom).coerceIn(1f, 5f)
+                                            // Panning is only meaningful while magnified, and the
+                                            // travel is bounded by how far the image overflows,
+                                            // so it can never be dragged off screen entirely.
+                                            offset = if (next <= 1f) {
+                                                Offset.Zero
+                                            } else {
+                                                val maxX = size.width * (next - 1f) / 2f
+                                                val maxY = size.height * (next - 1f) / 2f
+                                                Offset(
+                                                    (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                                    (offset.y + pan.y).coerceIn(-maxY, maxY)
+                                                )
+                                            }
+                                            zoom = next
+                                        }
+                                    }
+                            )
+                            .graphicsLayer {
+                                if (isCurrent) {
+                                    scaleX = zoom; scaleY = zoom
+                                    translationX = offset.x; translationY = offset.y
+                                }
+                            }
+                    )
+                }
+            }
+        }
+
+        // ── Top bar: counter + close ──
+        // A scrim behind the controls, because they sit over whatever the photo happens to be.
+        // Zoomed into a bright label, a translucent pill on its own leaves the close button barely
+        // visible — which is the moment the user most needs to find it.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(140.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(ViewerBackground.copy(alpha = 0.75f), Color.Transparent)
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+        ) {
+            if (images.size > 1) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .clip(DsShapes.pill)
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.xs)
+                ) {
+                    Text(
+                        "${pagerState.currentPage + 1} / ${images.size}",
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color      = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(40.dp)
+                    .clip(DsShapes.pill)
+                    .background(Color.White.copy(alpha = 0.12f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)
+            }
+        }
+
+        // ── Bottom strip ──
+        // Hidden while zoomed: the photo is the whole point at that moment, and the strip would
+        // sit over the part being examined.
+        if (images.size > 1 && zoom <= 1f) {
+            LazyRow(
+                state = stripState,
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                contentPadding = PaddingValues(horizontal = DsSpacing.lg),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = DsSpacing.xl)
+                    .fillMaxWidth()
+            ) {
+                items(images, key = { it.id }) { image ->
+                    val index = images.indexOf(image)
+                    val active = index == pagerState.currentPage
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(DsShapes.medium)
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .border(
+                                width = if (active) 2.dp else 1.dp,
+                                color = if (active) Color.White else Color.White.copy(alpha = 0.2f),
+                                shape = DsShapes.medium
+                            )
+                            .graphicsLayer { alpha = if (active) 1f else 0.55f }
+                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EntityImage(
+                            ref                = image.ref,
+                            contentDescription = null,
+                            contentScale       = ContentScale.Crop,
+                            modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+                        ) {
+                            Icon(
+                                Icons.Default.ImageNotSupported,
+                                contentDescription = null,
+                                tint     = Color.White.copy(alpha = 0.4f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

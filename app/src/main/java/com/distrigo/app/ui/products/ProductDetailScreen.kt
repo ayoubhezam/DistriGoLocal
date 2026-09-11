@@ -29,8 +29,18 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.ui.common.rememberEntityBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.distrigo.app.data.model.ProductImage
+import com.distrigo.app.ui.common.EntityImage
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PhotoLibrary
+import com.distrigo.app.ui.common.ImageCapture
+import kotlinx.coroutines.launch
 @Composable
 fun ProductDetailScreen(
     product          : Product,
@@ -64,17 +74,41 @@ fun ProductDetailScreen(
         viewModel.loadPriceHistory(product.id)
     }
     val priceHistory by viewModel.priceHistory.collectAsState()
-    var showFullImage by remember { mutableStateOf(false) }
 
-    // One decode for both the banner and the full-screen viewer below: they render the same
-    // image, and until now each decoded its own copy of it.
-    val productBitmap = rememberEntityBitmap(currentProduct.image_uri)
+    // ── Gallery ──
+    // The photos are observed from their own table rather than read off the product, so adding,
+    // deleting or re-covering one lands on screen the moment the transaction commits.
+    val images by viewModel.productImages.collectAsState()
+    LaunchedEffect(product.id) { viewModel.observeGalleryFor(product.id) }
+
+    var manageMode    by remember { mutableStateOf(false) }
+    var viewerIndex   by remember { mutableStateOf<Int?>(null) }
+    var pendingDelete by remember { mutableStateOf<ProductImage?>(null) }
+    var galleryError  by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val imageScope = rememberCoroutineScope()
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            imageScope.launch {
+                val ref = ImageCapture.captureToStore(context, it)
+                if (ref == null) {
+                    galleryError = "Image illisible"
+                    return@launch
+                }
+                viewModel.addProductImage(product.id, ref) { message -> galleryError = message }
+            }
+        }
+    }
+
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-
-    BackHandler { onBack() }
-    BackHandler(enabled = !showFullImage) { onBack() }
-    BackHandler(enabled = showFullImage) { showFullImage = false }
+    // Back unwinds one layer at a time: the viewer, then manage mode, then the screen. Without
+    // this, leaving manage mode needed a deliberate tap and Back would drop the whole screen.
+    BackHandler(enabled = viewerIndex == null && manageMode) { manageMode = false }
+    BackHandler(enabled = viewerIndex == null && !manageMode) { onBack() }
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -145,21 +179,48 @@ fun ProductDetailScreen(
             Spacer(Modifier.width(DsSpacing.md))
         }
 
-        // ── Image ──
-        productBitmap?.let {
-            Image(
-                bitmap             = it.asImageBitmap(),
-                contentDescription = null,
-                modifier           = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .padding(horizontal = 16.dp)
-                    .clip(DsShapes.large)
-                    .clickable { showFullImage = true },  // ← أضف هذا
+        // ── Galerie photos ──
+        ProductGallery(
+            images        = images,
+            manageMode    = manageMode,
+            onOpenViewer  = { index -> viewerIndex = index },
+            onAddPhoto    = { photoPicker.launch("image/*") },
+            onDeletePhoto = { pendingDelete = it },
+            onSetCover    = { viewModel.setPrimaryProductImage(it.id) { m -> galleryError = m } },
+            modifier      = Modifier.padding(horizontal = 16.dp)
+        )
 
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.height(12.dp))
+        // The mode toggle sits with the gallery rather than in the app bar: a third action up
+        // there would squeeze the title, and the control belongs next to what it changes.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = DsSpacing.sm),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier
+                    .clip(DsShapes.pill)
+                    .background(if (manageMode) DsColors.Primary else DsColors.PrimaryLight)
+                    .clickable { manageMode = !manageMode }
+                    .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    if (manageMode) Icons.Default.Check else Icons.Default.PhotoLibrary,
+                    contentDescription = null,
+                    tint     = if (manageMode) DsColors.Surface else DsColors.Primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text(
+                    if (manageMode) "Terminer" else "Gérer les photos",
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = if (manageMode) DsColors.Surface else DsColors.Primary
+                )
+            }
         }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -241,43 +302,83 @@ fun ProductDetailScreen(
         }
     }
 
-    // Emitted after the scrolling Column, not before it. Siblings here are stacked by the host in
-    // emission order, so the overlay used to be painted *underneath* an opaque full-screen Column
-    // and was never visible: tapping the photo set showFullImage, the viewer drew, nothing showed,
-    // and the next Back press was silently eaten closing a viewer the user could not see.
-    if (showFullImage) {
-        productBitmap?.let {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
-                    .clickable { showFullImage = false },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    bitmap             = it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentScale       = ContentScale.Fit
-                )
-                // زر الإغلاق
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .size(36.dp)
-                        .clip(DsShapes.pill)
-                        .background(Color.White.copy(alpha = 0.2f))
-                        .clickable { showFullImage = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-                }
-            }
-        }
+    // Emitted after the scrolling Column: siblings are stacked by the host in emission order, so
+    // anything meant to sit over the screen has to come last.
+
+    viewerIndex?.let { index ->
+        ProductImageViewer(
+            images       = images,
+            initialIndex = index,
+            onClose      = { viewerIndex = null }
+        )
     }
+
+    pendingDelete?.let { image ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Supprimer cette photo ?") },
+            text  = {
+                // The thumbnail is the point of the confirmation: a strip of near-identical
+                // product shots gives the user nothing else to check the choice against.
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceMuted),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EntityImage(
+                            ref                = image.ref,
+                            contentDescription = null,
+                            contentScale       = ContentScale.Crop,
+                            modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+                        ) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.TextTertiary)
+                        }
+                    }
+                    Spacer(Modifier.height(DsSpacing.md))
+                    Text(
+                        if (image.isCover && images.size > 1)
+                            "C'est la photo principale. La suivante prendra sa place."
+                        else
+                            "Cette photo sera retirée du produit."
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteProductImage(image.id) { m -> galleryError = m }
+                    // The viewer cannot stay open over a gallery that may now be empty.
+                    if (images.size <= 1) viewerIndex = null
+                    pendingDelete = null
+                }) {
+                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Annuler") }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+
+    galleryError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { galleryError = null },
+            title   = { Text("Photo non ajoutée") },
+            text    = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { galleryError = null }) { Text("OK") }
+            },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+
 }
 
 

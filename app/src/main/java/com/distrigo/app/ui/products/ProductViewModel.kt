@@ -17,6 +17,10 @@ import com.distrigo.app.data.model.PriceHistory
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SousCategorie
 import com.distrigo.app.data.model.Marque
+import com.distrigo.app.data.model.ProductImage
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,6 +56,67 @@ class ProductViewModel @Inject constructor(
 
     private val _priceHistory = MutableStateFlow<List<PriceHistory>>(emptyList())
     val priceHistory: StateFlow<List<PriceHistory>> = _priceHistory
+
+    // -- Product gallery -----------------------------------------------------
+    //
+    // Keyed on the product being viewed rather than exposed as one flow, because the detail screen
+    // is the only consumer and it only ever shows one product. flatMapLatest means opening a
+    // second product cancels the first one's collection instead of leaving it running behind the
+    // back stack.
+
+    private val _galleryProductId = MutableStateFlow<Int?>(null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val productImages: StateFlow<List<ProductImage>> =
+        _galleryProductId
+            .flatMapLatest { id ->
+                if (id == null) flowOf(emptyList()) else repository.observeProductImages(id)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Points the gallery at a product. Called by the detail screen as it opens. */
+    fun observeGalleryFor(productId: Int) { _galleryProductId.value = productId }
+
+    /**
+     * Adds a picked photo to a product's gallery.
+     *
+     * [onError] carries the repository's own message — the gallery is full, or the product already
+     * has this exact photo — so the screen can say which it was rather than just failing.
+     */
+    fun addProductImage(
+        productId : Int,
+        ref       : String,
+        onError   : (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                val result = repository.addProductImage(productId, ref)
+                (result["error"] as? String)?.let(onError)
+            } catch (e: Exception) {
+                onError(e.message ?: "Erreur inconnue")
+            }
+        }
+    }
+
+    fun deleteProductImage(imageId: Int, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.deleteProductImage(imageId)
+            } catch (e: Exception) {
+                onError(e.message ?: "Erreur inconnue")
+            }
+        }
+    }
+
+    fun setPrimaryProductImage(imageId: Int, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.setPrimaryProductImage(imageId)
+            } catch (e: Exception) {
+                onError(e.message ?: "Erreur inconnue")
+            }
+        }
+    }
 
     init {
         loadCategories()
