@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.products
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Product
@@ -309,6 +312,34 @@ class ProductViewModel @Inject constructor(
             }
         }
     }
+
+    // ── Filter, sort and view state ──
+    // Held here, not in the screen, so the list comes back the way it was left after a detour
+    // into a product or another tab — the ViewModel is scoped to the Produits graph, while the
+    // screen's own `remember`s die with its composition. clearAllFilters() deliberately leaves
+    // the search box, the sort order and the grid toggle alone: none of them is a filter chip.
+    var searchQuery           by mutableStateOf("")
+    var sortOption            by mutableStateOf(SortOption.NAME_ASC)
+    var isGridView            by mutableStateOf(false)
+    var filterCategoryId      by mutableStateOf<Int?>(null)
+    var filterSousCategorieId by mutableStateOf<Int?>(null)
+    var filterMarqueId        by mutableStateOf<Int?>(null)
+    var filterSupplierId      by mutableStateOf<Int?>(null)
+    var filterUnitType        by mutableStateOf<String?>(null)
+    var filterStockLevel      by mutableStateOf<String?>(null)
+    var filterPriceMin        by mutableStateOf("")
+    var filterPriceMax        by mutableStateOf("")
+    var filterExpiringSoon    by mutableStateOf(false)
+
+    fun clearAllFilters() {
+        filterCategoryId      = null
+        filterSousCategorieId = null
+        filterMarqueId        = null
+        filterSupplierId      = null
+        filterUnitType        = null
+        filterStockLevel      = null
+        filterPriceMin        = ""
+        filterPriceMax        = ""
+        filterExpiringSoon    = false
+    }
 }
-
-

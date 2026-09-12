@@ -110,78 +110,54 @@ fun ProductsScreen(
     // nothing else here would ever lower it.
     DisposableEffect(Unit) { onDispose { onFullScreenChange(false) } }
 
-    var search           by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf<Product?>(null) }
     var showScanner      by remember { mutableStateOf(false) }
-    var isGridView       by remember { mutableStateOf(false) }
-    var sortOption       by remember { mutableStateOf(SortOption.NAME_ASC) }
     var showSortSheet    by remember { mutableStateOf(false) }
     val sheetState        = rememberModalBottomSheetState()
 
-    // ── Filters ──
-    var filterCategoryId      by remember { mutableStateOf<Int?>(null) }
-    var filterSousCategorieId by remember { mutableStateOf<Int?>(null) }
-    var filterMarqueId        by remember { mutableStateOf<Int?>(null) }
-    var filterSupplierId      by remember { mutableStateOf<Int?>(null) }
-    var filterUnitType        by remember { mutableStateOf<String?>(null) }
-    var filterStockLevel      by remember { mutableStateOf<String?>(null) }
-    var filterPriceMin        by remember { mutableStateOf("") }
-    var filterPriceMax        by remember { mutableStateOf("") }
-    var filterExpiringSoon    by remember { mutableStateOf(false) }
+    // ── Filter sheet, local UI state only — the filters themselves live in the ViewModel ──
     var showFilterSheet       by remember { mutableStateOf(false) }
     val filterSheetState       = rememberModalBottomSheetState()
 
     var isInitialFilterCategoryEffect by remember { mutableStateOf(true) }
-    LaunchedEffect(filterCategoryId) {
+    LaunchedEffect(viewModel.filterCategoryId) {
         if (isInitialFilterCategoryEffect) {
             isInitialFilterCategoryEffect = false
         } else {
-            filterSousCategorieId = null
+            viewModel.filterSousCategorieId = null
         }
-    }
-
-    fun clearAllFilters() {
-        filterCategoryId      = null
-        filterSousCategorieId = null
-        filterMarqueId        = null
-        filterSupplierId      = null
-        filterUnitType        = null
-        filterStockLevel      = null
-        filterPriceMin        = ""
-        filterPriceMax        = ""
-        filterExpiringSoon    = false
     }
 
     if (showScanner) {
         BarcodeScannerScreen(
-            onBarcodeScanned = { code -> search = code; showScanner = false },
+            onBarcodeScanned = { code -> viewModel.searchQuery = code; showScanner = false },
             onClose          = { showScanner = false }
         )
         return
     }
 
-    val tokens   = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    val tokens   = viewModel.searchQuery.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     val filtered = products.filter { product ->
         (tokens.isEmpty() || tokens.all { token ->
             product.name.contains(token, ignoreCase = true) ||
                     (product.barcode?.contains(token, ignoreCase = true) == true)
         }) &&
-                (filterCategoryId == null || product.category_id == filterCategoryId) &&
-                (filterSousCategorieId == null || product.sous_categorie_id == filterSousCategorieId) &&
-                (filterMarqueId == null || product.marque_id == filterMarqueId) &&
-                (filterSupplierId == null || product.supplier_id == filterSupplierId) &&
-                (filterUnitType == null || product.unit_type == filterUnitType) &&
-                (filterStockLevel == null || when (filterStockLevel) {
+                (viewModel.filterCategoryId == null || product.category_id == viewModel.filterCategoryId) &&
+                (viewModel.filterSousCategorieId == null || product.sous_categorie_id == viewModel.filterSousCategorieId) &&
+                (viewModel.filterMarqueId == null || product.marque_id == viewModel.filterMarqueId) &&
+                (viewModel.filterSupplierId == null || product.supplier_id == viewModel.filterSupplierId) &&
+                (viewModel.filterUnitType == null || product.unit_type == viewModel.filterUnitType) &&
+                (viewModel.filterStockLevel == null || when (viewModel.filterStockLevel) {
                     "in_stock"     -> product.stock > product.min_stock
                     "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
                     "out_of_stock" -> product.stock <= 0
                     else           -> true
                 }) &&
-                (filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
-                (filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
-                (!filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))
+                (viewModel.filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
+                (viewModel.filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
+                (!viewModel.filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))
     }
-    val sorted = when (sortOption) {
+    val sorted = when (viewModel.sortOption) {
         SortOption.NAME_ASC   -> filtered.sortedBy { it.name.lowercase() }
         SortOption.NAME_DESC  -> filtered.sortedByDescending { it.name.lowercase() }
         SortOption.STOCK_ASC  -> filtered.sortedBy { it.stock }
@@ -191,41 +167,41 @@ fun ProductsScreen(
     }
 
     val activeFilters = buildList {
-        filterCategoryId?.let { id ->
+        viewModel.filterCategoryId?.let { id ->
             categories.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Catégorie: ${it.name}") { filterCategoryId = null })
+                add(ActiveFilterEntry("Catégorie: ${it.name}") { viewModel.filterCategoryId = null })
             }
         }
-        filterSousCategorieId?.let { id ->
+        viewModel.filterSousCategorieId?.let { id ->
             sousCategories.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Sous-catégorie: ${it.name}") { filterSousCategorieId = null })
+                add(ActiveFilterEntry("Sous-catégorie: ${it.name}") { viewModel.filterSousCategorieId = null })
             }
         }
-        filterMarqueId?.let { id ->
+        viewModel.filterMarqueId?.let { id ->
             marques.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Marque: ${it.name}") { filterMarqueId = null })
+                add(ActiveFilterEntry("Marque: ${it.name}") { viewModel.filterMarqueId = null })
             }
         }
-        filterSupplierId?.let { id ->
+        viewModel.filterSupplierId?.let { id ->
             suppliers.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Fournisseur: ${it.name}") { filterSupplierId = null })
+                add(ActiveFilterEntry("Fournisseur: ${it.name}") { viewModel.filterSupplierId = null })
             }
         }
-        filterUnitType?.let { unit ->
-            add(ActiveFilterEntry("Unité: ${if (unit == "pièce") "Pièce" else "Carton"}") { filterUnitType = null })
+        viewModel.filterUnitType?.let { unit ->
+            add(ActiveFilterEntry("Unité: ${if (unit == "pièce") "Pièce" else "Carton"}") { viewModel.filterUnitType = null })
         }
-        filterStockLevel?.let { level ->
+        viewModel.filterStockLevel?.let { level ->
             val label = when (level) {
                 "in_stock"     -> "En stock"
                 "low_stock"    -> "Stock faible"
                 "out_of_stock" -> "Rupture de stock"
                 else           -> level
             }
-            add(ActiveFilterEntry("Stock: $label") { filterStockLevel = null })
+            add(ActiveFilterEntry("Stock: $label") { viewModel.filterStockLevel = null })
         }
-        if (filterPriceMin.isNotBlank()) add(ActiveFilterEntry("Prix min: $filterPriceMin") { filterPriceMin = "" })
-        if (filterPriceMax.isNotBlank()) add(ActiveFilterEntry("Prix max: $filterPriceMax") { filterPriceMax = "" })
-        if (filterExpiringSoon) add(ActiveFilterEntry("Bientôt périmé") { filterExpiringSoon = false })
+        if (viewModel.filterPriceMin.isNotBlank()) add(ActiveFilterEntry("Prix min: ${viewModel.filterPriceMin}") { viewModel.filterPriceMin = "" })
+        if (viewModel.filterPriceMax.isNotBlank()) add(ActiveFilterEntry("Prix max: ${viewModel.filterPriceMax}") { viewModel.filterPriceMax = "" })
+        if (viewModel.filterExpiringSoon) add(ActiveFilterEntry("Bientôt périmé") { viewModel.filterExpiringSoon = false })
     }
     val hasActiveFilters = activeFilters.isNotEmpty()
 
@@ -312,8 +288,8 @@ fun ProductsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(DsShapes.medium)
-                            .background(if (sortOption == option) DsColors.PrimaryLight else Color.Transparent)
-                            .clickable { sortOption = option; showSortSheet = false }
+                            .background(if (viewModel.sortOption == option) DsColors.PrimaryLight else Color.Transparent)
+                            .clickable { viewModel.sortOption = option; showSortSheet = false }
                             .padding(horizontal = 12.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
@@ -321,10 +297,10 @@ fun ProductsScreen(
                         Text(
                             text       = option.label,
                             fontSize   = DsTextSize.body,
-                            color      = if (sortOption == option) DsColors.Primary else DsColors.TextPrimary,
-                            fontWeight = if (sortOption == option) FontWeight.SemiBold else FontWeight.Normal
+                            color      = if (viewModel.sortOption == option) DsColors.Primary else DsColors.TextPrimary,
+                            fontWeight = if (viewModel.sortOption == option) FontWeight.SemiBold else FontWeight.Normal
                         )
-                        if (sortOption == option) {
+                        if (viewModel.sortOption == option) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                         }
                     }
@@ -368,7 +344,7 @@ fun ProductsScreen(
                     onExpandedChange = { filterCategoryExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = categories.find { it.id == filterCategoryId }?.name ?: "Toutes les catégories",
+                        value         = categories.find { it.id == viewModel.filterCategoryId }?.name ?: "Toutes les catégories",
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterCategoryExpanded) },
@@ -382,19 +358,19 @@ fun ProductsScreen(
                     ExposedDropdownMenu(expanded = filterCategoryExpanded, onDismissRequest = { filterCategoryExpanded = false }) {
                         DropdownMenuItem(
                             text    = { Text("Toutes les catégories", color = DsColors.TextSecondary) },
-                            onClick = { filterCategoryId = null; filterCategoryExpanded = false }
+                            onClick = { viewModel.filterCategoryId = null; filterCategoryExpanded = false }
                         )
                         categories.forEach { category ->
                             DropdownMenuItem(
                                 text    = { Text(category.name) },
-                                onClick = { filterCategoryId = category.id; filterCategoryExpanded = false }
+                                onClick = { viewModel.filterCategoryId = category.id; filterCategoryExpanded = false }
                             )
                         }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
 
-                val sousCategorieEnabled = filterCategoryId != null
+                val sousCategorieEnabled = viewModel.filterCategoryId != null
                 Text(
                     "Sous-catégorie",
                     fontSize = DsTextSize.bodySmall,
@@ -406,7 +382,7 @@ fun ProductsScreen(
                     onExpandedChange = { if (sousCategorieEnabled) filterSousCategorieExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = sousCategories.find { it.id == filterSousCategorieId }?.name ?: "Toutes les sous-catégories",
+                        value         = sousCategories.find { it.id == viewModel.filterSousCategorieId }?.name ?: "Toutes les sous-catégories",
                         onValueChange = {},
                         readOnly      = true,
                         enabled       = sousCategorieEnabled,
@@ -423,12 +399,12 @@ fun ProductsScreen(
                     ExposedDropdownMenu(expanded = filterSousCategorieExpanded, onDismissRequest = { filterSousCategorieExpanded = false }) {
                         DropdownMenuItem(
                             text    = { Text("Toutes les sous-catégories", color = DsColors.TextSecondary) },
-                            onClick = { filterSousCategorieId = null; filterSousCategorieExpanded = false }
+                            onClick = { viewModel.filterSousCategorieId = null; filterSousCategorieExpanded = false }
                         )
-                        sousCategories.filter { it.category_id == filterCategoryId }.forEach { sousCategorie ->
+                        sousCategories.filter { it.category_id == viewModel.filterCategoryId }.forEach { sousCategorie ->
                             DropdownMenuItem(
                                 text    = { Text(sousCategorie.name) },
-                                onClick = { filterSousCategorieId = sousCategorie.id; filterSousCategorieExpanded = false }
+                                onClick = { viewModel.filterSousCategorieId = sousCategorie.id; filterSousCategorieExpanded = false }
                             )
                         }
                     }
@@ -441,7 +417,7 @@ fun ProductsScreen(
                     onExpandedChange = { filterMarqueExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = marques.find { it.id == filterMarqueId }?.name ?: "Toutes les marques",
+                        value         = marques.find { it.id == viewModel.filterMarqueId }?.name ?: "Toutes les marques",
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterMarqueExpanded) },
@@ -455,12 +431,12 @@ fun ProductsScreen(
                     ExposedDropdownMenu(expanded = filterMarqueExpanded, onDismissRequest = { filterMarqueExpanded = false }) {
                         DropdownMenuItem(
                             text    = { Text("Toutes les marques", color = DsColors.TextSecondary) },
-                            onClick = { filterMarqueId = null; filterMarqueExpanded = false }
+                            onClick = { viewModel.filterMarqueId = null; filterMarqueExpanded = false }
                         )
                         marques.forEach { marque ->
                             DropdownMenuItem(
                                 text    = { Text(marque.name) },
-                                onClick = { filterMarqueId = marque.id; filterMarqueExpanded = false }
+                                onClick = { viewModel.filterMarqueId = marque.id; filterMarqueExpanded = false }
                             )
                         }
                     }
@@ -473,7 +449,7 @@ fun ProductsScreen(
                     onExpandedChange = { filterSupplierExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = suppliers.find { it.id == filterSupplierId }?.name ?: "Tous les fournisseurs",
+                        value         = suppliers.find { it.id == viewModel.filterSupplierId }?.name ?: "Tous les fournisseurs",
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterSupplierExpanded) },
@@ -487,12 +463,12 @@ fun ProductsScreen(
                     ExposedDropdownMenu(expanded = filterSupplierExpanded, onDismissRequest = { filterSupplierExpanded = false }) {
                         DropdownMenuItem(
                             text    = { Text("Tous les fournisseurs", color = DsColors.TextSecondary) },
-                            onClick = { filterSupplierId = null; filterSupplierExpanded = false }
+                            onClick = { viewModel.filterSupplierId = null; filterSupplierExpanded = false }
                         )
                         suppliers.forEach { supplier ->
                             DropdownMenuItem(
                                 text    = { Text(supplier.name) },
-                                onClick = { filterSupplierId = supplier.id; filterSupplierExpanded = false }
+                                onClick = { viewModel.filterSupplierId = supplier.id; filterSupplierExpanded = false }
                             )
                         }
                     }
@@ -502,14 +478,14 @@ fun ProductsScreen(
                 Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf<Pair<String?, String>>(null to "Toutes", "carton" to "Carton", "pièce" to "Pièce").forEach { (value, label) ->
-                        val active = filterUnitType == value
+                        val active = viewModel.filterUnitType == value
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(DsShapes.medium)
                                 .background(if (active) DsColors.Primary else DsColors.Surface)
                                 .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
-                                .clickable { filterUnitType = value }
+                                .clickable { viewModel.filterUnitType = value }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -530,7 +506,7 @@ fun ProductsScreen(
                     onExpandedChange = { filterStockLevelExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = when (filterStockLevel) {
+                        value = when (viewModel.filterStockLevel) {
                             "in_stock"     -> "En stock"
                             "low_stock"    -> "Stock faible"
                             "out_of_stock" -> "Rupture de stock"
@@ -555,7 +531,7 @@ fun ProductsScreen(
                         ).forEach { (value, label) ->
                             DropdownMenuItem(
                                 text    = { Text(label) },
-                                onClick = { filterStockLevel = value; filterStockLevelExpanded = false }
+                                onClick = { viewModel.filterStockLevel = value; filterStockLevelExpanded = false }
                             )
                         }
                     }
@@ -565,8 +541,8 @@ fun ProductsScreen(
                 Text("Fourchette de prix", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value           = filterPriceMin,
-                        onValueChange   = { filterPriceMin = it },
+                        value           = viewModel.filterPriceMin,
+                        onValueChange   = { viewModel.filterPriceMin = it },
                         placeholder     = { Text("Min") },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),
@@ -578,8 +554,8 @@ fun ProductsScreen(
                         )
                     )
                     OutlinedTextField(
-                        value           = filterPriceMax,
-                        onValueChange   = { filterPriceMax = it },
+                        value           = viewModel.filterPriceMax,
+                        onValueChange   = { viewModel.filterPriceMax = it },
                         placeholder     = { Text("Max") },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),
@@ -603,8 +579,8 @@ fun ProductsScreen(
                         Text("Produits expirant dans les 30 prochains jours", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Switch(
-                        checked         = filterExpiringSoon,
-                        onCheckedChange = { filterExpiringSoon = it },
+                        checked         = viewModel.filterExpiringSoon,
+                        onCheckedChange = { viewModel.filterExpiringSoon = it },
                         colors          = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DsColors.Primary)
                     )
                 }
@@ -612,7 +588,7 @@ fun ProductsScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
-                        onClick  = { clearAllFilters(); showFilterSheet = false },
+                        onClick  = { viewModel.clearAllFilters(); showFilterSheet = false },
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
@@ -653,14 +629,14 @@ fun ProductsScreen(
             }
 
             OutlinedTextField(
-                value = search,
-                onValueChange = { search = it },
+                value = viewModel.searchQuery,
+                onValueChange = { viewModel.searchQuery = it },
                 placeholder = { Text("Rechercher par nom ou code-barres…", fontSize = DsTextSize.caption) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (search.isNotEmpty()) {
-                            IconButton(onClick = { search = "" }) {
+                        if (viewModel.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.searchQuery = "" }) {
                                 Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                             }
                         }
@@ -702,30 +678,30 @@ fun ProductsScreen(
                         Box(
                             modifier = Modifier
                                 .clip(DsShapes.small)
-                                .background(if (!isGridView) DsColors.Primary else Color.Transparent)
-                                .clickable { isGridView = false }
+                                .background(if (!viewModel.isGridView) DsColors.Primary else Color.Transparent)
+                                .clickable { viewModel.isGridView = false }
                                 .padding(6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.ViewList,
                                 contentDescription = "Liste",
-                                tint = if (!isGridView) Color.White else DsColors.TextSecondary,
+                                tint = if (!viewModel.isGridView) Color.White else DsColors.TextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .clip(DsShapes.small)
-                                .background(if (isGridView) DsColors.Primary else Color.Transparent)
-                                .clickable { isGridView = true }
+                                .background(if (viewModel.isGridView) DsColors.Primary else Color.Transparent)
+                                .clickable { viewModel.isGridView = true }
                                 .padding(6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.GridView,
                                 contentDescription = "Grille",
-                                tint = if (isGridView) Color.White else DsColors.TextSecondary,
+                                tint = if (viewModel.isGridView) Color.White else DsColors.TextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -743,14 +719,14 @@ fun ProductsScreen(
                             Icon(
                                 Icons.Default.Sort,
                                 contentDescription = "Trier",
-                                tint = if (sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary,
+                                tint = if (viewModel.sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 "Trier",
                                 fontSize = DsTextSize.caption,
-                                color = if (sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary
+                                color = if (viewModel.sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary
                             )
                         }
                     }
@@ -820,7 +796,7 @@ fun ProductsScreen(
                         Box(
                             modifier = Modifier
                                 .clip(DsShapes.pill)
-                                .clickable { clearAllFilters() }
+                                .clickable { viewModel.clearAllFilters() }
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -855,7 +831,7 @@ fun ProductsScreen(
                     }
                 }
             } else {
-                if (!isGridView) {
+                if (!viewModel.isGridView) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
