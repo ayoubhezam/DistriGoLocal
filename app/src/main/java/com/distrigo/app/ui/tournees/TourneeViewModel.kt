@@ -10,6 +10,9 @@ import com.distrigo.app.data.api.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.TourneeClientInfo
@@ -339,7 +342,33 @@ class TourneeViewModel @Inject constructor(
         loadTourneeClients(tourneeId)
     }
 
+    // ── Vente filter state ──
+    // Held here, not in the screen, so the vente list comes back filtered the way it was left
+    // after opening a bon or leaving the tab — this ViewModel is scoped to the Tournées graph,
+    // while the screen's own `remember`s die with its composition.
+    //
+    // Scoped to one tournée, like the drafts above: these read against a single round's ventes,
+    // and the client axis is built from them, so a filter set on one tournée would be a puzzle
+    // rather than a convenience on the next. prepareVenteFilters() drops them when the screen is
+    // pointed somewhere else, and leaves them alone when it comes back to the same tournée.
+    var venteQuery               by mutableStateOf("")
+    var venteFilterStatus        by mutableStateOf<String?>(null)
+    var venteFilterPaymentStatus by mutableStateOf<String?>(null)
+    var venteFilterClientId      by mutableStateOf<Int?>(null)
 
+    private var venteFiltersTourneeId: Int? = null
+
+    fun prepareVenteFilters(tourneeId: Int) {
+        if (venteFiltersTourneeId == tourneeId) return
+        venteFiltersTourneeId = tourneeId
+        venteQuery = ""
+        clearVenteFilters()
+    }
+
+    /** The three filter axes only — the search box is cleared by its own button, as elsewhere. */
+    fun clearVenteFilters() {
+        venteFilterStatus        = null
+        venteFilterPaymentStatus = null
+        venteFilterClientId      = null
+    }
 }
-
-

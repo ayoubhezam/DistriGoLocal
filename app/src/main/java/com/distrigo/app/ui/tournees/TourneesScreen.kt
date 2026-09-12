@@ -171,6 +171,7 @@ fun TourneeDetailScreen(
     val products by productViewModel.products.collectAsState()
 
     LaunchedEffect(tourneeId) {
+        viewModel.prepareVenteFilters(tourneeId)
         viewModel.loadTourneeDetail(tourneeId)
         viewModel.loadTourneeClients(tourneeId)
         viewModel.observeVenteDrafts(tourneeId)
@@ -187,14 +188,6 @@ fun TourneeDetailScreen(
     var showDeleteVenteInTournee by remember { mutableStateOf(false) }
     var deleteVenteError        by remember { mutableStateOf("") }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
-    var venteQuery              by remember { mutableStateOf("") }
-    // Screen state, not ViewModel state, exactly like venteQuery above. Achats and Dépôt
-    // Vente hang their filters off a shared ViewModel because those lists are one screen each;
-    // this one is per-tournée, and a filter left over from the last tournée you opened would
-    // be a puzzle rather than a convenience.
-    var filterStatus            by remember { mutableStateOf<String?>(null) }
-    var filterPaymentStatus     by remember { mutableStateOf<String?>(null) }
-    var filterClientId          by remember { mutableStateOf<Int?>(null) }
     var showFilterSheet         by remember { mutableStateOf(false) }
     var confirmRemoveClient     by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var removeClientError       by remember { mutableStateOf("") }
@@ -525,25 +518,25 @@ fun TourneeDetailScreen(
                 }
 
                 val ventes = current.ventes ?: emptyList()
-                val hasActiveFilters = filterStatus != null || filterPaymentStatus != null || filterClientId != null
+                val hasActiveFilters = viewModel.venteFilterStatus != null || viewModel.venteFilterPaymentStatus != null || viewModel.venteFilterClientId != null
 
                 // Search and filters narrow the same list, in the order Achats and Dépôt Vente
                 // apply them: the text first, then each axis, all of them ANDed.
-                val shownVentes = remember(ventes, venteQuery, filterStatus, filterPaymentStatus, filterClientId) {
-                    val q = venteQuery.trim()
+                val shownVentes = remember(ventes, viewModel.venteQuery, viewModel.venteFilterStatus, viewModel.venteFilterPaymentStatus, viewModel.venteFilterClientId) {
+                    val q = viewModel.venteQuery.trim()
                     ventes.filter { v ->
                         // Matched on the two things written on a row: who it is for, and its number.
                         val matchSearch = q.isEmpty() ||
                             v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q)
-                        val matchStatus = filterStatus == null || v.status == filterStatus
+                        val matchStatus = viewModel.venteFilterStatus == null || v.status == viewModel.venteFilterStatus
                         val paye = v.montant_paye ?: 0.0
-                        val matchPayment = when (filterPaymentStatus) {
+                        val matchPayment = when (viewModel.venteFilterPaymentStatus) {
                             "paye"    -> paye >= v.total && v.total > 0
                             "impaye"  -> paye <= 0.0
                             "partiel" -> paye > 0.0 && paye < v.total
                             else      -> true
                         }
-                        val matchClient = filterClientId == null || v.client_id == filterClientId
+                        val matchClient = viewModel.venteFilterClientId == null || v.client_id == viewModel.venteFilterClientId
                         matchSearch && matchStatus && matchPayment && matchClient
                     }
                 }
@@ -567,13 +560,13 @@ fun TourneeDetailScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 OutlinedTextField(
-                    value         = venteQuery,
-                    onValueChange = { venteQuery = it },
+                    value         = viewModel.venteQuery,
+                    onValueChange = { viewModel.venteQuery = it },
                     placeholder   = { Text("Rechercher un client ou n° de bon...", fontSize = DsTextSize.bodySmall) },
                     leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
                     trailingIcon  = {
-                        if (venteQuery.isNotEmpty()) {
-                            IconButton(onClick = { venteQuery = "" }) {
+                        if (viewModel.venteQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.venteQuery = "" }) {
                                 Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
                             }
                         }
@@ -692,16 +685,14 @@ fun TourneeDetailScreen(
                 if (showFilterSheet) {
                     TourneeVenteFilterSheet(
                         clients             = filterClients,
-                        filterStatus        = filterStatus,
-                        filterPaymentStatus = filterPaymentStatus,
-                        filterClientId      = filterClientId,
+                        filterStatus        = viewModel.venteFilterStatus,
+                        filterPaymentStatus = viewModel.venteFilterPaymentStatus,
+                        filterClientId      = viewModel.venteFilterClientId,
                         resultCount         = shownVentes.size,
-                        onStatus            = { filterStatus = it },
-                        onPaymentStatus     = { filterPaymentStatus = it },
-                        onClient            = { filterClientId = it },
-                        onReset             = {
-                            filterStatus = null; filterPaymentStatus = null; filterClientId = null
-                        },
+                        onStatus            = { viewModel.venteFilterStatus = it },
+                        onPaymentStatus     = { viewModel.venteFilterPaymentStatus = it },
+                        onClient            = { viewModel.venteFilterClientId = it },
+                        onReset             = { viewModel.clearVenteFilters() },
                         onDismiss           = { showFilterSheet = false }
                     )
                 }
