@@ -43,6 +43,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 /** شريحة تحرير محلية للـ UI فقط — تُحوَّل إلى PolicyTierEntity عند الحفظ */
 private data class TierDraft(
@@ -268,18 +269,11 @@ fun CommissionPolicyScreen(
                             )
                         }
                     } else {
-                        OutlinedTextField(
-                            value = productSearchQuery,
+                        DsCompactSearchField(
+                            value         = productSearchQuery,
                             onValueChange = { productSearchQuery = it },
-                            placeholder = { Text("Rechercher un produit...", fontSize = DsTextSize.body) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextTertiary) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = DsShapes.medium,
-                            colors = dsTextFieldColors(
-                                unfocusedBorderColor = DsColors.Border,
-                                focusedBorderColor = DsColors.Primary
-                            )
+                            placeholder   = "Rechercher un produit",
+                            modifier      = Modifier
                         )
 
                         if (productSearchQuery.isNotBlank()) {

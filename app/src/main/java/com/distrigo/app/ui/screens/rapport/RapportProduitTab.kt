@@ -79,7 +79,7 @@ private fun RapportProduitContent(
                 selectedClientName = data.produitName,
                 onSearchBarClick = onSearchBarClick,
                 onClearSelection = onClearSelection,
-                placeholder = "Rechercher un produit...",
+                placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
             )
         }
@@ -173,7 +173,7 @@ private fun RapportProduitEmptyState(
             selectedClientName = null,
             onSearchBarClick = onSearchBarClick,
             onClearSelection = {},
-            placeholder = "Rechercher un produit...",
+            placeholder = "Rechercher un produit",
             modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
         )
         Column(

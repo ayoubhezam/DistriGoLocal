@@ -44,6 +44,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -568,28 +569,11 @@ fun TourneeDetailScreen(
 
                 Spacer(Modifier.height(DsSpacing.md))
 
-                OutlinedTextField(
+                DsCompactSearchField(
                     value         = viewModel.venteQuery,
                     onValueChange = { viewModel.venteQuery = it },
-                    placeholder   = { Text("Rechercher un client ou n° de bon...", fontSize = DsTextSize.bodySmall) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
-                    trailingIcon  = {
-                        if (viewModel.venteQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.venteQuery = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
-                            }
-                        }
-                    },
-                    modifier   = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg)
-                        .clip(DsShapes.large),
-                    shape      = DsShapes.large,
-                    singleLine = true,
-                    colors     = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
+                    placeholder   = "Rechercher un client ou un bon",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
 
                 Spacer(Modifier.height(DsSpacing.sm))

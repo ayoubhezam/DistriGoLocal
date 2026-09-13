@@ -40,6 +40,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 @Composable
 fun RetourFournisseurListScreen(
@@ -117,18 +118,11 @@ fun RetourFournisseurListScreen(
 
                 Spacer(Modifier.height(DsSpacing.md))
 
-                OutlinedTextField(
+                DsCompactSearchField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = { Text("Rechercher…", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape         = DsShapes.large,
-                    singleLine    = true,
-                    colors        = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor = DsColors.Primary
-                    )
+                    placeholder   = "Rechercher un retour",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
 
                 Spacer(Modifier.height(DsSpacing.sm))

@@ -17,7 +17,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.ui.platform.LocalFocusManager
 /**
  * Bottom sheet عام لاختيار عنصر واحد من قائمة مع بحث نصي.
  * قابل لإعادة الاستخدام: الولاية، البلدية، ولاحقًا القطاع (Secteur).
@@ -54,24 +53,11 @@ fun <T> SearchableSelectSheet(
             )
             Spacer(Modifier.height(DsSpacing.sm))
 
-            val focusManager = LocalFocusManager.current
-            OutlinedTextField(
+            DsCompactSearchField(
                 value         = query,
                 onValueChange = { query = it },
-                placeholder   = { Text("Rechercher...") },
-                singleLine    = true,
-                shape         = DsShapes.medium,
-                trailingIcon  = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = {
-                            query = ""
-                            focusManager.clearFocus()
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
-                        }
-                    }
-                },
-                modifier      = Modifier.fillMaxWidth()
+                placeholder   = "Rechercher",
+                modifier      = Modifier
             )
             Spacer(Modifier.height(DsSpacing.sm))
 

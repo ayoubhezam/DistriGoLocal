@@ -226,7 +226,7 @@ fun SuppliersNavHost(
                 countLabel        = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
                 query             = historyQuery,
                 onQueryChange     = controller::onQueryChange,
-                searchPlaceholder = "Rechercher un achat ou un paiement",
+                searchPlaceholder = "Rechercher dans l'historique",
                 filters           = AchatFilter.entries,
                 selectedFilter    = historyFilter,
                 onFilterSelected  = controller::onFilterChange,

@@ -44,7 +44,19 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 
-/** Height of [DsCompactSearchField]. */
+// The app's one search bar.
+//
+// Two entry points share a single surface, so they cannot drift apart:
+//  - DsCompactSearchField   — a search box you type into.
+//  - DsCompactSearchTrigger — something that looks like that search box and opens a picker when
+//    tapped (the Rapports client/product bars), or stands in for one that is not available yet
+//    (the "choose a supplier first" preview on a form's first step).
+//
+// Placeholders follow one rule: "Rechercher un/une <what the list holds>", short enough to sit on
+// one line beside the scanner on a narrow phone. A second term is kept only where it names a
+// different key the user would not guess ("… ou un bon").
+
+/** Height of every compact search bar in the app. */
 val DsCompactSearchHeight: Dp = 44.dp
 
 /**
@@ -83,34 +95,10 @@ fun DsCompactSearchField(
         interactionSource = interaction,
         modifier          = modifier.fillMaxWidth().height(DsCompactSearchHeight),
         decorationBox     = { innerTextField ->
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(DsShapes.pill)
-                    .background(DsColors.SurfaceSunken)
-                    // A focus ring rather than a permanent border: at rest it is a quiet surface,
-                    // and the ring is what tells the user where their typing is going.
-                    .border(1.dp, if (isFocused) DsColors.Primary else Color.Transparent, DsShapes.pill)
-                    .padding(start = DsSpacing.md, end = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = null,
-                    tint     = DsColors.TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(DsSpacing.sm))
+            DsCompactSearchSurface(modifier = Modifier.fillMaxSize(), focused = isFocused) {
+                DsCompactSearchGlyph(tint = DsColors.TextSecondary)
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) {
-                        Text(
-                            placeholder,
-                            fontSize = DsTextSize.body,
-                            color    = DsColors.TextTertiary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    if (value.isEmpty()) DsCompactSearchText(placeholder, DsColors.TextTertiary)
                     innerTextField()
                 }
                 if (value.isNotEmpty()) {
@@ -129,7 +117,49 @@ fun DsCompactSearchField(
 }
 
 /**
- * A trailing action for [DsCompactSearchField]. 40dp, the most the 44dp field can hold without the
+ * The same bar as [DsCompactSearchField], but tapped rather than typed into.
+ *
+ * @param text what has been picked, shown in the primary colour; null shows [placeholder] instead.
+ * @param onClear shown as a clear button while [text] is set; omit it for a bar that cannot be
+ *   cleared from here.
+ * @param enabled false for a bar that is not available yet: it keeps its shape, dims, and does
+ *   not respond — the placeholder should then say what unlocks it.
+ */
+@Composable
+fun DsCompactSearchTrigger(
+    text        : String?,
+    placeholder : String,
+    onClick     : () -> Unit,
+    modifier    : Modifier = Modifier,
+    enabled     : Boolean = true,
+    onClear     : (() -> Unit)? = null
+) {
+    DsCompactSearchSurface(
+        modifier = modifier.fillMaxWidth().height(DsCompactSearchHeight),
+        focused  = false,
+        onClick  = if (enabled) onClick else null
+    ) {
+        DsCompactSearchGlyph(tint = if (enabled) DsColors.TextSecondary else DsColors.TextTertiary)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            DsCompactSearchText(
+                text  = text ?: placeholder,
+                color = if (text != null && enabled) DsColors.TextPrimary else DsColors.TextTertiary
+            )
+        }
+        if (text != null && onClear != null && enabled) {
+            DsCompactSearchAction(
+                icon               = Icons.Default.Close,
+                contentDescription = "Effacer",
+                tint               = DsColors.TextSecondary,
+                iconSize           = 18.dp,
+                onClick            = onClear
+            )
+        }
+    }
+}
+
+/**
+ * A trailing action for a compact search bar. 40dp, the most the 44dp bar can hold without the
  * target spilling over its edge.
  */
 @Composable
@@ -146,4 +176,44 @@ fun DsCompactSearchAction(
     ) {
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(iconSize))
     }
+}
+
+// ── The shared surface ───────────────────────────────────────────────────────
+
+@Composable
+private fun DsCompactSearchSurface(
+    modifier : Modifier,
+    focused  : Boolean,
+    onClick  : (() -> Unit)? = null,
+    content  : @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = modifier
+            .clip(DsShapes.pill)
+            .background(DsColors.SurfaceSunken)
+            // A focus ring rather than a permanent border: at rest it is a quiet surface, and the
+            // ring is what tells the user where their typing is going.
+            .border(1.dp, if (focused) DsColors.Primary else Color.Transparent, DsShapes.pill)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .padding(start = DsSpacing.md, end = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content           = content
+    )
+}
+
+@Composable
+private fun DsCompactSearchGlyph(tint: Color) {
+    Icon(Icons.Default.Search, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+    Spacer(Modifier.width(DsSpacing.sm))
+}
+
+@Composable
+private fun DsCompactSearchText(text: String, color: Color) {
+    Text(
+        text,
+        fontSize = DsTextSize.body,
+        color    = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }

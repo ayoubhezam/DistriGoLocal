@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 @Composable
 fun <Filter, T : Any> PagedHistoryScreen(
@@ -75,18 +76,11 @@ fun <Filter, T : Any> PagedHistoryScreen(
         // the gap above the search field is restored here.
         Spacer(modifier = Modifier.height(DsSpacing.sm))
 
-        OutlinedTextField(
-            value = query,
+        DsCompactSearchField(
+            value         = query,
             onValueChange = onQueryChange,
-            placeholder = { Text(searchPlaceholder) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            singleLine = true,
-            shape = DsShapes.medium,
-            colors = dsTextFieldColors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor = DsColors.Primary
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = 6.dp)
+            placeholder   = searchPlaceholder,
+            modifier      = Modifier.padding(horizontal = DsSpacing.lg, vertical = 6.dp)
         )
 
         LazyRow(

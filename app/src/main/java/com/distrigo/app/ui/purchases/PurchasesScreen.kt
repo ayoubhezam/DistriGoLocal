@@ -40,6 +40,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -507,28 +508,11 @@ fun PurchasesScreen(
             }
 
             // ── Search bar ──
-            OutlinedTextField(
+            DsCompactSearchField(
                 value         = viewModel.searchQuery,
                 onValueChange = { viewModel.searchQuery = it },
-                placeholder   = { Text("Rechercher un fournisseur ou n° de bon...", fontSize = DsTextSize.bodySmall) },
-                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
-                trailingIcon  = {
-                    if (viewModel.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
-                        }
-                    }
-                },
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = DsSpacing.lg)
-                    .clip(DsShapes.large),
-                shape      = DsShapes.large,
-                singleLine = true,
-                colors     = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
+                placeholder   = "Rechercher un bon",
+                modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
             Spacer(Modifier.height(DsSpacing.sm))

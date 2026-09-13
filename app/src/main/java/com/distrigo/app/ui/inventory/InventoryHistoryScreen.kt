@@ -26,6 +26,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.PendingActions
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.common.DsCompactSearchField
 @Composable
 
 fun InventoryHistoryScreen(
@@ -64,12 +65,11 @@ fun InventoryHistoryScreen(
 
         Spacer(Modifier.height(DsSpacing.md))
 
-        OutlinedTextField(
-            value = search, onValueChange = { search = it },
-            placeholder = { Text("Rechercher par N° d'inventaire…") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape = DsShapes.medium, singleLine = true
+        DsCompactSearchField(
+            value         = search,
+            onValueChange = { search = it },
+            placeholder   = "Rechercher un inventaire",
+            modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
         Spacer(Modifier.height(DsSpacing.sm))
 

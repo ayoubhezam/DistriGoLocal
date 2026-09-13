@@ -60,26 +60,11 @@ fun ClientSearchPicker(
             leading = DsTopBarLeading.Back(onBack)
         )
 
-        OutlinedTextField(
+        DsCompactSearchField(
             value         = clientSearch,
             onValueChange = { clientSearch = it },
-            placeholder   = {
-                Text(
-                    stringResource(R.string.client_picker_search_placeholder),
-                    fontSize = DsTextSize.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-            modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape         = DsShapes.large,
-            singleLine    = true,
-            textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
-            colors = dsTextFieldColors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor   = DsColors.Primary
-            )
+            placeholder   = stringResource(R.string.client_picker_search_placeholder),
+            modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
 
         Spacer(Modifier.height(DsSpacing.sm))

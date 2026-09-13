@@ -424,21 +424,11 @@ fun NavGraphBuilder.purchaseFormGraph(
                     // OutlinedButton brings its own inset; this makes up the standard end margin.
                     Spacer(Modifier.width(DsSpacing.xs))
                 }
-                OutlinedTextField(
+                DsCompactSearchField(
                     value         = supplierSearch,
                     onValueChange = { supplierSearch = it },
-                    placeholder   = { Text("Rechercher…", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier      = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DsSpacing.lg)
-                        .clip(DsShapes.large),
-                    shape         = DsShapes.large,
-                    singleLine    = true,
-                    colors        = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
+                    placeholder   = "Rechercher un fournisseur",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
                 val filteredSuppliers = suppliers.filter { supplier ->

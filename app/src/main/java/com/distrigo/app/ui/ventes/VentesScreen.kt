@@ -43,6 +43,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -469,28 +470,11 @@ fun VentesScreen(
             )
 
             // ── Search bar ──
-            OutlinedTextField(
+            DsCompactSearchField(
                 value         = viewModel.searchQuery,
                 onValueChange = { viewModel.searchQuery = it },
-                placeholder   = { Text("Rechercher un client ou n° de vente...", fontSize = DsTextSize.bodySmall) },
-                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
-                trailingIcon  = {
-                    if (viewModel.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
-                        }
-                    }
-                },
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = DsSpacing.lg)
-                    .clip(DsShapes.large),
-                shape      = DsShapes.large,
-                singleLine = true,
-                colors     = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
+                placeholder   = "Rechercher une vente",
+                modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
             Spacer(Modifier.height(DsSpacing.sm))

@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -211,33 +212,11 @@ fun ClientsScreen(
                         .background(DsColors.Surface)
                 ) {
                     // ── Search ──
-                    OutlinedTextField(
+                    DsCompactSearchField(
                         value         = search,
                         onValueChange = { search = it },
-                        placeholder   = {
-                            Text(
-                                "Rechercher par nom ou téléphone…",
-                                fontSize = DsTextSize.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon  = {
-                            if (search.isNotEmpty()) {
-                                IconButton(onClick = { search = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        },
-                        modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                        shape         = DsShapes.large,
-                        singleLine    = true,
-                        textStyle     = LocalTextStyle.current.copy(fontSize = DsTextSize.bodySmall),
-                        colors = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor   = DsColors.Primary
-                        )
+                        placeholder   = "Rechercher un client",
+                        modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                     )
 
                     Spacer(Modifier.height(DsSpacing.sm))

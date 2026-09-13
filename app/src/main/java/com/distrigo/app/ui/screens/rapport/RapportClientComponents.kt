@@ -25,6 +25,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.common.DsCompactSearchTrigger
 
 /**
  * حقل بحث/اختيار العميل. عندما selectedClientName != null يظهر الاسم بدل placeholder
@@ -36,44 +37,17 @@ fun ClientSearchBar(
     onSearchBarClick: () -> Unit,
     onClearSelection: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Rechercher un client..." // إضافة جديدة
+    placeholder: String = "Rechercher un client"
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(DsColors.SurfaceSunken, DsShapes.medium)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onSearchBarClick
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(Icons.Filled.Search, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(17.dp))
-        Text(
-            text = selectedClientName ?: placeholder,
-            fontSize = DsTextSize.body,
-            fontWeight = FontWeight.Medium,
-            color = if (selectedClientName != null) DsColors.TextPrimary else DsColors.TextTertiary,
-            modifier = Modifier.weight(1f)
-        )
-        if (selectedClientName != null) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = "Effacer",
-                tint = DsColors.TextTertiary,
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClearSelection
-                    )
-            )
-        }
-    }
+    // The app's one search bar, in its tap-to-pick form: same height, surface and glyph as every
+    // typed search field. The picked name replaces the placeholder and gains a clear button.
+    DsCompactSearchTrigger(
+        text        = selectedClientName,
+        placeholder = placeholder,
+        onClick     = onSearchBarClick,
+        onClear     = onClearSelection,
+        modifier    = modifier
+    )
 }
 
 /** بطاقة ترويسة ملف العميل: الأفاتار + الاسم + الفئة + العنوان */

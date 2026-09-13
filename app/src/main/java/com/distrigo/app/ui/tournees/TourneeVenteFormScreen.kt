@@ -37,6 +37,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchTrigger
 
 
 internal fun formatQty(v: Double): String =
@@ -140,22 +141,13 @@ internal fun Step1Client(
 
                 Spacer(Modifier.height(DsSpacing.md))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.SurfaceMuted)
-                        .padding(DsSpacing.md),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                    Text(
-                        "La recherche de produits sera disponible après la sélection",
-                        fontSize = DsTextSize.bodySmall,
-                        color    = DsColors.TextSecondary
-                    )
-                }
+                // The search bar the next step will have, dimmed, saying what unlocks it.
+                DsCompactSearchTrigger(
+                    text        = null,
+                    placeholder = "Choisissez d'abord un client",
+                    onClick     = {},
+                    enabled     = false
+                )
             } else {
                 val typeColors = when (selectedClient.customer_type) {
                     "wholesale" -> DsColors.TagWholesale

@@ -36,6 +36,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -627,12 +628,11 @@ fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) ->
                     }
                     Text("Rechercher un produit", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 }
-                OutlinedTextField(
-                    value = search, onValueChange = { search = it },
-                    placeholder = { Text("Rechercher par nom ou code-barres…") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape = DsShapes.medium, singleLine = true
+                DsCompactSearchField(
+                    value         = search,
+                    onValueChange = { search = it },
+                    placeholder   = "Rechercher un produit",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
                 LazyColumn(contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {

@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.suppliers.formatDZD
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchTrigger
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -148,22 +149,13 @@ internal fun Step1Fournisseur(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── Search preview (disabled) ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.SurfaceSunken)
-                        .padding(14.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
-                    Text(
-                        "La recherche sera disponible après la sélection",
-                        fontSize = DsTextSize.bodySmall,
-                        color    = DsColors.TextSecondary
-                    )
-                }
+                // The search bar the next step will have, dimmed, saying what unlocks it.
+                DsCompactSearchTrigger(
+                    text        = null,
+                    placeholder = "Choisissez d'abord un fournisseur",
+                    onClick     = {},
+                    enabled     = false
+                )
             } else {
                 // ── Selected supplier card ──
                 Card(

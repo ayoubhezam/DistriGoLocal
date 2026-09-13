@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -168,18 +169,11 @@ fun StockCamionScreen(
             Spacer(Modifier.height(DsSpacing.md))
 
             // ── Search ──
-            OutlinedTextField(
+            DsCompactSearchField(
                 value         = search,
                 onValueChange = { search = it },
-                placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
-                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                shape         = DsShapes.large,
-                singleLine    = true,
-                colors = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
+                placeholder   = "Rechercher un produit",
+                modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
             // Brouillons live beside the list they belong to, as they do on the other three

@@ -37,6 +37,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
@@ -110,18 +111,11 @@ fun ChargementNavHost(
                 // Outside the list, not its first item: a search box that scrolls away is gone
                 // exactly when a long list makes it useful. Fixed here, as Stock Camion and the
                 // tournée detail already have theirs, so only the products move.
-                OutlinedTextField(
+                DsCompactSearchField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = { Text("Rechercher un produit…", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape         = DsShapes.large,
-                    singleLine    = true,
-                    colors = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
+                    placeholder   = "Rechercher un produit",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
 
                 Spacer(Modifier.height(DsSpacing.sm))

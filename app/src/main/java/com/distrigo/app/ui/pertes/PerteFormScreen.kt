@@ -26,6 +26,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsCompactSearchAction
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -67,25 +69,19 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
                     }
                     Text("Sélectionner un produit", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 }
-                OutlinedTextField(
-                    value = search, onValueChange = { search = it },
-                    placeholder = { Text("Rechercher par nom ou code-barres…") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (search.isNotEmpty()) {
-                                IconButton(onClick = { search = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                            IconButton(onClick = { showScanner = true }) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", tint = DsColors.Primary)
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                    shape = DsShapes.medium, singleLine = true
-                )
+                DsCompactSearchField(
+                    value         = search,
+                    onValueChange = { search = it },
+                    placeholder   = "Rechercher un produit",
+                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
+                ) {
+                    DsCompactSearchAction(
+                        icon               = Icons.Default.QrCodeScanner,
+                        contentDescription = "Scanner un code-barres",
+                        tint               = DsColors.Primary,
+                        onClick            = { showScanner = true }
+                    )
+                }
                 Spacer(Modifier.height(DsSpacing.sm))
 
                 if (filtered.isEmpty()) {

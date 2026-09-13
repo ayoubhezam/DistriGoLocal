@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.DsCompactSearchField
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -107,18 +108,11 @@ fun AddClientsToTourneeScreen(
             }
         }
 
-        OutlinedTextField(
+        DsCompactSearchField(
             value         = search,
             onValueChange = { search = it },
-            placeholder   = { Text("Rechercher un client ou une zone", fontSize = DsTextSize.body) },
-            leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-            modifier      = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape         = DsShapes.large,
-            singleLine    = true,
-            colors = dsTextFieldColors(
-                unfocusedBorderColor = DsColors.Border,
-                focusedBorderColor   = DsColors.Primary
-            )
+            placeholder   = "Rechercher un client ou une zone",
+            modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
 
         Spacer(Modifier.height(DsSpacing.sm))

@@ -47,6 +47,8 @@ import com.distrigo.app.ui.suppliers.SupplierViewModel
 import java.time.Instant
 import java.time.ZoneOffset
 import androidx.compose.foundation.ExperimentalFoundationApi
+import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsCompactSearchAction
 
 // Mirrors retourClientFormGraph: form state (date/motif/cart) lives on the SuppliersGraph-scoped
 // RetourFournisseurViewModel instance — the same one SupplierDetailScreen/
@@ -204,31 +206,19 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
                                         .background(DsColors.Surface)
                                         .padding(vertical = DsSpacing.xs)
                                 ) {
-                                    OutlinedTextField(
+                                    DsCompactSearchField(
                                         value         = search,
                                         onValueChange = { search = it },
-                                        placeholder   = { Text("Rechercher par nom ou code-barres…", fontSize = DsTextSize.body) },
-                                        leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                                        trailingIcon  = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                if (search.isNotEmpty()) {
-                                                    IconButton(onClick = { search = "" }) {
-                                                        Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                                                    }
-                                                }
-                                                IconButton(onClick = { showScanner = true }) {
-                                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", tint = DsColors.Primary)
-                                                }
-                                            }
-                                        },
-                                        modifier   = Modifier.fillMaxWidth(),
-                                        shape      = DsShapes.large,
-                                        singleLine = true,
-                                        colors     = dsTextFieldColors(
-                                            unfocusedBorderColor = DsColors.Border,
-                                            focusedBorderColor = DsColors.Primary
+                                        placeholder   = "Rechercher un produit",
+                                        modifier      = Modifier
+                                    ) {
+                                        DsCompactSearchAction(
+                                            icon               = Icons.Default.QrCodeScanner,
+                                            contentDescription = "Scanner un code-barres",
+                                            tint               = DsColors.Primary,
+                                            onClick            = { showScanner = true }
                                         )
-                                    )
+                                    }
                                     Spacer(Modifier.height(DsSpacing.xs))
                                     HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
                                 }

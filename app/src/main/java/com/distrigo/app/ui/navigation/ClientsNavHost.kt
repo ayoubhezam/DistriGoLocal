@@ -220,7 +220,7 @@ fun ClientsNavHost(
                 countLabel        = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
                 query             = historyQuery,
                 onQueryChange     = controller::onQueryChange,
-                searchPlaceholder = "Rechercher une facture ou un paiement",
+                searchPlaceholder = "Rechercher dans l'historique",
                 filters           = FactureFilter.entries,
                 selectedFilter    = historyFilter,
                 onFilterSelected  = controller::onFilterChange,
