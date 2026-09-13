@@ -98,10 +98,15 @@ private fun customerTypeLabel(code: String?): String? = when (code) {
  * @param client the sale's client, looked up by `client_id`, for the header's right-hand column.
  *   Optional: a receipt still renders without it, falling back to the name snapshotted on the
  *   vente, which is what a sale to a since-deleted client has left.
+ * @param packSizes units-per-colis by product id, for the "Unité/colis" column. A vente records
+ *   only what was sold, never how the product is packaged, so this comes from the catalogue. Absent
+ *   or zero for a product whose packaging was never stated, and the column prints "-" — which is
+ *   every product until someone fills the field in, since nothing wrote it before.
  */
 fun Vente.toReceiptData(
-    context: android.content.Context,
-    client : Client? = null
+    context  : android.content.Context,
+    client   : Client? = null,
+    packSizes: Map<Int, Int> = emptyMap()
 ): ReceiptData = ReceiptData(
     documentTitle = "Vente #$id",
     partyLabel    = "Client",
@@ -109,18 +114,27 @@ fun Vente.toReceiptData(
     dateLabel     = formatReceiptDate(created_at),
     timeLabel     = formatReceiptTime(created_at),
     items = (items ?: emptyList()).map { line ->
+        // Units per colis, and only a positive one counts: 0 is what the column held for every
+        // product before the packaging field existed, and it means "unstated", not "zero per box".
+        val packSize = packSizes[line.product_id]?.takeIf { it > 0 }
         ReceiptLineItem(
             name = line.product_name, quantity = line.quantity, unitLabel = line.unit_type,
             unitPrice = line.unit_price, totalPrice = line.total_price,
             // A vente stores no colis breakdown of its own the way a purchase order does, and it
-            // does not need one: for everything not sold by the piece the quantity IS the number
-            // of colis. That is the same identity a purchase writes down explicitly — its carton
-            // lines all carry nb_colis == quantity — so the two documents agree by construction
-            // rather than by a second stored copy that could drift.
+            // does not need one. Not sold by the piece, the quantity IS the number of colis — the
+            // same identity a purchase writes down explicitly, its carton lines all carrying
+            // nb_colis == quantity — so the two documents agree by construction rather than by a
+            // second stored copy that could drift.
             //
-            // Sold by the piece the quantity is a count of pieces, and the colis it came out of is
-            // not recoverable from anything the sale recorded, so it stays null and prints "-".
-            nbColis = if (line.unit_type != "pièce") line.quantity else null
+            // Sold by the piece, the quantity counts pieces, and the colis it came out of follows
+            // from the packaging: pieces / units-per-colis, the same product of the two that a
+            // purchase multiplies out. Without a stated packaging it stays null and prints "-".
+            nbColis = when {
+                line.unit_type != "pièce" -> line.quantity
+                packSize != null         -> line.quantity / packSize
+                else                     -> null
+            },
+            unitePerColis = packSize
         )
     },
     total = total,

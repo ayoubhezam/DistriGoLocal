@@ -202,7 +202,11 @@ fun ProductFormScreen(
                 "purchase_price" to pp,
                 "min_stock"      to (minStock.toIntOrNull() ?: 10),
                 "packages"       to 0,
-                "pack_size"      to 0,
+                // `packages` stays 0 — stock is moved by chargements and purchases, never typed
+                // here. `pack_size` is different: it describes the packaging, not the stock level,
+                // and nothing else in the app can supply it. Saved as 0 for a carton product, where
+                // the field is not shown and the value would be meaningless.
+                "pack_size"      to if (unitType == "pièce") (packSize.toIntOrNull() ?: 0) else 0,
                 "unit_type"      to unitType,
                 "has_expiry"     to if (hasExpiry) 1 else 0,
                 "expiry_date"    to if (hasExpiry) expiryDate else null,
@@ -220,7 +224,7 @@ fun ProductFormScreen(
                 "stock"          to 0,
                 "min_stock"      to (minStock.toIntOrNull() ?: 10),
                 "packages"       to 0,
-                "pack_size"      to 0,
+                "pack_size"      to if (unitType == "pièce") (packSize.toIntOrNull() ?: 0) else 0,
                 "unit_type"      to unitType,
                 "has_expiry"     to if (hasExpiry) 1 else 0,
                 "expiry_date"    to if (hasExpiry) expiryDate else null,
@@ -859,6 +863,27 @@ fun ProductFormScreen(
                                     }
                                 }
                             }
+                            // ── Unités par colis ──
+                            //
+                            // Only for `pièce` products, which is the only case where it means
+                            // anything: a carton product is counted in cartons, so "how many units
+                            // in one" has no bearing on how it is bought, stocked or sold. The
+                            // purchase form draws the same conclusion — its "Nb colis × Unités/colis"
+                            // editor appears for `pièce` only — and so does the receipt column.
+                            if (unitType == "pièce") {
+                                Spacer(Modifier.height(12.dp))
+                                FormField(
+                                    label         = "Unités par colis",
+                                    value         = packSize,
+                                    onValueChange = { raw -> packSize = raw.filter { it.isDigit() } },
+                                    placeholder   = "Ex: 6",
+                                    isNumber      = true,
+                                    imeAction     = ImeAction.Done,
+                                    trailingText  = "pièces"
+                                )
+                                Spacer(Modifier.height(6.dp))
+                            }
+
                             if ((packages.toIntOrNull() ?: 0) > 0 && (packSize.toIntOrNull() ?: 0) > 0) {
                                 Spacer(Modifier.height(10.dp))
                                 Box(

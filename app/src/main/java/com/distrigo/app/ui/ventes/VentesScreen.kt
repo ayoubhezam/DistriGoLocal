@@ -715,9 +715,17 @@ fun VenteDetailScreen(
         allClients.find { it.id == displayVente.client_id }
     }
 
+    // Units per colis for the receipt's "Unité/colis" column. A vente records what was sold, never
+    // how the product is packaged, so it comes from the catalogue — same reasoning, and the same
+    // Room-observed list, as the client lookup above.
+    val allProducts by productViewModel.products.collectAsState()
+    val receiptPackSizes = remember(allProducts) {
+        allProducts.filter { it.pack_size > 0 }.associate { it.id to it.pack_size }
+    }
+
     if (showReceiptPreview) {
         ReceiptPreviewSheet(
-            receipt          = displayVente.toReceiptData(context, receiptClient),
+            receipt          = displayVente.toReceiptData(context, receiptClient, receiptPackSizes),
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
@@ -728,7 +736,7 @@ fun VenteDetailScreen(
 
     if (showShareOptions) {
         ShareOptionsSheet(
-            receipt   = displayVente.toReceiptData(context, receiptClient),
+            receipt   = displayVente.toReceiptData(context, receiptClient, receiptPackSizes),
             onDismiss = { showShareOptions = false }
         )
     }
