@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -21,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
@@ -36,8 +39,8 @@ import com.distrigo.app.ui.common.ExpiryToggleField
 import com.distrigo.app.ui.common.PriceFieldWithHistory
 import com.distrigo.app.ui.common.QuantityStepper
 import com.distrigo.app.ui.common.SelectionCartCard
-import com.distrigo.app.ui.components.CollapsibleHeader
-import com.distrigo.app.ui.components.rememberScrollCollapsed
+import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.designsystem.DsStepBadge
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -59,8 +62,68 @@ import com.distrigo.app.ui.purchases.formatQty
 import com.distrigo.app.ui.purchases.newPurchaseCartItem
 import com.distrigo.app.ui.purchases.withNbColis
 import com.distrigo.app.ui.purchases.withUniteParColis
+import com.distrigo.app.ui.purchases.ProductListFilters
+import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
+import com.distrigo.app.ui.purchases.matches
+import com.distrigo.app.ui.purchases.matchesSearch
 import java.time.LocalDate
 import com.distrigo.app.ui.common.EntityImage
+
+/** Height shared by the three chips of Step 02's count / Filtres / Nouveau produit row. */
+private val Step2ChipHeight = 32.dp
+
+/**
+ * One chip of Step 02's count / Filtres / Nouveau produit row.
+ *
+ * All three are drawn by this one function so they cannot drift apart: one height, one corner, one
+ * padding, one icon size, one type size. What tells them apart is colour alone — the count is
+ * information, Filtres is a control, Nouveau produit is the action.
+ */
+@Composable
+private fun Step2Chip(
+    icon      : ImageVector,
+    label     : String,
+    container : Color,
+    content   : Color,
+    modifier  : Modifier = Modifier,
+    dot       : Boolean = false,
+    onClick   : (() -> Unit)? = null
+) {
+    Box(modifier = modifier) {
+    Row(
+        modifier = Modifier
+            .height(Step2ChipHeight)
+            .clip(DsShapes.medium)
+            .background(container)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .padding(horizontal = DsSpacing.sm),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+    ) {
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
+        Text(
+            label,
+            fontSize   = DsTextSize.caption,
+            fontWeight = FontWeight.SemiBold,
+            color      = content,
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis
+        )
+    }
+    // The same 6dp dot the Produits "Filtres" button shows while a filter is on. Overlaid in the
+    // corner rather than placed in the row, so switching it on does not widen the chip.
+    if (dot) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 5.dp, end = 5.dp)
+                .size(6.dp)
+                .clip(DsShapes.pill)
+                .background(DsColors.Primary)
+        )
+    }
+    }
+}
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -449,12 +512,30 @@ fun NavGraphBuilder.purchaseFormGraph(
             val products by productViewModel.products.collectAsState()
             val formSupplier by session.formSupplier.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
-            var search by remember { mutableStateOf("") }
             var showScanner by remember { mutableStateOf(false) }
             var showAddProductScreen by remember { mutableStateOf(false) }
             var pendingNewProductId by remember { mutableStateOf<Int?>(null) }
-            val step2ListState = rememberLazyListState()
-            val step2Collapsed by rememberScrollCollapsed(step2ListState)
+            var showFilterSheet by remember { mutableStateOf(false) }
+            val categories by productViewModel.categories.collectAsState()
+            val sousCategories by productViewModel.sousCategories.collectAsState()
+            val marques by productViewModel.marques.collectAsState()
+            val suppliers by productViewModel.suppliers.collectAsState()
+
+            // Search, filters and scroll position belong to the session, not to this destination —
+            // see "Step 02 browsing state" on PurchaseFormSessionViewModel. The list reopens as it
+            // was left whether the user went back to the supplier, on to the cart, or to validation.
+            val search  = session.productSearch
+            val filters = session.productFilters
+            val step2ListState = rememberLazyListState(
+                initialFirstVisibleItemIndex        = session.productListIndex,
+                initialFirstVisibleItemScrollOffset = session.productListOffset
+            )
+            DisposableEffect(step2ListState) {
+                onDispose {
+                    session.productListIndex  = step2ListState.firstVisibleItemIndex
+                    session.productListOffset = step2ListState.firstVisibleItemScrollOffset
+                }
+            }
 
             // Auto-add a freshly created product ("Nouveau produit") to the cart once the
             // observed products flow actually contains it — the flow's emission arrives
@@ -491,7 +572,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             if (showScanner) {
                 BackHandler { showScanner = false }
                 BarcodeScannerScreen(
-                    onBarcodeScanned = { code -> search = code; showScanner = false },
+                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
                     onClose = { showScanner = false }
                 )
                 return@composable
@@ -501,12 +582,48 @@ fun NavGraphBuilder.purchaseFormGraph(
                 if (supplierIdArg != null) onBack() else navController.popBackStack()
             }
 
-            val filteredProducts = products.filter { product ->
-                val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-                tokens.isEmpty() || tokens.all { token ->
-                    product.name.contains(token, ignoreCase = true) ||
-                            (product.barcode?.contains(token, ignoreCase = true) == true)
+            // matchesSearch is the rule this step always used (every word, in the name or barcode);
+            // matches adds the filters. Both are unit-tested in PurchaseProductFiltersTest.
+            val filteredProducts = remember(products, search, filters) {
+                products.filter { it.matchesSearch(search) && it.matches(filters) }
+            }
+
+            // One removable chip per active criterion, each carrying the filters without it.
+            val activeFilterChips: List<Pair<String, ProductListFilters>> = buildList {
+                filters.categoryId?.let { id ->
+                    add("Catégorie : ${categories.find { it.id == id }?.name ?: "—"}" to filters.copy(categoryId = null, sousCategorieId = null))
                 }
+                filters.sousCategorieId?.let { id ->
+                    add("Sous-catégorie : ${sousCategories.find { it.id == id }?.name ?: "—"}" to filters.copy(sousCategorieId = null))
+                }
+                filters.marqueId?.let { id ->
+                    add("Marque : ${marques.find { it.id == id }?.name ?: "—"}" to filters.copy(marqueId = null))
+                }
+                filters.supplierId?.let { id ->
+                    add("Fournisseur : ${suppliers.find { it.id == id }?.name ?: "—"}" to filters.copy(supplierId = null))
+                }
+                filters.unitType?.let { unit ->
+                    add((if (unit == "pièce") "Pièce" else "Carton") to filters.copy(unitType = null))
+                }
+                filters.stockLevel?.let { level ->
+                    val label = when (level) {
+                        "in_stock"  -> "En stock"
+                        "low_stock" -> "Stock faible"
+                        else        -> "Rupture de stock"
+                    }
+                    add(label to filters.copy(stockLevel = null))
+                }
+                val priceMin = filters.priceMin.toDoubleOrNull()
+                val priceMax = filters.priceMax.toDoubleOrNull()
+                if (priceMin != null || priceMax != null) {
+                    val range = when {
+                        priceMin != null && priceMax != null -> "${formatQty(priceMin)}–${formatQty(priceMax)} DA"
+                        priceMin != null                     -> "≥ ${formatQty(priceMin)} DA"
+                        else                                 -> "≤ ${formatQty(priceMax!!)} DA"
+                    }
+                    add("Prix d'achat : $range" to filters.copy(priceMin = "", priceMax = ""))
+                }
+                if (filters.expiringSoon) add("Bientôt périmé" to filters.copy(expiringSoon = false))
             }
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
@@ -522,63 +639,115 @@ fun NavGraphBuilder.purchaseFormGraph(
 
                 Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
 
-                    OutlinedTextField(
+                    // ── Search ── compact and filled, in the proportions of a messaging app's search
+                    // bar rather than a form field's. The query rules are unchanged; the placeholder
+                    // is shorter because the scanner beside it already says "or scan a barcode".
+                    DsCompactSearchField(
                         value         = search,
-                        onValueChange = { search = it },
-                        placeholder   = { Text("Rechercher par nom ou code-barres…", fontSize = DsTextSize.bodySmall) },
-                        leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon  = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (search.isNotEmpty()) {
-                                    IconButton(onClick = { search = "" }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-                                IconButton(onClick = { showScanner = true }) {
-                                    Icon(
-                                        Icons.Default.QrCodeScanner,
-                                        contentDescription = "Scanner un code-barres",
-                                        tint = DsColors.Primary
-                                    )
-                                }
-                            }
-                        },
+                        onValueChange = { session.productSearch = it },
+                        placeholder   = "Rechercher un produit",
                         modifier      = Modifier
-                            .fillMaxWidth()
                             .padding(horizontal = DsSpacing.lg)
                             .padding(top = DsSpacing.md)
-                            .clip(DsShapes.large),
-                        shape         = DsShapes.large,
-                        singleLine    = true,
-                        colors        = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor   = DsColors.Primary
+                    ) {
+                        DsCompactSearchAction(
+                            icon               = Icons.Default.QrCodeScanner,
+                            contentDescription = "Scanner un code-barres",
+                            tint               = DsColors.Primary,
+                            onClick            = { showScanner = true }
                         )
-                    )
+                    }
 
-                    CollapsibleHeader(collapsed = step2Collapsed) {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "${filteredProducts.size} produit(s)",
-                                fontSize = DsTextSize.bodySmall,
-                                color    = DsColors.TextSecondary
+                    // ── Count · Filtres · Nouveau produit ── one fixed row; it no longer collapses
+                    // on scroll. The count takes whatever width the two actions leave and is the one
+                    // that ellipsizes on a narrow screen, so neither action is ever clipped.
+                    Row(
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            Step2Chip(
+                                icon      = Icons.Default.Inventory2,
+                                label     = "${filteredProducts.size} produit(s)",
+                                container = DsColors.SurfaceSunken,
+                                content   = DsColors.TextSecondary
                             )
-                            OutlinedButton(
-                                onClick        = { showAddProductScreen = true },
-                                shape          = DsShapes.pill,
-                                border         = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary),
-                                colors         = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Nouveau produit", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                        }
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Step2Chip(
+                            icon      = Icons.Default.FilterList,
+                            label     = "Filtres",
+                            // Blue with a dot once it narrows anything, as the Produits button is. Not
+                            // "Filtres · 2": a count in the label widens the chip the moment a filter
+                            // is set and squeezes the product count beside it into an ellipsis — the
+                            // one figure a user filters in order to read. The chips below already say
+                            // exactly what is applied.
+                            container = DsColors.SurfaceSunken,
+                            content   = if (filters.isActive) DsColors.Primary else DsColors.TextSecondary,
+                            dot       = filters.isActive,
+                            onClick   = { showFilterSheet = true }
+                        )
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Step2Chip(
+                            icon      = Icons.Default.Add,
+                            label     = "Nouveau produit",
+                            container = DsColors.PrimaryLight,
+                            content   = DsColors.Primary,
+                            onClick   = { showAddProductScreen = true }
+                        )
+                    }
+
+                    // What is narrowing the list, each removable on its own — the whole chip is the
+                    // target, not a 14dp cross.
+                    if (activeFilterChips.isNotEmpty()) {
+                        LazyRow(
+                            contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                            modifier              = Modifier.padding(bottom = DsSpacing.sm)
+                        ) {
+                            items(activeFilterChips, key = { it.first }) { (label, withoutIt) ->
+                                Row(
+                                    modifier = Modifier
+                                        .height(Step2ChipHeight)
+                                        .clip(DsShapes.pill)
+                                        .background(DsColors.PrimaryLight)
+                                        .clickable { session.productFilters = withoutIt }
+                                        .padding(horizontal = DsSpacing.md),
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+                                ) {
+                                    Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, maxLines = 1)
+                                    Icon(Icons.Default.Close, contentDescription = "Retirer", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                            item(key = "clear-all") {
+                                Box(
+                                    modifier = Modifier
+                                        .height(Step2ChipHeight)
+                                        .clip(DsShapes.pill)
+                                        .clickable { session.productFilters = ProductListFilters() }
+                                        .padding(horizontal = DsSpacing.md),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Tout effacer", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                                }
                             }
                         }
+                    }
+
+                    if (showFilterSheet) {
+                        PurchaseProductFilterSheet(
+                            filters        = filters,
+                            categories     = categories,
+                            sousCategories = sousCategories,
+                            marques        = marques,
+                            suppliers      = suppliers,
+                            resultCount    = filteredProducts.size,
+                            onChange       = { session.productFilters = it },
+                            onDismiss      = { showFilterSheet = false }
+                        )
                     }
 
                     LazyColumn(
@@ -669,6 +838,25 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         ) {
                                             Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Filtering can leave nothing; say so, and offer the way back, instead of an
+                        // empty white list that looks like a missing catalogue.
+                        if (filteredProducts.isEmpty() && (search.isNotBlank() || filters.isActive)) {
+                            item(key = "no-match") {
+                                Column(
+                                    modifier            = Modifier.fillMaxWidth().padding(top = DsSpacing.xxl),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("Aucun produit ne correspond", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                                    TextButton(onClick = {
+                                        session.productSearch  = ""
+                                        session.productFilters = ProductListFilters()
+                                    }) {
+                                        Text("Effacer la recherche et les filtres", color = DsColors.Primary, fontSize = DsTextSize.bodySmall)
                                     }
                                 }
                             }

@@ -14,6 +14,9 @@ import com.distrigo.app.data.repository.PurchaseFingerprint
 import com.distrigo.app.ui.common.DraftAutosave
 import com.distrigo.app.ui.common.DraftAutosaveHost
 import com.distrigo.app.ui.common.SessionPhase
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,6 +76,24 @@ class PurchaseFormSessionViewModel @Inject constructor(
     }
     fun setFormNote(note: String) { _formNote.value = note }
     fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
+
+    // ── Step 02 browsing state ───────────────────────────────────────────────
+    //
+    // What the product list was narrowed to and where it was scrolled. Held here rather than in the
+    // destination so that leaving Step 02 — back to the supplier, on to the cart, on to validation —
+    // and coming back finds it exactly as left. A destination's `remember`s die with its
+    // composition, and going back to Step 01 pops Step 02 off the stack altogether; this ViewModel
+    // lives exactly as long as the bon being composed, and no longer.
+    //
+    // Plain Compose state rather than StateFlows, on purpose: autosave watches an explicit list of
+    // flows, and none of this is part of the bon. Typing in the search box must never dirty a draft
+    // or move a fingerprint.
+    var productSearch  by mutableStateOf("")
+    var productFilters by mutableStateOf(ProductListFilters())
+
+    /** Read once, when Step 02 composes; written when it leaves. Not state — nothing observes it. */
+    var productListIndex  = 0
+    var productListOffset = 0
 
     // ── Session state ────────────────────────────────────────────────────────
 
