@@ -139,7 +139,7 @@ class RetourFournisseurRepository(
             }
             retourDao.insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
-            recalculateSupplierBalance(supplierId)
+            supplierDao.recomputeBalance(supplierId)
         }
         return mapOf("message" to "Retour enregistré avec succès")
     }
@@ -167,21 +167,8 @@ class RetourFournisseurRepository(
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
             db.stockMovementDao().deleteBySource("retour_fournisseur", id)
-            recalculateSupplierBalance(retour.supplier_id)
+            supplierDao.recomputeBalance(retour.supplier_id)
         }
         return mapOf("message" to "Retour supprimé, stock restauré")
-    }
-
-    // ── Solde fournisseur — formule dupliquée de ProductRepository.recalculateSupplierBalance ──
-    private suspend fun recalculateSupplierBalance(supplierId: Int) {
-        val supplier = supplierDao.getSupplierById(supplierId) ?: return
-        val orders = db.purchaseDao().getAllOrders().filter { it.supplier_id == supplierId }
-        val ordersTotal          = orders.sumOf { it.total }
-        val ordersPaidAtCreation = orders.sumOf { it.montant_paye }
-        val separatePayments     = db.supplierPaymentDao().getPaymentsForSupplier(supplierId).sumOf { it.amount }
-        val retoursTotal         = retourDao.getRetoursForSupplier(supplierId).sumOf { it.total }
-
-        val newBalance = supplier.initial_balance + ordersTotal - ordersPaidAtCreation - separatePayments - retoursTotal
-        supplierDao.updateSupplier(supplier.copy(balance = newBalance))
     }
 }

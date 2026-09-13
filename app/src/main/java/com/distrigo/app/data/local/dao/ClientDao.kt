@@ -56,4 +56,29 @@ interface ClientDao {
         LIMIT 1
     """)
     suspend fun getMostCommonWilaya(): String?
+
+    /**
+     * Brings a client's stored balance back in line with their history, in one statement:
+     *
+     *     Σ(sale total − paid) − Σ payments − Σ returns
+     *
+     * Clients have no opening-balance column, so unlike SupplierDao.recomputeBalance there is no
+     * initial term. Otherwise the same rules: the only copy of the formula, returns included, one
+     * statement over indexes that lead with client_id, only `balance` written, every sale counted
+     * whatever its status, a missing id a no-op.
+     *
+     * MIGRATION_40_41 applied this formula once to repair balances already stored; see the note on
+     * SupplierDao.recomputeBalance about keeping that migration as it is.
+     */
+    @Query("""
+        UPDATE clients SET balance =
+              (SELECT COALESCE(SUM(total), 0.0) - COALESCE(SUM(montant_paye), 0.0)
+                 FROM ventes          WHERE client_id = :clientId)
+            - (SELECT COALESCE(SUM(amount), 0.0)
+                 FROM client_payments WHERE client_id = :clientId)
+            - (SELECT COALESCE(SUM(total), 0.0)
+                 FROM retour_client   WHERE client_id = :clientId)
+        WHERE id = :clientId
+    """)
+    suspend fun recomputeBalance(clientId: Int)
 }

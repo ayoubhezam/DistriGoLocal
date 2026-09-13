@@ -140,7 +140,7 @@ class RetourClientRepository(
             }
             retourDao.insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
-            recalculateClientBalance(clientId)
+            clientDao.recomputeBalance(clientId)
         }
         return mapOf("message" to "Retour enregistré avec succès")
     }
@@ -175,21 +175,8 @@ class RetourClientRepository(
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
             db.stockMovementDao().deleteBySource("retour_client", id)
-            recalculateClientBalance(retour.client_id)
+            clientDao.recomputeBalance(retour.client_id)
         }
         return mapOf("message" to "Retour supprimé, stock restauré")
-    }
-
-    // ── Solde client — formule dupliquée de ProductRepository.recalculateClientBalance ──
-    private suspend fun recalculateClientBalance(clientId: Int) {
-        val client = clientDao.getClientById(clientId) ?: return
-        val ventes = db.venteDao().getVentesForClient(clientId)
-        val ventesTotal       = ventes.sumOf { it.total }
-        val ventesPaid        = ventes.sumOf { it.montant_paye }
-        val separatePayments  = db.clientPaymentDao().getPaymentsForClient(clientId).sumOf { it.amount }
-        val retoursTotal      = retourDao.getRetoursForClient(clientId).sumOf { it.total }
-
-        val newBalance = ventesTotal - ventesPaid - separatePayments - retoursTotal
-        clientDao.updateClient(client.copy(balance = newBalance))
     }
 }

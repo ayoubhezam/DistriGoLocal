@@ -95,16 +95,6 @@ class ProductRepository(
             latitude = this.latitude, longitude = this.longitude
         )
     }
-    private suspend fun recalculateClientBalance(clientId: Int) {
-        val client = clientDao.getClientById(clientId) ?: return
-        val ventes = db.venteDao().getVentesForClient(clientId)
-        val ventesTotal = ventes.sumOf { it.total }
-        val ventesPaid = ventes.sumOf { it.montant_paye }
-        val separatePayments = db.clientPaymentDao().getPaymentsForClient(clientId).sumOf { it.amount }
-
-        val newBalance = ventesTotal - ventesPaid - separatePayments
-        clientDao.updateClient(client.copy(balance = newBalance))
-    }
 
     // ── Rapports Clients — Factures d'un client (écran autonome) ──
     suspend fun getClientInvoices(clientId: Int): List<com.distrigo.app.data.model.report.ClientInvoiceItem> {
@@ -625,8 +615,12 @@ class ProductRepository(
             commune_name = if (supplier.containsKey("commune_name")) supplier["commune_name"] as? String else existing.commune_name,
             image_uri = if (supplier.containsKey("image_uri")) supplier["image_uri"] as? String else existing.image_uri
         )
-        supplierDao.updateSupplier(updatedEntity)
-        recalculateSupplierBalance(id)
+        // One transaction, like every other write that touches a balance: the edit and the
+        // recompute that follows it land together, or neither does.
+        db.withTransaction {
+            supplierDao.updateSupplier(updatedEntity)
+            supplierDao.recomputeBalance(id)
+        }
         return mapOf("message" to "Supplier updated successfully")
     }
 
@@ -729,7 +723,7 @@ class ProductRepository(
             }
             db.purchaseDao().insertItems(itemEntities)
             db.purchaseDao().insertPriceHistory(historyEntities)
-            recalculateSupplierBalance(supplierId)
+            supplierDao.recomputeBalance(supplierId)
             draftId?.let { db.purchaseDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Bon créé avec succès")
@@ -844,7 +838,7 @@ class ProductRepository(
             db.purchaseDao().insertPriceHistory(historyEntities)
             db.purchaseDao().updateOrderFields(id, note, montantPaye, total)
 
-            recalculateSupplierBalance(existing.supplier_id)
+            supplierDao.recomputeBalance(existing.supplier_id)
             draftId?.let { db.purchaseDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Bon mis à jour avec succès")
@@ -882,24 +876,13 @@ class ProductRepository(
             }
             db.purchaseDao().deleteItemsForOrder(id)
             db.purchaseDao().deleteOrderById(id)
-            recalculateSupplierBalance(order.supplier_id)
+            supplierDao.recomputeBalance(order.supplier_id)
         }
         return mapOf("message" to "Bon supprimé avec succès")
     }
 
     suspend fun getProductPriceHistory(id: Int): List<PriceHistory> {
         return db.purchaseDao().getPriceHistoryForProduct(id).map { it.toPriceHistory() }
-    }
-
-    private suspend fun recalculateSupplierBalance(supplierId: Int) {
-        val supplier = supplierDao.getSupplierById(supplierId) ?: return
-        val orders = db.purchaseDao().getAllOrders().filter { it.supplier_id == supplierId }
-        val ordersTotal = orders.sumOf { it.total }
-        val ordersPaidAtCreation = orders.sumOf { it.montant_paye }
-        val separatePayments = db.supplierPaymentDao().getPaymentsForSupplier(supplierId).sumOf { it.amount }
-
-        val newBalance = supplier.initial_balance + ordersTotal - ordersPaidAtCreation - separatePayments
-        supplierDao.updateSupplier(supplier.copy(balance = newBalance))
     }
 
 // ── Ventes (محلي بالكامل) ──
@@ -1010,7 +993,7 @@ class ProductRepository(
             }
             db.venteDao().insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
-            recalculateClientBalance(clientId)
+            clientDao.recomputeBalance(clientId)
             draftId?.let { db.venteDraftDao().deleteById(it) }
             // Inside the same transaction as the sale, for the same reason: if anything
             // above throws, the draft is still there to resume.
@@ -1099,7 +1082,7 @@ class ProductRepository(
             db.venteDao().insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
             db.venteDao().updateVenteFields(id, note, montantPaye, total, userName)
-            recalculateClientBalance(clientId)
+            clientDao.recomputeBalance(clientId)
             draftId?.let { db.venteDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Vente mise à jour avec succès")
@@ -1121,7 +1104,7 @@ class ProductRepository(
             db.venteDao().deleteItemsForVente(id)
             db.venteDao().deleteVenteById(id)
             db.stockMovementDao().deleteBySource("vente", id)
-            recalculateClientBalance(existing.client_id)
+            clientDao.recomputeBalance(existing.client_id)
         }
         return mapOf("message" to "Vente supprimée avec succès")
     }
@@ -1375,7 +1358,7 @@ class ProductRepository(
                     created_at = java.time.Instant.now().toString()
                 )
             )
-            recalculateSupplierBalance(id)
+            supplierDao.recomputeBalance(id)
         }
         return mapOf("message" to "Paiement enregistré")
     }
@@ -1383,7 +1366,7 @@ class ProductRepository(
     suspend fun deleteSupplierPayment(supplierId: Int, paymentId: Int): Map<String, Any> {
         db.withTransaction {
             db.supplierPaymentDao().deletePaymentById(paymentId)
-            recalculateSupplierBalance(supplierId)
+            supplierDao.recomputeBalance(supplierId)
         }
         return mapOf("message" to "Paiement supprimé")
     }
@@ -1391,7 +1374,7 @@ class ProductRepository(
     suspend fun updateSupplierPayment(supplierId: Int, paymentId: Int, amount: Double): Map<String, Any> {
         db.withTransaction {
             db.supplierPaymentDao().updatePaymentAmount(paymentId, amount)
-            recalculateSupplierBalance(supplierId)
+            supplierDao.recomputeBalance(supplierId)
         }
         return mapOf("message" to "Paiement mis à jour")
     }
@@ -1668,7 +1651,7 @@ class ProductRepository(
                     created_at = java.time.Instant.now().toString()
                 )
             )
-            recalculateClientBalance(id)
+            clientDao.recomputeBalance(id)
         }
         return mapOf("message" to "Paiement enregistré")
     }
@@ -1676,7 +1659,7 @@ class ProductRepository(
     suspend fun deleteClientPayment(clientId: Int, paymentId: Int): Map<String, Any> {
         db.withTransaction {
             db.clientPaymentDao().deletePaymentById(paymentId)
-            recalculateClientBalance(clientId)
+            clientDao.recomputeBalance(clientId)
         }
         return mapOf("message" to "Paiement supprimé")
     }
@@ -1684,7 +1667,7 @@ class ProductRepository(
     suspend fun updateClientPayment(clientId: Int, paymentId: Int, amount: Double): Map<String, Any> {
         db.withTransaction {
             db.clientPaymentDao().updatePaymentAmount(paymentId, amount)
-            recalculateClientBalance(clientId)
+            clientDao.recomputeBalance(clientId)
         }
         return mapOf("message" to "Paiement mis à jour")
     }

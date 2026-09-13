@@ -354,3 +354,51 @@ val MIGRATION_39_40 = object : Migration(39, 40) {
         )
     }
 }
+
+/**
+ * 40 -> 41 - repairs every stored supplier and client balance. No schema change.
+ *
+ * Balances were recomputed by four private copies of one formula, and the copies disagreed: the
+ * two in ProductRepository ignored returns, the two in the Retour repositories subtracted them. A
+ * return lowered the balance, and the next sale, purchase or payment for that party recomputed it
+ * without the return and quietly put the amount back. Real devices were already showing it.
+ *
+ * The formula now has one home per party, SupplierDao.recomputeBalance and
+ * ClientDao.recomputeBalance, which fixes each balance the next time its party is touched. This
+ * fixes the ones already stored, so no party has to be touched first.
+ *
+ * Recomputing every row is safe because `balance` holds nothing a user typed that is not also
+ * kept elsewhere: the supplier form's "Solde initial" writes the same value to `initial_balance`,
+ * which the formula keeps, and no client form sends a balance at all.
+ *
+ * The SQL is inlined rather than shared with the DAOs on purpose. A migration records what was
+ * done to the data at one version; if the formula changes later, this must not change with it.
+ * Pure SQL, correlated on each row's id, run once inside Room's migration transaction.
+ */
+val MIGRATION_40_41 = object : Migration(40, 41) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            UPDATE suppliers SET balance =
+                  initial_balance
+                + (SELECT COALESCE(SUM(po.total), 0.0) - COALESCE(SUM(po.montant_paye), 0.0)
+                     FROM purchase_orders po    WHERE po.supplier_id = suppliers.id)
+                - (SELECT COALESCE(SUM(sp.amount), 0.0)
+                     FROM supplier_payments sp  WHERE sp.supplier_id = suppliers.id)
+                - (SELECT COALESCE(SUM(rf.total), 0.0)
+                     FROM retour_fournisseur rf WHERE rf.supplier_id = suppliers.id)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            UPDATE clients SET balance =
+                  (SELECT COALESCE(SUM(v.total), 0.0) - COALESCE(SUM(v.montant_paye), 0.0)
+                     FROM ventes v           WHERE v.client_id = clients.id)
+                - (SELECT COALESCE(SUM(cp.amount), 0.0)
+                     FROM client_payments cp WHERE cp.client_id = clients.id)
+                - (SELECT COALESCE(SUM(rc.total), 0.0)
+                     FROM retour_client rc   WHERE rc.client_id = clients.id)
+            """.trimIndent()
+        )
+    }
+}
