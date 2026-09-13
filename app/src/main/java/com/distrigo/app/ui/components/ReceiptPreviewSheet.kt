@@ -53,10 +53,6 @@ internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
     else String.format(Locale.ROOT, "%.2f", v)
 
-private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.let { formatQty(it) } ?: "-"
-private fun unitePerColisText(item: ReceiptLineItem): String =
-    if (item.unitLabel == "pièce") item.unitePerColis?.toString() ?: "-" else "-"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReceiptPreviewSheet(

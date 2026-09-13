@@ -53,6 +53,24 @@ data class ReceiptData(
     fun orDash(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "-"
 }
 
+/**
+ * The two colis columns, defined once for both renderers.
+ *
+ * The preview and [ReceiptPdfGenerator] each used to carry a private copy of these. They agreed,
+ * but nothing made them: the printed receipt and the one on screen are the same document, and a
+ * rule duplicated in two files is a rule that eventually is not.
+ */
+internal fun nbColisText(item: ReceiptLineItem): String =
+    item.nbColis?.let { formatQty(it) } ?: "-"
+
+/**
+ * Only meaningful where someone could actually state it. The purchase form exposes the
+ * "Nb colis × Unités/colis" editor for `pièce` products only; a carton line keeps the seeded 1,
+ * which would print as a column of "1"s that nobody entered and that means nothing.
+ */
+internal fun unitePerColisText(item: ReceiptLineItem): String =
+    if (item.unitLabel == "pièce") item.unitePerColis?.toString() ?: "-" else "-"
+
 private val RECEIPT_ZONE = ZoneId.of("Africa/Algiers")
 
 /** "vendredi 12/09/2026" — the day named, as asked, and the rest unchanged. */
@@ -90,10 +108,19 @@ fun Vente.toReceiptData(
     partyName     = client_name,
     dateLabel     = formatReceiptDate(created_at),
     timeLabel     = formatReceiptTime(created_at),
-    items = (items ?: emptyList()).map {
+    items = (items ?: emptyList()).map { line ->
         ReceiptLineItem(
-            name = it.product_name, quantity = it.quantity, unitLabel = it.unit_type,
-            unitPrice = it.unit_price, totalPrice = it.total_price
+            name = line.product_name, quantity = line.quantity, unitLabel = line.unit_type,
+            unitPrice = line.unit_price, totalPrice = line.total_price,
+            // A vente stores no colis breakdown of its own the way a purchase order does, and it
+            // does not need one: for everything not sold by the piece the quantity IS the number
+            // of colis. That is the same identity a purchase writes down explicitly — its carton
+            // lines all carry nb_colis == quantity — so the two documents agree by construction
+            // rather than by a second stored copy that could drift.
+            //
+            // Sold by the piece the quantity is a count of pieces, and the colis it came out of is
+            // not recoverable from anything the sale recorded, so it stays null and prints "-".
+            nbColis = if (line.unit_type != "pièce") line.quantity else null
         )
     },
     total = total,

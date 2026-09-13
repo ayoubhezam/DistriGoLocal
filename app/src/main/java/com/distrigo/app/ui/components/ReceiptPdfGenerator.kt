@@ -30,10 +30,6 @@ object ReceiptPdfGenerator {
     private fun referenceNumber(documentTitle: String) =
         documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
-    private fun nbColisText(item: ReceiptLineItem): String = item.nbColis?.let { formatQty(it) } ?: "-"
-    private fun unitePerColisText(item: ReceiptLineItem): String =
-        if (item.unitLabel == "pièce") item.unitePerColis?.toString() ?: "-" else "-"
-
     fun generate(context: Context, receipt: ReceiptData): File {
         val pdfDocument = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
