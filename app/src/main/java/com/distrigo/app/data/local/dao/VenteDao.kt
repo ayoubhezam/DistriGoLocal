@@ -1,6 +1,7 @@
 package com.distrigo.app.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
 import com.distrigo.app.data.local.entity.VenteEntity
@@ -20,6 +21,26 @@ interface VenteDao {
 
     @Query("SELECT * FROM ventes WHERE tournee_id = :tourneeId ORDER BY id DESC")
     suspend fun getVentesForTournee(tourneeId: Int): List<VenteEntity>
+
+    /**
+     * A tournée's sales for its detail screen, each with its client's current name and its number
+     * of lines, in one query.
+     *
+     * Replaces [getVentesForTournee] followed by a client lookup and an item count for every sale —
+     * 1 + 2V queries. The name is read from `clients`, not from the `ventes.client_name` snapshot,
+     * because the live name is what the detail screen has always shown; it is aliased so it cannot
+     * collide with that snapshot column. Same order as [getVentesForTournee].
+     */
+    @Query("""
+        SELECT v.*,
+               c.name AS live_client_name,
+               (SELECT COUNT(*) FROM vente_items vi WHERE vi.vente_id = v.id) AS items_count
+        FROM ventes v
+        LEFT JOIN clients c ON c.id = v.client_id
+        WHERE v.tournee_id = :tourneeId
+        ORDER BY v.id DESC
+    """)
+    suspend fun getVentesWithDetailsForTournee(tourneeId: Int): List<TourneeVenteRow>
 
     @Query("SELECT * FROM ventes WHERE id = :id")
     suspend fun getVenteById(id: Int): VenteEntity?
@@ -117,4 +138,11 @@ interface VenteDao {
 data class VenteClientDate(
     val client_id: Int,
     val created_at: String
+)
+
+/** A sale with the two things its tournée detail row shows that the `ventes` table does not hold. */
+data class TourneeVenteRow(
+    @Embedded val vente: VenteEntity,
+    val live_client_name: String?,
+    val items_count: Int
 )

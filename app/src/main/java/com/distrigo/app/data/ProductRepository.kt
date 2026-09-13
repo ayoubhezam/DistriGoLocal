@@ -140,38 +140,52 @@ class ProductRepository(
         unit_price = this.unit_price, total_price = this.total_price
     )
 
-    private suspend fun VenteEntity.toVente(items: List<VenteItem>? = null): Vente {
-        val clientName = clientDao.getClientById(this.client_id)?.name ?: ""
-        return Vente(
-            id = this.id, client_id = this.client_id, client_name = clientName,
-            tournee_id = this.tournee_id, source = this.source, total = this.total,
-            montant_paye = this.montant_paye, status = this.status, note = this.note,
-            created_at = this.created_at, items_count = items?.size, items = items,
-            client_image_uri = this.client_image_uri,  // ← جديد
-            user_name = this.user_name
+    private suspend fun VenteEntity.toVente(items: List<VenteItem>? = null): Vente =
+        toVenteWith(
+            clientName = clientDao.getClientById(this.client_id)?.name ?: "",
+            itemsCount = items?.size,
+            items      = items
         )
-    }
-    private suspend fun TourneeEntity.toTournee(): Tournee {
-        val ventesEntities = db.venteDao().getVentesForTournee(this.id)
-        val secteurs = db.tourneeSecteurDao().getForTournee(this.id)
-            .map { TourneeSecteur(secteurId = it.secteur_id, nom = it.secteur_name) }
-        val ventes = ventesEntities.map { entity ->
-            val count = db.venteDao().getItemsCountForVente(entity.id)
-            entity.toVente().copy(items_count = count)
-        }
-        val clientsCount = ventesEntities.map { it.client_id }.distinct().size
-        val totalVentes = ventesEntities.sumOf { it.total }
-        val resteTotal = ventesEntities.sumOf { it.total - it.montant_paye }
-        return Tournee(
-            id = this.id, session_id = 0, status = this.status,
-            date_debut = this.date_debut, date_fin = this.date_fin, note = this.note,
-            nom = this.nom, wilaya_id = null, commune_id = null,
-            wilaya_name = this.wilaya_name, commune_name = this.commune_name,
-            secteurs = secteurs,
-            clients_count = clientsCount, ventes_count = ventesEntities.size,
-            total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
-        )
-    }
+
+    /**
+     * The one place a VenteEntity becomes a Vente. [toVente] looks the client up itself; the tournée
+     * detail path already has the live name and the item count from its query and passes them in,
+     * so the two paths cannot drift apart field by field.
+     */
+    private fun VenteEntity.toVenteWith(clientName: String, itemsCount: Int?, items: List<VenteItem>?) = Vente(
+        id = this.id, client_id = this.client_id, client_name = clientName,
+        tournee_id = this.tournee_id, source = this.source, total = this.total,
+        montant_paye = this.montant_paye, status = this.status, note = this.note,
+        created_at = this.created_at, items_count = itemsCount, items = items,
+        client_image_uri = this.client_image_uri,  // ← جديد
+        user_name = this.user_name
+    )
+    /**
+     * The one place a tournée row becomes a Tournee. The callers supply the counters, and the sales
+     * only for the detail screen, because they arrive in different shapes: the list's from one
+     * aggregate query, the detail's from that tournée's own sales rows.
+     */
+    private fun TourneeEntity.toTournee(
+        secteurs     : List<TourneeSecteurEntity>,
+        clientsCount : Int,
+        ventesCount  : Int,
+        totalVentes  : Double,
+        resteTotal   : Double,
+        ventes       : List<Vente>?
+    ) = Tournee(
+        id = this.id, session_id = 0, status = this.status,
+        date_debut = this.date_debut, date_fin = this.date_fin, note = this.note,
+        nom = this.nom, wilaya_id = null, commune_id = null,
+        wilaya_name = this.wilaya_name, commune_name = this.commune_name,
+        secteurs = secteurs.map { TourneeSecteur(secteurId = it.secteur_id, nom = it.secteur_name) },
+        clients_count = clientsCount, ventes_count = ventesCount,
+        total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
+    )
+
+    /** A list-shaped Tournee: its four counters and no sales. See TourneeDao.getAllTourneeSummaries. */
+    private fun TourneeSummaryRow.toTournee(secteurs: List<TourneeSecteurEntity>) = tournee.toTournee(
+        secteurs, clients_count, ventes_count, total_ventes, reste_total, ventes = null
+    )
 
     private fun PurchaseOrderItemEntity.toItem() = PurchaseOrderItem(
         id = this.id, quantity = this.quantity, unit_cost = this.unit_cost,
@@ -1674,15 +1688,41 @@ class ProductRepository(
 
     // ── Tournées (محلي بالكامل) ──
 
-    suspend fun getTournees(): List<Tournee> = db.tourneeDao().getAllTournees().map { it.toTournee() }
+    // Two queries for the whole list, however many tournées and sales there are: one aggregate for
+    // the counters every card shows, one for all their secteurs. No sales are loaded — nothing that
+    // shows the list reads them. Only getTournee, behind the detail screen, does.
+    suspend fun getTournees(): List<Tournee> {
+        val secteurs = db.tourneeSecteurDao().getAll().groupBy { it.tournee_id }
+        return db.tourneeDao().getAllTourneeSummaries()
+            .map { it.toTournee(secteurs[it.tournee.id].orEmpty()) }
+    }
 
+    // The detail screen is the one reader of a tournée's sales, so this is the one path that loads
+    // them — in a single query that also brings each sale's live client name and item count. The
+    // counters come from those same rows, computed exactly as they were before.
     suspend fun getTournee(id: Int): Tournee {
         val entity = db.tourneeDao().getTourneeById(id)
             ?: throw IllegalStateException("Tournée introuvable: $id")
-        return entity.toTournee()
+        val rows = db.venteDao().getVentesWithDetailsForTournee(id)
+        return entity.toTournee(
+            secteurs     = db.tourneeSecteurDao().getForTournee(id),
+            clientsCount = rows.map { it.vente.client_id }.distinct().size,
+            ventesCount  = rows.size,
+            totalVentes  = rows.sumOf { it.vente.total },
+            resteTotal   = rows.sumOf { it.vente.total - it.vente.montant_paye },
+            ventes       = rows.map {
+                it.vente.toVenteWith(clientName = it.live_client_name ?: "", itemsCount = it.items_count, items = null)
+            }
+        )
     }
 
-    suspend fun getOpenTournee(): Tournee? = db.tourneeDao().getOpenTournee()?.toTournee()
+    // The banner shows the open tournée's name and nothing else. Same selection as before — the
+    // existing getOpenTournee query — then its counters, without its sales.
+    suspend fun getOpenTournee(): Tournee? {
+        val open = db.tourneeDao().getOpenTournee() ?: return null
+        val summary = db.tourneeDao().getTourneeSummary(open.id) ?: return null
+        return summary.toTournee(db.tourneeSecteurDao().getForTournee(open.id))
+    }
 
     suspend fun createTournee(
         nom: String, wilayaName: String?, communeName: String?, note: String?,
