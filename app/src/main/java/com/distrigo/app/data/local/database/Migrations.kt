@@ -327,3 +327,30 @@ val MIGRATION_38_39 = object : Migration(38, 39) {
         )
     }
 }
+
+/**
+ * 39 -> 40 - gives "Effectué par" somewhere to live on a sale.
+ *
+ * Two `ALTER TABLE ... ADD COLUMN`s, no data migration.
+ *
+ * `ventes.user_name` closes a gap rather than adding a feature: Dépôt Vente has always asked who
+ * made the sale, but the answer only ever reached `stock_movements.user_name`, so the vente could
+ * not report it and the receipt had nothing to print. Existing rows get NULL, which reads as "not
+ * recorded" and prints as "-" - correct, because for those sales it genuinely was not.
+ *
+ * `tournee_vente_drafts.user_name` is the same field on the van-sale form, which now asks for it
+ * too. NOT NULL with a `''` default rather than nullable, matching `note` beside it: that table
+ * stores the form's raw strings, and an empty box is an empty string there, never NULL.
+ *
+ * The statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/40.json`). **Do not hand-edit
+ * these strings** - change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_39_40 = object : Migration(39, 40) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `ventes` ADD COLUMN `user_name` TEXT")
+        db.execSQL(
+            "ALTER TABLE `tournee_vente_drafts` ADD COLUMN `user_name` TEXT NOT NULL DEFAULT ''"
+        )
+    }
+}

@@ -25,5 +25,13 @@ data class VenteEntity(
     val note: String?,
     val created_at: String,
     val client_name: String? = null,
-    val client_image_uri: String? = null    // ← جديد
+    val client_image_uri: String? = null,   // ← جديد
+    /**
+     * "Effectué par" — who made the sale.
+     *
+     * Until now this was written only onto the stock movements a sale produces, which meant the
+     * vente itself could not answer the question and the receipt had nothing to print. The
+     * movements keep their copy: they are the stock ledger and are read on their own terms.
+     */
+    val user_name: String? = null
 )

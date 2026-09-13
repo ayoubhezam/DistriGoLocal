@@ -89,28 +89,46 @@ object ReceiptPdfGenerator {
         y += 30f
         canvas.drawLine(left, y, right, y, linePaint); y += 20f
 
-        val dateOnly = receipt.dateLabel.substringBefore(" ")
-        val timeOnly = receipt.dateLabel.substringAfter(" ", "")
+        // ── Header info: us on the left, them on the right ──
+        //
+        // The two columns are drawn independently from a shared top, each advancing its own
+        // cursor, and `y` is then set past whichever ran longer. Sharing one cursor — which is
+        // what the single stacked list used to do — would step the right column down by the
+        // left one's rows and leave the two interleaved down the page.
+        val headerTop = y
+        var yLeft  = y
+        var yRight = y
 
         fun drawInfoLineLeft(labelText: String, valueText: String) {
-            canvas.drawText("$labelText :", left, y, label)
+            canvas.drawText("$labelText :", left, yLeft, label)
             val labelWidth = label.measureText("$labelText :")
-            canvas.drawText(valueText, left + labelWidth + 8f, y, valueClose)
-            y += 17f
+            canvas.drawText(valueText, left + labelWidth + 8f, yLeft, valueClose)
+            yLeft += 17f
         }
 
         fun drawInfoLineRight(labelText: String, valueText: String) {
-            canvas.drawText(valueText, right, y, valueR)
+            canvas.drawText(valueText, right, yRight, valueR)
             val valueWidth = valueR.measureText(valueText)
-            canvas.drawText("$labelText :", right - valueWidth - 8f, y, labelR)
-            y += 17f
+            canvas.drawText("$labelText :", right - valueWidth - 8f, yRight, labelR)
+            yRight += 17f
         }
 
+        val isVente = receipt.documentTitle.startsWith("Vente")
+
         drawInfoLineLeft("N°", referenceNumber(receipt.documentTitle))
-        drawInfoLineLeft("Date", dateOnly)
-        if (timeOnly.isNotBlank()) drawInfoLineLeft("Heure", timeOnly)
-        drawInfoLineLeft(receipt.partyLabel, receipt.partyName)
-        y += 10f
+        drawInfoLineLeft("Date", receipt.dateLabel)
+        if (receipt.timeLabel.isNotBlank()) drawInfoLineLeft("Heure", receipt.timeLabel)
+        drawInfoLineLeft("Téléphone", receipt.orDash(receipt.businessPhone))
+        // Only on documents that can have one — a bon d'achat has no operator.
+        if (isVente) drawInfoLineLeft("Effectué par", receipt.orDash(receipt.performedBy))
+
+        drawInfoLineRight(receipt.partyLabel, receipt.partyName)
+        if (isVente) {
+            drawInfoLineRight("Type", receipt.orDash(receipt.clientType))
+            drawInfoLineRight("Secteur", receipt.orDash(receipt.clientSecteur))
+        }
+
+        y = maxOf(yLeft, yRight, headerTop) + 10f
 
         val colN      = left
         val colNom    = left + 30f

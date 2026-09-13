@@ -12,10 +12,14 @@ import androidx.room.PrimaryKey
  * draft rows anywhere a ledger, dashboard or report can see them.
  *
  * A third table rather than a column on `vente_drafts`. The two look similar and are not: a Dépôt
- * sale carries "Effectué par" and may be an unsaved edit of a committed vente, while a van sale
- * carries neither and instead belongs to a tournée. Sharing would mean a nullable `tournee_id` and
- * a nullable `user_name` that each mean "this row is the other kind", plus a unique index on
- * `source_vente_id` that has nothing to constrain here.
+ * sale may be an unsaved edit of a committed vente, while a van sale instead belongs to a tournée.
+ * Sharing would mean a nullable `tournee_id` and a nullable `source_vente_id` that each mean "this
+ * row is the other kind", plus a unique index on `source_vente_id` that has nothing to constrain
+ * here.
+ *
+ * A van sale now carries "Effectué par" as a Dépôt sale does, so [user_name] lives here as well:
+ * the form asks for it, and without a column the answer would not survive an interruption — which
+ * is the one thing this table exists to prevent.
  *
  * [tournee_id] is not null and is indexed: every list of these is "the drafts of *this* tournée",
  * so the index is the query, not an optimisation. There is no unique index — the tournée form is
@@ -42,6 +46,8 @@ data class TourneeVenteDraftEntity(
     val items_json : String,    // Gson: List<TourneeVenteDraftLine>
     val note       : String,
     val montant_paye: String,   // the raw user string, not a Double — as the other two drafts do
+    /** "Effectué par". Now carried here too — see the class doc. */
+    val user_name  : String = "",
 
     val item_count : Int,       // card + "Brouillons (N)" without parsing the JSON
     val total      : Double,    // card only

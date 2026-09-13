@@ -40,6 +40,7 @@ data class TourneeVenteDraft(
     val lines      : List<TourneeVenteDraftLine>,
     val note       : String,
     val montantPaye: String,
+    val userName   : String,
     val itemCount  : Int,
     val total      : Double,
     val lastStep   : String,
@@ -60,6 +61,7 @@ data class TourneeVenteDraftSnapshot(
     val lines      : List<TourneeVenteDraftLine>,
     val note       : String,
     val montantPaye: String,
+    val userName   : String,
     val lastStep   : String
 ) {
     /**
@@ -70,11 +72,12 @@ data class TourneeVenteDraftSnapshot(
      * form refuses to go further without it — not content in itself. Counting it is what left
      * empty Brouillons behind when someone opened a form, picked a name and pressed Back.
      *
-     * Unlike Dépôt Vente there is no `userName` here to count: the tournée form has no "Effectué
-     * par" field, because a sale from the van was made by whoever is driving it.
+     * [userName] counts, exactly as it does in Dépôt Vente: someone who typed who is driving has
+     * entered something about the sale, and losing it on Back is the same small betrayal as losing
+     * a note.
      */
     val isEmpty: Boolean
-        get() = lines.isEmpty() && note.isBlank() && montantPaye.isBlank()
+        get() = lines.isEmpty() && note.isBlank() && montantPaye.isBlank() && userName.isBlank()
 
     val total: Double get() = lines.sumOf { it.quantity * it.unit_price }
 }

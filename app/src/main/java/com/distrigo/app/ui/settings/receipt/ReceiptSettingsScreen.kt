@@ -41,6 +41,7 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
 
     var name        by remember { mutableStateOf(BusinessSettingsStore.getBusinessName(context)) }
+    var phone       by remember { mutableStateOf(BusinessSettingsStore.getBusinessPhone(context) ?: "") }
     var logoFile    by remember { mutableStateOf(BusinessSettingsStore.getLogoFile(context)) }
     var logoVersion by remember { mutableStateOf(0) }
     var isSaving    by remember { mutableStateOf(false) }
@@ -57,6 +58,7 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
     fun save() {
         isSaving = true
         BusinessSettingsStore.saveBusinessName(context, name.trim())
+        BusinessSettingsStore.saveBusinessPhone(context, phone.trim())
         Toast.makeText(context, "Paramètres du reçu enregistrés", Toast.LENGTH_SHORT).show()
         isSaving = false
         onBack()
@@ -137,7 +139,35 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
                     singleLine      = true,
                     modifier        = Modifier.fillMaxWidth(),
                     shape           = DsShapes.medium,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                    colors = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Téléphone ──
+            //
+            // Printed in the receipt's left column, under the date. Optional: left empty the
+            // receipt shows "-" there rather than an empty row, so a receipt never looks truncated.
+            Column {
+                Text(
+                    "Téléphone",
+                    fontSize = DsTextSize.bodySmall,
+                    color    = DsColors.TextSecondary,
+                    modifier = Modifier.padding(bottom = DsSpacing.xs)
+                )
+                OutlinedTextField(
+                    value           = phone,
+                    onValueChange   = { phone = it },
+                    placeholder     = { Text("Ex: 0555 12 34 56", fontSize = DsTextSize.body) },
+                    singleLine      = true,
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = DsShapes.medium,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
                     colors = dsTextFieldColors(
                         unfocusedBorderColor = DsColors.Border,
                         focusedBorderColor   = DsColors.Primary

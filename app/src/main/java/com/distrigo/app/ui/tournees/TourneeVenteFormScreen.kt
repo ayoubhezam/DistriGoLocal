@@ -227,6 +227,8 @@ internal fun Step3Validation(
     onMontantPayeChange : (String) -> Unit,
     note                : String,
     onNoteChange        : (String) -> Unit,
+    userName            : String,
+    onUserNameChange    : (String) -> Unit,
     isSaving            : Boolean,
     /**
      * A resumed draft can name a product that has since been deleted, or ask for more of one than
@@ -412,6 +414,25 @@ internal fun Step3Validation(
                         }
                     }
                 }
+            }
+
+            // ── Effectué par ──
+            // Same field, same place and same optionality as Dépôt Vente's step 3, so the two
+            // validation screens stay one screen with two sources rather than drifting apart.
+            item {
+                OutlinedTextField(
+                    value         = userName,
+                    onValueChange = onUserNameChange,
+                    placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
+                    leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
+                    modifier      = Modifier.fillMaxWidth(),
+                    shape         = DsShapes.medium,
+                    singleLine    = true,
+                    colors = dsTextFieldColors(
+                        unfocusedBorderColor = DsColors.Border,
+                        focusedBorderColor   = DsColors.Primary
+                    )
+                )
             }
 
             // ── Note ──

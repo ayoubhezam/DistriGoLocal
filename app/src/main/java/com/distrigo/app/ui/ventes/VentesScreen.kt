@@ -705,9 +705,19 @@ fun VenteDetailScreen(
     var showShareOptions     by remember { mutableStateOf(false) }
     var overflowMenuExpanded by remember { mutableStateOf(false) }
 
+    // The receipt header names the client's type and secteur, which the vente does not carry —
+    // it snapshots only the name. Read from the Room-observed list rather than snapshotted onto
+    // the sale, so every receipt already in the database gets the fuller header too. Null while
+    // the list loads, and for a client that has since been deleted; the header shows "-" then and
+    // still names them from the vente's own snapshot.
+    val allClients by clientViewModel.clients.collectAsState()
+    val receiptClient = remember(allClients, displayVente.client_id) {
+        allClients.find { it.id == displayVente.client_id }
+    }
+
     if (showReceiptPreview) {
         ReceiptPreviewSheet(
-            receipt          = displayVente.toReceiptData(context),
+            receipt          = displayVente.toReceiptData(context, receiptClient),
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
@@ -718,7 +728,7 @@ fun VenteDetailScreen(
 
     if (showShareOptions) {
         ShareOptionsSheet(
-            receipt   = displayVente.toReceiptData(context),
+            receipt   = displayVente.toReceiptData(context, receiptClient),
             onDismiss = { showShareOptions = false }
         )
     }

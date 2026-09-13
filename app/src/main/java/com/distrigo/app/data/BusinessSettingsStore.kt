@@ -9,6 +9,7 @@ object BusinessSettingsStore {
     private const val KEY_NAME = "business_name"
     private const val LOGO_FILENAME = "business_logo.jpg"
     private const val KEY_INCLUDE_CHARGES_IN_REPORT = "include_charges_in_report"
+    private const val KEY_PHONE = "business_phone"
 
     fun getBusinessName(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -18,6 +19,20 @@ object BusinessSettingsStore {
     fun saveBusinessName(context: Context, name: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_NAME, name).apply()
+    }
+
+    /**
+     * The number printed on receipts. Null rather than a placeholder when unset, so the receipt
+     * decides how to render its absence (it shows "-") instead of inheriting one from here.
+     */
+    fun getBusinessPhone(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_PHONE, null)?.takeIf { it.isNotBlank() }
+    }
+
+    fun saveBusinessPhone(context: Context, phone: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_PHONE, phone).apply()
     }
 
     fun getLogoFile(context: Context): File? {

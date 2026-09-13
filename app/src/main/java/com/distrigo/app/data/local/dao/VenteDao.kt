@@ -29,10 +29,10 @@ interface VenteDao {
 
     @Query("""
         UPDATE ventes
-        SET note = :note, montant_paye = :montantPaye, total = :total
+        SET note = :note, montant_paye = :montantPaye, total = :total, user_name = :userName
         WHERE id = :id
     """)
-    suspend fun updateVenteFields(id: Int, note: String?, montantPaye: Double, total: Double)
+    suspend fun updateVenteFields(id: Int, note: String?, montantPaye: Double, total: Double, userName: String?)
 
     @Query("DELETE FROM ventes WHERE id = :id")
     suspend fun deleteVenteById(id: Int)

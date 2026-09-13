@@ -157,7 +157,8 @@ class ProductRepository(
             tournee_id = this.tournee_id, source = this.source, total = this.total,
             montant_paye = this.montant_paye, status = this.status, note = this.note,
             created_at = this.created_at, items_count = items?.size, items = items,
-            client_image_uri = this.client_image_uri  // ← جديد
+            client_image_uri = this.client_image_uri,  // ← جديد
+            user_name = this.user_name
         )
     }
     private suspend fun TourneeEntity.toTournee(): Tournee {
@@ -968,7 +969,8 @@ class ProductRepository(
                     client_id = clientId, tournee_id = tourneeId, source = source,
                     total = total, montant_paye = montantPaye, status = "pending",
                     note = note, created_at = now, client_name = clientName,
-                    client_image_uri = clientImageUri  // ← جديد
+                    client_image_uri = clientImageUri,  // ← جديد
+                    user_name = userName
                 )
             ).toInt()
 
@@ -1096,7 +1098,7 @@ class ProductRepository(
             }
             db.venteDao().insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
-            db.venteDao().updateVenteFields(id, note, montantPaye, total)
+            db.venteDao().updateVenteFields(id, note, montantPaye, total, userName)
             recalculateClientBalance(clientId)
             draftId?.let { db.venteDraftDao().deleteById(it) }
         }

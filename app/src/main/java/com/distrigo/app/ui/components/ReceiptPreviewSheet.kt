@@ -66,8 +66,6 @@ fun ReceiptPreviewSheet(
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val dateOnly = receipt.dateLabel.substringBefore(" ")
-    val timeOnly = receipt.dateLabel.substringAfter(" ", "")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -128,10 +126,40 @@ fun ReceiptPreviewSheet(
                 HorizontalDivider(color = Faint, thickness = 1.dp)
                 Spacer(Modifier.height(12.dp))
 
-                InfoLine("N°", referenceNumber(receipt.documentTitle))
-                InfoLine("Date", dateOnly)
-                if (timeOnly.isNotBlank()) InfoLine("Heure", timeOnly)
-                InfoLine(receipt.partyLabel, receipt.partyName)
+                // ── Header info: us on the left, them on the right ──
+                //
+                // Two columns rather than one stacked list. The left block answers "which document
+                // is this, and who issued it"; the right answers "who is it for". Read side by side
+                // they are two facts; stacked they were one undifferentiated run of five rows.
+                //
+                // The left column is the wider of the two, and deliberately: it carries both the
+                // longer labels ("Effectué par") and the longest value on the header, a date with
+                // its day named. At an even split "samedi 12/09/2026" wrapped onto a second line.
+                // The right column's labels are one word each and its values short, so it gives up
+                // the difference without coming close to wrapping.
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1.25f)) {
+                        InfoLine("N°", referenceNumber(receipt.documentTitle))
+                        InfoLine("Date", receipt.dateLabel)
+                        if (receipt.timeLabel.isNotBlank()) InfoLine("Heure", receipt.timeLabel)
+                        InfoLine("Téléphone", receipt.orDash(receipt.businessPhone))
+                        // Only on documents that can have one — a bon d'achat has no operator.
+                        if (isVenteReceipt(receipt.documentTitle)) {
+                            InfoLine("Effectué par", receipt.orDash(receipt.performedBy))
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Column(
+                        modifier            = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        InfoLineEnd(receipt.partyLabel, receipt.partyName)
+                        if (isVenteReceipt(receipt.documentTitle)) {
+                            InfoLineEnd("Type", receipt.orDash(receipt.clientType))
+                            InfoLineEnd("Secteur", receipt.orDash(receipt.clientSecteur))
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(14.dp))
 
@@ -289,12 +317,22 @@ private fun LogoBox(logoPath: String?) {
 @Composable
 private fun InfoLine(label: String, value: String, valueColor: Color = Ink) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier           = Modifier.padding(vertical = 2.dp)
     ) {
+        // The label keeps its intrinsic width and the value takes the rest: in a half-width column
+        // a long value must wrap or ellipsize on its own, never by shrinking the label it follows.
         Text("$label :", fontSize = 11.sp, color = Muted)
         Spacer(Modifier.width(6.dp))
-        Text(value, fontSize = 11.sp, color = valueColor, fontWeight = FontWeight.Medium)
+        Text(
+            value,
+            fontSize   = 11.sp,
+            color      = valueColor,
+            fontWeight = FontWeight.Medium,
+            maxLines   = 2,
+            overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier   = Modifier.weight(1f, fill = false)
+        )
     }
 }
 @Composable
@@ -302,11 +340,20 @@ private fun InfoLineEnd(label: String, value: String, valueColor: Color = Ink) {
     Row(
         modifier           = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.End,
-        verticalAlignment  = Alignment.CenterVertically
+        verticalAlignment  = Alignment.Top
     ) {
         Text("$label :", fontSize = 11.sp, color = Muted)
         Spacer(Modifier.width(6.dp))
-        Text(value, fontSize = 11.sp, color = valueColor, fontWeight = FontWeight.Medium)
+        Text(
+            value,
+            fontSize   = 11.sp,
+            color      = valueColor,
+            fontWeight = FontWeight.Medium,
+            maxLines   = 2,
+            textAlign  = TextAlign.End,
+            overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier   = Modifier.weight(1f, fill = false)
+        )
     }
 }
 
