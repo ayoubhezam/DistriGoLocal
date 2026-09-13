@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -100,3 +101,39 @@ fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Mo
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
     }
 }
+
+/**
+ * The terms that stand between the two totals and the balance, under the stat cells.
+ *
+ * "Total facturé − Total payé" is not what a party owes. The balance also subtracts returns, and a
+ * supplier's starts from its opening balance — neither of which either total can show. Without
+ * this line the card did not add up: a client billed 6000 DA and paid 2110 DA was shown owing
+ * 1860 DA, with nothing on screen to say where the other 2030 DA went.
+ *
+ * The totals themselves are left as they are, because "Total facturé" should keep meaning what was
+ * billed. This supplies the missing terms instead, so the three figures and this line together
+ * read as one sum. It draws nothing when there is nothing to reconcile: a party with no returns
+ * and no opening balance sees exactly the card it always did.
+ *
+ * [returns] is the total of the party's returns, as a positive amount; it is shown deducted.
+ * [initialBalance] is a supplier's opening balance; clients have none, so it defaults to zero.
+ */
+@Composable
+fun BalanceAdjustments(returns: Double, initialBalance: Double = 0.0, modifier: Modifier = Modifier) {
+    val parts = buildList {
+        if (kotlin.math.abs(initialBalance) >= 0.005) add("Solde initial ${signedAmount(initialBalance)}")
+        if (kotlin.math.abs(returns) >= 0.005) add("Retours ${signedAmount(-returns)}")
+    }
+    if (parts.isEmpty()) return
+    Text(
+        parts.joinToString("  ·  "),
+        modifier  = modifier.fillMaxWidth().padding(top = DsSpacing.sm, start = DsSpacing.lg, end = DsSpacing.lg),
+        fontSize  = DsTextSize.caption,
+        color     = DsColors.TextSecondary,
+        textAlign = TextAlign.Center
+    )
+}
+
+/** "+500.00 DA" / "-240.00 DA", signed the way the payment rows already sign "+1.00 DA". */
+private fun signedAmount(value: Double): String =
+    (if (value < 0) "-" else "+") + "%.2f".format(kotlin.math.abs(value)) + " DA"

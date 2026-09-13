@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.distrigo.app.ui.common.QuickActionButton
+import com.distrigo.app.ui.common.BalanceAdjustments
 import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
@@ -580,6 +581,9 @@ fun ClientDetailScreen(
                     Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
                     StatCell(modifier = Modifier.weight(1f), label = "Montant dû", value = kotlin.math.abs(currentClient.balance), color = DsColors.Danger)
                 }
+
+                // What turns "Total facturé − Total payé" into the Montant dû beside them.
+                BalanceAdjustments(returns = clientRetours.sumOf { it.total })
 
                 if (balanceStatus == "due") {
                     Spacer(Modifier.height(DsSpacing.sm))

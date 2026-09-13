@@ -45,6 +45,7 @@ import com.distrigo.app.data.model.SupplierTransaction
 import com.distrigo.app.ui.common.ElasticUnderlineTabRow
 import com.distrigo.app.ui.common.ImageCapture
 import com.distrigo.app.ui.common.QuickActionButton
+import com.distrigo.app.ui.common.BalanceAdjustments
 import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
@@ -552,6 +553,12 @@ fun SupplierDetailScreen(
                     Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
                     StatCell(modifier = Modifier.weight(1f), label = "Solde dû", value = kotlin.math.abs(currentSupplier.balance), color = DsColors.Danger)
                 }
+
+                // What turns "Total facturé − Total payé" into the Solde dû beside them.
+                BalanceAdjustments(
+                    returns        = supplierRetours.sumOf { it.total },
+                    initialBalance = currentSupplier.initial_balance
+                )
 
                 if (balanceStatus == "due") {
                     Spacer(Modifier.height(DsSpacing.sm))
