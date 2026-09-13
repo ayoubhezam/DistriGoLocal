@@ -2,16 +2,21 @@ package com.distrigo.app.ui.tournees
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -21,7 +26,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.data.model.Tournee
+import com.distrigo.app.data.model.TourneeSecteur
 import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SecteurPickerSheet
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -46,8 +53,20 @@ fun TourneeFormScreen(
     }
     var note               by remember { mutableStateOf(tournee?.note ?: "") }
 
+    // The tournee's own secteurs, held as the snapshot pairs that get written to tournee_secteurs.
+    // Order is the order they were picked in, and is what `order_index` records on save.
+    var selectedSecteurs   by remember { mutableStateOf(tournee?.secteurs ?: emptyList()) }
+
     var showWilayaSheet    by remember { mutableStateOf(false) }
     var showCommuneSheet   by remember { mutableStateOf(false) }
+    var showSecteurSheet   by remember { mutableStateOf(false) }
+
+    // Secteurs belong to a commune, so the picker's list follows whichever commune is chosen.
+    val communeSecteurs by viewModel.secteurs.collectAsState()
+
+    LaunchedEffect(communeName) {
+        if (communeName.isNotBlank()) viewModel.loadSecteurs(communeName)
+    }
 
     var communeError       by remember { mutableStateOf("") }
     var isSaving           by remember { mutableStateOf(false) }
@@ -75,6 +94,7 @@ fun TourneeFormScreen(
                 wilayaName  = wilayaName.trim().ifEmpty { null },
                 communeName = communeName.trim().ifEmpty { null },
                 note        = note.trim().ifEmpty { null },
+                secteurs    = selectedSecteurs,
                 onSuccess   = { onSaved() },
                 onError     = { isSaving = false }
             )
@@ -84,6 +104,7 @@ fun TourneeFormScreen(
                 wilayaName  = wilayaName.trim().ifEmpty { null },
                 communeName = communeName.trim().ifEmpty { null },
                 note        = note.trim().ifEmpty { null },
+                secteurs    = selectedSecteurs,
                 onSuccess   = { onSaved() },
                 onError     = { isSaving = false }
             )
@@ -152,6 +173,33 @@ fun TourneeFormScreen(
                 onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
             )
 
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Secteurs (optionnel) ──
+            //
+            // Optional and plural: one round can cover several secteurs of the same commune. The
+            // field is the "add" affordance; what has been picked is shown underneath as chips that
+            // remove themselves, so the whole selection is visible before the tournee is created.
+            DsSelectorField(
+                label       = "Secteurs (optionnel)",
+                value       = "",
+                placeholder = when {
+                    communeName.isBlank()        -> "Choisissez d'abord une commune"
+                    selectedSecteurs.isEmpty()   -> "Sélectionner un ou plusieurs secteurs"
+                    else                         -> "Ajouter un autre secteur"
+                },
+                onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
+            )
+
+            if (selectedSecteurs.isNotEmpty()) {
+                Spacer(Modifier.height(DsSpacing.sm))
+                SelectedSecteurChips(
+                    secteurs = selectedSecteurs,
+                    onRemove = { secteur ->
+                        selectedSecteurs = selectedSecteurs.filterNot { it.secteurId == secteur.secteurId }
+                    }
+                )
+            }
 
             Spacer(Modifier.height(DsSpacing.md))
 
@@ -202,6 +250,9 @@ fun TourneeFormScreen(
                     wilayaName         = wilaya.nameFr
                     selectedWilayaCode = wilaya.wilayaCode
                     communeName        = ""
+                    // A secteur belongs to one commune, so a change of ground drops the selection
+                    // rather than carrying a Souk Ahras secteur onto a Sédrata tournee.
+                    selectedSecteurs   = emptyList()
                 }
             )
         }
@@ -215,9 +266,91 @@ fun TourneeFormScreen(
                 itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
                 onDismiss  = { showCommuneSheet = false },
                 onSelect   = { (_, commune) ->
-                    communeName = commune.nameFr
+                    communeName      = commune.nameFr
+                    selectedSecteurs = emptyList()
                 }
             )
+        }
+        if (showSecteurSheet) {
+            SecteurPickerSheet(
+                communeName = communeName,
+                wilayaName  = wilayaName,
+                secteurs    = communeSecteurs,
+                // Non-null puts the sheet in multi-select mode: checkboxes, and it stays open.
+                selectedIds = selectedSecteurs.map { it.secteurId }.toSet(),
+                onDismiss   = { showSecteurSheet = false },
+                onSelect    = { secteur ->
+                    val already = selectedSecteurs.any { it.secteurId == secteur.id }
+                    selectedSecteurs =
+                        if (already) selectedSecteurs.filterNot { it.secteurId == secteur.id }
+                        else selectedSecteurs + TourneeSecteur(secteurId = secteur.id, nom = secteur.nom)
+                },
+                onAddNew    = { nom ->
+                    viewModel.createSecteur(
+                        nom         = nom,
+                        communeName = communeName,
+                        wilayaName  = wilayaName.ifEmpty { null },
+                        // A secteur created from here is one the user means to use, so it joins the
+                        // selection straight away instead of asking them to tick it afterwards.
+                        onSuccess   = { secteur ->
+                            if (selectedSecteurs.none { it.secteurId == secteur.id }) {
+                                selectedSecteurs = selectedSecteurs + TourneeSecteur(secteur.id, secteur.nom)
+                            }
+                        },
+                        onError     = { }
+                    )
+                }
+            )
+        }
+    }
+}
+
+/**
+ * The picked secteurs, each removable on its own.
+ *
+ * A [FlowRow] rather than a [Row]: secteur names are free text, and four of them would otherwise
+ * run off the edge of the screen with no way to reach the later ones.
+ *
+ * The whole chip removes, not just the ×. Hanging the click on a 16dp icon would be a target a
+ * third the width of a fingertip; the chip is 36dp tall and as wide as its name, and the × stays
+ * as the affordance that says what tapping it does. An [IconButton], which is how the rest of the
+ * app reaches 48dp, is 48dp square and would be taller than the chip it sits in.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SelectedSecteurChips(
+    secteurs : List<TourneeSecteur>,
+    onRemove : (TourneeSecteur) -> Unit
+) {
+    FlowRow(
+        modifier              = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs),
+        verticalArrangement   = Arrangement.spacedBy(DsSpacing.xs)
+    ) {
+        secteurs.forEach { secteur ->
+            Row(
+                modifier = Modifier
+                    .heightIn(min = 36.dp)
+                    .clip(DsShapes.pill)
+                    .background(DsColors.PrimaryLight)
+                    .clickable { onRemove(secteur) }
+                    .padding(start = DsSpacing.sm, end = DsSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    secteur.nom,
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = DsColors.Primary
+                )
+                Spacer(Modifier.width(DsSpacing.xs))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Retirer ${secteur.nom}",
+                    tint     = DsColors.Primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

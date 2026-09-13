@@ -298,3 +298,32 @@ val MIGRATION_37_38 = object : Migration(37, 38) {
     }
 }
 
+
+/**
+ * 38 -> 39 - adds `tournee_secteurs`, the join table behind a tournée's secteurs.
+ *
+ * Purely additive: one new table and its index, no data migration. Existing tournées simply have no
+ * rows here, which reads back as an empty secteur list and leaves their card and top bar showing
+ * the commune alone, exactly as before.
+ *
+ * The statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/39.json`) with the table-name
+ * placeholder substituted. **Do not hand-edit these strings** - change the entity, rebuild, and
+ * re-copy.
+ */
+val MIGRATION_38_39 = object : Migration(38, 39) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `tournee_secteurs` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`tournee_id` INTEGER NOT NULL, " +
+                "`secteur_id` INTEGER NOT NULL, " +
+                "`secteur_name` TEXT NOT NULL, " +
+                "`order_index` INTEGER NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_tournee_secteurs_tournee_id_order_index` " +
+                "ON `tournee_secteurs` (`tournee_id`, `order_index`)"
+        )
+    }
+}

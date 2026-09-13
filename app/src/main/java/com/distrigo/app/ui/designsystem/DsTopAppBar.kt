@@ -1,6 +1,8 @@
 package com.distrigo.app.ui.designsystem
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,13 +89,21 @@ val DsTopBarActionSize : Dp = 40.dp
  *   whether that step is satisfied — grey "Choisir un client", blue once one is chosen.
  * @param containerColor defaults to [DsColors.Surface]; screens painted on `SurfaceMuted` pass their
  *   own so the bar does not float on a different white.
+ * @param titleMarquee scrolls the title instead of truncating it. Off by default, because a title
+ *   that is a screen's name is short and a moving one would only be noise. It is meant for the few
+ *   bars whose title is assembled from data of unbounded length - the Tournée's
+ *   "Souk Ahras (secteur 01, secteur 02, ...)" - where the tail is the part worth reading and an
+ *   ellipsis is exactly what hides it. [basicMarquee] only animates when the text overflows, so a
+ *   short one still sits still.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DsTopAppBar(
     title          : String,
     modifier       : Modifier = Modifier,
     subtitle       : String? = null,
     subtitleColor  : Color = DsColors.TextSecondary,
+    titleMarquee   : Boolean = false,
     leading        : DsTopBarLeading = DsTopBarLeading.None,
     size           : DsTopBarSize = DsTopBarSize.Regular,
     containerColor : Color = DsColors.Surface,
@@ -136,7 +146,11 @@ fun DsTopAppBar(
                 fontWeight = if (isLarge) FontWeight.ExtraBold else FontWeight.Bold,
                 color      = DsColors.TextPrimary,
                 maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
+                // Ellipsis and marquee are alternatives, not companions: clipping the string is
+                // what the scroll exists to avoid, and leaving it on would ellipsize the very tail
+                // the marquee is carrying into view.
+                overflow   = if (titleMarquee) TextOverflow.Clip else TextOverflow.Ellipsis,
+                modifier   = if (titleMarquee) Modifier.basicMarquee() else Modifier
             )
             if (subtitle != null) {
                 Text(

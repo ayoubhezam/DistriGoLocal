@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -17,6 +18,21 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.layout.imePadding
+
+/**
+ * The commune's secteurs, with an inline "add a new one" field.
+ *
+ * Two modes, chosen by [selectedIds]:
+ *
+ *  - **single** (`selectedIds == null`) — a client has one secteur, so picking a row reports it and
+ *    closes the sheet. This is what ClientFormScreen uses, unchanged.
+ *  - **multiple** (`selectedIds != null`) — a tournée covers several, so rows carry a checkbox,
+ *    [onSelect] reads as a toggle, and the sheet stays open until "Terminé". Adding a new secteur
+ *    likewise selects it and leaves the sheet open, so several can be created in one pass.
+ *
+ * One component rather than two because everything else about the sheet — the per-commune list, the
+ * numbering, the add field and its validation — is identical between the two callers.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecteurPickerSheet(
@@ -25,10 +41,13 @@ fun SecteurPickerSheet(
     secteurs    : List<Secteur>,
     onDismiss   : () -> Unit,
     onSelect    : (Secteur) -> Unit,
-    onAddNew    : (String) -> Unit
+    onAddNew    : (String) -> Unit,
+    selectedIds : Set<Int>? = null
 ) {
     var showAddField by remember { mutableStateOf(false) }
     var newName       by remember { mutableStateOf("") }
+
+    val isMultiSelect = selectedIds != null
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -44,19 +63,46 @@ fun SecteurPickerSheet(
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.TextPrimary
             )
+            if (isMultiSelect) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    if (selectedIds!!.isEmpty()) "Touchez pour en sélectionner un ou plusieurs"
+                    else "${selectedIds.size} secteur(s) sélectionné(s)",
+                    fontSize = DsTextSize.bodySmall,
+                    color    = if (selectedIds.isEmpty()) DsColors.TextSecondary else DsColors.Primary
+                )
+            }
             Spacer(Modifier.height(DsSpacing.sm))
 
             LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
                 itemsIndexed(secteurs, key = { _, s -> s.id }) { index, secteur ->
-                    Text(
-                        text     = "${(index + 1).toString().padStart(2, '0')}-${secteur.nom}",
-                        fontSize = DsTextSize.body,
-                        color    = DsColors.TextPrimary,
+                    val isSelected = selectedIds?.contains(secteur.id) == true
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(secteur); onDismiss() }
-                            .padding(vertical = DsSpacing.sm)
-                    )
+                            .clickable {
+                                onSelect(secteur)
+                                // Single-select reports one answer and is done; multi-select stays
+                                // open so the next one can be picked without reopening the sheet.
+                                if (!isMultiSelect) onDismiss()
+                            }
+                            .padding(vertical = DsSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text     = "${(index + 1).toString().padStart(2, '0')}-${secteur.nom}",
+                            fontSize = DsTextSize.body,
+                            color    = DsColors.TextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isMultiSelect) {
+                            Checkbox(
+                                checked         = isSelected,
+                                onCheckedChange = { onSelect(secteur) },
+                                colors          = CheckboxDefaults.colors(checkedColor = DsColors.Primary)
+                            )
+                        }
+                    }
                     HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
                 }
                 if (secteurs.isEmpty()) {
@@ -93,7 +139,7 @@ fun SecteurPickerSheet(
                                 onAddNew(newName.trim())
                                 newName = ""
                                 showAddField = false
-                                onDismiss()
+                                if (!isMultiSelect) onDismiss()
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -110,6 +156,16 @@ fun SecteurPickerSheet(
                     Spacer(Modifier.width(6.dp))
                     Text("Ajouter un nouveau secteur", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
+            }
+
+            if (isMultiSelect) {
+                Spacer(Modifier.height(DsSpacing.sm))
+                Button(
+                    onClick  = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape    = DsShapes.medium,
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                ) { Text("Terminé", fontWeight = FontWeight.SemiBold) }
             }
         }
     }

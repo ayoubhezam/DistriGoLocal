@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.TourneeClientInfo
 import com.distrigo.app.data.model.Secteur
+import com.distrigo.app.data.model.TourneeSecteur
 import com.distrigo.app.data.model.Client
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -106,6 +107,43 @@ class TourneeViewModel @Inject constructor(
     }
 
 
+
+    // ── Secteurs of the commune currently chosen in the tournée form ────────────────────────
+    //
+    // Same pair as ClientViewModel's: the picker lists what exists for one commune, and can add to
+    // it. Duplicated rather than shared because the two ViewModels are scoped to different graphs;
+    // the list itself lives in the database, so they never disagree.
+
+    private val _secteurs = MutableStateFlow<List<Secteur>>(emptyList())
+    val secteurs: StateFlow<List<Secteur>> = _secteurs
+
+    fun loadSecteurs(communeName: String) {
+        viewModelScope.launch {
+            try {
+                _secteurs.value = repository.getSecteursForCommune(communeName)
+            } catch (e: Exception) {
+                android.util.Log.e("DISTRIGO", "secteurs error: ${e.message}")
+            }
+        }
+    }
+
+    fun createSecteur(
+        nom         : String,
+        communeName : String,
+        wilayaName  : String?,
+        onSuccess   : (Secteur) -> Unit,
+        onError     : (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val secteur = repository.createSecteur(nom, communeName, wilayaName)
+                loadSecteurs(communeName)
+                onSuccess(secteur)
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
 
     init { loadTournees() }
 
@@ -240,12 +278,13 @@ class TourneeViewModel @Inject constructor(
         wilayaName   : String?,
         communeName  : String?,
         note         : String?,
+        secteurs     : List<TourneeSecteur> = emptyList(),
         onSuccess    : () -> Unit,
         onError      : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.createTournee(nom, wilayaName, communeName, note)
+                repository.createTournee(nom, wilayaName, communeName, note, secteurs)
                 loadTournees()
                 loadOpenTournee()
                 onSuccess()
@@ -295,12 +334,13 @@ class TourneeViewModel @Inject constructor(
         wilayaName   : String?,
         communeName  : String?,
         note         : String?,
+        secteurs     : List<TourneeSecteur> = emptyList(),
         onSuccess    : () -> Unit,
         onError      : (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.updateTournee(id, nom, wilayaName, communeName, note)
+                repository.updateTournee(id, nom, wilayaName, communeName, note, secteurs)
                 loadTournees()
                 loadTourneeDetail(id)
                 onSuccess()

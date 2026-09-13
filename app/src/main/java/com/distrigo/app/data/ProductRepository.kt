@@ -11,7 +11,9 @@ import com.distrigo.app.data.local.entity.ProductImageEntity
 import com.distrigo.app.data.local.entity.MAX_IMAGES_PER_PRODUCT
 import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.data.local.entity.SecteurEntity
+import com.distrigo.app.data.local.entity.TourneeSecteurEntity
 import com.distrigo.app.data.model.Secteur
+import com.distrigo.app.data.model.TourneeSecteur
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
@@ -160,6 +162,8 @@ class ProductRepository(
     }
     private suspend fun TourneeEntity.toTournee(): Tournee {
         val ventesEntities = db.venteDao().getVentesForTournee(this.id)
+        val secteurs = db.tourneeSecteurDao().getForTournee(this.id)
+            .map { TourneeSecteur(secteurId = it.secteur_id, nom = it.secteur_name) }
         val ventes = ventesEntities.map { entity ->
             val count = db.venteDao().getItemsCountForVente(entity.id)
             entity.toVente().copy(items_count = count)
@@ -172,6 +176,7 @@ class ProductRepository(
             date_debut = this.date_debut, date_fin = this.date_fin, note = this.note,
             nom = this.nom, wilaya_id = null, commune_id = null,
             wilaya_name = this.wilaya_name, commune_name = this.commune_name,
+            secteurs = secteurs,
             clients_count = clientsCount, ventes_count = ventesEntities.size,
             total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
         )
@@ -1695,15 +1700,17 @@ class ProductRepository(
     suspend fun getOpenTournee(): Tournee? = db.tourneeDao().getOpenTournee()?.toTournee()
 
     suspend fun createTournee(
-        nom: String, wilayaName: String?, communeName: String?, note: String?
+        nom: String, wilayaName: String?, communeName: String?, note: String?,
+        secteurs: List<TourneeSecteur> = emptyList()
     ): Map<String, Any> {
         val now = java.time.Instant.now().toString()
-        db.tourneeDao().insertTournee(
+        val newId = db.tourneeDao().insertTournee(
             TourneeEntity(
                 status = "ouverte", date_debut = now, date_fin = null, note = note,
                 nom = nom, wilaya_name = wilayaName, commune_name = communeName, created_at = now
             )
-        )
+        ).toInt()
+        replaceTourneeSecteurs(newId, secteurs)
         return mapOf("message" to "Tournée créée avec succès")
     }
 
@@ -1718,10 +1725,32 @@ class ProductRepository(
     }
 
     suspend fun updateTournee(
-        id: Int, nom: String, wilayaName: String?, communeName: String?, note: String?
+        id: Int, nom: String, wilayaName: String?, communeName: String?, note: String?,
+        secteurs: List<TourneeSecteur> = emptyList()
     ): Map<String, Any> {
         db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, note)
+        replaceTourneeSecteurs(id, secteurs)
         return mapOf("message" to "Tournée mise à jour avec succès")
+    }
+
+    /**
+     * The tournée's secteurs are edited as a set, not one at a time, so the whole list is rewritten
+     * rather than diffed — the rows carry no state of their own that a delete could lose, and the
+     * rewrite is what keeps `order_index` equal to the order shown in the form.
+     */
+    private suspend fun replaceTourneeSecteurs(tourneeId: Int, secteurs: List<TourneeSecteur>) {
+        db.tourneeSecteurDao().deleteForTournee(tourneeId)
+        if (secteurs.isEmpty()) return
+        db.tourneeSecteurDao().insertAll(
+            secteurs.mapIndexed { index, secteur ->
+                TourneeSecteurEntity(
+                    tournee_id   = tourneeId,
+                    secteur_id   = secteur.secteurId,
+                    secteur_name = secteur.nom,
+                    order_index  = index
+                )
+            }
+        )
     }
 
     suspend fun deleteTournee(id: Int): Map<String, Any> {
@@ -1729,6 +1758,7 @@ class ProductRepository(
         if (linkedVentes.isNotEmpty()) {
             return mapOf("error" to "Impossible de supprimer : des ventes sont liées à cette tournée")
         }
+        db.tourneeSecteurDao().deleteForTournee(id)
         db.tourneeDao().deleteTourneeById(id)
         return mapOf("message" to "Tournée supprimée avec succès")
     }

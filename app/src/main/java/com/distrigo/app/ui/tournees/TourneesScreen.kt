@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.data.model.Vente
+import com.distrigo.app.data.model.locationLabel
 import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -465,8 +466,16 @@ fun TourneeDetailScreen(
                 // The bar is always fully visible — it never fades or translates; only the stats
                 // banner inside the list below it collapses.
                 DsTopAppBar(
-                    title   = current.nom,
-                    leading = DsTopBarLeading.Back(onBack)
+                    // "Souk Ahras (secteur 01, secteur 02)" - the ground this round covers, which
+                    // is what tells two open tournees apart at a glance.
+                    title        = current.locationLabel(),
+                    // Scrolls whenever the title carries secteurs, rather than past some count of
+                    // them: what overflows a bar is the length of the string, not the number of
+                    // names in it, and two real names ("SKANSKA", "lagifek") already clip where
+                    // three short ones would not. basicMarquee only animates when the text does not
+                    // fit, so a commune on its own, or with one short secteur, still sits still.
+                    titleMarquee = current.secteurs.isNotEmpty(),
+                    leading      = DsTopBarLeading.Back(onBack)
                 ) {
                     Box {
                         IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
@@ -1346,6 +1355,25 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(location, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                }
+            }
+
+            // Its own line rather than appended to the location above: the commune answers "where",
+            // the secteurs answer "which part of it", and the two are read separately. Tournees
+            // created before secteurs existed simply have none and keep the layout they had.
+            if (tournee.secteurs.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        tournee.secteurs.joinToString(", ") { it.nom },
+                        fontSize   = DsTextSize.caption,
+                        fontWeight = FontWeight.Medium,
+                        color      = DsColors.Primary,
+                        maxLines   = 1,
+                        overflow   = TextOverflow.Ellipsis
+                    )
                 }
             }
 
