@@ -7,7 +7,10 @@ package com.distrigo.app.data.model
  * the catalogue on restore:
  *  - `unit_cost` is seeded from `product.purchase_price` but is editable, so re-reading the
  *    product would silently overwrite a negotiated price.
- *  - `unite_par_colis` is seeded to 1, not `product.pack_size`, so it is not derivable at all.
+ *  - `unite_par_colis` is seeded from `product.pack_size` for a "pièce" product (1 when that is 0,
+ *    i.e. never stated, and always 1 otherwise) but is editable per bon: the same product has been
+ *    received as 2, 12, 25 and 50 to a colis. Re-reading the product would overwrite the packaging
+ *    this delivery actually came in, and would pick up any later change to the catalogue value.
  *  - `has_expiry` is seeded false, independent of `product.has_expiry`.
  *  - `quantity` is `nb_colis * unite_par_colis` for "pièce" and `nb_colis` otherwise — a branch on
  *    `product.unit_type`, which is live data that may have changed since.

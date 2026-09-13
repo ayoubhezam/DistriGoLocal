@@ -56,6 +56,9 @@ import com.distrigo.app.ui.purchases.PurchaseViewModel
 import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
 import com.distrigo.app.ui.purchases.formatQty
+import com.distrigo.app.ui.purchases.newPurchaseCartItem
+import com.distrigo.app.ui.purchases.withNbColis
+import com.distrigo.app.ui.purchases.withUniteParColis
 import java.time.LocalDate
 import com.distrigo.app.ui.common.EntityImage
 
@@ -461,13 +464,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                 val id = pendingNewProductId ?: return@LaunchedEffect
                 val newProduct = products.find { it.id == id } ?: return@LaunchedEffect
                 if (cartItems.none { it.product.id == id }) {
-                    session.setFormCartItems(
-                        cartItems + CartItem(
-                            product  = newProduct,
-                            quantity = 1.0,
-                            unitCost = newProduct.purchase_price
-                        )
-                    )
+                    // Seeded exactly as a tap on the list is, so a product starts with the same
+                    // line however it reached the cart.
+                    session.setFormCartItems(cartItems + newPurchaseCartItem(newProduct))
                 }
                 pendingNewProductId = null
             }
@@ -654,15 +653,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     if (!isInCart) {
                                         IconButton(
                                             onClick = {
-                                                session.setFormCartItems(
-                                                    cartItems + CartItem(
-                                                        product       = product,
-                                                        quantity      = 1.0,
-                                                        unitCost      = product.purchase_price,
-                                                        nbColis       = 1.0,
-                                                        uniteParColis = 1
-                                                    )
-                                                )
+                                                // One colis to start: for a `pièce` product
+                                                // that is its catalogue packaging, still editable
+                                                // for this bon. A carton line is built as before.
+                                                session.setFormCartItems(cartItems + newPurchaseCartItem(product))
                                             },
                                             modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
                                         ) {
@@ -828,74 +822,54 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 },
                                 expandedContent = {
                                     if (item.product.unit_type == "pièce") {
-                                        var nbColisStr       by remember(item.nbColis)       { mutableStateOf(formatQty(item.nbColis)) }
                                         var uniteParColisStr by remember(item.uniteParColis) { mutableStateOf(item.uniteParColis.toString()) }
 
-                                        Text("Quantité à réceptionner", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-                                        Spacer(Modifier.height(6.dp))
-                                        Row(
-                                            verticalAlignment     = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            OutlinedTextField(
-                                                value         = nbColisStr,
-                                                onValueChange = { raw ->
-                                                    val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
-                                                        val dot = s.indexOf('.')
-                                                        if (dot < 0) s
-                                                        else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                                                    }
-                                                    nbColisStr = filtered
-                                                    val nb = filtered.toDoubleOrNull()
-                                                    if (nb != null && nb >= 1) {
-                                                        session.setFormCartItems(cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id)
-                                                                ci.copy(nbColis = nb, quantity = nb * ci.uniteParColis)
-                                                            else ci
-                                                        })
-                                                    }
-                                                },
-                                                modifier        = Modifier.weight(1f),
-                                                label           = { Text("Nb colis", fontSize = DsTextSize.caption) },
-                                                singleLine      = true,
-                                                shape           = DsShapes.medium,
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                colors          = dsTextFieldColors(
-                                                    unfocusedBorderColor = DsColors.Border,
-                                                    focusedBorderColor   = DsColors.Primary
-                                                )
+                                        // Counted by the colis, so "+" and "−" step one whole colis
+                                        // and the pieces follow: 30 to a colis, "+" adds 30. The same
+                                        // stepper the carton branch below uses, stepping colis instead
+                                        // of cartons.
+                                        QuantityStepper(
+                                            label         = "Nombre de colis",
+                                            value         = item.nbColis,
+                                            onValueChange = { newNb ->
+                                                // The floor the free-text field enforced before it:
+                                                // under one colis is not a quantity to receive.
+                                                if (newNb >= 1.0) {
+                                                    session.setFormCartItems(cartItems.map { ci ->
+                                                        if (ci.product.id == item.product.id) ci.withNbColis(newNb) else ci
+                                                    })
+                                                }
+                                            },
+                                            formatValue   = ::formatQty,
+                                            min           = 1.0
+                                        )
+
+                                        Spacer(Modifier.height(DsSpacing.md))
+
+                                        // Seeded from the product's packaging, editable for this bon
+                                        // only. Never written back to the product.
+                                        OutlinedTextField(
+                                            value         = uniteParColisStr,
+                                            onValueChange = { raw ->
+                                                val digits = raw.filter { it.isDigit() }
+                                                uniteParColisStr = digits
+                                                val upe = digits.toIntOrNull()
+                                                if (upe != null && upe >= 1) {
+                                                    session.setFormCartItems(cartItems.map { ci ->
+                                                        if (ci.product.id == item.product.id) ci.withUniteParColis(upe) else ci
+                                                    })
+                                                }
+                                            },
+                                            modifier        = Modifier.fillMaxWidth(),
+                                            label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
+                                            singleLine      = true,
+                                            shape           = DsShapes.medium,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            colors          = dsTextFieldColors(
+                                                unfocusedBorderColor = DsColors.Border,
+                                                focusedBorderColor   = DsColors.Primary
                                             )
-                                            Text(
-                                                "×",
-                                                fontSize   = DsTextSize.title,
-                                                fontWeight = FontWeight.Bold,
-                                                color      = DsColors.TextSecondary
-                                            )
-                                            OutlinedTextField(
-                                                value         = uniteParColisStr,
-                                                onValueChange = { raw ->
-                                                    val digits = raw.filter { it.isDigit() }
-                                                    uniteParColisStr = digits
-                                                    val upe = digits.toIntOrNull()
-                                                    if (upe != null && upe >= 1) {
-                                                        session.setFormCartItems(cartItems.map { ci ->
-                                                            if (ci.product.id == item.product.id)
-                                                                ci.copy(uniteParColis = upe, quantity = ci.nbColis * upe)
-                                                            else ci
-                                                        })
-                                                    }
-                                                },
-                                                modifier        = Modifier.weight(1f),
-                                                label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
-                                                singleLine      = true,
-                                                shape           = DsShapes.medium,
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                colors          = dsTextFieldColors(
-                                                    unfocusedBorderColor = DsColors.Border,
-                                                    focusedBorderColor   = DsColors.Primary
-                                                )
-                                            )
-                                        }
+                                        )
                                         Spacer(Modifier.height(DsSpacing.sm))
                                         Box(
                                             modifier = Modifier
