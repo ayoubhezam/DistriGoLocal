@@ -46,13 +46,8 @@ fun ClientSearchPicker(
 ) {
     var clientSearch by remember { mutableStateOf("") }
 
-    val filteredClients = clients.filter { client ->
-        val tokens = clientSearch.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        tokens.isEmpty() || tokens.all { token ->
-            client.name.contains(token, ignoreCase = true) ||
-                    (client.phone?.contains(token, ignoreCase = true) == true)
-        }
-    }
+    // Recomputed only when the list or the search changes; see filterClients.
+    val filteredClients = remember(clients, clientSearch) { filterClients(clients, clientSearch) }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
         DsTopAppBar(

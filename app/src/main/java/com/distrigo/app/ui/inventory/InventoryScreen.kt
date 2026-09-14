@@ -37,6 +37,7 @@ import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.searchProducts
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -612,12 +613,8 @@ private fun InventorySummaryStatCard(icon: androidx.compose.ui.graphics.vector.I
 @Composable
 fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) -> Unit, onDismiss: () -> Unit) {
     var search by remember { mutableStateOf("") }
-    val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    val filtered = products.filter { product ->
-        tokens.isEmpty() || tokens.all { token ->
-            product.name.contains(token, ignoreCase = true) || (product.barcode?.contains(token, ignoreCase = true) == true)
-        }
-    }
+    // Recomputed only when the catalogue or the search changes; see searchProducts.
+    val filtered = remember(products, search) { searchProducts(products, search) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {

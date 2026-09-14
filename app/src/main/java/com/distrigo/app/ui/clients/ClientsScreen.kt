@@ -34,6 +34,8 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.text.style.TextOverflow
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.clientsInDebt
+import com.distrigo.app.ui.common.filterClients
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -127,18 +129,14 @@ fun ClientsScreen(
         )
     }
 
-    val filtered = clients.filter { c ->
-        val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        val matchesSearch = tokens.isEmpty() || tokens.all { token ->
-            c.name.contains(token, ignoreCase = true) || (c.phone?.contains(token, ignoreCase = true) == true)
-        }
-        matchesSearch &&
-                (typeFilter == "all" || c.customer_type == typeFilter) &&
-                (!debtOnly || c.balance > 0)
+    // Recomputed only when the list or a filter changes, not on every recomposition. The search
+    // regex used to be compiled inside the predicate: once per client, per keystroke.
+    val filtered = remember(clients, search, typeFilter, debtOnly) {
+        filterClients(clients, search, typeFilter, debtOnly)
     }
 
-    val debtClients = clients.filter { it.balance > 0 }
-    val totalDebt   = debtClients.sumOf { it.balance }
+    val debtClients = remember(clients) { clientsInDebt(clients) }
+    val totalDebt   = remember(debtClients) { debtClients.sumOf { it.balance } }
 
     Column(
         modifier = modifier

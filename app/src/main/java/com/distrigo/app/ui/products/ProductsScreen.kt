@@ -9,7 +9,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.distrigo.app.ui.common.KeepIndexScrollPosition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,12 +67,6 @@ enum class SortOption(val label: String) {
 }
 
 private data class ActiveFilterEntry(val label: String, val onClear: () -> Unit)
-
-private fun isExpiringSoon(expiryDate: String?, withinDays: Int = 30): Boolean {
-    val date = expiryDate?.let { runCatching { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(it) }.getOrNull() } ?: return false
-    val diffDays = (date.time - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)
-    return diffDays in 0..withinDays
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,35 +135,39 @@ fun ProductsScreen(
         return
     }
 
-    val tokens   = viewModel.searchQuery.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    val filtered = products.filter { product ->
-        (tokens.isEmpty() || tokens.all { token ->
-            product.name.contains(token, ignoreCase = true) ||
-                    (product.barcode?.contains(token, ignoreCase = true) == true)
-        }) &&
-                (viewModel.filterCategoryId == null || product.category_id == viewModel.filterCategoryId) &&
-                (viewModel.filterSousCategorieId == null || product.sous_categorie_id == viewModel.filterSousCategorieId) &&
-                (viewModel.filterMarqueId == null || product.marque_id == viewModel.filterMarqueId) &&
-                (viewModel.filterSupplierId == null || product.supplier_id == viewModel.filterSupplierId) &&
-                (viewModel.filterUnitType == null || product.unit_type == viewModel.filterUnitType) &&
-                (viewModel.filterStockLevel == null || when (viewModel.filterStockLevel) {
-                    "in_stock"     -> product.stock > product.min_stock
-                    "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
-                    "out_of_stock" -> product.stock <= 0
-                    else           -> true
-                }) &&
-                (viewModel.filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
-                (viewModel.filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
-                (!viewModel.filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))
+    // Filtered and sorted only when something they read changes. Inline, both re-ran on every
+    // recomposition — each keystroke, but also opening the sort sheet, a long press, the photo
+    // viewer. Every value the filter reads is a key; ProductListFilters.kt has the logic.
+    val filtered = remember(
+        products,
+        viewModel.searchQuery,
+        viewModel.filterCategoryId,
+        viewModel.filterSousCategorieId,
+        viewModel.filterMarqueId,
+        viewModel.filterSupplierId,
+        viewModel.filterUnitType,
+        viewModel.filterStockLevel,
+        viewModel.filterPriceMin,
+        viewModel.filterPriceMax,
+        viewModel.filterExpiringSoon
+    ) {
+        filterProducts(
+            products = products,
+            query    = viewModel.searchQuery,
+            filters  = ProductListFilters(
+                categoryId      = viewModel.filterCategoryId,
+                sousCategorieId = viewModel.filterSousCategorieId,
+                marqueId        = viewModel.filterMarqueId,
+                supplierId      = viewModel.filterSupplierId,
+                unitType        = viewModel.filterUnitType,
+                stockLevel      = viewModel.filterStockLevel,
+                priceMin        = viewModel.filterPriceMin,
+                priceMax        = viewModel.filterPriceMax,
+                expiringSoon    = viewModel.filterExpiringSoon
+            )
+        )
     }
-    val sorted = when (viewModel.sortOption) {
-        SortOption.NAME_ASC   -> filtered.sortedBy { it.name.lowercase() }
-        SortOption.NAME_DESC  -> filtered.sortedByDescending { it.name.lowercase() }
-        SortOption.STOCK_ASC  -> filtered.sortedBy { it.stock }
-        SortOption.STOCK_DESC -> filtered.sortedByDescending { it.stock }
-        SortOption.PRICE_ASC  -> filtered.sortedBy { it.selling_price }
-        SortOption.PRICE_DESC -> filtered.sortedByDescending { it.selling_price }
-    }
+    val sorted = remember(filtered, viewModel.sortOption) { sortProducts(filtered, viewModel.sortOption) }
 
     val activeFilters = buildList {
         viewModel.filterCategoryId?.let { id ->
@@ -817,11 +818,16 @@ fun ProductsScreen(
                 }
             } else {
                 if (!viewModel.isGridView) {
+                    // Keyed rows would keep the first visible product in view when a search, filter
+                    // or sort changes the list; the list keeps its place by index, as it always has.
+                    val listState = rememberLazyListState()
+                    KeepIndexScrollPosition(listState, sorted)
                     LazyColumn(
+                        state          = listState,
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(sorted) { product ->
+                        items(sorted, key = { it.id }) { product ->
                             ProductCard(product = product,
                                 onClick = { onProductClick(product.id) },
                                 onImageClick = {
@@ -835,13 +841,16 @@ fun ProductsScreen(
                         }
                     }
                 } else {
+                    val gridState = rememberLazyGridState()
+                    KeepIndexScrollPosition(gridState, sorted)
                     LazyVerticalGrid(
+                        state               = gridState,
                         columns             = GridCells.Fixed(2),
                         contentPadding      = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(sorted) { product ->
+                        items(sorted, key = { it.id }) { product ->
                             ProductGridCard(product = product,
                                 onClick = { onProductClick(product.id) },
                                 onImageClick = {

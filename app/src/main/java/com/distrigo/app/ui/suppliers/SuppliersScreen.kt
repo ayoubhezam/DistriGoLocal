@@ -30,6 +30,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.filterSuppliers
+import com.distrigo.app.ui.common.supplierDebtTotal
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -45,14 +47,11 @@ fun SuppliersScreen(
 
     var search by remember { mutableStateOf("") }
 
-    val filtered  = suppliers.filter { supplier ->
-        val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        tokens.isEmpty() || tokens.all { token ->
-            supplier.name.contains(token, ignoreCase = true) || (supplier.phone?.contains(token, ignoreCase = true) == true)
-        }
-    }
+    // Recomputed only when the list or the search changes, not on every recomposition. The
+    // search regex used to be compiled inside the predicate: once per supplier, per keystroke.
+    val filtered  = remember(suppliers, search) { filterSuppliers(suppliers, search) }
 
-    val totalDebt = suppliers.filter { it.balance > 0 }.sumOf { it.balance }
+    val totalDebt = remember(suppliers) { supplierDebtTotal(suppliers) }
 
 
 

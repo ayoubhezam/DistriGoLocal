@@ -41,6 +41,11 @@ import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.OrderListFilters
+import com.distrigo.app.ui.common.filterOrders
+import com.distrigo.app.ui.common.groupOrdersByDay
+import com.distrigo.app.ui.common.suppliersOfOrders
+import com.distrigo.app.ui.common.KeepIndexScrollPosition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,11 +85,7 @@ fun PurchasesScreen(
     LaunchedEffect(Unit) { viewModel.loadOrders() }
 
     // ── Suppliers list (مستخرجة من الأوردرات الموجودة) ──
-    val suppliers = remember(orders) {
-        orders.map { it.supplier_id to it.supplier_name }
-            .distinctBy { it.first }
-            .sortedBy { it.second }
-    }
+    val suppliers = remember(orders) { suppliersOfOrders(orders) }
 
     val hasActiveFilters = viewModel.filterReceptionStatus != null ||
             viewModel.filterPaymentStatus != null ||
@@ -92,43 +93,33 @@ fun PurchasesScreen(
             viewModel.filterDateFrom != null ||
             viewModel.filterDateTo != null
 
-    val filteredOrders = orders.filter { order ->
-        // بحث نصي (token-based)
-        val matchSearch = viewModel.searchQuery.isBlank() || run {
-            val tokens = viewModel.searchQuery.trim()
-                .split("\\s+".toRegex())
-                .filter { it.isNotEmpty() }
-            tokens.all { token ->
-                order.supplier_name.contains(token, ignoreCase = true) ||
-                        order.id.toString().contains(token)
-            }
-        }
-
-        // فلتر حالة الوصل
-        val matchReception = viewModel.filterReceptionStatus == null ||
-                order.status == viewModel.filterReceptionStatus
-
-        // فلتر حالة الدفع
-        val matchPayment = when (viewModel.filterPaymentStatus) {
-            "paye"    -> (order.montant_paye ?: 0.0) >= order.total && order.total > 0
-            "impaye"  -> (order.montant_paye ?: 0.0) <= 0.0
-            "partiel" -> (order.montant_paye ?: 0.0) > 0.0 && (order.montant_paye ?: 0.0) < order.total
-            else      -> true
-        }
-
-        // فلتر المورد
-        val matchSupplier = viewModel.filterSupplierId == null ||
-                order.supplier_id == viewModel.filterSupplierId
-
-        // فلتر التاريخ
-        val orderDate     = order.created_at?.take(10) ?: order.date.take(10)
-        val dateFrom      = viewModel.filterDateFrom
-        val dateTo        = viewModel.filterDateTo
-        val matchDateFrom = dateFrom == null || orderDate >= dateFrom
-        val matchDateTo   = dateTo   == null || orderDate <= dateTo
-
-        matchSearch && matchReception && matchPayment && matchSupplier && matchDateFrom && matchDateTo
+    // Recomputed only when the orders, the search or a filter changes; see filterOrders.
+    val filteredOrders = remember(
+        orders,
+        viewModel.searchQuery,
+        viewModel.filterReceptionStatus,
+        viewModel.filterPaymentStatus,
+        viewModel.filterSupplierId,
+        viewModel.filterDateFrom,
+        viewModel.filterDateTo
+    ) {
+        filterOrders(
+            orders  = orders,
+            query   = viewModel.searchQuery,
+            filters = OrderListFilters(
+                receptionStatus = viewModel.filterReceptionStatus,
+                paymentStatus   = viewModel.filterPaymentStatus,
+                supplierId      = viewModel.filterSupplierId,
+                dateFrom        = viewModel.filterDateFrom,
+                dateTo          = viewModel.filterDateTo
+            )
+        )
     }
+
+    // Keyed rows would keep the first visible bon in view when a search or filter changes the list;
+    // the list keeps its place by index, as it always has. Beside listState rather than the list,
+    // because the state outlives the list while a search shows nothing.
+    KeepIndexScrollPosition(listState, filteredOrders)
 
     // ── Long Press Dialog ──
     longPressOrder?.let { order ->
@@ -643,9 +634,7 @@ fun PurchasesScreen(
                     }
                 }
             } else {
-                val groupedOrders = filteredOrders.groupBy { order ->
-                    order.created_at?.take(10) ?: order.date.take(10)
-                }
+                val groupedOrders = remember(filteredOrders) { groupOrdersByDay(filteredOrders) }
                 // ── List ──
                 LazyColumn(
                     state               = listState,
@@ -654,7 +643,9 @@ fun PurchasesScreen(
                     modifier            = Modifier.weight(1f)
                 ) {
                     groupedOrders.forEach { (date, dayOrders) ->
-                        item {
+                        // Keyed, like the rows under it, so a new bon at the top does not shift
+                        // every row's identity down by one.
+                        item(key = "date_$date") {
                             Text(
                                 text       = formatOrderDate(date),
                                 fontSize   = DsTextSize.bodySmall,
@@ -663,7 +654,7 @@ fun PurchasesScreen(
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
                         }
-                        items(dayOrders) { order ->
+                        items(dayOrders, key = { it.id }) { order ->
                             PurchaseOrderCard(
                                 order   = order,
                                 onClick = {

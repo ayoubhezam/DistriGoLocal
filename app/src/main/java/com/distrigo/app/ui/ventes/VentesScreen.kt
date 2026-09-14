@@ -9,6 +9,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.distrigo.app.ui.common.KeepIndexScrollPosition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,6 +46,11 @@ import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.VenteListFilters
+import com.distrigo.app.ui.common.clientsOfVentes
+import com.distrigo.app.ui.common.depotVentesOf
+import com.distrigo.app.ui.common.filterVentes
+import com.distrigo.app.ui.common.groupVentesByDay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +67,10 @@ fun VentesScreen(
     val ventes      by viewModel.ventes.collectAsState()
     val drafts      by viewModel.drafts.collectAsState()
     var showDraftsSheet by remember { mutableStateOf(false) }
-    val depotVentes = ventes.filter { it.source == "depot" }
+    // Remembered against `ventes`, which only changes when the list reloads. Built inline, this
+    // was a new list on every recomposition, so the remember(depotVentes) below — keyed on it —
+    // never once reused its result.
+    val depotVentes = remember(ventes) { depotVentesOf(ventes) }
     val isLoading   by viewModel.isLoading.collectAsState()
     val error       by viewModel.error.collectAsState()
 
@@ -78,12 +88,7 @@ fun VentesScreen(
     LaunchedEffect(Unit) { viewModel.loadVentes() }
 
     // ── Clients list (مستخرجة من المبيعات الموجودة) ──
-    val clients = remember(depotVentes) {
-        depotVentes
-            .map { it.client_id to it.client_name }
-            .distinctBy { it.first }
-            .sortedBy { it.second }
-    }
+    val clients = remember(depotVentes) { clientsOfVentes(depotVentes) }
 
     val hasActiveFilters = viewModel.filterStatus != null ||
             viewModel.filterPaymentStatus != null ||
@@ -91,35 +96,27 @@ fun VentesScreen(
             viewModel.filterDateFrom != null ||
             viewModel.filterDateTo != null
 
-    val filteredVentes = depotVentes.filter { vente ->
-        val matchSearch = viewModel.searchQuery.isBlank() || run {
-            val tokens = viewModel.searchQuery.trim()
-                .split("\\s+".toRegex())
-                .filter { it.isNotEmpty() }
-            tokens.all { token ->
-                vente.client_name.contains(token, ignoreCase = true) ||
-                        vente.id.toString().contains(token)
-            }
-        }
-
-        val matchStatus = viewModel.filterStatus == null || vente.status == viewModel.filterStatus
-
-        val matchPayment = when (viewModel.filterPaymentStatus) {
-            "paye"    -> (vente.montant_paye ?: 0.0) >= vente.total && vente.total > 0
-            "impaye"  -> (vente.montant_paye ?: 0.0) <= 0.0
-            "partiel" -> (vente.montant_paye ?: 0.0) > 0.0 && (vente.montant_paye ?: 0.0) < vente.total
-            else      -> true
-        }
-
-        val matchClient = viewModel.filterClientId == null || vente.client_id == viewModel.filterClientId
-
-        val venteDate     = vente.created_at?.take(10) ?: ""
-        val dateFrom      = viewModel.filterDateFrom
-        val dateTo        = viewModel.filterDateTo
-        val matchDateFrom = dateFrom == null || venteDate >= dateFrom
-        val matchDateTo   = dateTo   == null || venteDate <= dateTo
-
-        matchSearch && matchStatus && matchPayment && matchClient && matchDateFrom && matchDateTo
+    // Recomputed only when the depot list, the search or a filter changes; see filterVentes.
+    val filteredVentes = remember(
+        depotVentes,
+        viewModel.searchQuery,
+        viewModel.filterStatus,
+        viewModel.filterPaymentStatus,
+        viewModel.filterClientId,
+        viewModel.filterDateFrom,
+        viewModel.filterDateTo
+    ) {
+        filterVentes(
+            ventes  = depotVentes,
+            query   = viewModel.searchQuery,
+            filters = VenteListFilters(
+                status        = viewModel.filterStatus,
+                paymentStatus = viewModel.filterPaymentStatus,
+                clientId      = viewModel.filterClientId,
+                dateFrom      = viewModel.filterDateFrom,
+                dateTo        = viewModel.filterDateTo
+            )
+        )
     }
 
     // ── Long Press Dialog ──
@@ -595,10 +592,16 @@ fun VentesScreen(
                     }
                 }
             } else {
-                val groupedVentes = filteredVentes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
+                val groupedVentes = remember(filteredVentes) { groupVentesByDay(filteredVentes) }
+
+                // Keyed rows would keep the first visible sale in view when a search or filter
+                // changes the list; the list keeps its place by index, as it always has.
+                val listState = rememberLazyListState()
+                KeepIndexScrollPosition(listState, filteredVentes)
 
                 // ── List ──
                 LazyColumn(
+                    state               = listState,
                     // Bottom pad clears the raised FAB (clearance + 56dp FAB), so the last card
                     // scrolls out from under it rather than sitting behind the button and nav bar.
                     contentPadding      = PaddingValues(
@@ -612,7 +615,9 @@ fun VentesScreen(
                 ) {
                     groupedVentes.forEach { (date, dayVentes) ->
                         // ── Date Header ──
-                        item {
+                        // Keyed, like the rows under it, so a new sale at the top does not shift
+                        // every row's identity down by one.
+                        item(key = "date_$date") {
                             Text(
                                 text       = formatOrderDate(date),
                                 fontSize   = DsTextSize.bodySmall,
@@ -621,7 +626,7 @@ fun VentesScreen(
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
                         }
-                        items(dayVentes) { vente ->
+                        items(dayVentes, key = { it.id }) { vente ->
                             VenteCard(
                                 vente       = vente,
                                 onClick     = { onVenteClick(vente.id) },

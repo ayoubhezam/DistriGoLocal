@@ -47,6 +47,7 @@ import com.distrigo.app.ui.ventes.VenteFormSessionViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.common.searchProducts
 
 /**
  * Resolves the session that owns this pass through the form, and enters it.
@@ -264,13 +265,8 @@ fun NavGraphBuilder.venteFormGraph(
                 if (skipClientStep) onBack() else navController.popBackStack()
             }
 
-            val filteredProducts = products.filter { product ->
-                val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-                tokens.isEmpty() || tokens.all { token ->
-                    product.name.contains(token, ignoreCase = true) ||
-                            (product.barcode?.contains(token, ignoreCase = true) == true)
-                }
-            }
+            // Recomputed only when the catalogue or the search changes; see searchProducts.
+            val filteredProducts = remember(products, search) { searchProducts(products, search) }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
