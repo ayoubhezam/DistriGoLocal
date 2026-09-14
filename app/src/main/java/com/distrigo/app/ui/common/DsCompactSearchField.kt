@@ -49,8 +49,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 // Two entry points share a single surface, so they cannot drift apart:
 //  - DsCompactSearchField   — a search box you type into.
 //  - DsCompactSearchTrigger — something that looks like that search box and opens a picker when
-//    tapped (the Rapports client/product bars), or stands in for one that is not available yet
-//    (the "choose a supplier first" preview on a form's first step).
+//    tapped, or stands in for one that is not available yet (the "choose a supplier first"
+//    preview on a form's first step).
 //
 // Placeholders follow one rule: "Rechercher un/une <what the list holds>", short enough to sit on
 // one line beside the scanner on a narrow phone. A second term is kept only where it names a

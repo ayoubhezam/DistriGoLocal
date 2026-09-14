@@ -41,9 +41,7 @@ fun TourneesHubScreen(
     onFullScreenChange : (Boolean) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
-    onProfileClick       : () -> Unit = {},
-
-    onOpenClientDetail : (Int) -> Unit = {}   // ← جديد
+    onProfileClick       : () -> Unit = {}
 ) {
     val navController = rememberNavController()
 
@@ -78,13 +76,6 @@ fun TourneesHubScreen(
             StockCamionScreen(
                 onBack             = { navController.popBackStack() },
                 onFullScreenChange = onFullScreenChange
-            )
-        }
-
-        composable(Screen.VentesHubRapports.route) {
-            com.distrigo.app.ui.screens.rapport.RapportTourneesScreen(
-                onBack = { navController.popBackStack() },
-                onOpenClientDetail = onOpenClientDetail   // ← جديد
             )
         }
 
@@ -183,14 +174,6 @@ fun TourneesHubScreen(
                             title       = "Stock Camion",
                             subtitle    = "Consulter le stock et les produits disponibles dans les camions",
                             onClick     = { navController.navigate(Screen.VentesHubStockCamion.route) }
-                        )
-                        HubNavCard(
-                            icon        = Icons.Default.PieChart,
-                            iconBg      = DsColors.PrimaryLight,
-                            iconTint    = DsColors.Primary,
-                            title       = "Rapports",
-                            subtitle    = "Analysez vos performances de vente",
-                            onClick     = { navController.navigate(Screen.VentesHubRapports.route) }
                         )
                     }
                 }

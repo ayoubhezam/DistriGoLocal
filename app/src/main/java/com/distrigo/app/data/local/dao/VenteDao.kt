@@ -78,18 +78,6 @@ interface VenteDao {
     suspend fun getVentesBySourceBetween(source: String, start: String, end: String): List<VenteEntity>
 
     @Query("""
-    SELECT * FROM ventes 
-    WHERE created_at >= :start AND created_at < :end 
-    ORDER BY created_at ASC
-""")
-    suspend fun getVentesBetween(start: String, end: String): List<VenteEntity>
-
-
-
-    @Query("SELECT client_id, created_at FROM ventes WHERE client_id IS NOT NULL")
-    suspend fun getAllVenteClientDates(): List<VenteClientDate>
-
-    @Query("""
         SELECT vi.product_id AS product_id, SUM(vi.quantity) AS total_quantity
         FROM vente_items vi
         INNER JOIN ventes v ON v.id = vi.vente_id
@@ -134,11 +122,6 @@ interface VenteDao {
     """)
     suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int
 }
-
-data class VenteClientDate(
-    val client_id: Int,
-    val created_at: String
-)
 
 /** A sale with the two things its tournée detail row shows that the `ventes` table does not hold. */
 data class TourneeVenteRow(

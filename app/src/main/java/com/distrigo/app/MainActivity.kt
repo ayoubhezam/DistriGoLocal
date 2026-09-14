@@ -211,10 +211,7 @@ class MainActivity : ComponentActivity() {
                                     onFullScreenChange = { hideBottomBar = it },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
-                                    onProfileClick       = { /* TODO: profile */ },
-                                    onOpenClientDetail = { clientId ->
-                                        navController.navigate(Screen.PlusClients.createRoute(clientId))
-                                    }
+                                    onProfileClick       = { /* TODO: profile */ }
                                 )
                             }
 
