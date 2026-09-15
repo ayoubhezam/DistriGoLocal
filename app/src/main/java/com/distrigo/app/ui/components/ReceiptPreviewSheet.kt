@@ -36,6 +36,7 @@ import java.io.FileOutputStream
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import java.util.Locale
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.asImageBitmap
 
 private val Ink       = Color(0xFF14213D)
@@ -62,6 +63,8 @@ fun ReceiptPreviewSheet(
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var generatingPdf by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -260,8 +263,19 @@ fun ReceiptPreviewSheet(
             ) {
                 Button(
                     onClick = {
-                        val file = ReceiptPdfGenerator.generate(context, receipt)
-                        printReceiptPdf(context, file, receipt.documentTitle)
+                        // The PDF now takes a moment to generate off the main thread; a second tap
+                        // in that moment would open a second print job.
+                        if (!generatingPdf) {
+                            generatingPdf = true
+                            scope.launch {
+                                try {
+                                    val file = ReceiptPdfGenerator.generate(context, receipt)
+                                    printReceiptPdf(context, file, receipt.documentTitle)
+                                } finally {
+                                    generatingPdf = false
+                                }
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape    = RoundedCornerShape(16.dp),

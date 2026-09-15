@@ -9,6 +9,8 @@ import com.distrigo.app.data.repository.ChargeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -80,30 +82,48 @@ class ChargeViewModel @Inject constructor(
         _selectedMonth.value = month
     }
 
+    // The screen opening and init both ask for the types, and saves ask again. A new request cancels
+    // the one still running, so the two opening loads collapse into one and a slow earlier load can
+    // never overwrite a newer result. Subtypes work the same way.
+    private var chargeTypesLoad: Job? = null
+    private var chargeTypesGeneration = 0
+    private var subTypesLoad: Job? = null
+    private var subTypesGeneration = 0
+
     fun loadChargeTypes() {
-        viewModelScope.launch {
+        chargeTypesLoad?.cancel()
+        val generation = ++chargeTypesGeneration
+        chargeTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
                 _chargeTypes.value = repository.getChargeTypesWithStats(_selectedMonth.value)
                 _error.value = null
+            } catch (e: CancellationException) {
+                throw e   // superseded by a newer load: not an error to show
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
-                _isLoading.value = false
+                // A cancelled load finishes after its replacement has started; only the latest
+                // load may turn the spinner off.
+                if (generation == chargeTypesGeneration) _isLoading.value = false
             }
         }
     }
 
     fun loadSubTypes(typeId: Int) {
-        viewModelScope.launch {
+        subTypesLoad?.cancel()
+        val generation = ++subTypesGeneration
+        subTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
                 _subTypes.value = repository.getSubTypesWithStats(typeId, _selectedMonth.value)
                 _error.value = null
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
-                _isLoading.value = false
+                if (generation == subTypesGeneration) _isLoading.value = false
             }
         }
     }

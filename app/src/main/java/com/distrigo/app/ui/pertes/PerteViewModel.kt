@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -98,16 +100,28 @@ class PerteViewModel @Inject constructor(
         _selectedMonth.value = month
     }
 
+    // The screen opening and init both ask for the types, and every save asks again. A new request
+    // cancels the one still running, so the two opening loads collapse into one and a slow earlier
+    // load can never overwrite a newer result.
+    private var perteTypesLoad: Job? = null
+    private var perteTypesGeneration = 0
+
     fun loadPerteTypes() {
-        viewModelScope.launch {
+        perteTypesLoad?.cancel()
+        val generation = ++perteTypesGeneration
+        perteTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
                 _perteTypes.value = repository.getPerteTypesWithStats(_selectedMonth.value)
                 _error.value = null
+            } catch (e: CancellationException) {
+                throw e   // superseded by a newer load: not an error to show
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
-                _isLoading.value = false
+                // A cancelled load finishes after its replacement has started; only the latest
+                // load may turn the spinner off.
+                if (generation == perteTypesGeneration) _isLoading.value = false
             }
         }
     }

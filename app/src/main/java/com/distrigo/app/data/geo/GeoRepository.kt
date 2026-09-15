@@ -13,26 +13,37 @@ import com.google.gson.reflect.TypeToken
  */
 object GeoRepository {
 
-    private var wilayas: List<Wilaya> = emptyList()
-    private var isLoaded = false
+    @Volatile private var appContext: Context? = null
 
-    fun init(context: Context) {
-        if (isLoaded) return
-        val appContext = context.applicationContext
-        appContext.assets.open("wilayas.json").bufferedReader().use { reader ->
+    // Parsed once, by whichever thread asks first. `lazy` is synchronized: a form that asks while
+    // the parse is running waits for it rather than seeing an empty list. MainActivity starts the
+    // parse off the main thread straight after setContent; it used to run before setContent, on the
+    // main thread, and every cold start paid for it before its first frame.
+    private val parsedWilayas: List<Wilaya> by lazy {
+        val context = checkNotNull(appContext) { "GeoRepository.init must be called before use" }
+        context.assets.open("wilayas.json").bufferedReader().use { reader ->
             val type = object : TypeToken<List<Wilaya>>() {}.type
-            wilayas = Gson().fromJson(reader, type)
+            Gson().fromJson<List<Wilaya>>(reader, type)
         }
-        isLoaded = true
     }
 
-    fun getWilayas(): List<Wilaya> = wilayas
+    /** Remembers where to read the file from. Cheap: the file is not opened here. */
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
+
+    /** Parses the file now, on the calling thread, unless it has been already. */
+    fun preload() {
+        parsedWilayas
+    }
+
+    fun getWilayas(): List<Wilaya> = parsedWilayas
 
     fun getCommunes(wilayaCode: Int): List<Commune> =
-        wilayas.find { it.wilayaCode == wilayaCode }?.communes ?: emptyList()
+        parsedWilayas.find { it.wilayaCode == wilayaCode }?.communes ?: emptyList()
 
     fun findWilayaByFrName(name: String?): Wilaya? =
-        name?.let { n -> wilayas.find { it.nameFr.equals(n, ignoreCase = true) } }
+        name?.let { n -> parsedWilayas.find { it.nameFr.equals(n, ignoreCase = true) } }
 
     fun findCommuneByFrName(wilayaCode: Int, name: String?): Commune? =
         name?.let { n -> getCommunes(wilayaCode).find { it.nameFr.equals(n, ignoreCase = true) } }

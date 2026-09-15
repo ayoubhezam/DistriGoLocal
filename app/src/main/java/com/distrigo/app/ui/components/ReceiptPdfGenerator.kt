@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.components
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
@@ -11,12 +12,18 @@ import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object ReceiptPdfGenerator {
 
     private const val PAGE_WIDTH  = 595
     private const val PAGE_HEIGHT = 842
     private const val MARGIN      = 32f
+
+    // The logo fills a 34 pt square; 256 px across is over 500 dpi at that size, more than any
+    // printer uses. See decodeLogo.
+    private const val LOGO_TARGET_PX = 256
 
     private fun formatAmount(value: Double): String = "%.2f".format(value)
 
@@ -30,7 +37,16 @@ object ReceiptPdfGenerator {
     private fun referenceNumber(documentTitle: String) =
         documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
-    fun generate(context: Context, receipt: ReceiptData): File {
+    /**
+     * Draws the receipt into a one-page PDF in the cache and returns the file.
+     *
+     * On [Dispatchers.IO]. Drawing the page, decoding the logo, generating the QR code and writing
+     * the file used to run inside the button's click handler, on the main thread.
+     */
+    suspend fun generate(context: Context, receipt: ReceiptData): File =
+        withContext(Dispatchers.IO) { render(context, receipt) }
+
+    private fun render(context: Context, receipt: ReceiptData): File {
         val pdfDocument = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
         val page = pdfDocument.startPage(pageInfo)
@@ -68,10 +84,11 @@ object ReceiptPdfGenerator {
         val right = PAGE_WIDTH - MARGIN
         var y = MARGIN + 20f
 
+        var logoBmp: Bitmap? = null
         receipt.businessLogoPath?.let { path ->
             val file = File(path)
             if (file.exists()) {
-                val logoBmp = BitmapFactory.decodeFile(file.absolutePath)
+                logoBmp = decodeLogo(file)
                 logoBmp?.let { canvas.drawBitmap(it, null, RectF(left, y - 22f, left + 34f, y + 12f), null) }
             }
         }
@@ -202,8 +219,33 @@ object ReceiptPdfGenerator {
         val file = File(dir, "recu_${safeName}_${System.currentTimeMillis()}.pdf")
         FileOutputStream(file).use { pdfDocument.writeTo(it) }
         pdfDocument.close()
+        logoBmp?.recycle()
 
         return file
+    }
+
+    /**
+     * The logo decoded no larger than it is drawn. A photo chosen as the logo used to be decoded
+     * whole — tens of megabytes for a camera image — to fill a 34 pt square.
+     */
+    private fun decodeLogo(file: File): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = logoSampleSize(bounds.outWidth, bounds.outHeight, LOGO_TARGET_PX)
+        }
+        return BitmapFactory.decodeFile(file.absolutePath, options)
+    }
+
+    /**
+     * The largest power-of-two sample size that keeps both sides of a [width] × [height] image at
+     * least [targetPx] — 1 when the image is already that small, so a small logo decodes as before.
+     */
+    internal fun logoSampleSize(width: Int, height: Int, targetPx: Int): Int {
+        var sample = 1
+        while (width / (sample * 2) >= targetPx && height / (sample * 2) >= targetPx) sample *= 2
+        return sample
     }
 
     fun getShareableUri(context: Context, file: File) =

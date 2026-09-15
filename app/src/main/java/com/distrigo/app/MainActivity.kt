@@ -79,6 +79,7 @@ import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -357,6 +358,12 @@ class MainActivity : ComponentActivity() {
         // a run that never finishes is resumed next launch — see ImageBackfill.
         lifecycleScope.launch {
             com.distrigo.app.data.image.ImageBackfill.runIfNeeded(this@MainActivity, database)
+        }
+
+        // Parses the wilaya/commune file off the main thread. It used to be parsed before
+        // setContent; GeoRepository.init above now only records the context.
+        lifecycleScope.launch(Dispatchers.IO) {
+            com.distrigo.app.data.geo.GeoRepository.preload()
         }
     }
 

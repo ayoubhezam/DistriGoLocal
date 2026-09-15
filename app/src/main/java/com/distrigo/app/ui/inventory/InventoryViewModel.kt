@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
 import javax.inject.Inject
@@ -135,10 +137,17 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
+    // The history screen loads on opening, and finishing or cancelling a session loads it again.
+    // A new request cancels the one still running, so a slower earlier load cannot overwrite it.
+    private var historyLoad: Job? = null
+
     fun loadHistory() {
-        viewModelScope.launch {
+        historyLoad?.cancel()
+        historyLoad = viewModelScope.launch {
             try {
                 _history.value = repository.getAllSessionsHistory()
+            } catch (e: CancellationException) {
+                throw e   // superseded by a newer load: not an error to show
             } catch (e: Exception) {
                 _error.value = e.message
             }

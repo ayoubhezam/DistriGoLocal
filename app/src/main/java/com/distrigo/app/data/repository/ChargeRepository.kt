@@ -7,6 +7,8 @@ import com.distrigo.app.data.local.entity.ChargeTypeEntity
 import com.distrigo.app.data.model.Charge
 import com.distrigo.app.data.model.ChargeSubType
 import com.distrigo.app.data.model.ChargeType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ChargeRepository(
     private val chargeDao: ChargeDao
@@ -94,11 +96,13 @@ class ChargeRepository(
     }
 
     // ── Charge Types ──
-    suspend fun getChargeTypesWithStats(month: String? = null): List<ChargeType> {
+    // On Dispatchers.Default, like getSubTypesWithStats: the filtering and summing ran on the
+    // caller's thread, which is the main thread for every ViewModel. What it computes is unchanged.
+    suspend fun getChargeTypesWithStats(month: String? = null): List<ChargeType> = withContext(Dispatchers.Default) {
         val types = chargeDao.getAllChargeTypes()
         val allCharges = chargeDao.getAllCharges()
         val targetMonth = month ?: currentMonth()
-        return types.map { type ->
+        types.map { type ->
             val subtypesCount = chargeDao.getSubTypesForType(type.id).size
             val monthTotal = allCharges
                 .filter { it.type_id == type.id && it.date_time.take(7) == targetMonth }
@@ -131,10 +135,10 @@ class ChargeRepository(
     }
 
     // ── Charge SubTypes ──
-    suspend fun getSubTypesWithStats(typeId: Int, month: String? = null): List<ChargeSubType> {
+    suspend fun getSubTypesWithStats(typeId: Int, month: String? = null): List<ChargeSubType> = withContext(Dispatchers.Default) {
         val subtypes = chargeDao.getSubTypesForType(typeId)
         val targetMonth = month ?: currentMonth()
-        return subtypes.map { sub ->
+        subtypes.map { sub ->
             val monthCharges = chargeDao.getChargesForSubType(sub.id)
                 .filter { it.date_time.take(7) == targetMonth }
             sub.toChargeSubType(

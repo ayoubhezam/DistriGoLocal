@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.launch
 
 private val InkColor = Color(0xFF14213D)
 
@@ -35,6 +36,8 @@ fun ShareOptionsSheet(
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var exportingPdf by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -69,8 +72,16 @@ fun ShareOptionsSheet(
                 subtitle = "Enregistrer ou envoyer le fichier",
                 icon     = { Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFFC62828), modifier = Modifier.size(20.dp)) },
                 onClick  = {
-                    sharePdfFile(context, receipt)
-                    onDismiss()
+                    // The PDF now takes a moment to generate off the main thread; a second tap in
+                    // that moment would make a second file and open a second share. The sheet still
+                    // closes only once the share has opened, as before.
+                    if (!exportingPdf) {
+                        exportingPdf = true
+                        scope.launch {
+                            sharePdfFile(context, receipt)
+                            onDismiss()
+                        }
+                    }
                 }
             )
 
@@ -167,7 +178,7 @@ private fun shareViaWhatsApp(context: Context, receipt: ReceiptData) {
     }
 }
 
-private fun sharePdfFile(context: Context, receipt: ReceiptData) {
+private suspend fun sharePdfFile(context: Context, receipt: ReceiptData) {
     val file = ReceiptPdfGenerator.generate(context, receipt)
     val uri  = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val intent = Intent(Intent.ACTION_SEND).apply {

@@ -10,6 +10,8 @@ import com.distrigo.app.data.model.InventorySessionSummary
 import kotlin.math.abs
 import com.distrigo.app.data.model.InventorySessionHistory
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 class InventoryRepository(
     private val db: AppDatabase
 ) {
@@ -190,9 +192,11 @@ class InventoryRepository(
         }
     }
 
-    suspend fun getAllSessionsHistory(): List<InventorySessionHistory> {
+    // On Dispatchers.Default: the per-session counting and summing ran on the caller's thread, which
+    // is the main thread for InventoryViewModel. What it computes is unchanged.
+    suspend fun getAllSessionsHistory(): List<InventorySessionHistory> = withContext(Dispatchers.Default) {
         val sessions = inventoryDao.getAllSessions()   // déjà ORDER BY started_at DESC
-        return sessions.map { session ->
+        sessions.map { session ->
             val items = inventoryDao.getItemsForSession(session.id)
             InventorySessionHistory(
                 session = session.toInventorySession(),

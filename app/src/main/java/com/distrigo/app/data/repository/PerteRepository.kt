@@ -7,6 +7,8 @@ import com.distrigo.app.data.local.entity.PerteTypeEntity
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.data.model.PerteType
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 class PerteRepository(
     private val db: AppDatabase
 ) {
@@ -58,11 +60,13 @@ class PerteRepository(
     }
 
     // ── Perte Types ──
-    suspend fun getPerteTypesWithStats(month: String? = null): List<PerteType> {
+    // On Dispatchers.Default: the filtering and summing ran on the caller's thread, which is the
+    // main thread for every ViewModel. What it computes is unchanged.
+    suspend fun getPerteTypesWithStats(month: String? = null): List<PerteType> = withContext(Dispatchers.Default) {
         val types = perteDao.getAllPerteTypes()
         val allPertes = perteDao.getAllPertes()
         val targetMonth = month ?: currentMonth()
-        return types.map { type ->
+        types.map { type ->
             val monthPertes = allPertes.filter { it.type_id == type.id && it.date_time.take(7) == targetMonth }
             type.toPerteType(
                 count      = monthPertes.size,
