@@ -1,11 +1,9 @@
 package com.distrigo.app.ui.settings.receipt
 
-import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,7 +32,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
-import androidx.compose.ui.graphics.asImageBitmap
+import com.distrigo.app.ui.common.FileImage
+import kotlinx.coroutines.launch
 
 @Composable
 fun ReceiptSettingsScreen(onBack: () -> Unit) {
@@ -46,12 +45,22 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
     var logoVersion by remember { mutableStateOf(0) }
     var isSaving    by remember { mutableStateOf(false) }
 
+    val scope = rememberCoroutineScope()
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            logoFile = BusinessSettingsStore.saveLogo(context, it)
-            logoVersion++
+            // Downscaled and written off the main thread (see saveLogo). The previous logo stays on
+            // screen until the new one is on disk, and stays saved if the new one cannot be read.
+            scope.launch {
+                val saved = BusinessSettingsStore.saveLogo(context, it)
+                if (saved != null) {
+                    logoFile = saved
+                    logoVersion++
+                } else {
+                    Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -97,16 +106,17 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 if (logoFile != null) {
+                    // Drawn by Coil, sized to this box and off the main thread. It used to be decoded
+                    // right here with BitmapFactory, whole, on every recomposition — once per
+                    // keystroke in the fields below. key(logoVersion) starts a fresh request when a
+                    // new logo replaces the old one under the same file name.
                     key(logoVersion) {
-                        val bitmap = BitmapFactory.decodeFile(logoFile!!.absolutePath)
-                        bitmap?.let {
-                            Image(
-                                bitmap             = it.asImageBitmap(),
-                                contentDescription = null,
-                                modifier           = Modifier.fillMaxSize(),
-                                contentScale       = ContentScale.Crop
-                            )
-                        }
+                        FileImage(
+                            file               = logoFile,
+                            contentDescription = null,
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop
+                        ) { }
                     }
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

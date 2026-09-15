@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.components
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
@@ -38,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import java.util.Locale
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.asImageBitmap
+import com.distrigo.app.ui.common.FileImage
 
 private val Ink       = Color(0xFF14213D)
 private val InkLight  = Color(0xFF1B3FCF)
@@ -308,17 +308,14 @@ private fun LogoBox(logoPath: String?) {
             .background(Color(0xFFE3F2FD)),
         contentAlignment = Alignment.Center
     ) {
-        val bitmap = remember(logoPath) {
-            logoPath?.let { path -> File(path).takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.absolutePath) } }
-        }
-        if (bitmap != null) {
-            Image(
-                bitmap             = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier           = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
-                contentScale       = ContentScale.Crop
-            )
-        } else {
+        // Coil, sized to this 38 dp box. The whole logo file used to be decoded here on the main
+        // thread each time the preview opened.
+        FileImage(
+            file               = remember(logoPath) { logoPath?.let(::File) },
+            contentDescription = null,
+            modifier           = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+            contentScale       = ContentScale.Crop
+        ) {
             Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = InkLight, modifier = Modifier.size(20.dp))
         }
     }

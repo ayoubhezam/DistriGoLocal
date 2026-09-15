@@ -105,12 +105,27 @@ object ImageCapture {
      * should not have to round-trip through a Uri to store them.
      */
     suspend fun compressFromUri(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
-        val decoded = decodeDownsampled(context, uri) ?: return@withContext null
-        try {
+        encodeFromUri(context, uri) { Bitmap.CompressFormat.JPEG }
+    }
+
+    /**
+     * [compressFromUri] for the business logo: the same downscale to [MAX_EDGE], but an image with
+     * transparency is kept as PNG. JPEG has no alpha channel, and a transparent logo written as JPEG
+     * comes out on a black square — on the receipt, in its preview and on the settings screen.
+     */
+    suspend fun compressLogoFromUri(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
+        encodeFromUri(context, uri) { bitmap ->
+            if (bitmap.hasAlpha()) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+        }
+    }
+
+    private fun encodeFromUri(context: Context, uri: Uri, formatFor: (Bitmap) -> Bitmap.CompressFormat): ByteArray? {
+        val decoded = decodeDownsampled(context, uri) ?: return null
+        return try {
             val scaled = scaleToFit(decoded)
             try {
                 val out = ByteArrayOutputStream()
-                scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+                scaled.compress(formatFor(scaled), JPEG_QUALITY, out)   // PNG ignores the quality
                 out.toByteArray()
             } finally {
                 if (scaled !== decoded) scaled.recycle()
@@ -178,15 +193,22 @@ object ImageCapture {
      * callers compare by identity before recycling.
      */
     private fun scaleToFit(source: Bitmap): Bitmap {
+        val (width, height) = scaledDimensions(source.width, source.height) ?: return source
+        return Bitmap.createScaledBitmap(source, width, height, true)
+    }
+
+    /**
+     * The size [scaleToFit] scales a [width] × [height] image to, or null when it already fits inside
+     * [MAX_EDGE] and is kept as it is. Plain arithmetic, split out so it can be tested off-device.
+     */
+    internal fun scaledDimensions(width: Int, height: Int): Pair<Int, Int>? {
         val ratio = minOf(
-            MAX_EDGE.toFloat() / source.width,
-            MAX_EDGE.toFloat() / source.height
+            MAX_EDGE.toFloat() / width,
+            MAX_EDGE.toFloat() / height
         ).coerceAtMost(1f)
 
-        if (ratio == 1f) return source
+        if (ratio == 1f) return null
 
-        val width = (source.width * ratio).toInt().coerceAtLeast(1)
-        val height = (source.height * ratio).toInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(source, width, height, true)
+        return (width * ratio).toInt().coerceAtLeast(1) to (height * ratio).toInt().coerceAtLeast(1)
     }
 }

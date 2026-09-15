@@ -1,8 +1,6 @@
 package com.distrigo.app.data.image
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Base64
 import java.io.File
 import java.security.MessageDigest
@@ -131,42 +129,6 @@ object ImageStore {
         } catch (e: Exception) {
             null
         }
-    }
-
-    /**
-     * Resolves either form of column value to a bitmap, or null.
-     *
-     * Null is the answer for every failure — an unknown format, a reference whose file is gone, a
-     * payload that will not decode. Callers already draw a placeholder when there is no photo, so
-     * a missing file degrades to "this entity has no picture" instead of to a crash. That matters
-     * most after a restore: the database is backed up and the image directory is not, so every
-     * reference on a restored device dangles until the photos are taken again.
-     */
-    fun loadBitmap(context: Context, ref: String?): Bitmap? = when {
-        ref.isNullOrBlank() -> null
-
-        isStoredRef(ref) -> {
-            val file = fileFor(context, ref)
-            if (file != null && file.isFile) {
-                try {
-                    BitmapFactory.decodeFile(file.absolutePath)
-                } catch (e: Exception) {
-                    null
-                }
-            } else {
-                null
-            }
-        }
-
-        isLegacyDataUri(ref) -> legacyBytes(ref)?.let { bytes ->
-            try {
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (e: Exception) {
-                null
-            }
-        }
-
-        else -> null
     }
 
     private fun sha256(bytes: ByteArray): String =

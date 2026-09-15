@@ -12,6 +12,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.distrigo.app.data.image.ImageStore
+import java.io.File
 import java.nio.ByteBuffer
 
 /**
@@ -41,10 +42,10 @@ import java.nio.ByteBuffer
  * scrolls, and does the work off the composition thread. The first load of an image shows
  * [placeholder] for a frame; every later one is served from cache.
  *
- * Every image surface in the app goes through here, the full-screen viewer included. It used to be
- * the one exception, decoding whole files by hand; the helper that did that had no callers left
- * once it was migrated and is gone. `ImageStore.loadBitmap` is what it called and is now
- * unreferenced — left in place deliberately, as the store's own API, rather than removed here.
+ * Every image surface in the app goes through here or [FileImage], the full-screen viewer and the
+ * receipt logo included. The viewer used to decode whole files by hand, and the logo was decoded
+ * with BitmapFactory in composition — on its settings screen, once per keystroke. Both are gone, and
+ * so is `ImageStore.loadBitmap`, the full-size decode the viewer's helper was built on.
  *
  * [rememberAsyncImagePainter] rather than `AsyncImage`/`SubcomposeAsyncImage`: the callers each
  * draw their own placeholder — a tinted icon, initials, a "add a photo" prompt — and reading the
@@ -71,6 +72,39 @@ fun EntityImage(
             else -> null
         }
     }
+
+    ModelImage(model, contentDescription, modifier, contentScale, placeholder)
+}
+
+/**
+ * An image held in a plain file — the business logo — drawn the way [EntityImage] draws an entity's
+ * photo: sized to its layout, off the main thread, cached, and [placeholder] when there is no file
+ * or it will not decode.
+ *
+ * Coil's memory cache keys a File by its path and last-modified time, so a file rewritten under the
+ * same name, as the logo is, is decoded afresh rather than served from the cache.
+ */
+@Composable
+fun FileImage(
+    file: File?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    placeholder: @Composable () -> Unit
+) {
+    val model = remember(file) { file?.takeIf { it.isFile } }
+    ModelImage(model, contentDescription, modifier, contentScale, placeholder)
+}
+
+@Composable
+private fun ModelImage(
+    model: Any?,
+    contentDescription: String?,
+    modifier: Modifier,
+    contentScale: ContentScale,
+    placeholder: @Composable () -> Unit
+) {
+    val context = LocalContext.current
 
     if (model == null) {
         placeholder()

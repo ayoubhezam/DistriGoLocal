@@ -2,6 +2,9 @@ package com.distrigo.app.data
 
 import android.content.Context
 import android.net.Uri
+import com.distrigo.app.ui.common.ImageCapture
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object BusinessSettingsStore {
@@ -40,12 +43,29 @@ object BusinessSettingsStore {
         return if (file.exists()) file else null
     }
 
-    fun saveLogo(context: Context, sourceUri: Uri): File {
+    /**
+     * Stores the picked image as the business logo and returns its file, or null if it could not be
+     * read or written, in which case the previous logo is left as it was.
+     *
+     * The image goes through [ImageCapture.compressLogoFromUri], off the main thread: at most 1024 px
+     * on its longest edge, and PNG when it has transparency. It used to be copied byte for byte from
+     * the picker, on the main thread, so a camera photo chosen as the logo was stored, and then
+     * decoded, whole. The file keeps its name whatever the format inside: decoders read the content,
+     * and a new name would strand logos already saved.
+     */
+    suspend fun saveLogo(context: Context, sourceUri: Uri): File? = withContext(Dispatchers.IO) {
+        val bytes = ImageCapture.compressLogoFromUri(context, sourceUri) ?: return@withContext null
         val destFile = File(context.filesDir, LOGO_FILENAME)
-        context.contentResolver.openInputStream(sourceUri)?.use { input ->
-            destFile.outputStream().use { output -> input.copyTo(output) }
+        val tmpFile = File(context.filesDir, "$LOGO_FILENAME.tmp")
+        try {
+            // Written beside the logo and renamed over it, so a failed write never leaves half a file.
+            tmpFile.writeBytes(bytes)
+            if (tmpFile.renameTo(destFile)) destFile else null
+        } catch (e: Exception) {
+            null
+        } finally {
+            if (tmpFile.exists()) tmpFile.delete()
         }
-        return destFile
     }
 
     fun clearLogo(context: Context) {
