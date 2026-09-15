@@ -60,18 +60,19 @@ class PerteRepository(
     }
 
     // ── Perte Types ──
-    // On Dispatchers.Default: the filtering and summing ran on the caller's thread, which is the
-    // main thread for every ViewModel. What it computes is unchanged.
+    // The month's count and totals per type come from one GROUP BY query. This used to load every
+    // perte ever recorded and filter them per type in Kotlin. A type with no perte that month gets
+    // zeros, as before. On Dispatchers.Default, like every Kotlin step after a query here.
     suspend fun getPerteTypesWithStats(month: String? = null): List<PerteType> = withContext(Dispatchers.Default) {
         val types = perteDao.getAllPerteTypes()
-        val allPertes = perteDao.getAllPertes()
         val targetMonth = month ?: currentMonth()
+        val stats = perteDao.getMonthStatsByType(targetMonth).associateBy { it.type_id }
         types.map { type ->
-            val monthPertes = allPertes.filter { it.type_id == type.id && it.date_time.take(7) == targetMonth }
+            val s = stats[type.id]
             type.toPerteType(
-                count      = monthPertes.size,
-                totalValue = monthPertes.sumOf { it.valeur_totale },
-                totalQty   = monthPertes.sumOf { it.quantity }
+                count      = s?.count ?: 0,
+                totalValue = s?.total_value ?: 0.0,
+                totalQty   = s?.total_qty ?: 0.0
             )
         }
     }

@@ -192,18 +192,20 @@ class InventoryRepository(
         }
     }
 
-    // On Dispatchers.Default: the per-session counting and summing ran on the caller's thread, which
-    // is the main thread for InventoryViewModel. What it computes is unchanged.
+    // Every session's totals come from one GROUP BY query over inventory_items. This used to run one
+    // query per session, loading all its items to count them. A session with no items gets zeros, as
+    // before. On Dispatchers.Default, like every Kotlin step after a query here.
     suspend fun getAllSessionsHistory(): List<InventorySessionHistory> = withContext(Dispatchers.Default) {
         val sessions = inventoryDao.getAllSessions()   // déjà ORDER BY started_at DESC
+        val totals = inventoryDao.getSessionTotals().associateBy { it.session_id }
         sessions.map { session ->
-            val items = inventoryDao.getItemsForSession(session.id)
+            val t = totals[session.id]
             InventorySessionHistory(
                 session = session.toInventorySession(),
                 summary = InventorySessionSummary(
-                    total_products     = items.size,
-                    total_ecarts       = items.count { it.ecart != 0.0 },
-                    total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
+                    total_products     = t?.total_products ?: 0,
+                    total_ecarts       = t?.total_ecarts ?: 0,
+                    total_value_ecarts = t?.total_value_ecarts ?: 0.0
                 )
             )
         }

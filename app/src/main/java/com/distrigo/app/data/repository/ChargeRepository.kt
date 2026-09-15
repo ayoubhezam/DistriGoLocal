@@ -96,18 +96,16 @@ class ChargeRepository(
     }
 
     // ── Charge Types ──
-    // On Dispatchers.Default, like getSubTypesWithStats: the filtering and summing ran on the
-    // caller's thread, which is the main thread for every ViewModel. What it computes is unchanged.
+    // Two GROUP BY queries: subtype counts per type, and the month's total per type (by the charge's
+    // own type_id, as before). This used to load every charge ever recorded, plus one query per type
+    // just to count its subtypes. On Dispatchers.Default, like every Kotlin step after a query here.
     suspend fun getChargeTypesWithStats(month: String? = null): List<ChargeType> = withContext(Dispatchers.Default) {
         val types = chargeDao.getAllChargeTypes()
-        val allCharges = chargeDao.getAllCharges()
         val targetMonth = month ?: currentMonth()
+        val subtypeCounts = chargeDao.getSubTypeCountsByType().associate { it.type_id to it.count }
+        val monthTotals = chargeDao.getMonthTotalsByType(targetMonth).associate { it.type_id to it.total }
         types.map { type ->
-            val subtypesCount = chargeDao.getSubTypesForType(type.id).size
-            val monthTotal = allCharges
-                .filter { it.type_id == type.id && it.date_time.take(7) == targetMonth }
-                .sumOf { it.montant }
-            type.toChargeType(subtypesCount, monthTotal)
+            type.toChargeType(subtypeCounts[type.id] ?: 0, monthTotals[type.id] ?: 0.0)
         }
     }
 
@@ -135,15 +133,17 @@ class ChargeRepository(
     }
 
     // ── Charge SubTypes ──
+    // One GROUP BY query for the month's count and total per subtype of this type. This used to run
+    // one query per subtype, each loading that subtype's whole history.
     suspend fun getSubTypesWithStats(typeId: Int, month: String? = null): List<ChargeSubType> = withContext(Dispatchers.Default) {
         val subtypes = chargeDao.getSubTypesForType(typeId)
         val targetMonth = month ?: currentMonth()
+        val stats = chargeDao.getMonthStatsBySubType(typeId, targetMonth).associateBy { it.subtype_id }
         subtypes.map { sub ->
-            val monthCharges = chargeDao.getChargesForSubType(sub.id)
-                .filter { it.date_time.take(7) == targetMonth }
+            val s = stats[sub.id]
             sub.toChargeSubType(
-                expensesCount   = monthCharges.size,
-                totalThisMonth  = monthCharges.sumOf { it.montant }
+                expensesCount   = s?.count ?: 0,
+                totalThisMonth  = s?.total ?: 0.0
             )
         }
     }

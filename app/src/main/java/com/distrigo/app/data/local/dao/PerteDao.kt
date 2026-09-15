@@ -27,6 +27,19 @@ interface PerteDao {
     @Query("SELECT * FROM pertes ORDER BY date_time DESC")
     suspend fun getAllPertes(): List<PerteEntity>
 
+    /**
+     * Each type's count and totals for [month] ("yyyy-MM"). A perte belongs to the month when the
+     * first seven characters of its date_time equal [month] — the same test as
+     * `date_time.take(7) == month`. Types without a perte that month have no row.
+     */
+    @Query("""
+        SELECT type_id, COUNT(*) AS count, SUM(valeur_totale) AS total_value, SUM(quantity) AS total_qty
+        FROM pertes
+        WHERE substr(date_time, 1, 7) = :month
+        GROUP BY type_id
+    """)
+    suspend fun getMonthStatsByType(month: String): List<PerteTypeMonthStats>
+
     @Query("SELECT * FROM pertes WHERE type_id = :typeId ORDER BY date_time DESC")
     suspend fun getPertesForType(typeId: Int): List<PerteEntity>
 
@@ -45,3 +58,11 @@ interface PerteDao {
     @Update
     suspend fun updatePerte(perte: PerteEntity)
 }
+
+/** One perte type's figures for a month, from [PerteDao.getMonthStatsByType]. */
+data class PerteTypeMonthStats(
+    val type_id: Int,
+    val count: Int,
+    val total_value: Double,
+    val total_qty: Double
+)
