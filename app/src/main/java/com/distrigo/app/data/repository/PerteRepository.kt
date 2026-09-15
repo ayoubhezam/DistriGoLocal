@@ -277,8 +277,4 @@ class PerteRepository(
         }
     }
 
-    // ── لاستخدام Rapports/État de Stock لاحقاً ──
-    suspend fun getMonthlyTotal(month: String): Double {
-        return perteDao.getAllPertes().filter { it.date_time.take(7) == month }.sumOf { it.valeur_totale }
-    }
 }

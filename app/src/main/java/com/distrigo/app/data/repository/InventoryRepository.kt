@@ -177,20 +177,6 @@ class InventoryRepository(
             total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
         )
     }
-    suspend fun getCompletedSessionsHistory(): List<InventorySessionHistory> {
-        val sessions = inventoryDao.getAllSessions().filter { it.status == "completed" }
-        return sessions.map { session ->
-            val items = inventoryDao.getItemsForSession(session.id)
-            InventorySessionHistory(
-                session = session.toInventorySession(),
-                summary = InventorySessionSummary(
-                    total_products     = items.size,
-                    total_ecarts       = items.count { it.ecart != 0.0 },
-                    total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
-                )
-            )
-        }
-    }
 
     // Every session's totals come from one GROUP BY query over inventory_items. This used to run one
     // query per session, loading all its items to count them. A session with no items gets zeros, as

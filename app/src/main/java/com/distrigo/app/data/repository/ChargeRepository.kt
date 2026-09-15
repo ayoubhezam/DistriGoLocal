@@ -214,8 +214,4 @@ class ChargeRepository(
         return mapOf("message" to "Dépense supprimée avec succès")
     }
 
-    // ── لاستخدام Rapports لاحقاً ──
-    suspend fun getMonthlyTotal(month: String): Double {
-        return chargeDao.getAllCharges().filter { it.date_time.take(7) == month }.sumOf { it.montant }
-    }
 }
