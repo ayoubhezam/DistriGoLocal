@@ -17,6 +17,14 @@ interface PurchaseDao {
     @Query("SELECT * FROM purchase_orders ORDER BY id DESC")
     suspend fun getAllOrders(): List<PurchaseOrderEntity>
 
+    /** The supplier's purchase orders counted, with totals and amounts paid summed: its detail screen's figures. */
+    @Query("""
+        SELECT COUNT(*) AS count, COALESCE(SUM(total), 0.0) AS total, COALESCE(SUM(montant_paye), 0.0) AS paid
+        FROM purchase_orders
+        WHERE supplier_id = :supplierId
+    """)
+    suspend fun getInvoiceTotalsForSupplier(supplierId: Int): InvoiceTotals
+
     @Query("SELECT * FROM purchase_orders WHERE id = :id")
     suspend fun getOrderById(id: Int): PurchaseOrderEntity?
 

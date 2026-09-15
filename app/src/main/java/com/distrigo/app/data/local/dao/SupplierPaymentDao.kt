@@ -14,6 +14,10 @@ interface SupplierPaymentDao {
     @Query("SELECT * FROM supplier_payments WHERE supplier_id = :supplierId ORDER BY created_at DESC")
     suspend fun getPaymentsForSupplier(supplierId: Int): List<SupplierPaymentEntity>
 
+    /** The supplier's payments counted and summed: part of its detail screen's figures. */
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0.0) AS total FROM supplier_payments WHERE supplier_id = :supplierId")
+    suspend fun getPaymentTotalsForSupplier(supplierId: Int): PaymentTotals
+
     @Query("SELECT * FROM supplier_payments WHERE id = :id")
     suspend fun getPaymentById(id: Int): SupplierPaymentEntity?
 

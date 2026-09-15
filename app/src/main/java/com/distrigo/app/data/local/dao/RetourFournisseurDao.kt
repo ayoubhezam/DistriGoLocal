@@ -18,6 +18,23 @@ interface RetourFournisseurDao {
     @Query("SELECT * FROM retour_fournisseur ORDER BY date DESC, id DESC")
     suspend fun getAllRetours(): List<RetourFournisseurEntity>
 
+    /** The supplier's [limit] latest returns for its detail screen, in the returns list's order. */
+    @Query("""
+        SELECT * FROM retour_fournisseur
+        WHERE supplier_id = :supplierId
+        ORDER BY date DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun getLatestRetoursForSupplier(supplierId: Int, limit: Int): List<RetourFournisseurEntity>
+
+    /** The supplier's returns counted and summed: its detail screen's "Retours" figures. */
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(total), 0.0) AS total FROM retour_fournisseur WHERE supplier_id = :supplierId")
+    suspend fun getRetourTotalsForSupplier(supplierId: Int): RetourTotals
+
+    /** Line counts for the given returns, in one query. Returns without lines have no row. */
+    @Query("SELECT retour_id, COUNT(*) AS count FROM retour_fournisseur_items WHERE retour_id IN (:retourIds) GROUP BY retour_id")
+    suspend fun getItemCountsForRetours(retourIds: List<Int>): List<RetourItemCount>
+
     @Query("SELECT * FROM retour_fournisseur WHERE id = :id")
     suspend fun getRetourById(id: Int): RetourFournisseurEntity?
 

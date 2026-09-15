@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.distrigo.app.data.model.SupplierTransaction
+import com.distrigo.app.data.model.SupplierLedgerPreview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -96,13 +96,16 @@ class SupplierViewModel @Inject constructor(
 
 
 
-    private val _transactions = MutableStateFlow<List<SupplierTransaction>>(emptyList())
-    val transactions: StateFlow<List<SupplierTransaction>> = _transactions
+    // What the detail screen shows of the supplier's orders and payments: the figures, and the latest
+    // four entries (the screen shows two, or four expanded). The whole history is the paged
+    // "Voir tout l'historique" screen's.
+    private val _ledger = MutableStateFlow(SupplierLedgerPreview())
+    val ledger: StateFlow<SupplierLedgerPreview> = _ledger
 
     fun loadTransactions(supplierId: Int) {
         viewModelScope.launch {
             try {
-                _transactions.value = repository.getSupplierTransactions(supplierId)
+                _ledger.value = repository.getSupplierLedgerPreview(supplierId, limit = 4)
             } catch (e: Exception) {
                 android.util.Log.e("DISTRIGO", "transactions error: ${e.message}")
             }

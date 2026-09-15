@@ -14,6 +14,10 @@ interface ClientPaymentDao {
     @Query("SELECT * FROM client_payments WHERE client_id = :clientId ORDER BY created_at DESC")
     suspend fun getPaymentsForClient(clientId: Int): List<ClientPaymentEntity>
 
+    /** The client's payments counted and summed: part of its detail screen's figures. */
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0.0) AS total FROM client_payments WHERE client_id = :clientId")
+    suspend fun getPaymentTotalsForClient(clientId: Int): PaymentTotals
+
     @Query("UPDATE client_payments SET amount = :amount WHERE id = :id")
     suspend fun updatePaymentAmount(id: Int, amount: Double)
 

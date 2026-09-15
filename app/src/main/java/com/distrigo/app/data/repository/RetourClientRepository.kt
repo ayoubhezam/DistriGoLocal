@@ -9,6 +9,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.model.RetourClientItem
 import com.distrigo.app.data.model.RetourClientMotifs
+import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
 
 class RetourClientRepository(
@@ -42,6 +43,23 @@ class RetourClientRepository(
             val count = retourDao.getItemsForRetour(entity.id).size
             entity.toRetour().copy(items_count = count)
         }
+    }
+
+    /**
+     * A client's returns as its detail screen shows them: how many, their total, and the [limit]
+     * latest with their line counts. The detail screen used to load every client's returns, with one
+     * items query each, and filter them down to this client in Kotlin.
+     */
+    suspend fun getDetailPreview(clientId: Int, limit: Int): RetourPreview<RetourClient> {
+        val totals = retourDao.getRetourTotalsForClient(clientId)
+        val latest = retourDao.getLatestRetoursForClient(clientId, limit)
+        val lineCounts = if (latest.isEmpty()) emptyMap()
+                         else retourDao.getItemCountsForRetours(latest.map { it.id }).associate { it.retour_id to it.count }
+        return RetourPreview(
+            count  = totals.count,
+            total  = totals.total,
+            latest = latest.map { it.toRetour().copy(items_count = lineCounts[it.id] ?: 0) }
+        )
     }
 
     suspend fun getRetour(id: Int): RetourClient {

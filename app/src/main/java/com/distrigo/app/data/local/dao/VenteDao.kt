@@ -19,6 +19,14 @@ interface VenteDao {
     @Query("SELECT * FROM ventes WHERE client_id = :clientId ORDER BY id DESC")
     suspend fun getVentesForClient(clientId: Int): List<VenteEntity>
 
+    /** The client's sales counted, with their totals and amounts paid summed: its detail screen's figures. */
+    @Query("""
+        SELECT COUNT(*) AS count, COALESCE(SUM(total), 0.0) AS total, COALESCE(SUM(montant_paye), 0.0) AS paid
+        FROM ventes
+        WHERE client_id = :clientId
+    """)
+    suspend fun getInvoiceTotalsForClient(clientId: Int): InvoiceTotals
+
     @Query("SELECT * FROM ventes WHERE tournee_id = :tourneeId ORDER BY id DESC")
     suspend fun getVentesForTournee(tourneeId: Int): List<VenteEntity>
 

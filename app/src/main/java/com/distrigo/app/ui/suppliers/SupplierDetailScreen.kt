@@ -109,7 +109,7 @@ fun SupplierDetailScreen(
     var achatExpanded      by remember { mutableStateOf(false) }
     var showMoreMenu       by remember { mutableStateOf(false) }
     var showPhotoMenu      by remember { mutableStateOf(false) }
-    val supplierTransactions by viewModel.transactions.collectAsState()
+    val ledger by viewModel.ledger.collectAsState()
 
     val context = LocalContext.current
     val imageScope = rememberCoroutineScope()
@@ -134,11 +134,14 @@ fun SupplierDetailScreen(
     }
 
 
-    val supplierRetours by retourViewModel.retours.collectAsState()
+    // This supplier's returns: count, total and the latest three.
+    val retourPreview by retourViewModel.detailPreview.collectAsState()
 
+    // Only what the dashboard shows is loaded: figures and the latest entries. The full histories are
+    // the paged "Voir tout l'historique" screens'.
     LaunchedEffect(Unit) {
         viewModel.loadTransactions(currentSupplier.id)
-        retourViewModel.loadRetours(currentSupplier.id)
+        retourViewModel.loadDetailPreview(currentSupplier.id)
     }
 
     // ── Payment Dialog ──
@@ -534,9 +537,10 @@ fun SupplierDetailScreen(
             }
 
             // ── Statistiques (Total payé / Total facturé / Solde dû) ──
-            val totalFacture = supplierTransactions.filter { it.type == "facture" }.sumOf { it.amount ?: 0.0 }
-            val totalPaye = supplierTransactions.filter { it.type == "facture" }.sumOf { it.montant_paye ?: 0.0 } +
-                    supplierTransactions.filter { it.type == "paiement" }.sumOf { it.amount ?: 0.0 }
+            // Summed in SQL over the supplier's whole history (see getSupplierLedgerPreview), not here
+            // on every recomposition.
+            val totalFacture = ledger.totalFacture
+            val totalPaye = ledger.totalPaye
 
             Column(
                 modifier = Modifier
@@ -556,7 +560,7 @@ fun SupplierDetailScreen(
 
                 // What turns "Total facturé − Total payé" into the Solde dû beside them.
                 BalanceAdjustments(
-                    returns        = supplierRetours.sumOf { it.total },
+                    returns        = retourPreview.total,
                     initialBalance = currentSupplier.initial_balance
                 )
 
@@ -761,7 +765,7 @@ fun SupplierDetailScreen(
                                 }
                             }
 
-                            if (supplierTransactions.isEmpty()) {
+                            if (ledger.count == 0) {
                                 Box(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
                                     contentAlignment = Alignment.Center
@@ -776,7 +780,7 @@ fun SupplierDetailScreen(
                                 val collapsedLimit = 2
                                 val expandedLimit = 4
                                 val visibleLimit = if (achatExpanded) expandedLimit else collapsedLimit
-                                val visibleTransactions = supplierTransactions.take(visibleLimit)
+                                val visibleTransactions = ledger.latest.take(visibleLimit)
                                 val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
                                 grouped.forEach { (date, dayTransactions) ->
                                     Text(
@@ -795,7 +799,7 @@ fun SupplierDetailScreen(
                                     }
                                 }
 
-                                if (supplierTransactions.size > collapsedLimit) {
+                                if (ledger.count > collapsedLimit) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -837,7 +841,7 @@ fun SupplierDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "Voir tout l'historique (${supplierTransactions.size})",
+                                        "Voir tout l'historique (${ledger.count})",
                                         fontSize = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = DsColors.TextPrimary
@@ -878,7 +882,7 @@ fun SupplierDetailScreen(
                                 }
                             }
 
-                            if (supplierRetours.isEmpty()) {
+                            if (retourPreview.count == 0) {
                                 Box(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
                                     contentAlignment = Alignment.Center
@@ -890,7 +894,7 @@ fun SupplierDetailScreen(
                                     }
                                 }
                             } else {
-                                supplierRetours.take(3).forEach { retour ->
+                                retourPreview.latest.take(3).forEach { retour ->
                                     RetourFournisseurRow(retour = retour, onClick = {})
                                 }
 
@@ -908,7 +912,7 @@ fun SupplierDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "Voir tout l'historique (${supplierRetours.size})",
+                                        "Voir tout l'historique (${retourPreview.count})",
                                         fontSize = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = DsColors.TextPrimary

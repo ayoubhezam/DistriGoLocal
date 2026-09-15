@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.RetourFournisseur
+import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -92,6 +93,22 @@ class RetourFournisseurViewModel @Inject constructor(
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    // The supplier detail screen's returns: count, total and the latest three. Kept apart from
+    // [retours], which the returns list screen fills.
+    private val _detailPreview = MutableStateFlow(RetourPreview<RetourFournisseur>())
+    val detailPreview: StateFlow<RetourPreview<RetourFournisseur>> = _detailPreview
+
+    fun loadDetailPreview(supplierId: Int) {
+        viewModelScope.launch {
+            try {
+                _detailPreview.value = repository.getDetailPreview(supplierId, limit = 3)
+                _error.value = null
+            } catch (e: Exception) {
+                _error.value = e.message
             }
         }
     }

@@ -9,6 +9,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.model.RetourFournisseurItem
 import com.distrigo.app.data.model.RetourFournisseurMotifs
+import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
 
 class RetourFournisseurRepository(
@@ -42,6 +43,22 @@ class RetourFournisseurRepository(
             val count = retourDao.getItemsForRetour(entity.id).size
             entity.toRetour().copy(items_count = count)
         }
+    }
+
+    /**
+     * A supplier's returns as its detail screen shows them: how many, their total, and the [limit]
+     * latest with their line counts, instead of all its returns with one items query each.
+     */
+    suspend fun getDetailPreview(supplierId: Int, limit: Int): RetourPreview<RetourFournisseur> {
+        val totals = retourDao.getRetourTotalsForSupplier(supplierId)
+        val latest = retourDao.getLatestRetoursForSupplier(supplierId, limit)
+        val lineCounts = if (latest.isEmpty()) emptyMap()
+                         else retourDao.getItemCountsForRetours(latest.map { it.id }).associate { it.retour_id to it.count }
+        return RetourPreview(
+            count  = totals.count,
+            total  = totals.total,
+            latest = latest.map { it.toRetour().copy(items_count = lineCounts[it.id] ?: 0) }
+        )
     }
 
     suspend fun getRetour(id: Int): RetourFournisseur {

@@ -6,6 +6,7 @@ import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.RetourClient
+import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.RetourClientRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -103,6 +104,22 @@ class RetourClientViewModel @Inject constructor(
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    // The client detail screen's returns: count, total and the latest three. Kept apart from
+    // [retours], which the returns list screen fills with every return.
+    private val _detailPreview = MutableStateFlow(RetourPreview<RetourClient>())
+    val detailPreview: StateFlow<RetourPreview<RetourClient>> = _detailPreview
+
+    fun loadDetailPreview(clientId: Int) {
+        viewModelScope.launch {
+            try {
+                _detailPreview.value = repository.getDetailPreview(clientId, limit = 3)
+                _error.value = null
+            } catch (e: Exception) {
+                _error.value = e.message
             }
         }
     }

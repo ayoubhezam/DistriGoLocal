@@ -16,6 +16,8 @@ import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.data.model.TourneeSecteur
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 class ProductRepository(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
@@ -1107,11 +1109,24 @@ class ProductRepository(
     // Supplier transactions
     // ── Supplier transactions (محلي بالكامل) ──
 
-    suspend fun getSupplierTransactions(id: Int): List<SupplierTransaction> {
-        val supplier = supplierDao.getSupplierById(id) ?: return emptyList()
+    /**
+     * A supplier's detail-screen ledger: figures over all its purchase orders and payments, how many
+     * entries there are, and only the [limit] latest.
+     *
+     * This replaces a function that loaded every purchase order in the database, filtered them down
+     * to this supplier in Kotlin, added all its payments and sorted the lot, to show four rows and two
+     * sums. The figures now come from COUNT/SUM queries and the rows from the first page of the
+     * ledger's own queries. What the screen shows is unchanged: Total facturé is the orders' totals,
+     * Total payé their amounts paid plus the payments; the count includes the "Solde initial" entry,
+     * which the list always carried, even at 0; and the latest entries are ordered as before —
+     * newest created first, orders, then payments, then the opening balance at the same instant.
+     */
+    suspend fun getSupplierLedgerPreview(id: Int, limit: Int): SupplierLedgerPreview = withContext(Dispatchers.Default) {
+        val supplier = supplierDao.getSupplierById(id) ?: return@withContext SupplierLedgerPreview()
+        val orders   = db.purchaseDao().getInvoiceTotalsForSupplier(id)
+        val payments = db.supplierPaymentDao().getPaymentTotalsForSupplier(id)
 
-        val factureTx = db.purchaseDao().getAllOrders()
-            .filter { it.supplier_id == id }
+        val factureTx = db.purchaseDao().pageOrdersForSupplier(id, null, "", "TOUTES", limit)
             .map { order ->
                 SupplierTransaction(
                     type = "facture", id = order.id, amount = order.total,
@@ -1120,7 +1135,7 @@ class ProductRepository(
                 )
             }
 
-        val paiementTx = db.supplierPaymentDao().getPaymentsForSupplier(id)
+        val paiementTx = db.supplierPaymentDao().pagePaymentsForSupplier(id, null, "", limit)
             .map { payment ->
                 SupplierTransaction(
                     type = "paiement", id = payment.id, amount = payment.amount,
@@ -1136,7 +1151,13 @@ class ProductRepository(
             )
         )
 
-        return (factureTx + paiementTx + soldeInitialTx).sortedByDescending { it.created_at }
+        SupplierLedgerPreview(
+            totalFacture = orders.total,
+            totalPaye    = orders.paid + payments.total,
+            count        = orders.count + payments.count + 1,
+            // Each part is newest first already, so the [limit] latest of the whole history are among them.
+            latest       = (factureTx + paiementTx + soldeInitialTx).sortedByDescending { it.created_at }.take(limit)
+        )
     }
 
     suspend fun countSupplierLedger(supplierId: Int, filter: AchatFilter, search: String): Int {
@@ -1418,8 +1439,22 @@ class ProductRepository(
 
 // ── Client transactions (محلي بالكامل) ──
 
-    suspend fun getClientTransactions(id: Int): List<ClientTransaction> {
-        val venteTx = db.venteDao().getVentesForClient(id).map { vente ->
+    /**
+     * A client's detail-screen ledger: figures over all its sales and payments, how many there are,
+     * and only the [limit] latest entries.
+     *
+     * This replaces a function that loaded every sale and every payment the client ever had, merged
+     * and sorted them, to show four rows and two sums. The figures now come from COUNT/SUM queries and
+     * the rows from the first page of the ledger's own queries. What the screen shows is unchanged:
+     * Total facturé is the sales' totals, Total payé their amounts paid plus the payments, and the
+     * latest entries are ordered as before — newest created first, sales before payments at the same
+     * instant.
+     */
+    suspend fun getClientLedgerPreview(id: Int, limit: Int): ClientLedgerPreview = withContext(Dispatchers.Default) {
+        val ventes   = db.venteDao().getInvoiceTotalsForClient(id)
+        val payments = db.clientPaymentDao().getPaymentTotalsForClient(id)
+
+        val venteTx = db.venteDao().pageVentesForClient(id, null, "", "TOUTES", limit).map { vente ->
             ClientTransaction(
                 type = "vente", id = vente.id, amount = null,
                 total = vente.total, montant_paye = vente.montant_paye,
@@ -1427,7 +1462,7 @@ class ProductRepository(
             )
         }
 
-        val paiementTx = db.clientPaymentDao().getPaymentsForClient(id).map { payment ->
+        val paiementTx = db.clientPaymentDao().pagePaymentsForClient(id, null, "", limit).map { payment ->
             ClientTransaction(
                 type = "paiement", id = payment.id, amount = payment.amount,
                 total = null, montant_paye = null, status = null,
@@ -1435,7 +1470,13 @@ class ProductRepository(
             )
         }
 
-        return (venteTx + paiementTx).sortedByDescending { it.created_at }
+        ClientLedgerPreview(
+            totalFacture = ventes.total,
+            totalPaye    = ventes.paid + payments.total,
+            count        = ventes.count + payments.count,
+            // Each part is newest first already, so the [limit] latest of the whole history are among them.
+            latest       = (venteTx + paiementTx).sortedByDescending { it.created_at }.take(limit)
+        )
     }
 
     suspend fun countClientLedger(clientId: Int, filter: FactureFilter, search: String): Int {

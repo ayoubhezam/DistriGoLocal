@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.distrigo.app.data.model.ClientTransaction
+import com.distrigo.app.data.model.ClientLedgerPreview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Secteur
@@ -78,13 +78,16 @@ class ClientViewModel @Inject constructor(
         }
     }
 
-    private val _transactions = MutableStateFlow<List<ClientTransaction>>(emptyList())
-    val transactions: StateFlow<List<ClientTransaction>> = _transactions
+    // What the detail screen shows of the client's sales and payments: the figures, and the latest
+    // four entries (the screen shows two, or four expanded). The whole history is the paged
+    // "Voir tout l'historique" screen's.
+    private val _ledger = MutableStateFlow(ClientLedgerPreview())
+    val ledger: StateFlow<ClientLedgerPreview> = _ledger
 
     fun loadTransactions(clientId: Int) {
         viewModelScope.launch {
             try {
-                _transactions.value = repository.getClientTransactions(clientId)
+                _ledger.value = repository.getClientLedgerPreview(clientId, limit = 4)
             } catch (e: Exception) {
                 android.util.Log.e("DISTRIGO", "client transactions error: ${e.message}")
             }

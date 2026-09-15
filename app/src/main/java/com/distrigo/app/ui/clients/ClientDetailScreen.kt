@@ -122,7 +122,7 @@ fun ClientDetailScreen(
     var factureExpanded by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showPhotoMenu by remember { mutableStateOf(false) }
-    val clientTransactions by viewModel.transactions.collectAsState()
+    val ledger by viewModel.ledger.collectAsState()
 
     val context = LocalContext.current
     val imageScope = rememberCoroutineScope()
@@ -149,16 +149,17 @@ fun ClientDetailScreen(
 
 
 
-    val allRetours by retourViewModel.retours.collectAsState()
-    val clientRetours = allRetours
-        .filter { it.client_id == currentClient.id }
-        .sortedByDescending { it.created_at }
+    // This client's returns: count, total and the latest three. It used to load every client's
+    // returns and filter them here, on every recomposition.
+    val retourPreview by retourViewModel.detailPreview.collectAsState()
 
     // Le tableau de bord fusionné affiche toujours Factures & Retours en même
     // temps que les Infos — les deux doivent donc se charger dès l'ouverture.
+    // Only what the dashboard shows is loaded: figures and the latest entries. The full histories
+    // are the paged "Voir tout l'historique" screens'.
     LaunchedEffect(Unit) {
         viewModel.loadTransactions(currentClient.id)
-        retourViewModel.loadRetours()
+        retourViewModel.loadDetailPreview(currentClient.id)
     }
 
     // ── Payment Dialog ──
@@ -562,9 +563,10 @@ fun ClientDetailScreen(
             }
 
             // ── Statistiques (Total payé / Total facturé / Montant dû) ──
-            val totalFacture = clientTransactions.filter { it.type == "vente" }.sumOf { it.total ?: 0.0 }
-            val totalPaye = clientTransactions.filter { it.type == "vente" }.sumOf { it.montant_paye ?: 0.0 } +
-                    clientTransactions.filter { it.type == "paiement" }.sumOf { it.amount ?: 0.0 }
+            // Summed in SQL over the client's whole history (see getClientLedgerPreview), not here on
+            // every recomposition.
+            val totalFacture = ledger.totalFacture
+            val totalPaye = ledger.totalPaye
 
             Column(
                 modifier = Modifier
@@ -583,7 +585,7 @@ fun ClientDetailScreen(
                 }
 
                 // What turns "Total facturé − Total payé" into the Montant dû beside them.
-                BalanceAdjustments(returns = clientRetours.sumOf { it.total })
+                BalanceAdjustments(returns = retourPreview.total)
 
                 if (balanceStatus == "due") {
                     Spacer(Modifier.height(DsSpacing.sm))
@@ -845,7 +847,7 @@ fun ClientDetailScreen(
                                 }
                             }
 
-                            if (clientTransactions.isEmpty()) {
+                            if (ledger.count == 0) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -871,7 +873,7 @@ fun ClientDetailScreen(
                                 val collapsedLimit = 2
                                 val expandedLimit   = 4
                                 val visibleLimit = if (factureExpanded) expandedLimit else collapsedLimit
-                                val visibleTransactions = clientTransactions.take(visibleLimit)
+                                val visibleTransactions = ledger.latest.take(visibleLimit)
                                 val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
                                 grouped.forEach { (date, dayTransactions) ->
                                     Text(
@@ -886,7 +888,7 @@ fun ClientDetailScreen(
                                     }
                                 }
 
-                                if (clientTransactions.size > collapsedLimit) {
+                                if (ledger.count > collapsedLimit) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -928,7 +930,7 @@ fun ClientDetailScreen(
                                     verticalAlignment     = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "Voir tout l'historique (${clientTransactions.size})",
+                                        "Voir tout l'historique (${ledger.count})",
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color      = DsColors.TextPrimary
@@ -967,7 +969,7 @@ fun ClientDetailScreen(
                                 }
                             }
 
-                            if (clientRetours.isEmpty()) {
+                            if (retourPreview.count == 0) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -990,7 +992,7 @@ fun ClientDetailScreen(
                                     }
                                 }
                             } else {
-                                clientRetours.take(3).forEach { retour ->
+                                retourPreview.latest.take(3).forEach { retour ->
                                     RetourRow(retour = retour)
                                 }
 
@@ -1008,7 +1010,7 @@ fun ClientDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "Voir tout l'historique (${clientRetours.size})",
+                                        "Voir tout l'historique (${retourPreview.count})",
                                         fontSize = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = DsColors.TextPrimary
