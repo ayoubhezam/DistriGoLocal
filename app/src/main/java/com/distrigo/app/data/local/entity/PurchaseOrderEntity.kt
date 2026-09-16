@@ -22,5 +22,7 @@ data class PurchaseOrderEntity(
     val supplier_name: String? = null,
     val supplier_image_uri: String? = null,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

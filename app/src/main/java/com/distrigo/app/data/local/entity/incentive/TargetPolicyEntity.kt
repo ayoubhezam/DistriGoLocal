@@ -28,7 +28,9 @@ data class TargetPolicyEntity(
     val distributor_id: Long? = null,              // null = يطبَّق على هذا الجهاز افتراضيًا
     val created_at: String,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "policy_tiers", indices = [Index(value = ["uuid"], unique = true)])
@@ -41,5 +43,9 @@ data class PolicyTierEntity(
     val fixed_bonus: Double? = null,                // أو مبلغ ثابت عند بلوغ هذه الشريحة
     val tier_order: Int,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "''")
+    val created_at: String = java.time.Instant.now().toString(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

@@ -470,6 +470,78 @@ val MIGRATION_42_43 = object : Migration(42, 43) {
 }
 
 /**
+ * 43 -> 44 - `updated_at` on every business table, and `created_at` on the fourteen that had none.
+ *
+ * **`updated_at`** is `INTEGER NOT NULL`, milliseconds since the epoch in UTC, on the same 35 tables
+ * that carry a `uuid`. Every existing row gets the moment this migration ran: nothing recorded when
+ * rows last changed, and "as of the upgrade" is the one statement about them that is true. From here
+ * on new rows take their creation time from the entity, and edits are stamped by the triggers in
+ * ChangeTracking.kt, which the app installs when the database opens rather than here.
+ *
+ * **`created_at`** is `TEXT`, ISO-8601 like the column of that name on every other table. Where a
+ * row belongs to a parent that recorded its own creation, it takes the parent's:
+ *
+ *  - vente, purchase order, chargement and return lines from their document,
+ *  - a tournée's clients and secteurs from the tournée, a policy's tiers from the policy,
+ *  - an inventory session from its own `started_at`.
+ *
+ * The rest — products, clients, categories, sous-catégories, marques — never recorded when they were
+ * created, and get `1970-01-01T00:00:00Z`, the same "unknown" that MIGRATION_37_38 gave the photos
+ * it seeded. So does a line whose parent is gone. A date made up at migration time would read as
+ * real.
+ *
+ * Both columns are added with a default only because SQLite requires one for a NOT NULL column; the
+ * entities declare the same defaults, and every row is backfilled before anything reads it.
+ */
+val MIGRATION_43_44 = object : Migration(43, 44) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val tables = listOf(
+            "products", "product_images", "categories", "sous_categories", "marques",
+            "price_history", "clients", "suppliers", "secteurs",
+            "charge_types", "charge_subtypes", "perte_types", "target_policies", "policy_tiers",
+            "ventes", "vente_items", "client_payments", "retour_client", "retour_client_items",
+            "purchase_orders", "purchase_order_items", "supplier_payments",
+            "retour_fournisseur", "retour_fournisseur_items",
+            "stock_movements", "chargement_sessions", "chargements", "chargement_items",
+            "inventory_sessions", "inventory_items", "pertes",
+            "tournees", "tournee_clients", "tournee_secteurs", "charges",
+        )
+        val migratedAt = System.currentTimeMillis()
+        for (table in tables) {
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `updated_at` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `$table` SET `updated_at` = $migratedAt")
+        }
+
+        val unknown = "'1970-01-01T00:00:00Z'"
+        // table to the expression giving each row its creation time
+        val createdAt = linkedMapOf(
+            "vente_items" to "(SELECT p.created_at FROM ventes p WHERE p.id = vente_items.vente_id)",
+            "purchase_order_items" to
+                "(SELECT p.created_at FROM purchase_orders p WHERE p.id = purchase_order_items.purchase_order_id)",
+            "chargement_items" to
+                "(SELECT p.created_at FROM chargements p WHERE p.id = chargement_items.chargement_id)",
+            "retour_client_items" to
+                "(SELECT p.created_at FROM retour_client p WHERE p.id = retour_client_items.retour_id)",
+            "retour_fournisseur_items" to
+                "(SELECT p.created_at FROM retour_fournisseur p WHERE p.id = retour_fournisseur_items.retour_id)",
+            "tournee_clients" to "(SELECT p.created_at FROM tournees p WHERE p.id = tournee_clients.tournee_id)",
+            "tournee_secteurs" to "(SELECT p.created_at FROM tournees p WHERE p.id = tournee_secteurs.tournee_id)",
+            "policy_tiers" to "(SELECT p.created_at FROM target_policies p WHERE p.id = policy_tiers.policy_id)",
+            "inventory_sessions" to "started_at",
+            "products" to unknown,
+            "clients" to unknown,
+            "categories" to unknown,
+            "sous_categories" to unknown,
+            "marques" to unknown,
+        )
+        for ((table, value) in createdAt) {
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `created_at` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE `$table` SET `created_at` = COALESCE($value, $unknown)")
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -479,7 +551,7 @@ val MIGRATION_42_43 = object : Migration(42, 43) {
 internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
-    MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43,
+    MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
 )
 
 /**

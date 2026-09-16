@@ -38,5 +38,7 @@ data class StockMovementEntity(
     val note: String?,
     val created_at: String,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

@@ -27,5 +27,7 @@ data class InventoryItemEntity(
     val valeur_ecart: Double,           // ecart × purchase_price_snapshot (signé)
     val created_at: String,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

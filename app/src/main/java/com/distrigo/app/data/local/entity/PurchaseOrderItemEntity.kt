@@ -24,5 +24,9 @@ data class PurchaseOrderItemEntity(
     val has_expiry: Boolean = false,
     val expiry_date: String? = null,   // "yyyy-MM-dd"
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "''")
+    val created_at: String = java.time.Instant.now().toString(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

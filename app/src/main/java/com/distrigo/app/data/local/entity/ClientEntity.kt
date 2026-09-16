@@ -23,5 +23,9 @@ data class ClientEntity(
     val latitude: Double?,
     val longitude: Double?,
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "''")
+    val created_at: String = java.time.Instant.now().toString(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

@@ -68,7 +68,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         TourneeVenteDraftEntity::class,
         ChargementDraftEntity::class,
     ],
-    version = 43,
+    version = 44,
     exportSchema = true
 )
 
@@ -130,6 +130,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "distrigo"
                 )
                     .withMigrationPolicy()
+                    .withChangeTracking()
                     .build()
                 INSTANCE = instance
                 instance

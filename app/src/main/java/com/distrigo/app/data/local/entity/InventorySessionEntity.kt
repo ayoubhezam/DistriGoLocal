@@ -16,5 +16,9 @@ data class InventorySessionEntity(
     val started_at: String,      // ISO-8601
     val completed_at: String?,    // null tant que "draft"
     @ColumnInfo(defaultValue = "''")
-    val uuid: String = newRowUuid()
+    val uuid: String = newRowUuid(),
+    @ColumnInfo(defaultValue = "''")
+    val created_at: String = java.time.Instant.now().toString(),
+    @ColumnInfo(defaultValue = "0")
+    val updated_at: Long = System.currentTimeMillis()
 )

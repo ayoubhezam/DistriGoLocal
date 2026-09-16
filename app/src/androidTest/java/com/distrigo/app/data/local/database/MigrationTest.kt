@@ -88,6 +88,12 @@ class MigrationTest {
 
             for ((table, expected) in EXPECTED_ROW_COUNTS) {
                 assertDistinctV4Uuids(sql, table, expected)
+                assertEquals("unstamped rows in $table", 0, sql.count(table, "updated_at <= 0"))
+                assertEquals("rows without created_at in $table", 0, sql.count(table, "created_at = ''"))
+            }
+            assertEquals(35, UpdatedAtTriggers.trackedTables(sql).size)
+            for (table in UpdatedAtTriggers.trackedTables(sql)) {
+                assertTrue(table, UpdatedAtTriggers.storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
             assertEquals(12.5, sql.double("SELECT stock FROM products WHERE id = 1"), 0.0)
 
@@ -211,9 +217,66 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 43 -> 44 stamps every existing row as of the upgrade, gives lines their document's creation
+     * time, and marks the creation time nothing recorded as unknown.
+     */
+    @Test
+    fun migration43To44StampsRowsAndBackfillsCreatedAt() {
+        helper.createDatabase(TEST_DB, 43).apply {
+            execSQL(
+                "INSERT INTO clients (id, name, balance, customer_type, uuid) " +
+                    "VALUES (1, 'Épicerie El Amel', 0.0, 'retail', '00000000-0000-4000-8000-000000000001')"
+            )
+            execSQL(
+                "INSERT INTO ventes (id, client_id, source, total, montant_paye, status, created_at, uuid) " +
+                    "VALUES (7, 1, 'depot', 220.0, 0.0, 'delivered', '2026-08-14T10:05:00Z', " +
+                    "'00000000-0000-4000-8000-000000000002')"
+            )
+            execSQL(
+                "INSERT INTO vente_items (vente_id, product_id, product_name, unit_type, quantity, unit_price, total_price, uuid) " +
+                    "VALUES (7, 1, 'Lait Candia 1L', 'pièce', 2.0, 110.0, 220.0, '00000000-0000-4000-8000-000000000003')"
+            )
+            // A line whose vente is gone
+            execSQL(
+                "INSERT INTO vente_items (vente_id, product_id, product_name, unit_type, quantity, unit_price, total_price, uuid) " +
+                    "VALUES (99, 1, 'Lait Candia 1L', 'pièce', 1.0, 110.0, 110.0, '00000000-0000-4000-8000-000000000004')"
+            )
+            execSQL(
+                "INSERT INTO inventory_sessions (id, status, started_at, uuid) " +
+                    "VALUES (1, 'completed', '2026-07-01T08:00:00Z', '00000000-0000-4000-8000-000000000005')"
+            )
+            close()
+        }
+
+        val before = System.currentTimeMillis()
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 44, true, MIGRATION_43_44)
+        val after = System.currentTimeMillis()
+        try {
+            val stamps = listOf("clients", "ventes", "vente_items", "inventory_sessions").flatMap { table ->
+                sql.query("SELECT updated_at FROM `$table`").use { c ->
+                    buildList { while (c.moveToNext()) add(c.getLong(0)) }
+                }
+            }
+            assertEquals(5, stamps.size)
+            assertEquals("one stamp for the whole upgrade", 1, stamps.toSet().size)
+            assertTrue(stamps.first() in before..after)
+
+            assertEquals("2026-08-14T10:05:00Z", sql.text("SELECT created_at FROM vente_items WHERE vente_id = 7"))
+            assertEquals(UNKNOWN_CREATED_AT, sql.text("SELECT created_at FROM vente_items WHERE vente_id = 99"))
+            assertEquals("2026-07-01T08:00:00Z", sql.text("SELECT created_at FROM inventory_sessions WHERE id = 1"))
+            assertEquals(UNKNOWN_CREATED_AT, sql.text("SELECT created_at FROM clients WHERE id = 1"))
+            // Tables that already had created_at keep it
+            assertEquals("2026-08-14T10:05:00Z", sql.text("SELECT created_at FROM ventes WHERE id = 7"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
+            .withChangeTracking()
             .build()
 
     /** One client and one supplier with a small ledger each, and deliberately wrong stored balances. */
@@ -286,8 +349,11 @@ class MigrationTest {
         }.toSet()
     }
 
-    private fun SupportSQLiteDatabase.count(table: String): Int =
-        query("SELECT COUNT(*) FROM `$table`").use { it.moveToFirst(); it.getInt(0) }
+    private fun SupportSQLiteDatabase.text(sql: String): String =
+        query(sql).use { assertTrue(sql, it.moveToFirst()); it.getString(0) }
+
+    private fun SupportSQLiteDatabase.count(table: String, where: String = "1"): Int =
+        query("SELECT COUNT(*) FROM `$table` WHERE $where").use { it.moveToFirst(); it.getInt(0) }
 
     private fun SupportSQLiteDatabase.double(sql: String): Double =
         query(sql).use { assertTrue(sql, it.moveToFirst()); it.getDouble(0) }
@@ -296,6 +362,8 @@ class MigrationTest {
         const val TEST_DB = "migration-test"
 
         val LATEST_VERSION = ALL_MIGRATIONS.last().endVersion
+
+        const val UNKNOWN_CREATED_AT = "1970-01-01T00:00:00Z"
 
         val V4_UUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
