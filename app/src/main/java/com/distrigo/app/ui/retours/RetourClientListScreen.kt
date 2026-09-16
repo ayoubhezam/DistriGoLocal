@@ -50,18 +50,20 @@ fun RetourClientListScreen(
     onBack      : () -> Unit,
     onAddRetour : () -> Unit = {}
 ) {
-    val allRetours by viewModel.retours.collectAsState()
-    val retours = allRetours.filter { it.client_id == client.id }
+    val retours by viewModel.retours.collectAsState()
 
     var search   by remember { mutableStateOf("") }
     var selectedRetour by remember { mutableStateOf<RetourClient?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.loadRetours() }
+    LaunchedEffect(client.id) { viewModel.loadRetours(client.id) }
 
-    val filteredRetours = retours.filter { retour ->
-        search.isBlank() ||
-            retour.client_name.contains(search, ignoreCase = true) ||
-            (retour.motif?.contains(search, ignoreCase = true) == true)
+    // Recomputed only when the list or the search changes, like the other filtered lists.
+    val filteredRetours = remember(retours, search) {
+        retours.filter { retour ->
+            search.isBlank() ||
+                retour.client_name.contains(search, ignoreCase = true) ||
+                (retour.motif?.contains(search, ignoreCase = true) == true)
+        }
     }
 
     val totalProduits = retours.sumOf { it.items_count ?: 0 }
@@ -87,7 +89,7 @@ fun RetourClientListScreen(
                 retourSummary = retour,
                 viewModel     = viewModel,
                 onBack        = { selectedRetour = null },
-                onDeleted     = { selectedRetour = null; viewModel.loadRetours() }
+                onDeleted     = { selectedRetour = null; viewModel.loadRetours(client.id) }
             )
         } else {
             Column(Modifier.fillMaxSize().background(DsColors.Surface)) {

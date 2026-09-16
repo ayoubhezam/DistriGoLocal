@@ -26,23 +26,43 @@ class RetourClientRepository(
         unit_price = this.unit_price, total_price = this.total_price
     )
 
-    private suspend fun RetourClientEntity.toRetour(items: List<RetourClientItem>? = null): RetourClient {
-        val clientName = clientDao.getClientById(this.client_id)?.name ?: "Client inconnu"
-        return RetourClient(
-            id = this.id, client_id = this.client_id, client_name = clientName,
-            tournee_id = this.tournee_id, date = this.date, motif = this.motif, note = this.note,
-            total = this.total, created_at = this.created_at, items_count = items?.size, items = items
+    private suspend fun RetourClientEntity.toRetour(items: List<RetourClientItem>? = null): RetourClient =
+        toRetourWith(
+            clientName = clientDao.getClientById(this.client_id)?.name ?: "Client inconnu",
+            itemsCount = items?.size,
+            items      = items
         )
-    }
+
+    /**
+     * The one place a retour row becomes a RetourClient. [toRetour] looks the client up itself; a
+     * caller listing one client's returns already knows the name and has the line counts, and
+     * passes them in, so the two paths cannot drift apart field by field.
+     */
+    private fun RetourClientEntity.toRetourWith(
+        clientName: String,
+        itemsCount: Int?,
+        items: List<RetourClientItem>?
+    ) = RetourClient(
+        id = this.id, client_id = this.client_id, client_name = clientName,
+        tournee_id = this.tournee_id, date = this.date, motif = this.motif, note = this.note,
+        total = this.total, created_at = this.created_at, items_count = itemsCount, items = items
+    )
 
     // ── Lecture ──
-    suspend fun getRetours(clientId: Int? = null): List<RetourClient> {
-        val entities = if (clientId != null) retourDao.getRetoursForClient(clientId)
-                       else retourDao.getAllRetours()
-        return entities.map { entity ->
-            val count = retourDao.getItemsForRetour(entity.id).size
-            entity.toRetour().copy(items_count = count)
-        }
+    /**
+     * One client's returns for its list screen: the rows filtered in SQL, every line count in one
+     * query, and the client's name looked up once.
+     *
+     * This used to load every client's returns — an items query and a client lookup for each, so
+     * 1 + 2R queries over the whole table — and filter them down to this client in Compose.
+     */
+    suspend fun getRetoursForClient(clientId: Int): List<RetourClient> {
+        val entities = retourDao.getRetoursForClient(clientId)
+        if (entities.isEmpty()) return emptyList()
+        val counts = retourDao.getItemCountsForRetours(entities.map { it.id })
+            .associate { it.retour_id to it.count }
+        val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
+        return entities.map { it.toRetourWith(clientName, counts[it.id] ?: 0, items = null) }
     }
 
     /**

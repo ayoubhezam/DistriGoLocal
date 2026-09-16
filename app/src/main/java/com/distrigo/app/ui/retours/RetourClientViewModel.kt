@@ -94,11 +94,15 @@ class RetourClientViewModel @Inject constructor(
         }
     }
 
-    fun loadRetours() {
+    // Which client's list is open, so a save or a delete reloads that same client.
+    private var openClientId: Int? = null
+
+    fun loadRetours(clientId: Int) {
+        openClientId = clientId
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _retours.value = repository.getRetours()
+                _retours.value = repository.getRetoursForClient(clientId)
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message
@@ -109,7 +113,7 @@ class RetourClientViewModel @Inject constructor(
     }
 
     // The client detail screen's returns: count, total and the latest three. Kept apart from
-    // [retours], which the returns list screen fills with every return.
+    // [retours], which the returns list screen fills with one client's returns.
     private val _detailPreview = MutableStateFlow(RetourPreview<RetourClient>())
     val detailPreview: StateFlow<RetourPreview<RetourClient>> = _detailPreview
 
@@ -139,7 +143,7 @@ class RetourClientViewModel @Inject constructor(
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                loadRetours()
+                loadRetours(clientId)
                 onSuccess()
             }
         }
@@ -155,7 +159,7 @@ class RetourClientViewModel @Inject constructor(
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                loadRetours()
+                openClientId?.let { loadRetours(it) }
                 onSuccess()
             }
         }
