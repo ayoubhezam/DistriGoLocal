@@ -15,9 +15,6 @@ interface RetourClientDao {
     @Query("SELECT * FROM retour_client WHERE client_id = :clientId ORDER BY date DESC, id DESC")
     suspend fun getRetoursForClient(clientId: Int): List<RetourClientEntity>
 
-    @Query("SELECT * FROM retour_client ORDER BY date DESC, id DESC")
-    suspend fun getAllRetours(): List<RetourClientEntity>
-
     /**
      * The client's [limit] latest returns for its detail screen: newest created first, and for the
      * same instant in the order the returns list uses (date, then id, newest first).
