@@ -416,3 +416,28 @@ val MIGRATION_41_42 = object : Migration(41, 42) {
         )
     }
 }
+
+/**
+ * Every registered migration, in order. The one list both the app's builder and the migration
+ * tests read, so a migration that is written but not added here fails the tests instead of
+ * shipping unregistered.
+ *
+ * Declared after the migrations on purpose: top-level properties initialise in file order.
+ */
+internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+    MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
+    MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
+    MIGRATION_40_41, MIGRATION_41_42,
+)
+
+/**
+ * The versions a database may still be wiped from: every version before [MIGRATION_32_33].
+ *
+ * Their schemas were never exported, so they cannot be migrated, and those installs have always
+ * been recreated on upgrade. From 32 on, every version has a registered path, so a missing one is
+ * a bug that should crash on open, not a reason to delete someone's ledger.
+ *
+ * Nothing here may be the start or end version of a migration in [ALL_MIGRATIONS]: Room rejects
+ * that combination when the database is built.
+ */
+internal val DESTRUCTIVE_MIGRATION_VERSIONS: IntArray = (1..31).toList().toIntArray()

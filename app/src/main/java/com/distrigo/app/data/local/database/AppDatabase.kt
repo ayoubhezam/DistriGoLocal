@@ -129,15 +129,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "distrigo"
                 )
-                    // Room prefers a registered path over destructive fallback, so 32 -> 42
-                    // migrates without wiping. The fallback stays for pre-32 installs, where
-                    // removing it would replace today's wipe with a crash.
-                    .addMigrations(
-                        MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
-                        MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
-                        MIGRATION_40_41, MIGRATION_41_42
-                    )
-                    .fallbackToDestructiveMigration()
+                    .withMigrationPolicy()
                     .build()
                 INSTANCE = instance
                 instance
@@ -147,3 +139,22 @@ abstract class AppDatabase : RoomDatabase() {
 
 
 }
+
+/**
+ * How this database is allowed to change version. Shared with the migration tests, so what they
+ * check is what ships.
+ *
+ * Every registered path migrates. Only a pre-32 install, which has no path, is recreated. Anything
+ * else throws on open and leaves the file untouched: a version from 32 on with no registered
+ * migration, or a downgrade, such as an older build installed over a newer one.
+ *
+ * This replaces an unconditional `fallbackToDestructiveMigration()`, which wiped the database in
+ * all of those cases. A forgotten migration would have deleted every sale, payment and stock
+ * movement on the first launch after an update, and nothing would have reported it.
+ *
+ * `dropAllTables = false` keeps the pre-32 wipe exactly as it was: Room drops only the tables it
+ * knows before recreating them.
+ */
+internal fun RoomDatabase.Builder<AppDatabase>.withMigrationPolicy(): RoomDatabase.Builder<AppDatabase> =
+    addMigrations(*ALL_MIGRATIONS)
+        .fallbackToDestructiveMigrationFrom(false, *DESTRUCTIVE_MIGRATION_VERSIONS)

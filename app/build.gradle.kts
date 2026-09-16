@@ -48,6 +48,11 @@ android {
     buildFeatures {
         compose = true
     }
+    // MigrationTestHelper builds a database at any exported version from these JSON files, so the
+    // migration tests read the same schemas the migrations were copied from.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 }
 
 // Room schema export. Until now every version bump relied on fallbackToDestructiveMigration(),
@@ -99,6 +104,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    androidTestImplementation(libs.androidx.room.testing)
 
     // Paging — pagination Room + Compose (historique complet paginé)
     implementation(libs.androidx.paging.runtime.ktx)
