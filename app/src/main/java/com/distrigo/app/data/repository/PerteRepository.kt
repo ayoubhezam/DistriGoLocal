@@ -89,7 +89,7 @@ class PerteRepository(
         if (type.is_default) throw IllegalStateException("Impossible de supprimer un type par défaut")
         val pertes = perteDao.getPertesForType(id)
         if (pertes.isNotEmpty()) throw IllegalStateException("Impossible de supprimer : des pertes existent déjà sous ce type")
-        perteDao.deletePerteTypeById(id)
+        perteDao.softDeletePerteTypeById(id)
     }
 
     // ── Pertes ──

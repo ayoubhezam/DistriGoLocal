@@ -11,17 +11,17 @@ import com.distrigo.app.data.local.entity.PerteTypeEntity
 interface PerteDao {
 
     // ── Perte Types ──
-    @Query("SELECT * FROM perte_types ORDER BY id ASC")
+    @Query("SELECT * FROM perte_types WHERE deleted_at IS NULL ORDER BY id ASC")
     suspend fun getAllPerteTypes(): List<PerteTypeEntity>
 
-    @Query("SELECT * FROM perte_types WHERE id = :id")
+    @Query("SELECT * FROM perte_types WHERE id = :id AND deleted_at IS NULL")
     suspend fun getPerteTypeById(id: Int): PerteTypeEntity?
 
     @Insert
     suspend fun insertPerteType(type: PerteTypeEntity): Long
 
-    @Query("DELETE FROM perte_types WHERE id = :id")
-    suspend fun deletePerteTypeById(id: Int)
+    @Query("UPDATE perte_types SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :id AND deleted_at IS NULL")
+    suspend fun softDeletePerteTypeById(id: Int)
 
     // ── Pertes ──
 

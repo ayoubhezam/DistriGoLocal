@@ -11,15 +11,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ClientDao {
 
-    @Query("SELECT * FROM clients ORDER BY id DESC")
+    @Query("SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY id DESC")
     suspend fun getAllClients(): List<ClientEntity>
 
     // نسخة مُراقَبة: Room يعيد إصدار القائمة تلقائياً عند أي كتابة على جدول العملاء
     // (إضافة/تعديل/حذف عميل، تحديث الرصيد بعد بيع أو دفعة…) مهما كان مصدر الكتابة
-    @Query("SELECT * FROM clients ORDER BY id DESC")
+    @Query("SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY id DESC")
     fun observeAllClients(): Flow<List<ClientEntity>>
 
-    @Query("SELECT * FROM clients WHERE id = :id")
+    @Query("SELECT * FROM clients WHERE id = :id AND deleted_at IS NULL")
     suspend fun getClientById(id: Int): ClientEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -28,10 +28,10 @@ interface ClientDao {
     @Update
     suspend fun updateClient(client: ClientEntity)
 
-    @Query("DELETE FROM clients WHERE id = :id")
-    suspend fun deleteClientById(id: Int)
+    @Query("UPDATE clients SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :id AND deleted_at IS NULL")
+    suspend fun softDeleteClientById(id: Int)
 
-    @Query("SELECT * FROM clients WHERE id IN (:ids)")
+    @Query("SELECT * FROM clients WHERE id IN (:ids) AND deleted_at IS NULL")
     suspend fun getClientsByIds(ids: List<Int>): List<ClientEntity>
 
     /**
@@ -49,7 +49,7 @@ interface ClientDao {
      */
     @Query("""
         SELECT wilaya_name FROM clients
-        WHERE wilaya_name IS NOT NULL AND TRIM(wilaya_name) != ''
+        WHERE deleted_at IS NULL AND wilaya_name IS NOT NULL AND TRIM(wilaya_name) != ''
         GROUP BY wilaya_name
         HAVING COUNT(*) >= 2
         ORDER BY COUNT(*) DESC, wilaya_name ASC

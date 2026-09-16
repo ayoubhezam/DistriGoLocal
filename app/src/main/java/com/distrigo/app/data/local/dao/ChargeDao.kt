@@ -12,10 +12,10 @@ import com.distrigo.app.data.local.entity.ChargeTypeEntity
 interface ChargeDao {
 
     // ── Charge Types ──
-    @Query("SELECT * FROM charge_types ORDER BY id ASC")
+    @Query("SELECT * FROM charge_types WHERE deleted_at IS NULL ORDER BY id ASC")
     suspend fun getAllChargeTypes(): List<ChargeTypeEntity>
 
-    @Query("SELECT * FROM charge_types WHERE id = :id")
+    @Query("SELECT * FROM charge_types WHERE id = :id AND deleted_at IS NULL")
     suspend fun getChargeTypeById(id: Int): ChargeTypeEntity?
 
     @Insert
@@ -24,21 +24,21 @@ interface ChargeDao {
     @Update
     suspend fun updateChargeType(type: ChargeTypeEntity)
 
-    @Query("DELETE FROM charge_types WHERE id = :id")
-    suspend fun deleteChargeTypeById(id: Int)
+    @Query("UPDATE charge_types SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :id AND deleted_at IS NULL")
+    suspend fun softDeleteChargeTypeById(id: Int)
 
     // ── Charge SubTypes ──
-    @Query("SELECT * FROM charge_subtypes WHERE type_id = :typeId ORDER BY id ASC")
+    @Query("SELECT * FROM charge_subtypes WHERE type_id = :typeId AND deleted_at IS NULL ORDER BY id ASC")
     suspend fun getSubTypesForType(typeId: Int): List<ChargeSubTypeEntity>
 
-    @Query("SELECT * FROM charge_subtypes WHERE id = :id")
+    @Query("SELECT * FROM charge_subtypes WHERE id = :id AND deleted_at IS NULL")
     suspend fun getSubTypeById(id: Int): ChargeSubTypeEntity?
 
-    @Query("SELECT * FROM charge_subtypes ORDER BY id ASC")
+    @Query("SELECT * FROM charge_subtypes WHERE deleted_at IS NULL ORDER BY id ASC")
     suspend fun getAllSubTypes(): List<ChargeSubTypeEntity>
 
     /** How many subtypes each type has. Types without subtypes have no row. */
-    @Query("SELECT type_id, COUNT(*) AS count FROM charge_subtypes GROUP BY type_id")
+    @Query("SELECT type_id, COUNT(*) AS count FROM charge_subtypes WHERE deleted_at IS NULL GROUP BY type_id")
     suspend fun getSubTypeCountsByType(): List<ChargeSubTypeCount>
 
     @Insert
@@ -47,8 +47,8 @@ interface ChargeDao {
     @Update
     suspend fun updateSubType(subType: ChargeSubTypeEntity)
 
-    @Query("DELETE FROM charge_subtypes WHERE id = :id")
-    suspend fun deleteSubTypeById(id: Int)
+    @Query("UPDATE charge_subtypes SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :id AND deleted_at IS NULL")
+    suspend fun softDeleteSubTypeById(id: Int)
 
     // ── Charges ──
 
@@ -79,7 +79,7 @@ interface ChargeDao {
     @Query("""
         SELECT subtype_id, COUNT(*) AS count, SUM(montant) AS total
         FROM charges
-        WHERE subtype_id IN (SELECT id FROM charge_subtypes WHERE type_id = :typeId)
+        WHERE subtype_id IN (SELECT id FROM charge_subtypes WHERE type_id = :typeId AND deleted_at IS NULL)
           AND date_time >= :start AND date_time < :end
         GROUP BY subtype_id
     """)

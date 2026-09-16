@@ -12,20 +12,20 @@ import kotlinx.coroutines.flow.Flow
 interface ProductDao {
 
     // 1. جلب جميع المنتجات (رتبناها تنازلياً حسب الـ ID لتظهر الأحدث أولاً، ويمكن تعديلها لاحقاً)
-    @Query("SELECT * FROM products ORDER BY id DESC")
+    @Query("SELECT * FROM products WHERE deleted_at IS NULL ORDER BY id DESC")
     suspend fun getAllProducts(): List<ProductEntity>
 
     // نسخة مُراقَبة: Room يعيد إصدار القائمة تلقائياً عند أي كتابة على جدول المنتجات،
     // مهما كان الـ DAO أو الـ Repository الذي نفّذ الكتابة (بيع، chargement، perte، retour…)
-    @Query("SELECT * FROM products ORDER BY id DESC")
+    @Query("SELECT * FROM products WHERE deleted_at IS NULL ORDER BY id DESC")
     fun observeAllProducts(): Flow<List<ProductEntity>>
 
     // 2. جلب منتج واحد بواسطة الـ ID
-    @Query("SELECT * FROM products WHERE id = :productId")
+    @Query("SELECT * FROM products WHERE id = :productId AND deleted_at IS NULL")
     suspend fun getProductById(productId: Int): ProductEntity?
 
     // جلب المنتجات المرتبطة بمورد معين
-    @Query("SELECT * FROM products WHERE supplier_id = :supplierId ORDER BY id DESC")
+    @Query("SELECT * FROM products WHERE supplier_id = :supplierId AND deleted_at IS NULL ORDER BY id DESC")
     suspend fun getProductsBySupplier(supplierId: Int): List<ProductEntity>
 
     // 3. إضافة منتج جديد (ترجع الـ ID الخاص بالمنتج الجديد)
@@ -36,7 +36,7 @@ interface ProductDao {
     @Update
     suspend fun updateProduct(product: ProductEntity)
 
-    // 5. حذف منتج بواسطة الـ ID
-    @Query("DELETE FROM products WHERE id = :productId")
-    suspend fun deleteProductById(productId: Int)
+    // 5. حذف منتج بواسطة الـ ID — soft: the row stays, see MIGRATION_44_45
+    @Query("UPDATE products SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :productId AND deleted_at IS NULL")
+    suspend fun softDeleteProductById(productId: Int)
 }

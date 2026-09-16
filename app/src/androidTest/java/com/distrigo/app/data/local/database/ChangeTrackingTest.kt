@@ -59,7 +59,7 @@ class ChangeTrackingTest {
             assertEquals(
                 table,
                 UpdatedAtTriggers.triggerSql(table, compared),
-                UpdatedAtTriggers.storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)),
+                storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)),
             )
         }
     }
@@ -69,6 +69,7 @@ class ChangeTrackingTest {
     fun reinstallingChangesNothing() {
         val before = schemaVersion()
         UpdatedAtTriggers.install(sql)
+        TombstoneTriggers.install(sql)
         assertEquals(before, schemaVersion())
     }
 

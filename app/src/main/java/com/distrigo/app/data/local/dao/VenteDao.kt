@@ -38,7 +38,7 @@ interface VenteDao {
                c.name AS live_client_name,
                (SELECT COUNT(*) FROM vente_items vi WHERE vi.vente_id = v.id) AS items_count
         FROM ventes v
-        LEFT JOIN clients c ON c.id = v.client_id
+        LEFT JOIN clients c ON c.id = v.client_id AND c.deleted_at IS NULL
         WHERE v.tournee_id = :tourneeId
         ORDER BY v.id DESC
     """)
@@ -57,7 +57,7 @@ interface VenteDao {
                c.name AS live_client_name,
                (SELECT COUNT(*) FROM vente_items vi WHERE vi.vente_id = v.id) AS items_count
         FROM ventes v
-        LEFT JOIN clients c ON c.id = v.client_id
+        LEFT JOIN clients c ON c.id = v.client_id AND c.deleted_at IS NULL
         WHERE :clientId IS NULL OR v.client_id = :clientId
         ORDER BY v.id DESC
     """)

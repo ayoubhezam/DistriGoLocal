@@ -11,15 +11,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SupplierDao {
 
-    @Query("SELECT * FROM suppliers ORDER BY name ASC")
+    @Query("SELECT * FROM suppliers WHERE deleted_at IS NULL ORDER BY name ASC")
     suspend fun getAllSuppliers(): List<SupplierEntity>
 
     // نسخة مُراقَبة: Room يعيد إصدار القائمة تلقائياً عند أي كتابة على جدول الموردين
     // (إضافة/تعديل/حذف، تحديث الرصيد بعد شراء أو دفعة…) مهما كان مصدر الكتابة
-    @Query("SELECT * FROM suppliers ORDER BY name ASC")
+    @Query("SELECT * FROM suppliers WHERE deleted_at IS NULL ORDER BY name ASC")
     fun observeAllSuppliers(): Flow<List<SupplierEntity>>
 
-    @Query("SELECT * FROM suppliers WHERE id = :supplierId")
+    @Query("SELECT * FROM suppliers WHERE id = :supplierId AND deleted_at IS NULL")
     suspend fun getSupplierById(supplierId: Int): SupplierEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -28,8 +28,8 @@ interface SupplierDao {
     @Update
     suspend fun updateSupplier(supplier: SupplierEntity)
 
-    @Query("DELETE FROM suppliers WHERE id = :supplierId")
-    suspend fun deleteSupplierById(supplierId: Int)
+    @Query("UPDATE suppliers SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :supplierId AND deleted_at IS NULL")
+    suspend fun softDeleteSupplierById(supplierId: Int)
 
     /**
      * Brings a supplier's stored balance back in line with its history, in one statement:

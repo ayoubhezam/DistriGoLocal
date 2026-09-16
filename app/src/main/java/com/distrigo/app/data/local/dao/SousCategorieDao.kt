@@ -10,13 +10,13 @@ import com.distrigo.app.data.local.entity.SousCategorieEntity
 @Dao
 interface SousCategorieDao {
 
-    @Query("SELECT * FROM sous_categories ORDER BY sort_order ASC, name ASC")
+    @Query("SELECT * FROM sous_categories WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC")
     suspend fun getAllSousCategories(): List<SousCategorieEntity>
 
-    @Query("SELECT * FROM sous_categories WHERE category_id = :categoryId ORDER BY sort_order ASC, name ASC")
+    @Query("SELECT * FROM sous_categories WHERE category_id = :categoryId AND deleted_at IS NULL ORDER BY sort_order ASC, name ASC")
     suspend fun getSousCategoriesForCategory(categoryId: Int): List<SousCategorieEntity>
 
-    @Query("SELECT * FROM sous_categories WHERE id = :id")
+    @Query("SELECT * FROM sous_categories WHERE id = :id AND deleted_at IS NULL")
     suspend fun getSousCategorieById(id: Int): SousCategorieEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -25,6 +25,6 @@ interface SousCategorieDao {
     @Update
     suspend fun updateSousCategorie(sousCategorie: SousCategorieEntity)
 
-    @Query("DELETE FROM sous_categories WHERE id = :id")
-    suspend fun deleteSousCategorieById(id: Int)
+    @Query("UPDATE sous_categories SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :id AND deleted_at IS NULL")
+    suspend fun softDeleteSousCategorieById(id: Int)
 }

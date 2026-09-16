@@ -93,7 +93,7 @@ class MigrationTest {
             }
             assertEquals(35, UpdatedAtTriggers.trackedTables(sql).size)
             for (table in UpdatedAtTriggers.trackedTables(sql)) {
-                assertTrue(table, UpdatedAtTriggers.storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
+                assertTrue(table, storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
             assertEquals(12.5, sql.double("SELECT stock FROM products WHERE id = 1"), 0.0)
 
@@ -268,6 +268,37 @@ class MigrationTest {
             assertEquals(UNKNOWN_CREATED_AT, sql.text("SELECT created_at FROM clients WHERE id = 1"))
             // Tables that already had created_at keep it
             assertEquals("2026-08-14T10:05:00Z", sql.text("SELECT created_at FROM ventes WHERE id = 7"))
+        } finally {
+            sql.close()
+        }
+    }
+
+    /** 44 -> 45 leaves every master row live and starts with no tombstones. */
+    @Test
+    fun migration44To45AddsDeletedAtAndTombstones() {
+        helper.createDatabase(TEST_DB, 44).apply {
+            execSQL(
+                "INSERT INTO clients (id, name, balance, customer_type, uuid, created_at, updated_at) " +
+                    "VALUES (1, 'Épicerie El Amel', 0.0, 'retail', '00000000-0000-4000-8000-000000000001', " +
+                    "'1970-01-01T00:00:00Z', 1000)"
+            )
+            execSQL(
+                "INSERT INTO products (id, name, selling_price, purchase_price, stock, min_stock, unit_type, " +
+                    "packages, pack_size, has_expiry, camion_stock, uuid, created_at, updated_at) " +
+                    "VALUES (1, 'Lait Candia 1L', 110.0, 95.0, 12.0, 10, 'pièce', 0, 12, 0, 0.0, " +
+                    "'00000000-0000-4000-8000-000000000002', '1970-01-01T00:00:00Z', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 45, true, MIGRATION_44_45)
+        try {
+            assertEquals(0, sql.count("clients", "deleted_at IS NOT NULL"))
+            assertEquals(1, sql.count("clients", "deleted_at IS NULL"))
+            assertEquals(1, sql.count("products", "deleted_at IS NULL"))
+            // updated_at is untouched by adding a column
+            assertEquals(1, sql.count("clients", "updated_at = 1000"))
+            assertEquals(0, sql.count("tombstones"))
         } finally {
             sql.close()
         }

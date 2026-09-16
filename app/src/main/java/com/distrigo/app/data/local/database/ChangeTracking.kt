@@ -47,23 +47,9 @@ internal object UpdatedAtTriggers {
 
     private val NEVER_COMPARED = setOf("id", "uuid", "updated_at")
 
-    /** Milliseconds since the Unix epoch, UTC. `julianday` exists on every SQLite Android ships. */
-    private const val NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
-
     fun install(db: SupportSQLiteDatabase) {
-        db.beginTransaction()
-        try {
-            for (table in trackedTables(db)) {
-                val name = triggerName(table)
-                val wanted = triggerSql(table, comparedColumns(db, table))
-                if (storedTriggerSql(db, name) != wanted) {
-                    db.execSQL("DROP TRIGGER IF EXISTS `$name`")
-                    db.execSQL(wanted)
-                }
-            }
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
+        for (table in trackedTables(db)) {
+            replaceIfChanged(db, triggerName(table), triggerSql(table, comparedColumns(db, table)))
         }
     }
 
@@ -88,10 +74,6 @@ internal object UpdatedAtTriggers {
             "WHERE `id` = NEW.`id`; END"
     }
 
-    fun storedTriggerSql(db: SupportSQLiteDatabase, name: String): String? =
-        db.query("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?", arrayOf(name))
-            .use { c -> if (c.moveToFirst()) c.getString(0) else null }
-
     private fun columns(db: SupportSQLiteDatabase, table: String): List<String> =
         db.query("PRAGMA table_info(`$table`)").use { c ->
             val name = c.getColumnIndexOrThrow("name")
@@ -99,10 +81,61 @@ internal object UpdatedAtTriggers {
         }
 }
 
-/** Installs [UpdatedAtTriggers] each time the database opens. The app's builder and the tests use it. */
+/**
+ * Records every hard delete of a business row in `tombstones` (see TombstoneEntity).
+ *
+ * One `AFTER DELETE` trigger per table [UpdatedAtTriggers] tracks, so the uuid of a deleted vente, of
+ * each line replaced by an edit, and of each stock movement removed with its document is kept after
+ * the row itself is gone. A soft delete is an UPDATE of `deleted_at` and leaves no tombstone: the row
+ * is still there to say so.
+ *
+ * `INSERT OR IGNORE` because a tombstone must never be the reason a delete fails. A uuid can only be
+ * deleted once, so nothing is lost by it.
+ */
+internal object TombstoneTriggers {
+
+    fun install(db: SupportSQLiteDatabase) {
+        for (table in UpdatedAtTriggers.trackedTables(db)) {
+            replaceIfChanged(db, triggerName(table), triggerSql(table))
+        }
+    }
+
+    fun triggerName(table: String): String = "trg_${table}_tombstone"
+
+    fun triggerSql(table: String): String =
+        "CREATE TRIGGER `${triggerName(table)}` AFTER DELETE ON `$table` FOR EACH ROW " +
+            "BEGIN INSERT OR IGNORE INTO `tombstones` (`table_name`, `row_uuid`, `deleted_at`) " +
+            "VALUES ('$table', OLD.`uuid`, $NOW_MS); END"
+}
+
+/** Milliseconds since the Unix epoch, UTC. `julianday` exists on every SQLite Android ships. */
+private const val NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
+
+internal fun storedTriggerSql(db: SupportSQLiteDatabase, name: String): String? =
+    db.query("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?", arrayOf(name))
+        .use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+/** SQLite stores a trigger's CREATE statement as written, so an unchanged one compares equal. */
+private fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: String) {
+    if (storedTriggerSql(db, name) == sql) return
+    db.execSQL("DROP TRIGGER IF EXISTS `$name`")
+    db.execSQL(sql)
+}
+
+/**
+ * Installs the [UpdatedAtTriggers] and [TombstoneTriggers] each time the database opens, in one
+ * transaction. The app's builder and the tests use it.
+ */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
     addCallback(object : RoomDatabase.Callback() {
         override fun onOpen(db: SupportSQLiteDatabase) {
-            UpdatedAtTriggers.install(db)
+            db.beginTransaction()
+            try {
+                UpdatedAtTriggers.install(db)
+                TombstoneTriggers.install(db)
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
         }
     })

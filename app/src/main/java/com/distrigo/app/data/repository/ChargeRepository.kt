@@ -129,8 +129,8 @@ class ChargeRepository(
             throw IllegalStateException("Impossible de supprimer : des dépenses existent déjà sous ce type")
         }
 
-        subtypes.forEach { chargeDao.deleteSubTypeById(it.id) }
-        chargeDao.deleteChargeTypeById(id)
+        subtypes.forEach { chargeDao.softDeleteSubTypeById(it.id) }
+        chargeDao.softDeleteChargeTypeById(id)
     }
 
     // ── Charge SubTypes ──
@@ -168,7 +168,7 @@ class ChargeRepository(
         if (charges.isNotEmpty()) {
             throw IllegalStateException("Impossible de supprimer : ${charges.size} dépense(s) enregistrée(s) sous ce sous-type")
         }
-        chargeDao.deleteSubTypeById(id)
+        chargeDao.softDeleteSubTypeById(id)
     }
 
     // ── Charges ──

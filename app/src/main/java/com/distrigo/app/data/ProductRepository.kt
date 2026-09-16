@@ -333,7 +333,7 @@ class ProductRepository(
     }
 
     suspend fun deleteProduct(id: Int): Map<String, Any> {
-        productDao.deleteProductById(id)
+        productDao.softDeleteProductById(id)
         return mapOf("message" to "Product deleted successfully")
     }
 
@@ -503,7 +503,7 @@ class ProductRepository(
     }
 
     suspend fun deleteCategory(id: Int): Map<String, Any> {
-        categoryDao.deleteCategoryById(id)
+        categoryDao.softDeleteCategoryById(id)
         return mapOf("message" to "Category deleted successfully")
     }
 
@@ -538,7 +538,7 @@ class ProductRepository(
     }
 
     suspend fun deleteSousCategorie(id: Int): Map<String, Any> {
-        sousCategorieDao.deleteSousCategorieById(id)
+        sousCategorieDao.softDeleteSousCategorieById(id)
         return mapOf("message" to "SousCategorie deleted successfully")
     }
 
@@ -567,7 +567,7 @@ class ProductRepository(
     }
 
     suspend fun deleteMarque(id: Int): Map<String, Any> {
-        marqueDao.deleteMarqueById(id)
+        marqueDao.softDeleteMarqueById(id)
         return mapOf("message" to "Marque deleted successfully")
     }
 
@@ -622,7 +622,7 @@ class ProductRepository(
     }
 
     suspend fun deleteSupplier(id: Int): Map<String, Any> {
-        supplierDao.deleteSupplierById(id)
+        supplierDao.softDeleteSupplierById(id)
         return mapOf("message" to "Supplier deleted successfully")
     }
 
@@ -1277,7 +1277,7 @@ class ProductRepository(
     }
 
     suspend fun deleteClient(id: Int): Map<String, Any> {
-        clientDao.deleteClientById(id)
+        clientDao.softDeleteClientById(id)
         return mapOf("message" to "Client deleted successfully")
     }
 

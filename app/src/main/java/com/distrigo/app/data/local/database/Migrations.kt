@@ -542,6 +542,50 @@ val MIGRATION_43_44 = object : Migration(43, 44) {
 }
 
 /**
+ * 44 -> 45 - deleting stops destroying: soft delete for master data, tombstones for the rest.
+ *
+ * **Soft delete.** The nine tables the app lets a user delete from directly — products, clients,
+ * suppliers, categories, sous-catégories, marques, charge types and subtypes, perte types — get a
+ * nullable `deleted_at`. Their DAOs now set it instead of deleting the row, and every read of those
+ * tables filters it out, so a deleted row looks exactly as absent as it did when it was really gone:
+ * out of every list and picker, null from every lookup by id, and no name in the vente joins. What
+ * changes is that the row, and every sale, purchase and movement that points at it, is still there
+ * for a restore or a sync. Existing rows get NULL; nothing deleted before today can be brought back.
+ *
+ * Setting `deleted_at` is a real change, so the `updated_at` trigger stamps it like any edit.
+ *
+ * **Tombstones.** Everything else is still deleted for real — documents, their lines, payments,
+ * movements. `tombstones` keeps the table and `uuid` of each such row, written by an `AFTER DELETE`
+ * trigger installed with the others in ChangeTracking.kt. The table starts empty: rows deleted
+ * before this version left no uuid behind to record.
+ *
+ * The CREATE statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/45.json`). **Do not hand-edit
+ * them** - change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_44_45 = object : Migration(44, 45) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        listOf(
+            "products", "clients", "suppliers", "categories", "sous_categories", "marques",
+            "charge_types", "charge_subtypes", "perte_types",
+        ).forEach { table ->
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `deleted_at` INTEGER")
+        }
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `tombstones` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`table_name` TEXT NOT NULL, " +
+                "`row_uuid` TEXT NOT NULL, " +
+                "`deleted_at` INTEGER NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tombstones_table_name_row_uuid` " +
+                "ON `tombstones` (`table_name`, `row_uuid`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -552,6 +596,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
+    MIGRATION_44_45,
 )
 
 /**

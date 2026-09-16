@@ -16,5 +16,7 @@ data class CategoryEntity(
     @ColumnInfo(defaultValue = "''")
     val created_at: String = java.time.Instant.now().toString(),
     @ColumnInfo(defaultValue = "0")
-    val updated_at: Long = System.currentTimeMillis()
+    val updated_at: Long = System.currentTimeMillis(),
+    /** Null while the row is live; when it was deleted otherwise. Deleted rows are filtered out of every read. */
+    val deleted_at: Long? = null
 )
