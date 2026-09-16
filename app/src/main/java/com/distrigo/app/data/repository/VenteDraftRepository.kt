@@ -9,6 +9,7 @@ import com.distrigo.app.data.model.DraftBlock
 import com.distrigo.app.data.model.VenteDraft
 import com.distrigo.app.data.model.VenteDraftLine
 import com.distrigo.app.data.model.VenteDraftSnapshot
+import com.distrigo.app.data.model.numberLabel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
@@ -181,7 +182,7 @@ class VenteDraftRepository(private val db: AppDatabase) {
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 
-    private fun VenteDraftEntity.toDraft(block: DraftBlock = DraftBlock.NONE) = VenteDraft(
+    private suspend fun VenteDraftEntity.toDraft(block: DraftBlock = DraftBlock.NONE) = VenteDraft(
         id              = id,
         clientId        = client_id,
         clientName      = client_name,
@@ -197,7 +198,8 @@ class VenteDraftRepository(private val db: AppDatabase) {
         sourceVenteId   = source_vente_id,
         baseFingerprint = base_fingerprint,
         baseCapturedAt  = base_captured_at,
-        blockState      = block
+        blockState      = block,
+        sourceNumber    = source_vente_id?.let { numberLabel(db.venteDao().getNumero(it), it) }
     )
 
     companion object {

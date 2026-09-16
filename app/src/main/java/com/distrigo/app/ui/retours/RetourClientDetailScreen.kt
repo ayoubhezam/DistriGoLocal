@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,7 +39,7 @@ fun RetourClientDetailScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
         DsTopAppBar(
-            title    = "Retour #${display.id}",
+            title    = "Retour ${display.numberLabel}",
             subtitle = display.client_name,
             leading  = DsTopBarLeading.Back(onBack)
         ) {

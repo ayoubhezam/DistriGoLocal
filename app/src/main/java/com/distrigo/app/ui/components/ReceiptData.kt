@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.components
 
+import com.distrigo.app.data.model.receiptNumber
+import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Vente
@@ -20,6 +22,8 @@ data class ReceiptLineItem(
 
 data class ReceiptData(
     val documentTitle : String,
+    /** What prints after "N°": "26" for an older document, "V-6DED-000027" for a new one. */
+    val referenceNumber: String,
     val partyLabel    : String,   // "Client" أو "Fournisseur"
     val partyName     : String,
     /**
@@ -108,7 +112,8 @@ fun Vente.toReceiptData(
     client   : Client? = null,
     packSizes: Map<Int, Int> = emptyMap()
 ): ReceiptData = ReceiptData(
-    documentTitle = "Vente #$id",
+    documentTitle = "Vente $numberLabel",
+    referenceNumber = receiptNumber(numero, id),
     partyLabel    = "Client",
     partyName     = client_name,
     dateLabel     = formatReceiptDate(created_at),
@@ -149,7 +154,8 @@ fun Vente.toReceiptData(
 )
 
 fun PurchaseOrder.toReceiptData(context: android.content.Context): ReceiptData = ReceiptData(
-    documentTitle = "Bon d'achat #$id",
+    documentTitle = "Bon d'achat $numberLabel",
+    referenceNumber = receiptNumber(numero, id),
     partyLabel    = "Fournisseur",
     partyName     = supplier_name,
     dateLabel     = formatReceiptDate(created_at ?: date),

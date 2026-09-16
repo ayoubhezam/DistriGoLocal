@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -131,7 +132,7 @@ fun PurchasesScreen(
                 title = { Text("Supprimer le bon ?") },
                 text = {
                     Column {
-                        Text("Voulez-vous supprimer le bon #${order.id} de ${order.supplier_name} ?")
+                        Text("Voulez-vous supprimer le bon ${order.numberLabel} de ${order.supplier_name} ?")
                         if (deleteError.isNotEmpty()) {
                             Spacer(Modifier.height(DsSpacing.sm))
                             Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -168,7 +169,7 @@ fun PurchasesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressOrder = null },
-                title            = { Text("Bon #${order.id}") },
+                title            = { Text("Bon ${order.numberLabel}") },
                 confirmButton    = {},
                 dismissButton    = {},
                 icon             = null,
@@ -767,7 +768,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Bon #${order.id}",
+                    "Bon ${order.numberLabel}",
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.Medium,
                     color      = DsColors.TextSecondary

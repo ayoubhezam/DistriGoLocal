@@ -15,7 +15,9 @@ data class Vente(
     val items          : List<VenteItem>? = null,
     val client_image_uri: String? = null,    // ← جديد
     /** "Effectué par" — who made the sale. Null on sales recorded before it was stored. */
-    val user_name      : String? = null
+    val user_name      : String? = null,
+    /** See [numberLabel]. */
+    val numero         : String? = null
 )
 
 data class VenteItem(

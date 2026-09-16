@@ -8,7 +8,9 @@ data class SupplierTransaction(
     val montant_paye : Double?,
     val status       : String?,
     val note         : String?,
-    val created_at   : String
+    val created_at   : String,
+    /** A bon's number; null for a payment or the opening balance. See [numberLabel]. */
+    val numero       : String? = null
 )
 
 

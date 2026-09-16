@@ -48,7 +48,7 @@ internal object UpdatedAtTriggers {
         "suppliers" to setOf("balance"),
     )
 
-    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version", "origin_device_id")
+    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version", "origin_device_id", "numero")
 
     fun install(db: SupportSQLiteDatabase) {
         for (table in trackedTables(db)) {
@@ -242,8 +242,8 @@ internal fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: Stri
 }
 
 /**
- * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers], [StockLedgerTriggers] and
- * [OriginTriggers] each time the database opens, in one transaction. The app's builder and the tests use it.
+ * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers], [StockLedgerTriggers],
+ * [OriginTriggers] and [DocumentNumberTriggers] each time the database opens, in one transaction. The app's builder and the tests use it.
  */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
     addCallback(object : RoomDatabase.Callback() {
@@ -255,6 +255,7 @@ internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabas
                 DocumentTriggers.install(db)
                 StockLedgerTriggers.install(db)
                 OriginTriggers.install(db)
+                DocumentNumberTriggers.install(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()

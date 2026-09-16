@@ -25,5 +25,7 @@ data class RetourFournisseurEntity(
     @ColumnInfo(defaultValue = "1")
     val version: Int = 1,
     /** The device that created the row; null for rows created before version 48. */
-    val origin_device_id: String? = null
+    val origin_device_id: String? = null,
+    /** The number printed on the document — `V-6DED-000124`, or its old id for one created before version 49. See DocumentNumberTriggers. */
+    val numero: String? = null
 )

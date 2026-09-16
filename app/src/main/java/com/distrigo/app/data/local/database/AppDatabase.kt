@@ -71,7 +71,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         TombstoneEntity::class,
         AppMetaEntity::class,
     ],
-    version = 48,
+    version = 49,
     exportSchema = true
 )
 

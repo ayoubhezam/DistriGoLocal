@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -434,7 +435,7 @@ fun TourneeDetailScreen(
                 } else {
                     AlertDialog(
                         onDismissRequest = { longPressVenteInTournee = null },
-                        title = { Text("Vente #${vente.id}") },
+                        title = { Text("Vente ${vente.numberLabel}") },
                         confirmButton = {},
                         dismissButton = {},
                         text = {
@@ -537,7 +538,8 @@ fun TourneeDetailScreen(
                     ventes.filter { v ->
                         // Matched on the two things written on a row: who it is for, and its number.
                         val matchSearch = q.isEmpty() ||
-                            v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q)
+                            v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q) ||
+                                v.numberLabel.contains(q, ignoreCase = true)
                         val matchStatus = viewModel.venteFilterStatus == null || v.status == viewModel.venteFilterStatus
                         val paye = v.montant_paye ?: 0.0
                         val matchPayment = when (viewModel.venteFilterPaymentStatus) {
@@ -1626,7 +1628,7 @@ private fun TourneeVenteRow(
             // Dépôt Vente list already gives it — the two lists show the same records, so they
             // should name them the same way.
             Text(
-                "Vente #${vente.id}",
+                "Vente ${vente.numberLabel}",
                 fontSize   = DsTextSize.caption,
                 fontWeight = FontWeight.Medium,
                 color      = DsColors.TextSecondary

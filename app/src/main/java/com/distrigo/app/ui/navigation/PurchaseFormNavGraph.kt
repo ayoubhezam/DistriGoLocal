@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.documentLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -131,14 +132,14 @@ private fun Step2Chip(
 @Composable
 private fun PurchaseFormHeader(
     isEdit       : Boolean,
-    orderId      : Int?,
+    orderLabel   : String?,
     supplierName : String?,
     stepLabel    : String,
     currentStep  : Int,
     onBackClick  : () -> Unit
 ) {
     DsTopAppBar(
-        title         = if (isEdit) "Modifier le bon #$orderId" else "Nouveau bon",
+        title         = if (isEdit) listOfNotNull("Modifier le bon", orderLabel).joinToString(" ") else "Nouveau bon",
         subtitle      = supplierName ?: "Choisir un fournisseur",
         // Blue once a supplier is chosen, grey while the step is still open.
         subtitleColor = if (supplierName != null) DsColors.Primary else DsColors.TextSecondary,
@@ -296,7 +297,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
-                    orderId      = orderIdArg,
+                    orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
                     stepLabel    = "Fournisseur",
                     currentStep  = 1,
@@ -620,7 +621,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
-                    orderId      = orderIdArg,
+                    orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
                     stepLabel    = "Produits",
                     currentStep  = 2,
@@ -1257,7 +1258,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
-                    orderId      = orderIdArg,
+                    orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
                     stepLabel    = "Validation",
                     currentStep  = 3,

@@ -52,6 +52,10 @@ class VenteFormSessionViewModel @Inject constructor(
     private val savedState       : SavedStateHandle
 ) : ViewModel(), DraftAutosaveHost<VenteDraftSnapshot> {
 
+    /** The number of the document being edited, for the form title — see ProductRepository.documentLabel. */
+    suspend fun documentLabel(sourceType: String, id: Int): String = productRepository.documentLabel(sourceType, id)
+
+
     // ── Form state (moved off VenteViewModel) ────────────────────────────────
 
     private val _formClient = MutableStateFlow<Client?>(null)

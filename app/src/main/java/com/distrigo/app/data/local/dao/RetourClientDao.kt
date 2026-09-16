@@ -58,4 +58,8 @@ interface RetourClientDao {
         GROUP BY rci.product_id
     """)
     suspend fun getReturnedQuantitiesForClient(clientId: Int): List<ProductQuantitySum>
+
+    /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
+    @Query("SELECT numero FROM retour_client WHERE id = :id")
+    suspend fun getNumero(id: Int): String?
 }

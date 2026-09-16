@@ -45,7 +45,9 @@ data class VenteDraft(
      * inside the save transaction. It can never report that the vente's *contents* moved; that
      * needs the items, so it is resolved at resume by `VenteDraftRepository.resolveBaseState`.
      */
-    val blockState     : DraftBlock = DraftBlock.NONE
+    val blockState     : DraftBlock = DraftBlock.NONE,
+    /** The edited vente's number as shown — "#26" or "V-6DED-000027"; null for a new vente. */
+    val sourceNumber   : String? = null
 ) {
     val isEdit: Boolean get() = sourceVenteId != null
 }

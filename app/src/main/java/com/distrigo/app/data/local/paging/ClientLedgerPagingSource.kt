@@ -110,7 +110,7 @@ class ClientLedgerPagingSource(
 private fun VenteEntity.toClientTransaction() = ClientTransaction(
     type = "vente", id = id, amount = null,
     total = total, montant_paye = montant_paye,
-    status = status, note = note, created_at = created_at
+    status = status, note = note, created_at = created_at, numero = numero
 )
 
 private fun ClientPaymentEntity.toClientTransaction() = ClientTransaction(

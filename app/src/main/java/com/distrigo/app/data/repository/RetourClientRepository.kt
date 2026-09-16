@@ -11,6 +11,7 @@ import com.distrigo.app.data.model.RetourClientItem
 import com.distrigo.app.data.model.RetourClientMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
+import com.distrigo.app.data.model.numberLabel
 
 class RetourClientRepository(
     private val db: AppDatabase
@@ -45,7 +46,8 @@ class RetourClientRepository(
     ) = RetourClient(
         id = this.id, client_id = this.client_id, client_name = clientName,
         tournee_id = this.tournee_id, date = this.date, motif = this.motif, note = this.note,
-        total = this.total, created_at = this.created_at, items_count = itemsCount, items = items
+        total = this.total, created_at = this.created_at, items_count = itemsCount, items = items,
+        numero = this.numero
     )
 
     // ── Lecture ──
@@ -161,7 +163,7 @@ class RetourClientRepository(
                         ?: throw IllegalStateException("Type de perte introuvable : ${definition.perteTypeName}. Assurez-vous que seedDefaultPerteTypesIfNeeded() a été exécuté.")
                     PerteRepository(db).addPerte(
                         typeId = perteType.id, productId = product.id, quantity = quantity, source = "camion",
-                        dateTime = now, motif = "Retour client #$retourId", photoPath = null, userName = userName,
+                        dateTime = now, motif = "Retour client ${numberLabel(retourDao.getNumero(retourId), retourId)}", photoPath = null, userName = userName,
                         sourceType = "retour_client", sourceId = retourId
                     )
                 }

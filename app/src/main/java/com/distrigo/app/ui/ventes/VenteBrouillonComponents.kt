@@ -23,7 +23,7 @@ import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
  * the client moves to the meta line rather than the other way round.
  */
 internal fun VenteDraft.cardTitle(): String = when {
-    sourceVenteId != null -> "Modification · vente #$sourceVenteId"
+    sourceVenteId != null -> "Modification · vente ${sourceNumber ?: "#$sourceVenteId"}"
     clientName != null    -> bidiIsolate(clientName)
     else                  -> "Client non choisi"
 }
@@ -112,7 +112,7 @@ private val SHEET_COPY = DraftSheetCopy(
  * fails loudly in review instead of rendering an empty dialog.
  */
 private fun conflictCopy(draft: VenteDraft): DraftConflictCopy {
-    val vente = draft.sourceVenteId?.let { "vente #$it" } ?: "vente"
+    val vente = draft.sourceVenteId?.let { "vente ${draft.sourceNumber ?: "#$it"}" } ?: "vente"
     return DraftConflictCopy(
         changedTitle = "La $vente a changé",
         changedBody  = "Cette $vente a été modifiée depuis que vous avez commencé cette " +

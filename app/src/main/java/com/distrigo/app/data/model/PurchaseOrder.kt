@@ -12,5 +12,7 @@ data class PurchaseOrder(
     val created_at         : String? = null,
     val items              : List<PurchaseOrderItem>? = null,
     val montant_paye       : Double? = null,
-    val supplier_image_uri : String? = null  // ← جديد
+    val supplier_image_uri : String? = null,  // ← جديد
+    /** See [numberLabel]. */
+    val numero             : String? = null
 )

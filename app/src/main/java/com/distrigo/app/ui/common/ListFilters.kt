@@ -116,7 +116,8 @@ fun filterVentes(ventes: List<Vente>, query: String, filters: VenteListFilters):
     return ventes.filter { vente ->
         val matchSearch = searchBlank || tokens.all { token ->
             vente.client_name.contains(token, ignoreCase = true) ||
-                vente.id.toString().contains(token)
+                vente.id.toString().contains(token) ||
+                vente.numero?.contains(token, ignoreCase = true) == true
         }
 
         val matchStatus = filters.status == null || vente.status == filters.status
@@ -169,7 +170,8 @@ fun filterOrders(orders: List<PurchaseOrder>, query: String, filters: OrderListF
     return orders.filter { order ->
         val matchSearch = searchBlank || tokens.all { token ->
             order.supplier_name.contains(token, ignoreCase = true) ||
-                order.id.toString().contains(token)
+                order.id.toString().contains(token) ||
+                order.numero?.contains(token, ignoreCase = true) == true
         }
 
         val matchReception = filters.receptionStatus == null ||

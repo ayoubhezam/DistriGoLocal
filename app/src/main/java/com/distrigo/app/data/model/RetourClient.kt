@@ -21,5 +21,7 @@ data class RetourClient(
     val total       : Double,
     val created_at  : String,
     val items_count : Int? = null,
-    val items       : List<RetourClientItem>? = null
+    val items       : List<RetourClientItem>? = null,
+    /** See [numberLabel]. */
+    val numero      : String? = null
 )

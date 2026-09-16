@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -180,7 +181,7 @@ fun RetourRow(retour: RetourClient, onClick: (() -> Unit)? = null) {
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("Retour #${retour.id} · ${retour.client_name}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1)
+                Text("Retour ${retour.numberLabel} · ${retour.client_name}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1)
                 Text(
                     "${formatOrderDate(retour.created_at)} · ${formatOrderTime(retour.created_at)}",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary

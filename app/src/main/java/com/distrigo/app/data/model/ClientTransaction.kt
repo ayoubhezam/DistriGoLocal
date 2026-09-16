@@ -8,5 +8,7 @@ data class ClientTransaction(
     val montant_paye  : Double? = null,
     val status        : String? = null,
     val note          : String?,
-    val created_at    : String
+    val created_at    : String,
+    /** A vente's number; null for a payment. See [numberLabel]. */
+    val numero        : String? = null
 )

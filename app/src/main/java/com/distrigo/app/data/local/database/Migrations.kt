@@ -717,6 +717,26 @@ val MIGRATION_47_48 = object : Migration(47, 48) {
 }
 
 /**
+ * 48 -> 49 - a printed number on ventes, bons d'achat and both kinds of return.
+ *
+ * Adds a nullable `numero` to the four tables and gives every existing document its id as its number,
+ * which is exactly what its receipt, list row and detail screen already show — "Vente #26" stays #26.
+ * Stored rather than derived, because after a sync the same document has a different local id on
+ * another phone and must still read #26 there.
+ *
+ * New documents are numbered `V-6DED-000124` by the triggers in DocumentNumbers.kt, whose counters
+ * start, the first time the database opens, after the highest id each table ever used.
+ */
+val MIGRATION_48_49 = object : Migration(48, 49) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        listOf("ventes", "purchase_orders", "retour_client", "retour_fournisseur").forEach { table ->
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `numero` TEXT")
+            db.execSQL("UPDATE `$table` SET `numero` = CAST(`id` AS TEXT)")
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -728,6 +748,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
+    MIGRATION_48_49,
 )
 
 /**

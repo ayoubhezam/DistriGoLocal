@@ -9,6 +9,7 @@ import com.distrigo.app.data.model.DraftBlock
 import com.distrigo.app.data.model.DraftLine
 import com.distrigo.app.data.model.DraftSnapshot
 import com.distrigo.app.data.model.PurchaseDraft
+import com.distrigo.app.data.model.numberLabel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
@@ -176,7 +177,7 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 
-    private fun PurchaseDraftEntity.toDraft(block: DraftBlock = DraftBlock.NONE) = PurchaseDraft(
+    private suspend fun PurchaseDraftEntity.toDraft(block: DraftBlock = DraftBlock.NONE) = PurchaseDraft(
         id              = id,
         supplierId      = supplier_id,
         supplierName    = supplier_name,
@@ -192,7 +193,8 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
         sourceOrderId   = source_order_id,
         baseFingerprint = base_fingerprint,
         baseCapturedAt  = base_captured_at,
-        blockState      = block
+        blockState      = block,
+        sourceNumber    = source_order_id?.let { numberLabel(db.purchaseDao().getNumero(it), it) }
     )
 
     companion object {

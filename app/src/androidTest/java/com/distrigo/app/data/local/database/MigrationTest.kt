@@ -88,6 +88,9 @@ class MigrationTest {
             assertEquals(TEST_DEVICE, sql.text("SELECT value FROM app_meta WHERE key = 'device_id'"))
             // Rows from before device tracking keep an unknown origin.
             assertEquals(0, sql.count("clients", "origin_device_id IS NOT NULL"))
+            // Documents from before numbering keep their id as their number; counting starts after it.
+            assertEquals("1", sql.text("SELECT numero FROM ventes WHERE id = 1"))
+            assertEquals("1", sql.text("SELECT value FROM app_meta WHERE key = 'numbering.ventes'"))
 
             for ((table, expected) in EXPECTED_ROW_COUNTS) {
                 assertDistinctV4Uuids(sql, table, expected)
@@ -416,6 +419,56 @@ class MigrationTest {
         }
     }
 
+    /** 48 -> 49 gives every existing document its id as its number. */
+    @Test
+    fun migration48To49KeepsOldNumbers() {
+        helper.createDatabase(TEST_DB, 48).apply {
+            insertDocumentsAtVersion48()
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 49, true, MIGRATION_48_49)
+        try {
+            assertEquals(listOf("3", "7"), sql.texts("SELECT numero FROM ventes ORDER BY id"))
+            assertEquals(listOf("2"), sql.texts("SELECT numero FROM purchase_orders"))
+            assertEquals(listOf("4"), sql.texts("SELECT numero FROM retour_client"))
+            assertEquals(listOf("5"), sql.texts("SELECT numero FROM retour_fournisseur"))
+            assertEquals(0, sql.count("app_meta"))
+        } finally {
+            sql.close()
+        }
+    }
+
+    /**
+     * Opened by the app, the new counter starts after the highest id ever handed out — 9 for ventes
+     * here, whose vente 9 was deleted — so a new number never repeats one already printed.
+     */
+    @Test
+    fun appBuilderNumbersNewDocumentsAfterTheOldOnes() {
+        helper.createDatabase(TEST_DB, 48).apply {
+            insertDocumentsAtVersion48()
+            execSQL(
+                "INSERT INTO ventes (id, client_id, source, total, montant_paye, status, created_at, uuid) " +
+                    "VALUES (9, 1, 'depot', 0.0, 0.0, 'pending', '2026-09-01T10:00:00Z', 'u-deleted')"
+            )
+            execSQL("DELETE FROM ventes WHERE id = 9")
+            close()
+        }
+
+        val db = openWithAppPolicy()
+        try {
+            val sql = db.openHelper.writableDatabase
+            sql.execSQL(
+                "INSERT INTO ventes (client_id, source, total, montant_paye, status, created_at, uuid) " +
+                    "VALUES (1, 'depot', 0.0, 0.0, 'pending', '2026-09-16T10:00:00Z', 'u-new')"
+            )
+            assertEquals(listOf("3", "7", "V-7E57-000010"), sql.texts("SELECT numero FROM ventes ORDER BY id"))
+            assertEquals("2", sql.text("SELECT value FROM app_meta WHERE key = 'numbering.purchase_orders'"))
+        } finally {
+            db.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
@@ -492,6 +545,29 @@ class MigrationTest {
             }
         }.toSet()
     }
+
+    private fun SupportSQLiteDatabase.insertDocumentsAtVersion48() {
+        val now = "2026-09-01T10:00:00Z"
+        for (id in listOf(3, 7)) {
+            execSQL(
+                "INSERT INTO ventes (id, client_id, source, total, montant_paye, status, created_at, uuid) " +
+                    "VALUES ($id, 1, 'depot', 0.0, 0.0, 'pending', '$now', 'u-vente-$id')"
+            )
+        }
+        execSQL(
+            "INSERT INTO purchase_orders (id, supplier_id, date, total, status, montant_paye, created_at, uuid) " +
+                "VALUES (2, 1, '2026-09-01', 0.0, 'pending', 0.0, '$now', 'u-bon')"
+        )
+        execSQL(
+            "INSERT INTO retour_client (id, client_id, date, total, created_at, uuid) VALUES (4, 1, '2026-09-01', 0.0, '$now', 'u-rc')"
+        )
+        execSQL(
+            "INSERT INTO retour_fournisseur (id, supplier_id, date, total, created_at, uuid) VALUES (5, 1, '2026-09-01', 0.0, '$now', 'u-rf')"
+        )
+    }
+
+    private fun SupportSQLiteDatabase.texts(sql: String): List<String> =
+        query(sql).use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
 
     private fun SupportSQLiteDatabase.text(sql: String): String =
         query(sql).use { assertTrue(sql, it.moveToFirst()); it.getString(0) }

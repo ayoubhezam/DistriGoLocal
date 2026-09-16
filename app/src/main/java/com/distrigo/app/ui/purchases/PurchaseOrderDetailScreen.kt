@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -105,7 +106,7 @@ fun PurchaseOrderDetailScreen(
             title = { Text("Supprimer le bon ?") },
             text  = {
                 Column {
-                    Text("Voulez-vous supprimer le bon #${displayOrder.id} ?")
+                    Text("Voulez-vous supprimer le bon ${displayOrder.numberLabel} ?")
                     if (deleteError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -164,7 +165,7 @@ fun PurchaseOrderDetailScreen(
     ) {
         // ── Header (Outside Ticket) ──
         DsTopAppBar(
-            title          = "Achat #${displayOrder.id}",
+            title          = "Achat ${displayOrder.numberLabel}",
             subtitle       = displayOrder.supplier_name,
             leading        = DsTopBarLeading.Back({ onBack() }),
             // Painted on SurfaceSunken like the vente ticket, so the bar matches.

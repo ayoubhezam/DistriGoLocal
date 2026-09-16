@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import com.distrigo.app.data.model.NUMBER_LABEL_SQL
 import com.distrigo.app.data.local.entity.VenteEntity
 import com.distrigo.app.data.local.entity.VenteItemEntity
 
@@ -109,7 +110,7 @@ interface VenteDao {
         SELECT * FROM ventes
         WHERE client_id = :clientId
         AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
-        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -130,7 +131,7 @@ interface VenteDao {
     @Query("""
         SELECT COUNT(*) FROM ventes
         WHERE client_id = :clientId
-        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -139,6 +140,10 @@ interface VenteDao {
         )
     """)
     suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int
+
+    /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
+    @Query("SELECT numero FROM ventes WHERE id = :id")
+    suspend fun getNumero(id: Int): String?
 }
 
 /** A sale with the two things a list row shows that the `ventes` table does not hold. */

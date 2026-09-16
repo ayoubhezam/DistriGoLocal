@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.documentLabel
 import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -271,7 +272,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
-                    title         = if (venteId != null) "Modifier la vente #$venteId" else "Vente dépôt",
+                    title         = if (venteId != null) listOfNotNull("Modifier la vente", documentLabel("vente", venteId, session::documentLabel)).joinToString(" ") else "Vente dépôt",
                     subtitle      = formClient?.name ?: "Choisir un client",
                     // Blue once a client is chosen, grey while the step is still open.
                     subtitleColor = if (formClient != null) DsColors.Primary else DsColors.TextSecondary,

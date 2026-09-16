@@ -21,6 +21,10 @@ class StockMovementViewModel @Inject constructor(
     private val _selectedMovement = MutableStateFlow<StockMovement?>(null)
     val selectedMovement: StateFlow<StockMovement?> = _selectedMovement
 
+    /** The selected movement's source document as it is numbered — "#26", "V-6DED-000027". */
+    private val _selectedSourceNumber = MutableStateFlow<String?>(null)
+    val selectedSourceNumber: StateFlow<String?> = _selectedSourceNumber
+
     private val _availableSources = MutableStateFlow<List<String>>(emptyList())
     val availableSources: StateFlow<List<String>> = _availableSources
 
@@ -64,7 +68,9 @@ class StockMovementViewModel @Inject constructor(
 
     fun loadMovementDetail(id: Int) {
         viewModelScope.launch {
-            _selectedMovement.value = repository.getMovementById(id)
+            val movement = repository.getMovementById(id)
+            _selectedSourceNumber.value = movement?.let { repository.documentLabel(it.source_type, it.source_id) }
+            _selectedMovement.value = movement
         }
     }
 

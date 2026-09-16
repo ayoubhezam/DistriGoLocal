@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -62,7 +63,7 @@ fun RetourFournisseurListScreen(
         retours.filter { retour ->
             search.isBlank() ||
                 (retour.motif?.contains(search, ignoreCase = true) == true) ||
-                "retour #${retour.id}".contains(search, ignoreCase = true)
+                "retour ${retour.numberLabel}".contains(search, ignoreCase = true)
         }
     }
 
@@ -179,7 +180,7 @@ fun RetourFournisseurRow(retour: RetourFournisseur, onClick: () -> Unit) {
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("Retour #${retour.id}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                Text("Retour ${retour.numberLabel}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                 Text(
                     "${formatOrderDate(retour.created_at)} · ${formatOrderTime(retour.created_at)}",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary

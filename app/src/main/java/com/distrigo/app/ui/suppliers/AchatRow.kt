@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -76,7 +77,7 @@ fun AchatRow(
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Bon #${transaction.id} · ${formatOrderTime(transaction.created_at)}",
+                        "Bon ${transaction.numberLabel} · ${formatOrderTime(transaction.created_at)}",
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
                     if (statut == "Partiel") {

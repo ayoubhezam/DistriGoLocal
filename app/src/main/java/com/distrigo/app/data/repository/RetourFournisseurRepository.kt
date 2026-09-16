@@ -11,6 +11,7 @@ import com.distrigo.app.data.model.RetourFournisseurItem
 import com.distrigo.app.data.model.RetourFournisseurMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
+import com.distrigo.app.data.model.numberLabel
 
 class RetourFournisseurRepository(
     private val db: AppDatabase
@@ -45,7 +46,8 @@ class RetourFournisseurRepository(
     ) = RetourFournisseur(
         id = this.id, supplier_id = this.supplier_id, supplier_name = supplierName,
         date = this.date, motif = this.motif, note = this.note, total = this.total,
-        created_at = this.created_at, items_count = itemsCount, items = items
+        created_at = this.created_at, items_count = itemsCount, items = items,
+        numero = this.numero
     )
 
     // ── Lecture ──
@@ -159,7 +161,7 @@ class RetourFournisseurRepository(
                         ?: throw IllegalStateException("Type de perte introuvable : ${definition.perteTypeName}")
                     PerteRepository(db).addPerte(
                         typeId = perteType.id, productId = product.id, quantity = quantity, source = "depot",
-                        dateTime = now, motif = "Retour fournisseur #$retourId — refusé", photoPath = null, userName = userName,
+                        dateTime = now, motif = "Retour fournisseur ${numberLabel(retourDao.getNumero(retourId), retourId)} — refusé", photoPath = null, userName = userName,
                         affectsStock = false,
                         sourceType = "retour_fournisseur", sourceId = retourId
                     )

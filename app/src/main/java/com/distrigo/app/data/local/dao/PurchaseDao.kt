@@ -3,6 +3,7 @@ package com.distrigo.app.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.distrigo.app.data.model.NUMBER_LABEL_SQL
 import com.distrigo.app.data.local.entity.PriceHistoryEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderItemEntity
@@ -63,7 +64,7 @@ interface PurchaseDao {
         SELECT * FROM purchase_orders
         WHERE supplier_id = :supplierId
         AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
-        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -84,7 +85,7 @@ interface PurchaseDao {
     @Query("""
         SELECT COUNT(*) FROM purchase_orders
         WHERE supplier_id = :supplierId
-        AND (:search = '' OR ('#' || CAST(id AS TEXT)) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -102,4 +103,8 @@ interface PurchaseDao {
         GROUP BY poi.product_id
     """)
     suspend fun getPurchasedQuantitiesForSupplier(supplierId: Int, receivedStatus: String): List<ProductQuantitySum>
+
+    /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
+    @Query("SELECT numero FROM purchase_orders WHERE id = :id")
+    suspend fun getNumero(id: Int): String?
 }

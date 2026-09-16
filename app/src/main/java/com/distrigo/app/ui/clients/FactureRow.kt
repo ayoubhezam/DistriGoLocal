@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,7 +72,7 @@ fun FactureRow(
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Vente #${transaction.id} · ${formatOrderTime(transaction.created_at)}",
+                        "Vente ${transaction.numberLabel} · ${formatOrderTime(transaction.created_at)}",
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
                     if (statut == "Partiel") {

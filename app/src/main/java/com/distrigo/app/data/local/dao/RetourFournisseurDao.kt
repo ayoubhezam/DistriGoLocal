@@ -55,4 +55,8 @@ interface RetourFournisseurDao {
         GROUP BY rfi.product_id
     """)
     suspend fun getReturnedQuantitiesForSupplier(supplierId: Int): List<ProductQuantitySum>
+
+    /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
+    @Query("SELECT numero FROM retour_fournisseur WHERE id = :id")
+    suspend fun getNumero(id: Int): String?
 }

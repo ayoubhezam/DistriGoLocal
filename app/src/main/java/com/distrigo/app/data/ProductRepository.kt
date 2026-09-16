@@ -2,6 +2,7 @@ package com.distrigo.app.data.repository
 
 import androidx.room.withTransaction
 import com.distrigo.app.data.api.RetrofitClient
+import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
@@ -156,7 +157,8 @@ class ProductRepository(
         montant_paye = this.montant_paye, status = this.status, note = this.note,
         created_at = this.created_at, items_count = itemsCount, items = items,
         client_image_uri = this.client_image_uri,  // ← جديد
-        user_name = this.user_name
+        user_name = this.user_name,
+        numero = this.numero
     )
     /**
      * The one place a tournée row becomes a Tournee. The callers supply the counters, and the sales
@@ -198,7 +200,8 @@ class ProductRepository(
         note = this.note, supplier_id = this.supplier_id, supplier_name = supplierName,
         items_count = items.size, created_at = this.created_at, items = items,
         montant_paye = this.montant_paye,
-        supplier_image_uri = this.supplier_image_uri
+        supplier_image_uri = this.supplier_image_uri,
+        numero = this.numero
     )
 
     private fun PriceHistoryEntity.toPriceHistory() = PriceHistory(
@@ -221,6 +224,23 @@ class ProductRepository(
         created_at   = this.created_at,
         chargements  = chargements
     )
+
+    /**
+     * How a document is shown when all a screen holds is its id — a form title, a draft card, a stock
+     * movement's source: "#26" for a document from before numbering, "V-6DED-000027" for a new one.
+     * [sourceType] is the name stock movements use (`vente`, `purchase_order`, `retour_client`,
+     * `retour_fournisseur`); anything else has no printed number and keeps "#id".
+     */
+    suspend fun documentLabel(sourceType: String, id: Int): String {
+        val numero = when (sourceType) {
+            "vente"              -> db.venteDao().getNumero(id)
+            "purchase_order"     -> db.purchaseDao().getNumero(id)
+            "retour_client"      -> db.retourClientDao().getNumero(id)
+            "retour_fournisseur" -> db.retourFournisseurDao().getNumero(id)
+            else                 -> null
+        }
+        return numberLabel(numero, id)
+    }
 
     suspend fun getProducts(): List<Product> {
         return productDao.getAllProducts().map { it.toProduct() }
@@ -1138,7 +1158,7 @@ class ProductRepository(
                 SupplierTransaction(
                     type = "facture", id = order.id, amount = order.total,
                     montant_paye = order.montant_paye, status = order.status,
-                    note = order.note, created_at = order.created_at
+                    note = order.note, created_at = order.created_at, numero = order.numero
                 )
             }
 
@@ -1450,7 +1470,8 @@ class ProductRepository(
             ClientTransaction(
                 type = "vente", id = vente.id, amount = null,
                 total = vente.total, montant_paye = vente.montant_paye,
-                status = vente.status, note = vente.note, created_at = vente.created_at
+                status = vente.status, note = vente.note, created_at = vente.created_at,
+                numero = vente.numero
             )
         }
 

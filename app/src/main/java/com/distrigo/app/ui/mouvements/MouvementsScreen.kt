@@ -431,6 +431,7 @@ fun MovementDetailView(
 ) {
     LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
     val movement by viewModel.selectedMovement.collectAsState()
+    val sourceNumber by viewModel.selectedSourceNumber.collectAsState()
     val currentMovement = movement
 
     if (currentMovement == null) {
@@ -510,7 +511,7 @@ fun MovementDetailView(
             ) {
                 DetailInfoRow("Produit", currentMovement.product_name)
                 DetailInfoRow("Source", currentMovement.source_label)
-                DetailInfoRow("N° de source", "#${currentMovement.source_id}")
+                DetailInfoRow("N° de source", sourceNumber ?: "#${currentMovement.source_id}")
                 currentMovement.unit_price?.let {
                     DetailInfoRow("Prix unitaire", "${"%.2f".format(it)} DA")
                 }

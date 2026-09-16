@@ -34,8 +34,6 @@ object ReceiptPdfGenerator {
     private fun badgeLabel(documentTitle: String) =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
 
-    private fun referenceNumber(documentTitle: String) =
-        documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
     /**
      * Draws the receipt into a one-page PDF in the cache and returns the file.
@@ -128,7 +126,7 @@ object ReceiptPdfGenerator {
 
         val isVente = receipt.documentTitle.startsWith("Vente")
 
-        drawInfoLineLeft("N°", referenceNumber(receipt.documentTitle))
+        drawInfoLineLeft("N°", receipt.referenceNumber)
         drawInfoLineLeft("Date", receipt.dateLabel)
         if (receipt.timeLabel.isNotBlank()) drawInfoLineLeft("Heure", receipt.timeLabel)
         drawInfoLineLeft("Téléphone", receipt.orDash(receipt.businessPhone))

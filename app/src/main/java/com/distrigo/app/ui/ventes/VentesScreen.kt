@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -127,7 +128,7 @@ fun VentesScreen(
                 title = { Text("Supprimer la vente ?") },
                 text  = {
                     Column {
-                        Text("Voulez-vous supprimer la vente #${vente.id} de ${vente.client_name} ?")
+                        Text("Voulez-vous supprimer la vente ${vente.numberLabel} de ${vente.client_name} ?")
                         if (deleteError.isNotEmpty()) {
                             Spacer(Modifier.height(DsSpacing.sm))
                             Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -162,7 +163,7 @@ fun VentesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressVente = null },
-                title            = { Text("Vente #${vente.id}") },
+                title            = { Text("Vente ${vente.numberLabel}") },
                 confirmButton    = {},
                 dismissButton    = {},
                 icon             = null,
@@ -785,7 +786,7 @@ fun VenteDetailScreen(
     ) {
         // ── Header (Outside Ticket) ──
         DsTopAppBar(
-            title          = "Vente #${displayVente.id}",
+            title          = "Vente ${displayVente.numberLabel}",
             subtitle       = displayVente.client_name,
             leading        = DsTopBarLeading.Back({ onBack() }),
             // This screen is painted on SurfaceSunken, so the bar matches rather than
@@ -1165,7 +1166,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Vente #${vente.id}",
+                    "Vente ${vente.numberLabel}",
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.Medium,
                     color      = DsColors.TextSecondary

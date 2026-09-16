@@ -47,8 +47,6 @@ private val TableHead = Color(0xFF0F1E3D)
 
 private fun isVenteReceipt(documentTitle: String) = documentTitle.startsWith("Vente")
 private fun badgeLabel(documentTitle: String) = if (isVenteReceipt(documentTitle)) "REÇU DE VENTE" else "BON D'ACHAT"
-private fun referenceNumber(documentTitle: String) =
-    documentTitle.substringAfter("#", missingDelimiterValue = documentTitle).trim()
 
 internal fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -138,7 +136,7 @@ fun ReceiptPreviewSheet(
                 // the difference without coming close to wrapping.
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1.25f)) {
-                        InfoLine("N°", referenceNumber(receipt.documentTitle))
+                        InfoLine("N°", receipt.referenceNumber)
                         InfoLine("Date", receipt.dateLabel)
                         if (receipt.timeLabel.isNotBlank()) InfoLine("Heure", receipt.timeLabel)
                         InfoLine("Téléphone", receipt.orDash(receipt.businessPhone))

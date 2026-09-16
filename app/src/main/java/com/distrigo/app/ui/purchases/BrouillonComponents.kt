@@ -23,7 +23,7 @@ import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
  * the supplier moves to the meta line rather than the other way round.
  */
 internal fun PurchaseDraft.cardTitle(): String = when {
-    sourceOrderId != null -> "Modification · bon #$sourceOrderId"
+    sourceOrderId != null -> "Modification · bon ${sourceNumber ?: "#$sourceOrderId"}"
     supplierName != null  -> bidiIsolate(supplierName)
     else                  -> "Fournisseur non choisi"
 }
@@ -100,7 +100,7 @@ private val SHEET_COPY = DraftSheetCopy(
 )
 
 private fun conflictCopy(draft: PurchaseDraft): DraftConflictCopy {
-    val bon = draft.sourceOrderId?.let { "bon #$it" } ?: "bon"
+    val bon = draft.sourceOrderId?.let { "bon ${draft.sourceNumber ?: "#$it"}" } ?: "bon"
     return DraftConflictCopy(
         changedTitle = "Le $bon a changé",
         changedBody  = "Ce $bon a été modifié depuis que vous avez commencé cette modification. " +

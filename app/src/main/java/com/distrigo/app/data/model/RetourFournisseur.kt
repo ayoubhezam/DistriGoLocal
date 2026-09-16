@@ -20,5 +20,7 @@ data class RetourFournisseur(
     val total         : Double,
     val created_at    : String,
     val items_count   : Int? = null,
-    val items         : List<RetourFournisseurItem>? = null
+    val items         : List<RetourFournisseurItem>? = null,
+    /** See [numberLabel]. */
+    val numero        : String? = null
 )

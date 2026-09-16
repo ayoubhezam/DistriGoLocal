@@ -51,7 +51,9 @@ data class PurchaseDraft(
      * the bon's *contents* moved; that needs the items, so it is resolved at resume by
      * `PurchaseDraftRepository.resolveBaseState`.
      */
-    val blockState     : DraftBlock = DraftBlock.NONE
+    val blockState     : DraftBlock = DraftBlock.NONE,
+    /** The edited bon's number as shown — "#26" or "BA-6DED-000031"; null for a new bon. */
+    val sourceNumber   : String? = null
 ) {
     val isEdit: Boolean get() = sourceOrderId != null
 }
