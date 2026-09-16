@@ -6,7 +6,11 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "charges",
-    indices = [Index(value = ["subtype_id", "date_time"])]
+    indices = [
+        Index(value = ["subtype_id", "date_time"]),
+        // The month totals group by type_id, so they read a range of this one instead of the table.
+        Index(value = ["type_id", "date_time"])
+    ]
 )
 data class ChargeEntity(
     @PrimaryKey(autoGenerate = true)

@@ -402,3 +402,17 @@ val MIGRATION_40_41 = object : Migration(40, 41) {
         )
     }
 }
+
+/**
+ * The charge month queries test `date_time` as a half-open range instead of
+ * `substr(date_time, 1, 7)`, which wrapped the column in a function and so could use no index at
+ * all. This index serves the per-type month totals; the per-subtype ones already had
+ * `index_charges_subtype_id_date_time` from [MIGRATION_36_37].
+ */
+val MIGRATION_41_42 = object : Migration(41, 42) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_charges_type_id_date_time` ON `charges` (`type_id`, `date_time`)"
+        )
+    }
+}

@@ -65,10 +65,10 @@ interface ChargeDao {
     @Query("""
         SELECT type_id, SUM(montant) AS total
         FROM charges
-        WHERE substr(date_time, 1, 7) = :month
+        WHERE date_time >= :start AND date_time < :end
         GROUP BY type_id
     """)
-    suspend fun getMonthTotalsByType(month: String): List<ChargeTypeMonthTotal>
+    suspend fun getMonthTotalsByType(start: String, end: String): List<ChargeTypeMonthTotal>
 
     /**
      * The count and total for [month] of each subtype of type [typeId], by the charge's subtype_id,
@@ -79,10 +79,21 @@ interface ChargeDao {
         SELECT subtype_id, COUNT(*) AS count, SUM(montant) AS total
         FROM charges
         WHERE subtype_id IN (SELECT id FROM charge_subtypes WHERE type_id = :typeId)
-          AND substr(date_time, 1, 7) = :month
+          AND date_time >= :start AND date_time < :end
         GROUP BY subtype_id
     """)
-    suspend fun getMonthStatsBySubType(typeId: Int, month: String): List<ChargeSubTypeMonthStats>
+    suspend fun getMonthStatsBySubType(typeId: Int, start: String, end: String): List<ChargeSubTypeMonthStats>
+
+    /**
+     * One subtype's charges within [start, end) — the month its list screen shows. The month used
+     * to be filtered in Kotlin after loading that subtype's whole history.
+     */
+    @Query("""
+        SELECT * FROM charges
+        WHERE subtype_id = :subtypeId AND date_time >= :start AND date_time < :end
+        ORDER BY date_time DESC
+    """)
+    suspend fun getChargesForSubTypeInRange(subtypeId: Int, start: String, end: String): List<ChargeEntity>
 
     @Query("SELECT * FROM charges WHERE id = :id")
     suspend fun getChargeById(id: Int): ChargeEntity?

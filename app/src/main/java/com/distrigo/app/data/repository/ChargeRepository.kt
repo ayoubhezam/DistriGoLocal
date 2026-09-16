@@ -103,7 +103,8 @@ class ChargeRepository(
         val types = chargeDao.getAllChargeTypes()
         val targetMonth = month ?: currentMonth()
         val subtypeCounts = chargeDao.getSubTypeCountsByType().associate { it.type_id to it.count }
-        val monthTotals = chargeDao.getMonthTotalsByType(targetMonth).associate { it.type_id to it.total }
+        val (start, end) = chargeMonthRange(targetMonth)
+        val monthTotals = chargeDao.getMonthTotalsByType(start, end).associate { it.type_id to it.total }
         types.map { type ->
             type.toChargeType(subtypeCounts[type.id] ?: 0, monthTotals[type.id] ?: 0.0)
         }
@@ -138,7 +139,8 @@ class ChargeRepository(
     suspend fun getSubTypesWithStats(typeId: Int, month: String? = null): List<ChargeSubType> = withContext(Dispatchers.Default) {
         val subtypes = chargeDao.getSubTypesForType(typeId)
         val targetMonth = month ?: currentMonth()
-        val stats = chargeDao.getMonthStatsBySubType(typeId, targetMonth).associateBy { it.subtype_id }
+        val (start, end) = chargeMonthRange(targetMonth)
+        val stats = chargeDao.getMonthStatsBySubType(typeId, start, end).associateBy { it.subtype_id }
         subtypes.map { sub ->
             val s = stats[sub.id]
             sub.toChargeSubType(
@@ -171,9 +173,13 @@ class ChargeRepository(
 
     // ── Charges ──
     suspend fun getCharges(subtypeId: Int, month: String? = null): List<Charge> {
-        val charges = chargeDao.getChargesForSubType(subtypeId)
-        return (if (month != null) charges.filter { it.date_time.take(7) == month } else charges)
-            .map { it.toCharge() }
+        val charges = if (month == null) {
+            chargeDao.getChargesForSubType(subtypeId)
+        } else {
+            val (start, end) = chargeMonthRange(month)
+            chargeDao.getChargesForSubTypeInRange(subtypeId, start, end)
+        }
+        return charges.map { it.toCharge() }
     }
 
     suspend fun addCharge(
@@ -214,4 +220,17 @@ class ChargeRepository(
         return mapOf("message" to "Dépense supprimée avec succès")
     }
 
+}
+
+/**
+ * A month, "yyyy-MM", as the half-open range ["2026-09-01", "2026-10-01").
+ *
+ * The month used to be tested with `substr(date_time, 1, 7) = :month`, which wraps the column in a
+ * function and so could use no index: every charge was read and the month computed on each. A range
+ * test reads only the rows inside it. The same rows match either way, because `date_time` is
+ * ISO-8601 and therefore sorts as text in date order.
+ */
+internal fun chargeMonthRange(month: String): Pair<String, String> {
+    val start = java.time.YearMonth.parse(month)
+    return "$start-01" to "${start.plusMonths(1)}-01"
 }
