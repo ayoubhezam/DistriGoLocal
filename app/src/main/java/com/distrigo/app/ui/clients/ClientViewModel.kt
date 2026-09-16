@@ -13,7 +13,7 @@ import com.distrigo.app.data.model.ClientLedgerPreview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Secteur
-import com.distrigo.app.data.api.extractErrorMessage
+import com.distrigo.app.ui.common.extractErrorMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -107,7 +107,7 @@ class ClientViewModel @Inject constructor(
                 loadTransactions(clientId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(com.distrigo.app.data.api.extractErrorMessage(e))
+                onError(com.distrigo.app.ui.common.extractErrorMessage(e))
             }
         }
     }
@@ -124,7 +124,7 @@ class ClientViewModel @Inject constructor(
                 loadTransactions(clientId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(com.distrigo.app.data.api.extractErrorMessage(e))
+                onError(com.distrigo.app.ui.common.extractErrorMessage(e))
             }
         }
     }
@@ -142,7 +142,7 @@ class ClientViewModel @Inject constructor(
                 loadTransactions(clientId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(com.distrigo.app.data.api.extractErrorMessage(e))
+                onError(com.distrigo.app.ui.common.extractErrorMessage(e))
             }
         }
     }

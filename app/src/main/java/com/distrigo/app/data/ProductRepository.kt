@@ -1,7 +1,6 @@
 package com.distrigo.app.data.repository
 
 import androidx.room.withTransaction
-import com.distrigo.app.data.api.RetrofitClient
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.dao.*
@@ -30,7 +29,6 @@ class ProductRepository(
 
 
 ) {
-    private val api = RetrofitClient.api
 
     private fun ProductEntity.toProduct(): Product {
         return Product(

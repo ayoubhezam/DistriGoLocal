@@ -6,7 +6,7 @@ import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.TourneeVenteDraftRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import com.distrigo.app.data.api.extractErrorMessage
+import com.distrigo.app.ui.common.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

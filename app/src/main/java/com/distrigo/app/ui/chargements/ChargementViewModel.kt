@@ -211,7 +211,7 @@ class ChargementViewModel @Inject constructor(
                 _sessions.value = repository.getChargementSessions()
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = com.distrigo.app.data.api.extractErrorMessage(e)
+                _error.value = com.distrigo.app.ui.common.extractErrorMessage(e)
             } finally {
                 _isLoading.value = false
             }
@@ -240,7 +240,7 @@ class ChargementViewModel @Inject constructor(
                 loadSessions()
                 onSuccess()
             } catch (e: Exception) {
-                onError(com.distrigo.app.data.api.extractErrorMessage(e))
+                onError(com.distrigo.app.ui.common.extractErrorMessage(e))
             }
         }
     }

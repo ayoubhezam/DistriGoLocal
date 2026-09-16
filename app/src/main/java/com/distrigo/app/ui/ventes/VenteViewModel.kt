@@ -5,7 +5,7 @@ import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.VenteDraft
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.VenteDraftRepository
-import com.distrigo.app.data.api.extractErrorMessage
+import com.distrigo.app.ui.common.extractErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

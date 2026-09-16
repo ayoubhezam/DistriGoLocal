@@ -65,8 +65,10 @@ ksp {
 
 dependencies {
 
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Gson — the drafts' items_json and the wilaya list. It used to arrive through Retrofit's
+    // converter-gson; declared on its own, at the version that dependency resolved, now that the
+    // unused Retrofit client is gone.
+    implementation("com.google.code.gson:gson:2.8.5")
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
     // Coroutines — للعمليات غير المتزامنة
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
