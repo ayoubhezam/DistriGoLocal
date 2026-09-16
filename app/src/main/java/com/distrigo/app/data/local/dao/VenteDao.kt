@@ -13,12 +13,6 @@ interface VenteDao {
     @Insert
     suspend fun insertVente(vente: VenteEntity): Long
 
-    @Query("SELECT * FROM ventes ORDER BY id DESC")
-    suspend fun getAllVentes(): List<VenteEntity>
-
-    @Query("SELECT * FROM ventes WHERE client_id = :clientId ORDER BY id DESC")
-    suspend fun getVentesForClient(clientId: Int): List<VenteEntity>
-
     /** The client's sales counted, with their totals and amounts paid summed: its detail screen's figures. */
     @Query("""
         SELECT COUNT(*) AS count, COALESCE(SUM(total), 0.0) AS total, COALESCE(SUM(montant_paye), 0.0) AS paid
@@ -54,9 +48,9 @@ interface VenteDao {
      * The sales list, each with its client's current name and its number of lines, in one query —
      * every sale when [clientId] is null, otherwise that client's.
      *
-     * Replaces [getAllVentes]/[getVentesForClient] followed by a client lookup and an item count
-     * for every sale — 1 + 2V queries. Same live name, same order (`id DESC`) and the same empty
-     * name for a sale whose client is gone as the loop it replaces.
+     * Replaces a whole-table read followed by a client lookup and an item count for every sale —
+     * 1 + 2V queries. Same live name, same order (`id DESC`) and the same empty name for a sale
+     * whose client is gone as the loop it replaced.
      */
     @Query("""
         SELECT v.*,
@@ -93,9 +87,6 @@ interface VenteDao {
 
     @Query("DELETE FROM vente_items WHERE vente_id = :venteId")
     suspend fun deleteItemsForVente(venteId: Int)
-
-    @Query("SELECT COUNT(*) FROM vente_items WHERE vente_id = :venteId")
-    suspend fun getItemsCountForVente(venteId: Int): Int
 
     @Query("""
     SELECT * FROM ventes 
