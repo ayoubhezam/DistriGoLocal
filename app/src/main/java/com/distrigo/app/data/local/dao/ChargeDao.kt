@@ -51,16 +51,17 @@ interface ChargeDao {
     suspend fun deleteSubTypeById(id: Int)
 
     // ── Charges ──
-    @Query("SELECT * FROM charges ORDER BY date_time DESC")
-    suspend fun getAllCharges(): List<ChargeEntity>
 
     @Query("SELECT * FROM charges WHERE subtype_id = :subtypeId ORDER BY date_time DESC")
     suspend fun getChargesForSubType(subtypeId: Int): List<ChargeEntity>
 
     /**
-     * Each type's total for [month] ("yyyy-MM"), by the charge's own type_id. A charge belongs to
-     * the month when the first seven characters of its date_time equal [month] — the same test as
-     * `date_time.take(7) == month`. Types without a charge that month have no row.
+     * Each type's total within [start, end) — one month, as `monthRange` builds it — by the
+     * charge's own type_id. Types without a charge in that range have no row.
+     *
+     * A half-open range rather than `substr(date_time, 1, 7) = :month`, which wrapped the column in
+     * a function so no index could serve it. The same rows match either way, because date_time is
+     * ISO-8601 and so sorts as text in date order.
      */
     @Query("""
         SELECT type_id, SUM(montant) AS total
@@ -71,9 +72,9 @@ interface ChargeDao {
     suspend fun getMonthTotalsByType(start: String, end: String): List<ChargeTypeMonthTotal>
 
     /**
-     * The count and total for [month] of each subtype of type [typeId], by the charge's subtype_id,
-     * with the same month test as [getMonthTotalsByType]. Subtypes without a charge that month have
-     * no row.
+     * The count and total within [start, end) of each subtype of type [typeId], by the charge's
+     * subtype_id, with the same range test as [getMonthTotalsByType]. Subtypes without a charge in
+     * that range have no row.
      */
     @Query("""
         SELECT subtype_id, COUNT(*) AS count, SUM(montant) AS total

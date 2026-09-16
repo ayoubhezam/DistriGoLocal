@@ -24,16 +24,14 @@ interface PerteDao {
     suspend fun deletePerteTypeById(id: Int)
 
     // ── Pertes ──
-    @Query("SELECT * FROM pertes ORDER BY date_time DESC")
-    suspend fun getAllPertes(): List<PerteEntity>
 
     /**
-     * Each type's count and totals for [month] ("yyyy-MM"). A perte belongs to the month when the
-     * first seven characters of its date_time equal [month] — the same test as
-     * `date_time.take(7) == month`. Types without a perte that month have no row.
+     * Each type's count and totals within [start, end) — one month, as `monthRange` builds it.
+     * Types without a perte in that range have no row.
      *
-     * The month is a half-open range rather than `substr(date_time, 1, 7)`, which wrapped the
-     * column in a function so `index_pertes_type_id_date_time` could not serve it.
+     * A half-open range rather than `substr(date_time, 1, 7) = :month`, which wrapped the column in
+     * a function so `index_pertes_type_id_date_time` could not serve it. The same rows match either
+     * way, because date_time is ISO-8601 and so sorts as text in date order.
      */
     @Query("""
         SELECT type_id, COUNT(*) AS count, SUM(valeur_totale) AS total_value, SUM(quantity) AS total_qty
