@@ -304,6 +304,33 @@ class MigrationTest {
         }
     }
 
+    /** 45 -> 46 starts every standalone row at version 1 and gives lines none. */
+    @Test
+    fun migration45To46StartsVersionsAtOne() {
+        helper.createDatabase(TEST_DB, 45).apply {
+            execSQL(
+                "INSERT INTO ventes (id, client_id, source, total, montant_paye, status, created_at, uuid, updated_at) " +
+                    "VALUES (7, 1, 'depot', 220.0, 0.0, 'delivered', '2026-08-14T10:05:00Z', " +
+                    "'00000000-0000-4000-8000-000000000002', 1000)"
+            )
+            execSQL(
+                "INSERT INTO vente_items (vente_id, product_id, product_name, unit_type, quantity, unit_price, " +
+                    "total_price, uuid, created_at, updated_at) VALUES (7, 1, 'Lait Candia 1L', 'pièce', 2.0, 110.0, " +
+                    "220.0, '00000000-0000-4000-8000-000000000003', '2026-08-14T10:05:00Z', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 46, true, MIGRATION_45_46)
+        try {
+            assertEquals(1, sql.count("ventes", "version = 1 AND updated_at = 1000"))
+            assertEquals(24, UpdatedAtTriggers.trackedTables(sql).count { "version" in UpdatedAtTriggers.columns(sql, it) })
+            assertTrue("version" !in UpdatedAtTriggers.columns(sql, "vente_items"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

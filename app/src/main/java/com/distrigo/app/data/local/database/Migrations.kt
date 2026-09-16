@@ -586,6 +586,38 @@ val MIGRATION_44_45 = object : Migration(44, 45) {
 }
 
 /**
+ * 45 -> 46 - a `version` on every row that stands on its own.
+ *
+ * Twenty-four tables: the documents (ventes, bons d'achat, retours, chargements and their sessions,
+ * inventaires, tournées), the single-row records (payments, charges, pertes, price history), and the
+ * master data (products, clients, suppliers, the catalogue groups, secteurs, the charge and perte
+ * types, commission policies). The eleven tables of lines and links beneath them get none: a change
+ * to a line is a change to its document, and bumps the document's `version` instead.
+ *
+ * `INTEGER NOT NULL DEFAULT 1`, and every existing row starts at 1. Nothing is backfilled: no
+ * earlier edit was counted, and 1 means only "the version this row had when counting began".
+ *
+ * The migration adds the column and nothing else. What moves it is in ChangeTracking.kt — the
+ * `updated_at` trigger bumps it on the row's own edits, [DocumentTriggers] on its lines' — installed
+ * when the database opens, like the triggers before them.
+ */
+val MIGRATION_45_46 = object : Migration(45, 46) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        listOf(
+            // Master data
+            "products", "clients", "suppliers", "categories", "sous_categories", "marques", "secteurs",
+            "charge_types", "charge_subtypes", "perte_types", "target_policies",
+            // Documents and single-row records
+            "ventes", "purchase_orders", "retour_client", "retour_fournisseur",
+            "chargement_sessions", "chargements", "inventory_sessions", "tournees",
+            "client_payments", "supplier_payments", "charges", "pertes", "price_history",
+        ).forEach { table ->
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 1")
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -596,7 +628,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-    MIGRATION_44_45,
+    MIGRATION_44_45, MIGRATION_45_46,
 )
 
 /**

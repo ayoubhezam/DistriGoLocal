@@ -53,12 +53,12 @@ class ChangeTrackingTest {
 
         for (table in tracked) {
             val compared = UpdatedAtTriggers.comparedColumns(sql, table)
-            val expected = columns(table) - setOf("id", "uuid", "updated_at") -
+            val expected = columns(table) - setOf("id", "uuid", "updated_at", "version") -
                 UpdatedAtTriggers.DERIVED_COLUMNS[table].orEmpty()
             assertEquals(table, expected, compared)
             assertEquals(
                 table,
-                UpdatedAtTriggers.triggerSql(table, compared),
+                UpdatedAtTriggers.triggerSql(table, compared, versioned = "version" in columns(table)),
                 storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)),
             )
         }

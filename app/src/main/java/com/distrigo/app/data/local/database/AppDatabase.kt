@@ -69,7 +69,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         ChargementDraftEntity::class,
         TombstoneEntity::class,
     ],
-    version = 45,
+    version = 46,
     exportSchema = true
 )
 

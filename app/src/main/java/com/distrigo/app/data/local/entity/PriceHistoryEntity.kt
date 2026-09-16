@@ -20,5 +20,7 @@ data class PriceHistoryEntity(
     @ColumnInfo(defaultValue = "''")
     val uuid: String = newRowUuid(),
     @ColumnInfo(defaultValue = "0")
-    val updated_at: Long = System.currentTimeMillis()
+    val updated_at: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "1")
+    val version: Int = 1
 )

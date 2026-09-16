@@ -25,6 +25,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  - **It never goes backwards.** The stamp is the later of now and the old value plus one
  *    millisecond, so a phone whose clock is set back still produces an increasing value.
  *
+ * On a table with a `version` column the same stamp adds one to it, so a row's `version` moves exactly
+ * when its `updated_at` does (see [DocumentTriggers] for the rows that have one).
+ *
  * Inserts are not the trigger's business: an entity is built with `updated_at` set to its creation
  * time, and nothing inserts rows with raw SQL outside the migrations.
  *
@@ -45,11 +48,14 @@ internal object UpdatedAtTriggers {
         "suppliers" to setOf("balance"),
     )
 
-    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at")
+    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version")
 
     fun install(db: SupportSQLiteDatabase) {
         for (table in trackedTables(db)) {
-            replaceIfChanged(db, triggerName(table), triggerSql(table, comparedColumns(db, table)))
+            replaceIfChanged(
+                db, triggerName(table),
+                triggerSql(table, comparedColumns(db, table), versioned = "version" in columns(db, table)),
+            )
         }
     }
 
@@ -66,15 +72,16 @@ internal object UpdatedAtTriggers {
     fun comparedColumns(db: SupportSQLiteDatabase, table: String): List<String> =
         columns(db, table) - NEVER_COMPARED - DERIVED_COLUMNS[table].orEmpty()
 
-    fun triggerSql(table: String, compared: List<String>): String {
+    fun triggerSql(table: String, compared: List<String>, versioned: Boolean): String {
         val changed = compared.joinToString(" OR ") { "NEW.`$it` IS NOT OLD.`$it`" }
+        val version = if (versioned) ", `version` = OLD.`version` + 1" else ""
         return "CREATE TRIGGER `${triggerName(table)}` AFTER UPDATE ON `$table` FOR EACH ROW " +
             "WHEN NEW.`updated_at` = OLD.`updated_at` AND ($changed) " +
-            "BEGIN UPDATE `$table` SET `updated_at` = max(OLD.`updated_at` + 1, $NOW_MS) " +
+            "BEGIN UPDATE `$table` SET `updated_at` = max(OLD.`updated_at` + 1, $NOW_MS)$version " +
             "WHERE `id` = NEW.`id`; END"
     }
 
-    private fun columns(db: SupportSQLiteDatabase, table: String): List<String> =
+    fun columns(db: SupportSQLiteDatabase, table: String): List<String> =
         db.query("PRAGMA table_info(`$table`)").use { c ->
             val name = c.getColumnIndexOrThrow("name")
             buildList { while (c.moveToNext()) add(c.getString(name)) }
@@ -108,6 +115,117 @@ internal object TombstoneTriggers {
             "VALUES ('$table', OLD.`uuid`, $NOW_MS); END"
 }
 
+/**
+ * Makes a change to any part of a document a change to the document.
+ *
+ * A vente is not one row: it is the `ventes` row, its lines, and the stock movements it produced.
+ * Editing a sale replaces the lines and movements and may leave the `ventes` row itself exactly as
+ * it was — same total, same note — so its own trigger would never fire, and a sync looking for
+ * changed ventes would miss it. The rows that stand on their own therefore carry a `version`, and
+ * the tables beneath them bump it.
+ *
+ * [PARENTS] says which rows belong to which. For each child table, three triggers — after insert,
+ * after delete, and after an update that changes something real — stamp the parent's `updated_at`
+ * and add one to its `version`, exactly as an edit of the parent row would.
+ *
+ * `version` therefore counts changed rows, not edits: saving a sale with three lines moves it by
+ * several. What it promises is only that it grows whenever any part of the document changes and
+ * never otherwise, which is what a sync comparing "the version I started from" needs. Compare it,
+ * don't read it.
+ *
+ * A parent deleted before its children leaves nothing for them to bump, which is harmless: the
+ * parent's tombstone already says it is gone.
+ */
+internal object DocumentTriggers {
+
+    /**
+     * Where a child row's parent is. [id] and [condition] are SQL with `{row}` standing for NEW or
+     * OLD; [keys] are the child's columns that choose the parent, so an update that moves a row to
+     * another parent bumps both.
+     */
+    class ParentLink(
+        val parent: String,
+        val keys: List<String>,
+        val id: String,
+        val condition: String? = null,
+    )
+
+    private fun byColumn(parent: String, column: String) = ParentLink(parent, listOf(column), "{row}.`$column`")
+
+    private fun bySource(parent: String, sourceType: String, id: String = "{row}.`source_id`") =
+        ParentLink(parent, listOf("source_type", "source_id"), id, "{row}.`source_type` = '$sourceType'")
+
+    val PARENTS: Map<String, List<ParentLink>> = mapOf(
+        "vente_items" to listOf(byColumn("ventes", "vente_id")),
+        "purchase_order_items" to listOf(byColumn("purchase_orders", "purchase_order_id")),
+        "retour_client_items" to listOf(byColumn("retour_client", "retour_id")),
+        "retour_fournisseur_items" to listOf(byColumn("retour_fournisseur", "retour_id")),
+        "chargement_items" to listOf(byColumn("chargements", "chargement_id")),
+        "inventory_items" to listOf(byColumn("inventory_sessions", "session_id")),
+        "tournee_clients" to listOf(byColumn("tournees", "tournee_id")),
+        "tournee_secteurs" to listOf(byColumn("tournees", "tournee_id")),
+        "policy_tiers" to listOf(byColumn("target_policies", "policy_id")),
+        "product_images" to listOf(byColumn("products", "product_id")),
+        // A movement names its document by type; an inventory movement names a line of the session.
+        "stock_movements" to listOf(
+            bySource("ventes", "vente"),
+            bySource("purchase_orders", "purchase_order"),
+            bySource("retour_client", "retour_client"),
+            bySource("retour_fournisseur", "retour_fournisseur"),
+            bySource("pertes", "perte"),
+            bySource(
+                "inventory_sessions", "inventory_item",
+                id = "(SELECT `session_id` FROM `inventory_items` WHERE `id` = {row}.`source_id`)",
+            ),
+        ),
+        // A perte recorded by a return is part of that return. Pertes also stand on their own.
+        "pertes" to listOf(
+            bySource("retour_client", "retour_client"),
+            bySource("retour_fournisseur", "retour_fournisseur"),
+        ),
+    )
+
+    fun install(db: SupportSQLiteDatabase) {
+        for ((child, links) in PARENTS) {
+            val compared = UpdatedAtTriggers.comparedColumns(db, child)
+            for ((name, sql) in triggers(child, links, compared)) {
+                replaceIfChanged(db, name, sql)
+            }
+        }
+    }
+
+    fun triggerName(child: String, event: String): String = "trg_${child}_parent_$event"
+
+    fun triggers(child: String, links: List<ParentLink>, compared: List<String>): List<Pair<String, String>> {
+        fun bumps(row: String, extra: (ParentLink) -> String? = { null }) =
+            links.joinToString(" ") { link ->
+                val where = listOfNotNull(
+                    "`id` = ${link.id.replace("{row}", row)}",
+                    link.condition?.replace("{row}", row),
+                    extra(link),
+                ).joinToString(" AND ")
+                "UPDATE `${link.parent}` SET `updated_at` = max(`updated_at` + 1, $NOW_MS), " +
+                    "`version` = `version` + 1 WHERE $where;"
+            }
+
+        val changed = compared.joinToString(" OR ") { "NEW.`$it` IS NOT OLD.`$it`" }
+        // After an update, the old parent too — but only if the row moved to another one.
+        val moved = { link: ParentLink -> "(" + link.keys.joinToString(" OR ") { "NEW.`$it` IS NOT OLD.`$it`" } + ")" }
+
+        return listOf(
+            triggerName(child, "insert") to
+                "CREATE TRIGGER `${triggerName(child, "insert")}` AFTER INSERT ON `$child` FOR EACH ROW " +
+                "BEGIN ${bumps("NEW")} END",
+            triggerName(child, "update") to
+                "CREATE TRIGGER `${triggerName(child, "update")}` AFTER UPDATE ON `$child` FOR EACH ROW " +
+                "WHEN $changed BEGIN ${bumps("NEW")} ${bumps("OLD", moved)} END",
+            triggerName(child, "delete") to
+                "CREATE TRIGGER `${triggerName(child, "delete")}` AFTER DELETE ON `$child` FOR EACH ROW " +
+                "BEGIN ${bumps("OLD")} END",
+        )
+    }
+}
+
 /** Milliseconds since the Unix epoch, UTC. `julianday` exists on every SQLite Android ships. */
 private const val NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
 
@@ -123,8 +241,8 @@ private fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: Strin
 }
 
 /**
- * Installs the [UpdatedAtTriggers] and [TombstoneTriggers] each time the database opens, in one
- * transaction. The app's builder and the tests use it.
+ * Installs the [UpdatedAtTriggers], [TombstoneTriggers] and [DocumentTriggers] each time the database
+ * opens, in one transaction. The app's builder and the tests use it.
  */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
     addCallback(object : RoomDatabase.Callback() {
@@ -133,6 +251,7 @@ internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabas
             try {
                 UpdatedAtTriggers.install(db)
                 TombstoneTriggers.install(db)
+                DocumentTriggers.install(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()

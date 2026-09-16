@@ -18,6 +18,8 @@ data class ChargeTypeEntity(
     val uuid: String = newRowUuid(),
     @ColumnInfo(defaultValue = "0")
     val updated_at: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "1")
+    val version: Int = 1,
     /** Null while the row is live; when it was deleted otherwise. Deleted rows are filtered out of every read. */
     val deleted_at: Long? = null
 )
