@@ -97,16 +97,31 @@ class ProductRepository(
         )
     }
 
-    private suspend fun applyStockDelta(source: String, productId: Int, delta: Double) {
-        val product = productDao.getProductById(productId) ?: return
-        val updated = if (source == "depot")
-            product.copy(stock = product.stock + delta)
-        else
-            product.copy(
-                stock        = product.stock + delta,        // ← stock = total, impacté aussi côté camion
-                camion_stock = product.camion_stock + delta
+    /**
+     * Records a change of stock that has no document behind it — a product created with stock, or a
+     * stock typed over — as an `ajustement` at the dépôt. The movement is what changes the stock: the
+     * ledger triggers recompute the product from it (see StockLedger.kt).
+     */
+    private suspend fun recordStockAdjustment(product: ProductEntity, delta: Double, label: String) {
+        if (delta == 0.0) return
+        db.stockMovementDao().insert(
+            StockMovementEntity(
+                product_id   = product.id,
+                product_name = product.name,
+                type         = "ajustement",
+                direction    = if (delta > 0) "entree" else "sortie",
+                quantity     = kotlin.math.abs(delta),
+                emplacement  = "depot",
+                source_label = label,
+                source_type  = "product",
+                source_id    = product.id,
+                unit_price   = product.purchase_price,
+                total_value  = kotlin.math.abs(delta) * product.purchase_price,
+                user_name    = null,
+                note         = null,
+                created_at   = java.time.Instant.now().toString()
             )
-        productDao.updateProduct(updated)
+        )
     }
 
     private fun ChargementItemEntity.toChargementItem() = ChargementItem(
@@ -251,7 +266,13 @@ class ProductRepository(
             marque_name = marqueName
         )
 
-        val newId = productDao.insertProduct(entity)
+        // Inserted at zero whatever the map says: stock only ever comes from movements, so a product
+        // created with some gets it as a "Stock initial" adjustment, in the same transaction.
+        val newId = db.withTransaction {
+            val id = productDao.insertProduct(entity.copy(stock = 0.0, camion_stock = 0.0))
+            recordStockAdjustment(entity.copy(id = id.toInt()), entity.stock, "Stock initial")
+            id
+        }
         // A product created with a photo starts its gallery with that photo as the cover, so the
         // form's single-image field and the gallery never disagree about what the product looks
         // like. See adoptCoverImage.
@@ -278,7 +299,6 @@ class ProductRepository(
             barcode = if (product.containsKey("barcode")) product["barcode"] as? String else existing.barcode,
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: existing.selling_price,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: existing.purchase_price,
-            stock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() ?: existing.stock else existing.stock,
             min_stock = if (product.containsKey("min_stock")) (product["min_stock"] as? Number)?.toInt() ?: existing.min_stock else existing.min_stock,
             unit_type = product["unit_type"] as? String ?: existing.unit_type,
             packages = if (product.containsKey("packages")) (product["packages"] as? Number)?.toInt() ?: existing.packages else existing.packages,
@@ -294,7 +314,17 @@ class ProductRepository(
             marque_name = newMarqueName
         )
 
-        productDao.updateProduct(updatedEntity)
+        // A stock typed over is not written to the column: the difference becomes an adjustment
+        // movement, and the ledger triggers bring `stock` to it. The edit form does not send one
+        // today; this keeps the ledger whole for any caller that does.
+        val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() else null
+        db.withTransaction {
+            productDao.updateProduct(updatedEntity)
+            if (typedStock != null) {
+                val current = productDao.getProductById(id)?.stock ?: existing.stock
+                recordStockAdjustment(updatedEntity, typedStock - current, "Ajustement manuel")
+            }
+        }
         // The edit form still carries a single image field. Picking a photo there means "this is
         // the cover", so it is adopted into the gallery rather than left to contradict it.
         if (product.containsKey("image_uri")) {
@@ -746,16 +776,10 @@ class ProductRepository(
                                 product.expiry_date.isNullOrEmpty() ||
                                 item.expiry_date < product.expiry_date
                         )
-                val updatedProduct = if (shouldUpdateExpiry) {
-                    product.copy(
-                        stock       = product.stock + item.quantity,
-                        has_expiry  = 1,
-                        expiry_date = item.expiry_date
-                    )
-                } else {
-                    product.copy(stock = product.stock + item.quantity)
+                if (shouldUpdateExpiry) {
+                    productDao.updateProduct(product.copy(has_expiry = 1, expiry_date = item.expiry_date))
                 }
-                productDao.updateProduct(updatedProduct)
+                // The stock itself comes from the movement below.
 
                 movementEntities += StockMovementEntity(
                     product_id   = item.product_id,
@@ -847,13 +871,9 @@ class ProductRepository(
                 ?: throw IllegalStateException("Bon introuvable: $id")
             if (order.status != "received") return@withTransaction
 
-            val items = db.purchaseDao().getItemsForOrder(id)
-            for (item in items) {
-                val product = productDao.getProductById(item.product_id) ?: continue
-                productDao.updateProduct(product.copy(stock = product.stock - item.quantity))
-            }
             db.purchaseDao().updateOrderStatus(id, "pending")
-            db.stockMovementDao().deleteBySource("purchase_order", id)   // ← جديد
+            // Removing the reception's movements takes their quantities back out of stock.
+            db.stockMovementDao().deleteBySource("purchase_order", id)
         }
         return mapOf("message" to "Bon rouvert avec succès")
     }
@@ -863,14 +883,8 @@ class ProductRepository(
             val order = db.purchaseDao().getOrderById(id)
                 ?: throw IllegalStateException("Bon introuvable: $id")
 
-            if (order.status == "received") {
-                val items = db.purchaseDao().getItemsForOrder(id)
-                for (item in items) {
-                    val product = productDao.getProductById(item.product_id) ?: continue
-                    productDao.updateProduct(product.copy(stock = product.stock - item.quantity))
-                }
-                db.stockMovementDao().deleteBySource("purchase_order", id)   // ← جديد
-            }
+            // A pending bon has no movements; a received one's take their quantities back out of stock.
+            db.stockMovementDao().deleteBySource("purchase_order", id)
             db.purchaseDao().deleteItemsForOrder(id)
             db.purchaseDao().deleteOrderById(id)
             supplierDao.recomputeBalance(order.supplier_id)
@@ -966,8 +980,6 @@ class ProductRepository(
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
 
-                applyStockDelta(source, productId, -quantity)
-
                 movementEntities += StockMovementEntity(
                     product_id   = productId,
                     product_name = product.name,
@@ -1018,11 +1030,9 @@ class ProductRepository(
             val existing = db.venteDao().getVenteById(id)
                 ?: throw IllegalStateException("Vente introuvable: $id")
 
-            // عكس تأثير العناصر القديمة على المخزون
-            val oldItems = db.venteDao().getItemsForVente(id)
-            for (item in oldItems) {
-                applyStockDelta(existing.source, item.product_id, item.quantity)
-            }
+            // عكس تأثير العناصر القديمة على المخزون — removing the sale's movements puts their
+            // quantities back, so the camion check below sees the stock as it was before this sale.
+            db.stockMovementDao().deleteBySource("vente", id)
             // ── تحقق مسبق ──
             // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) ──
             if (existing.source == "camion") {
@@ -1040,7 +1050,6 @@ class ProductRepository(
                 }
             }
             db.venteDao().deleteItemsForVente(id)
-            db.stockMovementDao().deleteBySource("vente", id)   // ← جديد: إزالة الحركات القديمة
 
             val now = java.time.Instant.now().toString()
             val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
@@ -1053,8 +1062,6 @@ class ProductRepository(
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
-
-                applyStockDelta(existing.source, productId, -quantity)
 
                 movementEntities += StockMovementEntity(
                     product_id   = productId,
@@ -1097,13 +1104,10 @@ class ProductRepository(
         db.withTransaction {
             val existing = db.venteDao().getVenteById(id)
                 ?: throw IllegalStateException("Vente introuvable: $id")
-            val items = db.venteDao().getItemsForVente(id)
-            for (item in items) {
-                applyStockDelta(existing.source, item.product_id, item.quantity)
-            }
+            // Removing the sale's movements puts its quantities back in stock.
+            db.stockMovementDao().deleteBySource("vente", id)
             db.venteDao().deleteItemsForVente(id)
             db.venteDao().deleteVenteById(id)
-            db.stockMovementDao().deleteBySource("vente", id)
             clientDao.recomputeBalance(existing.client_id)
         }
         return mapOf("message" to "Vente supprimée avec succès")
@@ -1333,13 +1337,8 @@ class ProductRepository(
                 // Chargement = transfert interne pur (dépôt ↔ camion) : ne touche jamais au total (stock)
                 // Ne génère volontairement aucun StockMovementEntity : ce n'est pas un mouvement
                 // du stock global, seulement une répartition interne dépôt ↔ camion.
-                val updatedProduct = if (direction == "vers_camion") {
-                    product.copy(camion_stock = product.camion_stock + quantity)
-                } else {
-                    product.copy(camion_stock = product.camion_stock - quantity)
-                }
-                productDao.updateProduct(updatedProduct)
-
+                // The line itself is the transfer's record: inserting it moves `camion_stock`
+                // (see StockLedger.kt).
                 itemEntities.add(
                     ChargementItemEntity(
                         chargement_id = chargementId,
@@ -1360,17 +1359,7 @@ class ProductRepository(
     }
     suspend fun deleteChargement(id: Int): Map<String, Any> {
         db.withTransaction {
-            val items = db.chargementDao().getItemsForChargement(id)
-            for (item in items) {
-                val product = productDao.getProductById(item.product_id) ?: continue
-                // عكس التأثير: عودة الكمية لمصدرها الأصلي
-                val reverted = if (item.direction == "vers_camion") {
-                    product.copy(camion_stock = product.camion_stock - item.quantity)
-                } else {
-                    product.copy(camion_stock = product.camion_stock + item.quantity)
-                }
-                productDao.updateProduct(reverted)
-            }
+            // عكس التأثير: removing the transfer lines returns their quantities to where they came from.
             db.chargementDao().deleteItemsForChargement(id)
             db.chargementDao().deleteChargementById(id)
         }

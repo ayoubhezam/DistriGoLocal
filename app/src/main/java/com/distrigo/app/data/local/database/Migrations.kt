@@ -618,6 +618,72 @@ val MIGRATION_45_46 = object : Migration(45, 46) {
 }
 
 /**
+ * 46 -> 47 - the stock ledger takes over `products.stock` and `products.camion_stock`.
+ *
+ * From this version the two columns are caches of the ledger — stock movements, plus chargement
+ * lines for the camion's share — kept by the triggers in StockLedger.kt, which the app installs when
+ * the database opens. Before those triggers recompute anything, this migration makes sure recomputing
+ * changes nothing a user can see.
+ *
+ * Every write used to adjust the columns by hand next to the movement it recorded, so a database can
+ * hold stock the ledger does not explain: stock given to a product when it was created, or typed
+ * over later. Where a product's columns and its ledger disagree, the difference is recorded as what
+ * it is — an `ajustement` named "Reprise du stock", dated now, one at the camion for the camion's
+ * share and one at the dépôt for the rest — so the ledger ends up saying exactly what the columns
+ * said. A device whose stock always came from movements gets no row at all.
+ *
+ * Differences under a millionth are rounding in the old incremental arithmetic, not stock, and are
+ * left for the recompute below to absorb.
+ *
+ * The camion adjustment is inserted first; the dépôt one is measured after it, since a camion movement
+ * also counts towards the total.
+ *
+ * Also adds `index_chargement_items_product_id`, which each recompute reads transfer lines through.
+ *
+ * The ledger sums and the uuid expression are written out here rather than shared with StockLedger.kt
+ * and MIGRATION_42_43: this migration records what version 47 did.
+ */
+val MIGRATION_46_47 = object : Migration(46, 47) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_chargement_items_product_id` ON `chargement_items` (`product_id`)"
+        )
+
+        val ledgerTotal =
+            "(SELECT COALESCE(SUM(CASE WHEN m.direction = 'entree' THEN m.quantity ELSE -m.quantity END), 0.0) " +
+                "FROM stock_movements m WHERE m.product_id = p.id)"
+        val ledgerCamion =
+            "((SELECT COALESCE(SUM(CASE WHEN m.direction = 'entree' THEN m.quantity ELSE -m.quantity END), 0.0) " +
+                "FROM stock_movements m WHERE m.product_id = p.id AND m.emplacement = 'camion') + " +
+                "(SELECT COALESCE(SUM(CASE WHEN c.direction = 'vers_camion' THEN c.quantity ELSE -c.quantity END), 0.0) " +
+                "FROM chargement_items c WHERE c.product_id = p.id))"
+        val uuidV4 =
+            "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+                "substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "substr('89ab', 1 + (random() & 3), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "lower(hex(randomblob(6)))"
+        val now = java.time.Instant.now().toString()
+        val nowMs = System.currentTimeMillis()
+
+        fun recordGaps(emplacement: String, gap: String) = db.execSQL(
+            "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, emplacement, " +
+                "source_label, source_type, source_id, unit_price, total_value, user_name, note, created_at, " +
+                "uuid, updated_at) " +
+                "SELECT id, name, 'ajustement', CASE WHEN gap > 0 THEN 'entree' ELSE 'sortie' END, abs(gap), " +
+                "'$emplacement', 'Reprise du stock', 'product', id, purchase_price, abs(gap) * purchase_price, " +
+                "NULL, 'Stock enregistré sans mouvement avant la mise à niveau', '$now', $uuidV4, $nowMs " +
+                "FROM (SELECT p.id, p.name, p.purchase_price, $gap AS gap FROM products p) " +
+                "WHERE abs(gap) > 0.000001"
+        )
+        recordGaps("camion", "p.camion_stock - $ledgerCamion")
+        recordGaps("depot", "(p.stock - $ledgerTotal) - (p.camion_stock - $ledgerCamion)")
+
+        db.execSQL("UPDATE products SET stock = ${ledgerTotal.replace("p.id", "products.id")}, " +
+            "camion_stock = ${ledgerCamion.replace("p.id", "products.id")}")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -628,7 +694,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-    MIGRATION_44_45, MIGRATION_45_46,
+    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47,
 )
 
 /**

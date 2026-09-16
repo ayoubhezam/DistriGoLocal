@@ -331,6 +331,64 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 46 -> 47 records stock its movements do not explain as "Reprise du stock" adjustments — the
+     * camion's share at the camion, the rest at the dépôt — so the ledger says what the columns said,
+     * and leaves a product whose stock already came from movements alone.
+     */
+    @Test
+    fun migration46To47RecordsUnexplainedStock() {
+        helper.createDatabase(TEST_DB, 46).apply {
+            fun product(id: Int, stock: Double, camion: Double) = execSQL(
+                "INSERT INTO products (id, name, selling_price, purchase_price, stock, min_stock, unit_type, packages, " +
+                    "pack_size, has_expiry, camion_stock, uuid, created_at, updated_at) VALUES ($id, 'P$id', 110.0, " +
+                    "95.0, $stock, 0, 'pièce', 0, 0, 0, $camion, 'u-product-$id', '$UNKNOWN_CREATED_AT', 1000)"
+            )
+            fun movement(productId: Int, direction: String, quantity: Double, emplacement: String) = execSQL(
+                "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, emplacement, " +
+                    "source_label, source_type, source_id, total_value, created_at, uuid, updated_at) VALUES " +
+                    "($productId, 'P$productId', 'vente', '$direction', $quantity, '$emplacement', 'x', 'vente', 1, 0.0, " +
+                    "'2026-09-01T10:00:00Z', 'u-m-$productId-$direction-$emplacement', 1000)"
+            )
+            // Stock and a camion share with nothing behind them
+            product(1, stock = 10.0, camion = 3.0)
+            // Stock that came from a purchase
+            product(2, stock = 5.0, camion = 0.0)
+            movement(2, "entree", 5.0, "depot")
+            // A camion sale of stock that a chargement brought: consistent once transfers count
+            product(3, stock = -2.0, camion = 0.0)
+            movement(3, "sortie", 2.0, "camion")
+            execSQL(
+                "INSERT INTO chargement_items (chargement_id, product_id, quantity, direction, product_name, unit_type, " +
+                    "uuid, created_at, updated_at) VALUES (1, 3, 2.0, 'vers_camion', 'P3', 'pièce', 'u-ci', " +
+                    "'2026-09-01T09:00:00Z', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 47, true, MIGRATION_46_47)
+        try {
+            val adjustments = sql.query(
+                "SELECT product_id, direction, quantity, emplacement FROM stock_movements " +
+                    "WHERE source_label = 'Reprise du stock' ORDER BY product_id, emplacement"
+            ).use { c ->
+                buildList { while (c.moveToNext()) add(listOf(c.getInt(0), c.getString(1), c.getDouble(2), c.getString(3))) }
+            }
+            assertEquals(listOf(listOf(1, "entree", 3.0, "camion"), listOf(1, "entree", 7.0, "depot")), adjustments)
+
+            // The columns are unchanged, and now equal their ledger.
+            for ((id, stock, camion) in listOf(Triple(1, 10.0, 3.0), Triple(2, 5.0, 0.0), Triple(3, -2.0, 0.0))) {
+                assertEquals(stock, sql.double("SELECT stock FROM products WHERE id = $id"), 0.0)
+                assertEquals(camion, sql.double("SELECT camion_stock FROM products WHERE id = $id"), 0.0)
+                assertEquals(stock, sql.double("SELECT ${StockLedgerTriggers.totalSql(id.toString())}"), 0.0)
+                assertEquals(camion, sql.double("SELECT ${StockLedgerTriggers.camionSql(id.toString())}"), 0.0)
+            }
+            assertEquals(2, sql.count("stock_movements", "source_label = 'Reprise du stock' AND length(uuid) = 36"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
@@ -429,7 +487,9 @@ class MigrationTest {
             "products" to 1, "clients" to 1, "ventes" to 1, "vente_items" to 1,
             "client_payments" to 1, "retour_client" to 1, "suppliers" to 1,
             "purchase_orders" to 1, "supplier_payments" to 1, "retour_fournisseur" to 1,
-            "stock_movements" to 1, "product_images" to 0,
+            // The fixture's one sale does not explain its product's stock (12.5, camion 2), so
+            // MIGRATION_46_47 records the rest as two "Reprise du stock" adjustments.
+            "stock_movements" to 3, "product_images" to 0,
         )
     }
 }

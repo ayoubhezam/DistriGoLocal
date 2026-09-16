@@ -31,7 +31,8 @@ class RowUuidTest {
     @Before
     fun open() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        // With the app's triggers: stock only follows the ledger with them installed.
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).withChangeTracking().build()
         repository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
     }
 

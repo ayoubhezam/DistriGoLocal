@@ -131,23 +131,19 @@ class RetourClientRepository(
             ).toInt()
 
             val definition = RetourClientMotifs.resolve(motif)
-            val movementEntities = mutableListOf<StockMovementEntity>()
             val itemEntities = lines.map { (product, quantity) ->
                 val unitPrice  = product.selling_price
                 val totalPrice = quantity * unitPrice
 
-                when (definition.stockEffect) {
-                    StockEffect.INCREASE -> productDao.updateProduct(product.copy(stock = product.stock + quantity, camion_stock = product.camion_stock + quantity))
-                    StockEffect.DECREASE -> productDao.updateProduct(product.copy(stock = product.stock - quantity, camion_stock = product.camion_stock - quantity))
-                    StockEffect.NONE     -> productDao.updateProduct(product.copy(stock = product.stock + quantity, camion_stock = product.camion_stock + quantity))
-                    // NONE still increases here — the physical item really did come back — the offsetting decrease happens immediately below via the linked Perte, giving a full paper trail instead of a silent no-op.
-                }
-
-                movementEntities += StockMovementEntity(
+                // The movement is the stock change, into or out of the camion. NONE still comes in —
+                // the physical item really did come back — and the linked Perte below takes it out
+                // again, giving a full paper trail instead of a silent no-op. Inserted here, not after
+                // the loop, so that Perte's camion check already sees the returned quantity.
+                db.stockMovementDao().insert(StockMovementEntity(
                     product_id   = product.id,
                     product_name = product.name,
                     type         = "retour_client",
-                    direction    = "entree",
+                    direction    = if (definition.stockEffect == StockEffect.DECREASE) "sortie" else "entree",
                     quantity     = quantity,
                     emplacement  = "camion",
                     source_label = client.name,
@@ -158,7 +154,7 @@ class RetourClientRepository(
                     user_name    = userName,
                     note         = motif,
                     created_at   = now
-                )
+                ))
 
                 if (definition.perteTypeName != null) {
                     val perteType = db.perteDao().getAllPerteTypes().find { it.name == definition.perteTypeName }
@@ -177,7 +173,6 @@ class RetourClientRepository(
                 )
             }
             retourDao.insertItems(itemEntities)
-            db.stockMovementDao().insertAll(movementEntities)
             clientDao.recomputeBalance(clientId)
         }
         return mapOf("message" to "Retour enregistré avec succès")
@@ -186,33 +181,17 @@ class RetourClientRepository(
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
         db.withTransaction {
-            val definition = RetourClientMotifs.resolve(retour.motif)
-
-            if (definition.perteTypeName != null) {
-                // Restores the quantity that addPerte had subtracted, bringing stock back to the "just increased" state.
-                db.perteDao().getPertesBySource("retour_client", id).forEach { PerteRepository(db).deletePerte(it.id) }
+            // The linked pertes go with their movements, which puts back what they took out. Deleted
+            // here rather than through PerteRepository.deletePerte, which refuses any perte linked to
+            // a return — so deleting a "Produit défectueux" or "Produit périmé" return used to throw.
+            db.perteDao().getPertesBySource("retour_client", id).forEach { perte ->
+                db.stockMovementDao().deleteBySource("perte", perte.id)
+                db.perteDao().deletePerteById(perte.id)
             }
-
-            val items = retourDao.getItemsForRetour(id)
-            for (item in items) {
-                productDao.getProductById(item.product_id)?.let { product ->
-                    val reversed = when (definition.stockEffect) {
-                        // Step 6 always increases first regardless of stockEffect, so NONE reverses the same way as INCREASE.
-                        StockEffect.INCREASE, StockEffect.NONE -> product.copy(
-                            stock        = product.stock - item.quantity,
-                            camion_stock = product.camion_stock - item.quantity
-                        )
-                        StockEffect.DECREASE -> product.copy(
-                            stock        = product.stock + item.quantity,
-                            camion_stock = product.camion_stock + item.quantity
-                        )
-                    }
-                    productDao.updateProduct(reversed)
-                }
-            }
+            // And the return's own movements, which takes back what it brought in.
+            db.stockMovementDao().deleteBySource("retour_client", id)
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
-            db.stockMovementDao().deleteBySource("retour_client", id)
             clientDao.recomputeBalance(retour.client_id)
         }
         return mapOf("message" to "Retour supprimé, stock restauré")

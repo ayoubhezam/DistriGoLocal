@@ -234,14 +234,14 @@ internal fun storedTriggerSql(db: SupportSQLiteDatabase, name: String): String? 
         .use { c -> if (c.moveToFirst()) c.getString(0) else null }
 
 /** SQLite stores a trigger's CREATE statement as written, so an unchanged one compares equal. */
-private fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: String) {
+internal fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: String) {
     if (storedTriggerSql(db, name) == sql) return
     db.execSQL("DROP TRIGGER IF EXISTS `$name`")
     db.execSQL(sql)
 }
 
 /**
- * Installs the [UpdatedAtTriggers], [TombstoneTriggers] and [DocumentTriggers] each time the database
+ * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers] and [StockLedgerTriggers] each time the database
  * opens, in one transaction. The app's builder and the tests use it.
  */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
@@ -252,6 +252,7 @@ internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabas
                 UpdatedAtTriggers.install(db)
                 TombstoneTriggers.install(db)
                 DocumentTriggers.install(db)
+                StockLedgerTriggers.install(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()

@@ -141,16 +141,8 @@ class PerteRepository(
             ).toInt()
 
             if (affectsStock) {
-                val updatedProduct = if (source == "camion") {
-                    product.copy(
-                        stock        = product.stock - quantity,
-                        camion_stock = product.camion_stock - quantity
-                    )
-                } else {
-                    product.copy(stock = product.stock - quantity)
-                }
-                productDao.updateProduct(updatedProduct)
-
+                // The movement is the stock change: the ledger triggers take it out of stock, and out
+                // of the camion's share when that is where it was lost.
                 db.stockMovementDao().insert(
                     StockMovementEntity(
                         product_id   = product.id,
@@ -180,19 +172,9 @@ class PerteRepository(
             throw IllegalStateException("Cette perte est liée à un retour fournisseur — supprimez le retour concerné")
         }
         db.withTransaction {
-            productDao.getProductById(perte.product_id)?.let { product ->
-                val restored = if (perte.source == "camion") {
-                    product.copy(
-                        stock        = product.stock + perte.quantity,
-                        camion_stock = product.camion_stock + perte.quantity
-                    )
-                } else {
-                    product.copy(stock = product.stock + perte.quantity)
-                }
-                productDao.updateProduct(restored)
-            }
+            // Removing the perte's movement puts its quantity back in stock.
+            db.stockMovementDao().deleteBySource("perte", id)
             perteDao.deletePerteById(id)
-            db.stockMovementDao().deleteBySource("perte", id)   // ← جديد
         }
         return mapOf("message" to "Perte supprimée, stock restauré")
     }
@@ -211,18 +193,9 @@ class PerteRepository(
 
         return try {
             db.withTransaction {
-                // 1) إعادة الكمية القديمة إلى مصدرها ومنتجها الأصليين
-                productDao.getProductById(existing.product_id)?.let { oldProduct ->
-                    val reverted = if (existing.source == "camion") {
-                        oldProduct.copy(
-                            stock        = oldProduct.stock + existing.quantity,
-                            camion_stock = oldProduct.camion_stock + existing.quantity
-                        )
-                    } else {
-                        oldProduct.copy(stock = oldProduct.stock + existing.quantity)
-                    }
-                    productDao.updateProduct(reverted)
-                }
+                // 1) إعادة الكمية القديمة إلى مصدرها ومنتجها الأصليين — removing the old movement
+                //    puts the old quantity back, so the camion check below sees the stock without it.
+                db.stockMovementDao().deleteBySource("perte", id)
 
                 // 2) إعادة جلب المنتج الجديد (بعد الاستعادة، مهم لو كان نفس المنتج)
                 val product = productDao.getProductById(productId)
@@ -244,20 +217,7 @@ class PerteRepository(
                     )
                 )
 
-                // 3) خصم الكمية الجديدة من المصدر الجديد
-                // 3) خصم الكمية الجديدة من المصدر الجديد
-                val updatedProduct = if (source == "camion") {
-                    product.copy(
-                        stock        = product.stock - quantity,
-                        camion_stock = product.camion_stock - quantity
-                    )
-                } else {
-                    product.copy(stock = product.stock - quantity)
-                }
-                productDao.updateProduct(updatedProduct)
-
-                // 4) تحديث حركة المخزون: حذف القديمة وإدراج جديدة
-                db.stockMovementDao().deleteBySource("perte", id)
+                // 3) خصم الكمية الجديدة من المصدر الجديد — by recording the new movement.
                 db.stockMovementDao().insert(
                     StockMovementEntity(
                         product_id   = product.id,

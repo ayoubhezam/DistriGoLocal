@@ -7,7 +7,12 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "chargement_items",
-    indices = [Index(value = ["chargement_id"]), Index(value = ["uuid"], unique = true)]
+    indices = [
+        Index(value = ["chargement_id"]),
+        Index(value = ["uuid"], unique = true),
+        // The stock ledger sums a product's transfer lines on every recompute (see StockLedger.kt).
+        Index(value = ["product_id"]),
+    ]
 )
 data class ChargementItemEntity(
     @PrimaryKey(autoGenerate = true)

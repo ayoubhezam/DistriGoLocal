@@ -135,17 +135,13 @@ class RetourFournisseurRepository(
                 val unitPrice  = product.purchase_price
                 val totalPrice = quantity * unitPrice
 
-                when (definition.stockEffect) {
-                    StockEffect.DECREASE -> productDao.updateProduct(product.copy(stock = product.stock - quantity))
-                    StockEffect.INCREASE -> productDao.updateProduct(product.copy(stock = product.stock + quantity))
-                    StockEffect.NONE     -> { /* no-op */ }
-                }
-
-                movementEntities += StockMovementEntity(
+                // The movement is the stock change, at the dépôt: out for DECREASE (every motif today),
+                // in for INCREASE, and none at all for NONE, which leaves the stock alone.
+                if (definition.stockEffect != StockEffect.NONE) movementEntities += StockMovementEntity(
                     product_id   = product.id,
                     product_name = product.name,
                     type         = "retour_fournisseur",
-                    direction    = "sortie",
+                    direction    = if (definition.stockEffect == StockEffect.INCREASE) "entree" else "sortie",
                     quantity     = quantity,
                     emplacement  = "depot",
                     source_label = supplier.name,
@@ -185,26 +181,14 @@ class RetourFournisseurRepository(
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
         db.withTransaction {
-            val definition = RetourFournisseurMotifs.resolve(retour.motif)
-
             // Raw DAO delete, not PerteRepository.deletePerte: these linked pertes have affectsStock=false,
             // so their stock was never separately decremented — restoring would incorrectly add quantity back.
             db.perteDao().getPertesBySource("retour_fournisseur", id).forEach { db.perteDao().deletePerteById(it.id) }
 
-            val items = retourDao.getItemsForRetour(id)
-            for (item in items) {
-                productDao.getProductById(item.product_id)?.let { product ->
-                    val reversed = when (definition.stockEffect) {
-                        StockEffect.DECREASE -> product.copy(stock = product.stock + item.quantity)
-                        StockEffect.INCREASE -> product.copy(stock = product.stock - item.quantity)
-                        StockEffect.NONE      -> product
-                    }
-                    productDao.updateProduct(reversed)
-                }
-            }
+            // Removing the return's movements reverses its effect on stock.
+            db.stockMovementDao().deleteBySource("retour_fournisseur", id)
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
-            db.stockMovementDao().deleteBySource("retour_fournisseur", id)
             supplierDao.recomputeBalance(retour.supplier_id)
         }
         return mapOf("message" to "Retour supprimé, stock restauré")

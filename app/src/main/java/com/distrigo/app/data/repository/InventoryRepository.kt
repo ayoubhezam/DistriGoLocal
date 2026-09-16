@@ -81,8 +81,8 @@ class InventoryRepository(
                     created_at = now
                 )
             ).toInt()
-            productDao.updateProduct(product.copy(stock = qtePhysique))
 
+            // The adjustment is what brings the stock to the counted quantity.
             if (ecart != 0.0) {
                 db.stockMovementDao().insert(
                     StockMovementEntity(
@@ -123,11 +123,10 @@ class InventoryRepository(
             inventoryDao.updateItem(
                 item.copy(qte_physique = newQtePhysique, ecart = newEcart, valeur_ecart = newValeurEcart)
             )
-            // ── Set direct (pas de delta) — même logique que recordScan ──
+            // The scan's adjustment is replaced by one measured against the same qte_systeme, so the
+            // stock becomes the corrected count plus whatever moved since the scan — not the count
+            // alone, which would erase a sale made in between.
             val product = productDao.getProductById(item.product_id)
-            product?.let {
-                productDao.updateProduct(it.copy(stock = newQtePhysique))
-            }
 
             db.stockMovementDao().deleteBySource("inventory_item", itemId)
             if (newEcart != 0.0 && product != null) {
@@ -158,12 +157,10 @@ class InventoryRepository(
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
 
         db.withTransaction {
-            // ── Restaure le stock à sa valeur d'avant ce scan (qte_systeme) ──
-            productDao.getProductById(item.product_id)?.let { product ->
-                productDao.updateProduct(product.copy(stock = item.qte_systeme))
-            }
+            // ── Restaure le stock — removing the scan's adjustment undoes it, keeping anything that
+            // moved since, where setting it back to qte_systeme would have erased that too ──
+            db.stockMovementDao().deleteBySource("inventory_item", itemId)
             inventoryDao.deleteItem(itemId)
-            db.stockMovementDao().deleteBySource("inventory_item", itemId)   // ← جديد
         }
         return mapOf("message" to "Supprimé, stock restauré")
     }
