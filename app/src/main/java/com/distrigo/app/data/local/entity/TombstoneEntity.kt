@@ -31,4 +31,6 @@ data class TombstoneEntity(
     val row_uuid: String,
     /** Milliseconds since the epoch, UTC, like `updated_at`. */
     val deleted_at: Long,
+    /** The device that deleted the row; null for deletes before version 48. */
+    val device_id: String? = null,
 )

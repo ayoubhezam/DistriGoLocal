@@ -85,6 +85,9 @@ class MigrationTest {
         try {
             val sql = db.openHelper.writableDatabase
             assertEquals(LATEST_VERSION, sql.version)
+            assertEquals(TEST_DEVICE, sql.text("SELECT value FROM app_meta WHERE key = 'device_id'"))
+            // Rows from before device tracking keep an unknown origin.
+            assertEquals(0, sql.count("clients", "origin_device_id IS NOT NULL"))
 
             for ((table, expected) in EXPECTED_ROW_COUNTS) {
                 assertDistinctV4Uuids(sql, table, expected)
@@ -389,10 +392,35 @@ class MigrationTest {
         }
     }
 
+    /** 47 -> 48 adds an empty app_meta and unknown origins, and changes no existing value. */
+    @Test
+    fun migration47To48AddsDeviceTracking() {
+        helper.createDatabase(TEST_DB, 47).apply {
+            execSQL(
+                "INSERT INTO clients (id, name, balance, customer_type, uuid, created_at, updated_at, version) " +
+                    "VALUES (1, 'Épicerie El Amel', 0.0, 'retail', 'u-client', '$UNKNOWN_CREATED_AT', 1000, 3)"
+            )
+            execSQL(
+                "INSERT INTO tombstones (table_name, row_uuid, deleted_at) VALUES ('ventes', 'u-vente', 2000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 48, true, MIGRATION_47_48)
+        try {
+            assertEquals(0, sql.count("app_meta"))
+            assertEquals(1, sql.count("clients", "origin_device_id IS NULL AND updated_at = 1000 AND version = 3"))
+            assertEquals(1, sql.count("tombstones", "device_id IS NULL AND deleted_at = 2000"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
             .withChangeTracking()
+            .withDeviceIdentity { TEST_DEVICE }
             .build()
 
     /** One client and one supplier with a small ledger each, and deliberately wrong stored balances. */
@@ -480,6 +508,8 @@ class MigrationTest {
         val LATEST_VERSION = ALL_MIGRATIONS.last().endVersion
 
         const val UNKNOWN_CREATED_AT = "1970-01-01T00:00:00Z"
+
+        const val TEST_DEVICE = "7e57de71-0000-4000-8000-000000000001"
 
         val V4_UUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 

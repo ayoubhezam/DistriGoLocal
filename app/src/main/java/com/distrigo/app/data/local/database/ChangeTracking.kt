@@ -48,7 +48,7 @@ internal object UpdatedAtTriggers {
         "suppliers" to setOf("balance"),
     )
 
-    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version")
+    private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version", "origin_device_id")
 
     fun install(db: SupportSQLiteDatabase) {
         for (table in trackedTables(db)) {
@@ -89,7 +89,8 @@ internal object UpdatedAtTriggers {
 }
 
 /**
- * Records every hard delete of a business row in `tombstones` (see TombstoneEntity).
+ * Records every hard delete of a business row in `tombstones` (see TombstoneEntity), with the device
+ * that deleted it.
  *
  * One `AFTER DELETE` trigger per table [UpdatedAtTriggers] tracks, so the uuid of a deleted vente, of
  * each line replaced by an edit, and of each stock movement removed with its document is kept after
@@ -111,8 +112,8 @@ internal object TombstoneTriggers {
 
     fun triggerSql(table: String): String =
         "CREATE TRIGGER `${triggerName(table)}` AFTER DELETE ON `$table` FOR EACH ROW " +
-            "BEGIN INSERT OR IGNORE INTO `tombstones` (`table_name`, `row_uuid`, `deleted_at`) " +
-            "VALUES ('$table', OLD.`uuid`, $NOW_MS); END"
+            "BEGIN INSERT OR IGNORE INTO `tombstones` (`table_name`, `row_uuid`, `deleted_at`, `device_id`) " +
+            "VALUES ('$table', OLD.`uuid`, $NOW_MS, $CURRENT_DEVICE_SQL); END"
 }
 
 /**
@@ -241,8 +242,8 @@ internal fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: Stri
 }
 
 /**
- * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers] and [StockLedgerTriggers] each time the database
- * opens, in one transaction. The app's builder and the tests use it.
+ * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers], [StockLedgerTriggers] and
+ * [OriginTriggers] each time the database opens, in one transaction. The app's builder and the tests use it.
  */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
     addCallback(object : RoomDatabase.Callback() {
@@ -253,6 +254,7 @@ internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabas
                 TombstoneTriggers.install(db)
                 DocumentTriggers.install(db)
                 StockLedgerTriggers.install(db)
+                OriginTriggers.install(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()

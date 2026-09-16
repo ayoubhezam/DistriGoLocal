@@ -1,6 +1,7 @@
 package com.distrigo.app.data.local.database
 
 import android.content.Context
+import com.distrigo.app.data.device.DeviceIdentity
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -68,8 +69,9 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         TourneeVenteDraftEntity::class,
         ChargementDraftEntity::class,
         TombstoneEntity::class,
+        AppMetaEntity::class,
     ],
-    version = 47,
+    version = 48,
     exportSchema = true
 )
 
@@ -132,6 +134,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .withMigrationPolicy()
                     .withChangeTracking()
+                    .withDeviceIdentity { DeviceIdentity.id(context) }
                     .build()
                 INSTANCE = instance
                 instance

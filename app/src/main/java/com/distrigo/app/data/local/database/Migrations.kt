@@ -684,6 +684,39 @@ val MIGRATION_46_47 = object : Migration(46, 47) {
 }
 
 /**
+ * 47 -> 48 - which device a row came from, and which device has the database.
+ *
+ *  - **`app_meta`**, a key/value table about the database itself. It starts empty: the app writes
+ *    `database_id` and `device_id` into it when it opens (see DeviceTracking.kt), because the device's
+ *    id lives outside the database, where a migration cannot reach it.
+ *  - **`origin_device_id`** on the 24 tables that carry a `version`. Every existing row keeps NULL:
+ *    nothing recorded where it was made, and "this phone" would be wrong for a database restored from
+ *    another one. New rows are stamped by an insert trigger.
+ *  - **`tombstones.device_id`**, likewise NULL for the deletes already recorded.
+ *
+ * The CREATE statement is copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/48.json`). **Do not hand-edit it** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_47_48 = object : Migration(47, 48) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `app_meta` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))"
+        )
+        listOf(
+            "products", "clients", "suppliers", "categories", "sous_categories", "marques", "secteurs",
+            "charge_types", "charge_subtypes", "perte_types", "target_policies",
+            "ventes", "purchase_orders", "retour_client", "retour_fournisseur",
+            "chargement_sessions", "chargements", "inventory_sessions", "tournees",
+            "client_payments", "supplier_payments", "charges", "pertes", "price_history",
+        ).forEach { table ->
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `origin_device_id` TEXT")
+        }
+        db.execSQL("ALTER TABLE `tombstones` ADD COLUMN `device_id` TEXT")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -694,7 +727,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47,
+    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
 )
 
 /**
