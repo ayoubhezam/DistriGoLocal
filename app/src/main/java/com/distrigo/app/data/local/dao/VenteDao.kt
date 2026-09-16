@@ -48,7 +48,26 @@ interface VenteDao {
         WHERE v.tournee_id = :tourneeId
         ORDER BY v.id DESC
     """)
-    suspend fun getVentesWithDetailsForTournee(tourneeId: Int): List<TourneeVenteRow>
+    suspend fun getVentesWithDetailsForTournee(tourneeId: Int): List<VenteWithDetails>
+
+    /**
+     * The sales list, each with its client's current name and its number of lines, in one query —
+     * every sale when [clientId] is null, otherwise that client's.
+     *
+     * Replaces [getAllVentes]/[getVentesForClient] followed by a client lookup and an item count
+     * for every sale — 1 + 2V queries. Same live name, same order (`id DESC`) and the same empty
+     * name for a sale whose client is gone as the loop it replaces.
+     */
+    @Query("""
+        SELECT v.*,
+               c.name AS live_client_name,
+               (SELECT COUNT(*) FROM vente_items vi WHERE vi.vente_id = v.id) AS items_count
+        FROM ventes v
+        LEFT JOIN clients c ON c.id = v.client_id
+        WHERE :clientId IS NULL OR v.client_id = :clientId
+        ORDER BY v.id DESC
+    """)
+    suspend fun getVentesWithDetails(clientId: Int?): List<VenteWithDetails>
 
     @Query("SELECT * FROM ventes WHERE id = :id")
     suspend fun getVenteById(id: Int): VenteEntity?
@@ -131,8 +150,8 @@ interface VenteDao {
     suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int
 }
 
-/** A sale with the two things its tournée detail row shows that the `ventes` table does not hold. */
-data class TourneeVenteRow(
+/** A sale with the two things a list row shows that the `ventes` table does not hold. */
+data class VenteWithDetails(
     @Embedded val vente: VenteEntity,
     val live_client_name: String?,
     val items_count: Int

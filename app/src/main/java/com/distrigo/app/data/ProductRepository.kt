@@ -884,14 +884,17 @@ class ProductRepository(
 
 // ── Ventes (محلي بالكامل) ──
 
-    suspend fun getVentes(clientId: Int? = null): List<Vente> {
-        val entities = if (clientId != null) db.venteDao().getVentesForClient(clientId)
-        else db.venteDao().getAllVentes()
-        return entities.map { entity ->
-            val count = db.venteDao().getItemsCountForVente(entity.id)
-            entity.toVente().copy(items_count = count)
+    // One query for the whole list. This used to run an item count and a client lookup for every
+    // sale — the lookup hidden inside toVente() — so the Ventes screen cost 1 + 2V queries every
+    // time it opened or a sale was saved or deleted.
+    suspend fun getVentes(clientId: Int? = null): List<Vente> =
+        db.venteDao().getVentesWithDetails(clientId).map { row ->
+            row.vente.toVenteWith(
+                clientName = row.live_client_name ?: "",
+                itemsCount = row.items_count,
+                items      = null
+            )
         }
-    }
 
     suspend fun getVente(id: Int): Vente {
         val entity = db.venteDao().getVenteById(id)
