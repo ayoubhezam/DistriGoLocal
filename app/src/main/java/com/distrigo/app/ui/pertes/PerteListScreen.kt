@@ -50,7 +50,8 @@ fun PerteListScreen(
     var longPressPerte  by remember { mutableStateOf<Perte?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(typeId) { viewModel.loadPertes(typeId) }
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    LaunchedEffect(typeId, selectedMonth) { viewModel.loadPertes(typeId) }
 
     val totalValue = pertes.sumOf { it.valeur_totale }
     val totalQty   = pertes.sumOf { it.quantity }

@@ -46,7 +46,10 @@ fun PertesScreen(
     var deleteTypeError      by remember { mutableStateOf("") }
 
 
-    LaunchedEffect(Unit) { viewModel.loadPerteTypes() }
+    // Keyed on the month, so the totals reload when it changes instead of staying on the month the
+    // ViewModel was built in.
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    LaunchedEffect(selectedMonth) { viewModel.loadPerteTypes() }
 
 
     // ── Accueil : Types de pertes ──

@@ -46,7 +46,10 @@ fun ChargesScreen(
 
 
 
-    LaunchedEffect(Unit) { viewModel.loadChargeTypes() }
+    // Keyed on the month, so the totals reload when it changes instead of staying on the month the
+    // ViewModel was built in.
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    LaunchedEffect(selectedMonth) { viewModel.loadChargeTypes() }
 
 
     // ── Types de charges (accueil) ──

@@ -50,7 +50,8 @@ fun ChargeSubTypesScreen(
     var showDeleteSubTypeDialog by remember { mutableStateOf(false) }
     var deleteSubTypeError      by remember { mutableStateOf("") }
 
-    LaunchedEffect(typeId) { viewModel.loadSubTypes(typeId) }
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    LaunchedEffect(typeId, selectedMonth) { viewModel.loadSubTypes(typeId) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
         DsTopAppBar(

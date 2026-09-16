@@ -78,8 +78,20 @@ class ChargeViewModel @Inject constructor(
         }
     }
 
+    // A month chosen explicitly stays chosen; otherwise "ce mois" follows the calendar, so a screen
+    // left open across a month boundary stops showing the previous month's totals. The screens key
+    // their loads on selectedMonth, so either kind of change reloads what is on screen.
+    private var monthPinned = false
+
     fun setSelectedMonth(month: String) {
+        monthPinned = true
         _selectedMonth.value = month
+    }
+
+    private fun activeMonth(): String {
+        val today = currentMonth()
+        if (!monthPinned && _selectedMonth.value != today) _selectedMonth.value = today
+        return _selectedMonth.value
     }
 
     // The screen opening and init both ask for the types, and saves ask again. A new request cancels
@@ -96,7 +108,7 @@ class ChargeViewModel @Inject constructor(
         chargeTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
-                _chargeTypes.value = repository.getChargeTypesWithStats(_selectedMonth.value)
+                _chargeTypes.value = repository.getChargeTypesWithStats(activeMonth())
                 _error.value = null
             } catch (e: CancellationException) {
                 throw e   // superseded by a newer load: not an error to show
@@ -116,7 +128,7 @@ class ChargeViewModel @Inject constructor(
         subTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
-                _subTypes.value = repository.getSubTypesWithStats(typeId, _selectedMonth.value)
+                _subTypes.value = repository.getSubTypesWithStats(typeId, activeMonth())
                 _error.value = null
             } catch (e: CancellationException) {
                 throw e
@@ -132,7 +144,7 @@ class ChargeViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _charges.value = repository.getCharges(subtypeId, _selectedMonth.value)
+                _charges.value = repository.getCharges(subtypeId, activeMonth())
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message

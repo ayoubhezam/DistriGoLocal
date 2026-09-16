@@ -49,7 +49,8 @@ fun ChargeListScreen(
     var longPressCharge   by remember { mutableStateOf<Charge?>(null) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
 
-    LaunchedEffect(subtypeId) { viewModel.loadCharges(subtypeId) }
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    LaunchedEffect(subtypeId, selectedMonth) { viewModel.loadCharges(subtypeId) }
 
     val monthTotal = charges.sumOf { it.montant }
     val avgPerCharge = if (charges.isNotEmpty()) monthTotal / charges.size else 0.0

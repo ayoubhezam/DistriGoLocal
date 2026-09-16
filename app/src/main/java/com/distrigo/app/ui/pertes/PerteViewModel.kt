@@ -96,8 +96,20 @@ class PerteViewModel @Inject constructor(
         }
     }
 
+    // A month chosen explicitly stays chosen; otherwise "ce mois" follows the calendar, so a screen
+    // left open across a month boundary stops showing the previous month's totals. The screens key
+    // their loads on selectedMonth, so either kind of change reloads what is on screen.
+    private var monthPinned = false
+
     fun setSelectedMonth(month: String) {
+        monthPinned = true
         _selectedMonth.value = month
+    }
+
+    private fun activeMonth(): String {
+        val today = currentMonth()
+        if (!monthPinned && _selectedMonth.value != today) _selectedMonth.value = today
+        return _selectedMonth.value
     }
 
     // The screen opening and init both ask for the types, and every save asks again. A new request
@@ -112,7 +124,7 @@ class PerteViewModel @Inject constructor(
         perteTypesLoad = viewModelScope.launch {
             _isLoading.value = true
             try {
-                _perteTypes.value = repository.getPerteTypesWithStats(_selectedMonth.value)
+                _perteTypes.value = repository.getPerteTypesWithStats(activeMonth())
                 _error.value = null
             } catch (e: CancellationException) {
                 throw e   // superseded by a newer load: not an error to show
@@ -130,7 +142,7 @@ class PerteViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _pertes.value = repository.getPertes(typeId, _selectedMonth.value)
+                _pertes.value = repository.getPertes(typeId, activeMonth())
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message
