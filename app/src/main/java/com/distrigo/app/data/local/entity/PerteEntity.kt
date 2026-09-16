@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["type_id", "date_time"]),
         Index(value = ["source_type", "source_id"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class PerteEntity(
@@ -29,5 +31,7 @@ data class PerteEntity(
     val photo_path: String?,             // مسار محلي في filesDir
     val created_at: String,
     val source_type: String? = null,
-    val source_id: Int? = null
+    val source_id: Int? = null,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

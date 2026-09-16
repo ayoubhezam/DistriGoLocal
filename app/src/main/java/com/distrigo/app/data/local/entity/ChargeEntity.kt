@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,7 +10,8 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["subtype_id", "date_time"]),
         // The month totals group by type_id, so they read a range of this one instead of the table.
-        Index(value = ["type_id", "date_time"])
+        Index(value = ["type_id", "date_time"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class ChargeEntity(
@@ -23,5 +25,7 @@ data class ChargeEntity(
     val date_time: String,      // ISO-8601، نفس نمط created_at (يُستعمل مع formatOrderDate/formatOrderTime)
     val fournisseur: String?,   // null إذا subtype.has_fournisseur == false
     val note: String?,
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

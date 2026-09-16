@@ -1,9 +1,11 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "clients")
+@Entity(tableName = "clients", indices = [Index(value = ["uuid"], unique = true)])
 data class ClientEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -19,5 +21,7 @@ data class ClientEntity(
     val customer_type: String = "retail",
     val image_uri: String?,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

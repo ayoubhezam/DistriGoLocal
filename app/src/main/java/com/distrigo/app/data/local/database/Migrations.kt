@@ -418,6 +418,58 @@ val MIGRATION_41_42 = object : Migration(41, 42) {
 }
 
 /**
+ * 42 -> 43 - gives every business row a stable identity: a `uuid` column, filled and unique.
+ *
+ * The Int `id` stays the key everything in the app uses. It is only unique on one device, though,
+ * so a backup merge or a sync could not tell a vente from another device's vente with the same id.
+ * The UUID can. Nothing reads it yet; new rows get theirs from the entity (see `newRowUuid`).
+ *
+ * Three statements per table:
+ *
+ *  1. `ADD COLUMN ... NOT NULL DEFAULT ''`. SQLite cannot add a NOT NULL column without a default,
+ *     and the entities declare the same `''` so a fresh install and a migrated one have the same
+ *     schema. The default is never what a row keeps.
+ *  2. An UPDATE that gives every existing row its own random version-4 UUID, built in SQL from
+ *     `randomblob`, which SQLite evaluates once per row. `random() & 3` picks the variant digit
+ *     without `abs()`, which overflows on the smallest 64-bit integer.
+ *  3. The unique index, created only after the backfill, since every row shared `''` until then.
+ *     Room's own name for it, `index_<table>_uuid`, which Room validates after the migration.
+ *
+ * The four draft tables are left out on purpose: a draft never leaves the device it was typed on.
+ *
+ * The table list is written out here rather than derived from the entities: this migration records
+ * what version 43 was, and must not grow if a table is added later.
+ */
+val MIGRATION_42_43 = object : Migration(42, 43) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val tables = listOf(
+            // Catalogue, parties, config
+            "products", "product_images", "categories", "sous_categories", "marques",
+            "price_history", "clients", "suppliers", "secteurs",
+            "charge_types", "charge_subtypes", "perte_types", "target_policies", "policy_tiers",
+            // Sales and purchases
+            "ventes", "vente_items", "client_payments", "retour_client", "retour_client_items",
+            "purchase_orders", "purchase_order_items", "supplier_payments",
+            "retour_fournisseur", "retour_fournisseur_items",
+            // Stock, tournées, expenses
+            "stock_movements", "chargement_sessions", "chargements", "chargement_items",
+            "inventory_sessions", "inventory_items", "pertes",
+            "tournees", "tournee_clients", "tournee_secteurs", "charges",
+        )
+        val uuidV4 =
+            "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+                "substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "substr('89ab', 1 + (random() & 3), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "lower(hex(randomblob(6)))"
+        for (table in tables) {
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE `$table` SET `uuid` = $uuidV4")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_${table}_uuid` ON `$table` (`uuid`)")
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -427,7 +479,7 @@ val MIGRATION_41_42 = object : Migration(41, 42) {
 internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
-    MIGRATION_40_41, MIGRATION_41_42,
+    MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43,
 )
 
 /**

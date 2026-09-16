@@ -1,12 +1,13 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "vente_items",
-    indices = [Index(value = ["vente_id"])]
+    indices = [Index(value = ["vente_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class VenteItemEntity(
     @PrimaryKey(autoGenerate = true)
@@ -17,5 +18,7 @@ data class VenteItemEntity(
     val unit_type: String,
     val quantity: Double,
     val unit_price: Double,
-    val total_price: Double
+    val total_price: Double,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

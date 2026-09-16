@@ -1,12 +1,13 @@
 package com.distrigo.app.data.local.entity // أو com.distrigo.app.data.local.entity حسب رغبتك
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "products",
-    indices = [Index(value = ["supplier_id"])]
+    indices = [Index(value = ["supplier_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class ProductEntity(
     @PrimaryKey(autoGenerate = true)
@@ -39,5 +40,7 @@ data class ProductEntity(
     val sous_categorie_id   : Int?    = null,
     val sous_categorie_name : String? = null,
     val marque_id           : Int?    = null,
-    val marque_name         : String? = null
+    val marque_name         : String? = null,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

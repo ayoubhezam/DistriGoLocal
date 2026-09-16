@@ -1,12 +1,13 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "purchase_order_items",
-    indices = [Index(value = ["purchase_order_id"])]
+    indices = [Index(value = ["purchase_order_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class PurchaseOrderItemEntity(
     @PrimaryKey(autoGenerate = true)
@@ -21,5 +22,7 @@ data class PurchaseOrderItemEntity(
     val nb_colis: Double = 1.0,
     val unite_par_colis: Int = 1,
     val has_expiry: Boolean = false,
-    val expiry_date: String? = null   // "yyyy-MM-dd"
+    val expiry_date: String? = null,   // "yyyy-MM-dd"
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

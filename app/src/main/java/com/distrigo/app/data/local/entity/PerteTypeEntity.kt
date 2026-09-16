@@ -1,9 +1,11 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "perte_types")
+@Entity(tableName = "perte_types", indices = [Index(value = ["uuid"], unique = true)])
 data class PerteTypeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -12,5 +14,7 @@ data class PerteTypeEntity(
     val color_hex: String,
     val is_default: Boolean = false,
     val created_at: String,
-    val description: String? = null
+    val description: String? = null,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

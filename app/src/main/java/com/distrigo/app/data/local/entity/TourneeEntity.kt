@@ -1,12 +1,13 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "tournees",
-    indices = [Index(value = ["status"])]
+    indices = [Index(value = ["status"]), Index(value = ["uuid"], unique = true)]
 )
 data class TourneeEntity(
     @PrimaryKey(autoGenerate = true)
@@ -18,5 +19,7 @@ data class TourneeEntity(
     val nom: String,
     val wilaya_name: String?,
     val commune_name: String?,
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

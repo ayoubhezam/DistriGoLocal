@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -11,6 +12,7 @@ import androidx.room.PrimaryKey
         Index(value = ["tournee_id"]),
         Index(value = ["created_at"]),
         Index(value = ["source", "created_at"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class VenteEntity(
@@ -33,5 +35,7 @@ data class VenteEntity(
      * vente itself could not answer the question and the receipt had nothing to print. The
      * movements keep their copy: they are the stock ledger and are read on their own terms.
      */
-    val user_name: String? = null
+    val user_name: String? = null,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

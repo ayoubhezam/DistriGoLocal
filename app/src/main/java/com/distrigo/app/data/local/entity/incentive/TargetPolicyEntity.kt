@@ -4,9 +4,11 @@ package com.distrigo.app.data.local.entity.incentive
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.distrigo.app.data.local.entity.newRowUuid
 
-@Entity(tableName = "target_policies")
+@Entity(tableName = "target_policies", indices = [Index(value = ["uuid"], unique = true)])
 data class TargetPolicyEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
 
@@ -24,10 +26,12 @@ data class TargetPolicyEntity(
     @ColumnInfo(defaultValue = "1")
     val is_active: Boolean = true,
     val distributor_id: Long? = null,              // null = يطبَّق على هذا الجهاز افتراضيًا
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )
 
-@Entity(tableName = "policy_tiers")
+@Entity(tableName = "policy_tiers", indices = [Index(value = ["uuid"], unique = true)])
 data class PolicyTierEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val policy_id: Long,                           // FK منطقي إلى target_policies.id (بلا @ForeignKey صارم — انظر الملاحظة أسفله)
@@ -35,5 +39,7 @@ data class PolicyTierEntity(
     val max_threshold: Double? = null,              // null = بلا حد أعلى (آخر شريحة)
     val reward_rate: Double? = null,                // % عمولة لهذه الشريحة
     val fixed_bonus: Double? = null,                // أو مبلغ ثابت عند بلوغ هذه الشريحة
-    val tier_order: Int
+    val tier_order: Int,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

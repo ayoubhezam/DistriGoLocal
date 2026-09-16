@@ -1,9 +1,11 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "suppliers")
+@Entity(tableName = "suppliers", indices = [Index(value = ["uuid"], unique = true)])
 data class SupplierEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -18,5 +20,7 @@ data class SupplierEntity(
     val wilaya_name: String?,
     val commune_name: String?,
     val created_at: String = java.time.Instant.now().toString(),   // جديد
-    val image_uri: String? = null
+    val image_uri: String? = null,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

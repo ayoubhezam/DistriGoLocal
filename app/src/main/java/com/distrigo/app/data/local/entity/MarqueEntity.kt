@@ -1,12 +1,16 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "marques")
+@Entity(tableName = "marques", indices = [Index(value = ["uuid"], unique = true)])
 data class MarqueEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val sort_order: Int
+    val sort_order: Int,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

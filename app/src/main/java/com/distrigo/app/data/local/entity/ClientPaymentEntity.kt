@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["client_id", "created_at"]),
         Index(value = ["created_at"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class ClientPaymentEntity(
@@ -17,5 +19,7 @@ data class ClientPaymentEntity(
     val client_id: Int,
     val amount: Double,
     val note: String?,
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

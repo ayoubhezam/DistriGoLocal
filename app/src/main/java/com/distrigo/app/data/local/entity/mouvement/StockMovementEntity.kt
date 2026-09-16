@@ -1,5 +1,7 @@
 package com.distrigo.app.data.local.entity.mouvement
 
+import androidx.room.ColumnInfo
+import com.distrigo.app.data.local.entity.newRowUuid
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -10,6 +12,7 @@ import androidx.room.PrimaryKey
         Index(value = ["product_id", "created_at"]),
         Index(value = ["source_type", "source_id"]),
         Index(value = ["created_at"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class StockMovementEntity(
@@ -33,5 +36,7 @@ data class StockMovementEntity(
 
     val user_name: String?,
     val note: String?,
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

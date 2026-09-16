@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["session_id", "created_at"]),
         Index(value = ["session_id", "product_id"]),
+        Index(value = ["uuid"], unique = true),
     ]
 )
 data class InventoryItemEntity(
@@ -23,5 +25,7 @@ data class InventoryItemEntity(
     val ecart: Double,
     val purchase_price_snapshot: Double,
     val valeur_ecart: Double,           // ecart × purchase_price_snapshot (signé)
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

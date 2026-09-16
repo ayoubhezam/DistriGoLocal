@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -19,7 +20,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "tournee_secteurs",
-    indices = [Index(value = ["tournee_id", "order_index"])]
+    indices = [Index(value = ["tournee_id", "order_index"]), Index(value = ["uuid"], unique = true)]
 )
 data class TourneeSecteurEntity(
     @PrimaryKey(autoGenerate = true)
@@ -27,5 +28,7 @@ data class TourneeSecteurEntity(
     val tournee_id: Int,
     val secteur_id: Int,
     val secteur_name: String,
-    val order_index: Int = 0
+    val order_index: Int = 0,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

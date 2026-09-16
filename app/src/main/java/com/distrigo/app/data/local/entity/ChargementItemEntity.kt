@@ -1,12 +1,13 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "chargement_items",
-    indices = [Index(value = ["chargement_id"])]
+    indices = [Index(value = ["chargement_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class ChargementItemEntity(
     @PrimaryKey(autoGenerate = true)
@@ -17,5 +18,7 @@ data class ChargementItemEntity(
     val direction: String,      // "vers_camion" | "vers_depot"
     // منسوخة وقت الإدخال (denormalized) بنفس منطقك في ProductEntity مع category_name/supplier_name
     val product_name: String,
-    val unit_type: String
+    val unit_type: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )

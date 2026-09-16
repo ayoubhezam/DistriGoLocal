@@ -68,7 +68,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         TourneeVenteDraftEntity::class,
         ChargementDraftEntity::class,
     ],
-    version = 42,
+    version = 43,
     exportSchema = true
 )
 

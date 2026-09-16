@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -37,7 +38,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "product_images",
-    indices = [Index(value = ["product_id", "position"])]
+    indices = [Index(value = ["product_id", "position"]), Index(value = ["uuid"], unique = true)]
 )
 data class ProductImageEntity(
     @PrimaryKey(autoGenerate = true)
@@ -46,7 +47,9 @@ data class ProductImageEntity(
     val image_ref: String,
     /** Dense, zero-based, unique within a product. 0 is the cover. */
     val position: Int,
-    val created_at: String
+    val created_at: String,
+    @ColumnInfo(defaultValue = "''")
+    val uuid: String = newRowUuid()
 )
 
 /**

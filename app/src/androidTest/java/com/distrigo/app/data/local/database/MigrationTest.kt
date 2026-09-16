@@ -70,9 +70,12 @@ class MigrationTest {
         }
     }
 
-    /** The app's own builder takes a v33 database with a ledger in it to v42, and keeps the ledger. */
+    /**
+     * The app's own builder takes a v33 database with a ledger in it to the latest version, keeps the
+     * ledger, and leaves every row with its own UUID.
+     */
     @Test
-    fun appBuilderMigrates33To42AndKeepsData() {
+    fun appBuilderMigrates33ToLatestAndKeepsData() {
         helper.createDatabase(TEST_DB, 33).apply {
             insertLedgerAtVersion33()
             close()
@@ -81,10 +84,10 @@ class MigrationTest {
         val db = openWithAppPolicy()
         try {
             val sql = db.openHelper.writableDatabase
-            assertEquals(42, sql.version)
+            assertEquals(LATEST_VERSION, sql.version)
 
             for ((table, expected) in EXPECTED_ROW_COUNTS) {
-                assertEquals("rows in $table", expected, sql.count(table))
+                assertDistinctV4Uuids(sql, table, expected)
             }
             assertEquals(12.5, sql.double("SELECT stock FROM products WHERE id = 1"), 0.0)
 
@@ -111,7 +114,7 @@ class MigrationTest {
         val db = openWithAppPolicy()
         try {
             val sql = db.openHelper.writableDatabase
-            assertEquals(42, sql.version)
+            assertEquals(LATEST_VERSION, sql.version)
             assertEquals(0, sql.count("clients"))
         } finally {
             db.close()
@@ -127,19 +130,19 @@ class MigrationTest {
      */
     @Test
     fun appBuilderRefusesUnknownVersionAndKeepsData() {
-        helper.createDatabase(TEST_DB, 42).apply {
+        helper.createDatabase(TEST_DB, LATEST_VERSION).apply {
             execSQL(
                 "INSERT INTO clients (id, name, balance, customer_type) " +
                     "VALUES (1, 'Supérette Nour', 0.0, 'retail')"
             )
-            version = 43
+            version = LATEST_VERSION + 1
             close()
         }
 
         val db = openWithAppPolicy()
         try {
             db.openHelper.writableDatabase
-            fail("Opening a v43 database with a v42 app should throw")
+            fail("Opening a database newer than the app should throw")
         } catch (e: IllegalStateException) {
             assertTrue(e.message.orEmpty(), e.message.orEmpty().contains("was required but not found"))
         } finally {
@@ -149,11 +152,62 @@ class MigrationTest {
         SQLiteDatabase.openDatabase(
             context.getDatabasePath(TEST_DB).path, null, SQLiteDatabase.OPEN_READONLY
         ).use { raw ->
-            assertEquals(43, raw.version)
+            assertEquals(LATEST_VERSION + 1, raw.version)
             raw.rawQuery("SELECT name FROM clients WHERE id = 1", null).use { c ->
                 assertTrue("client row survived", c.moveToFirst())
                 assertEquals("Supérette Nour", c.getString(0))
             }
+        }
+    }
+
+    /**
+     * 42 -> 43 gives each existing row of every business table its own well-formed v4 UUID, and
+     * leaves the draft tables without one.
+     */
+    @Test
+    fun migration42To43GivesEveryRowItsOwnUuid() {
+        helper.createDatabase(TEST_DB, 42).apply {
+            val now = "2026-09-01T09:30:00Z"
+            for (i in 1..3) {
+                execSQL("INSERT INTO clients (name, balance, customer_type) VALUES ('Client $i', 0.0, 'retail')")
+                execSQL(
+                    "INSERT INTO ventes (client_id, source, total, montant_paye, status, created_at) " +
+                        "VALUES ($i, 'depot', 100.0, 0.0, 'delivered', '$now')"
+                )
+                execSQL("INSERT INTO policy_tiers (policy_id, min_threshold, tier_order) VALUES (1, ${i * 1000}, $i)")
+            }
+            for (i in 1..50) {
+                execSQL(
+                    "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, " +
+                        "emplacement, source_label, source_type, source_id, total_value, created_at) " +
+                        "VALUES (1, 'Lait Candia 1L', 'vente', 'sortie', 1.0, 'depot', 'Client', 'vente', $i, 100.0, '$now')"
+                )
+            }
+            execSQL(
+                "INSERT INTO vente_drafts (items_json, note, montant_paye, user_name, item_count, total, " +
+                    "last_step, created_at, updated_at) VALUES ('[]', '', '', '', 0, 0.0, 'client', '$now', '$now')"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 43, true, MIGRATION_42_43)
+        try {
+            assertDistinctV4Uuids(sql, "clients", 3)
+            assertDistinctV4Uuids(sql, "ventes", 3)
+            assertDistinctV4Uuids(sql, "policy_tiers", 3)
+            assertDistinctV4Uuids(sql, "stock_movements", 50)
+
+            val uuidTables = sql.tablesWithColumn("uuid")
+            assertEquals(35, uuidTables.size)
+            for (draft in listOf("purchase_drafts", "vente_drafts", "tournee_vente_drafts", "chargement_drafts")) {
+                assertTrue("$draft has no uuid", draft !in uuidTables)
+            }
+            // The other tables are empty here; this still catches a row left holding the '' default.
+            for (table in uuidTables) {
+                assertDistinctV4Uuids(sql, table, sql.count(table))
+            }
+        } finally {
+            sql.close()
         }
     }
 
@@ -207,6 +261,31 @@ class MigrationTest {
         )
     }
 
+    /** [table] has [expected] rows, each with its own lowercase version-4 UUID. */
+    private fun assertDistinctV4Uuids(sql: SupportSQLiteDatabase, table: String, expected: Int) {
+        val uuids = sql.query("SELECT uuid FROM `$table`").use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
+        assertEquals("rows in $table", expected, uuids.size)
+        for (uuid in uuids) {
+            assertTrue("$table: '$uuid' is not a v4 UUID", V4_UUID.matches(uuid))
+        }
+        assertEquals("$table: duplicate uuids", uuids.size, uuids.toSet().size)
+    }
+
+    private fun SupportSQLiteDatabase.tablesWithColumn(column: String): Set<String> {
+        val tables = query(
+            "SELECT name FROM sqlite_master WHERE type = 'table' " +
+                "AND name NOT LIKE 'sqlite_%' AND name NOT IN ('room_master_table', 'android_metadata')"
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+        return tables.filter { table ->
+            query("PRAGMA table_info(`$table`)").use { c ->
+                val name = c.getColumnIndexOrThrow("name")
+                generateSequence { if (c.moveToNext()) c.getString(name) else null }.any { it == column }
+            }
+        }.toSet()
+    }
+
     private fun SupportSQLiteDatabase.count(table: String): Int =
         query("SELECT COUNT(*) FROM `$table`").use { it.moveToFirst(); it.getInt(0) }
 
@@ -215,6 +294,10 @@ class MigrationTest {
 
     private companion object {
         const val TEST_DB = "migration-test"
+
+        val LATEST_VERSION = ALL_MIGRATIONS.last().endVersion
+
+        val V4_UUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
         val EXPECTED_ROW_COUNTS = mapOf(
             "products" to 1, "clients" to 1, "ventes" to 1, "vente_items" to 1,
