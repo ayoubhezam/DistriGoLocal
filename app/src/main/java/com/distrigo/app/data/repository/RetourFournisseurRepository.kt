@@ -26,23 +26,44 @@ class RetourFournisseurRepository(
         unit_price = this.unit_price, total_price = this.total_price
     )
 
-    private suspend fun RetourFournisseurEntity.toRetour(items: List<RetourFournisseurItem>? = null): RetourFournisseur {
-        val supplierName = supplierDao.getSupplierById(this.supplier_id)?.name ?: "Fournisseur inconnu"
-        return RetourFournisseur(
-            id = this.id, supplier_id = this.supplier_id, supplier_name = supplierName,
-            date = this.date, motif = this.motif, note = this.note, total = this.total,
-            created_at = this.created_at, items_count = items?.size, items = items
+    private suspend fun RetourFournisseurEntity.toRetour(items: List<RetourFournisseurItem>? = null): RetourFournisseur =
+        toRetourWith(
+            supplierName = supplierDao.getSupplierById(this.supplier_id)?.name ?: "Fournisseur inconnu",
+            itemsCount   = items?.size,
+            items        = items
         )
-    }
+
+    /**
+     * The one place a retour row becomes a RetourFournisseur. [toRetour] looks the supplier up
+     * itself; a caller listing one supplier's returns already knows the name and has the line
+     * counts, and passes them in, so the two paths cannot drift apart field by field.
+     */
+    private fun RetourFournisseurEntity.toRetourWith(
+        supplierName: String,
+        itemsCount: Int?,
+        items: List<RetourFournisseurItem>?
+    ) = RetourFournisseur(
+        id = this.id, supplier_id = this.supplier_id, supplier_name = supplierName,
+        date = this.date, motif = this.motif, note = this.note, total = this.total,
+        created_at = this.created_at, items_count = itemsCount, items = items
+    )
 
     // ── Lecture ──
-    suspend fun getRetours(supplierId: Int? = null): List<RetourFournisseur> {
-        val entities = if (supplierId != null) retourDao.getRetoursForSupplier(supplierId)
-                       else retourDao.getAllRetours()
-        return entities.map { entity ->
-            val count = retourDao.getItemsForRetour(entity.id).size
-            entity.toRetour().copy(items_count = count)
-        }
+    /**
+     * One supplier's returns for its list screen: the rows filtered in SQL, every line count in one
+     * query, and the supplier's name looked up once.
+     *
+     * The rows were already filtered in SQL, but each one cost an items query and a supplier lookup
+     * — 1 + 2R queries. The supplier id was also optional, and passing none loaded every return;
+     * nothing did, so it now has to be named.
+     */
+    suspend fun getRetoursForSupplier(supplierId: Int): List<RetourFournisseur> {
+        val entities = retourDao.getRetoursForSupplier(supplierId)
+        if (entities.isEmpty()) return emptyList()
+        val counts = retourDao.getItemCountsForRetours(entities.map { it.id })
+            .associate { it.retour_id to it.count }
+        val supplierName = supplierDao.getSupplierById(supplierId)?.name ?: "Fournisseur inconnu"
+        return entities.map { it.toRetourWith(supplierName, counts[it.id] ?: 0, items = null) }
     }
 
     /**

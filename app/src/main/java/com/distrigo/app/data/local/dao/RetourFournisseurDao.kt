@@ -15,9 +15,6 @@ interface RetourFournisseurDao {
     @Query("SELECT * FROM retour_fournisseur WHERE supplier_id = :supplierId ORDER BY date DESC, id DESC")
     suspend fun getRetoursForSupplier(supplierId: Int): List<RetourFournisseurEntity>
 
-    @Query("SELECT * FROM retour_fournisseur ORDER BY date DESC, id DESC")
-    suspend fun getAllRetours(): List<RetourFournisseurEntity>
-
     /** The supplier's [limit] latest returns for its detail screen, in the returns list's order. */
     @Query("""
         SELECT * FROM retour_fournisseur

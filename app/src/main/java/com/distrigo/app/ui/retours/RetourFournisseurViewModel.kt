@@ -87,7 +87,7 @@ class RetourFournisseurViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _retours.value = repository.getRetours(supplierId)
+                _retours.value = repository.getRetoursForSupplier(supplierId)
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message

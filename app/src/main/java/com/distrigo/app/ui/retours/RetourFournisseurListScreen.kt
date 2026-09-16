@@ -55,12 +55,15 @@ fun RetourFournisseurListScreen(
     var search   by remember { mutableStateOf("") }
     var selectedRetour by remember { mutableStateOf<RetourFournisseur?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.loadRetours(supplierId) }
+    LaunchedEffect(supplierId) { viewModel.loadRetours(supplierId) }
 
-    val filteredRetours = retours.filter { retour ->
-        search.isBlank() ||
-            (retour.motif?.contains(search, ignoreCase = true) == true) ||
-            "retour #${retour.id}".contains(search, ignoreCase = true)
+    // Recomputed only when the list or the search changes, like the other filtered lists.
+    val filteredRetours = remember(retours, search) {
+        retours.filter { retour ->
+            search.isBlank() ||
+                (retour.motif?.contains(search, ignoreCase = true) == true) ||
+                "retour #${retour.id}".contains(search, ignoreCase = true)
+        }
     }
 
     val totalProduits = retours.sumOf { it.items_count ?: 0 }
