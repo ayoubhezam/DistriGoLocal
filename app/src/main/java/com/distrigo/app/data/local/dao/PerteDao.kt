@@ -31,17 +31,31 @@ interface PerteDao {
      * Each type's count and totals for [month] ("yyyy-MM"). A perte belongs to the month when the
      * first seven characters of its date_time equal [month] — the same test as
      * `date_time.take(7) == month`. Types without a perte that month have no row.
+     *
+     * The month is a half-open range rather than `substr(date_time, 1, 7)`, which wrapped the
+     * column in a function so `index_pertes_type_id_date_time` could not serve it.
      */
     @Query("""
         SELECT type_id, COUNT(*) AS count, SUM(valeur_totale) AS total_value, SUM(quantity) AS total_qty
         FROM pertes
-        WHERE substr(date_time, 1, 7) = :month
+        WHERE date_time >= :start AND date_time < :end
         GROUP BY type_id
     """)
-    suspend fun getMonthStatsByType(month: String): List<PerteTypeMonthStats>
+    suspend fun getMonthStatsByType(start: String, end: String): List<PerteTypeMonthStats>
 
     @Query("SELECT * FROM pertes WHERE type_id = :typeId ORDER BY date_time DESC")
     suspend fun getPertesForType(typeId: Int): List<PerteEntity>
+
+    /**
+     * One type's pertes within [start, end) — the month its list screen shows. The month used to be
+     * filtered in Kotlin after loading that type's whole history.
+     */
+    @Query("""
+        SELECT * FROM pertes
+        WHERE type_id = :typeId AND date_time >= :start AND date_time < :end
+        ORDER BY date_time DESC
+    """)
+    suspend fun getPertesForTypeInRange(typeId: Int, start: String, end: String): List<PerteEntity>
 
     @Query("SELECT * FROM pertes WHERE id = :id")
     suspend fun getPerteById(id: Int): PerteEntity?

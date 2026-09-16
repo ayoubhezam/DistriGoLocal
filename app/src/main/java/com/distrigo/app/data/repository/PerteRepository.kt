@@ -66,7 +66,8 @@ class PerteRepository(
     suspend fun getPerteTypesWithStats(month: String? = null): List<PerteType> = withContext(Dispatchers.Default) {
         val types = perteDao.getAllPerteTypes()
         val targetMonth = month ?: currentMonth()
-        val stats = perteDao.getMonthStatsByType(targetMonth).associateBy { it.type_id }
+        val (start, end) = monthRange(targetMonth)
+        val stats = perteDao.getMonthStatsByType(start, end).associateBy { it.type_id }
         types.map { type ->
             val s = stats[type.id]
             type.toPerteType(
@@ -93,8 +94,13 @@ class PerteRepository(
 
     // ── Pertes ──
     suspend fun getPertes(typeId: Int, month: String? = null): List<Perte> {
-        val pertes = perteDao.getPertesForType(typeId)
-        return (if (month != null) pertes.filter { it.date_time.take(7) == month } else pertes).map { it.toPerte() }
+        val pertes = if (month == null) {
+            perteDao.getPertesForType(typeId)
+        } else {
+            val (start, end) = monthRange(month)
+            perteDao.getPertesForTypeInRange(typeId, start, end)
+        }
+        return pertes.map { it.toPerte() }
     }
 
     suspend fun addPerte(
