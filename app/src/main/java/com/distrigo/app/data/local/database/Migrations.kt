@@ -737,6 +737,75 @@ val MIGRATION_48_49 = object : Migration(48, 49) {
 }
 
 /**
+ * 49 -> 50 - the built-in charge and perte types take the uuids every phone gives them. No schema
+ * change.
+ *
+ * Until now each phone seeded "Carburant", "Casse" and the rest with random uuids, so two phones held
+ * two different "Casse" types as far as a sync could tell. They are now seeded with name-based uuids
+ * of fixed keys (see defaultTypeUuid), and this migration gives the ones already on a device those
+ * same uuids.
+ *
+ * A built-in is found by `is_default = 1` and the exact name it was seeded with — a built-in type can
+ * be neither renamed nor deleted, so the name is still the one it was created with. A subtype is also
+ * matched through its built-in parent's name, since "Divers" is both a type and a subtype of Achats.
+ * Should a device somehow hold the same built-in twice, only the first gets the uuid (the index on
+ * `uuid` is unique); the other keeps its own.
+ *
+ * Nothing refers to a type by uuid — charges and pertes hold `type_id` — so no other row changes, and
+ * changing `uuid` is not an edit to the `updated_at` trigger. A built-in not found by name keeps its
+ * random uuid; returns still find it by name (PerteRepository.findDefaultPerteType).
+ *
+ * The keys and names are written out here rather than read from the seed lists: this migration records
+ * what version 50 did. `defaultTypeUuid` itself must never change.
+ */
+val MIGRATION_49_50 = object : Migration(49, 50) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val perteTypes = listOf(
+            "casse" to "Casse", "peremption" to "Péremption", "vol" to "Vol",
+            "perte_transport" to "Perte de transport", "don" to "Don", "autre" to "Autre",
+        )
+        for ((key, name) in perteTypes) {
+            db.execSQL(
+                "UPDATE perte_types SET uuid = ? WHERE id = " +
+                    "(SELECT MIN(id) FROM perte_types WHERE is_default = 1 AND name = ?)",
+                arrayOf(com.distrigo.app.data.model.defaultTypeUuid("perte_type", key), name),
+            )
+        }
+
+        // type key, type name, subtypes as key to name
+        val chargeTypes = listOf(
+            Triple("vehicule", "Véhicule", listOf(
+                "carburant" to "Carburant", "pneus" to "Pneus", "reparation" to "Réparation",
+                "vidange" to "Vidange", "assurance" to "Assurance")),
+            Triple("personnel", "Personnel", listOf(
+                "salaire" to "Salaire", "prime" to "Prime", "formation" to "Formation")),
+            Triple("bureau", "Bureau", listOf(
+                "loyer" to "Loyer", "electricite" to "Électricité", "internet" to "Internet", "fournitures" to "Fournitures")),
+            Triple("distribution", "Distribution", listOf(
+                "peage" to "Péage", "parking" to "Parking", "livraison" to "Livraison", "emballage" to "Emballage")),
+            Triple("achats", "Achats", listOf(
+                "materiel" to "Matériel", "nettoyage" to "Nettoyage", "divers" to "Divers")),
+            Triple("divers", "Divers", listOf(
+                "imprevu" to "Imprévu", "autre" to "Autre")),
+        )
+        val builtInType = "(SELECT MIN(id) FROM charge_types WHERE is_default = 1 AND name = ?)"
+        for ((typeKey, typeName, subtypes) in chargeTypes) {
+            db.execSQL(
+                "UPDATE charge_types SET uuid = ? WHERE id = $builtInType",
+                arrayOf(com.distrigo.app.data.model.defaultChargeTypeUuid(typeKey), typeName),
+            )
+            for ((subKey, subName) in subtypes) {
+                db.execSQL(
+                    "UPDATE charge_subtypes SET uuid = ? WHERE id = " +
+                        "(SELECT MIN(id) FROM charge_subtypes WHERE is_default = 1 AND name = ? AND type_id = $builtInType)",
+                    arrayOf(com.distrigo.app.data.model.defaultChargeSubTypeUuid(typeKey, subKey), subName, typeName),
+                )
+            }
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -748,7 +817,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
-    MIGRATION_48_49,
+    MIGRATION_48_49, MIGRATION_49_50,
 )
 
 /**

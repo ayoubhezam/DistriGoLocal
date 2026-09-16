@@ -158,9 +158,9 @@ class RetourClientRepository(
                     created_at   = now
                 ))
 
-                if (definition.perteTypeName != null) {
-                    val perteType = db.perteDao().getAllPerteTypes().find { it.name == definition.perteTypeName }
-                        ?: throw IllegalStateException("Type de perte introuvable : ${definition.perteTypeName}. Assurez-vous que seedDefaultPerteTypesIfNeeded() a été exécuté.")
+                definition.perteType?.let { builtIn ->
+                    val perteType = PerteRepository(db).findDefaultPerteType(builtIn)
+                        ?: throw IllegalStateException("Type de perte introuvable : ${builtIn.seedName}. Assurez-vous que seedDefaultPerteTypesIfNeeded() a été exécuté.")
                     PerteRepository(db).addPerte(
                         typeId = perteType.id, productId = product.id, quantity = quantity, source = "camion",
                         dateTime = now, motif = "Retour client ${numberLabel(retourDao.getNumero(retourId), retourId)}", photoPath = null, userName = userName,

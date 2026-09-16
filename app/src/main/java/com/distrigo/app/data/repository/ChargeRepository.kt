@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.defaultChargeSubTypeUuid
+import com.distrigo.app.data.model.defaultChargeTypeUuid
 import com.distrigo.app.data.local.dao.ChargeDao
 import com.distrigo.app.data.local.entity.ChargeEntity
 import com.distrigo.app.data.local.entity.ChargeSubTypeEntity
@@ -35,42 +37,44 @@ class ChargeRepository(
     private fun currentMonth(): String = java.time.LocalDate.now().toString().take(7) // "yyyy-MM"
 
     // ── Seed Data (فئات افتراضية) ──
-    private data class SeedSubType(val name: String, val icon: String, val hasFournisseur: Boolean)
-    private data class SeedType(val name: String, val icon: String, val colorHex: String, val subtypes: List<SeedSubType>)
+    // Each built-in type and subtype has a stable key, from which every phone derives the same uuid
+    // (see defaultTypeUuid). Never change a key: it is that type's identity.
+    private data class SeedSubType(val key: String, val name: String, val icon: String, val hasFournisseur: Boolean)
+    private data class SeedType(val key: String, val name: String, val icon: String, val colorHex: String, val subtypes: List<SeedSubType>)
 
     private val DEFAULT_CHARGE_TYPES = listOf(
-        SeedType("Véhicule", "directions_car", "#3F51B5", listOf(
-            SeedSubType("Carburant", "local_gas_station", true),
-            SeedSubType("Pneus", "trip_origin", true),
-            SeedSubType("Réparation", "build", true),
-            SeedSubType("Vidange", "oil_barrel", true),
-            SeedSubType("Assurance", "shield", true)
+        SeedType("vehicule", "Véhicule", "directions_car", "#3F51B5", listOf(
+            SeedSubType("carburant", "Carburant", "local_gas_station", true),
+            SeedSubType("pneus", "Pneus", "trip_origin", true),
+            SeedSubType("reparation", "Réparation", "build", true),
+            SeedSubType("vidange", "Vidange", "oil_barrel", true),
+            SeedSubType("assurance", "Assurance", "shield", true)
         )),
-        SeedType("Personnel", "people", "#4CAF50", listOf(
-            SeedSubType("Salaire", "payments", false),
-            SeedSubType("Prime", "card_giftcard", false),
-            SeedSubType("Formation", "school", false)
+        SeedType("personnel", "Personnel", "people", "#4CAF50", listOf(
+            SeedSubType("salaire", "Salaire", "payments", false),
+            SeedSubType("prime", "Prime", "card_giftcard", false),
+            SeedSubType("formation", "Formation", "school", false)
         )),
-        SeedType("Bureau", "apartment", "#FF9800", listOf(
-            SeedSubType("Loyer", "home", false),
-            SeedSubType("Électricité", "bolt", false),
-            SeedSubType("Internet", "wifi", false),
-            SeedSubType("Fournitures", "inventory", false)
+        SeedType("bureau", "Bureau", "apartment", "#FF9800", listOf(
+            SeedSubType("loyer", "Loyer", "home", false),
+            SeedSubType("electricite", "Électricité", "bolt", false),
+            SeedSubType("internet", "Internet", "wifi", false),
+            SeedSubType("fournitures", "Fournitures", "inventory", false)
         )),
-        SeedType("Distribution", "local_shipping", "#009688", listOf(
-            SeedSubType("Péage", "toll", false),
-            SeedSubType("Parking", "local_parking", false),
-            SeedSubType("Livraison", "local_shipping", false),
-            SeedSubType("Emballage", "inventory_2", false)
+        SeedType("distribution", "Distribution", "local_shipping", "#009688", listOf(
+            SeedSubType("peage", "Péage", "toll", false),
+            SeedSubType("parking", "Parking", "local_parking", false),
+            SeedSubType("livraison", "Livraison", "local_shipping", false),
+            SeedSubType("emballage", "Emballage", "inventory_2", false)
         )),
-        SeedType("Achats", "shopping_cart", "#F44336", listOf(
-            SeedSubType("Matériel", "build", false),
-            SeedSubType("Nettoyage", "cleaning_services", false),
-            SeedSubType("Divers", "category", false)
+        SeedType("achats", "Achats", "shopping_cart", "#F44336", listOf(
+            SeedSubType("materiel", "Matériel", "build", false),
+            SeedSubType("nettoyage", "Nettoyage", "cleaning_services", false),
+            SeedSubType("divers", "Divers", "category", false)
         )),
-        SeedType("Divers", "more_horiz", "#9E9E9E", listOf(
-            SeedSubType("Imprévu", "warning", false),
-            SeedSubType("Autre", "more_horiz", false)
+        SeedType("divers", "Divers", "more_horiz", "#9E9E9E", listOf(
+            SeedSubType("imprevu", "Imprévu", "warning", false),
+            SeedSubType("autre", "Autre", "more_horiz", false)
         ))
     )
 
@@ -81,14 +85,16 @@ class ChargeRepository(
             val typeId = chargeDao.insertChargeType(
                 ChargeTypeEntity(
                     name = seedType.name, icon = seedType.icon,
-                    color_hex = seedType.colorHex, is_default = true, created_at = now
+                    color_hex = seedType.colorHex, is_default = true, created_at = now,
+                    uuid = defaultChargeTypeUuid(seedType.key)
                 )
             ).toInt()
             seedType.subtypes.forEach { sub ->
                 chargeDao.insertSubType(
                     ChargeSubTypeEntity(
                         type_id = typeId, name = sub.name, icon = sub.icon,
-                        has_fournisseur = sub.hasFournisseur, is_default = true, created_at = now
+                        has_fournisseur = sub.hasFournisseur, is_default = true, created_at = now,
+                        uuid = defaultChargeSubTypeUuid(seedType.key, sub.key)
                     )
                 )
             }

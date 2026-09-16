@@ -469,6 +469,59 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 49 -> 50 gives each built-in its fixed uuid, found by its seeded name — a subtype through its
+     * parent's — and leaves custom types, even of the same name, as they were.
+     */
+    @Test
+    fun migration49To50GivesBuiltInsTheirFixedUuids() {
+        helper.createDatabase(TEST_DB, 49).apply {
+            val now = "2026-09-01T10:00:00Z"
+            fun perteType(id: Int, name: String, default: Int) = execSQL(
+                "INSERT INTO perte_types (id, name, icon, color_hex, is_default, created_at, uuid) " +
+                    "VALUES ($id, '$name', 'x', '#000000', $default, '$now', 'u-perte-$id')"
+            )
+            fun chargeType(id: Int, name: String) = execSQL(
+                "INSERT INTO charge_types (id, name, icon, color_hex, is_default, created_at, uuid) " +
+                    "VALUES ($id, '$name', 'x', '#000000', 1, '$now', 'u-type-$id')"
+            )
+            fun subtype(id: Int, typeId: Int, name: String, default: Int) = execSQL(
+                "INSERT INTO charge_subtypes (id, type_id, name, icon, has_fournisseur, is_default, created_at, uuid) " +
+                    "VALUES ($id, $typeId, '$name', 'x', 0, $default, '$now', 'u-sub-$id')"
+            )
+            perteType(1, "Casse", 1)
+            perteType(2, "Péremption", 1)
+            perteType(3, "Casse", 0)           // a custom type of the same name
+            chargeType(1, "Achats")
+            chargeType(2, "Divers")
+            subtype(1, 1, "Divers", 1)         // Achats > Divers
+            subtype(2, 2, "Autre", 1)          // Divers > Autre
+            subtype(3, 2, "Carburant", 0)      // a custom subtype named like a built-in of another type
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 50, true, MIGRATION_49_50)
+        try {
+            assertEquals(
+                listOf(com.distrigo.app.data.model.DefaultPerteType.CASSE.uuid,
+                    com.distrigo.app.data.model.DefaultPerteType.PEREMPTION.uuid, "u-perte-3"),
+                sql.texts("SELECT uuid FROM perte_types ORDER BY id")
+            )
+            assertEquals(
+                listOf(com.distrigo.app.data.model.defaultChargeTypeUuid("achats"),
+                    com.distrigo.app.data.model.defaultChargeTypeUuid("divers")),
+                sql.texts("SELECT uuid FROM charge_types ORDER BY id")
+            )
+            assertEquals(
+                listOf(com.distrigo.app.data.model.defaultChargeSubTypeUuid("achats", "divers"),
+                    com.distrigo.app.data.model.defaultChargeSubTypeUuid("divers", "autre"), "u-sub-3"),
+                sql.texts("SELECT uuid FROM charge_subtypes ORDER BY id")
+            )
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

@@ -2,6 +2,7 @@ package com.distrigo.app.data.repository
 
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.model.DefaultPerteType
 import com.distrigo.app.data.local.entity.PerteEntity
 import com.distrigo.app.data.local.entity.PerteTypeEntity
 import com.distrigo.app.data.model.Perte
@@ -35,14 +36,15 @@ class PerteRepository(
     private fun currentMonth(): String = java.time.LocalDate.now().toString().take(7)
 
     // ── Seed Data ──
-    private data class SeedType(val name: String, val icon: String, val colorHex: String, val description: String)
+    // Named and identified by DefaultPerteType, so every phone gives "Casse" the same uuid.
+    private data class SeedType(val type: DefaultPerteType, val icon: String, val colorHex: String, val description: String)
     private val DEFAULT_PERTE_TYPES = listOf(
-        SeedType("Casse", "broken_image", "#F04438", "Produits cassés ou endommagés"),
-        SeedType("Péremption", "event_busy", "#F79009", "Produits périmés"),
-        SeedType("Vol", "report", "#5B6EF5", "Produits volés"),
-        SeedType("Perte de transport", "local_shipping", "#12B76A", "Perdus pendant le transport"),
-        SeedType("Don", "card_giftcard", "#E91E63", "Dons et échantillons"),
-        SeedType("Autre", "category", "#98A2B3", "Autres pertes")
+        SeedType(DefaultPerteType.CASSE, "broken_image", "#F04438", "Produits cassés ou endommagés"),
+        SeedType(DefaultPerteType.PEREMPTION, "event_busy", "#F79009", "Produits périmés"),
+        SeedType(DefaultPerteType.VOL, "report", "#5B6EF5", "Produits volés"),
+        SeedType(DefaultPerteType.PERTE_TRANSPORT, "local_shipping", "#12B76A", "Perdus pendant le transport"),
+        SeedType(DefaultPerteType.DON, "card_giftcard", "#E91E63", "Dons et échantillons"),
+        SeedType(DefaultPerteType.AUTRE, "category", "#98A2B3", "Autres pertes")
     )
 
     suspend fun seedDefaultPerteTypesIfNeeded() {
@@ -51,13 +53,22 @@ class PerteRepository(
         DEFAULT_PERTE_TYPES.forEach { seed ->
             perteDao.insertPerteType(
                 PerteTypeEntity(
-                    name = seed.name, icon = seed.icon, color_hex = seed.colorHex,
+                    name = seed.type.seedName, icon = seed.icon, color_hex = seed.colorHex,
                     description = seed.description,   // ← السطر الوحيد المضاف هنا
-                    is_default = true, created_at = now
+                    is_default = true, created_at = now,
+                    uuid = seed.type.uuid
                 )
             )
         }
     }
+
+    /**
+     * A built-in perte type, by the uuid every phone gives it. Falls back to its name for a database
+     * whose built-in types could not be given their fixed uuids — MIGRATION_49_50 matches them by the
+     * names they were seeded with — which is how returns found their type before.
+     */
+    suspend fun findDefaultPerteType(type: DefaultPerteType): PerteTypeEntity? =
+        perteDao.getPerteTypeByUuid(type.uuid) ?: perteDao.getAllPerteTypes().find { it.name == type.seedName }
 
     // ── Perte Types ──
     // The month's count and totals per type come from one GROUP BY query. This used to load every

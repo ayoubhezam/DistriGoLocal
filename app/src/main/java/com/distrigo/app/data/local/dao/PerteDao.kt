@@ -17,6 +17,10 @@ interface PerteDao {
     @Query("SELECT * FROM perte_types WHERE id = :id AND deleted_at IS NULL")
     suspend fun getPerteTypeById(id: Int): PerteTypeEntity?
 
+    /** A built-in type by its fixed uuid — see DefaultPerteType. */
+    @Query("SELECT * FROM perte_types WHERE uuid = :uuid AND deleted_at IS NULL")
+    suspend fun getPerteTypeByUuid(uuid: String): PerteTypeEntity?
+
     @Insert
     suspend fun insertPerteType(type: PerteTypeEntity): Long
 
