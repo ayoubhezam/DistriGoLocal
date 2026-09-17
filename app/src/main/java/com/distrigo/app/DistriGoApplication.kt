@@ -2,12 +2,18 @@ package com.distrigo.app
 
 import android.app.Application
 import android.widget.Toast
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.distrigo.app.data.backup.BackupMessages
 import com.distrigo.app.data.backup.RestoreInstaller
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class DistriGoApplication : Application() {
+class DistriGoApplication : Application(), Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
 
     override fun onCreate() {
         // Before Hilt and before anything can open the database or read a photo: a restore scheduled before
@@ -16,4 +22,14 @@ class DistriGoApplication : Application() {
         super.onCreate()
         restored?.let { Toast.makeText(this, BackupMessages.of(it), Toast.LENGTH_LONG).show() }
     }
+
+    /**
+     * WorkManager starts on first use rather than at launch (its startup initializer is removed in the
+     * manifest), so that it is always after [onCreate] — after a waiting restore is installed and Hilt has
+     * injected the factory that builds workers with their dependencies.
+     */
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }

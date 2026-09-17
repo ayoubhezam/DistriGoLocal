@@ -102,6 +102,11 @@ dependencies {
     implementation("androidx.camera:camera-view:1.6.1")
     // Transitively pulled in by androidx.compose.ui:ui-graphics (still on 1.0.1 as of Compose BOM 2026.06.01) — force the 16KB-aligned release
     implementation("androidx.graphics:graphics-path:1.1.0")
+    // WorkManager — automatic backups run as a periodic job, with workers built by Hilt.
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+    androidTestImplementation(libs.androidx.work.testing)
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
