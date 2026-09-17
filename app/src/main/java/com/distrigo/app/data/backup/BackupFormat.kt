@@ -102,6 +102,9 @@ object BackupFormat {
 /** Why a file cannot be restored. Each case is something the user can be told in plain words. */
 sealed class BackupProblem {
 
+    /** The file could not be opened: gone, moved, or no longer shared with the app. */
+    data object CannotOpen : BackupProblem()
+
     /** Not a DistriGo backup at all: not a ZIP, no manifest, or a manifest that is not JSON. */
     data object NotABackup : BackupProblem()
 

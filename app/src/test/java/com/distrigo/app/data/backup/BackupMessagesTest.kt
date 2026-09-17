@@ -1,0 +1,43 @@
+package com.distrigo.app.data.backup
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class BackupMessagesTest {
+
+    private val problems = listOf(
+        BackupProblem.CannotOpen,
+        BackupProblem.NotABackup,
+        BackupProblem.NewerFormat(2),
+        BackupProblem.NewerDatabase(53, 52),
+        BackupProblem.DatabaseTooOld(31, 32),
+        BackupProblem.Damaged("distrigo.db checksum"),
+    )
+
+    @Test
+    fun `every problem and failure has a message`() {
+        val messages = problems.map(BackupMessages::of) + BackupFailedException.Reason.entries.map(BackupMessages::of)
+        for (message in messages) {
+            assertTrue(message, message.length > 30 && message.endsWith("."))
+        }
+    }
+
+    /** Checksums, versions and file names are for the logs, not for the person restoring their data. */
+    @Test
+    fun `no technical detail reaches the user`() {
+        for (problem in problems) {
+            val message = BackupMessages.of(problem)
+            for (detail in listOf("checksum", "53", "52", "31", "32", "manifest", "sha", "schema")) {
+                assertFalse("$problem: $message", detail in message.lowercase())
+            }
+        }
+    }
+
+    @Test
+    fun `a newer backup asks for an update, whichever part is newer`() {
+        assertEquals(BackupMessages.of(BackupProblem.NewerFormat(2)), BackupMessages.of(BackupProblem.NewerDatabase(53, 52)))
+        assertTrue("mettez l'application à jour" in BackupMessages.of(BackupProblem.NewerFormat(2)).lowercase())
+    }
+}

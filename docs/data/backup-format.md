@@ -68,10 +68,13 @@ A manifest is damaged when a required field is missing or malformed, a count or 
 
 A restore checks everything before it changes anything, in this order, and stops at the first failure with a message the user can act on:
 
-1. The file is a ZIP with a readable `manifest.json` (otherwise: not a DistriGo backup).
-2. `format_version` is not later than this app's (otherwise: update the app).
-3. `schema_version` is not later than this app's database version, since Room cannot downgrade (otherwise: update the app), and not earlier than 32, the first version with a migration path, since opening it would recreate it empty.
-4. The ZIP's entries are exactly the manifest's, each within its size and matching its SHA-256.
+1. The file opens (otherwise: it is gone, or no longer shared with the app).
+2. It is a ZIP whose first entry is a readable `manifest.json` (otherwise: not a DistriGo backup), and `format_version` is not later than this app's (otherwise: update the app).
+3. Its entries are exactly the manifest's, each once, within its size and matching its SHA-256, and the ZIP ends with its end record, so a file cut short is caught.
+4. `schema_version` is not later than this app's database version, since Room cannot downgrade (otherwise: update the app), and not earlier than 32, the first version with a migration path, since opening it would recreate it empty.
+
+Only a file that passes these is previewed: its date, the phone that made it, and its row counts next to the phone's current ones (`BackupInspector`). The messages the user sees are in `BackupMessages`. When the user confirms, the restore reads the file again, checking it the same way as it unpacks it, then:
+
 5. Unpacked into a staging folder, the database's `user_version` is the manifest's `schema_version`, it passes `PRAGMA integrity_check`, and its row counts match the manifest's. Counts are compared here, before migrating, because a migration may add rows.
 6. The staged database then opens through the normal migrations, never the destructive fallback.
 
