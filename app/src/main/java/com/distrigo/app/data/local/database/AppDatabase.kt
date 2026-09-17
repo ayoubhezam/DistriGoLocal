@@ -33,6 +33,9 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
  */
 const val DATABASE_VERSION = 52
 
+/** The app's database file, in `databases/`. */
+const val DATABASE_NAME = "distrigo"
+
 @Database(
     entities = [
         ProductEntity::class,
@@ -129,6 +132,9 @@ abstract class AppDatabase : RoomDatabase() {
     /** The business identity receipts print — see BusinessSettingsEntity. */
     abstract fun businessSettingsDao(): BusinessSettingsDao
 
+    /** Facts about the database itself, such as its id and the last backup — see AppMetaEntity. */
+    abstract fun appMetaDao(): AppMetaDao
+
 
 
     companion object {
@@ -140,7 +146,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "distrigo"
+                    DATABASE_NAME
                 )
                     .withMigrationPolicy()
                     .withChangeTracking()

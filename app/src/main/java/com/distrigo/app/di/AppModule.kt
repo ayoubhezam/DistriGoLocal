@@ -1,5 +1,6 @@
 package com.distrigo.app.di
 
+import com.distrigo.app.data.backup.BackupCreator
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import android.content.Context
 import com.distrigo.app.data.local.database.AppDatabase
@@ -29,6 +30,11 @@ object AppModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         AppDatabase.getDatabase(context)
+
+    @Provides
+    @Singleton
+    fun provideBackupCreator(@ApplicationContext context: Context, db: AppDatabase): BackupCreator =
+        BackupCreator.forApp(context, db)
 
     @Provides
     @Singleton
