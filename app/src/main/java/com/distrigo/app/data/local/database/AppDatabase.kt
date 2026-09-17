@@ -27,6 +27,12 @@ import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
 import com.distrigo.app.data.local.dao.incentive.TargetPolicyDao
 import com.distrigo.app.data.local.dao.mouvement.StockMovementDao
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+/**
+ * The schema version this build writes. A backup records it, and a backup from a later version is refused
+ * rather than opened: Room cannot downgrade a database.
+ */
+const val DATABASE_VERSION = 52
+
 @Database(
     entities = [
         ProductEntity::class,
@@ -72,7 +78,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         AppMetaEntity::class,
         BusinessSettingsEntity::class,
     ],
-    version = 52,
+    version = DATABASE_VERSION,
     exportSchema = true
 )
 

@@ -940,4 +940,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
  * Nothing here may be the start or end version of a migration in [ALL_MIGRATIONS]: Room rejects
  * that combination when the database is built.
  */
-internal val DESTRUCTIVE_MIGRATION_VERSIONS: IntArray = (1..31).toList().toIntArray()
+internal val DESTRUCTIVE_MIGRATION_VERSIONS: IntArray = (1 until FIRST_MIGRATABLE_VERSION).toList().toIntArray()
+
+/** The oldest version that migrates to [DATABASE_VERSION] without losing data: the start of [MIGRATION_32_33]. */
+const val FIRST_MIGRATABLE_VERSION = 32
