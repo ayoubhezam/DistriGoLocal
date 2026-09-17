@@ -678,6 +678,8 @@ fun VenteDetailScreen(
         hiltViewModel(),
     clientViewModel   : com.distrigo.app.ui.clients.ClientViewModel =
         hiltViewModel(),
+    businessViewModel : com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel =
+        hiltViewModel(),
     onDelivered       : () -> Unit = {},
     onDeleted         : () -> Unit = {}
 ) {
@@ -713,9 +715,13 @@ fun VenteDetailScreen(
         allProducts.filter { it.pack_size > 0 }.associate { it.id to it.pack_size }
     }
 
-    if (showReceiptPreview) {
+    // The business header comes from the database; a receipt opens once it has loaded, a moment after
+    // the screen does, rather than printing a placeholder name.
+    val business by businessViewModel.settings.collectAsState()
+
+    if (showReceiptPreview) business?.let { business ->
         ReceiptPreviewSheet(
-            receipt          = displayVente.toReceiptData(context, receiptClient, receiptPackSizes),
+            receipt          = displayVente.toReceiptData(business, receiptClient, receiptPackSizes),
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
@@ -724,9 +730,9 @@ fun VenteDetailScreen(
         )
     }
 
-    if (showShareOptions) {
+    if (showShareOptions) business?.let { business ->
         ShareOptionsSheet(
-            receipt   = displayVente.toReceiptData(context, receiptClient, receiptPackSizes),
+            receipt   = displayVente.toReceiptData(business, receiptClient, receiptPackSizes),
             onDismiss = { showShareOptions = false }
         )
     }

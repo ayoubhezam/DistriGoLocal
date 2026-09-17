@@ -2,6 +2,7 @@ package com.distrigo.app.ui.components
 
 import com.distrigo.app.data.model.receiptNumber
 import com.distrigo.app.data.model.numberLabel
+import com.distrigo.app.data.model.BusinessSettings
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Vente
@@ -108,7 +109,7 @@ private fun customerTypeLabel(code: String?): String? = when (code) {
  *   every product until someone fills the field in, since nothing wrote it before.
  */
 fun Vente.toReceiptData(
-    context  : android.content.Context,
+    business : BusinessSettings,
     client   : Client? = null,
     packSizes: Map<Int, Int> = emptyMap()
 ): ReceiptData = ReceiptData(
@@ -145,15 +146,15 @@ fun Vente.toReceiptData(
     total = total,
     paid  = montant_paye ?: 0.0,
     note  = note,
-    businessName     = com.distrigo.app.data.BusinessSettingsStore.getBusinessName(context),
-    businessPhone    = com.distrigo.app.data.BusinessSettingsStore.getBusinessPhone(context),
-    businessLogoPath = com.distrigo.app.data.BusinessSettingsStore.getLogoFile(context)?.absolutePath,
+    businessName     = business.name,
+    businessPhone    = business.phone,
+    businessLogoPath = business.logoPath,
     performedBy   = user_name,
     clientType    = customerTypeLabel(client?.customer_type),
     clientSecteur = client?.secteur_name
 )
 
-fun PurchaseOrder.toReceiptData(context: android.content.Context): ReceiptData = ReceiptData(
+fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = ReceiptData(
     documentTitle = "Bon d'achat $numberLabel",
     referenceNumber = receiptNumber(numero, id),
     partyLabel    = "Fournisseur",
@@ -170,9 +171,9 @@ fun PurchaseOrder.toReceiptData(context: android.content.Context): ReceiptData =
     total = total,
     paid  = montant_paye ?: 0.0,
     note  = note,
-    businessName     = com.distrigo.app.data.BusinessSettingsStore.getBusinessName(context),
-    businessPhone    = com.distrigo.app.data.BusinessSettingsStore.getBusinessPhone(context),
-    businessLogoPath = com.distrigo.app.data.BusinessSettingsStore.getLogoFile(context)?.absolutePath
+    businessName     = business.name,
+    businessPhone    = business.phone,
+    businessLogoPath = business.logoPath
     // performedBy / clientType / clientSecteur stay null: a purchase order records neither an
     // operator nor a customer, and the header omits those rows rather than printing empty ones.
 )

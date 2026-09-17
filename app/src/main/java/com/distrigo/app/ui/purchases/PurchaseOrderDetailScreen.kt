@@ -40,7 +40,8 @@ fun PurchaseOrderDetailScreen(
     onEdit     : () -> Unit,
     onReceived : () -> Unit,
     viewModel  : PurchaseViewModel,
-    productViewModel: ProductViewModel = hiltViewModel()
+    productViewModel: ProductViewModel = hiltViewModel(),
+    businessViewModel: com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val selectedOrder by viewModel.selectedOrder.collectAsState()
@@ -140,9 +141,12 @@ fun PurchaseOrderDetailScreen(
         )
     }
 
-    if (showReceiptPreview) {
+    // The business header comes from the database; a receipt opens once it has loaded.
+    val business by businessViewModel.settings.collectAsState()
+
+    if (showReceiptPreview) business?.let { business ->
         ReceiptPreviewSheet(
-            receipt          = displayOrder.toReceiptData(context),
+            receipt          = displayOrder.toReceiptData(business),
             onDismiss        = { showReceiptPreview = false },
             onShareRequested = {
                 showReceiptPreview = false
@@ -151,9 +155,9 @@ fun PurchaseOrderDetailScreen(
         )
     }
 
-    if (showShareOptions) {
+    if (showShareOptions) business?.let { business ->
         ShareOptionsSheet(
-            receipt   = displayOrder.toReceiptData(context),
+            receipt   = displayOrder.toReceiptData(business),
             onDismiss = { showShareOptions = false }
         )
     }

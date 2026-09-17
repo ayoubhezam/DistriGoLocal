@@ -1,5 +1,6 @@
 package com.distrigo.app.di
 
+import com.distrigo.app.data.repository.BusinessSettingsRepository
 import android.content.Context
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.repository.ChargeRepository
@@ -28,6 +29,11 @@ object AppModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         AppDatabase.getDatabase(context)
+
+    @Provides
+    @Singleton
+    fun provideBusinessSettingsRepository(db: AppDatabase, @ApplicationContext context: Context): BusinessSettingsRepository =
+        BusinessSettingsRepository(db = db, context = context)
 
     @Provides
     @Singleton

@@ -174,13 +174,13 @@ class SoftDeleteTest {
     @Test
     fun everyBusinessTableRecordsHardDeletes() {
         val tracked = UpdatedAtTriggers.trackedTables(sql)
-        assertEquals(35, tracked.size)
+        assertEquals(36, tracked.size)
         for (table in tracked) {
             assertEquals(table, TombstoneTriggers.triggerSql(table), storedTriggerSql(sql, TombstoneTriggers.triggerName(table)))
         }
         val tombstoneTriggers = sql.query("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE '%_tombstone'")
             .use { it.count }
-        assertEquals(35, tombstoneTriggers)
+        assertEquals(36, tombstoneTriggers)
     }
 
     /**

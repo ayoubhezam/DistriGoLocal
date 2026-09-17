@@ -97,7 +97,7 @@ class MigrationTest {
                 assertEquals("unstamped rows in $table", 0, sql.count(table, "updated_at <= 0"))
                 assertEquals("rows without created_at in $table", 0, sql.count(table, "created_at = ''"))
             }
-            assertEquals(35, UpdatedAtTriggers.trackedTables(sql).size)
+            assertEquals(36, UpdatedAtTriggers.trackedTables(sql).size)
             for (table in UpdatedAtTriggers.trackedTables(sql)) {
                 assertTrue(table, storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
@@ -571,6 +571,18 @@ class MigrationTest {
 
             assertEquals(listOf("2", "3"), sql.texts("SELECT id FROM tournee_clients ORDER BY id"))
             assertEquals("visite", sql.text("SELECT status FROM tournee_clients WHERE client_id = 7"))
+        } finally {
+            sql.close()
+        }
+    }
+
+    /** 51 -> 52 adds an empty business_settings; the app fills it from the old preferences on first read. */
+    @Test
+    fun migration51To52AddsBusinessSettings() {
+        helper.createDatabase(TEST_DB, 51).close()
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 52, true, MIGRATION_51_52)
+        try {
+            assertEquals(0, sql.count("business_settings"))
         } finally {
             sql.close()
         }

@@ -16,6 +16,7 @@ class DefaultTypeUuidTest {
         assertEquals("beaf2e79-d096-3af8-a336-8b5595b7bde4", DefaultPerteType.CASSE.uuid)
         assertEquals("b1599331-8261-3a09-8ed0-9ea9a333288a", defaultChargeTypeUuid("vehicule"))
         assertEquals("f80be342-ce94-3f9f-89a7-cb421add8872", defaultChargeSubTypeUuid("achats", "divers"))
+        assertEquals("21ac2d85-5b38-37cd-9d0d-9cd6b5e09efd", com.distrigo.app.data.local.entity.BUSINESS_SETTINGS_UUID)
     }
 
     /** "Divers" is a type and a subtype of Achats; they are different built-ins. */

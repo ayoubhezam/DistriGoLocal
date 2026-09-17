@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.BusinessSettingsStore
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -36,13 +36,27 @@ import com.distrigo.app.ui.common.FileImage
 import kotlinx.coroutines.launch
 
 @Composable
-fun ReceiptSettingsScreen(onBack: () -> Unit) {
+fun ReceiptSettingsScreen(
+    onBack: () -> Unit,
+    viewModel: BusinessSettingsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
 
-    var name        by remember { mutableStateOf(BusinessSettingsStore.getBusinessName(context)) }
-    var phone       by remember { mutableStateOf(BusinessSettingsStore.getBusinessPhone(context) ?: "") }
-    var logoFile    by remember { mutableStateOf(BusinessSettingsStore.getLogoFile(context)) }
-    var logoVersion by remember { mutableStateOf(0) }
+    val settings by viewModel.settings.collectAsState()
+    var name        by remember { mutableStateOf("") }
+    var phone       by remember { mutableStateOf("") }
+    // The fields start from the stored settings once they have loaded, and are the user's after that.
+    var loaded      by remember { mutableStateOf(false) }
+    LaunchedEffect(settings) {
+        val current = settings ?: return@LaunchedEffect
+        if (!loaded) {
+            name = current.name
+            phone = current.phone ?: ""
+            loaded = true
+        }
+    }
+    // Each logo is stored under its own content hash, so a new one is a new file and draws afresh.
+    val logoFile = settings?.logoPath?.let { java.io.File(it) }
     var isSaving    by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -50,14 +64,10 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            // Downscaled and written off the main thread (see saveLogo). The previous logo stays on
-            // screen until the new one is on disk, and stays saved if the new one cannot be read.
+            // Downscaled and stored off the main thread (see BusinessSettingsRepository.saveLogo). The
+            // previous logo stays until the new one is stored, and stays if the new one cannot be read.
             scope.launch {
-                val saved = BusinessSettingsStore.saveLogo(context, it)
-                if (saved != null) {
-                    logoFile = saved
-                    logoVersion++
-                } else {
+                if (!viewModel.saveLogo(it)) {
                     Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -66,11 +76,12 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
 
     fun save() {
         isSaving = true
-        BusinessSettingsStore.saveBusinessName(context, name.trim())
-        BusinessSettingsStore.saveBusinessPhone(context, phone.trim())
-        Toast.makeText(context, "Paramètres du reçu enregistrés", Toast.LENGTH_SHORT).show()
-        isSaving = false
-        onBack()
+        scope.launch {
+            viewModel.saveIdentity(name, phone)
+            Toast.makeText(context, "Paramètres du reçu enregistrés", Toast.LENGTH_SHORT).show()
+            isSaving = false
+            onBack()
+        }
     }
 
     BackHandler { onBack() }
@@ -108,9 +119,8 @@ fun ReceiptSettingsScreen(onBack: () -> Unit) {
                 if (logoFile != null) {
                     // Drawn by Coil, sized to this box and off the main thread. It used to be decoded
                     // right here with BitmapFactory, whole, on every recomposition — once per
-                    // keystroke in the fields below. key(logoVersion) starts a fresh request when a
-                    // new logo replaces the old one under the same file name.
-                    key(logoVersion) {
+                    // keystroke in the fields below.
+                    key(logoFile.path) {
                         FileImage(
                             file               = logoFile,
                             contentDescription = null,

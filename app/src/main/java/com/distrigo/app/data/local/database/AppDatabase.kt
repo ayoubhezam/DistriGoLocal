@@ -70,8 +70,9 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
         ChargementDraftEntity::class,
         TombstoneEntity::class,
         AppMetaEntity::class,
+        BusinessSettingsEntity::class,
     ],
-    version = 51,
+    version = 52,
     exportSchema = true
 )
 
@@ -118,6 +119,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     /** Used once, to move base64 payloads out to files — see ImageBackfill. */
     abstract fun imageBackfillDao(): ImageBackfillDao
+
+    /** The business identity receipts print — see BusinessSettingsEntity. */
+    abstract fun businessSettingsDao(): BusinessSettingsDao
 
 
 
