@@ -23,7 +23,12 @@ object BackupFormat {
     const val FORMAT_VERSION = 1
 
     const val EXTENSION = "distrigo"
-    const val MIME_TYPE = "application/zip"
+    /**
+     * The type the file picker is given when saving. Not `application/zip`: a documents provider appends
+     * the extension of the type it is given when the name's own does not match, which would save
+     * `DistriGo-….distrigo.zip`.
+     */
+    const val MIME_TYPE = "application/octet-stream"
 
     const val MANIFEST_ENTRY = "manifest.json"
     const val DATABASE_ENTRY = "distrigo.db"

@@ -97,7 +97,8 @@ class BackupInspector(
         )
     }
 
-    private fun currentCounts(): Map<String, Long> {
+    /** Rows per table in the data on the phone now. Blocks: call it off the main thread. */
+    fun currentCounts(): Map<String, Long> {
         val sql = db.openHelper.readableDatabase
         val tables = sql.query(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' " +

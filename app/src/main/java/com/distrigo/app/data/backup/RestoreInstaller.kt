@@ -103,13 +103,16 @@ class RestoreInstaller(
     /**
      * Installs the restore waiting in [pendingDir], if any, or finishes one a kill interrupted. Never throws:
      * whatever happens, the app then opens either the restored data or the data it had.
+     *
+     * Returns how a restore ended during this call, for the app to say so as it starts; null when none did.
      */
-    fun installPending() = synchronized(RestoreInstaller) {
+    fun installPending(): RestoreResult? = synchronized(RestoreInstaller) {
+        endedNow = null
         if (!stateFile.exists() && !readyMarker.exists()) {
             // Left by a schedule that never marked its restore ready, or by a kill after an install finished.
             if (pendingDir.exists()) pendingDir.deleteRecursively()
             if (previousDir.exists()) previousDir.deleteRecursively()
-            return@synchronized
+            return@synchronized null
         }
         try {
             when (val state = readState()) {
@@ -143,7 +146,11 @@ class RestoreInstaller(
                 Log.e(TAG, "could not put the data back", again)
             }
         }
+        endedNow
     }
+
+    /** The result [writeResult] wrote during the current [installPending]. */
+    private var endedNow: RestoreResult? = null
 
     /** How the last restore ended, until [clearResult]. */
     fun lastResult(): RestoreResult? {
@@ -324,6 +331,7 @@ class RestoreInstaller(
             addProperty("detail", detail)
         }
         writeAtomically(resultFile, GSON.toJson(json))
+        endedNow = RestoreResult(installed, at, marker?.text("backup_created_at")?.let(Instant::parse), marker?.text("safety_backup"), detail)
     }
 
     private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString

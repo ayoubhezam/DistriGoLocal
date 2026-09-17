@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Receipt
@@ -26,12 +27,20 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 fun ParametresScreen(onBack: () -> Unit) {
     var showReceiptSettings   by remember { mutableStateOf(false) }
     var showCommissionPolicy  by remember { mutableStateOf(false) }
+    var showDataBackup        by remember { mutableStateOf(false) }
 
     BackHandler { onBack() }
 
     if (showReceiptSettings) {
         com.distrigo.app.ui.settings.receipt.ReceiptSettingsScreen(
             onBack = { showReceiptSettings = false }
+        )
+        return
+    }
+
+    if (showDataBackup) {
+        com.distrigo.app.ui.settings.data.DataBackupScreen(
+            onBack = { showDataBackup = false }
         )
         return
     }
@@ -72,6 +81,14 @@ fun ParametresScreen(onBack: () -> Unit) {
                 title    = "Politique de commission",
                 subtitle = "Définir l'objectif et le mode de calcul des primes",
                 onClick  = { showCommissionPolicy = true }
+            )
+            SettingsNavCard(
+                icon     = Icons.Default.Backup,
+                iconBg   = DsColors.WarningLight,
+                iconTint = DsColors.Warning,
+                title    = "Données et sauvegarde",
+                subtitle = "Sauvegarder vos données dans un fichier et les restaurer",
+                onClick  = { showDataBackup = true }
             )
         }
     }
