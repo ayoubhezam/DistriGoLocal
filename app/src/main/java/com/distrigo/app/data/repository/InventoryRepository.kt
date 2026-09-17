@@ -60,18 +60,22 @@ class InventoryRepository(
 
     suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Double, userName: String? = null): Map<String, Any> {        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
 
-        if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
-            return mapOf("error" to "Ce produit a déjà été scanné dans cette session")
-        }
+        // The "already scanned" check, the stock it measures against and the insert are one
+        // transaction: two taps can no longer both pass the check. The unique index on
+        // (session_id, product_id) is what guarantees it; this is what turns a second scan into the
+        // message rather than a constraint error.
+        return db.withTransaction {
+            if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
+                return@withTransaction mapOf("error" to "Ce produit a déjà été scanné dans cette session")
+            }
+            val product = productDao.getProductById(productId)
+                ?: return@withTransaction mapOf("error" to "Produit introuvable")
 
-        val product = productDao.getProductById(productId) ?: return mapOf("error" to "Produit introuvable")
+            val qteSysteme  = product.stock
+            val ecart       = qtePhysique - qteSysteme
+            val valeurEcart = ecart * product.purchase_price
+            val now = java.time.Instant.now().toString()
 
-        val qteSysteme  = product.stock
-        val ecart       = qtePhysique - qteSysteme
-        val valeurEcart = ecart * product.purchase_price
-        val now = java.time.Instant.now().toString()
-
-        db.withTransaction {
             val itemId = inventoryDao.insertItem(
                 InventoryItemEntity(
                     session_id = sessionId, product_id = product.id, product_name = product.name,
@@ -103,14 +107,14 @@ class InventoryRepository(
                     )
                 )
             }
-        }
 
-        return mapOf(
-            "message" to "Produit enregistré avec succès",
-            "qte_systeme" to qteSysteme,
-            "ecart" to ecart,
-            "valeur_ecart" to valeurEcart
-        )
+            mapOf(
+                "message" to "Produit enregistré avec succès",
+                "qte_systeme" to qteSysteme,
+                "ecart" to ecart,
+                "valeur_ecart" to valeurEcart
+            )
+        }
     }
     suspend fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null): Map<String, Any> {
         if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")

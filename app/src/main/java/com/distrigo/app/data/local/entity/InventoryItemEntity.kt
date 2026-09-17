@@ -9,7 +9,8 @@ import androidx.room.PrimaryKey
     tableName = "inventory_items",
     indices = [
         Index(value = ["session_id", "created_at"]),
-        Index(value = ["session_id", "product_id"]),
+        // A product is counted once per session.
+        Index(value = ["session_id", "product_id"], unique = true),
         Index(value = ["uuid"], unique = true),
     ]
 )

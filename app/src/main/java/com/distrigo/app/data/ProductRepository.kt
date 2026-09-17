@@ -1673,17 +1673,26 @@ class ProductRepository(
         return mapOf("message" to "Client retiré de la tournée")
     }
 
+    /**
+     * Adds clients to a tournée's plan, skipping any already on it — and any repeated in [clientIds].
+     *
+     * The read of who is already planned and the insert are one transaction, so two calls cannot both
+     * decide a client is missing. The unique index on (tournee_id, client_id) is what guarantees a
+     * client appears once; this keeps a repeat from reaching it as a constraint error.
+     */
     suspend fun addClientsToTournee(tourneeId: Int, clientIds: List<Int>): Map<String, Any> {
-        val existing = db.tourneeClientDao().getClientIdsForTournee(tourneeId).toSet()
-        val toAdd = clientIds.filter { it !in existing }
-        val startIndex = existing.size
-        val entities = toAdd.mapIndexed { i, clientId ->
-            TourneeClientEntity(
-                tournee_id = tourneeId, client_id = clientId,
-                status = "a_visiter", order_index = startIndex + i, visited_at = null
-            )
+        db.withTransaction {
+            val existing = db.tourneeClientDao().getClientIdsForTournee(tourneeId).toSet()
+            val toAdd = clientIds.distinct().filter { it !in existing }
+            val startIndex = existing.size
+            val entities = toAdd.mapIndexed { i, clientId ->
+                TourneeClientEntity(
+                    tournee_id = tourneeId, client_id = clientId,
+                    status = "a_visiter", order_index = startIndex + i, visited_at = null
+                )
+            }
+            if (entities.isNotEmpty()) db.tourneeClientDao().insertAll(entities)
         }
-        if (entities.isNotEmpty()) db.tourneeClientDao().insertAll(entities)
         return mapOf("message" to "Clients ajoutés avec succès")
     }
 

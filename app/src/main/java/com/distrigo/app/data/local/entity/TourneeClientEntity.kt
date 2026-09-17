@@ -7,7 +7,12 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "tournee_clients",
-    indices = [Index(value = ["tournee_id", "order_index"]), Index(value = ["uuid"], unique = true)]
+    indices = [
+        Index(value = ["tournee_id", "order_index"]),
+        Index(value = ["uuid"], unique = true),
+        // A client is planned once per tournée.
+        Index(value = ["tournee_id", "client_id"], unique = true),
+    ]
 )
 data class TourneeClientEntity(
     @PrimaryKey(autoGenerate = true)

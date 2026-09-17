@@ -806,6 +806,84 @@ val MIGRATION_49_50 = object : Migration(49, 50) {
 }
 
 /**
+ * 50 -> 51 - two rules the code enforced become rules the database enforces.
+ *
+ *  - **A product is counted once per inventory session**: `inventory_items(session_id, product_id)`,
+ *    until now an ordinary index, becomes unique.
+ *  - **A client is planned once per tournée**: a new unique index on `tournee_clients(tournee_id,
+ *    client_id)`.
+ *
+ * Both were checked in Kotlin by reading and then inserting outside a single transaction, so two quick
+ * taps could get past the check together. A database holding such a duplicate could not take the index,
+ * so any duplicates are merged first — in a way that changes no stock and loses no progress.
+ *
+ * **Scans.** Two scans of one product in one session count it twice: the first brought the stock from
+ * its system quantity to the first count, the second to the second count, each through its own
+ * adjustment movement. The merged scan keeps the **latest** row — its count is the last one made — but
+ * measured from the **first** row's system quantity, so its écart is the whole correction. The earlier
+ * rows' adjustment movements are moved onto it rather than deleted, so the stock is exactly what it was;
+ * and editing or deleting the merged scan later removes them all, as it removes its own.
+ *
+ * **Tournée clients.** The repeated rows describe the same planned visit and were updated together, but
+ * the kept one is the furthest along — visited, then in progress, then to visit — first by id on a tie,
+ * so no visit is forgotten.
+ *
+ * The CREATE statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/51.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy. The inventory index keeps its name, so the old one is dropped
+ * first.
+ */
+val MIGRATION_50_51 = object : Migration(50, 51) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // ── Scans: one row per (session, product) ──
+        val sameScan = "i2.session_id = inventory_items.session_id AND i2.product_id = inventory_items.product_id"
+        val hasLaterDuplicate =
+            "EXISTS (SELECT 1 FROM inventory_items i2 WHERE $sameScan AND i2.id > inventory_items.id)"
+        val hasEarlierDuplicate =
+            "EXISTS (SELECT 1 FROM inventory_items i2 WHERE $sameScan AND i2.id < inventory_items.id)"
+        // The kept (latest) row is measured from the first row's system quantity...
+        db.execSQL(
+            "UPDATE inventory_items SET qte_systeme = " +
+                "(SELECT i2.qte_systeme FROM inventory_items i2 WHERE $sameScan ORDER BY i2.id LIMIT 1) " +
+                "WHERE $hasEarlierDuplicate AND NOT $hasLaterDuplicate"
+        )
+        db.execSQL(
+            "UPDATE inventory_items SET ecart = qte_physique - qte_systeme, " +
+                "valeur_ecart = (qte_physique - qte_systeme) * purchase_price_snapshot " +
+                "WHERE $hasEarlierDuplicate AND NOT $hasLaterDuplicate"
+        )
+        // ...takes over the earlier rows' adjustment movements...
+        db.execSQL(
+            "UPDATE stock_movements SET source_id = (" +
+                "SELECT MAX(k.id) FROM inventory_items k JOIN inventory_items d " +
+                "ON d.session_id = k.session_id AND d.product_id = k.product_id WHERE d.id = stock_movements.source_id" +
+                ") WHERE source_type = 'inventory_item' AND source_id IN " +
+                "(SELECT id FROM inventory_items WHERE $hasLaterDuplicate)"
+        )
+        // ...and the earlier rows go.
+        db.execSQL("DELETE FROM inventory_items WHERE $hasLaterDuplicate")
+        db.execSQL("DROP INDEX IF EXISTS `index_inventory_items_session_id_product_id`")
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_items_session_id_product_id` " +
+                "ON `inventory_items` (`session_id`, `product_id`)"
+        )
+
+        // ── Tournée clients: one row per (tournée, client), the furthest along ──
+        val progress = "CASE t2.status WHEN 'visite' THEN 2 WHEN 'en_cours' THEN 1 ELSE 0 END"
+        db.execSQL(
+            "DELETE FROM tournee_clients WHERE id != (" +
+                "SELECT t2.id FROM tournee_clients t2 " +
+                "WHERE t2.tournee_id = tournee_clients.tournee_id AND t2.client_id = tournee_clients.client_id " +
+                "ORDER BY $progress DESC, t2.id ASC LIMIT 1)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tournee_clients_tournee_id_client_id` " +
+                "ON `tournee_clients` (`tournee_id`, `client_id`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -817,7 +895,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40,
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
-    MIGRATION_48_49, MIGRATION_49_50,
+    MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51,
 )
 
 /**

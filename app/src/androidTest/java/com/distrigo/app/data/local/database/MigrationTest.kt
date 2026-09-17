@@ -522,6 +522,60 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 50 -> 51 merges duplicate scans without changing stock and duplicate tournée clients without
+     * losing a visit, then makes both rules unique.
+     */
+    @Test
+    fun migration50To51MergesDuplicatesAndMakesThemUnique() {
+        helper.createDatabase(TEST_DB, 50).apply {
+            val now = "2026-09-17T10:00:00Z"
+            fun scan(id: Int, session: Int, product: Int, systeme: Double, physique: Double) = execSQL(
+                "INSERT INTO inventory_items (id, session_id, product_id, product_name, qte_systeme, qte_physique, ecart, " +
+                    "purchase_price_snapshot, valeur_ecart, created_at, uuid) VALUES ($id, $session, $product, 'P$product', " +
+                    "$systeme, $physique, ${physique - systeme}, 95.0, ${(physique - systeme) * 95.0}, '$now', 'u-scan-$id')"
+            )
+            fun adjustment(item: Int, direction: String, quantity: Double) = execSQL(
+                "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, emplacement, source_label, " +
+                    "source_type, source_id, total_value, created_at, uuid) VALUES (1, 'P1', 'ajustement', '$direction', " +
+                    "$quantity, 'depot', 'Inventaire', 'inventory_item', $item, 0.0, '$now', 'u-move-$item')"
+            )
+            // Product 1 scanned twice in session 1: 40 counted as 38, then recounted as 35.
+            scan(1, session = 1, product = 1, systeme = 40.0, physique = 38.0)
+            adjustment(1, "sortie", 2.0)
+            scan(2, session = 1, product = 1, systeme = 38.0, physique = 35.0)
+            adjustment(2, "sortie", 3.0)
+            // Product 2 scanned once: untouched.
+            scan(3, session = 1, product = 2, systeme = 10.0, physique = 10.0)
+
+            fun planned(id: Int, client: Int, status: String, visitedAt: String?) = execSQL(
+                "INSERT INTO tournee_clients (id, tournee_id, client_id, status, order_index, visited_at, uuid, created_at) " +
+                    "VALUES ($id, 1, $client, '$status', $id, ${visitedAt?.let { "'$it'" } ?: "NULL"}, 'u-tc-$id', '$now')"
+            )
+            planned(1, client = 7, status = "a_visiter", visitedAt = null)
+            planned(2, client = 7, status = "visite", visitedAt = "2026-09-17T09:00:00Z")
+            planned(3, client = 8, status = "a_visiter", visitedAt = null)
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 51, true, MIGRATION_50_51)
+        try {
+            assertEquals(listOf("2", "3"), sql.texts("SELECT id FROM inventory_items ORDER BY id"))
+            assertEquals(40.0, sql.double("SELECT qte_systeme FROM inventory_items WHERE id = 2"), 0.0)
+            assertEquals(-5.0, sql.double("SELECT ecart FROM inventory_items WHERE id = 2"), 0.0)
+            assertEquals(-475.0, sql.double("SELECT valeur_ecart FROM inventory_items WHERE id = 2"), 0.0)
+            // Both adjustments stay, now under the kept scan: the stock they add up to is unchanged.
+            assertEquals(2, sql.count("stock_movements", "source_type = 'inventory_item' AND source_id = 2"))
+            assertEquals(-5.0, sql.double(
+                "SELECT SUM(CASE WHEN direction = 'entree' THEN quantity ELSE -quantity END) FROM stock_movements"), 0.0)
+
+            assertEquals(listOf("2", "3"), sql.texts("SELECT id FROM tournee_clients ORDER BY id"))
+            assertEquals("visite", sql.text("SELECT status FROM tournee_clients WHERE client_id = 7"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
