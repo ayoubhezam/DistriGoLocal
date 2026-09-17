@@ -63,6 +63,22 @@ class AutoBackupScheduleTest {
     }
 
     @Test
+    fun `backups are overdue when the daily job has not run for a day and a half`() {
+        val now = Instant.parse("2026-09-20T12:00:00Z")
+        val on = AutoBackupState(enabled = true, enabledAt = Instant.parse("2026-09-20T08:00:00Z"))
+
+        assertFalse("just turned on", AutoBackupScheduler.isOverdue(on, now))
+        assertFalse("off", AutoBackupScheduler.isOverdue(on.copy(enabled = false, enabledAt = Instant.parse("2026-09-01T00:00:00Z")), now))
+        val neverRan = on.copy(enabledAt = Instant.parse("2026-09-18T20:00:00Z")) // 40 hours ago
+        assertTrue(AutoBackupScheduler.isOverdue(neverRan, now))
+        assertFalse("ran last night", AutoBackupScheduler.isOverdue(neverRan.copy(lastScheduledRunAt = Instant.parse("2026-09-20T02:10:00Z")), now))
+        assertTrue(
+            "a manual backup does not hide a schedule that never runs",
+            AutoBackupScheduler.isOverdue(neverRan.copy(lastAttemptAt = Instant.parse("2026-09-20T11:00:00Z")), now)
+        )
+    }
+
+    @Test
     fun `every problem has a message for the user`() {
         for (problem in AutoBackupProblem.entries) {
             assertTrue(problem.name, problem.message.length > 30 && problem.message.endsWith("."))

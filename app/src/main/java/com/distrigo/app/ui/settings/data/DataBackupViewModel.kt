@@ -1,6 +1,11 @@
 package com.distrigo.app.ui.settings.data
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +22,8 @@ import com.distrigo.app.data.backup.RestoreOutcome
 import com.distrigo.app.data.backup.RestoreResult
 import com.distrigo.app.data.backup.auto.AutoBackupOutcome
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
+import com.distrigo.app.data.backup.auto.AutoBackupScheduler
+import com.distrigo.app.data.backup.auto.AutoBackupState
 import com.distrigo.app.data.backup.auto.PickedFolder
 import com.distrigo.app.data.local.database.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +46,18 @@ data class LastBackup(val at: Instant, val size: Long?, val fileName: String)
 
 /** The folder automatic backups go to, as the screen shows it. */
 data class AutoBackupFolder(val chosen: Boolean, val name: String?, val available: Boolean)
+
+/** Everything the automatic backup section shows. */
+data class AutoBackupStatus(
+    val folder: AutoBackupFolder = AutoBackupFolder(chosen = false, name = null, available = false),
+    val state: AutoBackupState = AutoBackupState(),
+    /** When WorkManager plans the next run, when on and known. */
+    val nextRunAt: Instant? = null,
+    /** Whether a failure can be notified; the screen says so when it cannot. */
+    val notificationsAllowed: Boolean = true,
+    /** On, but the daily job has not run for too long: the phone is probably holding it back. */
+    val overdue: Boolean = false,
+)
 
 /** A safety backup kept from an earlier restore. */
 data class SafetyBackup(val file: File, val at: Instant, val size: Long)
@@ -64,6 +83,7 @@ class DataBackupViewModel @Inject constructor(
     private val inspector: BackupInspector,
     private val coordinator: RestoreCoordinator,
     private val installer: RestoreInstaller,
+    private val scheduler: AutoBackupScheduler,
 ) : ViewModel() {
 
     val lastBackup: StateFlow<LastBackup?> =
@@ -88,8 +108,8 @@ class DataBackupViewModel @Inject constructor(
     /** How the last restore ended, until the user dismisses it. */
     val lastRestore: StateFlow<RestoreResult?> = _lastRestore.asStateFlow()
 
-    private val _autoFolder = MutableStateFlow(AutoBackupFolder(chosen = false, name = null, available = false))
-    val autoFolder: StateFlow<AutoBackupFolder> = _autoFolder.asStateFlow()
+    private val _autoStatus = MutableStateFlow(AutoBackupStatus())
+    val autoStatus: StateFlow<AutoBackupStatus> = _autoStatus.asStateFlow()
 
     /**
      * Reads the counts, the folder, the safety backups and the last restore again. The screen calls it each
@@ -103,7 +123,7 @@ class DataBackupViewModel @Inject constructor(
                     SafetyBackup(it, DataBackupFormatting.safetyBackupTime(it), it.length())
                 }
                 _lastRestore.value = installer.lastResult()
-                _autoFolder.value = readAutoFolder()
+                _autoStatus.value = readAutoStatus()
             }
         }
     }
@@ -126,11 +146,36 @@ class DataBackupViewModel @Inject constructor(
         }
     }
 
-    private fun readAutoFolder(): AutoBackupFolder {
-        val uri = autoBackup.store.read().folderUri ?: return AutoBackupFolder(chosen = false, name = null, available = false)
-        val folder = PickedFolder(context.contentResolver, Uri.parse(uri))
-        val available = folder.isAvailable()
-        return AutoBackupFolder(chosen = true, name = if (available) folder.displayName else null, available = available)
+    /** Blocks on files, the folder's provider and WorkManager: call it off the main thread. */
+    private fun readAutoStatus(): AutoBackupStatus {
+        val state = autoBackup.store.read()
+        val folder = state.folderUri?.let { uri ->
+            val picked = PickedFolder(context.contentResolver, Uri.parse(uri))
+            val available = picked.isAvailable()
+            AutoBackupFolder(chosen = true, name = if (available) picked.displayName else null, available = available)
+        } ?: AutoBackupFolder(chosen = false, name = null, available = false)
+        return AutoBackupStatus(
+            folder = folder,
+            state = state,
+            nextRunAt = if (state.enabled) runCatching { scheduler.nextRunAt() }.getOrNull() else null,
+            notificationsAllowed = notificationsAllowed(),
+            overdue = AutoBackupScheduler.isOverdue(state, Instant.now()),
+        )
+    }
+
+    private fun notificationsAllowed(): Boolean {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return false
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    /** Turns daily backups on or off. On needs a folder that can be used; the switch is only offered then. */
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            scheduler.setEnabled(enabled)
+            _autoStatus.value = readAutoStatus()
+        }
     }
 
     /**
@@ -149,13 +194,15 @@ class DataBackupViewModel @Inject constructor(
                 // Already gone: nothing to give back.
             }
         }
-        _autoFolder.value = readAutoFolder()
+        _autoStatus.value = readAutoStatus()
         DataBackupState.Idle
     }
 
     /** Runs an automatic backup now, whether or not the data changed since the last one. */
     fun backupNow() = run("Sauvegarde automatique…") {
-        when (val outcome = autoBackup.run(force = true)) {
+        val outcome = autoBackup.run(force = true)
+        _autoStatus.value = readAutoStatus()
+        when (outcome) {
             is AutoBackupOutcome.Saved -> DataBackupState.AutoBackupSaved(outcome)
             is AutoBackupOutcome.Failed -> DataBackupState.Failed(BackupMessages.of(outcome.reason))
             AutoBackupOutcome.Unchanged -> DataBackupState.Idle

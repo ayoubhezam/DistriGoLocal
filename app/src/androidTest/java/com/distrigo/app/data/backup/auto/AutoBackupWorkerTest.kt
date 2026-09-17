@@ -121,6 +121,7 @@ class AutoBackupWorkerTest {
         assertEquals(0, state.problemStreak)
         assertNull(state.lastProblem)
         assertEquals(now, state.lastAttemptAt)
+        assertTrue("the scheduled run is recorded apart from manual ones", state.lastScheduledRunAt != null)
         assertFalse(AutoBackupAlerts.shouldAlert(alerted.last()))
     }
 
@@ -181,6 +182,8 @@ class AutoBackupWorkerTest {
         val scheduler = AutoBackupScheduler({ workManager }, store, clock = { Instant.parse("2026-09-17T13:00:00Z") })
 
         scheduler.setEnabled(true)
+        assertEquals(Instant.parse("2026-09-17T13:00:00Z"), store.read().enabledAt)
+        assertTrue("WorkManager knows when it runs next", scheduler.nextRunAt() != null)
         val scheduled = workManager.getWorkInfosForUniqueWork(AutoBackupScheduler.WORK_NAME).get().single()
         assertEquals(WorkInfo.State.ENQUEUED, scheduled.state)
         assertTrue(store.read().enabled)
@@ -194,6 +197,7 @@ class AutoBackupWorkerTest {
 
         scheduler.setEnabled(false)
         assertFalse(store.read().enabled)
+        assertEquals(null, scheduler.nextRunAt())
         assertTrue(workManager.getWorkInfosForUniqueWork(AutoBackupScheduler.WORK_NAME).get().all { it.state == WorkInfo.State.CANCELLED })
     }
 

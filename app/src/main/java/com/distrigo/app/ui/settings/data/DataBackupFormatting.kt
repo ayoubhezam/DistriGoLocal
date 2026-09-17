@@ -1,6 +1,9 @@
 package com.distrigo.app.ui.settings.data
 
 import com.distrigo.app.data.backup.RestoreCoordinator
+import com.distrigo.app.data.backup.auto.AutoBackupProblem
+import com.distrigo.app.data.backup.auto.AutoBackupState
+import com.distrigo.app.ui.common.formatRelativeFr
 import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
@@ -28,6 +31,26 @@ object DataBackupFormatting {
 
     /** `17 septembre 2026 à 14:30`, in the phone's time. */
     fun dateTime(at: Instant, zone: ZoneId = ZoneId.systemDefault()): String = DATE_TIME.format(at.atZone(zone))
+
+    /** `17 septembre 2026 à 03:02 (il y a 5 h)`. */
+    fun dateTimeWithAge(at: Instant, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): String =
+        dateTime(at, zone) + (formatRelativeFr(at.toString(), now)?.let { " ($it)" } ?: "")
+
+    /**
+     * The last run that did not save a backup, when it came after the last backup and found nothing wrong: the
+     * user sees the schedule is running on nights without changes. Null when the last run saved one, or failed.
+     */
+    fun lastCheck(state: AutoBackupState, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): String? {
+        val attempt = state.lastAttemptAt ?: return null
+        if (state.lastProblem != null) return null
+        val lastBackup = state.lastAt
+        if (lastBackup != null && !attempt.isAfter(lastBackup.plusSeconds(60))) return null
+        return dateTimeWithAge(attempt, now, zone) + " : aucun changement à sauvegarder"
+    }
+
+    /** The problem, and for how long it has lasted when it is not the first time. */
+    fun problem(problem: AutoBackupProblem, streak: Int): String =
+        problem.message + if (streak >= 2) " ($streak échecs de suite)" else ""
 
     /** The tables the preview compares, as the user knows them. */
     fun tableLabel(table: String): String = when (table) {

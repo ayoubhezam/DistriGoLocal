@@ -35,7 +35,8 @@ class AutoBackupWorker @AssistedInject constructor(
             // Already recorded by the runner as an unexpected problem.
             Log.e(TAG, "automatic backup crashed", e)
         }
-        alerts.update(runner.store.read())
+        val state = runner.store.update { it.copy(lastScheduledRunAt = java.time.Instant.now()) }
+        alerts.update(state)
         Result.success()
     }
 

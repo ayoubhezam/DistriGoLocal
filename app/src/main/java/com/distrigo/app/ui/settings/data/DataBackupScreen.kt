@@ -1,6 +1,13 @@
 package com.distrigo.app.ui.settings.data
 
+import android.Manifest
 import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
@@ -71,7 +78,8 @@ fun DataBackupScreen(
     val counts by viewModel.counts.collectAsState()
     val safetyBackups by viewModel.safetyBackups.collectAsState()
     val lastRestore by viewModel.lastRestore.collectAsState()
-    val autoFolder by viewModel.autoFolder.collectAsState()
+    val autoStatus by viewModel.autoStatus.collectAsState()
+    val context = LocalContext.current
 
     val createLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(BackupFormat.MIME_TYPE)
@@ -83,6 +91,20 @@ fun DataBackupScreen(
     }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
+
+    // Turning daily backups on asks, once, to be allowed to notify failures; they are turned on either way.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.setAutoBackupEnabled(true)
+    }
+    val onToggleAutoBackup: (Boolean) -> Unit = { on ->
+        if (on && Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.setAutoBackupEnabled(on)
+        }
+    }
 
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let(viewModel::chooseAutoBackupFolder)
@@ -141,9 +163,15 @@ fun DataBackupScreen(
                 )
 
                 AutoBackupSection(
-                    folder = autoFolder,
+                    status = autoStatus,
+                    onToggle = onToggleAutoBackup,
                     onChooseFolder = { folderLauncher.launch(null) },
                     onBackupNow = viewModel::backupNow,
+                    onOpenAppSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                        )
+                    },
                 )
 
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
@@ -224,7 +252,16 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
 }
 
 @Composable
-private fun AutoBackupSection(folder: AutoBackupFolder, onChooseFolder: () -> Unit, onBackupNow: () -> Unit) {
+private fun AutoBackupSection(
+    status: AutoBackupStatus,
+    onToggle: (Boolean) -> Unit,
+    onChooseFolder: () -> Unit,
+    onBackupNow: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+) {
+    val folder = status.folder
+    val state = status.state
+    val lost = folder.chosen && !folder.available
     SectionTitle("Sauvegarde automatique")
     Column(
         modifier = Modifier
@@ -234,7 +271,28 @@ private fun AutoBackupSection(folder: AutoBackupFolder, onChooseFolder: () -> Un
             .padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
-        val lost = folder.chosen && !folder.available
+        // ── On/off ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Sauvegarde chaque nuit", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text(
+                    "Vers 3 h, seulement si les données ont changé",
+                    fontSize = DsTextSize.caption, color = DsColors.TextSecondary
+                )
+            }
+            Switch(
+                checked = state.enabled,
+                onCheckedChange = onToggle,
+                // Turning on needs a folder that can be used; turning off is always possible.
+                enabled = state.enabled || (folder.chosen && folder.available),
+                colors = SwitchDefaults.colors(checkedTrackColor = DsColors.Primary)
+            )
+        }
+        if (!folder.chosen) {
+            Text("Choisissez d'abord le dossier où enregistrer les sauvegardes.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        }
+
+        // ── Folder ──
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconBadge(
                 icon = if (lost) Icons.Default.WarningAmber else Icons.Default.Folder,
@@ -252,14 +310,45 @@ private fun AutoBackupSection(folder: AutoBackupFolder, onChooseFolder: () -> Un
                     },
                     fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                 )
-                if (lost) {
-                    Text(
-                        "Il a été supprimé ou l'accès a été retiré. Choisissez-le à nouveau ; en attendant, les sauvegardes restent dans l'application.",
-                        fontSize = DsTextSize.caption, color = DsColors.Warning
-                    )
+            }
+        }
+
+        // ── Status ──
+        if (state.enabled) {
+            StatusLine(
+                "Dernière sauvegarde automatique",
+                state.lastAt?.takeIf { state.lastLocation == com.distrigo.app.data.backup.auto.BackupLocation.PICKED_FOLDER }
+                    ?.let { DataBackupFormatting.dateTimeWithAge(it) } ?: "Aucune pour le moment"
+            )
+            DataBackupFormatting.lastCheck(state)?.let { StatusLine("Dernière vérification", it) }
+            status.nextRunAt?.let { StatusLine("Prochaine", "vers le " + DataBackupFormatting.dateTime(it)) }
+        }
+        state.lastProblem?.let { problem ->
+            Notice(Icons.Default.WarningAmber, DsColors.WarningLight, DsColors.Warning, DataBackupFormatting.problem(problem, state.problemStreak))
+        }
+        if (status.overdue) {
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.WarningLight).padding(DsSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                Text(
+                    "La sauvegarde de nuit n'a pas eu lieu depuis plus d'une journée. Android la retarde peut-être pour économiser la batterie : " +
+                        "dans les paramètres de DistriGo, réglez la batterie sur « Non restreinte ».",
+                    fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary
+                )
+                TextButton(onClick = onOpenAppSettings, contentPadding = PaddingValues(0.dp)) {
+                    Text("Ouvrir les paramètres de DistriGo", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+        if (state.enabled && !status.notificationsAllowed) {
+            Text(
+                "Les notifications de DistriGo sont désactivées : un échec ne sera signalé que sur cet écran.",
+                fontSize = DsTextSize.caption, color = DsColors.TextSecondary
+            )
+        }
+
+        // ── Actions ──
         OutlinedButton(
             onClick = onChooseFolder,
             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -282,6 +371,14 @@ private fun AutoBackupSection(folder: AutoBackupFolder, onChooseFolder: () -> Un
             "Les ${AutoBackupRunner.KEEP} dernières sauvegardes automatiques sont conservées dans ce dossier. Les autres fichiers du dossier ne sont jamais modifiés.",
             fontSize = DsTextSize.caption, color = DsColors.TextSecondary
         )
+    }
+}
+
+@Composable
+private fun StatusLine(label: String, value: String) {
+    Column {
+        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Text(value, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
     }
 }
 

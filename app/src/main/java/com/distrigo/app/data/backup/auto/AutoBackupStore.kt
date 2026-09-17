@@ -13,6 +13,8 @@ enum class BackupLocation { PICKED_FOLDER, PRIVATE }
 data class AutoBackupState(
     /** Whether backups run on their own every day. */
     val enabled: Boolean = false,
+    /** When they were last turned on: until a first run, how long the schedule has had to run. */
+    val enabledAt: Instant? = null,
     /** The folder the user chose, as its tree address; null until one is chosen. */
     val folderUri: String? = null,
     /** The fingerprint of the data the last successful backup was taken from. */
@@ -22,6 +24,8 @@ data class AutoBackupState(
     val lastLocation: BackupLocation? = null,
     /** When a backup was last attempted, whether it saved, skipped or failed. */
     val lastAttemptAt: Instant? = null,
+    /** When the daily job last ran. Kept apart from [lastAttemptAt], which a manual backup also sets. */
+    val lastScheduledRunAt: Instant? = null,
     /** Runs in a row that left the data without a backup in the chosen folder; 0 after a good run. */
     val problemStreak: Int = 0,
     /** What went wrong on the last run, or null if it went well. */
@@ -46,12 +50,14 @@ class AutoBackupStore(private val dir: File) {
             val json = JsonParser().parse(file.readText()).asJsonObject
             AutoBackupState(
                 enabled = json.get("enabled")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false,
+                enabledAt = json.instant("enabled_at"),
                 folderUri = json.text("folder_uri"),
                 lastFingerprint = json.text("last_fingerprint"),
                 lastAt = json.instant("last_at"),
                 lastFileName = json.text("last_file_name"),
                 lastLocation = json.text("last_location")?.let { runCatching { BackupLocation.valueOf(it) }.getOrNull() },
                 lastAttemptAt = json.instant("last_attempt_at"),
+                lastScheduledRunAt = json.instant("last_scheduled_run_at"),
                 problemStreak = json.get("problem_streak")?.takeIf { it.isJsonPrimitive }?.asInt ?: 0,
                 lastProblem = json.text("last_problem")?.let { runCatching { AutoBackupProblem.valueOf(it) }.getOrNull() },
             )
@@ -65,12 +71,14 @@ class AutoBackupStore(private val dir: File) {
         val next = change(read())
         val json = JsonObject().apply {
             addProperty("enabled", next.enabled)
+            addProperty("enabled_at", next.enabledAt?.toString())
             addProperty("folder_uri", next.folderUri)
             addProperty("last_fingerprint", next.lastFingerprint)
             addProperty("last_at", next.lastAt?.toString())
             addProperty("last_file_name", next.lastFileName)
             addProperty("last_location", next.lastLocation?.name)
             addProperty("last_attempt_at", next.lastAttemptAt?.toString())
+            addProperty("last_scheduled_run_at", next.lastScheduledRunAt?.toString())
             addProperty("problem_streak", next.problemStreak)
             addProperty("last_problem", next.lastProblem?.name)
         }

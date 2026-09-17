@@ -37,6 +37,26 @@ class DataBackupFormattingTest {
     }
 
     @Test
+    fun `a quiet night is shown as a check, a saved or failed one is not`() {
+        val now = Instant.parse("2026-09-18T10:00:00Z")
+        val saved = com.distrigo.app.data.backup.auto.AutoBackupState(
+            enabled = true, lastAt = Instant.parse("2026-09-17T02:00:05Z"), lastAttemptAt = Instant.parse("2026-09-17T02:00:06Z")
+        )
+        assertEquals(null, DataBackupFormatting.lastCheck(saved, now, algiers))
+        val quiet = saved.copy(lastAttemptAt = Instant.parse("2026-09-18T02:01:00Z"))
+        assertEquals("18 septembre 2026 à 03:01 (il y a 7 h) : aucun changement à sauvegarder", DataBackupFormatting.lastCheck(quiet, now, algiers))
+        assertEquals(null, DataBackupFormatting.lastCheck(quiet.copy(lastProblem = com.distrigo.app.data.backup.auto.AutoBackupProblem.WRITE_FAILED), now, algiers))
+        assertEquals(null, DataBackupFormatting.lastCheck(com.distrigo.app.data.backup.auto.AutoBackupState(enabled = true), now, algiers))
+    }
+
+    @Test
+    fun `a lasting problem says for how long`() {
+        val problem = com.distrigo.app.data.backup.auto.AutoBackupProblem.FOLDER_UNAVAILABLE
+        assertEquals(problem.message, DataBackupFormatting.problem(problem, 1))
+        assertEquals(problem.message + " (3 échecs de suite)", DataBackupFormatting.problem(problem, 3))
+    }
+
+    @Test
     fun `every table the preview compares has a French name`() {
         for (table in com.distrigo.app.data.backup.BackupPreview.HEADLINE_TABLES) {
             assertEquals(table, false, DataBackupFormatting.tableLabel(table) == table)
