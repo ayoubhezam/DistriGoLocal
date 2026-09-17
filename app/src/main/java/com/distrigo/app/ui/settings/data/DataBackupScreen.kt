@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,6 +80,7 @@ fun DataBackupScreen(
     val safetyBackups by viewModel.safetyBackups.collectAsState()
     val lastRestore by viewModel.lastRestore.collectAsState()
     val autoStatus by viewModel.autoStatus.collectAsState()
+    var showExport by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val createLauncher = rememberLauncherForActivityResult(
@@ -116,6 +118,11 @@ fun DataBackupScreen(
             is DataBackupState.Previewing -> viewModel.dismiss()
             else -> onBack()
         }
+    }
+
+    if (showExport) {
+        com.distrigo.app.ui.settings.data.export.ExportScreen(onBack = { showExport = false })
+        return
     }
 
     when (val current = state) {
@@ -173,6 +180,8 @@ fun DataBackupScreen(
                         )
                     },
                 )
+
+                ExportSection(onOpen = { showExport = true })
 
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
 
@@ -379,6 +388,34 @@ private fun StatusLine(label: String, value: String) {
     Column {
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Text(value, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
+    }
+}
+
+@Composable
+private fun ExportSection(onOpen: () -> Unit) {
+    SectionTitle("Export pour Excel")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.SurfaceMuted)
+            .padding(DsSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+    ) {
+        Text(
+            "Ventes, achats, paiements, clients, produits, mouvements de stock, charges et pertes, en fichiers CSV à ouvrir dans Excel ou à envoyer au comptable.",
+            fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
+        )
+        OutlinedButton(
+            onClick = onOpen,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = DsShapes.medium,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+        ) {
+            Icon(Icons.Default.TableChart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text("Exporter en CSV", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
     }
 }
 

@@ -230,7 +230,7 @@ class CsvExporterTest {
 /** Reads CSV as the writer writes it, to check exports as a spreadsheet would read them. */
 object CsvReader {
     fun parse(bytes: ByteArray): List<List<String>> {
-        val text = bytes.toString(Charsets.UTF_8).removePrefix(CsvWriter.BOM)
+        val text = bytes.toString(Charsets.UTF_8).removePrefix(CsvWriter.BOM).removePrefix(CsvWriter.SEPARATOR_HINT + CsvWriter.LINE_END)
         val rows = mutableListOf<List<String>>()
         var row = mutableListOf<String>()
         val field = StringBuilder()

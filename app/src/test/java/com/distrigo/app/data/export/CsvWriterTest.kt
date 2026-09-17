@@ -19,7 +19,7 @@ class CsvWriterTest {
 
     /** A minimal reader for what the writer produces, so tests can check a file reads back as it was meant. */
     private fun parse(bytes: ByteArray): List<List<String>> {
-        val text = bytes.toString(Charsets.UTF_8).removePrefix(CsvWriter.BOM)
+        val text = bytes.toString(Charsets.UTF_8).removePrefix(CsvWriter.BOM).removePrefix(CsvWriter.SEPARATOR_HINT + CsvWriter.LINE_END)
         val rows = mutableListOf<List<String>>()
         var row = mutableListOf<String>()
         val field = StringBuilder()
@@ -55,7 +55,15 @@ class CsvWriterTest {
     @Test
     fun `cells are separated by semicolons and rows end with CRLF`() {
         val text = csv { row(CsvCell.Text("a"), CsvCell.Integer(2), CsvCell.Text(null)) }.toString(Charsets.UTF_8)
-        assertEquals("﻿a;2;\r\n", text)
+        assertEquals("﻿sep=;\r\na;2;\r\n", text)
+    }
+
+    /** Excel splits a double-clicked file by the computer's own list separator unless the file says otherwise. */
+    @Test
+    fun `the first line tells Excel the separator, before the header`() {
+        val lines = csv { header("Client", "Total") }.toString(Charsets.UTF_8).removePrefix(CsvWriter.BOM).split("\r\n")
+        assertEquals("sep=;", lines[0])
+        assertEquals("Client;Total", lines[1])
     }
 
     @Test

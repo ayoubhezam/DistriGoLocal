@@ -7,7 +7,7 @@ What DistriGo exports for a spreadsheet or an accountant, and how the files are 
 Written for French Excel opened by double-click:
 
 - **UTF-8 with a byte-order mark**, so accents and Arabic names display correctly.
-- **`;` between cells, CRLF between rows.**
+- **`;` between cells, CRLF between rows**, under a first line reading `sep=;`. A double-clicked CSV is split by the list separator of *that* computer's Windows region — `,` on an English one, which would put every row in one column — and `sep=;` is Excel's own way to be told otherwise. Tools other than Excel may show that line as a first row; importing the file rather than opening it ignores it.
 - **Numbers with a decimal comma**, no thousands separator, never in scientific notation: `3450,00`. Amounts have 2 decimals (DA); quantities up to 3, without trailing zeros: `12,5`.
 - **Dates in local time**: `17/09/2026 00:30` for moments, `17/09/2026` for calendar dates.
 - **Quoted** only when a cell holds `;`, `"`, a line break, or leading or trailing spaces.

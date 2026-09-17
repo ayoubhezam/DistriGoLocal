@@ -40,7 +40,11 @@ class CsvColumn<T>(val header: String, val cell: (T) -> CsvCell)
  *
  * - **UTF-8 with a byte-order mark.** Without it Excel reads the file in the Windows code page, and every accent
  *   and Arabic name comes out garbled.
- * - **`;` between cells, CRLF between rows.** French Excel splits on `;`, since `,` is its decimal mark.
+ * - **`;` between cells, CRLF between rows**, under a first line reading `sep=;`. French Excel splits on `;`, since
+ *   `,` is its decimal mark - but a double-clicked CSV is split by the separator of *that computer's* Windows
+ *   region, `,` on an English one, which puts every row in a single column. The `sep=;` line is Excel's own way
+ *   to be told otherwise, whatever the computer. Tools other than Excel may show it as a first row; importing the
+ *   file rather than opening it ignores it.
  * - **Decimal commas and no thousands separator**: `1234,50`, which Excel reads as a number. Rounded half up from
  *   the decimal value, never in scientific notation.
  * - **Local dates**: `17/09/2026 14:30` for instants, `17/09/2026` for calendar dates.
@@ -63,6 +67,8 @@ class CsvWriter(out: OutputStream, private val zone: ZoneId = ZoneId.systemDefau
 
     init {
         writer.write(BOM)
+        writer.write(SEPARATOR_HINT)
+        writer.write(LINE_END)
     }
 
     fun header(vararg names: String) = row(names.map { CsvCell.Text(it) })
@@ -94,6 +100,8 @@ class CsvWriter(out: OutputStream, private val zone: ZoneId = ZoneId.systemDefau
 
     companion object {
         const val BOM = "﻿"
+        /** Excel's instruction, on the first line, to split on `;` whatever the computer's region settings. */
+        const val SEPARATOR_HINT = "sep=;"
         const val SEPARATOR = ';'
         const val LINE_END = "\r\n"
 
