@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.settings.data.export
 
 import com.distrigo.app.data.export.ExportDataset
+import com.distrigo.app.data.export.ExportFormat
 import com.distrigo.app.data.export.ExportPeriod
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -43,18 +44,30 @@ class ExportChoicesTest {
     }
 
     @Test
-    fun `file names say what and when, as a csv or a zip`() {
+    fun `file names say what and when`() {
         val september = ExportPeriod(day(9, 1), day(9, 17))
-        assertEquals("DistriGo-ventes-2026-09-01-au-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.VENTES), september, today))
-        assertEquals("DistriGo-export-2026-09-01-au-2026-09-17.zip", ExportChoices.fileName(setOf(ExportDataset.VENTES, ExportDataset.ACHATS), september, today))
-        assertEquals("DistriGo-export-tout.zip", ExportChoices.fileName(ExportDataset.entries.toSet(), ExportPeriod.ALL, today))
-        assertEquals("DistriGo-charges-depuis-2026-09-01.csv", ExportChoices.fileName(setOf(ExportDataset.CHARGES), ExportPeriod(day(9, 1), null), today))
-        assertEquals("DistriGo-pertes-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.PERTES), ExportPeriod(day(9, 17), day(9, 17)), today))
+        val csv = ExportFormat.CSV
+        assertEquals("DistriGo-ventes-2026-09-01-au-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.VENTES), september, today, csv))
+        assertEquals("DistriGo-charges-depuis-2026-09-01.csv", ExportChoices.fileName(setOf(ExportDataset.CHARGES), ExportPeriod(day(9, 1), null), today, csv))
+        assertEquals("DistriGo-pertes-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.PERTES), ExportPeriod(day(9, 17), day(9, 17)), today, csv))
         assertEquals(
             "clients and products are as they are today, whatever period is chosen",
-            "DistriGo-export-2026-09-17.zip", ExportChoices.fileName(setOf(ExportDataset.CLIENTS, ExportDataset.PRODUITS), september, today)
+            "DistriGo-export-2026-09-17.xlsx", ExportChoices.fileName(setOf(ExportDataset.CLIENTS, ExportDataset.PRODUITS), september, today, ExportFormat.XLSX)
         )
-        assertEquals("text/csv", ExportChoices.mimeType(setOf(ExportDataset.CLIENTS)))
-        assertEquals("application/zip", ExportChoices.mimeType(setOf(ExportDataset.CLIENTS, ExportDataset.PRODUITS)))
+    }
+
+    /** Several datasets are one workbook, but several CSV files, which travel as a zip. */
+    @Test
+    fun `the format decides the extension and the type`() {
+        val period = ExportPeriod.ALL
+        val all = ExportDataset.entries.toSet()
+        val one = setOf(ExportDataset.VENTES)
+        assertEquals("DistriGo-export-tout.xlsx", ExportChoices.fileName(all, period, today, ExportFormat.XLSX))
+        assertEquals("DistriGo-export-tout.zip", ExportChoices.fileName(all, period, today, ExportFormat.CSV))
+        assertEquals("DistriGo-ventes-tout.xlsx", ExportChoices.fileName(one, period, today, ExportFormat.XLSX))
+        assertEquals("DistriGo-ventes-tout.csv", ExportChoices.fileName(one, period, today, ExportFormat.CSV))
+        assertEquals(ExportFormat.XLSX.mimeType, ExportChoices.mimeType(all, ExportFormat.XLSX))
+        assertEquals("text/csv", ExportChoices.mimeType(one, ExportFormat.CSV))
+        assertEquals("application/zip", ExportChoices.mimeType(all, ExportFormat.CSV))
     }
 }

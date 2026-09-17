@@ -8,8 +8,9 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.export.CsvExporter
+import com.distrigo.app.data.export.DataExporter
 import com.distrigo.app.data.export.ExportDataset
+import com.distrigo.app.data.export.ExportFormat
 import com.distrigo.app.data.export.ExportPeriod
 import com.distrigo.app.data.local.database.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +31,7 @@ import javax.inject.Inject
 /** What the user has chosen, and what the screen is doing with it. */
 data class ExportUiState(
     val selected: Set<ExportDataset> = ExportDataset.entries.toSet(),
+    val format: ExportFormat = ExportFormat.XLSX,
     val preset: PeriodPreset = PeriodPreset.THIS_MONTH,
     val customFrom: LocalDate? = null,
     val customTo: LocalDate? = null,
@@ -40,8 +42,8 @@ data class ExportUiState(
     val period: ExportPeriod get() = ExportChoices.period(preset, today, customFrom, customTo)
     /** Whether any chosen dataset is filtered by the period; clients and products alone are not. */
     val usesPeriod: Boolean get() = selected.any { it.byPeriod }
-    val fileName: String get() = ExportChoices.fileName(selected, period, today)
-    val mimeType: String get() = ExportChoices.mimeType(selected)
+    val fileName: String get() = ExportChoices.fileName(selected, period, today, format)
+    val mimeType: String get() = ExportChoices.mimeType(selected, format)
 }
 
 sealed class ExportResult {
@@ -65,6 +67,8 @@ class ExportViewModel @Inject constructor(
     }
 
     fun selectAll(all: Boolean) = _state.update { it.copy(selected = if (all) ExportDataset.entries.toSet() else emptySet()) }
+
+    fun chooseFormat(format: ExportFormat) = _state.update { it.copy(format = format) }
 
     fun choosePreset(preset: PeriodPreset) = _state.update { it.copy(preset = preset) }
 
@@ -109,15 +113,9 @@ class ExportViewModel @Inject constructor(
     }
 
     private fun write(current: ExportUiState, out: OutputStream): Map<ExportDataset, Int> {
-        val exporter = CsvExporter(db.openHelper.readableDatabase)
         // In the order the screen lists them, whatever order they were ticked in.
         val datasets = ExportDataset.entries.filter { it in current.selected }
-        val period = current.period
-        return if (datasets.size == 1) {
-            mapOf(datasets.single() to exporter.export(datasets.single(), period, out))
-        } else {
-            exporter.exportZip(datasets, period, out)
-        }
+        return DataExporter(db.openHelper.readableDatabase).export(datasets, current.period, current.format, out)
     }
 
     private fun run(block: (ExportUiState) -> ExportResult) {

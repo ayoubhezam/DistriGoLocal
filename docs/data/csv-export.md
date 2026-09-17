@@ -1,10 +1,19 @@
-# CSV export
+# Exports
 
-What DistriGo exports for a spreadsheet or an accountant, and how the files are written. The code is `data/export/`: `CsvWriter` writes the format, `ExportDataset` defines each file, `CsvExporter` streams them from the database.
+What DistriGo exports for a spreadsheet or an accountant, and how the files are written. The code is `data/export/`: `ExportDataset` defines the datasets and their columns, `XlsxWriter` and `CsvWriter` write the two formats, and `DataExporter` streams the rows from the database into whichever was asked for.
 
-## The format
+## Excel (`.xlsx`), the default
 
-Written for French Excel opened by double-click:
+One workbook, one sheet per dataset, written by hand as the ZIP of XML parts that a `.xlsx` is — no library needed. What it gives that CSV cannot:
+
+- **No separator question.** A workbook carries its own structure, so it opens the same way on any computer, in Excel, LibreOffice or Google Sheets.
+- **Real types.** Amounts are numbers (`#,##0.00`), quantities `#,##0.###`, dates are dates (`dd/mm/yyyy hh:mm`, kept to the second, shown to the minute), so sorting and totals work without reformatting.
+- **Text stays text.** A barcode or a `0555…` phone keeps its leading zeros, and a cell beginning with `=` is never run as a formula, so nothing has to be neutralised.
+- **The header is frozen** on each sheet, and columns open wide enough to read.
+
+## CSV, for other software
+
+One `.csv` per dataset, several as a `.zip` of them, written for French Excel opened by double-click:
 
 - **UTF-8 with a byte-order mark**, so accents and Arabic names display correctly.
 - **`;` between cells, CRLF between rows**, under a first line reading `sep=;`. A double-clicked CSV is split by the list separator of *that* computer's Windows region — `,` on an English one, which would put every row in one column — and `sep=;` is Excel's own way to be told otherwise. Tools other than Excel may show that line as a first row; importing the file rather than opening it ignores it.
@@ -15,7 +24,7 @@ Written for French Excel opened by double-click:
 
 Excel still reads a code made only of digits — a barcode, a `0555…` phone number — as a number, dropping leading zeros. To keep them, import the file (Données › À partir d'un fichier texte/CSV) and set those columns to Texte.
 
-One dataset is a `.csv`; several are a `.zip` of `<dataset>.csv` files, read in one transaction so they describe one moment.
+Both formats read every dataset in one transaction, so an export describes one moment.
 
 ## The datasets
 
@@ -23,7 +32,7 @@ Documents, payments, movements, charges and pertes are chosen by a period of **l
 
 | File | Rows | Columns |
 |---|---|---|
-| `ventes.csv` | Sales, by creation time | N°, Date, Client, Origine (Dépôt/Camion), Statut (En attente/Livré), Total, Payé, Reste, Note, Vendeur |
+| `ventes.csv`, sheet *Ventes* | Sales, by creation time | N°, Date, Client, Origine (Dépôt/Camion), Statut (En attente/Livré), Total, Payé, Reste, Note, Vendeur |
 | `lignes-de-vente.csv` | Sale lines, by their sale's time | N° vente, Date, Client, Produit, Unité, Quantité, Prix unitaire, Total |
 | `achats.csv` | Purchase orders, by creation time — or by their calendar date for older bons without one | N°, Date, Fournisseur, Statut (En attente/Reçu), Total, Payé, Reste, Note |
 | `paiements-clients.csv` | Client payments | Date, Client, Montant, Note |

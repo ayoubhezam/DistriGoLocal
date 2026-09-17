@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.export.ExportDataset
+import com.distrigo.app.data.export.ExportFormat
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -39,7 +40,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-/** Données et sauvegarde → Exporter en CSV: choose data and a period, then save the file or share it. */
+/** Données et sauvegarde → Exporter: choose data, a format and a period, then save the file or share it. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {
@@ -68,7 +69,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-            DsTopAppBar(title = "Exporter en CSV", leading = DsTopBarLeading.Back { if (!state.working) onBack() })
+            DsTopAppBar(title = "Exporter les données", leading = DsTopBarLeading.Back { if (!state.working) onBack() })
 
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
@@ -104,6 +105,19 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     }
                 }
 
+                // ── Format ──
+                Text("Format", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    ExportFormat.entries.forEach { format ->
+                        FilterChip(
+                            selected = state.format == format,
+                            onClick = { viewModel.chooseFormat(format) },
+                            label = { Text(format.label) },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DsColors.PrimaryLight, selectedLabelColor = DsColors.Primary)
+                        )
+                    }
+                }
+
                 // ── Période ──
                 if (state.usesPeriod) {
                     Text("Période", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
@@ -133,7 +147,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     )
                 }
 
-                // ── Excel ──
+                // ── What the format gives you ──
                 Row(
                     modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.PrimaryLight).padding(DsSpacing.lg),
                     verticalAlignment = Alignment.Top
@@ -141,10 +155,16 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.md))
                     Text(
-                        "Le fichier s'ouvre directement dans Excel. Deux particularités : un texte commençant par =, +, - ou @ " +
-                            "s'affiche avec une apostrophe devant (protection contre les formules), et Excel retire le 0 initial " +
-                            "des codes-barres et des téléphones. Pour les garder, importez le fichier depuis Excel (Données › " +
-                            "À partir d'un fichier texte/CSV) en réglant ces colonnes sur « Texte ».",
+                        when (state.format) {
+                            ExportFormat.XLSX ->
+                                "Un fichier Excel avec une feuille par donnée. Les montants sont des nombres, les dates des dates, " +
+                                    "et les codes-barres et téléphones gardent leur 0 initial, sur n'importe quel ordinateur."
+                            ExportFormat.CSV ->
+                                "Un fichier par donnée, pour les logiciels qui lisent le CSV. Dans Excel : un texte commençant par " +
+                                    "=, +, - ou @ s'affiche avec une apostrophe devant (protection contre les formules), et le 0 initial " +
+                                    "des codes-barres et des téléphones est retiré. Pour les garder, importez le fichier depuis Excel " +
+                                    "(Données › À partir d'un fichier texte/CSV) en réglant ces colonnes sur « Texte »."
+                        },
                         fontSize = DsTextSize.caption, color = DsColors.TextPrimary
                     )
                 }

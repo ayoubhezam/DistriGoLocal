@@ -393,7 +393,7 @@ private fun StatusLine(label: String, value: String) {
 
 @Composable
 private fun ExportSection(onOpen: () -> Unit) {
-    SectionTitle("Export pour Excel")
+    SectionTitle("Export")
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -403,7 +403,7 @@ private fun ExportSection(onOpen: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
         Text(
-            "Ventes, achats, paiements, clients, produits, mouvements de stock, charges et pertes, en fichiers CSV à ouvrir dans Excel ou à envoyer au comptable.",
+            "Ventes, achats, paiements, clients, produits, mouvements de stock, charges et pertes, en fichier Excel ou CSV, à ouvrir sur un ordinateur ou à envoyer au comptable.",
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
         )
         OutlinedButton(
@@ -414,7 +414,7 @@ private fun ExportSection(onOpen: () -> Unit) {
         ) {
             Icon(Icons.Default.TableChart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Exporter en CSV", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text("Exporter les données", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }

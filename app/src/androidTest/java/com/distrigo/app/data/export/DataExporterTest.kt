@@ -10,6 +10,7 @@ import com.distrigo.app.data.local.database.withChangeTracking
 import com.distrigo.app.data.local.database.withDeviceIdentity
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -26,13 +27,13 @@ import java.util.zip.ZipInputStream
  * Times are in Algeria, where 23:30 UTC is 00:30 the next day.
  */
 @RunWith(AndroidJUnit4::class)
-class CsvExporterTest {
+class DataExporterTest {
 
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
     private val algiers = ZoneId.of("Africa/Algiers")
     private lateinit var db: AppDatabase
     private lateinit var sql: SupportSQLiteDatabase
-    private lateinit var exporter: CsvExporter
+    private lateinit var exporter: DataExporter
 
     private val the17th = ExportPeriod(LocalDate.of(2026, 9, 17), LocalDate.of(2026, 9, 17))
 
@@ -43,7 +44,7 @@ class CsvExporterTest {
             .withDeviceIdentity { "6ded79d5-0000-4000-8000-000000000011" }
             .build()
         sql = db.openHelper.writableDatabase
-        exporter = CsvExporter(sql, algiers)
+        exporter = DataExporter(sql, algiers)
         seed()
     }
 
@@ -99,7 +100,7 @@ class CsvExporterTest {
 
     private fun export(dataset: ExportDataset, period: ExportPeriod = the17th): List<List<String>> {
         val out = ByteArrayOutputStream()
-        val count = exporter.export(dataset, period, out)
+        val count = exporter.export(listOf(dataset), period, ExportFormat.CSV, out).getValue(dataset)
         val bytes = out.toByteArray()
         assertTrue("$dataset starts with the byte-order mark", bytes.toString(Charsets.UTF_8).startsWith(CsvWriter.BOM))
         return CsvReader.parse(bytes).also { assertEquals("$dataset reports its rows", it.size - 1, count) }
@@ -197,7 +198,7 @@ class CsvExporterTest {
     @Test
     fun severalDatasetsGoInOneZipOfCsvFiles() {
         val out = ByteArrayOutputStream()
-        val counts = exporter.exportZip(listOf(ExportDataset.VENTES, ExportDataset.CLIENTS, ExportDataset.VENTES), the17th, out)
+        val counts = exporter.export(listOf(ExportDataset.VENTES, ExportDataset.CLIENTS, ExportDataset.VENTES), the17th, ExportFormat.CSV, out)
 
         assertEquals(mapOf(ExportDataset.VENTES to 3, ExportDataset.CLIENTS to 2), counts)
         val entries = mutableMapOf<String, ByteArray>()
@@ -218,12 +219,55 @@ class CsvExporterTest {
         try {
             for (dataset in ExportDataset.entries) {
                 val out = ByteArrayOutputStream()
-                assertEquals(dataset.name, 0, CsvExporter(empty.openHelper.writableDatabase, algiers).export(dataset, ExportPeriod.ALL, out))
+                assertEquals(dataset.name, 0, DataExporter(empty.openHelper.writableDatabase, algiers).export(listOf(dataset), ExportPeriod.ALL, ExportFormat.CSV, out).getValue(dataset))
                 assertEquals(dataset.name, 1, CsvReader.parse(out.toByteArray()).size)
             }
         } finally {
             empty.close()
         }
+    }
+
+    // ── Excel workbooks ──
+
+    /** The parts of a workbook the exporter writes, by name, with the rows each dataset contributed. */
+    private fun workbook(datasets: List<ExportDataset>, period: ExportPeriod = the17th): Pair<Map<String, String>, Map<ExportDataset, Int>> {
+        val out = ByteArrayOutputStream()
+        val counts = exporter.export(datasets, period, ExportFormat.XLSX, out)
+        val parts = mutableMapOf<String, String>()
+        ZipInputStream(ByteArrayInputStream(out.toByteArray())).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                parts[entry.name] = zip.readBytes().toString(Charsets.UTF_8)
+            }
+        }
+        return parts to counts
+    }
+
+    @Test
+    fun anExcelWorkbookHasOneSheetPerDatasetWithItsRows() {
+        val (parts, counts) = workbook(listOf(ExportDataset.VENTES, ExportDataset.CLIENTS))
+
+        assertEquals(mapOf(ExportDataset.VENTES to 3, ExportDataset.CLIENTS to 2), counts)
+        assertTrue(parts.keys.containsAll(setOf("xl/workbook.xml", "xl/styles.xml", "xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml")))
+        assertTrue(parts.getValue("xl/workbook.xml").contains("name=\"Ventes\""))
+        assertTrue(parts.getValue("xl/workbook.xml").contains("name=\"Clients\""))
+        assertEquals("the header and one row per sale", 4, Regex("<row ").findAll(parts.getValue("xl/worksheets/sheet1.xml")).count())
+    }
+
+    /** What CSV cannot do: a total stays a number, a date a date, and a name that looks like a formula stays text. */
+    @Test
+    fun aWorkbookKeepsTypesAndNeedsNoNeutralising() {
+        val sheet = workbook(listOf(ExportDataset.VENTES)).first.getValue("xl/worksheets/sheet1.xml")
+
+        assertTrue("the total is a number", sheet.contains("<v>3450</v>"))
+        assertTrue(
+            "the client that looks like a formula is text, with no apostrophe",
+            sheet.contains("<t xml:space=\"preserve\">=HYPERLINK(&quot;http://x&quot;)</t>")
+        )
+        assertFalse(sheet.contains("&apos;=HYPERLINK"))
+        // 00:30 on the 17th in Algeria, as a day count with a fraction of a day.
+        val serial = java.time.LocalDate.of(2026, 9, 17).toEpochDay() + 25569
+        assertTrue("the date is a date", sheet.contains("<v>$serial.02"))
     }
 }
 

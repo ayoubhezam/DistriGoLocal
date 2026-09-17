@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.settings.data.export
 
 import com.distrigo.app.data.export.ExportDataset
+import com.distrigo.app.data.export.ExportFormat
 import com.distrigo.app.data.export.ExportPeriod
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -44,10 +45,10 @@ object ExportChoices {
     }
 
     /**
-     * `DistriGo-ventes-2026-09-01-au-2026-09-17.csv` for one dataset, `DistriGo-export-….zip` for several. Clients
+     * `DistriGo-ventes-2026-09-01-au-2026-09-17.xlsx`, or `DistriGo-export-….zip` for several datasets as CSV. Clients
      * and products alone are dated by the day of the export, since they are what they are that day.
      */
-    fun fileName(datasets: Set<ExportDataset>, period: ExportPeriod, today: LocalDate): String {
+    fun fileName(datasets: Set<ExportDataset>, period: ExportPeriod, today: LocalDate, format: ExportFormat): String {
         val what = datasets.singleOrNull()?.fileName ?: "export"
         val `when` = if (datasets.none { it.byPeriod }) today.toString() else when {
             period.from != null && period.to != null && period.from == period.to -> period.from.toString()
@@ -56,8 +57,8 @@ object ExportChoices {
             period.to != null -> "jusqu-au-${period.to}"
             else -> "tout"
         }
-        return "DistriGo-$what-$`when`.${if (datasets.size == 1) "csv" else "zip"}"
+        return "DistriGo-$what-$`when`.${format.extensionFor(datasets.size)}"
     }
 
-    fun mimeType(datasets: Set<ExportDataset>): String = if (datasets.size == 1) "text/csv" else "application/zip"
+    fun mimeType(datasets: Set<ExportDataset>, format: ExportFormat): String = format.mimeTypeFor(datasets.size)
 }
