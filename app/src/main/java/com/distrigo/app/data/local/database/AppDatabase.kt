@@ -2,6 +2,7 @@ package com.distrigo.app.data.local.database
 
 import android.content.Context
 import com.distrigo.app.data.device.DeviceIdentity
+import com.distrigo.app.data.backup.RestoreInstaller
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -143,6 +144,9 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                // Application.onCreate has already done this; repeated here so no path opens the database
+                // before a waiting restore is installed. A no-op when none is waiting.
+                RestoreInstaller.forApp(context).installPending()
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

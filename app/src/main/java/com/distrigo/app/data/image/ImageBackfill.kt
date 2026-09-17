@@ -52,6 +52,11 @@ object ImageBackfill {
     fun isDone(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DONE, false)
 
+    /** Forgets that the walk was done, so the next launch walks again: for a database that was replaced. */
+    fun reset(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_DONE).commit()
+    }
+
     private fun markDone(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_DONE, true).apply()

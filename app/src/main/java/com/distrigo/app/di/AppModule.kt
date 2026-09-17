@@ -2,6 +2,9 @@ package com.distrigo.app.di
 
 import com.distrigo.app.data.backup.BackupCreator
 import com.distrigo.app.data.backup.BackupInspector
+import com.distrigo.app.data.backup.RestoreCoordinator
+import com.distrigo.app.data.backup.RestoreInstaller
+import com.distrigo.app.data.backup.RestorePreparer
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import android.content.Context
 import com.distrigo.app.data.local.database.AppDatabase
@@ -41,6 +44,16 @@ object AppModule {
     @Singleton
     fun provideBackupInspector(@ApplicationContext context: Context, db: AppDatabase): BackupInspector =
         BackupInspector(db, context.contentResolver)
+
+    @Provides
+    @Singleton
+    fun provideRestoreInstaller(@ApplicationContext context: Context): RestoreInstaller =
+        RestoreInstaller.forApp(context)
+
+    @Provides
+    @Singleton
+    fun provideRestoreCoordinator(@ApplicationContext context: Context, creator: BackupCreator, installer: RestoreInstaller): RestoreCoordinator =
+        RestoreCoordinator(RestorePreparer.forApp(context), creator, installer)
 
     @Provides
     @Singleton

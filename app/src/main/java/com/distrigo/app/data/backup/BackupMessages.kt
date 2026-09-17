@@ -28,6 +28,22 @@ object BackupMessages {
             "Cette sauvegarde est endommagée ou incomplète et ne peut pas être restaurée. Essayez une autre copie."
     }
 
+    /** A restore that did not go ahead because the current data could not be saved first. */
+    fun safetyBackupFailed(reason: BackupFailedException.Reason): String = when (reason) {
+        BackupFailedException.Reason.DATABASE_DAMAGED ->
+            "La restauration n'a pas été lancée : vos données actuelles n'ont pas passé la vérification, et aucune copie de sécurité n'a pu en être faite."
+        else ->
+            "La restauration n'a pas été lancée : impossible d'enregistrer d'abord une copie de sécurité de vos données actuelles. Vérifiez l'espace disponible, puis réessayez."
+    }
+
+    /** How the last restore ended, told once the app has restarted. */
+    fun of(result: RestoreResult): String =
+        if (result.installed) {
+            "Restauration terminée. Une copie de sécurité de vos données précédentes a été conservée."
+        } else {
+            "La restauration n'a pas pu être installée. Vos données n'ont pas changé."
+        }
+
     /** Whole megabytes, rounded up: asking for too little space would fail again. */
     internal fun megabytes(bytes: Long): Long = (bytes + (1L shl 20) - 1) shr 20
 

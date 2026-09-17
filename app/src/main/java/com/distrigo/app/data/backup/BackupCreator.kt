@@ -67,8 +67,11 @@ class BackupCreator(
     /**
      * Blocks for the whole backup, doing file I/O: call it off the main thread. One backup runs at a
      * time; a second call waits for the first.
+     *
+     * [record] is false for the safety backup a restore takes: it is not a backup the user made, and the
+     * data it would be recorded in is about to be replaced.
      */
-    fun create(destination: Uri, onStep: (Step) -> Unit = {}): CreatedBackup = synchronized(LOCK) {
+    fun create(destination: Uri, record: Boolean = true, onStep: (Step) -> Unit = {}): CreatedBackup = synchronized(LOCK) {
         workDir.deleteRecursively()
         workDir.mkdirs()
         try {
@@ -127,7 +130,7 @@ class BackupCreator(
                 missingPhotos = snapshot.missingImages,
                 damagedPhotos = damagedPhotos,
             )
-            db.appMetaDao().putAll(
+            if (record) db.appMetaDao().putAll(
                 listOf(
                     AppMetaEntity(KEY_LAST_AT, manifest.createdAt.toString()),
                     AppMetaEntity(KEY_LAST_SIZE, created.size.toString()),

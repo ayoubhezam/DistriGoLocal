@@ -18,7 +18,9 @@ class BackupMessagesTest {
 
     @Test
     fun `every problem and failure has a message`() {
-        val messages = problems.map(BackupMessages::of) + BackupFailedException.Reason.entries.map(BackupMessages::of)
+        val results = listOf(true, false).map { RestoreResult(it, java.time.Instant.EPOCH, null, null, null) }
+        val messages = problems.map(BackupMessages::of) + BackupFailedException.Reason.entries.map(BackupMessages::of) +
+            BackupFailedException.Reason.entries.map(BackupMessages::safetyBackupFailed) + results.map(BackupMessages::of)
         for (message in messages) {
             assertTrue(message, message.length > 30 && message.endsWith("."))
         }
@@ -49,5 +51,11 @@ class BackupMessagesTest {
     fun `a newer backup asks for an update, whichever part is newer`() {
         assertEquals(BackupMessages.of(BackupProblem.NewerFormat(2)), BackupMessages.of(BackupProblem.NewerDatabase(53, 52)))
         assertTrue("mettez l'application à jour" in BackupMessages.of(BackupProblem.NewerFormat(2)).lowercase())
+    }
+
+    @Test
+    fun `a failed restore says the data did not change`() {
+        val failed = BackupMessages.of(RestoreResult(false, java.time.Instant.EPOCH, null, null, "quick_check: page 3"))
+        assertTrue(failed, "n'ont pas changé" in failed && "quick_check" !in failed)
     }
 }

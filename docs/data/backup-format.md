@@ -83,10 +83,20 @@ Only a file that passes these is previewed: its date, the phone that made it, an
 
 The schema declares no foreign keys, so there is no `foreign_key_check` to run. A failure at any point deletes the staging folder; nothing on the phone has changed.
 
-Only then is an automatic safety backup of the current data taken, and the database and photos are swapped in when the app next starts, before the database opens.
+### Installing
+
+Only then is a **safety backup** of the current data taken: a normal `.distrigo` file in `no_backup/restore/safety`, named `avant-restauration-<local time>.distrigo`, restorable like any other to undo the restore. The newest three are kept. They are in the app's private storage, so they do not survive uninstalling the app. No safety backup, no restore (`RestoreCoordinator`).
+
+The prepared restore then moves to `no_backup/restore/pending` with a `READY` marker, and the app restarts. The swap happens at the very start of the next launch, in `Application.onCreate` and again before the database is built, so nothing can be holding the old data (`RestoreInstaller`):
+
+1. `moving-old`: the database files and the photo folder move to `restore/previous`.
+2. `moving-new`: the restored database and photos move into place, and the database passes `quick_check`, is at this app's version, and is the `database_id` that was prepared.
+3. `finishing`: `app_meta` records `restore.last_at` and `restore.backup_created_at`, ImageBackfill's done flag is cleared, and `pending` and `previous` are deleted.
+
+Each move is a rename within the app's storage, and the stage is written to `restore/install-state` before it starts. A launch killed in stage 1 or 2 puts every file back and starts again, at most three times; one killed in stage 3 finishes it. A restored database that fails its check is not retried: the old data goes back and the restore is discarded. The outcome is written to `restore/last-result` for the screen to report.
 
 ### Identity after a restore
 
 - **`database_id` is kept from the backup.** It is the same body of data, whichever phone it lands on.
 - **`device_id` is the restoring phone's**, as on every open. Documents created after the restore are numbered with that phone's code, continuing the counters the backup carried, so they cannot collide with numbers the other phone issues.
-- **The restore is recorded in `app_meta`**, so sync can later tell that this database went back in time.
+- **The restore is recorded in `app_meta`** (`restore.last_at`, `restore.backup_created_at`), so sync can later tell that this database went back in time.
