@@ -170,7 +170,10 @@ class RestorePreparerTest {
         assertEquals(databaseId, query(restore.database, "SELECT value FROM app_meta WHERE key = 'database_id'") { it.getString(0) })
         assertEquals("this phone's identity is set now", RESTORING_DEVICE, query(restore.database, "SELECT value FROM app_meta WHERE key = 'device_id'") { it.getString(0) })
 
-        assertFalse("Room's lock for the staged database is removed with its folders", File(context.cacheDir, restore.database.absolutePath.split('/').filter { it.isNotEmpty() }.first()).exists())
+        // Only this database's lock and the folders made for it: other code, such as WorkManager, keeps its own there.
+        val lock = File(context.cacheDir, restore.database.absolutePath + ".lck")
+        assertFalse("Room's lock for the staged database is removed", lock.exists())
+        assertFalse("with the folders made for it", lock.parentFile!!.exists())
         assertEquals("the data on the phone is untouched", BACKED_UP_DEVICE, db.appMetaDao().get("device_id"))
         assertEquals(2L, sql.query("SELECT COUNT(*) FROM products").use { it.moveToFirst(); it.getLong(0) })
     }

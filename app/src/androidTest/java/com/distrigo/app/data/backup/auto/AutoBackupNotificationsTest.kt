@@ -26,6 +26,20 @@ class AutoBackupNotificationsTest {
 
     private fun shown() = manager.activeNotifications.filter { it.id == AutoBackupNotifications.NOTIFICATION_ID }
 
+    private fun shownText() = shown().singleOrNull()?.notification?.extras?.getCharSequence("android.text")?.toString()
+
+    /**
+     * Waits for the system to show what was posted. Android rate-limits an app's notification updates, so a post
+     * right after another can take a moment to appear; a condition still false after five seconds fails.
+     */
+    private fun eventually(what: String, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (!condition()) {
+            if (System.currentTimeMillis() > deadline) throw AssertionError(what)
+            Thread.sleep(100)
+        }
+    }
+
     private val failing = AutoBackupState(enabled = true, problemStreak = 2, lastProblem = AutoBackupProblem.FOLDER_UNAVAILABLE)
 
     @After
@@ -41,6 +55,7 @@ class AutoBackupNotificationsTest {
         assertTrue("one failure is not notified", shown().isEmpty())
 
         notifications.update(failing)
+        eventually("the second failure is notified") { shown().size == 1 }
         val notification = shown().single().notification
         assertEquals("Sauvegardes automatiques en échec", notification.extras.getString("android.title"))
         assertEquals(AutoBackupProblem.FOLDER_UNAVAILABLE.message, notification.extras.getCharSequence("android.text").toString())
@@ -48,19 +63,19 @@ class AutoBackupNotificationsTest {
         assertTrue("tapping it opens the app", notification.contentIntent != null)
 
         notifications.update(failing.copy(problemStreak = 3, lastProblem = AutoBackupProblem.WRITE_FAILED))
-        assertEquals("later failures update the same notification", 1, shown().size)
-        assertEquals(AutoBackupProblem.WRITE_FAILED.message, shown().single().notification.extras.getCharSequence("android.text").toString())
+        eventually("later failures update the same notification") { shownText() == AutoBackupProblem.WRITE_FAILED.message }
+        assertEquals(1, shown().size)
 
         notifications.update(failing.copy(problemStreak = 0, lastProblem = null))
-        assertTrue("a good run removes it", shown().isEmpty())
+        eventually("a good run removes it") { shown().isEmpty() }
     }
 
     @Test
     fun turningBackupsOffRemovesTheNotification() {
         assumeTrue(NotificationManagerCompat.from(context).areNotificationsEnabled())
         notifications.update(failing)
-        assertEquals(1, shown().size)
+        eventually("shown") { shown().size == 1 }
         notifications.update(failing.copy(enabled = false))
-        assertTrue(shown().isEmpty())
+        eventually("removed when backups are turned off") { shown().isEmpty() }
     }
 }
