@@ -95,6 +95,15 @@ The prepared restore then moves to `no_backup/restore/pending` with a `READY` ma
 
 Each move is a rename within the app's storage, and the stage is written to `restore/install-state` before it starts. A launch killed in stage 1 or 2 puts every file back and starts again, at most three times; one killed in stage 3 finishes it. A restored database that fails its check is not retried: the old data goes back and the restore is discarded. The outcome is written to `restore/last-result` for the screen to report.
 
+## Automatic backups
+
+A normal `.distrigo` backup, saved without the user (`data/backup/auto`):
+
+- **Where.** A folder the user picks once with the system folder picker; the app keeps access to it across restarts. When that folder cannot be used — deleted, renamed, or its access taken back — the backup is saved in the app's own storage (`no_backup/auto-backup/files`) and the screen says the folder is inaccessible. A copy there is not recorded as the data's last backup: it does not survive uninstalling the app.
+- **When nothing changed, nothing is saved.** `DataFingerprint` digests every table's row ids and `updated_at`, `tombstones`, and `app_meta` without its `backup.*` and `restore.*` keys. A run whose fingerprint matches the last backup's, whose last file is still where it was saved, saves nothing. The fingerprint is taken before the copy, so a change during a backup causes one more backup, never one fewer.
+- **Names and rotation.** `DistriGo-auto-yyyy-MM-dd-HHmmss.distrigo`, in local time and to the second, so two backups never share a name. After each save only the newest seven files with exactly that name shape are kept. Nothing else in the folder is ever deleted: manual backups, renamed copies, `… (1)` duplicates or the user's own files.
+- **State.** The folder and the last run's fingerprint, time, file and location are kept in `no_backup/auto-backup/state.json`, not in the database: they belong to the phone, and a restore must neither bring another phone's folder nor make the next run believe restored data was already backed up.
+
 ### Identity after a restore
 
 - **`database_id` is kept from the backup.** It is the same body of data, whichever phone it lands on.

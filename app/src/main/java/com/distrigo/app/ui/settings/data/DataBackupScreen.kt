@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
@@ -41,6 +42,8 @@ import com.distrigo.app.data.backup.BackupMessages
 import com.distrigo.app.data.backup.BackupPreview
 import com.distrigo.app.data.backup.CreatedBackup
 import com.distrigo.app.data.backup.RestoreResult
+import com.distrigo.app.data.backup.auto.AutoBackupOutcome
+import com.distrigo.app.data.backup.auto.AutoBackupRunner
 import com.distrigo.app.ui.common.formatRelativeFr
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -68,6 +71,7 @@ fun DataBackupScreen(
     val counts by viewModel.counts.collectAsState()
     val safetyBackups by viewModel.safetyBackups.collectAsState()
     val lastRestore by viewModel.lastRestore.collectAsState()
+    val autoFolder by viewModel.autoFolder.collectAsState()
 
     val createLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(BackupFormat.MIME_TYPE)
@@ -76,6 +80,12 @@ fun DataBackupScreen(
     // a file that is not a backup is refused with a message.
     val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.inspect(it) }
+    }
+
+    LaunchedEffect(Unit) { viewModel.refresh() }
+
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let(viewModel::chooseAutoBackupFolder)
     }
 
     BackHandler {
@@ -130,6 +140,12 @@ fun DataBackupScreen(
                     onCreate = { createLauncher.launch(BackupFormat.fileName(Instant.now())) }
                 )
 
+                AutoBackupSection(
+                    folder = autoFolder,
+                    onChooseFolder = { folderLauncher.launch(null) },
+                    onBackupNow = viewModel::backupNow,
+                )
+
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
 
                 if (safetyBackups.isNotEmpty()) {
@@ -143,6 +159,7 @@ fun DataBackupScreen(
         when (val current = state) {
             is DataBackupState.Working -> WorkingOverlay(current.label)
             is DataBackupState.BackupSaved -> BackupSavedDialog(current.backup, onDismiss = viewModel::dismiss)
+            is DataBackupState.AutoBackupSaved -> AutoBackupSavedDialog(current.outcome, onDismiss = viewModel::dismiss)
             is DataBackupState.Failed -> FailedDialog(current.message, onDismiss = viewModel::dismiss)
             else -> Unit
         }
@@ -201,6 +218,68 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
         }
         Text(
             "Le fichier contient toutes vos données et vos photos. Gardez-le hors du téléphone (Google Drive, ordinateur) pour le retrouver si le téléphone est perdu ou remplacé.",
+            fontSize = DsTextSize.caption, color = DsColors.TextSecondary
+        )
+    }
+}
+
+@Composable
+private fun AutoBackupSection(folder: AutoBackupFolder, onChooseFolder: () -> Unit, onBackupNow: () -> Unit) {
+    SectionTitle("Sauvegarde automatique")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.SurfaceMuted)
+            .padding(DsSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+    ) {
+        val lost = folder.chosen && !folder.available
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(
+                icon = if (lost) Icons.Default.WarningAmber else Icons.Default.Folder,
+                background = if (lost) DsColors.WarningLight else DsColors.PrimaryLight,
+                tint = if (lost) DsColors.Warning else DsColors.Primary,
+            )
+            Spacer(Modifier.width(DsSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("Dossier", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text(
+                    when {
+                        !folder.chosen -> "Aucun dossier choisi"
+                        lost -> "Dossier inaccessible"
+                        else -> folder.name ?: "Dossier choisi"
+                    },
+                    fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
+                )
+                if (lost) {
+                    Text(
+                        "Il a été supprimé ou l'accès a été retiré. Choisissez-le à nouveau ; en attendant, les sauvegardes restent dans l'application.",
+                        fontSize = DsTextSize.caption, color = DsColors.Warning
+                    )
+                }
+            }
+        }
+        OutlinedButton(
+            onClick = onChooseFolder,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = DsShapes.medium,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+        ) {
+            Text(if (folder.chosen) "Changer de dossier" else "Choisir le dossier", fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
+        if (folder.chosen && folder.available) {
+            OutlinedButton(
+                onClick = onBackupNow,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = DsShapes.medium,
+                border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+            ) {
+                Text("Sauvegarder maintenant", fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            }
+        }
+        Text(
+            "Les ${AutoBackupRunner.KEEP} dernières sauvegardes automatiques sont conservées dans ce dossier. Les autres fichiers du dossier ne sont jamais modifiés.",
             fontSize = DsTextSize.caption, color = DsColors.TextSecondary
         )
     }
@@ -471,6 +550,38 @@ private fun BackupSavedDialog(backup: CreatedBackup, onDismiss: () -> Unit) {
                 if (left > 0) {
                     Text("$left photo(s) introuvable(s) ou endommagée(s) sur le téléphone n'ont pas pu être incluses.",
                         fontSize = DsTextSize.bodySmall, color = DsColors.Warning)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        containerColor = DsColors.Surface,
+        titleContentColor = DsColors.TextPrimary,
+        textContentColor = DsColors.TextSecondary
+    )
+}
+
+@Composable
+private fun AutoBackupSavedDialog(outcome: AutoBackupOutcome.Saved, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                if (outcome.inPrivateStorage) Icons.Default.WarningAmber else Icons.Default.CheckCircle, contentDescription = null,
+                tint = if (outcome.inPrivateStorage) DsColors.Warning else DsColors.Success
+            )
+        },
+        title = { Text("Sauvegarde enregistrée") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                Text("${outcome.fileName} (${DataBackupFormatting.size(outcome.size)}) a été enregistrée et vérifiée dans « ${outcome.folderName} ».")
+                if (outcome.removed > 0) {
+                    Text("${outcome.removed} ancienne(s) sauvegarde(s) automatique(s) supprimée(s).", fontSize = DsTextSize.bodySmall)
+                }
+                if (outcome.inPrivateStorage) {
+                    Text(
+                        "Le dossier choisi n'est pas accessible : cette copie est restée dans l'application et sera perdue si l'application est désinstallée.",
+                        fontSize = DsTextSize.bodySmall, color = DsColors.Warning
+                    )
                 }
             }
         },

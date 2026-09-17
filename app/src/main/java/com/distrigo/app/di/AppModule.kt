@@ -1,6 +1,7 @@
 package com.distrigo.app.di
 
 import com.distrigo.app.data.backup.BackupCreator
+import com.distrigo.app.data.backup.auto.AutoBackupRunner
 import com.distrigo.app.data.backup.BackupInspector
 import com.distrigo.app.data.backup.RestoreCoordinator
 import com.distrigo.app.data.backup.RestoreInstaller
@@ -44,6 +45,11 @@ object AppModule {
     @Singleton
     fun provideBackupInspector(@ApplicationContext context: Context, db: AppDatabase): BackupInspector =
         BackupInspector(db, context.contentResolver)
+
+    @Provides
+    @Singleton
+    fun provideAutoBackupRunner(@ApplicationContext context: Context, db: AppDatabase, creator: BackupCreator): AutoBackupRunner =
+        AutoBackupRunner.forApp(context, db, creator)
 
     @Provides
     @Singleton

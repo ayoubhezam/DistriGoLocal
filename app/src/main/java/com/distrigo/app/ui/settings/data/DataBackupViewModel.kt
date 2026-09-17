@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.data
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,8 +15,12 @@ import com.distrigo.app.data.backup.RestoreCoordinator
 import com.distrigo.app.data.backup.RestoreInstaller
 import com.distrigo.app.data.backup.RestoreOutcome
 import com.distrigo.app.data.backup.RestoreResult
+import com.distrigo.app.data.backup.auto.AutoBackupOutcome
+import com.distrigo.app.data.backup.auto.AutoBackupRunner
+import com.distrigo.app.data.backup.auto.PickedFolder
 import com.distrigo.app.data.local.database.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +37,9 @@ import javax.inject.Inject
 /** The last backup made of this data, from `app_meta`. */
 data class LastBackup(val at: Instant, val size: Long?, val fileName: String)
 
+/** The folder automatic backups go to, as the screen shows it. */
+data class AutoBackupFolder(val chosen: Boolean, val name: String?, val available: Boolean)
+
 /** A safety backup kept from an earlier restore. */
 data class SafetyBackup(val file: File, val at: Instant, val size: Long)
 
@@ -40,6 +48,7 @@ sealed class DataBackupState {
     data object Idle : DataBackupState()
     data class Working(val label: String) : DataBackupState()
     data class BackupSaved(val backup: CreatedBackup) : DataBackupState()
+    data class AutoBackupSaved(val outcome: AutoBackupOutcome.Saved) : DataBackupState()
     data class Previewing(val preview: BackupPreview, val isSafetyBackup: Boolean) : DataBackupState()
     /** A restore is scheduled: the app must restart now. */
     data object RestartNeeded : DataBackupState()
@@ -48,6 +57,8 @@ sealed class DataBackupState {
 
 @HiltViewModel
 class DataBackupViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val autoBackup: AutoBackupRunner,
     private val db: AppDatabase,
     private val creator: BackupCreator,
     private val inspector: BackupInspector,
@@ -77,11 +88,14 @@ class DataBackupViewModel @Inject constructor(
     /** How the last restore ended, until the user dismisses it. */
     val lastRestore: StateFlow<RestoreResult?> = _lastRestore.asStateFlow()
 
-    init {
-        refresh()
-    }
+    private val _autoFolder = MutableStateFlow(AutoBackupFolder(chosen = false, name = null, available = false))
+    val autoFolder: StateFlow<AutoBackupFolder> = _autoFolder.asStateFlow()
 
-    private fun refresh() {
+    /**
+     * Reads the counts, the folder, the safety backups and the last restore again. The screen calls it each
+     * time it opens: this view model outlives the screen, and any of these can change while it is closed.
+     */
+    fun refresh() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 _counts.value = inspector.currentCounts()
@@ -89,6 +103,7 @@ class DataBackupViewModel @Inject constructor(
                     SafetyBackup(it, DataBackupFormatting.safetyBackupTime(it), it.length())
                 }
                 _lastRestore.value = installer.lastResult()
+                _autoFolder.value = readAutoFolder()
             }
         }
     }
@@ -108,6 +123,42 @@ class DataBackupViewModel @Inject constructor(
             DataBackupState.BackupSaved(created)
         } catch (e: BackupFailedException) {
             DataBackupState.Failed(BackupMessages.of(e.reason))
+        }
+    }
+
+    private fun readAutoFolder(): AutoBackupFolder {
+        val uri = autoBackup.store.read().folderUri ?: return AutoBackupFolder(chosen = false, name = null, available = false)
+        val folder = PickedFolder(context.contentResolver, Uri.parse(uri))
+        val available = folder.isAvailable()
+        return AutoBackupFolder(chosen = true, name = if (available) folder.displayName else null, available = available)
+    }
+
+    /**
+     * Makes [treeUri], just picked, the folder for automatic backups. Its permission is kept across restarts;
+     * the previous folder's is given back, so the app does not keep access to folders it no longer uses.
+     */
+    fun chooseAutoBackupFolder(treeUri: Uri) = run("Enregistrement du dossier…") {
+        val resolver = context.contentResolver
+        resolver.takePersistableUriPermission(treeUri, PickedFolder.PERMISSION_FLAGS)
+        val previous = autoBackup.store.read().folderUri
+        autoBackup.store.update { it.copy(folderUri = treeUri.toString()) }
+        if (previous != null && previous != treeUri.toString()) {
+            try {
+                resolver.releasePersistableUriPermission(Uri.parse(previous), PickedFolder.PERMISSION_FLAGS)
+            } catch (e: SecurityException) {
+                // Already gone: nothing to give back.
+            }
+        }
+        _autoFolder.value = readAutoFolder()
+        DataBackupState.Idle
+    }
+
+    /** Runs an automatic backup now, whether or not the data changed since the last one. */
+    fun backupNow() = run("Sauvegarde automatique…") {
+        when (val outcome = autoBackup.run(force = true)) {
+            is AutoBackupOutcome.Saved -> DataBackupState.AutoBackupSaved(outcome)
+            is AutoBackupOutcome.Failed -> DataBackupState.Failed(BackupMessages.of(outcome.reason))
+            AutoBackupOutcome.Unchanged -> DataBackupState.Idle
         }
     }
 
