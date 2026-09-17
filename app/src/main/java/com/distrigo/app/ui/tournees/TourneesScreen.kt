@@ -1327,7 +1327,7 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    formatOrderDate(tournee.date_debut?.take(10) ?: ""),
+                    formatOrderDate(tournee.date_debut ?: ""),
                     fontSize = DsTextSize.caption,
                     color = DsColors.TextSecondary
                 )

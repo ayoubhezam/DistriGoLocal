@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.common
 
+import java.time.ZoneId
+import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.PurchaseOrder
@@ -107,7 +109,10 @@ fun clientsOfVentes(ventes: List<Vente>): List<Pair<Int, String>> =
         .sortedBy { it.second }
 
 /** [ventes] matching the search — client name or sale number — and every filter in [filters]. */
-fun filterVentes(ventes: List<Vente>, query: String, filters: VenteListFilters): List<Vente> {
+fun filterVentes(
+    ventes: List<Vente>, query: String, filters: VenteListFilters,
+    zone: ZoneId = ZoneId.systemDefault()
+): List<Vente> {
     // A blank search matches everything without being tokenised, exactly as the inline code did.
     val searchBlank = query.isBlank()
     val tokens      = if (searchBlank) emptyList() else searchTokens(query)
@@ -131,7 +136,7 @@ fun filterVentes(ventes: List<Vente>, query: String, filters: VenteListFilters):
 
         val matchClient = filters.clientId == null || vente.client_id == filters.clientId
 
-        val venteDate     = vente.created_at?.take(10) ?: ""
+        val venteDate     = BusinessDates.localDay(vente.created_at, zone)
         val matchDateFrom = dateFrom == null || venteDate >= dateFrom
         val matchDateTo   = dateTo   == null || venteDate <= dateTo
 
@@ -140,8 +145,8 @@ fun filterVentes(ventes: List<Vente>, query: String, filters: VenteListFilters):
 }
 
 /** [ventes] grouped by day, the days in the order they first appear. */
-fun groupVentesByDay(ventes: List<Vente>): Map<String, List<Vente>> =
-    ventes.groupBy { vente -> vente.created_at?.take(10) ?: "" }
+fun groupVentesByDay(ventes: List<Vente>, zone: ZoneId = ZoneId.systemDefault()): Map<String, List<Vente>> =
+    ventes.groupBy { vente -> BusinessDates.localDay(vente.created_at, zone) }
 
 // ── Achats ──
 
@@ -161,7 +166,10 @@ fun suppliersOfOrders(orders: List<PurchaseOrder>): List<Pair<Int, String>> =
         .sortedBy { it.second }
 
 /** [orders] matching the search — supplier name or bon number — and every filter in [filters]. */
-fun filterOrders(orders: List<PurchaseOrder>, query: String, filters: OrderListFilters): List<PurchaseOrder> {
+fun filterOrders(
+    orders: List<PurchaseOrder>, query: String, filters: OrderListFilters,
+    zone: ZoneId = ZoneId.systemDefault()
+): List<PurchaseOrder> {
     // A blank search matches everything without being tokenised, exactly as the inline code did.
     val searchBlank = query.isBlank()
     val tokens      = if (searchBlank) emptyList() else searchTokens(query)
@@ -187,7 +195,7 @@ fun filterOrders(orders: List<PurchaseOrder>, query: String, filters: OrderListF
         val matchSupplier = filters.supplierId == null ||
             order.supplier_id == filters.supplierId
 
-        val orderDate     = order.created_at?.take(10) ?: order.date.take(10)
+        val orderDate     = BusinessDates.localDay(order.created_at ?: order.date, zone)
         val matchDateFrom = dateFrom == null || orderDate >= dateFrom
         val matchDateTo   = dateTo   == null || orderDate <= dateTo
 
@@ -196,7 +204,7 @@ fun filterOrders(orders: List<PurchaseOrder>, query: String, filters: OrderListF
 }
 
 /** [orders] grouped by day, the days in the order they first appear. */
-fun groupOrdersByDay(orders: List<PurchaseOrder>): Map<String, List<PurchaseOrder>> =
+fun groupOrdersByDay(orders: List<PurchaseOrder>, zone: ZoneId = ZoneId.systemDefault()): Map<String, List<PurchaseOrder>> =
     orders.groupBy { order ->
-        order.created_at?.take(10) ?: order.date.take(10)
+        BusinessDates.localDay(order.created_at ?: order.date, zone)
     }

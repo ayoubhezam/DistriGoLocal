@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.time.BusinessDates
 import androidx.room.withTransaction
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
@@ -1434,8 +1435,12 @@ class ProductRepository(
         direction: String? = null,
         sourceLabel: String? = null
     ): List<StockMovement> {
+        // The picked days are local and both included: from the first moment of [dateFrom] to the
+        // first moment after [dateTo]. Compared as strings with created_at, the days themselves used
+        // to leave out the whole last day, and read the others in UTC.
+        val (start, end) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
         return db.stockMovementDao()
-            .getFilteredMovements(productId, dateFrom, dateTo, direction, sourceLabel)
+            .getFilteredMovements(productId, start, end, direction, sourceLabel)
             .map { it.toStockMovement() }
     }
 

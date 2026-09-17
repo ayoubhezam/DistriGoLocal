@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.inventory
 
+import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -83,7 +84,7 @@ fun InventoryHistoryScreen(
             }
         } else {
             val grouped = remember(filteredHistory) {
-                filteredHistory.groupBy { (it.session.completed_at ?: it.session.started_at).take(10) }
+                filteredHistory.groupBy { BusinessDates.localDay(it.session.completed_at ?: it.session.started_at) }
             }
             LazyColumn(
                 contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),

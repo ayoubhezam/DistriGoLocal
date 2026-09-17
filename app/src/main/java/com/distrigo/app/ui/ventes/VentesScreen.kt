@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -867,7 +868,7 @@ fun VenteDetailScreen(
                             Spacer(Modifier.width(DsSpacing.md))
                             Column {
                                 Text(displayVente.client_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                Text(displayVente.created_at?.take(10) ?: "", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(BusinessDates.localDay(displayVente.created_at), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                         }
 

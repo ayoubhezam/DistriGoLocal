@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -859,10 +860,14 @@ fun CornerRibbon(label: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-fun formatOrderDate(dateStr: String): String {
+/**
+ * "Aujourd'hui", "Hier", or the day in full. Takes a calendar date or a stored instant; an instant
+ * is read in the local zone, so a sale at 00:30 is today's, not yesterday's.
+ */
+fun formatOrderDate(dateStr: String, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String {
     return try {
-        val date      = java.time.LocalDate.parse(dateStr.take(10))
-        val today     = java.time.LocalDate.now()
+        val date      = java.time.LocalDate.parse(BusinessDates.localDay(dateStr, zone))
+        val today     = java.time.LocalDate.now(zone)
         val yesterday = today.minusDays(1)
         when (date) {
             today     -> "Aujourd'hui"

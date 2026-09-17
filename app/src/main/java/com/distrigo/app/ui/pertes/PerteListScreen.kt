@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -117,7 +118,7 @@ fun PerteListScreen(
                 }
             }
         }  else {
-            val groupedPertes = remember(pertes) { pertes.groupBy { it.date_time.take(10) } }
+            val groupedPertes = remember(pertes) { pertes.groupBy { BusinessDates.localDay(it.date_time) } }
             LazyColumn(
                 modifier            = Modifier.fillMaxWidth().weight(1f),
                 contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),

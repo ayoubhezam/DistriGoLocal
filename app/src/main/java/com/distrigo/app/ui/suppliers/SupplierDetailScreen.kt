@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.data.time.BusinessDates
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -781,7 +782,7 @@ fun SupplierDetailScreen(
                                 val expandedLimit = 4
                                 val visibleLimit = if (achatExpanded) expandedLimit else collapsedLimit
                                 val visibleTransactions = ledger.latest.take(visibleLimit)
-                                val grouped = visibleTransactions.groupBy { it.created_at.take(10) }
+                                val grouped = visibleTransactions.groupBy { BusinessDates.localDay(it.created_at) }
                                 grouped.forEach { (date, dayTransactions) ->
                                     Text(
                                         text = formatOrderDate(date),

@@ -117,7 +117,7 @@ fun NavGraphBuilder.pertesFormGraph(
                 }
             }
 
-            val isoDateTime = formDate.atStartOfDay(ZoneOffset.UTC).toInstant().toString()
+            val isoDateTime = formDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toString()   // the chosen day, from its local midnight
 
             BackHandler { onBack() }
 
@@ -305,7 +305,7 @@ fun NavGraphBuilder.pertesFormGraph(
             val formSaveError by viewModel.formSaveError.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
 
-            val isoDateTime = formDate.atStartOfDay(ZoneOffset.UTC).toInstant().toString()
+            val isoDateTime = formDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toString()   // the chosen day, from its local midnight
             val valeurEstimee = (formProduct?.purchase_price ?: 0.0) * formQuantity
 
             fun doSave() {

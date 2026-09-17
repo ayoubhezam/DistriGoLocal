@@ -27,12 +27,13 @@ interface StockMovementDao {
     suspend fun deleteBySource(sourceType: String, sourceId: Int)
 
     // ── Filtrage combiné : produit + période + type + source_label ──
+    // The period is [dateFrom, dateBefore), instant bounds from BusinessDates.dayRangeBounds.
     // NULL dans un paramètre = filtre ignoré (voir logique CASE ci-dessous)
     @Query("""
         SELECT * FROM stock_movements
         WHERE (:productId IS NULL OR product_id = :productId)
           AND (:dateFrom IS NULL OR created_at >= :dateFrom)
-          AND (:dateTo IS NULL OR created_at <= :dateTo)
+          AND (:dateBefore IS NULL OR created_at < :dateBefore)
           AND (:direction IS NULL OR direction = :direction)
           AND (:sourceLabel IS NULL OR source_label = :sourceLabel)
         ORDER BY created_at DESC
@@ -40,7 +41,7 @@ interface StockMovementDao {
     suspend fun getFilteredMovements(
         productId: Int?,
         dateFrom: String?,
-        dateTo: String?,
+        dateBefore: String?,
         direction: String?,
         sourceLabel: String?
     ): List<StockMovementEntity>

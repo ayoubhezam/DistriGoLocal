@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -112,7 +113,7 @@ fun ChargeListScreen(
                 }
             }
         }  else {
-        val groupedCharges = remember(charges) { charges.groupBy { it.date_time.take(10) } }
+        val groupedCharges = remember(charges) { charges.groupBy { BusinessDates.localDay(it.date_time) } }
         LazyColumn(
             modifier            = Modifier.fillMaxWidth().weight(1f),
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),

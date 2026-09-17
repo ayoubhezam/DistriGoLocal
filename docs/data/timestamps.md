@@ -38,38 +38,23 @@ The device's time zone is the business's (Algeria: `Africa/Algiers`, UTC+1, no d
 
 1. **Record an instant in UTC**: `Instant.now().toString()` for a business column, epoch milliseconds for sync metadata. Never store a local time without its offset.
 2. **Record a calendar date as local `yyyy-MM-dd`**: `LocalDate.now().toString()`, or the date the user picked.
-3. **To show or group an instant by day, convert it through the local zone first**: `Instant.parse(it).atZone(ZoneId.systemDefault()).toLocalDate()`. Never take the first ten characters of an instant: that is its UTC date.
-4. **To select instants within a local day or month, convert the local bounds to instants**: `day.atStartOfDay(zone).toInstant()` to the next day's. Comparing an instant with `"2026-09-01"` compares against UTC midnight.
+3. **To show or group an instant by day, convert it through the local zone first**: `BusinessDates.localDay(value)` (`data/time/BusinessDates.kt`). Never take the first ten characters of an instant: that is its UTC date.
+4. **To select instants within a local day or month, compare with instant bounds**: `BusinessDates.monthBounds(month)` or `BusinessDates.dayRangeBounds(from, to)`, both half-open `[start, end)`. Their bounds are written `yyyy-MM-ddTHH:mm:ss` without the `Z`, which sorts just below every stored instant of that second, so a text comparison keeps its fractional digits right. Comparing an instant with `"2026-09-01"` compares against UTC midnight.
 5. **Material date pickers work in UTC milliseconds.** Converting a picked value with `ZoneOffset.UTC` to get the `LocalDate` the user tapped is correct, and is not a deviation from rule 3.
 6. **Receipts print local time**: see `RECEIPT_ZONE` in `ReceiptData.kt`.
 
+## Fixed
+
+Until September 2026, day lists and month totals read instants in UTC, so in Algeria everything recorded **between 00:00 and 01:00 local time** landed on the previous day, or on the previous month on the 1st. All of these now follow rules 3 and 4:
+
+- the day headers and date filters of the Dépôt Vente and Achats lists, the client and supplier ledgers, the stock movements, the charges and pertes lists and the inventory history, and the vente detail's date;
+- `formatOrderDate`, which read a sale at 00:30 as "Hier";
+- the charges and pertes month statistics and lists (`monthRange`);
+- the stock movements filter, which also left out the whole last day of its range.
+
+`pertes.date_time` used to mean two things: the day chosen in the Pertes form, stored as **UTC** midnight, and the instant a return recorded its loss. The form now stores the chosen day's **local** midnight, so the column holds instants throughout. Rows written before read as the right day in any zone at or ahead of UTC, which includes Algeria; none was rewritten.
+
 ## Known deviations
-
-In Algeria (UTC+1), every one of these affects only records made **between 00:00 and 01:00 local time**, which land on the previous day, or on the previous month on the 1st. None is fixed yet.
-
-### Instants grouped or filtered by their UTC date (rule 3)
-
-`created_at.take(10)` is used as the day of:
-
-- the Dépôt Vente list and its date filter: `ui/common/ListFilters.kt` (`filterVentes`, `groupVentesByDay`)
-- the Achats list and its date filter: `ui/common/ListFilters.kt` (`filterOrders` and its day grouping)
-- the client ledger's day headers: `ui/clients/ClientDetailScreen.kt`
-- the stock movements' day headers: `ui/mouvements/MouvementsScreen.kt`
-- the charges list's day headers (`date_time.take(10)`): `ui/charges/ChargeListScreen.kt`
-- the inventory history's day headers: `ui/inventory/InventoryHistoryScreen.kt`
-
-`formatOrderDate` (`ui/purchases/PurchasesScreen.kt`) compares the UTC date of an instant with the local today, so a sale at 00:30 reads "Hier".
-
-### Month totals against UTC instants (rule 4)
-
-The charges and pertes month statistics compare `date_time` with `monthRange("2026-09")` = `["2026-09-01", "2026-10-01")` (`data/repository/MonthRange.kt`). A charge at 00:30 on 1 October is counted in September.
-
-### `pertes.date_time` holds two meanings
-
-- Recorded from the Pertes form: the chosen **day**, stored as UTC midnight (`ui/navigation/PertesFormNavGraph.kt`, `atStartOfDay(ZoneOffset.UTC)`).
-- Recorded by a return: the **instant** it happened (`RetourClientRepository` and `RetourFournisseurRepository`, `dateTime = now`).
-
-The form's values read back as the right day through `take(10)`, and the returns' do not always. Fixing rule 3 for pertes means deciding which meaning the column has first.
 
 ### Not yet wired: commission periods
 

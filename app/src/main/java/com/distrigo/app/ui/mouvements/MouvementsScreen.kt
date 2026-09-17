@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.mouvements
 
+import com.distrigo.app.data.time.BusinessDates
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -139,7 +140,7 @@ fun MouvementsScreen(
                 }
             }
             else -> {
-                val grouped = movements.groupBy { it.created_at.take(10) }
+                val grouped = movements.groupBy { BusinessDates.localDay(it.created_at) }
                 LazyColumn(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)

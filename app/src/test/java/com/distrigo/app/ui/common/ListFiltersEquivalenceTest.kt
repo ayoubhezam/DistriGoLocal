@@ -6,6 +6,7 @@ import com.distrigo.app.ui.common.ListFilterFixtures.show
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.ZoneOffset
 import kotlin.random.Random
 
 /**
@@ -102,8 +103,10 @@ class ListFiltersEquivalenceTest {
             val legacy = LegacyListFilters.ventesScreen(ventes, q, f.status, f.paymentStatus, f.clientId, f.dateFrom, f.dateTo)
 
             val depot    = depotVentesOf(ventes)
-            val filtered = filterVentes(depot, q, f)
-            val grouped  = groupVentesByDay(filtered)
+            // In UTC, where a stored instant's day is its first ten characters, as the inline code read it.
+            // The local-day behaviour is covered in ListFiltersLocalDayTest.
+            val filtered = filterVentes(depot, q, f, ZoneOffset.UTC)
+            val grouped  = groupVentesByDay(filtered, ZoneOffset.UTC)
 
             val msg = "query=${show(q)} $f"
             assertEquals(msg, legacy.depotVentes, depot)
@@ -124,8 +127,8 @@ class ListFiltersEquivalenceTest {
         for ((q, f) in cases) {
             val legacy = LegacyListFilters.purchasesScreen(orders, q, f.receptionStatus, f.paymentStatus, f.supplierId, f.dateFrom, f.dateTo)
 
-            val filtered = filterOrders(orders, q, f)
-            val grouped  = groupOrdersByDay(filtered)
+            val filtered = filterOrders(orders, q, f, ZoneOffset.UTC)
+            val grouped  = groupOrdersByDay(filtered, ZoneOffset.UTC)
 
             val msg = "query=${show(q)} $f"
             assertEquals(msg, legacy.suppliers, suppliersOfOrders(orders))
