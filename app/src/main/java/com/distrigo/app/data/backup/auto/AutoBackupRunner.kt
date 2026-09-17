@@ -55,10 +55,39 @@ class AutoBackupRunner(
         return if (picked != null) picked to true else privateFolder to false
     }
 
-    /** Blocks for the whole backup: call it off the main thread. [force] saves even when nothing changed. */
+    /**
+     * Blocks for the whole backup: call it off the main thread. [force] saves even when nothing changed.
+     *
+     * Every run is recorded: when it happened, and whether it left a problem, counted in a streak that a run
+     * without one resets.
+     */
     fun run(force: Boolean = false): AutoBackupOutcome = synchronized(LOCK) {
         val state = store.read()
-        val (folder, isPicked) = currentFolder()
+        var folderUsable = false
+        val outcome = try {
+            val (folder, isPicked) = currentFolder()
+            folderUsable = isPicked
+            attempt(force, state, folder, isPicked)
+        } catch (e: Exception) {
+            record(AutoBackupProblem.UNEXPECTED)
+            throw e
+        }
+        record(AutoBackupProblem.after(outcome, folderChosen = state.folderUri != null, folderUsable = folderUsable))
+        outcome
+    }
+
+    /** Records a run that did not get to report an outcome of its own, such as one that crashed. */
+    fun record(problem: AutoBackupProblem?) {
+        store.update {
+            it.copy(
+                lastAttemptAt = clock(),
+                problemStreak = if (problem == null) 0 else it.problemStreak + 1,
+                lastProblem = problem,
+            )
+        }
+    }
+
+    private fun attempt(force: Boolean, state: AutoBackupState, folder: BackupFolder, isPicked: Boolean): AutoBackupOutcome {
         val location = if (isPicked) BackupLocation.PICKED_FOLDER else BackupLocation.PRIVATE
 
         val fingerprint = DataFingerprint.of(db.openHelper.writableDatabase)
@@ -86,7 +115,7 @@ class AutoBackupRunner(
         store.update {
             it.copy(lastFingerprint = fingerprint, lastAt = created.manifest.createdAt, lastFileName = name, lastLocation = location)
         }
-        AutoBackupOutcome.Saved(name, created.size, folder.displayName, !isPicked, rotate(folder))
+        return AutoBackupOutcome.Saved(name, created.size, folder.displayName, !isPicked, rotate(folder))
     }
 
     /** Keeps the newest [keep] automatic backups in [folder]. A file that will not delete is left for the next run. */
@@ -106,12 +135,12 @@ class AutoBackupRunner(
         /** How many automatic backups are kept. */
         const val KEEP = 7
 
-        fun forApp(context: Context, db: AppDatabase, creator: BackupCreator): AutoBackupRunner {
+        fun forApp(context: Context, db: AppDatabase, creator: BackupCreator, store: AutoBackupStore): AutoBackupRunner {
             val app = context.applicationContext
             return AutoBackupRunner(
                 db = db,
                 creator = creator,
-                store = AutoBackupStore(File(app.noBackupFilesDir, "auto-backup")),
+                store = store,
                 pickedFolder = { PickedFolder(app.contentResolver, Uri.parse(it)) },
                 privateFolder = PrivateFolder(File(app.noBackupFilesDir, "auto-backup/files")),
             )

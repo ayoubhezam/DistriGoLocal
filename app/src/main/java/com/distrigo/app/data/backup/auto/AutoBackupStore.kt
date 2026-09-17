@@ -9,8 +9,10 @@ import java.time.Instant
 /** Where the last automatic backup went. */
 enum class BackupLocation { PICKED_FOLDER, PRIVATE }
 
-/** The phone's automatic backup settings and what the last run did. */
+/** The phone's automatic backup settings and what the last runs did. */
 data class AutoBackupState(
+    /** Whether backups run on their own every day. */
+    val enabled: Boolean = false,
     /** The folder the user chose, as its tree address; null until one is chosen. */
     val folderUri: String? = null,
     /** The fingerprint of the data the last successful backup was taken from. */
@@ -18,6 +20,12 @@ data class AutoBackupState(
     val lastAt: Instant? = null,
     val lastFileName: String? = null,
     val lastLocation: BackupLocation? = null,
+    /** When a backup was last attempted, whether it saved, skipped or failed. */
+    val lastAttemptAt: Instant? = null,
+    /** Runs in a row that left the data without a backup in the chosen folder; 0 after a good run. */
+    val problemStreak: Int = 0,
+    /** What went wrong on the last run, or null if it went well. */
+    val lastProblem: AutoBackupProblem? = null,
 )
 
 /**
@@ -37,11 +45,15 @@ class AutoBackupStore(private val dir: File) {
         return try {
             val json = JsonParser().parse(file.readText()).asJsonObject
             AutoBackupState(
+                enabled = json.get("enabled")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false,
                 folderUri = json.text("folder_uri"),
                 lastFingerprint = json.text("last_fingerprint"),
-                lastAt = json.text("last_at")?.let { runCatching { Instant.parse(it) }.getOrNull() },
+                lastAt = json.instant("last_at"),
                 lastFileName = json.text("last_file_name"),
                 lastLocation = json.text("last_location")?.let { runCatching { BackupLocation.valueOf(it) }.getOrNull() },
+                lastAttemptAt = json.instant("last_attempt_at"),
+                problemStreak = json.get("problem_streak")?.takeIf { it.isJsonPrimitive }?.asInt ?: 0,
+                lastProblem = json.text("last_problem")?.let { runCatching { AutoBackupProblem.valueOf(it) }.getOrNull() },
             )
         } catch (e: RuntimeException) {
             AutoBackupState()
@@ -52,11 +64,15 @@ class AutoBackupStore(private val dir: File) {
     fun update(change: (AutoBackupState) -> AutoBackupState): AutoBackupState = synchronized(LOCK) {
         val next = change(read())
         val json = JsonObject().apply {
+            addProperty("enabled", next.enabled)
             addProperty("folder_uri", next.folderUri)
             addProperty("last_fingerprint", next.lastFingerprint)
             addProperty("last_at", next.lastAt?.toString())
             addProperty("last_file_name", next.lastFileName)
             addProperty("last_location", next.lastLocation?.name)
+            addProperty("last_attempt_at", next.lastAttemptAt?.toString())
+            addProperty("problem_streak", next.problemStreak)
+            addProperty("last_problem", next.lastProblem?.name)
         }
         dir.mkdirs()
         val temp = File(dir, "state.json.tmp")
@@ -67,8 +83,12 @@ class AutoBackupStore(private val dir: File) {
 
     private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString
 
-    private companion object {
-        val LOCK = Any()
-        val GSON = GsonBuilder().serializeNulls().setPrettyPrinting().create()
+    private fun JsonObject.instant(key: String): Instant? = text(key)?.let { runCatching { Instant.parse(it) }.getOrNull() }
+
+    companion object {
+        private val LOCK = Any()
+        private val GSON = GsonBuilder().serializeNulls().setPrettyPrinting().create()
+
+        fun forApp(context: android.content.Context) = AutoBackupStore(File(context.applicationContext.noBackupFilesDir, "auto-backup"))
     }
 }

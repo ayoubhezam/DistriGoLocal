@@ -10,6 +10,8 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Android 13+: asked for when automatic backups are turned on, to warn when they keep failing. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".DistriGoApplication"

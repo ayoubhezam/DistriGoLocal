@@ -1,7 +1,12 @@
 package com.distrigo.app.di
 
 import com.distrigo.app.data.backup.BackupCreator
+import com.distrigo.app.data.backup.auto.AutoBackupAlerts
+import com.distrigo.app.data.backup.auto.AutoBackupNotifications
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
+import com.distrigo.app.data.backup.auto.AutoBackupScheduler
+import com.distrigo.app.data.backup.auto.AutoBackupStore
+import androidx.work.WorkManager
 import com.distrigo.app.data.backup.BackupInspector
 import com.distrigo.app.data.backup.RestoreCoordinator
 import com.distrigo.app.data.backup.RestoreInstaller
@@ -48,8 +53,23 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAutoBackupRunner(@ApplicationContext context: Context, db: AppDatabase, creator: BackupCreator): AutoBackupRunner =
-        AutoBackupRunner.forApp(context, db, creator)
+    fun provideAutoBackupStore(@ApplicationContext context: Context): AutoBackupStore =
+        AutoBackupStore.forApp(context)
+
+    @Provides
+    @Singleton
+    fun provideAutoBackupRunner(@ApplicationContext context: Context, db: AppDatabase, creator: BackupCreator, store: AutoBackupStore): AutoBackupRunner =
+        AutoBackupRunner.forApp(context, db, creator, store)
+
+    @Provides
+    @Singleton
+    fun provideAutoBackupAlerts(@ApplicationContext context: Context): AutoBackupAlerts =
+        AutoBackupNotifications(context)
+
+    @Provides
+    @Singleton
+    fun provideAutoBackupScheduler(@ApplicationContext context: Context, store: AutoBackupStore): AutoBackupScheduler =
+        AutoBackupScheduler({ WorkManager.getInstance(context) }, store)
 
     @Provides
     @Singleton
