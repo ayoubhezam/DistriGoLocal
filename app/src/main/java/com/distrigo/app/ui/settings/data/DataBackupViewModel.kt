@@ -121,7 +121,7 @@ class DataBackupViewModel @Inject constructor(
     fun inspectSafetyBackup(backup: SafetyBackup) = inspect(Uri.fromFile(backup.file), isSafetyBackup = true)
 
     fun restore(preview: BackupPreview) = run("Vérification de la sauvegarde…") {
-        val outcome = coordinator.restore(preview.uri, preview.manifest) { step ->
+        val outcome = coordinator.restore(preview.uri, preview.manifest, preview.fileName, preview.fileSize) { step ->
             _state.value = DataBackupState.Working(
                 when (step) {
                     RestoreCoordinator.Step.CHECKING_BACKUP -> "Vérification de la sauvegarde…"

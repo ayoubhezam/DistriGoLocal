@@ -43,7 +43,8 @@ data class RestoreResult(
  *
  *  1. `moving-old`: the database files and photo folder move to `restore/previous`.
  *  2. `moving-new`: the restored database and photos move into their places, and the database is checked.
- *  3. `finishing`: the restore is recorded; `pending` and `previous` are deleted.
+ *  3. `finishing`: the restore is recorded, and the restored backup becomes the data's last backup; `pending` and
+ *     `previous` are deleted.
  *
  * Interrupted in 1 or 2, the files go back where they were and the install starts again, at most
  * [MAX_ATTEMPTS] times. A restored database that fails its check is never retried: the old data goes back,
@@ -81,7 +82,7 @@ class RestoreInstaller(
      * Makes [restore] the one installed on the next start, replacing any restore already waiting. The caller
      * restarts the app straight after: anything written to the database until then is replaced.
      */
-    fun schedule(restore: PreparedRestore, safetyBackup: String?) {
+    fun schedule(restore: PreparedRestore, safetyBackup: String?, backupFileName: String? = null, backupFileSize: Long? = null) {
         require(restore.dir.isDirectory) { "nothing prepared in ${restore.dir}" }
         pendingDir.deleteRecursively()
         pendingDir.parentFile!!.mkdirs()
@@ -91,6 +92,8 @@ class RestoreInstaller(
             addProperty("backup_created_at", restore.manifest.createdAt.toString())
             addProperty("database_id", restore.manifest.databaseId)
             safetyBackup?.let { addProperty("safety_backup", it) }
+            backupFileName?.takeIf { it.isNotEmpty() }?.let { addProperty("backup_file_name", it) }
+            backupFileSize?.let { addProperty("backup_file_size", it) }
         }
         writeAtomically(readyMarker, GSON.toJson(marker))
     }
@@ -216,10 +219,23 @@ class RestoreInstaller(
             val now = Instant.now()
             val sql = SQLiteDatabase.openDatabase(databaseFile.path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
             try {
+                val backupAt = marker.text("backup_created_at") ?: ""
                 sql.execSQL(
                     "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?), (?, ?)",
-                    arrayOf(KEY_RESTORED_AT, now.toString(), KEY_RESTORED_BACKUP_AT, marker.text("backup_created_at") ?: "")
+                    arrayOf(KEY_RESTORED_AT, now.toString(), KEY_RESTORED_BACKUP_AT, backupAt)
                 )
+                // The data is now exactly the backup restored, which is a backup of it: that is its last backup,
+                // not whatever the file recorded before it was made — a backup is recorded only after its copy.
+                if (backupAt.isNotEmpty()) {
+                    sql.execSQL("DELETE FROM app_meta WHERE key IN (?, ?)", arrayOf(BackupCreator.KEY_LAST_SIZE, BackupCreator.KEY_LAST_NAME))
+                    sql.execSQL("INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)", arrayOf(BackupCreator.KEY_LAST_AT, backupAt))
+                    marker.text("backup_file_name")?.let {
+                        sql.execSQL("INSERT INTO app_meta (key, value) VALUES (?, ?)", arrayOf(BackupCreator.KEY_LAST_NAME, it))
+                    }
+                    marker.text("backup_file_size")?.let {
+                        sql.execSQL("INSERT INTO app_meta (key, value) VALUES (?, ?)", arrayOf(BackupCreator.KEY_LAST_SIZE, it))
+                    }
+                }
             } finally {
                 sql.close()
             }

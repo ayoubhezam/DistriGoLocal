@@ -35,8 +35,17 @@ class RestoreCoordinator(
 
     enum class Step { CHECKING_BACKUP, SAVING_CURRENT_DATA, SCHEDULING }
 
-    /** Blocks for the whole preparation: call it off the main thread. [expected] is the manifest the user confirmed. */
-    fun restore(uri: Uri, expected: BackupManifest?, onStep: (Step) -> Unit = {}): RestoreOutcome {
+    /**
+     * Blocks for the whole preparation: call it off the main thread. [expected] is the manifest the user confirmed;
+     * [fileName] and [fileSize] describe the picked file, recorded as the data's last backup once it is restored.
+     */
+    fun restore(
+        uri: Uri,
+        expected: BackupManifest?,
+        fileName: String? = null,
+        fileSize: Long? = null,
+        onStep: (Step) -> Unit = {},
+    ): RestoreOutcome {
         onStep(Step.CHECKING_BACKUP)
         val restore = when (val preparation = preparer.prepare(uri, expected)) {
             is Preparation.Failed -> return RestoreOutcome.NotRestorable(preparation.problem)
@@ -59,7 +68,7 @@ class RestoreCoordinator(
 
         onStep(Step.SCHEDULING)
         try {
-            installer.schedule(restore, safety.name)
+            installer.schedule(restore, safety.name, fileName, fileSize)
         } catch (e: java.io.IOException) {
             Log.w(TAG, "could not schedule the restore", e)
             restore.dir.deleteRecursively()

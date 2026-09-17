@@ -73,6 +73,7 @@ class RestorePreparerTest {
         for (name in listOf(TEST_DB, OLD_DB)) {
             context.deleteDatabase(name)
             File(context.cacheDir, "$name.lck").delete()
+            File(context.getDatabasePath(name).path + ".lck").delete()
         }
         root.deleteRecursively()
     }

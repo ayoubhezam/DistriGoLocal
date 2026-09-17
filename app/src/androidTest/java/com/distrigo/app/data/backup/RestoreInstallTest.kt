@@ -118,7 +118,7 @@ class RestoreInstallTest {
         val backup = File(saved, "backup.distrigo").also { creator().create(Uri.fromFile(it)) }
         open().openHelper.writableDatabase.execSQL("DELETE FROM products")
         product("Actuel", "img:${photo(currentPhoto)}")
-        return coordinator().restore(Uri.fromFile(backup), expected = null) as RestoreOutcome.Scheduled
+        return coordinator().restore(Uri.fromFile(backup), expected = null, fileName = "backup.distrigo", fileSize = backup.length()) as RestoreOutcome.Scheduled
     }
 
     private fun photoFiles() = images.list().orEmpty().sorted()
@@ -160,6 +160,9 @@ class RestoreInstallTest {
         assertEquals(scheduled.safetyBackup.name, result.safetyBackup)
         assertEquals(scheduled.manifest.createdAt.toString(), meta(RestoreInstaller.KEY_RESTORED_BACKUP_AT))
         assertEquals("the device is still this phone", DEVICE, meta("device_id"))
+        assertEquals("the restored backup is the data's last backup", scheduled.manifest.createdAt.toString(), meta(BackupCreator.KEY_LAST_AT))
+        assertEquals("backup.distrigo", meta(BackupCreator.KEY_LAST_NAME))
+        assertEquals(File(saved, "backup.distrigo").length().toString(), meta(BackupCreator.KEY_LAST_SIZE))
     }
 
     /** The safety backup is a full backup of the data being replaced, and restoring it undoes the restore. */
@@ -173,7 +176,7 @@ class RestoreInstallTest {
         assertEquals(1, verified.manifest.images.size)
         start()
         assertRestored()
-        assertNull("a safety backup is not recorded as the user's backup", meta(BackupCreator.KEY_LAST_NAME))
+        assertEquals("the safety backup is not recorded as the last backup", scheduled.manifest.createdAt.toString(), meta(BackupCreator.KEY_LAST_AT))
 
         val undo = coordinator().restore(Uri.fromFile(safety), expected = null)
         assertTrue("$undo", undo is RestoreOutcome.Scheduled)
