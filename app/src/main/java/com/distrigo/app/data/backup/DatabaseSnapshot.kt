@@ -144,8 +144,8 @@ object DatabaseSnapshot {
         }
     }
 
-    /** After [inspect] closed it, the copy must be one file: anything beside it would be data the file lacks. */
-    private fun requireSingleFile(copy: File) {
+    /** After [inspect] closed it, a copy must be one file: anything beside it would be data the file lacks. */
+    internal fun requireSingleFile(copy: File) {
         val leftover = JOURNAL_SUFFIXES.map { File(copy.path + it) }.filter { it.isFile && it.length() > 0 }
         if (leftover.isNotEmpty()) throw SnapshotException("the copy still has ${leftover.joinToString { it.name }}")
     }
@@ -175,7 +175,8 @@ object DatabaseSnapshot {
     /** An `img:` reference anywhere in a value, including inside a draft's JSON. */
     private val IMAGE_REF = Regex("${ImageStore.REF_PREFIX}([0-9a-f]{64})")
 
-    private val KEEP_CORRUPT_FILE = DatabaseErrorHandler { }
+    /** Android's default handler deletes a database it finds corrupt; this one leaves it for the check to report. */
+    internal val KEEP_CORRUPT_FILE = DatabaseErrorHandler { }
 
     private fun SQLiteDatabase.text(query: String): String? =
         rawQuery(query, null).use { if (it.moveToFirst()) it.getString(0) else null }

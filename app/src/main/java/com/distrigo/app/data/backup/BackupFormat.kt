@@ -105,6 +105,9 @@ sealed class BackupProblem {
     /** The file could not be opened: gone, moved, or no longer shared with the app. */
     data object CannotOpen : BackupProblem()
 
+    /** The phone lacks room to unpack and check the backup: [neededBytes], or 0 when not known. */
+    data class NotEnoughSpace(val neededBytes: Long) : BackupProblem()
+
     /** Not a DistriGo backup at all: not a ZIP, no manifest, or a manifest that is not JSON. */
     data object NotABackup : BackupProblem()
 

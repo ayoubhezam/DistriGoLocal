@@ -75,10 +75,13 @@ A restore checks everything before it changes anything, in this order, and stops
 
 Only a file that passes these is previewed: its date, the phone that made it, and its row counts next to the phone's current ones (`BackupInspector`). The messages the user sees are in `BackupMessages`. When the user confirms, the restore reads the file again, checking it the same way as it unpacks it, then:
 
-5. Unpacked into a staging folder, the database's `user_version` is the manifest's `schema_version`, it passes `PRAGMA integrity_check`, and its row counts match the manifest's. Counts are compared here, before migrating, because a migration may add rows.
-6. The staged database then opens through the normal migrations, never the destructive fallback.
+5. The phone has room: every entry's size, plus the database's size again for opening it, plus 16 MB. This, the version checks and a file that changed since its preview are all refused before anything is unpacked.
+6. Unpacked into `noBackupFilesDir/restore/staging` (not the cache, which Android may clear before the restore is installed), the database's `user_version` is the manifest's `schema_version`, it passes `PRAGMA integrity_check`, and its row counts match the manifest's. Counts are compared here, before migrating, because a migration may add rows.
+7. The staged database opens as the app opens its own: every migration, never the destructive fallback, the app's triggers, and this phone's `device_id`.
+8. Its shape then matches a database this app creates: every table's columns and indices, and every trigger (`SchemaFingerprint`). Room checks tables only after migrating, and at the app's own version trusts an identity hash stored in the file, so a hand-edited file with valid checksums could otherwise lack a column or carry a trigger of its own.
+9. Folded back into one file, it passes `integrity_check` again and keeps the manifest's `database_id` (`RestorePreparer`).
 
-The schema declares no foreign keys, so there is no `foreign_key_check` to run.
+The schema declares no foreign keys, so there is no `foreign_key_check` to run. A failure at any point deletes the staging folder; nothing on the phone has changed.
 
 Only then is an automatic safety backup of the current data taken, and the database and photos are swapped in when the app next starts, before the database opens.
 

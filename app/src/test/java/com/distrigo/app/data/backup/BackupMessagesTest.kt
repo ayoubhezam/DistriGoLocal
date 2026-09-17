@@ -36,6 +36,16 @@ class BackupMessagesTest {
     }
 
     @Test
+    fun `not enough space says how much to free, rounded up to whole megabytes`() {
+        assertEquals(1L, BackupMessages.megabytes(1))
+        assertEquals(1L, BackupMessages.megabytes(1L shl 20))
+        assertEquals(2L, BackupMessages.megabytes((1L shl 20) + 1))
+        assertTrue("au moins 18 Mo" in BackupMessages.of(BackupProblem.NotEnoughSpace(18_500_000)))
+        val unknown = BackupMessages.of(BackupProblem.NotEnoughSpace(0))
+        assertTrue(unknown, unknown.endsWith(".") && unknown.none { it.isDigit() })
+    }
+
+    @Test
     fun `a newer backup asks for an update, whichever part is newer`() {
         assertEquals(BackupMessages.of(BackupProblem.NewerFormat(2)), BackupMessages.of(BackupProblem.NewerDatabase(53, 52)))
         assertTrue("mettez l'application à jour" in BackupMessages.of(BackupProblem.NewerFormat(2)).lowercase())

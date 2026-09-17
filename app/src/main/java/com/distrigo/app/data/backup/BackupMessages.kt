@@ -12,6 +12,12 @@ object BackupMessages {
     fun of(problem: BackupProblem): String = when (problem) {
         BackupProblem.CannotOpen ->
             "Impossible d'ouvrir ce fichier. Vérifiez qu'il est toujours disponible, puis choisissez-le à nouveau."
+        is BackupProblem.NotEnoughSpace ->
+            if (problem.neededBytes > 0) {
+                "Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez au moins ${megabytes(problem.neededBytes)} Mo, puis réessayez."
+            } else {
+                "Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez de l'espace, puis réessayez."
+            }
         BackupProblem.NotABackup ->
             "Ce fichier n'est pas une sauvegarde DistriGo. Choisissez un fichier .distrigo."
         is BackupProblem.NewerFormat -> UPDATE_APP
@@ -21,6 +27,9 @@ object BackupMessages {
         is BackupProblem.Damaged ->
             "Cette sauvegarde est endommagée ou incomplète et ne peut pas être restaurée. Essayez une autre copie."
     }
+
+    /** Whole megabytes, rounded up: asking for too little space would fail again. */
+    internal fun megabytes(bytes: Long): Long = (bytes + (1L shl 20) - 1) shr 20
 
     fun of(reason: BackupFailedException.Reason): String = when (reason) {
         BackupFailedException.Reason.DATABASE_DAMAGED ->

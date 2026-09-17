@@ -46,11 +46,16 @@ object BackupArchive {
      * Reads a backup from [input] to its end and checks it is whole: the manifest first and valid, then
      * exactly the entries it lists, each once, with its size and SHA-256. Stops at the first problem.
      *
-     * [onEntry] receives each listed entry's bytes as they are read, before they are checked, so a caller
-     * unpacking the file must treat what it wrote as unconfirmed until this returns [Verified]. Does not
-     * close [input].
+     * [onManifest] receives the manifest once it is read and valid, before any entry, so a caller can
+     * refuse a file by throwing before unpacking it. [onEntry] receives each listed entry's bytes as they
+     * are read, before they are checked, so a caller unpacking the file must treat what it wrote as
+     * unconfirmed until this returns [Verification.Verified]. Does not close [input].
      */
-    fun verify(input: InputStream, onEntry: ((BackupEntry, InputStream) -> Unit)? = null): Verification {
+    fun verify(
+        input: InputStream,
+        onManifest: ((BackupManifest) -> Unit)? = null,
+        onEntry: ((BackupEntry, InputStream) -> Unit)? = null,
+    ): Verification {
         val raw = TailStream(input)
         val zip = ZipInputStream(raw)
         try {
@@ -62,6 +67,7 @@ object BackupArchive {
                 is ManifestResult.Invalid -> return Verification.Failed(parsed.problem)
                 is ManifestResult.Valid -> parsed.manifest
             }
+            onManifest?.invoke(manifest)
 
             val expected = manifest.entries.associateBy { it.name }
             val seen = mutableSetOf<String>()

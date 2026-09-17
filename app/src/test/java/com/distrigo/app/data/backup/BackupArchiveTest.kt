@@ -75,7 +75,7 @@ class BackupArchiveTest {
     @Test
     fun `each entry's bytes reach the caller as they are read`() {
         val received = mutableMapOf<String, ByteArray>()
-        val result = BackupArchive.verify(ByteArrayInputStream(backup())) { entry, input -> received[entry.name] = input.readBytes() }
+        val result = BackupArchive.verify(ByteArrayInputStream(backup()), onEntry = { entry, input -> received[entry.name] = input.readBytes() })
         assertTrue(result is Verification.Verified)
         assertArrayEquals(databaseBytes, received[BackupFormat.DATABASE_ENTRY])
         assertArrayEquals(photoBytes, received[photoName])
@@ -84,8 +84,29 @@ class BackupArchiveTest {
     /** A caller that reads only part of an entry, or closes it, does not stop the rest being checked. */
     @Test
     fun `a caller reading part of an entry does not skip its check`() {
-        val result = BackupArchive.verify(ByteArrayInputStream(backup())) { _, input -> input.read(ByteArray(10)); input.close() }
+        val result = BackupArchive.verify(ByteArrayInputStream(backup()), onEntry = { _, input -> input.read(ByteArray(10)); input.close() })
         assertEquals(Verification.Verified(manifest), result)
+    }
+
+    @Test
+    fun `the manifest is handed over before any entry, and throwing there stops the reading`() {
+        val order = mutableListOf<String>()
+        val result = BackupArchive.verify(
+            ByteArrayInputStream(backup()),
+            onManifest = { order += "manifest:${it.entries.size}" },
+            onEntry = { entry, _ -> order += entry.name },
+        )
+        assertTrue(result is Verification.Verified)
+        assertEquals(listOf("manifest:2", BackupFormat.DATABASE_ENTRY, photoName), order)
+
+        class Refused : RuntimeException()
+        var entries = 0
+        try {
+            BackupArchive.verify(ByteArrayInputStream(backup()), onManifest = { throw Refused() }, onEntry = { _, _ -> entries++ })
+            throw AssertionError("not stopped")
+        } catch (expected: Refused) {
+        }
+        assertEquals(0, entries)
     }
 
     @Test
@@ -130,7 +151,7 @@ class BackupArchiveTest {
         val bomb = zipOf("manifest.json" to manifestBytes, "distrigo.db" to ByteArray(50 shl 20))
         assertTrue(bomb.size < 200_000)
         var read = 0L
-        BackupArchive.verify(ByteArrayInputStream(bomb)) { _, input -> read += input.readBytes().size }
+        BackupArchive.verify(ByteArrayInputStream(bomb), onEntry = { _, input -> read += input.readBytes().size })
         assertTrue("read $read", read <= 300_000)
         assertDamaged(bomb, "distrigo.db larger than 300000")
     }
