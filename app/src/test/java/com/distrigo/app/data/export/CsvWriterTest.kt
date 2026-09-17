@@ -15,7 +15,7 @@ class CsvWriterTest {
     private fun csv(block: CsvWriter.() -> Unit): ByteArray =
         ByteArrayOutputStream().also { out -> CsvWriter(out, algiers).use { it.block() } }.toByteArray()
 
-    private fun cell(cell: CsvCell) = CsvWriter.format(cell, algiers)
+    private fun cell(cell: ExportCell) = CsvWriter.format(cell, algiers)
 
     /** A minimal reader for what the writer produces, so tests can check a file reads back as it was meant. */
     private fun parse(bytes: ByteArray): List<List<String>> {
@@ -45,7 +45,7 @@ class CsvWriterTest {
     fun `the file starts with one UTF-8 byte-order mark and keeps every character`() {
         val bytes = csv {
             header("Client", "Ville")
-            row(CsvCell.Text("Épicerie El Amel"), CsvCell.Text("سوق أهراس"))
+            row(ExportCell.Text("Épicerie El Amel"), ExportCell.Text("سوق أهراس"))
         }
         assertArrayEquals(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()), bytes.copyOf(3))
         assertEquals(1, bytes.toString(Charsets.UTF_8).count { it == '﻿' })
@@ -54,7 +54,7 @@ class CsvWriterTest {
 
     @Test
     fun `cells are separated by semicolons and rows end with CRLF`() {
-        val text = csv { row(CsvCell.Text("a"), CsvCell.Integer(2), CsvCell.Text(null)) }.toString(Charsets.UTF_8)
+        val text = csv { row(ExportCell.Text("a"), ExportCell.Integer(2), ExportCell.Text(null)) }.toString(Charsets.UTF_8)
         assertEquals("﻿sep=;\r\na;2;\r\n", text)
     }
 
@@ -68,34 +68,34 @@ class CsvWriterTest {
 
     @Test
     fun `numbers use a decimal comma, round half up, and never go scientific`() {
-        assertEquals("1234,50", cell(CsvCell.Number(1234.5)))
-        assertEquals("2,35", cell(CsvCell.Number(2.345)))
-        assertEquals("0,10", cell(CsvCell.Number(0.1)))
-        assertEquals("10000000,00", cell(CsvCell.Number(1e7)))
-        assertEquals("-150,00", cell(CsvCell.Number(-150.0)))
-        assertEquals("0,00", cell(CsvCell.Number(-0.001)))
-        assertEquals("12,5", cell(CsvCell.Number(12.5, decimals = 3, trimZeros = true)))
-        assertEquals("12", cell(CsvCell.Number(12.0, decimals = 3, trimZeros = true)))
-        assertEquals("0,333", cell(CsvCell.Number(1.0 / 3, decimals = 3, trimZeros = true)))
-        assertEquals("", cell(CsvCell.Number(null)))
-        assertEquals("", cell(CsvCell.Number(Double.NaN)))
+        assertEquals("1234,50", cell(ExportCell.Number(1234.5)))
+        assertEquals("2,35", cell(ExportCell.Number(2.345)))
+        assertEquals("0,10", cell(ExportCell.Number(0.1)))
+        assertEquals("10000000,00", cell(ExportCell.Number(1e7)))
+        assertEquals("-150,00", cell(ExportCell.Number(-150.0)))
+        assertEquals("0,00", cell(ExportCell.Number(-0.001)))
+        assertEquals("12,5", cell(ExportCell.Number(12.5, decimals = 3, trimZeros = true)))
+        assertEquals("12", cell(ExportCell.Number(12.0, decimals = 3, trimZeros = true)))
+        assertEquals("0,333", cell(ExportCell.Number(1.0 / 3, decimals = 3, trimZeros = true)))
+        assertEquals("", cell(ExportCell.Number(null)))
+        assertEquals("", cell(ExportCell.Number(Double.NaN)))
     }
 
     @Test
     fun `instants are written in local time, calendar dates as they are`() {
         // 23:30 UTC on the 16th is 00:30 on the 17th in Algeria.
-        assertEquals("17/09/2026 00:30", cell(CsvCell.DateTime("2026-09-16T23:30:00.643262Z")))
-        assertEquals("16/09/2026", cell(CsvCell.Date("2026-09-16")))
-        assertEquals("a calendar date where an instant belongs is still a date", "16/09/2026", cell(CsvCell.DateTime("2026-09-16")))
-        assertEquals("unreadable values are kept as text", "hier", cell(CsvCell.DateTime("hier")))
-        assertEquals("", cell(CsvCell.DateTime(null)))
+        assertEquals("17/09/2026 00:30", cell(ExportCell.DateTime("2026-09-16T23:30:00.643262Z")))
+        assertEquals("16/09/2026", cell(ExportCell.Date("2026-09-16")))
+        assertEquals("a calendar date where an instant belongs is still a date", "16/09/2026", cell(ExportCell.DateTime("2026-09-16")))
+        assertEquals("unreadable values are kept as text", "hier", cell(ExportCell.DateTime("hier")))
+        assertEquals("", cell(ExportCell.DateTime(null)))
     }
 
     @Test
     fun `yes and no are words`() {
-        assertEquals("Oui", cell(CsvCell.YesNo(true)))
-        assertEquals("Non", cell(CsvCell.YesNo(false)))
-        assertEquals("", cell(CsvCell.YesNo(null)))
+        assertEquals("Oui", cell(ExportCell.YesNo(true)))
+        assertEquals("Non", cell(ExportCell.YesNo(false)))
+        assertEquals("", cell(ExportCell.YesNo(null)))
     }
 
     @Test
@@ -113,14 +113,14 @@ class CsvWriterTest {
     /** Only user text is neutralized: numbers and dates the writer formats itself stay numbers and dates. */
     @Test
     fun `negative numbers are not neutralized`() {
-        val rows = parse(csv { row(CsvCell.Number(-150.0), CsvCell.Text("-150")) })
+        val rows = parse(csv { row(ExportCell.Number(-150.0), ExportCell.Text("-150")) })
         assertEquals(listOf("-150,00", "'-150"), rows.single())
     }
 
     @Test
     fun `cells with separators, quotes, line breaks or edge spaces are quoted and read back whole`() {
         val values = listOf("Boulangerie; Pâtisserie", "Le \"Grand\" Café", "Ligne 1\r\nLigne 2", " espace", "fin ", "normal")
-        val bytes = csv { row(values.map { CsvCell.Text(it) }) }
+        val bytes = csv { row(values.map { ExportCell.Text(it) }) }
         assertEquals("\"Boulangerie; Pâtisserie\"", CsvWriter.text(values[0]))
         assertEquals("\"Le \"\"Grand\"\" Café\"", CsvWriter.text(values[1]))
         assertEquals("normal", CsvWriter.text("normal"))
@@ -131,9 +131,9 @@ class CsvWriterTest {
     fun `a table writes its header then one row per item`() {
         data class Sale(val client: String, val total: Double, val at: String)
         val columns = listOf(
-            CsvColumn<Sale>("Client") { CsvCell.Text(it.client) },
-            CsvColumn("Total (DA)") { CsvCell.Number(it.total) },
-            CsvColumn("Date") { CsvCell.DateTime(it.at) },
+            ExportColumn<Sale>("Client") { ExportCell.Text(it.client) },
+            ExportColumn("Total (DA)") { ExportCell.Number(it.total) },
+            ExportColumn("Date") { ExportCell.DateTime(it.at) },
         )
         var count = 0
         val bytes = csv {

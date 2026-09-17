@@ -12,27 +12,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-/** One value in a CSV row. Its type decides how it is written, and only [Text] can carry a formula. */
-sealed class CsvCell {
-    data class Text(val value: String?) : CsvCell()
-
-    /** A decimal number with [decimals] places, such as an amount (2) or a quantity (3, trailing zeros dropped). */
-    data class Number(val value: Double?, val decimals: Int = 2, val trimZeros: Boolean = false) : CsvCell()
-
-    data class Integer(val value: Long?) : CsvCell()
-
-    /** A stored instant, ISO-8601 text in UTC, written in local time. */
-    data class DateTime(val iso: String?) : CsvCell()
-
-    /** A stored calendar date, `yyyy-MM-dd`, already local. */
-    data class Date(val iso: String?) : CsvCell()
-
-    data class YesNo(val value: Boolean?) : CsvCell()
-}
-
-/** A column of a dataset: its header, and how a row fills it. */
-class CsvColumn<T>(val header: String, val cell: (T) -> CsvCell)
-
 /**
  * CSV that French Excel opens by double-click with every character, column and number where it belongs.
  *
@@ -71,11 +50,11 @@ class CsvWriter(out: OutputStream, private val zone: ZoneId = ZoneId.systemDefau
         writer.write(LINE_END)
     }
 
-    fun header(vararg names: String) = row(names.map { CsvCell.Text(it) })
+    fun header(vararg names: String) = row(names.map { ExportCell.Text(it) })
 
-    fun row(vararg cells: CsvCell) = row(cells.asList())
+    fun row(vararg cells: ExportCell) = row(cells.asList())
 
-    fun row(cells: List<CsvCell>) {
+    fun row(cells: List<ExportCell>) {
         cells.forEachIndexed { index, cell ->
             if (index > 0) writer.write(SEPARATOR.code)
             writer.write(format(cell, zone))
@@ -84,7 +63,7 @@ class CsvWriter(out: OutputStream, private val zone: ZoneId = ZoneId.systemDefau
     }
 
     /** Writes [columns]' headers, then one row per item of [rows]. Returns how many rows were written. */
-    fun <T> table(columns: List<CsvColumn<T>>, rows: Sequence<T>): Int {
+    fun <T> table(columns: List<ExportColumn<T>>, rows: Sequence<T>): Int {
         header(*columns.map { it.header }.toTypedArray())
         var count = 0
         for (item in rows) {
@@ -112,26 +91,26 @@ class CsvWriter(out: OutputStream, private val zone: ZoneId = ZoneId.systemDefau
         private val FORMULA_STARTS = setOf('=', '+', '-', '@', '\t', '\r')
 
         /** The text a cell is written as, quoted and neutralized as needed. */
-        fun format(cell: CsvCell, zone: ZoneId): String = when (cell) {
-            is CsvCell.Text -> text(cell.value)
-            is CsvCell.Number -> number(cell.value, cell.decimals, cell.trimZeros)
-            is CsvCell.Integer -> cell.value?.toString().orEmpty()
-            is CsvCell.DateTime -> cell.iso?.let { iso ->
+        fun format(cell: ExportCell, zone: ZoneId): String = when (cell) {
+            is ExportCell.Text -> text(cell.value)
+            is ExportCell.Number -> number(cell.value, cell.decimals, cell.trimZeros)
+            is ExportCell.Integer -> cell.value?.toString().orEmpty()
+            is ExportCell.DateTime -> cell.iso?.let { iso ->
                 try {
                     DATE_TIME.format(Instant.parse(iso).atZone(zone))
                 } catch (e: DateTimeParseException) {
                     // Older rows hold a calendar date where an instant belongs: still a date.
-                    format(CsvCell.Date(iso), zone)
+                    format(ExportCell.Date(iso), zone)
                 }
             }.orEmpty()
-            is CsvCell.Date -> cell.iso?.let { iso ->
+            is ExportCell.Date -> cell.iso?.let { iso ->
                 try {
                     DATE.format(LocalDate.parse(iso.take(10)))
                 } catch (e: DateTimeParseException) {
                     text(iso)
                 }
             }.orEmpty()
-            is CsvCell.YesNo -> when (cell.value) {
+            is ExportCell.YesNo -> when (cell.value) {
                 true -> "Oui"
                 false -> "Non"
                 null -> ""

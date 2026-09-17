@@ -94,7 +94,7 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
         return sql to args.toTypedArray()
     }
 
-    internal val columns: List<CsvColumn<ExportRow>>
+    internal val columns: List<ExportColumn<ExportRow>>
         get() = when (this) {
             VENTES -> listOf(
                 text("N°", "numero_label"),
@@ -104,7 +104,7 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 label("Statut", "status", mapOf("pending" to "En attente", "delivered" to "Livré")),
                 amount("Total (DA)", "total"),
                 amount("Payé (DA)", "montant_paye"),
-                CsvColumn("Reste (DA)") { CsvCell.Number(remaining(it.double("total"), it.double("montant_paye"))) },
+                ExportColumn("Reste (DA)") { ExportCell.Number(remaining(it.double("total"), it.double("montant_paye"))) },
                 text("Note", "note"),
                 text("Vendeur", "user_name"),
             )
@@ -125,7 +125,7 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 label("Statut", "status", mapOf("pending" to "En attente", "received" to "Reçu")),
                 amount("Total (DA)", "total"),
                 amount("Payé (DA)", "montant_paye"),
-                CsvColumn("Reste (DA)") { CsvCell.Number(remaining(it.double("total"), it.double("montant_paye"))) },
+                ExportColumn("Reste (DA)") { ExportCell.Number(remaining(it.double("total"), it.double("montant_paye"))) },
                 text("Note", "note"),
             )
             PAIEMENTS_CLIENTS -> listOf(
@@ -159,19 +159,19 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 text("Marque", "marque_name"),
                 text("Fournisseur", "supplier_name"),
                 text("Unité", "unit_type"),
-                CsvColumn("Unités par colis") { CsvCell.Integer(it.long("pack_size")) },
+                ExportColumn("Unités par colis") { ExportCell.Integer(it.long("pack_size")) },
                 amount("Prix d'achat (DA)", "purchase_price"),
                 amount("Prix de vente (DA)", "selling_price"),
                 // `stock` is the total, dépôt and camion together (see StockLedgerTriggers); the dépôt's share is
                 // the rest once the camion's is taken out, as the product screen shows it.
                 quantity("Stock total", "stock"),
-                CsvColumn("Stock dépôt") { row ->
+                ExportColumn("Stock dépôt") { row ->
                     val total = row.double("stock")
-                    CsvCell.Number(total?.let { it - (row.double("camion_stock") ?: 0.0) }, decimals = 3, trimZeros = true)
+                    ExportCell.Number(total?.let { it - (row.double("camion_stock") ?: 0.0) }, decimals = 3, trimZeros = true)
                 },
                 quantity("Stock camion", "camion_stock"),
-                CsvColumn("Stock minimum") { CsvCell.Integer(it.long("min_stock")) },
-                CsvColumn("Date de péremption") { row -> CsvCell.Date(row.text("expiry_date")?.takeIf { row.long("has_expiry") == 1L }) },
+                ExportColumn("Stock minimum") { ExportCell.Integer(it.long("min_stock")) },
+                ExportColumn("Date de péremption") { row -> ExportCell.Date(row.text("expiry_date")?.takeIf { row.long("has_expiry") == 1L }) },
             )
             MOUVEMENTS_STOCK -> listOf(
                 dateTime("Date", "created_at"),
@@ -213,15 +213,15 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
             "ajustement" to "Ajustement", "retour_client" to "Retour client", "retour_fournisseur" to "Retour fournisseur",
         )
 
-        fun text(header: String, column: String) = CsvColumn<ExportRow>(header) { CsvCell.Text(it.text(column)) }
-        fun amount(header: String, column: String) = CsvColumn<ExportRow>(header) { CsvCell.Number(it.double(column)) }
+        fun text(header: String, column: String) = ExportColumn<ExportRow>(header) { ExportCell.Text(it.text(column)) }
+        fun amount(header: String, column: String) = ExportColumn<ExportRow>(header) { ExportCell.Number(it.double(column)) }
         fun quantity(header: String, column: String) =
-            CsvColumn<ExportRow>(header) { CsvCell.Number(it.double(column), decimals = 3, trimZeros = true) }
-        fun dateTime(header: String, column: String) = CsvColumn<ExportRow>(header) { CsvCell.DateTime(it.text(column)) }
+            ExportColumn<ExportRow>(header) { ExportCell.Number(it.double(column), decimals = 3, trimZeros = true) }
+        fun dateTime(header: String, column: String) = ExportColumn<ExportRow>(header) { ExportCell.DateTime(it.text(column)) }
 
         /** A stored code as the screens word it; a code the app does not know is written as it is. */
         fun label(header: String, column: String, labels: Map<String, String>) =
-            CsvColumn<ExportRow>(header) { row -> CsvCell.Text(row.text(column)?.let { labels[it] ?: it }) }
+            ExportColumn<ExportRow>(header) { row -> ExportCell.Text(row.text(column)?.let { labels[it] ?: it }) }
 
         fun remaining(total: Double?, paid: Double?): Double? = total?.let { it - (paid ?: 0.0) }
     }
