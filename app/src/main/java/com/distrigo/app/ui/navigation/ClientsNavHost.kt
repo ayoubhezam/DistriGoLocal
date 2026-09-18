@@ -95,6 +95,9 @@ fun ClientsNavHost(
             val isLoading by viewModel.isLoading.collectAsState()
             val client = clients.find { it.id == clientId }
             var showDeleteConfirm by remember { mutableStateOf(false) }
+            // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
+            // only the first may pop, or the second takes the list and the graph with it.
+            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
 
             when {
                 client != null -> {
@@ -114,12 +117,12 @@ fun ClientsNavHost(
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
                             title = { Text("Supprimer le client") },
-                            text  = { Text("Voulez-vous supprimer \"${client.name}\" ?") },
+                            text  = { Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
                             confirmButton = {
                                 TextButton(onClick = {
                                     viewModel.deleteClient(
                                         id        = clientId,
-                                        onSuccess = { showDeleteConfirm = false; navController.popBackStack() },
+                                        onSuccess = { showDeleteConfirm = false; leave() },
                                         onError   = { showDeleteConfirm = false }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
@@ -137,7 +140,7 @@ fun ClientsNavHost(
                     }
                 }
                 else -> {
-                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    LaunchedEffect(Unit) { leave() }
                 }
             }
         }

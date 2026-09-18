@@ -90,6 +90,9 @@ fun SuppliersNavHost(
             val isLoading by viewModel.isLoading.collectAsState()
             val supplier = suppliers.find { it.id == supplierId }
             var showDeleteConfirm by remember { mutableStateOf(false) }
+            // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
+            // only the first may pop, or the second takes the list and the graph with it.
+            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
 
             when {
                 supplier != null -> {
@@ -113,7 +116,7 @@ fun SuppliersNavHost(
                             title = { Text("Supprimer le fournisseur") },
                             text = {
                                 Column {
-                                    Text("Voulez-vous supprimer \"${supplier.name}\" ?")
+                                    Text("\"${supplier.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                                     if (deleteError.isNotEmpty()) {
                                         Spacer(Modifier.height(DsSpacing.sm))
                                         Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -124,7 +127,7 @@ fun SuppliersNavHost(
                                 TextButton(onClick = {
                                     viewModel.deleteSupplier(
                                         id        = supplierId,
-                                        onSuccess = { showDeleteConfirm = false; navController.popBackStack() },
+                                        onSuccess = { showDeleteConfirm = false; leave() },
                                         onError   = { deleteError = "Impossible de supprimer ce fournisseur car il est associé à des produits." }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
@@ -142,7 +145,7 @@ fun SuppliersNavHost(
                     }
                 }
                 else -> {
-                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    LaunchedEffect(Unit) { leave() }
                 }
             }
         }
