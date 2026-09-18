@@ -1,5 +1,8 @@
 package com.distrigo.app
 
+import kotlinx.coroutines.withContext
+import com.distrigo.app.ui.common.RestoringScreen
+import com.distrigo.app.data.backup.RestoreStartup
 import android.graphics.Rect
 import android.app.Activity
 import android.os.Build
@@ -92,6 +95,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.distrigo.app.data.geo.GeoRepository.init(this)
+        if (RestoreStartup.inProgress) {
+            // A restore is being installed on its own thread: wait for it with a screen rather than a frozen frame.
+            setContent { DistriGoTheme { RestoringScreen() } }
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) { RestoreStartup.await() }
+                showApp()
+            }
+        } else {
+            showApp()
+        }
+    }
+
+    /** Builds the app's UI, and starts what runs beside it. Only once the database may be opened. */
+    private fun showApp() {
         setContent {
             DistriGoTheme {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding()) {

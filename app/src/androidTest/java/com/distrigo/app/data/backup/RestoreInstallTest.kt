@@ -124,6 +124,27 @@ class RestoreInstallTest {
     private fun photoFiles() = images.list().orEmpty().sorted()
 
     @Test
+    fun aStartInstallsTheRestoreOnItsOwnThreadWhileTheAppWaits() {
+        scheduleRestore()
+        db?.close()
+        db = null
+        RestoreStartup.reset()
+        try {
+            assertTrue(RestoreStartup.begin(installer))
+            assertTrue(RestoreStartup.inProgress || RestoreStartup.result != null)
+            RestoreStartup.await()
+            assertFalse(RestoreStartup.inProgress)
+            assertTrue(RestoreStartup.result!!.installed)
+            assertRestored()
+            // Nothing waits any more: a start has nothing to do.
+            RestoreStartup.reset()
+            assertFalse(RestoreStartup.begin(installer))
+        } finally {
+            RestoreStartup.reset()
+        }
+    }
+
+    @Test
     fun aDataOnlyBackupRestoresTheDataAndKeepsThePhonesPhotos() {
         product("Restauré", "img:${photo(restoredPhoto)}")
         val backup = File(saved, "data-only.distrigo").also { creator().create(Uri.fromFile(it), record = false, includePhotos = false) }

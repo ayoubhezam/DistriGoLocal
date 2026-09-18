@@ -1,5 +1,8 @@
 package com.distrigo.app
 
+import com.distrigo.app.data.backup.RestoreStartup
+import android.os.Looper
+import android.os.Handler
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
@@ -21,11 +24,13 @@ class DistriGoApplication : Application(), Configuration.Provider {
     lateinit var autoBackupScheduler: AutoBackupScheduler
 
     override fun onCreate() {
-        // Before Hilt and before anything can open the database or read a photo: a restore scheduled before
-        // the restart replaces both here. A no-op when none is waiting.
-        val restored = RestoreInstaller.forApp(this).installPending()
+        // Before Hilt and before anything can open the database or read a photo: a restore scheduled before the
+        // restart is installed on its own thread, and the first database open waits for it (RestoreStartup).
+        // Nothing starts when none is waiting.
+        RestoreStartup.begin(RestoreInstaller.forApp(this)) { result ->
+            result?.let { Handler(Looper.getMainLooper()).post { Toast.makeText(this, BackupMessages.of(it), Toast.LENGTH_LONG).show() } }
+        }
         super.onCreate()
-        restored?.let { Toast.makeText(this, BackupMessages.of(it), Toast.LENGTH_LONG).show() }
         // Off the main thread: it reads the settings file and may start WorkManager.
         Thread({
             try {

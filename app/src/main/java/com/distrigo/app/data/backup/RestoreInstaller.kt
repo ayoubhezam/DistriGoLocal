@@ -81,6 +81,9 @@ class RestoreInstaller(
     /** Whether a restore is waiting for the app to restart. */
     val hasPending: Boolean get() = readyMarker.isFile
 
+    /** Whether a start has work here: a restore waiting, or an install a kill interrupted. */
+    val needsStart: Boolean get() = readyMarker.isFile || stateFile.isFile
+
     /**
      * Makes [restore] the one installed on the next start, replacing any restore already waiting. The caller
      * restarts the app straight after: anything written to the database until then is replaced.

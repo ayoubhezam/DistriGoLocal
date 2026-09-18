@@ -91,6 +91,8 @@ The prepared restore then moves to `no_backup/restore/pending` with a `READY` ma
 
 1. `moving-old`: the database files and the photo folder move to `restore/previous`.
 2. `moving-new`: the restored database and photos move into place, and the database passes `quick_check`, is at this app's version, and is the `database_id` that was prepared.
+
+The install runs on its own thread as the app starts (`RestoreStartup`): the first database open waits for it, and the main screen shows « Restauration en cours… » until it ends.
 3. `finishing`: `app_meta` records `restore.last_at` and `restore.backup_created_at`, and the restored backup becomes the data's last backup (`backup.last_*`: its date, and the name and size of the file picked), since the data is now exactly that backup and a backup never contains its own record. ImageBackfill's done flag is cleared, and `pending` and `previous` are deleted.
 
 Each move is a rename within the app's storage, and the stage is written to `restore/install-state` before it starts. A launch killed in stage 1 or 2 puts every file back and starts again, at most three times; one killed in stage 3 finishes it. A restored database that fails its check is not retried: the old data goes back and the restore is discarded. The outcome is written to `restore/last-result` for the screen to report.
