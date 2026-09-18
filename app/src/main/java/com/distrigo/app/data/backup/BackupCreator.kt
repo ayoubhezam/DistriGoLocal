@@ -28,6 +28,8 @@ data class CreatedBackup(
     val missingPhotos: Int,
     /** Photos whose file no longer matches its name, so left out rather than saved damaged. */
     val damagedPhotos: Int,
+    /** [DataFingerprint] of the data as the file holds it — of the copy, not of the live database after it. */
+    val fingerprint: String,
 )
 
 class BackupFailedException(val reason: Reason, message: String, cause: Throwable? = null) : Exception(message, cause) {
@@ -84,6 +86,10 @@ class BackupCreator(
                 throw BackupFailedException(BackupFailedException.Reason.DATABASE_DAMAGED, e.message ?: "snapshot", e)
             }
 
+            // Of the copy, before the file is described and written: what changes in the live database from
+            // here on is not in this backup, and must not be recorded as if it were.
+            val fingerprint = DataFingerprint.of(snapshot.database)
+
             onStep(Step.BUILDING_FILE)
             val sources = linkedMapOf(BackupFormat.DATABASE_ENTRY to snapshot.database)
             var damagedPhotos = 0
@@ -132,6 +138,7 @@ class BackupCreator(
                 fileName = displayName(destination),
                 missingPhotos = if (includePhotos) snapshot.missingImages else 0,
                 damagedPhotos = damagedPhotos,
+                fingerprint = fingerprint,
             )
             if (record) db.appMetaDao().putAll(
                 listOf(

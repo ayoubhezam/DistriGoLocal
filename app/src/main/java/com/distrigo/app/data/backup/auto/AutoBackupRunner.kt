@@ -35,8 +35,9 @@ sealed class AutoBackupOutcome {
  * app's own storage when that folder cannot be used — after which only the newest [keep] automatic backups are
  * kept there.
  *
- * The fingerprint is taken before the copy, so a change made while the backup runs makes the next run back up
- * again: it can cause one backup too many, never one too few.
+ * The fingerprint recorded is the one of the copy that was saved (see [CreatedBackup.fingerprint]), so a change
+ * made while the backup runs is not yet recorded and makes the next run back up again: one backup too many at
+ * worst, never one too few. The live fingerprint is only read first to skip a day without changes.
  */
 class AutoBackupRunner(
     private val db: AppDatabase,
@@ -113,7 +114,7 @@ class AutoBackupRunner(
         }
 
         store.update {
-            it.copy(lastFingerprint = fingerprint, lastAt = created.manifest.createdAt, lastFileName = name, lastLocation = location)
+            it.copy(lastFingerprint = created.fingerprint, lastAt = created.manifest.createdAt, lastFileName = name, lastLocation = location)
         }
         return AutoBackupOutcome.Saved(name, created.size, folder.displayName, !isPicked, rotate(folder))
     }

@@ -103,6 +103,20 @@ class BackupCreatorTest {
     }
 
     @Test
+    fun theFingerprintIsOfTheCopyNotOfWhatChangedMeanwhile() {
+        product("Lait Candia 1L")
+        val before = DataFingerprint.of(sql)
+
+        val created = creator.create(destination()) { step ->
+            // A sale lands while the file is being built: after the copy, so not in this backup.
+            if (step == BackupCreator.Step.BUILDING_FILE) product("Arrivé pendant la sauvegarde")
+        }
+
+        assertEquals(before, created.fingerprint)
+        assertNotEquals(DataFingerprint.of(sql), created.fingerprint)
+    }
+
+    @Test
     fun aBackupIsSavedVerifiedAndRecorded() {
         product("Lait Candia 1L", "img:${photo(3)}")
         product("Yaourt Soummam", "img:${photo(5)}")
