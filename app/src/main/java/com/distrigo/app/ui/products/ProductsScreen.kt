@@ -212,7 +212,7 @@ fun ProductsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Supprimer le produit") },
-            text  = { Text("Voulez-vous supprimer \"${product.name}\" ?") },
+            text  = { Text("\"${product.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteProduct(product.id)

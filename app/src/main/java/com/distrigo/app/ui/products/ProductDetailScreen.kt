@@ -120,9 +120,9 @@ fun ProductDetailScreen(
                 val name = bidiIsolate(currentProduct.name)
                 if (currentProduct.supplier_name != null) {
                     Text("« $name » est lié au fournisseur ${bidiIsolate(currentProduct.supplier_name)}. " +
-                         "Il sera dissocié puis supprimé définitivement.")
+                         "Il en sera dissocié puis ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                 } else {
-                    Text("« $name » sera supprimé définitivement. Cette action est irréversible.")
+                    Text("« $name » ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                 }
             },
             confirmButton = {

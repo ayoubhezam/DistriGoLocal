@@ -155,7 +155,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
             title = { Text("Supprimer la catégorie") },
             text  = {
                 Column {
-                    Text("Voulez-vous supprimer \"${cat.name}\" ?")
+                    Text("\"${cat.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                     Text("Attention : impossible si des produits y sont associés.",
                         fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     if (deleteError.isNotEmpty()) {

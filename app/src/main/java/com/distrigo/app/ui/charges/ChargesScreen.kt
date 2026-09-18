@@ -150,7 +150,7 @@ fun ChargesScreen(
             title            = { Text("Supprimer \"${longPressType!!.name}\" ?") },
             text = {
                 Column {
-                    Text("Cette action est irréversible.")
+                    Text("Il ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                     if (deleteTypeError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteTypeError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)

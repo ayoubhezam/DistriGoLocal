@@ -60,7 +60,7 @@ fun ClientsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Supprimer le client") },
-            text  = { Text("Voulez-vous supprimer \"${client.name}\" ?") },
+            text  = { Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteClient(

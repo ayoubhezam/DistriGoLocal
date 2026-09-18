@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
@@ -28,12 +29,20 @@ fun ParametresScreen(onBack: () -> Unit) {
     var showReceiptSettings   by remember { mutableStateOf(false) }
     var showCommissionPolicy  by remember { mutableStateOf(false) }
     var showDataBackup        by remember { mutableStateOf(false) }
+    var showTrash             by remember { mutableStateOf(false) }
 
     BackHandler { onBack() }
 
     if (showReceiptSettings) {
         com.distrigo.app.ui.settings.receipt.ReceiptSettingsScreen(
             onBack = { showReceiptSettings = false }
+        )
+        return
+    }
+
+    if (showTrash) {
+        com.distrigo.app.ui.settings.trash.TrashScreen(
+            onBack = { showTrash = false }
         )
         return
     }
@@ -89,6 +98,14 @@ fun ParametresScreen(onBack: () -> Unit) {
                 title    = "Données et sauvegarde",
                 subtitle = "Sauvegarder vos données dans un fichier et les restaurer",
                 onClick  = { showDataBackup = true }
+            )
+            SettingsNavCard(
+                icon     = Icons.Default.DeleteOutline,
+                iconBg   = DsColors.DangerLight,
+                iconTint = DsColors.Danger,
+                title    = "Corbeille",
+                subtitle = "Restaurer les produits, clients et autres éléments supprimés",
+                onClick  = { showTrash = true }
             )
         }
     }

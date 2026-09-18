@@ -1,6 +1,7 @@
 package com.distrigo.app.di
 
 import com.distrigo.app.data.backup.BackupCreator
+import com.distrigo.app.data.trash.TrashRepository
 import com.distrigo.app.data.backup.auto.AutoBackupAlerts
 import com.distrigo.app.data.backup.auto.AutoBackupNotifications
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
@@ -70,6 +71,10 @@ object AppModule {
     @Singleton
     fun provideAutoBackupScheduler(@ApplicationContext context: Context, store: AutoBackupStore): AutoBackupScheduler =
         AutoBackupScheduler({ WorkManager.getInstance(context) }, store)
+
+    @Provides
+    @Singleton
+    fun provideTrashRepository(db: AppDatabase): TrashRepository = TrashRepository(db)
 
     @Provides
     @Singleton

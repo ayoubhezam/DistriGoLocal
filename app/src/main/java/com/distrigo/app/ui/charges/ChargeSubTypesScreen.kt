@@ -158,7 +158,7 @@ fun ChargeSubTypesScreen(
             title            = { Text("Supprimer \"${longPressSubType!!.name}\" ?") },
             text = {
                 Column {
-                    Text("Cette action est irréversible.")
+                    Text("Il ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
                     if (deleteSubTypeError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteSubTypeError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
