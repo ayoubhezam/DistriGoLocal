@@ -128,7 +128,7 @@ fun SuppliersNavHost(
                                     viewModel.deleteSupplier(
                                         id        = supplierId,
                                         onSuccess = { showDeleteConfirm = false; leave() },
-                                        onError   = { deleteError = "Impossible de supprimer ce fournisseur car il est associé à des produits." }
+                                        onError   = { deleteError = it }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },

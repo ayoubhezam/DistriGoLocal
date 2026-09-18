@@ -140,6 +140,48 @@ class DocumentRulesTest {
         assertEquals(-920.0, runBlocking { db.supplierDao().getSupplierById(supplierId) }!!.balance, 0.0)
     }
 
+    // ── The bin takes only settled accounts ──
+
+    @Test
+    fun aClientWithABalanceCannotGoToTheBin() {
+        val soda = product("Selecto", stock = 10.0)
+        sale(listOf(line(soda, 2.0)))
+        refused("le solde n'est pas nul") { runBlocking { repo.deleteClient(clientId) } }
+        assertTrue(runBlocking { db.clientDao().getClientById(clientId) } != null)
+
+        runBlocking { repo.addClientPayment(clientId, 200.0, null) }
+        runBlocking { repo.deleteClient(clientId) }
+        assertTrue(runBlocking { db.clientDao().getClientById(clientId) } == null)
+    }
+
+    @Test
+    fun aSupplierWithABalanceCannotGoToTheBin() {
+        val soda = product("Selecto")
+        runBlocking { repo.createPurchaseOrder(mapOf("supplier_id" to supplierId, "items" to listOf(mapOf("product_id" to soda, "quantity" to 1.0, "unit_cost" to 80.0)))) }
+        refused("le solde n'est pas nul") { runBlocking { repo.deleteSupplier(supplierId) } }
+        runBlocking { repo.addSupplierPayment(supplierId, 80.0, null) }
+        runBlocking { repo.deleteSupplier(supplierId) }
+        assertTrue(runBlocking { db.supplierDao().getSupplierById(supplierId) } == null)
+    }
+
+    // ── One tournée open at a time ──
+
+    @Test
+    fun onlyOneTourneeIsOpenAtATime() {
+        runBlocking { repo.createTournee("Lundi", null, null, null) }
+        val first = runBlocking { db.tourneeDao().getOpenTournee() }!!.id
+        refused("déjà ouverte") { runBlocking { repo.createTournee("Mardi", null, null, null) } }
+
+        runBlocking { repo.closeTournee(first) }
+        runBlocking { repo.createTournee("Mardi", null, null, null) }
+        val second = runBlocking { db.tourneeDao().getOpenTournee() }!!.id
+        refused("déjà ouverte") { runBlocking { repo.reopenTournee(first) } }
+
+        runBlocking { repo.closeTournee(second) }
+        runBlocking { repo.reopenTournee(first) }
+        assertEquals(first, runBlocking { db.tourneeDao().getOpenTournee() }!!.id)
+    }
+
     // ── Editing a sale after its product went to the bin ──
 
     @Test

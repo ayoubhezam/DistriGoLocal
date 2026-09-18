@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -114,16 +117,25 @@ fun ClientsNavHost(
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }
                     )
                     if (showDeleteConfirm) {
+                        var deleteError by remember { mutableStateOf("") }
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
                             title = { Text("Supprimer le client") },
-                            text  = { Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
+                            text  = {
+                                Column {
+                                    Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
+                                    if (deleteError.isNotEmpty()) {
+                                        Spacer(Modifier.height(DsSpacing.sm))
+                                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                                    }
+                                }
+                            },
                             confirmButton = {
                                 TextButton(onClick = {
                                     viewModel.deleteClient(
                                         id        = clientId,
                                         onSuccess = { showDeleteConfirm = false; leave() },
-                                        onError   = { showDeleteConfirm = false }
+                                        onError   = { deleteError = it }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },

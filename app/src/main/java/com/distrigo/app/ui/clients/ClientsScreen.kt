@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.clients
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -57,16 +60,25 @@ fun ClientsScreen(
 
     // ── Delete confirmation ──
     showDeleteDialog?.let { client ->
+        var deleteError by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Supprimer le client") },
-            text  = { Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
+            text  = {
+                Column {
+                    Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
+                    if (deleteError.isNotEmpty()) {
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteClient(
                         id        = client.id,
                         onSuccess = { showDeleteDialog = null },
-                        onError   = { showDeleteDialog = null }
+                        onError   = { deleteError = it }
                     )
                 }) { Text("Supprimer", color = DsColors.Danger) }
             },
