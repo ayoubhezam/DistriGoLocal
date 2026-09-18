@@ -48,6 +48,7 @@ import com.distrigo.app.ui.common.ImageCapture
 import com.distrigo.app.ui.common.QuickActionButton
 import com.distrigo.app.ui.common.BalanceAdjustments
 import com.distrigo.app.ui.common.StatCell
+import com.distrigo.app.ui.common.SoldeCell
 import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsCollapsingHeaderState
@@ -537,7 +538,7 @@ fun SupplierDetailScreen(
                 }
             }
 
-            // ── Statistiques (Total payé / Total facturé / Solde dû) ──
+            // ── Statistiques (Total facturé / Total payé / Solde) ──
             // Summed in SQL over the supplier's whole history (see getSupplierLedgerPreview), not here
             // on every recomposition.
             val totalFacture = ledger.totalFacture
@@ -552,14 +553,15 @@ fun SupplierDetailScreen(
                     .padding(vertical = DsSpacing.md)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
-                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
                     StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
                     Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                    StatCell(modifier = Modifier.weight(1f), label = "Solde dû", value = kotlin.math.abs(currentSupplier.balance), color = DsColors.Danger)
+                    StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
+                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                    // Paying more than billed is an advance, shown as such rather than as a negative debt.
+                    SoldeCell(modifier = Modifier.weight(1f), balance = currentSupplier.balance)
                 }
 
-                // What turns "Total facturé − Total payé" into the Solde dû beside them.
+                // What turns "Total facturé − Total payé" into the Solde beside them.
                 BalanceAdjustments(
                     returns        = retourPreview.total,
                     initialBalance = currentSupplier.initial_balance

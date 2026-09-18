@@ -103,6 +103,30 @@ fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Mo
 }
 
 /**
+ * The party's solde, from its stored [balance]: what it still owes in red, nothing in grey, or — when it has paid
+ * more than it was billed — the excess in blue, marked "(AVANCÉ)". The amount is always shown unsigned; the
+ * colour and the word carry the direction.
+ */
+@Composable
+fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
+    val owed = balance >= 0.005
+    val advance = balance <= -0.005
+    val color = when {
+        owed -> DsColors.Danger
+        advance -> DsColors.Primary
+        else -> DsColors.TextSecondary
+    }
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "${"%.2f".format(kotlin.math.abs(balance))} DA" + if (advance) " (AVANCÉ)" else "",
+            fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(2.dp))
+        Text("Solde", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
+    }
+}
+
+/**
  * The terms that stand between the two totals and the balance, under the stat cells.
  *
  * "Total facturé − Total payé" is not what a party owes. The balance also subtracts returns, and a
