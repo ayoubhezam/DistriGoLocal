@@ -76,7 +76,7 @@ object DataBackupFormatting {
 
     /** When a safety backup was taken, from its name; its file's time if the name does not say. */
     fun safetyBackupTime(file: File, zone: ZoneId = ZoneId.systemDefault()): Instant {
-        val stamp = file.name.removePrefix(RestoreCoordinator.SAFETY_PREFIX).substringBefore('.')
+        val stamp = RestoreCoordinator.stamp(file)
         return try {
             LocalDateTime.parse(stamp, SAFETY_STAMP).atZone(zone).toInstant()
         } catch (e: DateTimeParseException) {

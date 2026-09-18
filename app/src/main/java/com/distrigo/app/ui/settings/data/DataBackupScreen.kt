@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -81,6 +82,7 @@ fun DataBackupScreen(
     val lastRestore by viewModel.lastRestore.collectAsState()
     val autoStatus by viewModel.autoStatus.collectAsState()
     var showExport by remember { mutableStateOf(false) }
+    var showImport by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val createLauncher = rememberLauncherForActivityResult(
@@ -92,7 +94,8 @@ fun DataBackupScreen(
         uri?.let { viewModel.inspect(it) }
     }
 
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // Read again each time the screen shows, including on the way back from an export or an import.
+    LaunchedEffect(showExport, showImport) { if (!showExport && !showImport) viewModel.refresh() }
 
     // Turning daily backups on asks, once, to be allowed to notify failures; they are turned on either way.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -120,6 +123,10 @@ fun DataBackupScreen(
         }
     }
 
+    if (showImport) {
+        com.distrigo.app.ui.settings.data.importer.ImportScreen(onBack = { showImport = false })
+        return
+    }
     if (showExport) {
         com.distrigo.app.ui.settings.data.export.ExportScreen(onBack = { showExport = false })
         return
@@ -181,7 +188,7 @@ fun DataBackupScreen(
                     },
                 )
 
-                ExportSection(onOpen = { showExport = true })
+                ExportSection(onOpen = { showExport = true }, onImport = { showImport = true })
 
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
 
@@ -392,8 +399,8 @@ private fun StatusLine(label: String, value: String) {
 }
 
 @Composable
-private fun ExportSection(onOpen: () -> Unit) {
-    SectionTitle("Export")
+private fun ExportSection(onOpen: () -> Unit, onImport: () -> Unit) {
+    SectionTitle("Export et import")
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -415,6 +422,20 @@ private fun ExportSection(onOpen: () -> Unit) {
             Icon(Icons.Default.TableChart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
             Text("Exporter les données", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
+        Text(
+            "Ajoutez ou mettez à jour des produits et des clients depuis un fichier Excel : le fichier exporté sert de modèle.",
+            fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
+        )
+        OutlinedButton(
+            onClick = onImport,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = DsShapes.medium,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+        ) {
+            Icon(Icons.Default.FileUpload, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text("Importer depuis Excel", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }
@@ -451,7 +472,7 @@ private fun RestoreSection(onPick: () -> Unit) {
 private fun SafetyBackupsSection(backups: List<SafetyBackup>, onRestore: (SafetyBackup) -> Unit) {
     SectionTitle("Copies de sécurité")
     Text(
-        "Faites automatiquement avant chaque restauration. Restaurez-en une pour annuler une restauration. Elles sont supprimées si l'application est désinstallée.",
+        "Faites automatiquement avant chaque restauration et chaque import. Restaurez-en une pour annuler une restauration ou un import. Elles sont supprimées si l'application est désinstallée.",
         fontSize = DsTextSize.caption, color = DsColors.TextSecondary
     )
     Column(
@@ -466,7 +487,10 @@ private fun SafetyBackupsSection(backups: List<SafetyBackup>, onRestore: (Safety
                 Icon(Icons.Default.History, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(Modifier.weight(1f)) {
-                    Text("Avant la restauration du", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(
+                        if (com.distrigo.app.data.backup.RestoreCoordinator.isImportBackup(backup.file)) "Avant l'import du" else "Avant la restauration du",
+                        fontSize = DsTextSize.caption, color = DsColors.TextSecondary
+                    )
                     Text(DataBackupFormatting.dateTime(backup.at), fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                     Text(DataBackupFormatting.size(backup.size), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
