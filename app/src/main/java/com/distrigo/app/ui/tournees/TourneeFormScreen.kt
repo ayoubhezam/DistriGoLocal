@@ -70,6 +70,7 @@ fun TourneeFormScreen(
 
     var communeError       by remember { mutableStateOf("") }
     var isSaving           by remember { mutableStateOf(false) }
+    var saveError          by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         if (!isEdit && wilayaName.isBlank()) {
             viewModel.getDefaultWilaya()?.let { defaultWilaya ->
@@ -86,6 +87,7 @@ fun TourneeFormScreen(
         }
         communeError = ""
         isSaving = true
+        saveError = ""
 
         if (isEdit) {
             viewModel.updateTournee(
@@ -96,7 +98,7 @@ fun TourneeFormScreen(
                 note        = note.trim().ifEmpty { null },
                 secteurs    = selectedSecteurs,
                 onSuccess   = { onSaved() },
-                onError     = { isSaving = false }
+                onError     = { isSaving = false; saveError = it }
             )
         } else {
             viewModel.createTournee(
@@ -106,7 +108,7 @@ fun TourneeFormScreen(
                 note        = note.trim().ifEmpty { null },
                 secteurs    = selectedSecteurs,
                 onSuccess   = { onSaved() },
-                onError     = { isSaving = false }
+                onError     = { isSaving = false; saveError = it }
             )
         }
     }
@@ -215,6 +217,11 @@ fun TourneeFormScreen(
             )
 
             Spacer(Modifier.height(DsSpacing.xxl))
+
+            if (saveError.isNotEmpty()) {
+                Text(saveError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                Spacer(Modifier.height(DsSpacing.sm))
+            }
 
             // ── Enregistrer ──
             Button(

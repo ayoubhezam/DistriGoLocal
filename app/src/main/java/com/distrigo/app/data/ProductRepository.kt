@@ -670,9 +670,20 @@ class ProductRepository(
         return mapOf("message" to "Supplier updated successfully")
     }
 
+    /** A supplier goes to the bin only once its account is settled: a hidden debt or advance is not one. */
     suspend fun deleteSupplier(id: Int): Map<String, Any> {
-        supplierDao.softDeleteSupplierById(id)
+        db.withTransaction {
+            val supplier = supplierDao.getSupplierById(id) ?: return@withTransaction
+            requireSettled(supplier.balance)
+            supplierDao.softDeleteSupplierById(id)
+        }
         return mapOf("message" to "Supplier deleted successfully")
+    }
+
+    private fun requireSettled(balance: Double) {
+        if (kotlin.math.abs(balance) >= 0.005) {
+            throw IllegalStateException("Impossible de supprimer : le solde n'est pas nul (${"%.2f".format(balance)} DA).")
+        }
     }
 
 
@@ -1322,8 +1333,13 @@ class ProductRepository(
         return mapOf("message" to "Client updated successfully")
     }
 
+    /** A client goes to the bin only once its account is settled: a hidden debt or advance is not one. */
     suspend fun deleteClient(id: Int): Map<String, Any> {
-        clientDao.softDeleteClientById(id)
+        db.withTransaction {
+            val client = clientDao.getClientById(id) ?: return@withTransaction
+            requireSettled(client.balance)
+            clientDao.softDeleteClientById(id)
+        }
         return mapOf("message" to "Client deleted successfully")
     }
 
@@ -1616,14 +1632,27 @@ class ProductRepository(
         secteurs: List<TourneeSecteur> = emptyList()
     ): Map<String, Any> {
         val now = java.time.Instant.now().toString()
-        val newId = db.tourneeDao().insertTournee(
-            TourneeEntity(
-                status = "ouverte", date_debut = now, date_fin = null, note = note,
-                nom = nom, wilaya_name = wilayaName, commune_name = communeName, created_at = now
-            )
-        ).toInt()
-        replaceTourneeSecteurs(newId, secteurs)
+        db.withTransaction {
+            requireNoOtherOpenTournee(except = null)
+            val newId = db.tourneeDao().insertTournee(
+                TourneeEntity(
+                    status = "ouverte", date_debut = now, date_fin = null, note = note,
+                    nom = nom, wilaya_name = wilayaName, commune_name = communeName, created_at = now
+                )
+            ).toInt()
+            replaceTourneeSecteurs(newId, secteurs)
+        }
         return mapOf("message" to "Tournée créée avec succès")
+    }
+
+    /**
+     * The camion is one: its stock is a single figure, loaded by chargements that name no tournée. Two open
+     * tournées would sell from the same load without either knowing, so only one is open at a time.
+     */
+    private suspend fun requireNoOtherOpenTournee(except: Int?) {
+        val open = db.tourneeDao().getOpenTournee() ?: return
+        if (open.id == except) return
+        throw IllegalStateException("Une tournée est déjà ouverte (« ${open.nom} ») : clôturez-la avant d'en ouvrir une autre.")
     }
 
     suspend fun closeTournee(id: Int): Map<String, Any> {
@@ -1632,7 +1661,10 @@ class ProductRepository(
     }
 
     suspend fun reopenTournee(id: Int): Map<String, Any> {
-        db.tourneeDao().updateTourneeStatus(id, "ouverte", null)
+        db.withTransaction {
+            requireNoOtherOpenTournee(except = id)
+            db.tourneeDao().updateTourneeStatus(id, "ouverte", null)
+        }
         return mapOf("message" to "Tournée rouverte avec succès")
     }
 
