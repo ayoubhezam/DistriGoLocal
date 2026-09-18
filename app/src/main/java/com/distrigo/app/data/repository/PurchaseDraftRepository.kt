@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.PurchaseDraftEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderEntity
@@ -65,12 +66,12 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
      * session owns. `created_at` is preserved across updates so the card can distinguish when a
      * draft was started from when it was last touched.
      */
-    suspend fun upsert(draftId: Int?, snapshot: DraftSnapshot): Int {
+    suspend fun upsert(draftId: Int?, snapshot: DraftSnapshot): Int = db.withTransaction {
         val now      = Instant.now().toString()
         val existing = draftId?.let { dao.getById(it) }
 
         if (existing == null) {
-            return dao.insert(
+            return@withTransaction dao.insert(
                 PurchaseDraftEntity(
                     supplier_id      = snapshot.supplierId,
                     supplier_name    = snapshot.supplierName,
@@ -104,7 +105,7 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
                 // the base is what the session started from and must not drift under it.
             )
         )
-        return existing.id
+        existing.id
     }
 
     suspend fun delete(id: Int) = dao.deleteById(id)

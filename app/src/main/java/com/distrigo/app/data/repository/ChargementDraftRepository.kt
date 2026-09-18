@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.ChargementDraftEntity
 import com.distrigo.app.data.model.ChargementDraft
@@ -51,12 +52,12 @@ class ChargementDraftRepository(private val db: AppDatabase) {
      * session owns. `created_at` is preserved across updates so the card can distinguish when a
      * draft was started from when it was last touched.
      */
-    suspend fun upsert(draftId: Int?, snapshot: ChargementDraftSnapshot): Int {
+    suspend fun upsert(draftId: Int?, snapshot: ChargementDraftSnapshot): Int = db.withTransaction {
         val now      = java.time.Instant.now().toString()
         val existing = draftId?.let { dao.getById(it) }
 
         if (existing == null) {
-            return dao.insert(
+            return@withTransaction dao.insert(
                 ChargementDraftEntity(
                     single_product_id = snapshot.singleProductId,
                     items_json        = gson.toJson(snapshot.lines),
@@ -79,7 +80,7 @@ class ChargementDraftRepository(private val db: AppDatabase) {
                 updated_at        = now
             )
         )
-        return existing.id
+        existing.id
     }
 
     suspend fun delete(id: Int) = dao.deleteById(id)

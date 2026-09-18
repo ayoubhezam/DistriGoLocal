@@ -139,7 +139,7 @@ class SoftDeleteTest {
 
     @Test
     fun deletedChargeAndPerteTypesAreGoneFromEveryRead() = runBlocking {
-        val charges = ChargeRepository(db.chargeDao())
+        val charges = ChargeRepository(db.chargeDao(), db)
         val dao = db.chargeDao()
         val type = charges.addChargeType("Location", "home", "#3F51B5").toInt()
         val typeSubtype = charges.addSubType(type, "Dépôt", "home", false).toInt()

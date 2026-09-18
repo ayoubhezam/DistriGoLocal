@@ -1,6 +1,7 @@
 package com.distrigo.app
 
 import android.app.Application
+import android.util.Log
 import android.widget.Toast
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -26,7 +27,14 @@ class DistriGoApplication : Application(), Configuration.Provider {
         super.onCreate()
         restored?.let { Toast.makeText(this, BackupMessages.of(it), Toast.LENGTH_LONG).show() }
         // Off the main thread: it reads the settings file and may start WorkManager.
-        Thread({ autoBackupScheduler.ensureScheduled() }, "auto-backup-schedule").start()
+        Thread({
+            try {
+                autoBackupScheduler.ensureScheduled()
+            } catch (e: RuntimeException) {
+                // A scheduling problem must not take the app down at launch; the next launch tries again.
+                Log.w("DistriGoApplication", "could not schedule the daily backup", e)
+            }
+        }, "auto-backup-schedule").start()
     }
 
     /**

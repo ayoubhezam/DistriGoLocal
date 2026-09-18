@@ -131,7 +131,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideChargeRepository(db: AppDatabase): ChargeRepository =
-        ChargeRepository(chargeDao = db.chargeDao())
+        ChargeRepository(chargeDao = db.chargeDao(), db = db)
 
     @Provides
     @Singleton

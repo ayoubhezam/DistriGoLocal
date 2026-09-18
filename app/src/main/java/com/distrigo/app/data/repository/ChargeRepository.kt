@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.local.database.AppDatabase
+import androidx.room.withTransaction
 import com.distrigo.app.data.model.defaultChargeSubTypeUuid
 import com.distrigo.app.data.model.defaultChargeTypeUuid
 import com.distrigo.app.data.local.dao.ChargeDao
@@ -13,7 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ChargeRepository(
-    private val chargeDao: ChargeDao
+    private val chargeDao: ChargeDao,
+    private val db: AppDatabase,
 ) {
     // ── Mapping ──
     private fun ChargeTypeEntity.toChargeType(subtypesCount: Int = 0, totalThisMonth: Double = 0.0) = ChargeType(
@@ -78,8 +81,9 @@ class ChargeRepository(
         ))
     )
 
-    suspend fun seedDefaultChargeTypesIfNeeded() {
-        if (chargeDao.getAllChargeTypes().isNotEmpty()) return
+    /** Seeds once; the check and the inserts are one transaction, so two first callers cannot both seed. */
+    suspend fun seedDefaultChargeTypesIfNeeded() = db.withTransaction {
+        if (chargeDao.getAllChargeTypes().isNotEmpty()) return@withTransaction
         val now = java.time.Instant.now().toString()
         for (seedType in DEFAULT_CHARGE_TYPES) {
             val typeId = chargeDao.insertChargeType(
@@ -125,8 +129,8 @@ class ChargeRepository(
         )
     }
 
-    suspend fun deleteChargeType(id: Int) {
-        val type = chargeDao.getChargeTypeById(id) ?: return
+    suspend fun deleteChargeType(id: Int) = db.withTransaction {
+        val type = chargeDao.getChargeTypeById(id) ?: return@withTransaction
         if (type.is_default) throw IllegalStateException("Impossible de supprimer un type par défaut")
 
         val subtypes = chargeDao.getSubTypesForType(id)

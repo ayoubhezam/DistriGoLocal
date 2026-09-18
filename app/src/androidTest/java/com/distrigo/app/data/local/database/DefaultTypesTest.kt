@@ -36,7 +36,7 @@ class DefaultTypesTest {
     }
 
     private suspend fun seedAll(db: AppDatabase) {
-        ChargeRepository(db.chargeDao()).seedDefaultChargeTypesIfNeeded()
+        ChargeRepository(db.chargeDao(), db).seedDefaultChargeTypesIfNeeded()
         PerteRepository(db).seedDefaultPerteTypesIfNeeded()
     }
 

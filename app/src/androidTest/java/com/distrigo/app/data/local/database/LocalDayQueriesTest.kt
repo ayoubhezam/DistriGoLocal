@@ -73,7 +73,7 @@ class LocalDayQueriesTest {
     /** A charge made at 00:30 on the 1st counts in its own month, not the previous one. */
     @Test
     fun aChargeJustAfterMidnightOnTheFirstCountsInItsMonth() = runBlocking {
-        val charges = ChargeRepository(db.chargeDao())
+        val charges = ChargeRepository(db.chargeDao(), db)
         charges.seedDefaultChargeTypesIfNeeded()
         val type = db.chargeDao().getAllChargeTypes().first()
         val subtype = db.chargeDao().getSubTypesForType(type.id).first()
