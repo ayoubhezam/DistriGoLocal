@@ -1,5 +1,7 @@
 package com.distrigo.app.data.trash
 
+import org.junit.Assert.assertFalse
+import java.io.File
 import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -68,6 +70,29 @@ class TrashRepositoryTest {
 
     private fun deletedAt(table: String, id: Long): Long? =
         sql.query("SELECT deleted_at FROM $table WHERE id = ?", arrayOf(id)).use { if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null }
+
+    @Test
+    fun deletingAProductForGoodRemovesItsPhotosUnlessAnotherRowStillShowsThem() {
+        val dir = File(context.cacheDir, "trash-test-images").apply { deleteRecursively(); mkdirs() }
+        val own = "a".repeat(64)
+        val shared = "b".repeat(64)
+        File(dir, "$own.jpg").writeText("own")
+        File(dir, "$shared.jpg").writeText("shared")
+        val binWithFiles = TrashRepository(db, dir)
+        product(1, "Lait Candia 1L", "111")
+        product(2, "Yaourt Soummam", "222")
+        exec("UPDATE products SET image_uri = ? WHERE id = 1", "img:$own")
+        exec("INSERT INTO product_images (product_id, image_ref, position, created_at, uuid) VALUES (1, ?, 0, '2026-01-01T00:00:00Z', ?)", "img:$shared", uuid())
+        exec("UPDATE products SET image_uri = ? WHERE id = 2", "img:$shared")
+        bin("products", 1)
+
+        assertEquals(TrashOutcome.Done, binWithFiles.deletePermanently(TrashKind.PRODUCTS, 1))
+
+        assertFalse(File(dir, "$own.jpg").exists())
+        // The yaourt still shows the shared picture, so its file stays.
+        assertTrue(File(dir, "$shared.jpg").exists())
+        dir.deleteRecursively()
+    }
 
     @Test
     fun theBinListsWhatWasDeletedNewestFirstWithWhatTellsItemsApart() {

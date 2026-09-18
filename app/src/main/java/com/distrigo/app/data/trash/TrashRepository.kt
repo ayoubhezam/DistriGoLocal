@@ -1,5 +1,7 @@
 package com.distrigo.app.data.trash
 
+import java.io.File
+import com.distrigo.app.data.image.ImageReferences
 import android.database.Cursor
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -62,7 +64,8 @@ sealed class TrashOutcome {
  * any of them could be restored and would then point at nothing. A product takes its own gallery photos and price
  * history with it. The row is deleted, and the tombstone trigger records it for a later sync.
  */
-class TrashRepository(private val db: AppDatabase) {
+/** [imagesDir] is where stored photos live; null keeps the files, which only the tests want. */
+class TrashRepository(private val db: AppDatabase, private val imagesDir: File? = null) {
 
     private val sql: SupportSQLiteDatabase get() = db.openHelper.writableDatabase
 
@@ -112,20 +115,48 @@ class TrashRepository(private val db: AppDatabase) {
             if (count > 0) Usage(label.first, label.second, count) else null
         }
 
-    /** Deletes [id] of [kind] for good, only when nothing uses it. Cannot be undone. */
-    fun deletePermanently(kind: TrashKind, id: Long): TrashOutcome = inTransaction {
-        if (row(kind, id) == null) return@inTransaction TrashOutcome.Refused("Cet élément n'est plus dans la corbeille.")
-        val usages = usages(kind, id)
-        if (usages.isNotEmpty()) {
-            return@inTransaction TrashOutcome.Refused("Impossible de le supprimer définitivement : il est utilisé par " + words(usages) + ".")
+    /**
+     * Deletes [id] of [kind] for good, only when nothing uses it. Cannot be undone. A product's photo files go
+     * with it, unless another row still shows the same picture (files are named by content, so they are shared).
+     */
+    fun deletePermanently(kind: TrashKind, id: Long): TrashOutcome {
+        val photos = mutableSetOf<String>()
+        val outcome = inTransaction {
+            if (row(kind, id) == null) return@inTransaction TrashOutcome.Refused("Cet élément n'est plus dans la corbeille.")
+            val usages = usages(kind, id)
+            if (usages.isNotEmpty()) {
+                return@inTransaction TrashOutcome.Refused("Impossible de le supprimer définitivement : il est utilisé par " + words(usages) + ".")
+            }
+            if (kind == TrashKind.PRODUCTS) {
+                photos += photoHashesOf(id)
+                // Its own photo rows and price history, which nothing else refers to.
+                sql.execSQL("DELETE FROM product_images WHERE product_id = ?", arrayOf<Any>(id))
+                sql.execSQL("DELETE FROM price_history WHERE product_id = ?", arrayOf<Any>(id))
+            }
+            sql.execSQL("DELETE FROM ${kind.table} WHERE id = ? AND deleted_at IS NOT NULL", arrayOf<Any>(id))
+            TrashOutcome.Done
         }
-        if (kind == TrashKind.PRODUCTS) {
-            // Its own photos and price history, which nothing else refers to.
-            sql.execSQL("DELETE FROM product_images WHERE product_id = ?", arrayOf<Any>(id))
-            sql.execSQL("DELETE FROM price_history WHERE product_id = ?", arrayOf<Any>(id))
+        // After the commit: a file cannot be rolled back, and a photo still referenced elsewhere stays.
+        if (outcome == TrashOutcome.Done && photos.isNotEmpty()) deleteUnreferenced(photos)
+        return outcome
+    }
+
+    /** The hashes of a product's cover and gallery photos. */
+    private fun photoHashesOf(productId: Long): Set<String> {
+        val hashes = mutableSetOf<String>()
+        sql.query(SimpleSQLiteQuery("SELECT image_uri FROM products WHERE id = ?", arrayOf<Any>(productId))).use {
+            if (it.moveToFirst()) hashes += ImageReferences.hashesIn(it.textOrNull(0))
         }
-        sql.execSQL("DELETE FROM ${kind.table} WHERE id = ? AND deleted_at IS NOT NULL", arrayOf<Any>(id))
-        TrashOutcome.Done
+        sql.query(SimpleSQLiteQuery("SELECT image_ref FROM product_images WHERE product_id = ?", arrayOf<Any>(productId))).use {
+            while (it.moveToNext()) hashes += ImageReferences.hashesIn(it.textOrNull(0))
+        }
+        return hashes
+    }
+
+    private fun deleteUnreferenced(hashes: Set<String>) {
+        val dir = imagesDir ?: return
+        val stillUsed = ImageReferences.referencedHashes(sql)
+        for (hash in hashes - stillUsed) File(dir, "$hash.jpg").delete()
     }
 
     // ── Rules ──

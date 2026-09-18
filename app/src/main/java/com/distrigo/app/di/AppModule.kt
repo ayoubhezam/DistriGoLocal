@@ -1,5 +1,6 @@
 package com.distrigo.app.di
 
+import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.backup.BackupCreator
 import com.distrigo.app.data.trash.TrashRepository
 import com.distrigo.app.data.importer.ImportRepository
@@ -76,7 +77,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideTrashRepository(db: AppDatabase): TrashRepository = TrashRepository(db)
+    fun provideTrashRepository(@ApplicationContext context: Context, db: AppDatabase): TrashRepository =
+        TrashRepository(db, ImageStore.imagesDir(context))
 
     @Provides
     @Singleton
