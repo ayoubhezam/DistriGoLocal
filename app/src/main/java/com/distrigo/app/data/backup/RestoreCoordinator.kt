@@ -53,7 +53,7 @@ class RestoreCoordinator(
         }
 
         onStep(Step.SAVING_CURRENT_DATA)
-        val safety = File(installer.safetyDir, safetyName(Instant.now()))
+        val safety = File(installer.safetyDir, safetyName(SAFETY_PREFIX, Instant.now()))
         try {
             installer.safetyDir.mkdirs()
             creator.create(Uri.fromFile(safety), record = false)
@@ -75,28 +75,50 @@ class RestoreCoordinator(
             installer.cancelPending()
             return RestoreOutcome.SafetyBackupFailed(BackupFailedException.Reason.WRITE_FAILED)
         }
-        rotateSafetyBackups()
+        rotateSafetyBackups(SAFETY_PREFIX)
         return RestoreOutcome.Scheduled(restore.manifest, safety)
     }
 
-    /** The safety backups kept, newest first. */
-    fun safetyBackups(): List<File> =
-        installer.safetyDir.listFiles { file -> file.isFile && file.name.startsWith(SAFETY_PREFIX) && file.name.endsWith(".${BackupFormat.EXTENSION}") }
-            .orEmpty()
-            .sortedByDescending { it.name }
+    /**
+     * A copy of the data before an import, kept beside the ones taken before a restore and restorable the same
+     * way; the newest [KEEP_SAFETY_BACKUPS] imports keep theirs. Blocks: call it off the main thread. Throws
+     * [BackupFailedException] when no copy could be made.
+     */
+    fun backupBeforeImport(): File {
+        val safety = File(installer.safetyDir, safetyName(IMPORT_PREFIX, Instant.now()))
+        installer.safetyDir.mkdirs()
+        creator.create(Uri.fromFile(safety), record = false)
+        rotateSafetyBackups(IMPORT_PREFIX)
+        return safety
+    }
 
-    private fun rotateSafetyBackups() {
-        safetyBackups().drop(KEEP_SAFETY_BACKUPS).forEach { it.delete() }
+    /** The safety backups kept, from restores and imports alike, newest first. */
+    fun safetyBackups(): List<File> =
+        installer.safetyDir.listFiles { file -> file.isFile && file.name.endsWith(".${BackupFormat.EXTENSION}") && PREFIXES.any(file.name::startsWith) }
+            .orEmpty()
+            .sortedByDescending { stamp(it) }
+
+    /** Restores and imports are rotated apart, so three imports do not push out the copy a restore took. */
+    private fun rotateSafetyBackups(prefix: String) {
+        safetyBackups().filter { it.name.startsWith(prefix) }.drop(KEEP_SAFETY_BACKUPS).forEach { it.delete() }
     }
 
     /** Sorts by time as text, and to the second, so two restores in one minute keep both copies. */
-    private fun safetyName(at: Instant): String =
-        SAFETY_PREFIX + SAFETY_STAMP.format(at.atZone(zone())) + ".${BackupFormat.EXTENSION}"
+    private fun safetyName(prefix: String, at: Instant): String =
+        prefix + SAFETY_STAMP.format(at.atZone(zone())) + ".${BackupFormat.EXTENSION}"
 
     companion object {
         private const val TAG = "RestoreCoordinator"
         const val KEEP_SAFETY_BACKUPS = 3
         const val SAFETY_PREFIX = "avant-restauration-"
+        const val IMPORT_PREFIX = "avant-import-"
+        private val PREFIXES = listOf(SAFETY_PREFIX, IMPORT_PREFIX)
         private val SAFETY_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
+
+        /** Whether [file] was taken before an import rather than a restore. */
+        fun isImportBackup(file: File): Boolean = file.name.startsWith(IMPORT_PREFIX)
+
+        /** The time part of a safety backup's name, whichever prefix it has. */
+        fun stamp(file: File): String = PREFIXES.fold(file.name) { name, prefix -> name.removePrefix(prefix) }.substringBefore('.')
     }
 }

@@ -13,4 +13,7 @@ interface SecteurDao {
 
     @Query("SELECT * FROM secteurs WHERE commune_name = :communeName ORDER BY nom ASC")
     suspend fun getSecteursForCommune(communeName: String): List<SecteurEntity>
+
+    @Query("SELECT * FROM secteurs ORDER BY nom ASC")
+    suspend fun getAllSecteurs(): List<SecteurEntity>
 }

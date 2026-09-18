@@ -2,6 +2,8 @@ package com.distrigo.app.di
 
 import com.distrigo.app.data.backup.BackupCreator
 import com.distrigo.app.data.trash.TrashRepository
+import com.distrigo.app.data.importer.ImportRepository
+import com.distrigo.app.data.importer.ImportSafety
 import com.distrigo.app.data.backup.auto.AutoBackupAlerts
 import com.distrigo.app.data.backup.auto.AutoBackupNotifications
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
@@ -75,6 +77,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideTrashRepository(db: AppDatabase): TrashRepository = TrashRepository(db)
+
+    @Provides
+    @Singleton
+    fun provideImportRepository(db: AppDatabase, products: ProductRepository, coordinator: RestoreCoordinator): ImportRepository =
+        ImportRepository(db, products, ImportRepository.APP_GEO, ImportSafety { coordinator.backupBeforeImport() })
 
     @Provides
     @Singleton
