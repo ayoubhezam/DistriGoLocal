@@ -472,7 +472,7 @@ private fun RestoreSection(onPick: () -> Unit) {
 private fun SafetyBackupsSection(backups: List<SafetyBackup>, onRestore: (SafetyBackup) -> Unit) {
     SectionTitle("Copies de sécurité")
     Text(
-        "Faites automatiquement avant chaque restauration et chaque import. Restaurez-en une pour annuler une restauration ou un import. Elles sont supprimées si l'application est désinstallée.",
+        "Faites automatiquement avant chaque restauration et chaque import. Restaurez-en une pour annuler une restauration ou un import. Celles d'avant un import ne contiennent que les données, pas les photos. Elles sont supprimées si l'application est désinstallée.",
         fontSize = DsTextSize.caption, color = DsColors.TextSecondary
     )
     Column(
@@ -560,7 +560,7 @@ private fun RestorePreviewScreen(
                 if (!isSafetyBackup && preview.fileName.isNotEmpty()) {
                     DetailLine("Fichier", listOfNotNull(preview.fileName, preview.fileSize?.let(DataBackupFormatting::size)).joinToString(" · "))
                 }
-                DetailLine("Photos", preview.photoCount.toString())
+                DetailLine("Photos", if (preview.photosIncluded) preview.photoCount.toString() else "Non incluses : les photos actuelles sont conservées")
                 if (manifest.appVersion.isNotEmpty()) DetailLine("Version", manifest.appVersion)
             }
 

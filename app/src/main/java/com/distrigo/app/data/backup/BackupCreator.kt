@@ -69,9 +69,11 @@ class BackupCreator(
      * time; a second call waits for the first.
      *
      * [record] is false for the safety backup a restore takes: it is not a backup the user made, and the
-     * data it would be recorded in is about to be replaced.
+     * data it would be recorded in is about to be replaced. [includePhotos] is false for the copy taken before
+     * an import, which touches no photo: the file then holds the database alone, and restoring it keeps the
+     * phone's photos (see [BackupManifest.photosIncluded]).
      */
-    fun create(destination: Uri, record: Boolean = true, onStep: (Step) -> Unit = {}): CreatedBackup = synchronized(LOCK) {
+    fun create(destination: Uri, record: Boolean = true, includePhotos: Boolean = true, onStep: (Step) -> Unit = {}): CreatedBackup = synchronized(LOCK) {
         workDir.deleteRecursively()
         workDir.mkdirs()
         try {
@@ -85,7 +87,7 @@ class BackupCreator(
             onStep(Step.BUILDING_FILE)
             val sources = linkedMapOf(BackupFormat.DATABASE_ENTRY to snapshot.database)
             var damagedPhotos = 0
-            val photos = snapshot.imageHashes.mapNotNull { hash ->
+            val photos = if (!includePhotos) emptyList() else snapshot.imageHashes.mapNotNull { hash ->
                 val name = BackupFormat.imageEntry(hash)
                 val file = File(imagesDir, "$hash.jpg")
                 val entry = BackupArchive.describe(name, file)
@@ -106,6 +108,7 @@ class BackupCreator(
                 deviceModel = deviceModel,
                 rowCounts = snapshot.rowCounts,
                 entries = listOf(BackupArchive.describe(BackupFormat.DATABASE_ENTRY, snapshot.database)) + photos,
+                photosIncluded = includePhotos,
             )
             val local = File(workDir, "backup.${BackupFormat.EXTENSION}")
             local.outputStream().use { BackupArchive.write(manifest, sources, it) }
@@ -127,7 +130,7 @@ class BackupCreator(
                 manifest = manifest,
                 size = local.length(),
                 fileName = displayName(destination),
-                missingPhotos = snapshot.missingImages,
+                missingPhotos = if (includePhotos) snapshot.missingImages else 0,
                 damagedPhotos = damagedPhotos,
             )
             if (record) db.appMetaDao().putAll(

@@ -38,6 +38,12 @@ data class BackupManifest(
     /** Rows per table in the copy, to preview a backup and to check the restored database against. */
     val rowCounts: Map<String, Long>,
     val entries: List<BackupEntry>,
+    /**
+     * Whether the photos the data refers to are in the file. False for a copy taken before an import, which
+     * changes no photo: restoring it keeps the phone's photos as they are. Absent in files written before
+     * this field existed, which all hold their photos.
+     */
+    val photosIncluded: Boolean = true,
 ) {
 
     fun entry(name: String): BackupEntry? = entries.firstOrNull { it.name == name }
@@ -55,6 +61,7 @@ data class BackupManifest(
             addProperty("database_id", databaseId)
             addProperty("device_id", deviceId)
             addProperty("device_model", deviceModel)
+            addProperty("photos_included", photosIncluded)
             add("row_counts", JsonObject().also { counts ->
                 rowCounts.toSortedMap().forEach { (table, count) -> counts.addProperty(table, count) }
             })
@@ -135,6 +142,10 @@ data class BackupManifest(
             }
             if (entries.map { it.name }.toSet().size != entries.size) fail("duplicate entries")
             if (entries.none { it.name == BackupFormat.DATABASE_ENTRY }) fail("no ${BackupFormat.DATABASE_ENTRY}")
+            val photosIncluded = json.get("photos_included")?.let { value ->
+                value.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean ?: fail("photos_included")
+            } ?: true
+            if (!photosIncluded && entries.any { BackupFormat.isImageEntry(it.name) }) fail("photos listed in a data-only backup")
 
             return BackupManifest(
                 formatVersion = format,
@@ -146,6 +157,7 @@ data class BackupManifest(
                 deviceModel = json.string("device_model") ?: "",
                 rowCounts = rowCounts,
                 entries = entries,
+                photosIncluded = photosIncluded,
             )
         }
 

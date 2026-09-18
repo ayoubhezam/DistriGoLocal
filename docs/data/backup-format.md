@@ -12,7 +12,7 @@ A ZIP named for the local time it was made, such as `DistriGo-2026-09-17-1430.di
 |---|---|
 | `manifest.json` | What the backup holds, with a size and SHA-256 for every other entry |
 | `distrigo.db` | The whole database, as one SQLite file |
-| `images/<sha256>.jpg` | Each photo the data refers to, under the same name as in `filesDir/images` |
+| `images/<sha256>.jpg` | Each photo the data refers to, under the same name as in `filesDir/images`. Absent from a data-only backup (`photos_included` false in the manifest), such as the copy taken before an import: restoring one keeps the phone's photos as they are |
 
 No directories, no other names, no `..`: a name that does not match one of these three shapes makes the file damaged, so nothing can unpack outside its folder.
 

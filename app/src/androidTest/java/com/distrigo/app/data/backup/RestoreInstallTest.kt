@@ -123,6 +123,23 @@ class RestoreInstallTest {
 
     private fun photoFiles() = images.list().orEmpty().sorted()
 
+    @Test
+    fun aDataOnlyBackupRestoresTheDataAndKeepsThePhonesPhotos() {
+        product("Restauré", "img:${photo(restoredPhoto)}")
+        val backup = File(saved, "data-only.distrigo").also { creator().create(Uri.fromFile(it), record = false, includePhotos = false) }
+        open().openHelper.writableDatabase.execSQL("DELETE FROM products")
+        product("Actuel", "img:${photo(currentPhoto)}")
+        coordinator().restore(Uri.fromFile(backup), expected = null) as RestoreOutcome.Scheduled
+
+        start()
+
+        assertEquals(listOf("Restauré"), productNames())
+        // Both photos are still there: the restore did not touch the folder.
+        assertEquals(listOf(hashOf(restoredPhoto), hashOf(currentPhoto)).map { "$it.jpg" }.sorted(), photoFiles())
+        assertTrue(installer.lastResult()!!.installed)
+        assertTidy()
+    }
+
     private fun hashOf(seed: Int) = BackupFormat.sha256(ByteArray(5_000) { (it * seed % 251).toByte() }.inputStream())
 
     private fun assertRestored() {

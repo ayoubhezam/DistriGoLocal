@@ -81,13 +81,15 @@ class RestoreCoordinator(
 
     /**
      * A copy of the data before an import, kept beside the ones taken before a restore and restorable the same
-     * way; the newest [KEEP_SAFETY_BACKUPS] imports keep theirs. Blocks: call it off the main thread. Throws
-     * [BackupFailedException] when no copy could be made.
+     * way; the newest [KEEP_SAFETY_BACKUPS] imports keep theirs. An import changes no photo, so the copy holds
+     * the database alone — a few hundred kilobytes rather than the whole gallery — and restoring it keeps the
+     * phone's photos. Blocks: call it off the main thread. Throws [BackupFailedException] when no copy could
+     * be made.
      */
     fun backupBeforeImport(): File {
         val safety = File(installer.safetyDir, safetyName(IMPORT_PREFIX, Instant.now()))
         installer.safetyDir.mkdirs()
-        creator.create(Uri.fromFile(safety), record = false)
+        creator.create(Uri.fromFile(safety), record = false, includePhotos = false)
         rotateSafetyBackups(IMPORT_PREFIX)
         return safety
     }

@@ -43,6 +43,9 @@ data class RestoreResult(
  *
  *  1. `moving-old`: the database files and photo folder move to `restore/previous`.
  *  2. `moving-new`: the restored database and photos move into their places, and the database is checked.
+ *
+ * A backup without photos (`photos_included` false in its manifest, such as the copy taken before an import)
+ * leaves the photo folder where it is at both steps: the phone keeps the photos it has.
  *  3. `finishing`: the restore is recorded, and the restored backup becomes the data's last backup; `pending` and
  *     `previous` are deleted.
  *
@@ -94,6 +97,7 @@ class RestoreInstaller(
             safetyBackup?.let { addProperty("safety_backup", it) }
             backupFileName?.takeIf { it.isNotEmpty() }?.let { addProperty("backup_file_name", it) }
             backupFileSize?.let { addProperty("backup_file_size", it) }
+            addProperty("keep_photos", !restore.manifest.photosIncluded)
         }
         writeAtomically(readyMarker, GSON.toJson(marker))
     }
@@ -178,6 +182,7 @@ class RestoreInstaller(
 
     private fun install(attempt: Int) {
         val marker = readMarker()
+        val keepPhotos = keepsPhotos(marker)
         val restored = File(pendingDir, BackupFormat.DATABASE_ENTRY)
         if (!restored.isFile) {
             abandon("the prepared database is missing")
@@ -190,13 +195,13 @@ class RestoreInstaller(
         previousDir.mkdirs()
         for (file in liveDatabaseFiles()) move(file, File(previousDir, file.name))
         onPoint?.invoke("moved-old-database")
-        if (imagesDir.exists()) move(imagesDir, File(previousDir, IMAGES))
+        if (!keepPhotos && imagesDir.exists()) move(imagesDir, File(previousDir, IMAGES))
         onPoint?.invoke("moved-old")
 
         writeState(State(STAGE_MOVING_NEW, attempt))
         move(restored, databaseFile)
         onPoint?.invoke("moved-new-database")
-        File(pendingDir, IMAGES).takeIf { it.exists() }?.let { move(it, imagesDir) }
+        if (!keepPhotos) File(pendingDir, IMAGES).takeIf { it.exists() }?.let { move(it, imagesDir) }
         onPoint?.invoke("moved-new")
         check(databaseFile, marker)?.let { problem ->
             putBack()
@@ -262,7 +267,8 @@ class RestoreInstaller(
             if (databaseFile.isFile && !restored.exists()) move(databaseFile, restored)
             for (suffix in JOURNALS) File(databaseFile.path + suffix).delete()
             val restoredImages = File(pendingDir, IMAGES)
-            if (imagesDir.exists() && !restoredImages.exists()) move(imagesDir, restoredImages)
+            // With a backup that has no photos, the folder in place is the phone's own, and stays.
+            if (!keepsPhotos(readMarker()) && imagesDir.exists() && !restoredImages.exists()) move(imagesDir, restoredImages)
         }
         if (previousDir.isDirectory) {
             for (file in previousDir.listFiles().orEmpty()) {
@@ -331,6 +337,10 @@ class RestoreInstaller(
     }
 
     private fun writeState(state: State) = writeAtomically(stateFile, "${state.stage} ${state.attempt}")
+
+    /** Whether the waiting restore leaves the phone's photos alone: its backup holds none. */
+    private fun keepsPhotos(marker: JsonObject?): Boolean =
+        marker?.get("keep_photos")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean ?: false
 
     private fun readMarker(): JsonObject? = try {
         readyMarker.takeIf { it.isFile }?.let { JsonParser().parse(it.readText()).asJsonObject }

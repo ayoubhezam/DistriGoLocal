@@ -86,6 +86,23 @@ class BackupCreatorTest {
     private fun meta(key: String): String? = db.appMetaDao().get(key)
 
     @Test
+    fun aDataOnlyBackupHoldsNoPhotosAndSaysSo() {
+        product("Lait Candia 1L", "img:${photo(3)}")
+
+        val created = creator.create(destination(), record = false, includePhotos = false)
+
+        assertFalse(created.manifest.photosIncluded)
+        assertTrue(created.manifest.images.isEmpty())
+        assertEquals(0, created.missingPhotos)
+        // The flag survives the file: what is written is what is read back.
+        val parsed = BackupManifest.parse(created.manifest.toJson()) as ManifestResult.Valid
+        assertFalse(parsed.manifest.photosIncluded)
+        // Older files, without the field, hold their photos.
+        val older = BackupManifest.parse(created.manifest.toJson().replace("\"photos_included\": false,", "")) as ManifestResult.Valid
+        assertTrue(older.manifest.photosIncluded)
+    }
+
+    @Test
     fun aBackupIsSavedVerifiedAndRecorded() {
         product("Lait Candia 1L", "img:${photo(3)}")
         product("Yaourt Soummam", "img:${photo(5)}")

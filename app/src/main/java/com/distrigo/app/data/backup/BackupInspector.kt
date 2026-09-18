@@ -29,6 +29,9 @@ data class BackupPreview(
 
     val photoCount: Int get() = manifest.images.size
 
+    /** False for a data-only copy, such as the one taken before an import: restoring it keeps the phone's photos. */
+    val photosIncluded: Boolean get() = manifest.photosIncluded
+
     /** The tables worth showing side by side, each as backup count to current count. */
     val headline: List<Pair<String, Pair<Long, Long>>>
         get() = HEADLINE_TABLES.map { it to ((manifest.rowCounts[it] ?: 0L) to (currentCounts[it] ?: 0L)) }
