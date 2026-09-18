@@ -1,5 +1,7 @@
 # Logic Issues & Technical Debt Report — 2026-09-18
 
+> **Status (same day):** 1.1, 1.2, 1.4, 3.1, 3.2, 3.5 and 5.1 are fixed (commits c7fade2–c54b65c). 1.5 is fixed for quantities, prices and payments; a paid amount above the total is **by design** an advance, now shown as such in the Solde cell (d3bf135). The rest stands as written.
+
 Scope: the whole app as of commit `d145a40` (338 Kotlin files, ~60k lines). Method: a pattern sweep (writes outside transactions, swallowed exceptions, blocking calls, `!!`, clock use) followed by a close read of everything that moves money or stock (`ProductRepository`, the ledger and balance formulas, the triggers, drafts) and of the backup / restore / import / Corbeille code. Nothing was changed. Each item says where it is, what can go wrong, and how sure I am (**verified** = read the code path end to end; **likely** = strong evidence, not traced through the UI).
 
 Severity: **H** data can become wrong or lost · **M** wrong in an edge case, or a crash · **L** debt, hygiene, scaling.
