@@ -301,7 +301,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Screen.PlusParametres.route) {
-                                com.distrigo.app.ui.settings.ParametresScreen(
+                                com.distrigo.app.ui.navigation.SettingsNavHost(
                                     onBack = { navController.popBackStack() }
                                 )
                             }

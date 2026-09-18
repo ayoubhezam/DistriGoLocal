@@ -21,6 +21,16 @@ sealed class Screen(val route: String) {
     data object PlusRapports     : Screen("plus_rapports")
     data object PlusParametres   : Screen("plus_parametres")
 
+    // ── Paramètres (PlusParametres content): its own NavHost, one destination per settings screen ──
+    data object SettingsGraph      : Screen("settings_graph")
+    data object SettingsHome       : Screen("settings_home")
+    data object SettingsReceipt    : Screen("settings_receipt")
+    data object SettingsCommission : Screen("settings_commission")
+    data object SettingsData       : Screen("settings_data")
+    data object SettingsExport     : Screen("settings_data_export")
+    data object SettingsImport     : Screen("settings_data_import")
+    data object SettingsTrash      : Screen("settings_trash")
+
     // ── Ventes Hub (TabVentes content): Dépôt Vente / Tournées / Stock Camion ──
     data object VentesHubGraph       : Screen("ventes_hub_graph")
     data object VentesHubMenu        : Screen("ventes_hub_menu")

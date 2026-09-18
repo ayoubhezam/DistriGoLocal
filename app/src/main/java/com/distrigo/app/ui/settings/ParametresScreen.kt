@@ -25,41 +25,14 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 
 @Composable
-fun ParametresScreen(onBack: () -> Unit) {
-    var showReceiptSettings   by remember { mutableStateOf(false) }
-    var showCommissionPolicy  by remember { mutableStateOf(false) }
-    var showDataBackup        by remember { mutableStateOf(false) }
-    var showTrash             by remember { mutableStateOf(false) }
-
+fun ParametresScreen(
+    onBack: () -> Unit,
+    onReceipt: () -> Unit,
+    onCommission: () -> Unit,
+    onData: () -> Unit,
+    onTrash: () -> Unit,
+) {
     BackHandler { onBack() }
-
-    if (showReceiptSettings) {
-        com.distrigo.app.ui.settings.receipt.ReceiptSettingsScreen(
-            onBack = { showReceiptSettings = false }
-        )
-        return
-    }
-
-    if (showTrash) {
-        com.distrigo.app.ui.settings.trash.TrashScreen(
-            onBack = { showTrash = false }
-        )
-        return
-    }
-
-    if (showDataBackup) {
-        com.distrigo.app.ui.settings.data.DataBackupScreen(
-            onBack = { showDataBackup = false }
-        )
-        return
-    }
-
-    if (showCommissionPolicy) {
-        com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen(
-            onBack = { showCommissionPolicy = false }
-        )
-        return
-    }
 
     Column(
         modifier = Modifier
@@ -81,7 +54,7 @@ fun ParametresScreen(onBack: () -> Unit) {
                 iconTint = DsColors.Success,
                 title    = "Paramètres du reçu",
                 subtitle = "Logo, nom du commerce et informations affichées sur le reçu",
-                onClick  = { showReceiptSettings = true }
+                onClick  = onReceipt
             )
             SettingsNavCard(
                 icon     = Icons.Default.Percent,
@@ -89,7 +62,7 @@ fun ParametresScreen(onBack: () -> Unit) {
                 iconTint = DsColors.Primary,
                 title    = "Politique de commission",
                 subtitle = "Définir l'objectif et le mode de calcul des primes",
-                onClick  = { showCommissionPolicy = true }
+                onClick  = onCommission
             )
             SettingsNavCard(
                 icon     = Icons.Default.Backup,
@@ -97,7 +70,7 @@ fun ParametresScreen(onBack: () -> Unit) {
                 iconTint = DsColors.Warning,
                 title    = "Données et sauvegarde",
                 subtitle = "Sauvegarder vos données dans un fichier et les restaurer",
-                onClick  = { showDataBackup = true }
+                onClick  = onData
             )
             SettingsNavCard(
                 icon     = Icons.Default.DeleteOutline,
@@ -105,7 +78,7 @@ fun ParametresScreen(onBack: () -> Unit) {
                 iconTint = DsColors.Danger,
                 title    = "Corbeille",
                 subtitle = "Restaurer les produits, clients et autres éléments supprimés",
-                onClick  = { showTrash = true }
+                onClick  = onTrash
             )
         }
     }

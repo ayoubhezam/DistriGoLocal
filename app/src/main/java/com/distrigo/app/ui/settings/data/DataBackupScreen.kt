@@ -73,6 +73,8 @@ import java.time.Instant
 @Composable
 fun DataBackupScreen(
     onBack: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
     viewModel: DataBackupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -81,8 +83,6 @@ fun DataBackupScreen(
     val safetyBackups by viewModel.safetyBackups.collectAsState()
     val lastRestore by viewModel.lastRestore.collectAsState()
     val autoStatus by viewModel.autoStatus.collectAsState()
-    var showExport by remember { mutableStateOf(false) }
-    var showImport by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val createLauncher = rememberLauncherForActivityResult(
@@ -94,8 +94,8 @@ fun DataBackupScreen(
         uri?.let { viewModel.inspect(it) }
     }
 
-    // Read again each time the screen shows, including on the way back from an export or an import.
-    LaunchedEffect(showExport, showImport) { if (!showExport && !showImport) viewModel.refresh() }
+    // Read again each time the screen shows: it is composed anew on the way back from an export or an import.
+    LaunchedEffect(Unit) { viewModel.refresh() }
 
     // Turning daily backups on asks, once, to be allowed to notify failures; they are turned on either way.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -123,14 +123,6 @@ fun DataBackupScreen(
         }
     }
 
-    if (showImport) {
-        com.distrigo.app.ui.settings.data.importer.ImportScreen(onBack = { showImport = false })
-        return
-    }
-    if (showExport) {
-        com.distrigo.app.ui.settings.data.export.ExportScreen(onBack = { showExport = false })
-        return
-    }
 
     when (val current = state) {
         DataBackupState.RestartNeeded -> {
@@ -188,7 +180,7 @@ fun DataBackupScreen(
                     },
                 )
 
-                ExportSection(onOpen = { showExport = true }, onImport = { showImport = true })
+                ExportSection(onOpen = onExport, onImport = onImport)
 
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
 
