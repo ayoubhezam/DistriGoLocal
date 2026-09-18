@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.repository.ProductDuplicate
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -157,24 +158,10 @@ fun ProductFormScreen(
         if (name.isBlank()) {
             nameError = "Le nom est obligatoire."
             valid = false
-        } else {
-            // تحقق من التكرار مع استثناء المنتج الحالي عند التعديل
-            val duplicate = products.find {
-                it.name.trim().lowercase() == name.trim().lowercase() &&
-                        it.id != (product?.id ?: -1)
-            }
-            if (duplicate != null) { nameError = "Ce nom de produit est déjà enregistré."; valid = false }
         }
-
         if (barcode.isBlank()) {
             barcodeError = "Le code-barres est obligatoire."
             valid = false
-        } else {
-            val dupBarcode = products.find {
-                it.barcode?.trim() == barcode.trim() &&
-                        it.id != (product?.id ?: -1)
-            }
-            if (dupBarcode != null) { barcodeError = "Ce code-barres est déjà enregistré."; valid = false }
         }
         if (sellingPrice.toDoubleOrNull() == null || sellingPrice.toDouble() <= 0)
             { sellingPriceError = "Obligatoire."; valid = false }
@@ -183,16 +170,18 @@ fun ProductFormScreen(
         return valid
     }
 
-    fun save(forceSubmit: Boolean = false) {
-        if (!validate()) {
-            if (pagerState.currentPage != 0) {
-                coroutineScope.launch { pagerState.animateScrollToPage(0) }
-            }
-            return
+    /** A refused save: a duplicate goes on its field, anything else is logged, as before. */
+    fun showSaveError(what: String, error: String) {
+        android.util.Log.e("DISTRIGO", "$what error: $error")
+        isSaving = false
+        when {
+            error.contains("nom de produit") -> nameError = error
+            error.contains("code-barres") -> barcodeError = error
         }
-        val sp = sellingPrice.toDouble()
-        val pp = purchasePrice.toDouble()
-        if (pp >= sp && !forceSubmit) { showMarginWarn = true; return }
+        if (pagerState.currentPage != 0) coroutineScope.launch { pagerState.animateScrollToPage(0) }
+    }
+
+    fun submit(sp: Double, pp: Double) {
         isSaving = true
         val data = if (isEdit) {
             mapOf(
@@ -266,10 +255,7 @@ fun ProductFormScreen(
                         else -> onSaved(product.id)
                     }
                 },
-                onError = { error ->
-                    android.util.Log.e("DISTRIGO", "Update error: $error")
-                    isSaving = false
-                }
+                onError = { error -> showSaveError("Update", error) }
             )
         } else {
             viewModel.addProduct(
@@ -288,11 +274,30 @@ fun ProductFormScreen(
                         onSaved(newProductId)
                     }
                 },
-                onError = { error ->
-                    android.util.Log.e("DISTRIGO", "Add error: $error")
-                    isSaving = false
-                }
+                onError = { error -> showSaveError("Add", error) }
             )
+        }
+    }
+
+    fun save(forceSubmit: Boolean = false) {
+        if (!validate()) {
+            if (pagerState.currentPage != 0) {
+                coroutineScope.launch { pagerState.animateScrollToPage(0) }
+            }
+            return
+        }
+        val sp = sellingPrice.toDouble()
+        val pp = purchasePrice.toDouble()
+        if (pp >= sp && !forceSubmit) { showMarginWarn = true; return }
+        coroutineScope.launch {
+            // Against the database, not the list on screen, which may be stale or still loading.
+            val duplicate = viewModel.duplicateOf(name.trim(), barcode.trim().ifEmpty { null }, product?.id ?: -1)
+            when (duplicate) {
+                ProductDuplicate.NAME -> nameError = duplicate.message
+                ProductDuplicate.BARCODE -> barcodeError = duplicate.message
+                null -> submit(sp, pp)
+            }
+            if (duplicate != null && pagerState.currentPage != 0) pagerState.animateScrollToPage(0)
         }
     }
 

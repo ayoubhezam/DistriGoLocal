@@ -250,6 +250,21 @@ class ProductRepository(
     fun observeProducts(): Flow<List<Product>> =
         productDao.observeAllProducts().map { list -> list.map { it.toProduct() } }
 
+    /**
+     * The live product, other than [excludeId], that already has [name] (ignoring case and spaces) or [barcode];
+     * null when neither is taken. The forms ask before saving, and the writes refuse regardless, so the rule
+     * holds whatever list a screen happens to hold.
+     */
+    suspend fun duplicateOf(name: String, barcode: String?, excludeId: Int): ProductDuplicate? {
+        if (name.isNotBlank() && productDao.findLiveByName(name, excludeId) != null) return ProductDuplicate.NAME
+        if (!barcode.isNullOrBlank() && productDao.findLiveByBarcode(barcode, excludeId) != null) return ProductDuplicate.BARCODE
+        return null
+    }
+
+    private suspend fun requireNoDuplicate(name: String, barcode: String?, excludeId: Int) {
+        duplicateOf(name, barcode, excludeId)?.let { throw IllegalStateException(it.message) }
+    }
+
     suspend fun addProduct(product: Map<String, Any?>): Map<String, Any> {
         val catId = (product["category_id"] as? Number)?.toInt()
 
@@ -288,6 +303,7 @@ class ProductRepository(
         // Inserted at zero whatever the map says: stock only ever comes from movements, so a product
         // created with some gets it as a "Stock initial" adjustment, in the same transaction.
         val newId = db.withTransaction {
+            requireNoDuplicate(entity.name, entity.barcode, excludeId = -1)
             val id = productDao.insertProduct(entity.copy(stock = 0.0, camion_stock = 0.0))
             recordStockAdjustment(entity.copy(id = id.toInt()), entity.stock, "Stock initial")
             id
@@ -338,6 +354,7 @@ class ProductRepository(
         // today; this keeps the ledger whole for any caller that does.
         val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() else null
         db.withTransaction {
+            requireNoDuplicate(updatedEntity.name, updatedEntity.barcode, excludeId = id)
             productDao.updateProduct(updatedEntity)
             if (typedStock != null) {
                 val current = productDao.getProductById(id)?.stock ?: existing.stock

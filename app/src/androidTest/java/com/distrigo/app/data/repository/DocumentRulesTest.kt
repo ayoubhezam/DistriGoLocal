@@ -140,6 +140,24 @@ class DocumentRulesTest {
         assertEquals(-920.0, runBlocking { db.supplierDao().getSupplierById(supplierId) }!!.balance, 0.0)
     }
 
+    // ── A name and a barcode are unique among live products ──
+
+    @Test
+    fun aProductNameOrBarcodeIsUniqueAmongLiveProducts() {
+        val milk = product("Lait Candia 1L")
+        fun fields(name: String, barcode: String) = mapOf("name" to name, "barcode" to barcode, "selling_price" to 1.0, "purchase_price" to 1.0)
+        refused("nom de produit") { runBlocking { repo.addProduct(fields(" lait candia 1l ", "x1")) } }
+        refused("code-barres") { runBlocking { repo.addProduct(fields("Autre", "Lait Candia 1L")) } }
+        val soda = product("Selecto")
+        refused("nom de produit") { runBlocking { repo.updateProduct(soda, mapOf("name" to "LAIT CANDIA 1L")) } }
+        // Its own name and barcode are not duplicates of itself.
+        assertEquals(null, runBlocking { repo.duplicateOf("Lait Candia 1L", "Lait Candia 1L", milk) })
+        assertEquals(ProductDuplicate.NAME, runBlocking { repo.duplicateOf("lait candia 1l", null, soda) })
+        // A name in the bin is free again.
+        runBlocking { repo.deleteProduct(milk) }
+        runBlocking { repo.addProduct(fields("Lait Candia 1L", "x2")) }
+    }
+
     // ── The bin takes only settled accounts ──
 
     @Test

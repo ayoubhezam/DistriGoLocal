@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.repository.ProductDuplicate
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -136,6 +137,10 @@ class ProductViewModel @Inject constructor(
             }
         }
     }
+
+    /** Whether another live product already has this name or barcode — asked of the database, not the list. */
+    suspend fun duplicateOf(name: String, barcode: String?, excludeId: Int): ProductDuplicate? =
+        repository.duplicateOf(name, barcode, excludeId)
 
     fun addProduct(
         product   : Map<String, Any?>,
