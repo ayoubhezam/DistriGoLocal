@@ -24,6 +24,13 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :productId AND deleted_at IS NULL")
     suspend fun getProductById(productId: Int): ProductEntity?
 
+    /**
+     * The product whether it is live or in the bin: for documents that already name it — a bon received or a
+     * sale edited after the product was binned — since the goods and the money are real either way.
+     */
+    @Query("SELECT * FROM products WHERE id = :productId")
+    suspend fun getProductByIdIncludingBin(productId: Int): ProductEntity?
+
     // جلب المنتجات المرتبطة بمورد معين
     @Query("SELECT * FROM products WHERE supplier_id = :supplierId AND deleted_at IS NULL ORDER BY id DESC")
     suspend fun getProductsBySupplier(supplierId: Int): List<ProductEntity>

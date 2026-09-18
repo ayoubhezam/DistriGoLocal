@@ -726,6 +726,7 @@ class ProductRepository(
 
             val now = java.time.Instant.now().toString()
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
+            requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
             val supplierEntity = supplierDao.getSupplierById(supplierId)
             val supplierName   = supplierEntity?.name
             val supplierImageUri = supplierEntity?.image_uri
@@ -787,7 +788,11 @@ class ProductRepository(
             val movementEntities = mutableListOf<StockMovementEntity>()
 
             for (item in items) {
-                val product = productDao.getProductById(item.product_id) ?: continue
+                // A product moved to the bin since the bon was made still receives its goods — the stock is real
+                // and comes back with the product. Only a product that no longer exists at all stops the receipt,
+                // rather than marking the bon received with its goods never counted.
+                val product = productDao.getProductByIdIncludingBin(item.product_id)
+                    ?: throw IllegalStateException("Produit introuvable pour « ${item.product_name} » : le bon ne peut pas être reçu.")
 
                 // ── Date d'expiration : on garde toujours la plus proche (la plus urgente à vendre) ──
                 val shouldUpdateExpiry = item.has_expiry && item.expiry_date != null && (
@@ -841,8 +846,9 @@ class ProductRepository(
                 ?: throw IllegalStateException("Bon introuvable: $id")
             val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
-            db.purchaseDao().deleteItemsForOrder(id)
             val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
+            requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
+            db.purchaseDao().deleteItemsForOrder(id)
 
             val now = java.time.Instant.now().toString()
             val itemEntities = mutableListOf<PurchaseOrderItemEntity>()
@@ -949,6 +955,45 @@ class ProductRepository(
      * Two parameters rather than one because they name rows in two different tables, and a single
      * id would have to be told which. At most one is ever set: a sale is composed in one form.
      */
+    // ── What a document must satisfy before it is written ──
+
+    /**
+     * A sale from the camion cannot take more of a product than the camion holds — all its lines together,
+     * so two lines of the same product are checked as one. The product may be in the bin: a sale being
+     * edited already names it.
+     */
+    private suspend fun requireCamionStock(items: List<Map<String, Any?>>) {
+        val wanted = items.groupBy { (it["product_id"] as Number).toInt() }
+            .mapValues { (_, lines) -> lines.sumOf { (it["quantity"] as Number).toDouble() } }
+        for ((productId, quantity) in wanted) {
+            val product = productDao.getProductByIdIncludingBin(productId)
+                ?: throw IllegalStateException("Produit introuvable: $productId")
+            if (quantity > product.camion_stock + AMOUNT_EPSILON) {
+                throw IllegalStateException(
+                    "Stock insuffisant pour ${product.name} : disponible ${product.camion_stock}, demandé $quantity"
+                )
+            }
+        }
+    }
+
+    /**
+     * Lines with a quantity above zero and a price that is not negative, and a paid amount that is not negative.
+     * A paid amount above the total is allowed: the excess is an advance, and the party's solde shows it as one.
+     */
+    private fun requireDocumentAmounts(items: List<Map<String, Any?>>, priceKey: String, montantPaye: Double, total: Double) {
+        for (line in items) {
+            val quantity = (line["quantity"] as Number).toDouble()
+            val price = (line[priceKey] as Number).toDouble()
+            if (!(quantity > 0)) throw IllegalStateException("La quantité doit être supérieure à zéro.")
+            if (!(price >= 0)) throw IllegalStateException("Le prix ne peut pas être négatif.")
+        }
+        if (!(montantPaye >= 0)) throw IllegalStateException("Le montant payé ne peut pas être négatif.")
+    }
+
+    private fun requirePayment(amount: Double) {
+        if (!(amount > 0)) throw IllegalStateException("Le montant doit être supérieur à zéro.")
+    }
+
     suspend fun createVente(
         clientId: Int, tourneeId: Int?, source: String,
         items: List<Map<String, Any?>>, note: String?, montantPaye: Double,
@@ -959,22 +1004,10 @@ class ProductRepository(
         db.withTransaction {
             val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
             val now = java.time.Instant.now().toString()
+            requireDocumentAmounts(items, "unit_price", montantPaye, total)
 
-// ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) — Dépôt يسمح بمخزون سالب ──
-            if (source == "camion") {
-                for (map in items) {
-                    val productId = (map["product_id"] as Number).toInt()
-                    val quantity = (map["quantity"] as Number).toDouble()
-                    val product = productDao.getProductById(productId)
-                        ?: throw IllegalStateException("Produit introuvable: $productId")
-
-                    if (quantity > product.camion_stock) {
-                        throw IllegalStateException(
-                            "Stock insuffisant pour ${product.name} : disponible ${product.camion_stock}, demandé $quantity"
-                        )
-                    }
-                }
-            }
+            // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) — Dépôt يسمح بمخزون سالب ──
+            if (source == "camion") requireCamionStock(items)
 
             val clientEntity   = clientDao.getClientById(clientId)
             val clientName     = clientEntity?.name ?: "Client inconnu"
@@ -1052,22 +1085,8 @@ class ProductRepository(
             // عكس تأثير العناصر القديمة على المخزون — removing the sale's movements puts their
             // quantities back, so the camion check below sees the stock as it was before this sale.
             db.stockMovementDao().deleteBySource("vente", id)
-            // ── تحقق مسبق ──
             // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) ──
-            if (existing.source == "camion") {
-                for (map in items) {
-                    val productId = (map["product_id"] as Number).toInt()
-                    val quantity = (map["quantity"] as Number).toDouble()
-                    val product = productDao.getProductById(productId)
-                        ?: throw IllegalStateException("Produit introuvable: $productId")
-
-                    if (quantity > product.camion_stock) {
-                        throw IllegalStateException(
-                            "Stock insuffisant pour ${product.name} : disponible ${product.camion_stock}, demandé $quantity"
-                        )
-                    }
-                }
-            }
+            if (existing.source == "camion") requireCamionStock(items)
             db.venteDao().deleteItemsForVente(id)
 
             val now = java.time.Instant.now().toString()
@@ -1075,11 +1094,13 @@ class ProductRepository(
             val movementEntities = mutableListOf<StockMovementEntity>()
 
             val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
+            requireDocumentAmounts(items, "unit_price", montantPaye, total)
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity = (map["quantity"] as Number).toDouble()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
-                val product = productDao.getProductById(productId)
+                // The sale already names the product: it stays editable after the product went to the bin.
+                val product = productDao.getProductByIdIncludingBin(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
 
                 movementEntities += StockMovementEntity(
@@ -1217,6 +1238,7 @@ class ProductRepository(
 
 
     suspend fun addSupplierPayment(id: Int, amount: Double, note: String?): Map<String, Any> {
+        requirePayment(amount)
         db.withTransaction {
             db.supplierPaymentDao().insertPayment(
                 SupplierPaymentEntity(
@@ -1238,6 +1260,7 @@ class ProductRepository(
     }
 
     suspend fun updateSupplierPayment(supplierId: Int, paymentId: Int, amount: Double): Map<String, Any> {
+        requirePayment(amount)
         db.withTransaction {
             db.supplierPaymentDao().updatePaymentAmount(paymentId, amount)
             supplierDao.recomputeBalance(supplierId)
@@ -1520,6 +1543,7 @@ class ProductRepository(
         }
 
     suspend fun addClientPayment(id: Int, amount: Double, note: String?): Map<String, Any> {
+        requirePayment(amount)
         db.withTransaction {
             db.clientPaymentDao().insertPayment(
                 ClientPaymentEntity(
@@ -1541,6 +1565,7 @@ class ProductRepository(
     }
 
     suspend fun updateClientPayment(clientId: Int, paymentId: Int, amount: Double): Map<String, Any> {
+        requirePayment(amount)
         db.withTransaction {
             db.clientPaymentDao().updatePaymentAmount(paymentId, amount)
             clientDao.recomputeBalance(clientId)
@@ -1615,8 +1640,10 @@ class ProductRepository(
         id: Int, nom: String, wilayaName: String?, communeName: String?, note: String?,
         secteurs: List<TourneeSecteur> = emptyList()
     ): Map<String, Any> {
-        db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, note)
-        replaceTourneeSecteurs(id, secteurs)
+        db.withTransaction {
+            db.tourneeDao().updateTourneeFields(id, nom, wilayaName, communeName, note)
+            replaceTourneeSecteurs(id, secteurs)
+        }
         return mapOf("message" to "Tournée mise à jour avec succès")
     }
 
@@ -1641,12 +1668,15 @@ class ProductRepository(
     }
 
     suspend fun deleteTournee(id: Int): Map<String, Any> {
-        val linkedVentes = db.venteDao().getVentesForTournee(id)
-        if (linkedVentes.isNotEmpty()) {
-            return mapOf("error" to "Impossible de supprimer : des ventes sont liées à cette tournée")
+        // The check and the delete in one transaction, so no sale can attach in between.
+        val linked = db.withTransaction {
+            val linkedVentes = db.venteDao().getVentesForTournee(id)
+            if (linkedVentes.isNotEmpty()) return@withTransaction true
+            db.tourneeSecteurDao().deleteForTournee(id)
+            db.tourneeDao().deleteTourneeById(id)
+            false
         }
-        db.tourneeSecteurDao().deleteForTournee(id)
-        db.tourneeDao().deleteTourneeById(id)
+        if (linked) return mapOf("error" to "Impossible de supprimer : des ventes sont liées à cette tournée")
         return mapOf("message" to "Tournée supprimée avec succès")
     }
 
@@ -1722,3 +1752,6 @@ class ProductRepository(
         }
     }
 }
+
+/** Slack for sums of decimals, so a quantity typed as 0.3 is not refused against a stock summed as 0.30000000000000004. */
+private const val AMOUNT_EPSILON = 1e-6
