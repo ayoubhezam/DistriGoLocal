@@ -102,7 +102,7 @@ fun ProduitsNavHost(
                     onStockPrix     = { navController.navigate(Screen.ProduitsStockPrix.createRoute(productId)) }
                 )
             } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+                LeaveWhenGone(navController, entry)
             }
         }
 
@@ -129,7 +129,7 @@ fun ProduitsNavHost(
                         onFilterClick   = { navController.navigate(Screen.ProduitsMovementFilters.route) }
                     )
                 } else {
-                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    LeaveWhenGone(navController, entry)
                 }
             }
 
@@ -172,7 +172,7 @@ fun ProduitsNavHost(
             if (product != null) {
                 InfoGeneralesDetailScreen(product = product, onBack = { navController.popBackStack() })
             } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+                LeaveWhenGone(navController, entry)
             }
         }
 
@@ -197,7 +197,7 @@ fun ProduitsNavHost(
                     onEdit       = { navController.navigate(Screen.ProduitsForm.createRoute(productId)) }
                 )
             } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+                LeaveWhenGone(navController, entry)
             }
         }
     }

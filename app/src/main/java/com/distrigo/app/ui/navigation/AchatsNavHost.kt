@@ -146,7 +146,7 @@ fun AchatsNavHost(
                     onReceived = { navController.popBackStack() }
                 )
             } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+                LeaveWhenGone(navController, entry)
             }
         }
     }

@@ -183,7 +183,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                         )
                     }
                 } else {
-                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    LeaveWhenGone(navController, entry)
                 }
             }
 
@@ -208,7 +208,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                         )
                     }
                 } else {
-                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    LeaveWhenGone(navController, entry)
                 }
             }
 
