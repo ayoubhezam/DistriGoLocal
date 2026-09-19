@@ -1,6 +1,8 @@
 package com.distrigo.app.ui.products
 
 import com.distrigo.app.data.repository.ProductDuplicate
+import com.distrigo.app.data.repository.TOO_MANY_BARCODES
+import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,6 +69,12 @@ fun ProductFormScreen(
 
     var name          by remember { mutableStateOf(product?.name ?: "") }
     var barcode       by remember { mutableStateOf(product?.barcode ?: "") }
+    // The product's other codes; [barcode] above is the primary one. Saved together, primary first.
+    var extraBarcodes     by remember { mutableStateOf(product?.barcodes?.drop(1) ?: emptyList()) }
+    var newExtraBarcode   by remember { mutableStateOf("") }
+    var extraBarcodeError by remember { mutableStateOf("") }
+    // Which field a scan fills: the primary code, or a new one in the list.
+    var scanForExtra      by remember { mutableStateOf(false) }
     var sellingPrice  by remember { mutableStateOf(if (isEdit) product!!.selling_price.toString() else "") }
     var purchasePrice by remember { mutableStateOf(if (isEdit) product!!.purchase_price.toString() else "") }
     var packages      by remember { mutableStateOf(if (isEdit) product!!.packages.toString() else "") }
@@ -152,15 +160,39 @@ fun ProductFormScreen(
     else
         packages.toIntOrNull() ?: 0
 
+    /** Every code the product will have, the primary first. */
+    fun allBarcodes(): List<String> =
+        (listOf(barcode) + extraBarcodes).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
+    /**
+     * Adds [code] to the other codes, or says why not. A code already on the form is refused here; one
+     * another product has is refused against the database when saving.
+     */
+    fun addExtraBarcode(code: String): Boolean {
+        val trimmed = code.trim()
+        extraBarcodeError = when {
+            trimmed.isEmpty() -> "Saisissez ou scannez un code-barres."
+            trimmed == barcode.trim() || trimmed in extraBarcodes -> "Ce code-barres est déjà dans la liste."
+            allBarcodes().size >= MAX_BARCODES_PER_PRODUCT -> TOO_MANY_BARCODES
+            else -> ""
+        }
+        if (extraBarcodeError.isNotEmpty()) return false
+        extraBarcodes = extraBarcodes + trimmed
+        return true
+    }
+
     fun validate(): Boolean {
         var valid = true
-        nameError = ""; barcodeError = ""; sellingPriceError = ""; purchasePriceError = ""
+        nameError = ""; barcodeError = ""; extraBarcodeError = ""; sellingPriceError = ""; purchasePriceError = ""
         if (name.isBlank()) {
             nameError = "Le nom est obligatoire."
             valid = false
         }
         if (barcode.isBlank()) {
             barcodeError = "Le code-barres est obligatoire."
+            valid = false
+        } else if (barcode.trim() in extraBarcodes) {
+            barcodeError = "Ce code-barres est aussi dans « Autres codes-barres »."
             valid = false
         }
         if (sellingPrice.toDoubleOrNull() == null || sellingPrice.toDouble() <= 0)
@@ -176,7 +208,9 @@ fun ProductFormScreen(
         isSaving = false
         when {
             error.contains("nom de produit") -> nameError = error
-            error.contains("code-barres") -> barcodeError = error
+            error.contains("codes-barres") -> extraBarcodeError = error
+            error.contains("code-barres ${barcode.trim()} ") -> barcodeError = error
+            error.contains("code-barres") -> extraBarcodeError = error
         }
         if (pagerState.currentPage != 0) coroutineScope.launch { pagerState.animateScrollToPage(0) }
     }
@@ -186,7 +220,7 @@ fun ProductFormScreen(
         val data = if (isEdit) {
             mapOf(
                 "name"           to name.trim(),
-                "barcode"        to barcode.trim().ifEmpty { null },
+                "barcodes"       to allBarcodes(),
                 "selling_price"  to sp,
                 "purchase_price" to pp,
                 "min_stock"      to (minStock.toIntOrNull() ?: 10),
@@ -207,7 +241,7 @@ fun ProductFormScreen(
         } else {
             mapOf(
                 "name"           to name.trim(),
-                "barcode"        to barcode.trim().ifEmpty { null },
+                "barcodes"       to allBarcodes(),
                 "selling_price"  to sp,
                 "purchase_price" to pp,
                 "stock"          to 0,
@@ -291,10 +325,16 @@ fun ProductFormScreen(
         if (pp >= sp && !forceSubmit) { showMarginWarn = true; return }
         coroutineScope.launch {
             // Against the database, not the list on screen, which may be stale or still loading.
-            val duplicate = viewModel.duplicateOf(name.trim(), barcode.trim().ifEmpty { null }, product?.id ?: -1)
+            val codes = allBarcodes()
+            val duplicate = viewModel.duplicateOf(name.trim(), codes, product?.id ?: -1)
             when (duplicate) {
                 ProductDuplicate.NAME -> nameError = duplicate.message
-                ProductDuplicate.BARCODE -> barcodeError = duplicate.message
+                ProductDuplicate.BARCODE -> {
+                    // Named, since the one taken may be any code in the list.
+                    val taken = viewModel.takenBarcode(codes, product?.id ?: -1)
+                    val message = "Le code-barres $taken est déjà enregistré."
+                    if (taken == barcode.trim()) barcodeError = message else extraBarcodeError = message
+                }
                 null -> submit(sp, pp)
             }
             if (duplicate != null && pagerState.currentPage != 0) pagerState.animateScrollToPage(0)
@@ -307,8 +347,12 @@ fun ProductFormScreen(
         BackHandler { showScanner = false }
         BarcodeScannerScreen(
             onBarcodeScanned = { code ->
-                barcode = code
-                barcodeError = ""
+                if (scanForExtra) {
+                    if (addExtraBarcode(code)) newExtraBarcode = ""
+                } else {
+                    barcode = code
+                    barcodeError = ""
+                }
                 showScanner = false
             },
             onClose = { showScanner = false }
@@ -703,7 +747,7 @@ fun ProductFormScreen(
                             )
                         }
                         Button(
-                            onClick        = { showScanner = true },
+                            onClick        = { scanForExtra = false; showScanner = true },
                             modifier       = Modifier.height(56.dp),
                             shape          = DsShapes.medium,
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
@@ -732,6 +776,26 @@ fun ProductFormScreen(
                             }
                         }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ── Autres codes-barres ──
+                    OtherBarcodesField(
+                        codes         = extraBarcodes,
+                        newCode       = newExtraBarcode,
+                        onNewCode     = { newExtraBarcode = it; extraBarcodeError = "" },
+                        error         = extraBarcodeError,
+                        onAdd         = { if (addExtraBarcode(newExtraBarcode)) newExtraBarcode = "" },
+                        onScan        = { scanForExtra = true; showScanner = true },
+                        onRemove      = { code -> extraBarcodes = extraBarcodes - code; extraBarcodeError = "" },
+                        onMakePrimary = { code ->
+                            // The chosen code takes the primary's place, and the old primary joins the list where it was.
+                            val old = barcode.trim()
+                            barcode = code
+                            extraBarcodes = extraBarcodes.map { if (it == code) old else it }.filter { it.isNotEmpty() }
+                            barcodeError = ""; extraBarcodeError = ""
+                        }
+                    )
 
                     Spacer(Modifier.height(12.dp))
 

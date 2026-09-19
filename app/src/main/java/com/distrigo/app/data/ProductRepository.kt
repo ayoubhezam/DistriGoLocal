@@ -17,6 +17,7 @@ import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.data.model.TourneeSecteur
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 class ProductRepository(
@@ -31,11 +32,12 @@ class ProductRepository(
 
 ) {
 
-    private fun ProductEntity.toProduct(): Product {
+    private fun ProductEntity.toProduct(codes: List<String>? = null): Product {
         return Product(
             id = this.id,
             name = this.name,
             barcode = this.barcode,
+            barcodes = codes ?: listOfNotNull(this.barcode),
             selling_price = this.selling_price,
             purchase_price = this.purchase_price,
             stock = this.stock,
@@ -242,27 +244,82 @@ class ProductRepository(
     }
 
     suspend fun getProducts(): List<Product> {
-        return productDao.getAllProducts().map { it.toProduct() }
+        val codes = db.productBarcodeDao().getAll().groupBy({ it.product_id }, { it.code })
+        return productDao.getAllProducts().map { it.toProduct(codes[it.id]) }
     }
 
     // Source of truth réactive : émet automatiquement à chaque écriture sur la table products,
     // quel que soit l'écran ou le repository à l'origine de la modification.
+    // Combined with the codes, so a barcode added or removed re-emits the catalogue too.
     fun observeProducts(): Flow<List<Product>> =
-        productDao.observeAllProducts().map { list -> list.map { it.toProduct() } }
+        combine(productDao.observeAllProducts(), db.productBarcodeDao().observeAll()) { list, rows ->
+            val codes = rows.groupBy({ it.product_id }, { it.code })
+            list.map { it.toProduct(codes[it.id]) }
+        }
 
     /**
-     * The live product, other than [excludeId], that already has [name] (ignoring case and spaces) or [barcode];
-     * null when neither is taken. The forms ask before saving, and the writes refuse regardless, so the rule
-     * holds whatever list a screen happens to hold.
+     * The live product, other than [excludeId], that already has [name] (ignoring case and spaces) or one of
+     * [barcodes]; null when none is taken. The forms ask before saving, and the writes refuse regardless, so the
+     * rule holds whatever list a screen happens to hold.
      */
-    suspend fun duplicateOf(name: String, barcode: String?, excludeId: Int): ProductDuplicate? {
+    suspend fun duplicateOf(name: String, barcodes: List<String>, excludeId: Int): ProductDuplicate? {
         if (name.isNotBlank() && productDao.findLiveByName(name, excludeId) != null) return ProductDuplicate.NAME
-        if (!barcode.isNullOrBlank() && productDao.findLiveByBarcode(barcode, excludeId) != null) return ProductDuplicate.BARCODE
+        if (takenBarcode(barcodes, excludeId) != null) return ProductDuplicate.BARCODE
         return null
     }
 
-    private suspend fun requireNoDuplicate(name: String, barcode: String?, excludeId: Int) {
-        duplicateOf(name, barcode, excludeId)?.let { throw IllegalStateException(it.message) }
+    /** The first of [codes] a live product other than [excludeId] already has, or null. */
+    suspend fun takenBarcode(codes: List<String>, excludeId: Int): String? =
+        cleanCodes(codes).firstOrNull { db.productBarcodeDao().findLiveOwner(it, excludeId) != null }
+
+    private suspend fun requireNoDuplicate(name: String, barcodes: List<String>, excludeId: Int) {
+        if (barcodes.size > MAX_BARCODES_PER_PRODUCT) throw IllegalStateException(TOO_MANY_BARCODES)
+        if (name.isNotBlank() && productDao.findLiveByName(name, excludeId) != null) {
+            throw IllegalStateException(ProductDuplicate.NAME.message)
+        }
+        takenBarcode(barcodes, excludeId)?.let { throw IllegalStateException("Le code-barres $it est déjà enregistré.") }
+    }
+
+    // -- Barcodes ----------------------------------------------------------------
+    //
+    // `product_barcodes` holds every code; `products.barcode` holds the primary one. As with the gallery,
+    // every write runs in the product's transaction and leaves positions dense from 0, and
+    // `products.barcode` equal to the code at position 0 (null when there is none).
+    //
+    // A write's map says what the codes become:
+    //   - "barcodes" (a list, primary first) replaces them all — what the form sends;
+    //   - "barcode" alone (a code) makes that code the primary and keeps the others — older callers;
+    //   - neither leaves them as they are.
+
+    /** Trimmed, blanks and repeats dropped, first occurrence kept. */
+    private fun cleanCodes(codes: List<String>): List<String> =
+        codes.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
+    /** The codes [product] asks for, given the product's [current] codes; null when it leaves them alone. */
+    private fun requestedCodes(product: Map<String, Any?>, current: List<String>): List<String>? = when {
+        product.containsKey("barcodes") ->
+            cleanCodes((product["barcodes"] as? List<*>).orEmpty().filterIsInstance<String>())
+        (product["barcode"] as? String)?.isNotBlank() == true ->
+            cleanCodes(listOf(product["barcode"] as String) + current)
+        else -> null
+    }
+
+    /** Makes the product's codes exactly [codes], in that order, keeping the rows of codes it already had. */
+    private suspend fun writeBarcodes(productId: Int, codes: List<String>) {
+        val dao = db.productBarcodeDao()
+        val existing = dao.getForProduct(productId)
+        val byCode = existing.associateBy { it.code }
+        existing.filter { it.code !in codes }.forEach { dao.deleteById(it.id) }
+        codes.forEachIndexed { index, code ->
+            val row = byCode[code]
+            when {
+                row == null -> dao.insert(ProductBarcodeEntity(product_id = productId, code = code, position = index))
+                row.position != index -> dao.setPosition(row.id, index)
+            }
+        }
+        val product = productDao.getProductById(productId) ?: return
+        val primary = codes.firstOrNull()
+        if (product.barcode != primary) productDao.updateProduct(product.copy(barcode = primary))
     }
 
     suspend fun addProduct(product: Map<String, Any?>): Map<String, Any> {
@@ -277,9 +334,11 @@ class ProductRepository(
         val marqueId = (product["marque_id"] as? Number)?.toInt()
         val marqueName = marqueId?.let { marqueDao.getMarqueById(it)?.name }
 
+        val codes = requestedCodes(product, current = emptyList()).orEmpty()
+
         val entity = ProductEntity(
             name = product["name"] as? String ?: "",
-            barcode = product["barcode"] as? String,
+            barcode = codes.firstOrNull(),
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: 0.0,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: 0.0,
             stock = (product["stock"] as? Number)?.toDouble() ?: 0.0,
@@ -303,8 +362,9 @@ class ProductRepository(
         // Inserted at zero whatever the map says: stock only ever comes from movements, so a product
         // created with some gets it as a "Stock initial" adjustment, in the same transaction.
         val newId = db.withTransaction {
-            requireNoDuplicate(entity.name, entity.barcode, excludeId = -1)
+            requireNoDuplicate(entity.name, codes, excludeId = -1)
             val id = productDao.insertProduct(entity.copy(stock = 0.0, camion_stock = 0.0))
+            writeBarcodes(id.toInt(), codes)
             recordStockAdjustment(entity.copy(id = id.toInt()), entity.stock, "Stock initial")
             id
         }
@@ -329,9 +389,12 @@ class ProductRepository(
         val newMarqueId = if (product.containsKey("marque_id")) (product["marque_id"] as? Number)?.toInt() else existing.marque_id
         val newMarqueName = newMarqueId?.let { marqueDao.getMarqueById(it)?.name }
 
+        val currentCodes = db.productBarcodeDao().getForProduct(id).map { it.code }
+        val codes = requestedCodes(product, currentCodes)
+
         val updatedEntity = existing.copy(
             name = product["name"] as? String ?: existing.name,
-            barcode = if (product.containsKey("barcode")) product["barcode"] as? String else existing.barcode,
+            barcode = if (codes != null) codes.firstOrNull() else existing.barcode,
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: existing.selling_price,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: existing.purchase_price,
             min_stock = if (product.containsKey("min_stock")) (product["min_stock"] as? Number)?.toInt() ?: existing.min_stock else existing.min_stock,
@@ -354,8 +417,9 @@ class ProductRepository(
         // today; this keeps the ledger whole for any caller that does.
         val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() else null
         db.withTransaction {
-            requireNoDuplicate(updatedEntity.name, updatedEntity.barcode, excludeId = id)
+            requireNoDuplicate(updatedEntity.name, codes ?: currentCodes, excludeId = id)
             productDao.updateProduct(updatedEntity)
+            codes?.let { writeBarcodes(id, it) }
             if (typedStock != null) {
                 val current = productDao.getProductById(id)?.stock ?: existing.stock
                 recordStockAdjustment(updatedEntity, typedStock - current, "Ajustement manuel")

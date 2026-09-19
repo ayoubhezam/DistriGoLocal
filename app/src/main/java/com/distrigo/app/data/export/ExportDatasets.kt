@@ -86,7 +86,11 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 "SELECT p.*, s.name AS supplier_name FROM supplier_payments p LEFT JOIN suppliers s ON s.id = p.supplier_id " +
                     "WHERE 1" + instantsIn("p.created_at") + " ORDER BY p.created_at, p.id"
             CLIENTS -> "SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY name COLLATE NOCASE, id"
-            PRODUITS -> "SELECT * FROM products WHERE deleted_at IS NULL ORDER BY name COLLATE NOCASE, id"
+            // Every code in one cell, the primary first, separated as the import reads them back.
+            PRODUITS ->
+                "SELECT p.*, COALESCE((SELECT group_concat(code, '; ') FROM " +
+                    "(SELECT b.code FROM product_barcodes b WHERE b.product_id = p.id ORDER BY b.position)), p.barcode) AS all_barcodes " +
+                    "FROM products p WHERE p.deleted_at IS NULL ORDER BY p.name COLLATE NOCASE, p.id"
             MOUVEMENTS_STOCK -> "SELECT * FROM stock_movements WHERE 1" + instantsIn("created_at") + " ORDER BY created_at, id"
             CHARGES -> "SELECT * FROM charges WHERE 1" + instantsIn("date_time") + " ORDER BY date_time, id"
             PERTES -> "SELECT * FROM pertes WHERE 1" + instantsIn("date_time") + " ORDER BY date_time, id"
@@ -153,7 +157,7 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
             )
             PRODUITS -> listOf(
                 text("Nom", "name"),
-                text("Code-barres", "barcode"),
+                text("Code-barres", "all_barcodes"),
                 text("Catégorie", "category_name"),
                 text("Sous-catégorie", "sous_categorie_name"),
                 text("Marque", "marque_name"),

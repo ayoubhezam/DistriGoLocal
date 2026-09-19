@@ -151,8 +151,8 @@ class DocumentRulesTest {
         val soda = product("Selecto")
         refused("nom de produit") { runBlocking { repo.updateProduct(soda, mapOf("name" to "LAIT CANDIA 1L")) } }
         // Its own name and barcode are not duplicates of itself.
-        assertEquals(null, runBlocking { repo.duplicateOf("Lait Candia 1L", "Lait Candia 1L", milk) })
-        assertEquals(ProductDuplicate.NAME, runBlocking { repo.duplicateOf("lait candia 1l", null, soda) })
+        assertEquals(null, runBlocking { repo.duplicateOf("Lait Candia 1L", listOf("Lait Candia 1L"), milk) })
+        assertEquals(ProductDuplicate.NAME, runBlocking { repo.duplicateOf("lait candia 1l", emptyList(), soda) })
         // A name in the bin is free again.
         runBlocking { repo.deleteProduct(milk) }
         runBlocking { repo.addProduct(fields("Lait Candia 1L", "x2")) }

@@ -916,6 +916,56 @@ val MIGRATION_51_52 = object : Migration(51, 52) {
 }
 
 /**
+ * 52 -> 53 - a product answers to several barcodes: `product_barcodes`.
+ *
+ * One row per code, ordered by a dense `position` whose 0 is the primary code (see
+ * ProductBarcodeEntity). `products.barcode` stays, as the mirror of that primary code, so everything
+ * that shows a single code is untouched.
+ *
+ * Each product's existing barcode is seeded as its primary code, trimmed, skipping empty ones. Products
+ * in the bin are seeded too, so a restore brings their code back. A seeded row takes its product's
+ * `created_at`, its own uuid (the version-4 expression of MIGRATION_42_43, written out again because
+ * this migration records what version 53 did), and the moment of the upgrade as `updated_at`.
+ * `products` itself is not written.
+ *
+ * The CREATE statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/53.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_52_53 = object : Migration(52, 53) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `product_barcodes` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`product_id` INTEGER NOT NULL, " +
+                "`code` TEXT NOT NULL, " +
+                "`position` INTEGER NOT NULL, " +
+                "`units` INTEGER NOT NULL DEFAULT 1, " +
+                "`created_at` TEXT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', " +
+                "`updated_at` INTEGER NOT NULL DEFAULT 0)"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_product_barcodes_product_id_position` " +
+                "ON `product_barcodes` (`product_id`, `position`)"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_product_barcodes_code` ON `product_barcodes` (`code`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_product_barcodes_uuid` ON `product_barcodes` (`uuid`)")
+
+        val uuidV4 =
+            "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+                "substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "substr('89ab', 1 + (random() & 3), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "lower(hex(randomblob(6)))"
+        db.execSQL(
+            "INSERT INTO `product_barcodes` (`product_id`, `code`, `position`, `units`, `created_at`, `uuid`, `updated_at`) " +
+                "SELECT `id`, TRIM(`barcode`), 0, 1, `created_at`, $uuidV4, ${System.currentTimeMillis()} FROM `products` " +
+                "WHERE `barcode` IS NOT NULL AND TRIM(`barcode`) != ''"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -928,6 +978,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
+    MIGRATION_52_53,
 )
 
 /**

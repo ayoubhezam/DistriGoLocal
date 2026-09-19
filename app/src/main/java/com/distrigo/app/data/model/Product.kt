@@ -23,5 +23,16 @@ data class Product(
     val sous_categorie_id   : Int?    = null,
     val sous_categorie_name : String? = null,
     val marque_id           : Int?    = null,
-    val marque_name         : String? = null
+    val marque_name         : String? = null,
+
+    /** Every code of the product, the primary first; [barcode] is that primary. See ProductBarcodeEntity. */
+    val barcodes            : List<String> = listOfNotNull(barcode)
 )
+
+/** True when one of the product's barcodes contains [token], ignoring case: the search fields' rule. */
+fun Product.barcodeContains(token: String): Boolean =
+    barcodes.any { it.contains(token, ignoreCase = true) }
+
+/** True when one of the product's barcodes is exactly [code], as a scan reads it. */
+fun Product.hasBarcode(code: String): Boolean =
+    code.trim().let { scanned -> barcodes.any { it.equals(scanned, ignoreCase = true) } }

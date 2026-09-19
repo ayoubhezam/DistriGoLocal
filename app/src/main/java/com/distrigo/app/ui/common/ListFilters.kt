@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.data.model.barcodeContains
 import java.time.ZoneId
 import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.Client
@@ -36,7 +37,7 @@ fun searchTokens(query: String): List<String> =
 fun productMatchesTokens(product: Product, tokens: List<String>): Boolean =
     tokens.isEmpty() || tokens.all { token ->
         product.name.contains(token, ignoreCase = true) ||
-            (product.barcode?.contains(token, ignoreCase = true) == true)
+            product.barcodeContains(token)
     }
 
 /** Products found by name or barcode: the Vente form's product step and the inventory search. */

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.barcodeContains
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -223,7 +224,7 @@ fun NavGraphBuilder.retourClientFormGraph(
             val filteredProducts = returnableProducts.filter { rp ->
                 val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
                 tokens.isEmpty() || tokens.all { token ->
-                    rp.product.name.contains(token, ignoreCase = true) || (rp.product.barcode?.contains(token, ignoreCase = true) == true)
+                    rp.product.name.contains(token, ignoreCase = true) || rp.product.barcodeContains(token)
                 }
             }
 

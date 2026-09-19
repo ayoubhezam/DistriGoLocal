@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.barcodeContains
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -249,7 +250,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
                 val matchesSearch = tokens.isEmpty() || tokens.all { token ->
                     product.name.contains(token, ignoreCase = true) ||
-                            (product.barcode?.contains(token, ignoreCase = true) == true)
+                            product.barcodeContains(token)
                 }
                 product.camion_stock > 0 && matchesSearch
             }

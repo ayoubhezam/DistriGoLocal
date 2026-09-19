@@ -37,6 +37,11 @@ data class ProductValues(
     val initialStock: Double? = null,
     val minStock: Int? = null,
     val expiry: LocalDate? = null,
+    /**
+     * Every code the product has once the row is applied, [barcode] first: the file's codes, then those an existing
+     * product already had. Empty when the cell was blank.
+     */
+    val barcodes: List<String> = listOfNotNull(barcode),
 )
 
 data class ClientValues(
@@ -122,6 +127,8 @@ data class ImportSnapshot(
     val marques: List<MarqueEntity>,
     val suppliers: List<SupplierEntity>,
     val secteurs: List<SecteurEntity>,
+    /** Each product's codes, primary first. A product missing here has only its `barcode`. */
+    val barcodes: Map<Int, List<String>> = emptyMap(),
 )
 
 /** The wilayas and communes the app knows, as the client form offers them. */

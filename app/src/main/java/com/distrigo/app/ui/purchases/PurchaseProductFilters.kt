@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.barcodeContains
 import com.distrigo.app.data.model.Product
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
@@ -46,7 +47,7 @@ internal fun Product.matchesSearch(query: String): Boolean {
     val tokens = query.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     return tokens.all { token ->
         name.contains(token, ignoreCase = true) ||
-            barcode?.contains(token, ignoreCase = true) == true
+            barcodeContains(token)
     }
 }
 

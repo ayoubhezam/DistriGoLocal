@@ -1,7 +1,9 @@
 package com.distrigo.app.data.importer
 
 import com.distrigo.app.data.local.entity.ClientEntity
+import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
 import com.distrigo.app.data.local.entity.ProductEntity
+import com.distrigo.app.data.repository.TOO_MANY_BARCODES
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -41,6 +43,15 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
 
     // ── Produits ──
 
+    /** A product's codes, primary first, its `barcode` mirror included. */
+    private fun codesOf(product: ProductEntity): List<String> =
+        (listOfNotNull(product.barcode) + snapshot.barcodes[product.id].orEmpty())
+            .map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
+    /** The codes a cell holds: one, or several separated by « ; », « , » or a line break. */
+    private fun splitCodes(cell: String?): List<String> =
+        cell.orEmpty().split(';', ',', '\n').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
     private fun planProducts(sheet: XlsxSheet, lookups: Lookups, notes: MutableList<String>): SheetPlan {
         val columns = Columns(sheet, PRODUCT_HEADERS)
         if (columns.missing("nom")) return SheetPlan(ImportSheet.PRODUITS, columns.ignored, listOf(noHeader(ImportSheet.PRODUITS, sheet)))
@@ -48,7 +59,11 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             notes += "Le stock d'un produit existant n'est pas modifié par l'import : corrigez-le par un inventaire ou un ajustement."
         }
 
-        val byBarcode = snapshot.products.filter { it.barcode != null }.groupBy { it.barcode!!.trim() }
+        // Every code of every product, the primary mirror included, to the products that have it.
+        val byBarcode = snapshot.products
+            .flatMap { product -> codesOf(product).map { it to product } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, owners) -> owners.distinctBy { it.id } }
         val byName = snapshot.products.groupBy { ImportText.key(it.name) }
         val seen = mutableSetOf<String>()
         val seenBarcodes = mutableSetOf<String>()
@@ -70,28 +85,40 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         lookups: Lookups,
     ): RowOutcome {
         val name = cells.text("nom") ?: return RowOutcome.Refused("Le nom est obligatoire.")
-        val barcode = cells.text("code barres")
+        // One code, or several separated by « ; » as the export writes them; the first is the primary.
+        val codes = splitCodes(cells.text("code barres"))
+        val barcode = codes.firstOrNull()
         val nameKey = ImportText.key(name)
 
-        // Which product this row is about: the one with its barcode, else the one with its name.
-        val existing = barcode?.let { byBarcode[it]?.singleOrNull() } ?: byName[nameKey]?.let { same ->
+        codes.firstOrNull { byBarcode[it].let { owners -> owners != null && owners.size > 1 } }?.let {
+            return RowOutcome.Refused("Plusieurs produits portent le code-barres $it.")
+        }
+        // Which product this row is about: the one its codes belong to, else the one with its name.
+        val owners = codes.flatMap { byBarcode[it].orEmpty() }.distinctBy { it.id }
+        if (owners.size > 1) {
+            return RowOutcome.Refused("Ces codes-barres appartiennent à plusieurs produits (${owners.joinToString { "« ${it.name} »" }}).")
+        }
+        val existing = owners.singleOrNull() ?: byName[nameKey]?.let { same ->
             if (same.size > 1) return RowOutcome.Refused("Plusieurs produits portent le nom « $name » : précisez le code-barres.")
             same.singleOrNull()
-        }
-        if (barcode != null && byBarcode[barcode].let { it != null && it.size > 1 }) {
-            return RowOutcome.Refused("Plusieurs produits portent le code-barres $barcode.")
         }
         // A name that differs only by case or accents is the same name, kept as the app spells it.
         val renamed = existing != null && ImportText.key(existing.name) != nameKey
         val keptName = if (existing != null && !renamed) existing.name else name
-        // The name or the barcode this row would take must not be another product's.
+        // The name this row would take must not be another product's. Its codes cannot be: any code another
+        // product has made that product the one this row is about.
         if (renamed || existing == null) {
             byName[nameKey]?.firstOrNull { it.id != existing?.id }?.let { return RowOutcome.Refused("Ce nom de produit est déjà enregistré (code-barres ${it.barcode ?: "—"}).") }
         }
-        barcode?.let { code -> byBarcode[code]?.firstOrNull { it.id != existing?.id }?.let { return RowOutcome.Refused("Ce code-barres est déjà enregistré (« ${it.name} »).") } }
+        // The file's codes are added to the product's; the others it had are kept.
+        val existingCodes = existing?.let(::codesOf).orEmpty()
+        val allCodes = codes + (existingCodes - codes.toSet())
+        if (allCodes.size > MAX_BARCODES_PER_PRODUCT) return RowOutcome.Refused(TOO_MANY_BARCODES)
         // The same product twice in one file would apply twice; only the first row that passes counts.
         if (!seen.add(existing?.id?.toString() ?: "new:$nameKey")) return RowOutcome.Refused("« $name » est déjà sur une ligne plus haut.")
-        if (barcode != null && existing == null && !seenBarcodes.add(barcode)) return RowOutcome.Refused("Le code-barres $barcode est déjà sur une ligne plus haut.")
+        if (existing == null) {
+            codes.firstOrNull { !seenBarcodes.add(it) }?.let { return RowOutcome.Refused("Le code-barres $it est déjà sur une ligne plus haut.") }
+        }
 
         val unitType = cells.text("unite")?.let { UNITS[ImportText.key(it)] ?: return RowOutcome.Refused("L'unité « $it » n'existe pas : carton ou pièce.") }
         val packSize = cells.int("unites par colis")?.let { if (it < 0) return RowOutcome.Refused("Les unités par colis ne peuvent pas être négatives.") else it }
@@ -115,7 +142,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         val values = ProductValues(
             name = keptName, barcode = barcode, category = category, sousCategorie = sousCategorie, marque = marque,
             supplier = supplier, unitType = unitType, packSize = packSize, purchasePrice = purchase, sellingPrice = selling,
-            initialStock = stock, minStock = minStock, expiry = expiry,
+            initialStock = stock, minStock = minStock, expiry = expiry, barcodes = allCodes,
         )
         category?.let { lookups.category(it) }
         sousCategorie?.let { lookups.sousCategorie(categoryForSub!!, it) }
@@ -132,7 +159,9 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             if (to != null && ImportText.key(from ?: "") != ImportText.key(to)) changes += Change(label, from, to)
         }
         if (renamed) changes += Change("Nom", existing.name, name)
-        changed("Code-barres", existing.barcode, barcode)
+        if (codes.isNotEmpty() && allCodes != existingCodes) {
+            changes += Change("Code-barres", existingCodes.joinToString("; ").ifEmpty { null }, allCodes.joinToString("; "))
+        }
         changedName("Catégorie", existing.category_name, category)
         changedName("Sous-catégorie", existing.sous_categorie_name, sousCategorie)
         changedName("Marque", existing.marque_name, marque)

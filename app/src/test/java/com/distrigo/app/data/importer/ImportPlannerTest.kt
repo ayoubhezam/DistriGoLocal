@@ -212,6 +212,26 @@ class ImportPlannerTest {
     }
 
     @Test
+    fun severalCodesInOneCellAreAddedToTheProductsOwn() {
+        val withAlias = snapshot.copy(barcodes = mapOf(1 to listOf("6130000000123", "A2")))
+        val plan = planner(withAlias).plan(products(
+            // The alias finds the milk; a new code goes first, the ones it had follow.
+            listOf("Lait Candia 1L", "NEW1; A2", null, null, null, null, null, null, null, null),
+            // An export read back: the same codes in the same order change nothing.
+            listOf("Selecto 1L", "6130000000456", null, null, null, null, null, null, null, null),
+            // Codes of two different products on one line.
+            listOf("Mélange", "6130000000456 ; A2", null, null, null, null, null, null, null, null),
+        ))
+        val milk = plan.rows[0].outcome as RowOutcome.UpdateProduct
+        assertEquals(1, milk.id)
+        assertEquals(listOf("NEW1", "A2", "6130000000123"), milk.values.barcodes)
+        assertEquals("NEW1", milk.values.barcode)
+        assertEquals(listOf(Change("Code-barres", "6130000000123; A2", "NEW1; A2; 6130000000123")), milk.changes)
+        assertEquals(RowOutcome.Unchanged(2), plan.rows[1].outcome)
+        assertEquals("Ces codes-barres appartiennent à plusieurs produits (« Selecto 1L », « Lait Candia 1L »).", refusal(plan.rows[2]))
+    }
+
+    @Test
     fun onlyTheColumnsPresentAreRead() {
         val plan = planner().plan(XlsxWorkbook(listOf(sheet(
             "produits", listOf("Produit", "PV", "Remarque"),

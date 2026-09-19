@@ -129,8 +129,9 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
             }
             if (kind == TrashKind.PRODUCTS) {
                 photos += photoHashesOf(id)
-                // Its own photo rows and price history, which nothing else refers to.
+                // Its own photo rows, barcodes and price history, which nothing else refers to.
                 sql.execSQL("DELETE FROM product_images WHERE product_id = ?", arrayOf<Any>(id))
+                sql.execSQL("DELETE FROM product_barcodes WHERE product_id = ?", arrayOf<Any>(id))
                 sql.execSQL("DELETE FROM price_history WHERE product_id = ?", arrayOf<Any>(id))
             }
             sql.execSQL("DELETE FROM ${kind.table} WHERE id = ? AND deleted_at IS NOT NULL", arrayOf<Any>(id))
@@ -181,11 +182,18 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
 
         return when (kind) {
             TrashKind.PRODUCTS -> {
-                val barcode = row["barcode"]?.trim().orEmpty()
+                // Every code it had, the mirror included; each checked against every live product's codes.
+                val codes = (listOfNotNull(row["barcode"]) + codesOf(id)).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+                val taken = codes.firstOrNull { code ->
+                    exists("SELECT 1 FROM products WHERE deleted_at IS NULL AND id != ? AND TRIM(barcode) = ?", id, code) ||
+                        exists(
+                            "SELECT 1 FROM product_barcodes b JOIN products p ON p.id = b.product_id " +
+                                "WHERE p.deleted_at IS NULL AND b.product_id != ? AND b.code = ?", id, code
+                        )
+                }
                 when {
                     activeWithName("products") -> "Un produit actif s'appelle déjà « $name ». Renommez-le avant de restaurer celui-ci."
-                    barcode.isNotEmpty() && exists("SELECT 1 FROM products WHERE deleted_at IS NULL AND id != ? AND TRIM(barcode) = ?", id, barcode) ->
-                        "Le code-barres $barcode est déjà utilisé par un produit actif."
+                    taken != null -> "Le code-barres $taken est déjà utilisé par un produit actif."
                     else -> null
                 }
             }
@@ -266,6 +274,12 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
 
     private fun exists(query: String, vararg args: Any): Boolean =
         sql.query(SimpleSQLiteQuery(query, args)).use { it.moveToFirst() }
+
+    /** A product's codes, as `product_barcodes` holds them. */
+    private fun codesOf(productId: Long): List<String> =
+        sql.query(SimpleSQLiteQuery("SELECT code FROM product_barcodes WHERE product_id = ? ORDER BY position", arrayOf<Any>(productId))).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
 
     private fun Cursor.textOrNull(index: Int): String? = if (isNull(index)) null else getString(index)?.takeIf { it.isNotBlank() }
 

@@ -167,6 +167,7 @@ internal object DocumentTriggers {
         "tournee_secteurs" to listOf(byColumn("tournees", "tournee_id")),
         "policy_tiers" to listOf(byColumn("target_policies", "policy_id")),
         "product_images" to listOf(byColumn("products", "product_id")),
+        "product_barcodes" to listOf(byColumn("products", "product_id")),
         // A movement names its document by type; an inventory movement names a line of the session.
         "stock_movements" to listOf(
             bySource("ventes", "vente"),

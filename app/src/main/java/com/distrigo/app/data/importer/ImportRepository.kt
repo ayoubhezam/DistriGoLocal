@@ -80,6 +80,7 @@ class ImportRepository(
         marques = db.marqueDao().getAllMarques(),
         suppliers = db.supplierDao().getAllSuppliers(),
         secteurs = db.secteurDao().getAllSecteurs(),
+        barcodes = db.productBarcodeDao().getAll().groupBy({ it.product_id }, { it.code }),
     )
 
     // ── Products ──
@@ -88,7 +89,7 @@ class ImportRepository(
         val unit = values.unitType ?: "carton"
         val fields = mapOf(
             "name" to values.name,
-            "barcode" to values.barcode,
+            "barcodes" to values.barcodes,
             "selling_price" to (values.sellingPrice ?: 0.0),
             "purchase_price" to (values.purchasePrice ?: 0.0),
             "stock" to (values.initialStock ?: 0.0),
@@ -113,7 +114,8 @@ class ImportRepository(
     private suspend fun updateProduct(id: Int, values: ProductValues, ids: Ids) {
         val existing = db.productDao().getProductById(id) ?: throw ImportStaleException()
         val fields = mutableMapOf<String, Any?>("name" to values.name)
-        values.barcode?.let { fields["barcode"] = it }
+        // The plan's list already holds the file's codes followed by the ones the product keeps.
+        if (values.barcodes.isNotEmpty()) fields["barcodes"] = values.barcodes
         values.sellingPrice?.let { fields["selling_price"] = it }
         values.purchasePrice?.let { fields["purchase_price"] = it }
         values.minStock?.let { fields["min_stock"] = it }
@@ -129,8 +131,14 @@ class ImportRepository(
         values.supplier?.let { products.linkProductToSupplier(ids.supplier(it), id, values.purchasePrice ?: existing.purchase_price) }
     }
 
+    /** Whether any product, in the bin or not, has [code] among its codes. */
     private fun barcodeTaken(code: String): Boolean =
-        db.query(SimpleSQLiteQuery("SELECT COUNT(*) FROM products WHERE barcode = ?", arrayOf(code))).use { it.moveToFirst() && it.getLong(0) > 0 }
+        db.query(
+            SimpleSQLiteQuery(
+                "SELECT (SELECT COUNT(*) FROM products WHERE barcode = ?) + (SELECT COUNT(*) FROM product_barcodes WHERE code = ?)",
+                arrayOf(code, code)
+            )
+        ).use { it.moveToFirst() && it.getLong(0) > 0 }
 
     // ── Clients ──
 

@@ -22,6 +22,7 @@ import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SousCategorie
 import com.distrigo.app.data.model.Marque
 import com.distrigo.app.data.model.ProductImage
+import com.distrigo.app.data.model.StockMovement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -138,9 +139,13 @@ class ProductViewModel @Inject constructor(
         }
     }
 
-    /** Whether another live product already has this name or barcode — asked of the database, not the list. */
-    suspend fun duplicateOf(name: String, barcode: String?, excludeId: Int): ProductDuplicate? =
-        repository.duplicateOf(name, barcode, excludeId)
+    /** Whether another live product already has this name or one of these barcodes — asked of the database, not the list. */
+    suspend fun duplicateOf(name: String, barcodes: List<String>, excludeId: Int): ProductDuplicate? =
+        repository.duplicateOf(name, barcodes, excludeId)
+
+    /** The first of [codes] another live product already has, or null. */
+    suspend fun takenBarcode(codes: List<String>, excludeId: Int): String? =
+        repository.takenBarcode(codes, excludeId)
 
     fun addProduct(
         product   : Map<String, Any?>,
@@ -304,6 +309,20 @@ class ProductViewModel @Inject constructor(
                 onSuccess(newId)
             } catch (e: Exception) {
                 // ignore
+            }
+        }
+    }
+
+    private val _recentMovements = MutableStateFlow<List<StockMovement>>(emptyList())
+    /** The product's latest stock movements, for the detail screen's short list. */
+    val recentMovements: StateFlow<List<StockMovement>> = _recentMovements
+
+    fun loadRecentMovements(productId: Int, count: Int = 4) {
+        viewModelScope.launch {
+            try {
+                _recentMovements.value = repository.getMovementsForProduct(productId).take(count)
+            } catch (e: Exception) {
+                _recentMovements.value = emptyList()
             }
         }
     }

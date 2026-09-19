@@ -97,7 +97,7 @@ class MigrationTest {
                 assertEquals("unstamped rows in $table", 0, sql.count(table, "updated_at <= 0"))
                 assertEquals("rows without created_at in $table", 0, sql.count(table, "created_at = ''"))
             }
-            assertEquals(36, UpdatedAtTriggers.trackedTables(sql).size)
+            assertEquals(37, UpdatedAtTriggers.trackedTables(sql).size)
             for (table in UpdatedAtTriggers.trackedTables(sql)) {
                 assertTrue(table, storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
@@ -588,6 +588,40 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 52 -> 53 seeds each product's barcode, trimmed, as its primary code — a product in the bin included —
+     * skips empty ones, and leaves `products` as it was.
+     */
+    @Test
+    fun migration52To53SeedsEachBarcodeAsThePrimaryCode() {
+        helper.createDatabase(TEST_DB, 52).apply {
+            fun product(id: Int, barcode: String?, deletedAt: Long? = null) = execSQL(
+                "INSERT INTO products (id, name, barcode, selling_price, purchase_price, stock, min_stock, unit_type, packages, " +
+                    "pack_size, has_expiry, camion_stock, uuid, created_at, updated_at, deleted_at) VALUES ($id, 'P$id', " +
+                    "${barcode?.let { "'$it'" } ?: "NULL"}, 110.0, 95.0, 0.0, 0, 'pièce', 0, 0, 0, 0.0, 'u-product-$id', " +
+                    "'2026-09-0${id}T10:00:00Z', 1000, ${deletedAt ?: "NULL"})"
+            )
+            product(1, " 6130000000017 ")
+            product(2, null)
+            product(3, "   ")
+            product(4, "6130000000024", deletedAt = 5000)
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 53, true, MIGRATION_52_53)
+        try {
+            assertEquals(
+                listOf("1|6130000000017|0|1|2026-09-01T10:00:00Z", "4|6130000000024|0|1|2026-09-04T10:00:00Z"),
+                sql.texts("SELECT product_id || '|' || code || '|' || position || '|' || units || '|' || created_at FROM product_barcodes ORDER BY product_id")
+            )
+            assertEquals(2, sql.count("product_barcodes", "length(uuid) = 36"))
+            assertEquals(listOf(" 6130000000017 "), sql.texts("SELECT barcode FROM products WHERE id = 1"))
+            assertEquals(4, sql.count("products", "updated_at = 1000"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()
@@ -715,6 +749,8 @@ class MigrationTest {
             // The fixture's one sale does not explain its product's stock (12.5, camion 2), so
             // MIGRATION_46_47 records the rest as two "Reprise du stock" adjustments.
             "stock_movements" to 3, "product_images" to 0,
+            // MIGRATION_52_53 seeds the product's barcode as its primary code.
+            "product_barcodes" to 1,
         )
     }
 }

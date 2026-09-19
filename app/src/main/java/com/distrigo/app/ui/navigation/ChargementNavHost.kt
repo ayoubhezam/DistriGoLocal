@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.barcodeContains
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -96,7 +97,7 @@ fun ChargementNavHost(
             val filteredProducts = products.filter { product ->
                 search.isBlank() ||
                         product.name.contains(search, ignoreCase = true) ||
-                        (product.barcode?.contains(search, ignoreCase = true) == true)
+                        product.barcodeContains(search)
             }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {

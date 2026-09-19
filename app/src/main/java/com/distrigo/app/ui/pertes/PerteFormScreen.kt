@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.model.barcodeContains
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -43,7 +44,7 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
     val filtered = products.filter { product ->
         tokens.isEmpty() || tokens.all { token ->
             product.name.contains(token, ignoreCase = true) ||
-                    (product.barcode?.contains(token, ignoreCase = true) == true)
+                    product.barcodeContains(token)
         }
     }
 

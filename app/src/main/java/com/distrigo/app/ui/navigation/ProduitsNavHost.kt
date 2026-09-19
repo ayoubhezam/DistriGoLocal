@@ -98,8 +98,12 @@ fun ProduitsNavHost(
                     onDelete        = { viewModel.deleteProduct(productId) },
                     onEdit          = { navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
                     onViewMovements = { navController.navigate(Screen.ProduitsMovementsGraph.createRoute(productId)) },
-                    onInfoGenerales = { navController.navigate(Screen.ProduitsInfoGenerales.createRoute(productId)) },
-                    onStockPrix     = { navController.navigate(Screen.ProduitsStockPrix.createRoute(productId)) }
+                    // The detail lives inside the movements graph, which has to be entered first:
+                    // Back from it then passes through the full list on its way to the product.
+                    onOpenMovement  = { movementId ->
+                        navController.navigate(Screen.ProduitsMovementsGraph.createRoute(productId))
+                        navController.navigate(Screen.ProduitsMovementDetail.createRoute(movementId))
+                    }
                 )
             } else {
                 LeaveWhenGone(navController, entry)
@@ -156,48 +160,6 @@ fun ProduitsNavHost(
                     viewModel  = movementsViewModel,
                     onBack     = { navController.popBackStack() }
                 )
-            }
-        }
-
-        composable(
-            route     = Screen.ProduitsInfoGenerales.route,
-            arguments = listOf(navArgument("productId") { type = NavType.IntType })
-        ) { entry ->
-            val productId = entry.arguments!!.getInt("productId")
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
-            val products by viewModel.products.collectAsState()
-            val product = products.find { it.id == productId }
-
-            if (product != null) {
-                InfoGeneralesDetailScreen(product = product, onBack = { navController.popBackStack() })
-            } else {
-                LeaveWhenGone(navController, entry)
-            }
-        }
-
-        composable(
-            route     = Screen.ProduitsStockPrix.route,
-            arguments = listOf(navArgument("productId") { type = NavType.IntType })
-        ) { entry ->
-            val productId = entry.arguments!!.getInt("productId")
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
-            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
-            val products by viewModel.products.collectAsState()
-            val product = products.find { it.id == productId }
-
-            LaunchedEffect(productId) { viewModel.loadPriceHistory(productId) }
-            val priceHistory by viewModel.priceHistory.collectAsState()
-
-            if (product != null) {
-                StockPrixDetailScreen(
-                    product      = product,
-                    priceHistory = priceHistory,
-                    onBack       = { navController.popBackStack() },
-                    onEdit       = { navController.navigate(Screen.ProduitsForm.createRoute(productId)) }
-                )
-            } else {
-                LeaveWhenGone(navController, entry)
             }
         }
     }

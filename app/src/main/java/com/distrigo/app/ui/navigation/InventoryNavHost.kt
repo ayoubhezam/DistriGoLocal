@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.hasBarcode
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -101,7 +102,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     BarcodeScannerScreen(
                         onBarcodeScanned = { code ->
                             showScanner = false
-                            val product = products.find { it.barcode?.equals(code, ignoreCase = true) == true }
+                            val product = products.find { it.hasBarcode(code) }
                             if (product == null) scanError = "Aucun produit trouvé pour ce code-barres"
                             else openProduct(product)
                         },

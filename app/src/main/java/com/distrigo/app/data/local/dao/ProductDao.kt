@@ -35,10 +35,6 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE deleted_at IS NULL AND id != :excludeId AND trim(name) = trim(:name) COLLATE NOCASE LIMIT 1")
     suspend fun findLiveByName(name: String, excludeId: Int): ProductEntity?
 
-    /** A live product with this barcode, other than [excludeId]. */
-    @Query("SELECT * FROM products WHERE deleted_at IS NULL AND id != :excludeId AND trim(barcode) = trim(:barcode) LIMIT 1")
-    suspend fun findLiveByBarcode(barcode: String, excludeId: Int): ProductEntity?
-
     // جلب المنتجات المرتبطة بمورد معين
     @Query("SELECT * FROM products WHERE supplier_id = :supplierId AND deleted_at IS NULL ORDER BY id DESC")
     suspend fun getProductsBySupplier(supplierId: Int): List<ProductEntity>

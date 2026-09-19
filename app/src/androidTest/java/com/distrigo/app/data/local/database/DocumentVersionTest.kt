@@ -51,7 +51,7 @@ class DocumentVersionTest {
         val children = DocumentTriggers.PARENTS.keys - "pertes"   // pertes stand alone too
 
         assertEquals(25, versioned.size)
-        assertEquals(11, children.size)
+        assertEquals(12, children.size)
         assertEquals(tracked.toSet(), versioned.toSet() + children)
         assertTrue(children.none { it in versioned })
         for (link in DocumentTriggers.PARENTS.values.flatten()) {
