@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "purchase_order_items",
-    indices = [Index(value = ["purchase_order_id"]), Index(value = ["uuid"], unique = true)]
+    // `product_id` is indexed for the price history, which asks this table for one product's
+    // purchase prices across every bon.
+    indices = [Index(value = ["purchase_order_id"]), Index(value = ["product_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class PurchaseOrderItemEntity(
     @PrimaryKey(autoGenerate = true)

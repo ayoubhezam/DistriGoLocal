@@ -33,7 +33,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
  * The schema version this build writes. A backup records it, and a backup from a later version is refused
  * rather than opened: Room cannot downgrade a database.
  */
-const val DATABASE_VERSION = 53
+const val DATABASE_VERSION = 54
 
 /** The app's database file, in `databases/`. */
 const val DATABASE_NAME = "distrigo"
@@ -131,6 +131,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     /** Every product's barcodes, the primary first — see ProductBarcodeEntity. */
     abstract fun productBarcodeDao(): ProductBarcodeDao
+
+    /** A product's prices, read from the bons and the ventes they were agreed in — see PriceMovement. */
+    abstract fun priceMovementDao(): PriceMovementDao
 
     /** Used once, to move base64 payloads out to files — see ImageBackfill. */
     abstract fun imageBackfillDao(): ImageBackfillDao

@@ -28,7 +28,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.data.model.PriceHistory
+import com.distrigo.app.data.model.PriceMovement
+import com.distrigo.app.data.model.PriceMovementKind
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.data.model.StockMovement
@@ -63,15 +64,16 @@ fun ProductDetailScreen(
     onEdit           : () -> Unit,
     onViewMovements  : () -> Unit,
     onOpenMovement   : (Int) -> Unit,
+    onPriceHistory   : () -> Unit,
     viewModel: ProductViewModel = hiltViewModel()
 ) {
     val currentProduct = viewModel.products.collectAsState().value
         .find { it.id == product.id } ?: product
 
     LaunchedEffect(product.id) {
-        viewModel.loadPriceHistory(product.id)
+        viewModel.loadPriceMovements(product.id)
     }
-    val priceHistory by viewModel.priceHistory.collectAsState()
+    val priceMovements by viewModel.priceMovements.collectAsState()
 
     // Reloaded when the stock moves, so a sale made elsewhere shows here when the user comes back.
     LaunchedEffect(product.id, currentProduct.stock, currentProduct.camion_stock) {
@@ -269,7 +271,7 @@ fun ProductDetailScreen(
             when (selectedTab) {
                 0 -> {
                     ProductInfoCard(currentProduct)
-                    PriceHistoryCard(priceHistory)
+                    PriceHistoryCard(priceMovements, onSeeAll = onPriceHistory)
                 }
                 else -> {
                     CurrentStockCard(
@@ -565,37 +567,41 @@ private fun PriceLine(icon: ImageVector, label: String, value: String, color: Co
 }
 
 @Composable
-private fun PriceHistoryCard(history: List<PriceHistory>) {
-    var showAll by rememberSaveable { mutableStateOf(false) }
+private fun PriceHistoryCard(movements: List<PriceMovement>, onSeeAll: () -> Unit) {
     DetailCard(
         icon   = Icons.Default.History,
         title  = "Historique des prix",
-        action = if (history.size > HISTORY_PREVIEW) {
-            { CardLink(if (showAll) "Réduire" else "Voir tout", onClick = { showAll = !showAll }) }
+        action = if (movements.isNotEmpty()) {
+            { CardLink("Voir tout", onClick = onSeeAll, chevron = true) }
         } else null
     ) {
-        if (history.isEmpty()) {
+        if (movements.isEmpty()) {
             EmptyCardText("Aucun historique disponible")
             return@DetailCard
         }
         Spacer(Modifier.height(DsSpacing.xs))
-        val shown = if (showAll) history else history.take(HISTORY_PREVIEW)
-        shown.forEachIndexed { index, entry ->
-            // Newest first, so each price is compared with the one below it — the purchase before.
-            PriceHistoryRow(entry, previous = history.getOrNull(index + 1))
-        }
+        // The latest few of both kinds; the whole history, with its chart and filters, is a screen
+        // of its own behind « Voir tout ».
+        movements.take(HISTORY_PREVIEW).forEach { PriceHistoryRow(it) }
     }
 }
 
 @Composable
-private fun PriceHistoryRow(entry: PriceHistory, previous: PriceHistory?) {
-    val delta = previous?.let { entry.unit_cost - it.unit_cost }
-    // A price going up costs the distributor: red. Going down: green.
+private fun PriceHistoryRow(movement: PriceMovement) {
+    val achat = movement.kind == PriceMovementKind.ACHAT
+    val delta = movement.delta
+    // What the change means for the business: buying cheaper is good, selling dearer is good.
+    val good = delta != null && (if (achat) delta < 0 else delta > 0)
     val (tint, background, icon, label) = when {
-        delta == null      -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove, "Premier achat")
+        delta == null      -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove,
+                                    if (achat) "Premier achat" else "Première vente")
         abs(delta) < 0.005 -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove, "Stable")
-        delta > 0          -> Trend(DsColors.Danger, DsColors.DangerLight, Icons.Default.NorthEast, "+${formatDZD(delta)} DA")
-        else               -> Trend(DsColors.Success, DsColors.SuccessLight, Icons.Default.SouthEast, "−${formatDZD(-delta)} DA")
+        else -> Trend(
+            if (good) DsColors.Success else DsColors.Danger,
+            if (good) DsColors.SuccessLight else DsColors.DangerLight,
+            if (delta > 0) Icons.Default.NorthEast else Icons.Default.SouthEast,
+            (if (delta > 0) "+" else "−") + "${formatDZD(abs(delta))} DA"
+        )
     }
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -604,11 +610,18 @@ private fun PriceHistoryRow(entry: PriceHistory, previous: PriceHistory?) {
         }
         Spacer(Modifier.width(DsSpacing.sm))
         Column(Modifier.weight(1f)) {
-            Text(entry.supplier_name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(displayDay(entry.created_at.ifBlank { entry.date }), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(movement.party, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row {
+                Text(
+                    movement.kind.label,
+                    fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
+                    color = if (achat) DsColors.Success else DsColors.Primary
+                )
+                Text(" · ${displayDay(movement.date)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${formatDZD(entry.unit_cost)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text("${formatDZD(movement.unitPrice)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
                 label,
                 fontSize   = DsTextSize.caption,

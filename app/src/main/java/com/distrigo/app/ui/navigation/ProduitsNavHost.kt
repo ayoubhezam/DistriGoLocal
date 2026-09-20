@@ -103,7 +103,41 @@ fun ProduitsNavHost(
                     onOpenMovement  = { movementId ->
                         navController.navigate(Screen.ProduitsMovementsGraph.createRoute(productId))
                         navController.navigate(Screen.ProduitsMovementDetail.createRoute(movementId))
-                    }
+                    },
+                    onPriceHistory  = { navController.navigate(Screen.ProduitsPriceHistory.createRoute(productId)) }
+                )
+            } else {
+                LeaveWhenGone(navController, entry)
+            }
+        }
+
+        composable(
+            route     = Screen.ProduitsPriceHistory.route,
+            arguments = listOf(navArgument("productId") { type = NavType.IntType })
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
+            val productId = entry.arguments!!.getInt("productId")
+            val products by viewModel.products.collectAsState()
+            val product = products.find { it.id == productId }
+
+            // Loaded here as well as on the detail screen: the back stack can be restored straight
+            // onto this destination after process death, with the detail never composed.
+            LaunchedEffect(productId) { viewModel.loadPriceMovements(productId) }
+            val movements by viewModel.priceMovements.collectAsState()
+            val isLoading by viewModel.priceHistoryLoading.collectAsState()
+            val error by viewModel.priceHistoryError.collectAsState()
+
+            if (product != null) {
+                PriceHistoryScreen(
+                    productName = product.name,
+                    movements   = movements,
+                    isLoading   = isLoading,
+                    error       = error,
+                    filters     = viewModel.priceFilters,
+                    onFilters   = { viewModel.priceFilters = it },
+                    onRetry     = { viewModel.loadPriceMovements(productId) },
+                    onBack      = { navController.popBackStack() }
                 )
             } else {
                 LeaveWhenGone(navController, entry)

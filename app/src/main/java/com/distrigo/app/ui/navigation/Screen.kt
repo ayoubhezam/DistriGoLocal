@@ -84,6 +84,9 @@ sealed class Screen(val route: String) {
     data object ProduitsDetail    : Screen("produits_detail/{productId}") {
         fun createRoute(productId: Int) = "produits_detail/$productId"
     }
+    data object ProduitsPriceHistory : Screen("produits_price_history/{productId}") {
+        fun createRoute(productId: Int) = "produits_price_history/$productId"
+    }
 
     // ── Produits · Mouvements (رسم فرعي متداخل) ──
     data object ProduitsMovementsGraph  : Screen("produits_movements_graph/{productId}") {

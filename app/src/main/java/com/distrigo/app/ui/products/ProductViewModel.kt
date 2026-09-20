@@ -22,6 +22,7 @@ import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SousCategorie
 import com.distrigo.app.data.model.Marque
 import com.distrigo.app.data.model.ProductImage
+import com.distrigo.app.data.model.PriceMovement
 import com.distrigo.app.data.model.StockMovement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
@@ -310,6 +311,38 @@ class ProductViewModel @Inject constructor(
             } catch (e: Exception) {
                 // ignore
             }
+        }
+    }
+
+    // ── Price history ────────────────────────────────────────────────────────
+    //
+    // The prices a product changed hands at, read from the bons and the ventes themselves. Held here
+    // rather than in the screen so that opening a document and coming back finds the list, the
+    // filters and the scroll as they were — this ViewModel is scoped to the Produits graph.
+
+    private val _priceMovements = MutableStateFlow<List<PriceMovement>>(emptyList())
+    val priceMovements: StateFlow<List<PriceMovement>> = _priceMovements
+
+    private val _priceHistoryLoading = MutableStateFlow(false)
+    val priceHistoryLoading: StateFlow<Boolean> = _priceHistoryLoading
+
+    private val _priceHistoryError = MutableStateFlow<String?>(null)
+    val priceHistoryError: StateFlow<String?> = _priceHistoryError
+
+    /** What the price history screen is narrowed by. Survives a trip into a bon or a vente. */
+    var priceFilters by mutableStateOf(PriceHistoryFilters())
+
+    fun loadPriceMovements(productId: Int) {
+        viewModelScope.launch {
+            _priceHistoryLoading.value = true
+            _priceHistoryError.value = null
+            try {
+                _priceMovements.value = repository.getPriceMovements(productId)
+            } catch (e: Exception) {
+                _priceMovements.value = emptyList()
+                _priceHistoryError.value = e.message ?: "Erreur inconnue"
+            }
+            _priceHistoryLoading.value = false
         }
     }
 

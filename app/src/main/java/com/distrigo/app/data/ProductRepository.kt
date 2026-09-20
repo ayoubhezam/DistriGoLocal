@@ -1009,6 +1009,23 @@ class ProductRepository(
         return mapOf("message" to "Bon supprimé avec succès")
     }
 
+    /**
+     * Every price this product changed hands at, newest first, each entry carrying its change from
+     * the previous movement of its own kind — see [PriceMovement].
+     */
+    suspend fun getPriceMovements(productId: Int): List<PriceMovement> =
+        db.priceMovementDao().forProduct(productId).map { row ->
+            PriceMovement(
+                kind          = if (row.kind == "achat") PriceMovementKind.ACHAT else PriceMovementKind.VENTE,
+                documentId    = row.document_id,
+                documentLabel = row.document_label,
+                party         = row.party.orEmpty().ifBlank { "—" },
+                date          = row.dated_at,
+                unitPrice     = row.unit_price,
+                quantity      = row.quantity
+            )
+        }.withDeltas()
+
     suspend fun getProductPriceHistory(id: Int): List<PriceHistory> {
         return db.purchaseDao().getPriceHistoryForProduct(id).map { it.toPriceHistory() }
     }

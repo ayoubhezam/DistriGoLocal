@@ -622,6 +622,31 @@ class MigrationTest {
         }
     }
 
+    /** 53 -> 54 indexes the document lines by product, and touches nothing else. */
+    @Test
+    fun migration53To54IndexesDocumentLinesByProduct() {
+        helper.createDatabase(TEST_DB, 53).apply {
+            execSQL(
+                "INSERT INTO vente_items (id, vente_id, product_id, product_name, unit_type, quantity, unit_price, " +
+                    "total_price, uuid, created_at, updated_at) VALUES (1, 1, 7, 'P7', 'pièce', 2.0, 110.0, 220.0, " +
+                    "'u-vi-1', '2026-09-01T10:00:00Z', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 54, true, MIGRATION_53_54)
+        try {
+            val indexes = sql.texts(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN " +
+                    "('index_vente_items_product_id', 'index_purchase_order_items_product_id') ORDER BY name"
+            )
+            assertEquals(listOf("index_purchase_order_items_product_id", "index_vente_items_product_id"), indexes)
+            assertEquals(1, sql.count("vente_items", "product_id = 7 AND unit_price = 110.0"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

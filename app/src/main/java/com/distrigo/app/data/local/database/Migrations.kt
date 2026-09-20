@@ -966,6 +966,28 @@ val MIGRATION_52_53 = object : Migration(52, 53) {
 }
 
 /**
+ * 53 -> 54 - the two indexes a product's price history reads its document lines through.
+ *
+ * The history is taken from the documents themselves — the bon lines and the vente lines naming the
+ * product — so that every entry can name and open the document it came from. Both tables were
+ * indexed by their parent document only, the opposite direction, so each read scanned the table.
+ *
+ * Nothing but the indexes changes: no column, row or table is touched.
+ *
+ * The statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/54.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_53_54 = object : Migration(53, 54) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_vente_items_product_id` ON `vente_items` (`product_id`)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_purchase_order_items_product_id` ON `purchase_order_items` (`product_id`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -978,7 +1000,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
-    MIGRATION_52_53,
+    MIGRATION_52_53, MIGRATION_53_54,
 )
 
 /**

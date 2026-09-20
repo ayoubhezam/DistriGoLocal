@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "vente_items",
-    indices = [Index(value = ["vente_id"]), Index(value = ["uuid"], unique = true)]
+    // `product_id` is indexed for the price history, which asks this table for one product's sale
+    // prices across every vente — a filter no other index covers.
+    indices = [Index(value = ["vente_id"]), Index(value = ["product_id"]), Index(value = ["uuid"], unique = true)]
 )
 data class VenteItemEntity(
     @PrimaryKey(autoGenerate = true)
