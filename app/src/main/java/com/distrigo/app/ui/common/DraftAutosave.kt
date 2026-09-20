@@ -84,26 +84,36 @@ class DraftAutosave<S>(
      */
     private var touched = false
 
-    init {
-        combine(signals) { host.snapshot() }
-            // combine emits the current tuple the instant it is collected — here, during init.
-            // The armed filter below would already stop it, but dropping it makes the intent
-            // explicit: arming a session must never itself be a reason to write.
-            .drop(1)
-            .filter { armed }
-            .onEach { touched = true }
-            .debounce(debounceMs)
-            .onEach { persist(it) }
-            .launchIn(scope)
-    }
+    private val watcher = combine(signals) { host.snapshot() }
+        // combine emits the current tuple the instant it is collected — here, during init.
+        // The armed filter below would already stop it, but dropping it makes the intent
+        // explicit: arming a session must never itself be a reason to write.
+        .drop(1)
+        .filter { armed }
+        .onEach { touched = true }
+        .debounce(debounceMs)
+        .onEach { persist(it) }
+        .launchIn(scope)
 
     /** Starts honouring changes. Called once the session's own entry work has finished. */
     fun arm() { armed = true }
 
     /**
      * Stops honouring changes — after a commit, when the row this session owned is already gone.
+     *
+     * The whole pipeline is cancelled, not just flagged. A change made in the last [debounceMs]
+     * before the commit has already passed the `armed` filter and is waiting inside `debounce`, and
+     * the filter is upstream of it: left running, that pending write lands *after* the commit
+     * deleted the draft, finds no row to update, and inserts a second Brouillon holding exactly what
+     * was just validated. [persist] checks [armed] too, for a write already past the debounce.
+     *
+     * A session is never re-armed after a commit — it has nothing left to save — so cancelling for
+     * good costs nothing.
      */
-    fun disarm() { armed = false }
+    fun disarm() {
+        armed = false
+        watcher.cancel()
+    }
 
     /**
      * Writes the current form now instead of waiting out the debounce window. Called on
@@ -122,6 +132,9 @@ class DraftAutosave<S>(
     }
 
     private suspend fun persist(snap: S) {
+        // The session may have committed between this write being scheduled and it running.
+        if (!armed) return
+
         val dirty = if (host.isEdit(snap)) {
             // An edit form is prefilled, so it is non-empty from its first emission and the
             // emptiness rule below would fire on sight. Comparing against the base recorded at
