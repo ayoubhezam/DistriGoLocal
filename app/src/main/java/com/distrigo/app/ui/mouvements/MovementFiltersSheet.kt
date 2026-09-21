@@ -73,7 +73,14 @@ fun MovementFiltersSheet(
         DayPickerDialog(draft.dateTo, onPicked = { draft = draft.copy(dateTo = it); showTo = false }) { showTo = false }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DsColors.Surface) {
+    // Fully expanded, with no half-way stop. The party list appears under the chips when a kind is
+    // picked, and that change of height made the sheet re-settle — dropping back to the partial
+    // state under the very finger that had just opened the list.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = DsColors.Surface
+    ) {
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())

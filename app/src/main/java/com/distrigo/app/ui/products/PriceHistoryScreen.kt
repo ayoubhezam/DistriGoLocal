@@ -495,7 +495,13 @@ private fun FilterSheet(
 ) {
     // Edited in the sheet and applied on confirmation, so a half-made choice never moves the list.
     var draft by remember { mutableStateOf(filters) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DsColors.Surface) {
+    // Fully expanded, with no half-way stop, as the Mouvements sheet is: a filter sheet that
+    // re-settles while being used moves the control out from under the finger.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = DsColors.Surface
+    ) {
         // The wrapped « Trier par » chips make the sheet tall enough to reach the navigation bar,
         // so the content clears it and scrolls rather than pushing its own button off the screen.
         Column(
