@@ -41,7 +41,9 @@ import kotlin.math.abs
  *
  * One period governs the whole screen — the summaries, the chart and the list agree by construction,
  * which is why the period chips above the chart and the sheet's own « Période » are the same state.
- * The chart thins its points by itself as the range grows; see [chartSeries].
+ * The period also lays the chart's axis out: seven days, four weeks or twelve months; see
+ * [PricePeriod.slotsOn]. The screen looks back a year at most, which is as far as a price is worth
+ * comparing against and keeps every read bounded.
  */
 @Composable
 fun PriceHistoryScreen(
@@ -136,14 +138,16 @@ fun PriceHistoryScreen(
         if (shown.isEmpty()) {
             EmptyState(
                 Icons.Default.FilterAltOff, "Aucun résultat",
-                "Aucun mouvement ne correspond à ces filtres.",
+                "Aucun mouvement sur cette période, ou aucun ne correspond à ces filtres.",
                 "Réinitialiser les filtres"
             ) { onFilters(PriceHistoryFilters(kind = filters.kind)) }
             return@Column
         }
 
         val kinds = PriceMovementKind.entries.filter { filters.kind == null || filters.kind == it }
-        val (series, grouping) = remember(shown) { shown.chartSeries() }
+        val today  = remember { LocalDate.now() }
+        val slots  = remember(filters.period, today) { filters.period.slotsOn(today) }
+        val series = remember(shown, filters.period, today) { shown.chartSeries(filters.period, today) }
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),
@@ -180,7 +184,7 @@ fun PriceHistoryScreen(
                             }
                         }
                     }
-                    PriceChart(series, grouping, Modifier.padding(top = DsSpacing.xs))
+                    PriceChart(series, filters.period, slots, Modifier.padding(top = DsSpacing.xs))
                 }
             }
             item {
@@ -290,7 +294,7 @@ private fun KindSegments(
 @Composable
 private fun ActiveChips(filters: PriceHistoryFilters, onFilters: (PriceHistoryFilters) -> Unit) {
     val chips = buildList {
-        if (filters.period != PricePeriod.ALL) add(filters.period.label to filters.copy(period = PricePeriod.ALL))
+        if (filters.period != PriceHistoryFilters().period) add(filters.period.label to filters.copy(period = PriceHistoryFilters().period))
         if (filters.variation != PriceVariation.ALL) add(filters.variation.label to filters.copy(variation = PriceVariation.ALL))
         if (filters.sort != PriceSort.RECENT) add(filters.sort.label to filters.copy(sort = PriceSort.RECENT))
         if (filters.query.isNotBlank()) add("« ${filters.query.trim()} »" to filters.copy(query = ""))

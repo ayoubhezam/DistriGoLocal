@@ -4,13 +4,20 @@ import com.distrigo.app.data.model.PriceMovement
 import com.distrigo.app.data.model.PriceMovementKind
 import com.distrigo.app.data.time.BusinessDates
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
-/** How far back the price history looks. One period governs the summaries, the chart and the list. */
-enum class PricePeriod(val label: String, val days: Long?) {
-    ALL("Tout", null),
-    WEEK("7 jours", 7),
-    MONTH("30 jours", 30),
-    QUARTER("3 mois", 92),
+/**
+ * How far back the price history looks — and, with it, what one point of the chart stands for.
+ *
+ * One period governs the summaries, the chart and the list, so the three cannot disagree. There is
+ * deliberately no "everything": a wholesaler prices against the last year, not against a catalogue's
+ * whole life, and an unbounded range is also the one range whose chart cannot be laid out in advance.
+ */
+enum class PricePeriod(val label: String, val days: Long, val slots: Int) {
+    WEEK("7 j", 7, 7),
+    MONTH("30 j", 30, 4),
+    YEAR("12 mois", 365, 12),
 }
 
 /** Keeps only the movements that went one way. */
@@ -36,7 +43,7 @@ enum class PriceSort(val label: String) {
  */
 data class PriceHistoryFilters(
     val kind      : PriceMovementKind? = null,
-    val period    : PricePeriod   = PricePeriod.ALL,
+    val period    : PricePeriod   = PricePeriod.MONTH,
     val variation : PriceVariation = PriceVariation.ALL,
     val sort      : PriceSort     = PriceSort.RECENT,
     val query     : String        = "",
@@ -44,7 +51,7 @@ data class PriceHistoryFilters(
     /** Filters that narrow what the list shows, beyond the kind and the search box. */
     val activeCount: Int
         get() = listOf(
-            period != PricePeriod.ALL,
+            period != PricePeriod.MONTH,
             variation != PriceVariation.ALL,
             sort != PriceSort.RECENT,
         ).count { it }
@@ -66,11 +73,11 @@ fun List<PriceMovement>.narrow(
     includeKind : Boolean = true,
 ): List<PriceMovement> {
     val tokens = filters.query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
-    val earliest = filters.period.days?.let { today.minusDays(it) }
+    val earliest = filters.period.startOn(today)
 
     return filter { movement ->
         if (includeKind && filters.kind != null && movement.kind != filters.kind) return@filter false
-        if (earliest != null && movement.day() < earliest) return@filter false
+        if (movement.day() < earliest) return@filter false
         when (filters.variation) {
             PriceVariation.UP   -> if ((movement.delta ?: 0.0) <= 0.0) return@filter false
             PriceVariation.DOWN -> if ((movement.delta ?: 0.0) >= 0.0) return@filter false
@@ -109,61 +116,100 @@ fun List<PriceMovement>.statsOf(kind: PriceMovementKind): PriceStats? {
 
 // ── The chart ────────────────────────────────────────────────────────────────
 
-/** How many movements one plotted point stands for. */
-enum class PriceGrouping(val caption: String?) {
-    DAILY(null),
-    WEEKLY("Un point par semaine"),
-    MONTHLY("Un point par mois"),
-}
+/**
+ * One slot of the chart's axis: a stretch of days and the label under it.
+ *
+ * The slots are laid out from the period alone — seven days, four weeks, twelve months — before any
+ * data is looked at, which is what lets the axis read « lun mar mer… » or « S1 S2 S3 S4 » instead of
+ * bare dates, and what keeps Achat and Vente on the same footing.
+ */
+data class PriceSlot(val index: Int, val from: LocalDate, val until: LocalDate, val label: String)
 
-/** One plotted point: a date, a price, and how many movements were averaged into it. */
-data class PricePoint(val day: LocalDate, val price: Double, val count: Int)
+/**
+ * One plotted point.
+ *
+ * [price] is the quantity-weighted average of what changed hands in the slot — the price actually
+ * paid per unit, not the average of the tickets. A slot with no movement carries the previous slot's
+ * price forward ([carried]): in wholesale the last price agreed stays the price in force until a new
+ * deal is struck, which is what keeps the line continuous. A carried point is drawn without a dot,
+ * so the line never claims a transaction that did not happen.
+ */
+data class PricePoint(val slot: PriceSlot, val price: Double, val count: Int, val carried: Boolean)
 
 /** A kind's line on the chart. */
 data class PriceSeries(val kind: PriceMovementKind, val points: List<PricePoint>)
 
 /**
- * The lines to draw, and at what granularity.
+ * A day or a month as the axis names it: « Lun », « Sept ».
  *
- * A year of daily purchases is a hundred points on a 310 dp chart — unreadable, and an axis of
- * overlapping labels. So the points are thinned by how many there are, not by a control of their
- * own: past [DENSE] movements in the range they are averaged by week, and past [DENSE] weeks by
- * month. The granularity is chosen from the *densest* line, so both are plotted on the same footing,
- * and [PriceGrouping.caption] tells the user what a point now means rather than averaging silently.
+ * The locale's own short form, capitalised and without its trailing point — cut to three letters it
+ * would name juin and juillet alike.
  */
-fun List<PriceMovement>.chartSeries(): Pair<List<PriceSeries>, PriceGrouping> {
-    val byKind = PriceMovementKind.entries.associateWith { kind -> filter { it.kind == kind } }
-        .filterValues { it.isNotEmpty() }
-    if (byKind.isEmpty()) return emptyList<PriceSeries>() to PriceGrouping.DAILY
+private fun java.time.DayOfWeek.shortLabel(): String =
+    getDisplayName(TextStyle.SHORT, Locale.FRENCH).removeSuffix(".").replaceFirstChar { it.uppercase() }
 
-    // Weeks first: a line of many movements spread over many weeks needs months, not weeks.
-    val weeks = byKind.values.maxOf { line -> line.map { startOfWeek(it.day()) }.distinct().size }
-    val grouping = when {
-        weeks > DENSE -> PriceGrouping.MONTHLY
-        byKind.values.maxOf { it.size } > DENSE -> PriceGrouping.WEEKLY
-        else -> PriceGrouping.DAILY
+private fun java.time.Month.shortLabel(): String =
+    getDisplayName(TextStyle.SHORT, Locale.FRENCH).removeSuffix(".").replaceFirstChar { it.uppercase() }
+
+/** The first day the period covers, [PricePeriod.days] back from and including [today]. */
+fun PricePeriod.startOn(today: LocalDate): LocalDate = today.minusDays(days - 1)
+
+/**
+ * The period's slots, oldest first.
+ *
+ * A week is seven days, labelled by their name. Twelve months are twelve calendar months, labelled
+ * by theirs. Thirty days do not divide into four equal weeks, so the two spare days go to the oldest
+ * slot — the axis reads S1…S4 and the range really is the thirty days the chip promises.
+ */
+fun PricePeriod.slotsOn(today: LocalDate): List<PriceSlot> = when (this) {
+    PricePeriod.WEEK -> (0 until slots).map { i ->
+        val day = startOn(today).plusDays(i.toLong())
+        PriceSlot(i, day, day.plusDays(1), day.dayOfWeek.shortLabel())
     }
-
-    val series = byKind.map { (kind, line) ->
-        val buckets = line.groupBy { movement ->
-            when (grouping) {
-                PriceGrouping.DAILY   -> movement.day()
-                PriceGrouping.WEEKLY  -> startOfWeek(movement.day())
-                PriceGrouping.MONTHLY -> movement.day().withDayOfMonth(1)
-            }
+    PricePeriod.MONTH -> {
+        val start = startOn(today)
+        (0 until slots).map { i ->
+            val from  = if (i == 0) start else start.plusDays(days - (slots - i) * 7L)
+            val until = start.plusDays(days - (slots - i - 1) * 7L)
+            PriceSlot(i, from, until, "S${i + 1}")
         }
-        PriceSeries(
-            kind   = kind,
-            points = buckets.map { (day, movements) ->
-                PricePoint(day, movements.sumOf { it.unitPrice } / movements.size, movements.size)
-            }.sortedBy { it.day }
-        )
-    }.sortedBy { it.kind.ordinal }
-
-    return series to grouping
+    }
+    PricePeriod.YEAR -> {
+        val firstMonth = today.withDayOfMonth(1).minusMonths(slots - 1L)
+        (0 until slots).map { i ->
+            val from = firstMonth.plusMonths(i.toLong())
+            PriceSlot(i, from, from.plusMonths(1), from.month.shortLabel())
+        }
+    }
 }
 
-/** Above this many points on one line, the chart groups them — see [chartSeries]. */
-const val DENSE = 40
+/**
+ * The lines to draw over [period]'s slots, one per kind present.
+ *
+ * Each slot holds the quantity-weighted average of that kind's movements inside it; a slot with none
+ * carries the previous price forward. Nothing is carried *before* a kind's first movement — there was
+ * no price in force yet — so a line begins where its first real point is.
+ */
+fun List<PriceMovement>.chartSeries(period: PricePeriod, today: LocalDate = LocalDate.now()): List<PriceSeries> {
+    val slots = period.slotsOn(today)
+    return PriceMovementKind.entries.mapNotNull { kind ->
+        val movements = filter { it.kind == kind }
+        if (movements.isEmpty()) return@mapNotNull null
 
-private fun startOfWeek(day: LocalDate): LocalDate = day.minusDays((day.dayOfWeek.value - 1).toLong())
+        var lastPrice: Double? = null
+        val points = slots.mapNotNull { slot ->
+            val inSlot = movements.filter { it.day() >= slot.from && it.day() < slot.until }
+            if (inSlot.isNotEmpty()) {
+                // Weighted by quantity: two cartons at 80 and ten at 90 average to 88.33, not 85.
+                val quantity = inSlot.sumOf { it.quantity }
+                val price = if (quantity > 0) inSlot.sumOf { it.unitPrice * it.quantity } / quantity
+                            else inSlot.sumOf { it.unitPrice } / inSlot.size
+                lastPrice = price
+                PricePoint(slot, price, inSlot.size, carried = false)
+            } else {
+                lastPrice?.let { PricePoint(slot, it, 0, carried = true) }
+            }
+        }
+        if (points.isEmpty()) null else PriceSeries(kind, points)
+    }
+}
