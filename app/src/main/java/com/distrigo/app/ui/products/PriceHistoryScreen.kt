@@ -5,6 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -480,7 +485,7 @@ private fun DeltaPill(movement: PriceMovement) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FilterSheet(
     filters   : PriceHistoryFilters,
@@ -491,7 +496,15 @@ private fun FilterSheet(
     // Edited in the sheet and applied on confirmation, so a half-made choice never moves the list.
     var draft by remember { mutableStateOf(filters) }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DsColors.Surface) {
-        Column(Modifier.padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.lg)) {
+        // The wrapped « Trier par » chips make the sheet tall enough to reach the navigation bar,
+        // so the content clears it and scrolls rather than pushing its own button off the screen.
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(horizontal = DsSpacing.lg)
+                .padding(bottom = DsSpacing.lg)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = PriceHistoryFilters(kind = draft.kind, query = draft.query) }) {
@@ -524,10 +537,16 @@ private fun FilterSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SheetGroup(title: String, content: @Composable () -> Unit) {
     Text(title, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, modifier = Modifier.padding(top = DsSpacing.md, bottom = DsSpacing.xs))
-    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)) { content() }
+    // Wrapping, not a single row: « Trier par » holds four labels as long as « Prix décroissant »,
+    // which a row fits by squeezing the last chip out of shape instead of moving it down a line.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs),
+        verticalArrangement   = Arrangement.spacedBy(DsSpacing.xs)
+    ) { content() }
 }
 
 @Composable
