@@ -35,7 +35,7 @@ import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.data.model.StockMovement
 import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.ui.common.EntityImage
-import com.distrigo.app.ui.common.ImageCapture
+import com.distrigo.app.ui.common.rememberPhotoPicker
 import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -96,22 +96,11 @@ fun ProductDetailScreen(
     var selectedTab   by rememberSaveable { mutableIntStateOf(0) }
     var showStockInfo by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val imageScope = rememberCoroutineScope()
-    val photoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            imageScope.launch {
-                val ref = ImageCapture.captureToStore(context, it)
-                if (ref == null) {
-                    galleryError = "Image illisible"
-                    return@launch
-                }
-                viewModel.addProductImage(product.id, ref) { message -> galleryError = message }
-            }
-        }
-    }
+    // Camera or gallery, the same choice the form offers — see PhotoPicker.
+    val photoPicker = rememberPhotoPicker(
+        onPicked = { ref -> viewModel.addProductImage(product.id, ref) { message -> galleryError = message } },
+        onError  = { message -> galleryError = message }
+    )
 
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -215,7 +204,7 @@ fun ProductDetailScreen(
             images        = images,
             manageMode    = manageMode,
             onOpenViewer  = { index -> viewerIndex = index },
-            onAddPhoto    = { photoPicker.launch("image/*") },
+            onAddPhoto    = { photoPicker.choose() },
             onDeletePhoto = { pendingDelete = it },
             onSetCover    = { viewModel.setPrimaryProductImage(it.id) { m -> galleryError = m } },
             modifier      = Modifier.padding(horizontal = 16.dp)

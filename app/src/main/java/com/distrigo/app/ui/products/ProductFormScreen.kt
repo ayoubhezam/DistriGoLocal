@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.rememberPhotoPicker
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -141,19 +142,11 @@ fun ProductFormScreen(
         Triple("Options", Icons.Default.AutoAwesome, 1)
     )
 
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            coroutineScope.launch {
-                val encoded = com.distrigo.app.ui.common.ImageCapture.captureToStore(context, it)
-                if (encoded != null) imageBase64 = encoded
-                else android.widget.Toast.makeText(
-                    context, "Image illisible", android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
+    // Camera or gallery, the choice offered on the photo itself — see PhotoPicker.
+    val photoPicker = rememberPhotoPicker(
+        onPicked = { ref -> imageBase64 = ref },
+        onError  = { message -> android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show() }
+    )
 
     val computedStock = if (unitType == "pièce")
         (packages.toIntOrNull() ?: 0) * (packSize.toIntOrNull() ?: 0)
@@ -997,7 +990,7 @@ fun ProductFormScreen(
                             .height(140.dp)
                             .clip(DsShapes.large)
                             .background(DsColors.SurfaceSunken)
-                            .clickable { imagePicker.launch("image/*") },
+                            .clickable { photoPicker.choose() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (imageBase64 != null) {
@@ -1026,7 +1019,7 @@ fun ProductFormScreen(
                                     modifier = Modifier
                                         .clip(DsShapes.small)
                                         .background(Color.Black.copy(alpha = 0.5f))
-                                        .clickable { imagePicker.launch("image/*") }
+                                        .clickable { photoPicker.choose() }
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) { Text("Changer", fontSize = DsTextSize.caption, color = Color.White) }
                             }
