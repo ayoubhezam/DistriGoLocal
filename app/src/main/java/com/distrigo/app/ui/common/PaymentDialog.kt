@@ -1,4 +1,4 @@
-package com.distrigo.app.ui.clients
+package com.distrigo.app.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.model.Client
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -20,15 +19,15 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 /**
- * Records a payment against a client's balance.
+ * Records a payment against what a client owes, or against what is owed to a supplier.
  *
- * Lifted out of the client's detail screen so that the full « Factures & Paiements » history can
- * offer it too: that is where the history lives now, and a payment recorded anywhere else would mean
- * leaving the list to reach the button. One dialog, so the two cannot drift apart.
+ * One dialog for both, and for both places each is offered from: the party's own screen and the full
+ * history behind « Voir tout », where the payments are listed and so the button belongs. Four copies
+ * of the same form is how they drift apart.
  */
 @Composable
-fun ClientPaymentDialog(
-    client    : Client,
+fun PaymentDialog(
+    balance   : Double,
     onSubmit  : (amount: Double, note: String?, onError: (String) -> Unit, onSuccess: () -> Unit) -> Unit,
     onDismiss : () -> Unit,
 ) {
@@ -60,7 +59,7 @@ fun ClientPaymentDialog(
                     ) {
                         Text("Solde restant", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                         Text(
-                            "${"%.2f".format(client.balance)} DA",
+                            "${"%.2f".format(balance)} DA",
                             fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger
                         )
                     }
@@ -109,7 +108,7 @@ fun ClientPaymentDialog(
                         }
                     }
                     OutlinedButton(
-                        onClick = { amount = client.balance.toString() },
+                        onClick = { amount = balance.toString() },
                         modifier = Modifier.weight(1.5f),
                         shape = DsShapes.small,
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)

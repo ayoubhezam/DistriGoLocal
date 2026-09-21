@@ -42,6 +42,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.model.FactureFilter
 import com.distrigo.app.ui.common.ElasticUnderlineTabRow
+import com.distrigo.app.ui.common.PaymentDialog
 import com.distrigo.app.ui.common.ImageCapture
 import com.distrigo.app.ui.designsystem.DsCollapsingHeaderState
 import com.distrigo.app.ui.designsystem.DsTopAppBar
@@ -165,8 +166,8 @@ fun ClientDetailScreen(
 
     // ── Payment Dialog ──
     if (showPaymentDialog) {
-        ClientPaymentDialog(
-            client    = currentClient,
+        PaymentDialog(
+            balance   = currentClient.balance,
             onSubmit  = { amount, note, onError, onSuccess ->
                 viewModel.addPayment(
                     clientId  = currentClient.id,

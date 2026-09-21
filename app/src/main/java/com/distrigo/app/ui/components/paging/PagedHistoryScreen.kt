@@ -46,6 +46,9 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
 
+/** Room left under a list for the floating action drawn over it: the button, plus a gap. */
+private val FloatingActionClearance = 88.dp
+
 @Composable
 fun <Filter, T : Any> PagedHistoryScreen(
     title: String,
@@ -150,7 +153,14 @@ fun <Filter, T : Any> PagedHistoryScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = 4.dp),
+                    // A floating action sits over the list, so the list ends above it: without this
+                    // the last entry is covered by the very button that is drawn on top of it.
+                    contentPadding = PaddingValues(
+                        start  = DsSpacing.lg,
+                        end    = DsSpacing.lg,
+                        top    = 4.dp,
+                        bottom = if (floatingAction != null) FloatingActionClearance else 4.dp,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
                     items(

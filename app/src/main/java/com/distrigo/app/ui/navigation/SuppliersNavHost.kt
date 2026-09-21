@@ -22,6 +22,11 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.AchatFilter
 import com.distrigo.app.data.model.SupplierTransaction
 import com.distrigo.app.ui.components.paging.PagedHistoryScreen
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import com.distrigo.app.data.time.BusinessDates
+import com.distrigo.app.ui.common.PaymentDialog
+import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -216,6 +221,7 @@ fun SuppliersNavHost(
             val pagingItems = controller.items.collectAsLazyPagingItems()
 
             var longPressPayment by remember { mutableStateOf<SupplierTransaction?>(null) }
+            var showPaymentDialog by remember { mutableStateOf(false) }
             var showDeletePayment by remember { mutableStateOf(false) }
             var showEditPayment by remember { mutableStateOf(false) }
             var editPaymentAmount by remember { mutableStateOf("") }
@@ -223,6 +229,25 @@ fun SuppliersNavHost(
 
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val supplierViewModel: SupplierViewModel = hiltViewModel(parentEntry)
+
+            if (showPaymentDialog) {
+                val supplier = supplierViewModel.suppliers.collectAsState().value.find { it.id == supplierId }
+                if (supplier != null) {
+                    PaymentDialog(
+                        balance   = supplier.balance,
+                        onSubmit  = { amount, note, onError, onSuccess ->
+                            supplierViewModel.addPayment(
+                                supplierId = supplierId,
+                                amount     = amount,
+                                note       = note,
+                                onSuccess  = { pagingItems.refresh(); onSuccess() },
+                                onError    = onError
+                            )
+                        },
+                        onDismiss = { showPaymentDialog = false }
+                    )
+                }
+            }
 
             PagedHistoryScreen(
                 title             = "Achats & Paiements",
@@ -236,7 +261,20 @@ fun SuppliersNavHost(
                 filterLabel       = { it.label },
                 pagingItems       = pagingItems,
                 itemKey           = { "${it.type}_${it.id}" },
-                onBack            = { navController.popBackStack() }
+                onBack            = { navController.popBackStack() },
+                // The day each entry falls on, as the supplier's card used to head its groups.
+                groupLabel        = { formatOrderDate(BusinessDates.localDay(it.created_at)) },
+                // Recording a payment belongs where the payments are listed.
+                floatingAction    = {
+                    ExtendedFloatingActionButton(
+                        onClick        = { showPaymentDialog = true },
+                        containerColor = DsColors.Success,
+                        contentColor   = Color.White,
+                        shape          = DsShapes.pill,
+                        icon           = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text           = { Text("Versement", fontWeight = FontWeight.SemiBold) }
+                    )
+                }
             ) { transaction ->
                 AchatRow(
                     transaction,

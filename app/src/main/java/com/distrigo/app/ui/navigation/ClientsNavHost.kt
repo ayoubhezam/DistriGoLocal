@@ -28,7 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.graphics.Color
 import com.distrigo.app.data.time.BusinessDates
-import com.distrigo.app.ui.clients.ClientPaymentDialog
+import com.distrigo.app.ui.common.PaymentDialog
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -270,8 +270,8 @@ fun ClientsNavHost(
             if (showPaymentDialog) {
                 val client = clientViewModel.clients.collectAsState().value.find { it.id == clientId }
                 if (client != null) {
-                    ClientPaymentDialog(
-                        client    = client,
+                    PaymentDialog(
+                        balance   = client.balance,
                         onSubmit  = { amount, note, onError, onSuccess ->
                             clientViewModel.addPayment(
                                 clientId  = clientId,
