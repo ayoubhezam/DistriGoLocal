@@ -73,6 +73,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalDensity
 import com.distrigo.app.ui.common.EntityImage
 @OptIn(ExperimentalFoundationApi::class)
+/** How many of the latest transactions the client's card shows before « Voir tout ». */
+private const val FACTURE_PREVIEW = 3
+
 @Composable
 fun ClientDetailScreen(
     client           : Client,
@@ -109,9 +112,6 @@ fun ClientDetailScreen(
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 
     var showPaymentDialog by remember { mutableStateOf(false) }
-    var payAmount by remember { mutableStateOf("") }
-    var payNote by remember { mutableStateOf("") }
-    var payError by remember { mutableStateOf("") }
     var longPressPayment by remember {
         mutableStateOf<com.distrigo.app.data.model.ClientTransaction?>(
             null
@@ -121,7 +121,6 @@ fun ClientDetailScreen(
     var showEditPayment by remember { mutableStateOf(false) }
     var editPaymentAmount by remember { mutableStateOf("") }
     var editError by remember { mutableStateOf("") }
-    var factureExpanded by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showPhotoMenu by remember { mutableStateOf(false) }
     val ledger by viewModel.ledger.collectAsState()
@@ -166,132 +165,18 @@ fun ClientDetailScreen(
 
     // ── Payment Dialog ──
     if (showPaymentDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showPaymentDialog = false
-                payAmount = ""; payNote = ""; payError = ""
+        ClientPaymentDialog(
+            client    = currentClient,
+            onSubmit  = { amount, note, onError, onSuccess ->
+                viewModel.addPayment(
+                    clientId  = currentClient.id,
+                    amount    = amount,
+                    note      = note,
+                    onSuccess = onSuccess,
+                    onError   = onError
+                )
             },
-            title = { Text("Enregistrer un paiement", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.medium)
-                            .background(DsColors.DangerLight)
-                            .padding(DsSpacing.md)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Solde restant",
-                                fontSize = DsTextSize.bodySmall,
-                                color = DsColors.Danger
-                            )
-                            Text(
-                                "${"%.2f".format(currentClient.balance)} DA",
-                                fontSize = DsTextSize.body,
-                                fontWeight = FontWeight.Bold,
-                                color = DsColors.Danger
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = payAmount,
-                        onValueChange = { payAmount = it; payError = "" },
-                        label = { Text("Montant (DA)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = payError.isNotEmpty(),
-                        shape = DsShapes.medium,
-                        colors = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor = DsColors.Primary
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = payNote,
-                        onValueChange = { payNote = it },
-                        label = { Text("Note (optionnel)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = DsShapes.medium,
-                        colors = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor = DsColors.Primary
-                        )
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(1000.0, 2000.0, 5000.0).forEach { quick ->
-                            OutlinedButton(
-                                onClick = { payAmount = quick.toInt().toString() },
-                                modifier = Modifier.weight(1f),
-                                shape = DsShapes.small,
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                            ) {
-                                Text("${quick.toInt()}", fontSize = DsTextSize.caption)
-                            }
-                        }
-                        OutlinedButton(
-                            onClick = { payAmount = currentClient.balance.toString() },
-                            modifier = Modifier.weight(1.5f),
-                            shape = DsShapes.small,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                        ) {
-                            Text("Tout régler", fontSize = DsTextSize.caption)
-                        }
-                    }
-
-                    if (payError.isNotEmpty()) {
-                        Text(payError, color = DsColors.Danger, fontSize = DsTextSize.caption)
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val amount = payAmount.toDoubleOrNull()
-                        if (amount == null || amount <= 0) {
-                            payError = "Montant invalide"
-                            return@Button
-                        }
-                        viewModel.addPayment(
-                            clientId = currentClient.id,
-                            amount = amount,
-                            note = payNote.ifEmpty { null },
-                            onSuccess = {
-                                showPaymentDialog = false
-                                payAmount = ""; payNote = ""
-                            },
-                            onError = { payError = it }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
-                ) {
-                    Text("Confirmer", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showPaymentDialog = false
-                    payAmount = ""; payNote = ""; payError = ""
-                }) {
-                    Text("Annuler")
-                }
-            },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
+            onDismiss = { showPaymentDialog = false }
         )
     }
 
@@ -828,24 +713,29 @@ fun ClientDetailScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = DsColors.TextSecondary
                                 )
-                                Button(
-                                    onClick = { showPaymentDialog = true },
-                                    shape = DsShapes.pill,
-                                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                // The whole history, and the button that adds to it, live on their
+                                // own screen; this card only shows the last few.
+                                Row(
+                                    modifier = Modifier
+                                        .clip(DsShapes.pill)
+                                        .clickable(
+                                            indication        = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { onFactureHistory() }
+                                        .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
                                     Text(
-                                        "Versement",
-                                        fontSize = DsTextSize.caption,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold
+                                        "Voir tout",
+                                        fontSize = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DsColors.Primary
+                                    )
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = DsColors.Primary,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -873,72 +763,10 @@ fun ClientDetailScreen(
                                     }
                                 }
                             } else {
-                                val collapsedLimit = 2
-                                val expandedLimit   = 4
-                                val visibleLimit = if (factureExpanded) expandedLimit else collapsedLimit
-                                val visibleTransactions = ledger.latest.take(visibleLimit)
-                                val grouped = visibleTransactions.groupBy { BusinessDates.localDay(it.created_at) }
-                                grouped.forEach { (date, dayTransactions) ->
-                                    Text(
-                                        text       = formatOrderDate(date),
-                                        fontSize   = DsTextSize.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color      = DsColors.TextSecondary,
-                                        modifier   = Modifier.padding(vertical = DsSpacing.sm)
-                                    )
-                                    dayTransactions.forEach { transaction ->
-                                        FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
-                                    }
-                                }
-
-                                if (ledger.count > collapsedLimit) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(DsShapes.medium)
-                                            .clickable(
-                                                indication        = null,
-                                                interactionSource  = remember { MutableInteractionSource() }
-                                            ) { factureExpanded = !factureExpanded }
-                                            .padding(vertical = DsSpacing.sm),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment     = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            if (factureExpanded) "Voir moins" else "Voir plus",
-                                            fontSize   = DsTextSize.bodySmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color      = DsColors.Primary
-                                        )
-                                        Icon(
-                                            if (factureExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                            contentDescription = null,
-                                            tint     = DsColors.Primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(DsShapes.medium)
-                                        .background(DsColors.SurfaceSunken)
-                                        .clickable(
-                                            indication        = null,
-                                            interactionSource  = remember { MutableInteractionSource() }
-                                        ) { onFactureHistory() }
-                                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment     = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Voir tout l'historique (${ledger.count})",
-                                        fontSize   = DsTextSize.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color      = DsColors.TextPrimary
-                                    )
-                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                // Flat and short: three rows, no date headings. The grouped, paged
+                                // history is a screen of its own behind « Voir tout ».
+                                ledger.latest.take(FACTURE_PREVIEW).forEach { transaction ->
+                                    FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
                                 }
                             }
                         }

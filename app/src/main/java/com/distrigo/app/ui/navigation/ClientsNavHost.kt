@@ -24,6 +24,12 @@ import com.distrigo.app.data.model.ClientTransaction
 import com.distrigo.app.data.model.FactureFilter
 import com.distrigo.app.ui.clients.*
 import com.distrigo.app.ui.components.paging.PagedHistoryScreen
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.graphics.Color
+import com.distrigo.app.data.time.BusinessDates
+import com.distrigo.app.ui.clients.ClientPaymentDialog
+import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -222,6 +228,7 @@ fun ClientsNavHost(
             val pagingItems = controller.items.collectAsLazyPagingItems()
 
             var longPressPayment by remember { mutableStateOf<ClientTransaction?>(null) }
+            var showPaymentDialog by remember { mutableStateOf(false) }
             var showDeletePayment by remember { mutableStateOf(false) }
             var showEditPayment by remember { mutableStateOf(false) }
             var editPaymentAmount by remember { mutableStateOf("") }
@@ -242,9 +249,41 @@ fun ClientsNavHost(
                 filterLabel       = { it.label },
                 pagingItems       = pagingItems,
                 itemKey           = { "${it.type}_${it.id}" },
-                onBack            = { navController.popBackStack() }
+                onBack            = { navController.popBackStack() },
+                // The day each entry falls on, as the client's card used to head its groups.
+                groupLabel        = { formatOrderDate(BusinessDates.localDay(it.created_at)) },
+                // Recording a payment belongs where the payments are listed.
+                floatingAction    = {
+                    ExtendedFloatingActionButton(
+                        onClick        = { showPaymentDialog = true },
+                        containerColor = DsColors.Success,
+                        contentColor   = Color.White,
+                        shape          = DsShapes.pill,
+                        icon           = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text           = { Text("Versement", fontWeight = FontWeight.SemiBold) }
+                    )
+                }
             ) { transaction ->
                 com.distrigo.app.ui.clients.FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
+            }
+
+            if (showPaymentDialog) {
+                val client = clientViewModel.clients.collectAsState().value.find { it.id == clientId }
+                if (client != null) {
+                    ClientPaymentDialog(
+                        client    = client,
+                        onSubmit  = { amount, note, onError, onSuccess ->
+                            clientViewModel.addPayment(
+                                clientId  = clientId,
+                                amount    = amount,
+                                note      = note,
+                                onSuccess = { pagingItems.refresh(); onSuccess() },
+                                onError   = onError
+                            )
+                        },
+                        onDismiss = { showPaymentDialog = false }
+                    )
+                }
             }
 
             // ── حوارات إدارة الدفعة، منقولة حرفياً من ClientDetailScreen — نفس النص، نفس السلوك ──

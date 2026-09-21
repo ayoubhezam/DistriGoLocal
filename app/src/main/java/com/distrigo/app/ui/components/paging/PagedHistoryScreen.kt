@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -38,6 +39,7 @@ import androidx.paging.compose.itemKey
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import androidx.compose.ui.text.font.FontWeight
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -60,9 +62,17 @@ fun <Filter, T : Any> PagedHistoryScreen(
     onBack: () -> Unit,
     accentColor: Color = DsColors.Primary,
     modifier: Modifier = Modifier,
+    /**
+     * The heading a row belongs under — a day, typically. Rows carrying the same one in a row are
+     * gathered beneath it; null leaves the list flat, as the supplier history is.
+     */
+    groupLabel: ((T) -> String)? = null,
+    /** Shown over the bottom-right of the list: the action this history is the place to take. */
+    floatingAction: (@Composable () -> Unit)? = null,
     itemContent: @Composable (T) -> Unit
 ) {
-    Column(modifier = modifier.fillMaxSize().background(DsColors.Surface)) {
+  Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
 
         // One bar serves both paged history routes, so the count line rides in the subtitle slot
         // the hand-rolled header spent a second Text on.
@@ -148,7 +158,25 @@ fun <Filter, T : Any> PagedHistoryScreen(
                         key = pagingItems.itemKey { item -> itemKey(item) }
                     ) { index ->
                         val item = pagingItems[index]
-                        if (item != null) itemContent(item)
+                        if (item != null) {
+                            // A heading whenever the group changes. `peek` reads the row above
+                            // without asking paging to load around it, so scrolling up a page
+                            // cannot be triggered by drawing a heading.
+                            if (groupLabel != null) {
+                                val label = groupLabel(item)
+                                val previous = if (index == 0) null else pagingItems.peek(index - 1)?.let(groupLabel)
+                                if (label != previous) {
+                                    Text(
+                                        text       = label,
+                                        fontSize   = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = DsColors.TextSecondary,
+                                        modifier   = Modifier.padding(top = DsSpacing.sm, bottom = DsSpacing.xs)
+                                    )
+                                }
+                            }
+                            itemContent(item)
+                        }
                     }
                     if (appendState is LoadState.Loading) {
                         item {
@@ -170,4 +198,14 @@ fun <Filter, T : Any> PagedHistoryScreen(
             }
         }
     }
+
+    if (floatingAction != null) {
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(DsSpacing.lg)
+        ) { floatingAction() }
+    }
+  }
 }
