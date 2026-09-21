@@ -8,6 +8,7 @@ import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
 import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import com.distrigo.app.data.local.dao.mouvement.PartyRow
 import com.distrigo.app.data.local.entity.ProductImageEntity
 import com.distrigo.app.data.local.entity.MAX_IMAGES_PER_PRODUCT
 import com.distrigo.app.data.model.ProductImage
@@ -1565,25 +1566,53 @@ class ProductRepository(
         return db.stockMovementDao().getMovementById(id)?.toStockMovement()
     }
 
+    /**
+     * A product's movements, narrowed as the Mouvements sheet asks — see MovementFilters.
+     *
+     * The picked days are local and both included: from the first moment of [dateFrom] to the first
+     * moment after [dateTo]. Compared as strings with `created_at`, the days themselves used to leave
+     * out the whole last day, and read the others in UTC.
+     */
     suspend fun getFilteredMovements(
-        productId: Int? = null,
-        dateFrom: String? = null,
-        dateTo: String? = null,
-        direction: String? = null,
-        sourceLabel: String? = null
+        productId   : Int? = null,
+        dateFrom    : String? = null,
+        dateTo      : String? = null,
+        direction   : String? = null,
+        emplacement : String? = null,
+        types       : List<String> = emptyList(),
+        party       : String? = null,
+        partyId     : Int? = null,
     ): List<StockMovement> {
-        // The picked days are local and both included: from the first moment of [dateFrom] to the
-        // first moment after [dateTo]. Compared as strings with created_at, the days themselves used
-        // to leave out the whole last day, and read the others in UTC.
         val (start, end) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
         return db.stockMovementDao()
-            .getFilteredMovements(productId, start, end, direction, sourceLabel)
+            .filtered(productId, start, end, direction, emplacement, types.isEmpty(), types, party, partyId)
             .map { it.toStockMovement() }
     }
 
-    suspend fun getDistinctSourcesForProduct(productId: Int): List<String> {
-        return db.stockMovementDao().getDistinctSourcesForProduct(productId)
+    /** How many movements [getFilteredMovements] would return, for the sheet's own button. */
+    suspend fun countFilteredMovements(
+        productId   : Int? = null,
+        dateFrom    : String? = null,
+        dateTo      : String? = null,
+        direction   : String? = null,
+        emplacement : String? = null,
+        types       : List<String> = emptyList(),
+        party       : String? = null,
+        partyId     : Int? = null,
+    ): Int {
+        val (start, end) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
+        return db.stockMovementDao()
+            .countFiltered(productId, start, end, direction, emplacement, types.isEmpty(), types, party, partyId)
     }
+
+    /** The clients this product's movements name, for the filter's own list. */
+    suspend fun clientsForProductMovements(productId: Int): List<PartyRow> =
+        db.stockMovementDao().clientsForProduct(productId)
+
+    /** The suppliers this product's movements name. */
+    suspend fun suppliersForProductMovements(productId: Int): List<PartyRow> =
+        db.stockMovementDao().suppliersForProduct(productId)
+
 
 
 

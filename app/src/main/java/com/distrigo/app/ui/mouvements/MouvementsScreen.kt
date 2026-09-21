@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.Product
@@ -37,35 +38,33 @@ private fun formatQty(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString()
     else String.format(Locale.ROOT, "%.2f", v)
 
-data class MovementFilters(
-    val dateFrom    : String? = null,   // "yyyy-MM-dd"
-    val dateTo      : String? = null,
-    val direction   : String? = null,   // null = "Tous" | "entree" | "sortie"
-    val sourceLabel : String? = null
-)
 
 @Composable
 fun MouvementsScreen(
     product         : Product,
     onBack          : () -> Unit,
     onMovementClick : (StockMovement) -> Unit,
-    onFilterClick   : () -> Unit,
     viewModel       : StockMovementViewModel = hiltViewModel()
 ) {
 
     val filters by viewModel.filters.collectAsState()
     val movements by viewModel.movements.collectAsState()
-    val sources    by viewModel.availableSources.collectAsState()
+    val clients   by viewModel.clients.collectAsState()
+    val suppliers by viewModel.suppliers.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()
+    var filtersOpen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(product.id) { viewModel.loadSourcesForProduct(product.id) }
-    LaunchedEffect(product.id, filters) {
-        viewModel.loadFilteredMovements(
-            productId   = product.id,
-            dateFrom    = filters.dateFrom,
-            dateTo      = filters.dateTo,
-            direction   = filters.direction,
-            sourceLabel = filters.sourceLabel
+    LaunchedEffect(product.id) { viewModel.loadPartiesForProduct(product.id) }
+    LaunchedEffect(product.id, filters) { viewModel.loadFilteredMovements(product.id, filters) }
+
+    if (filtersOpen) {
+        MovementFiltersSheet(
+            filters   = filters,
+            clients   = clients,
+            suppliers = suppliers,
+            countOf   = { draft -> viewModel.countFor(product.id, draft) },
+            onApply   = { viewModel.setFilters(it); filtersOpen = false },
+            onDismiss = { filtersOpen = false }
         )
     }
 
@@ -79,12 +78,22 @@ fun MouvementsScreen(
             title   = "Mouvements",
             leading = DsTopBarLeading.Back(onBack)
         ) {
-            IconButton(onClick = onFilterClick) {
-                Icon(
-                    Icons.Default.FilterList,
-                    contentDescription = "Filtres",
-                    tint = if (filters != MovementFilters()) DsColors.Primary else DsColors.TextSecondary
-                )
+            Box {
+                IconButton(onClick = { filtersOpen = true }) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = "Filtres",
+                        tint = if (filters.activeCount > 0) DsColors.Primary else DsColors.TextSecondary
+                    )
+                }
+                if (filters.activeCount > 0) {
+                    Text(
+                        filters.activeCount.toString(),
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DsColors.Surface,
+                        modifier = Modifier.align(Alignment.TopEnd).clip(DsShapes.pill)
+                            .background(DsColors.Danger).padding(horizontal = 5.dp)
+                    )
+                }
             }
         }
 
@@ -224,6 +233,8 @@ fun movementTypeDisplay(type: String): Pair<ImageVector, String> = when (type) {
     "chargement" -> Icons.Default.LocalShipping to "Chargement"
     "perte"      -> Icons.Default.Warning to "Perte"
     "ajustement" -> Icons.Default.Tune to "Ajustement"
+    "retour_client"      -> Icons.Default.AssignmentReturn to "Retour client"
+    "retour_fournisseur" -> Icons.Default.AssignmentReturn to "Retour fournisseur"
     else         -> Icons.Default.SwapVert to type
 }
 
@@ -237,191 +248,6 @@ fun formatMovementDateLabel(date: String): String {
     }
 }
 
-// ── Sub-screen 3 : Filtres ──
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MovementFiltersView(
-    viewModel        : StockMovementViewModel,
-    availableSources : List<String>,
-    onBack           : () -> Unit
-) {
-    val currentFilters by viewModel.filters.collectAsState()
-    var dateFrom    by remember { mutableStateOf(currentFilters.dateFrom ?: "") }
-    var dateTo      by remember { mutableStateOf(currentFilters.dateTo ?: "") }
-    var direction   by remember { mutableStateOf(currentFilters.direction) }
-    var sourceLabel by remember { mutableStateOf(currentFilters.sourceLabel) }
-    var showDateFromPicker by remember { mutableStateOf(false) }
-    var showDateToPicker   by remember { mutableStateOf(false) }
-    var sourceMenuExpanded by remember { mutableStateOf(false) }
-
-    val dateFromState = rememberDatePickerState(
-        initialSelectedDateMillis = dateFrom.takeIf { it.isNotEmpty() }?.let {
-            runCatching { java.time.LocalDate.parse(it).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
-        }
-    )
-    val dateToState = rememberDatePickerState(
-        initialSelectedDateMillis = dateTo.takeIf { it.isNotEmpty() }?.let {
-            runCatching { java.time.LocalDate.parse(it).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
-        }
-    )
-
-    if (showDateFromPicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDateFromPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dateFromState.selectedDateMillis?.let { millis ->
-                        dateFrom = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
-                    }
-                    showDateFromPicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = { TextButton(onClick = { showDateFromPicker = false }) { Text("Annuler") } }
-        ) { DatePicker(state = dateFromState) }
-    }
-    if (showDateToPicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDateToPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dateToState.selectedDateMillis?.let { millis ->
-                        dateTo = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
-                    }
-                    showDateToPicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = { TextButton(onClick = { showDateToPicker = false }) { Text("Annuler") } }
-        ) { DatePicker(state = dateToState) }
-    }
-
-    BackHandler { onBack() }
-
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        DsTopAppBar(
-            title   = "Mouvements",
-            leading = DsTopBarLeading.Back(onBack)
-        )
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        Column(
-            modifier            = Modifier.weight(1f).fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-        ) {
-            Text("Période", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-
-            OutlinedTextField(
-                value         = dateFrom,
-                onValueChange = {},
-                readOnly      = true,
-                label         = { Text("Du") },
-                trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                modifier      = Modifier.fillMaxWidth().clickable { showDateFromPicker = true },
-                shape         = DsShapes.medium,
-                colors = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary,
-                    disabledBorderColor  = DsColors.Border
-                ),
-                enabled = false
-            )
-            OutlinedTextField(
-                value         = dateTo,
-                onValueChange = {},
-                readOnly      = true,
-                label         = { Text("Au") },
-                trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                modifier      = Modifier.fillMaxWidth().clickable { showDateToPicker = true },
-                shape         = DsShapes.medium,
-                colors = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary,
-                    disabledBorderColor  = DsColors.Border
-                ),
-                enabled = false
-            )
-
-            Text("Type de mouvement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                FilterChipOption(label = "Tous",     selected = direction == null,       onClick = { direction = null })
-                FilterChipOption(label = "Entrées",  selected = direction == "entree",   onClick = { direction = "entree" })
-                FilterChipOption(label = "Sorties",  selected = direction == "sortie",   onClick = { direction = "sortie" })
-            }
-
-            Text("Source", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value         = sourceLabel ?: "Toutes les sources",
-                    onValueChange = {},
-                    readOnly      = true,
-                    trailingIcon  = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = null) },
-                    modifier      = Modifier.fillMaxWidth().clickable { sourceMenuExpanded = true },
-                    shape         = DsShapes.medium,
-                    enabled       = false,
-                    colors = dsTextFieldColors(
-                        disabledBorderColor = DsColors.Border,
-                        disabledTextColor   = DsColors.TextPrimary,
-                        disabledTrailingIconColor = DsColors.TextSecondary
-                    )
-                )
-                DropdownMenu(
-                    expanded         = sourceMenuExpanded,
-                    onDismissRequest = { sourceMenuExpanded = false },
-                    modifier         = Modifier.fillMaxWidth(0.85f)
-                ) {
-                    DropdownMenuItem(text = { Text("Toutes les sources") }, onClick = { sourceLabel = null; sourceMenuExpanded = false })
-                    availableSources.forEach { src ->
-                        DropdownMenuItem(text = { Text(src) }, onClick = { sourceLabel = src; sourceMenuExpanded = false })
-                    }
-                }
-            }
-        }
-
-        Column(modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg)) {
-            Button(
-                onClick = {
-                    viewModel.setFilters(
-                        MovementFilters(
-                            dateFrom    = dateFrom.ifEmpty { null },
-                            dateTo      = dateTo.ifEmpty { null },
-                            direction   = direction,
-                            sourceLabel = sourceLabel
-                        )
-                    )
-                    onBack()
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-            ) {
-                Text("Appliquer les filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
-            }
-            Spacer(Modifier.height(DsSpacing.sm))
-            TextButton(onClick = { viewModel.setFilters(MovementFilters()); onBack() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Réinitialiser", color = DsColors.TextSecondary)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterChipOption(label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(DsShapes.pill)
-            .background(if (selected) DsColors.Primary else DsColors.SurfaceMuted)
-            .clickable { onClick() }
-            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
-    ) {
-        Text(
-            label,
-            color      = if (selected) Color.White else DsColors.TextSecondary,
-            fontSize   = DsTextSize.bodySmall,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-        )
-    }
-}
 
 // ── Sub-screen 5 : Détail du mouvement ──
 @Composable

@@ -163,23 +163,11 @@ fun ProduitsNavHost(
                         product         = product,
                         viewModel       = movementsViewModel,
                         onBack          = { navController.popBackStack() },
-                        onMovementClick = { movement -> navController.navigate(Screen.ProduitsMovementDetail.createRoute(movement.id)) },
-                        onFilterClick   = { navController.navigate(Screen.ProduitsMovementFilters.route) }
+                        onMovementClick = { movement -> navController.navigate(Screen.ProduitsMovementDetail.createRoute(movement.id)) }
                     )
                 } else {
                     LeaveWhenGone(navController, entry)
                 }
-            }
-
-            composable(Screen.ProduitsMovementFilters.route) { entry ->
-                val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsMovementsGraph.route) }
-                val movementsViewModel: StockMovementViewModel = hiltViewModel(parentEntry)
-                val sources by movementsViewModel.availableSources.collectAsState()
-                MovementFiltersView(
-                    viewModel        = movementsViewModel,
-                    availableSources = sources,
-                    onBack           = { navController.popBackStack() }
-                )
             }
 
             composable(

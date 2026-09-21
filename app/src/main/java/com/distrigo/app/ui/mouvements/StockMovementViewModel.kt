@@ -25,8 +25,12 @@ class StockMovementViewModel @Inject constructor(
     private val _selectedSourceNumber = MutableStateFlow<String?>(null)
     val selectedSourceNumber: StateFlow<String?> = _selectedSourceNumber
 
-    private val _availableSources = MutableStateFlow<List<String>>(emptyList())
-    val availableSources: StateFlow<List<String>> = _availableSources
+    /** The clients and the suppliers this product moved with — what the filter offers. */
+    private val _clients = MutableStateFlow<List<PartyOption>>(emptyList())
+    val clients: StateFlow<List<PartyOption>> = _clients
+
+    private val _suppliers = MutableStateFlow<List<PartyOption>>(emptyList())
+    val suppliers: StateFlow<List<PartyOption>> = _suppliers
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -46,25 +50,45 @@ class StockMovementViewModel @Inject constructor(
         }
     }
 
-    fun loadSourcesForProduct(productId: Int) {
+    /** The parties the filter can offer for this product. Loaded once, with the screen. */
+    fun loadPartiesForProduct(productId: Int) {
         viewModelScope.launch {
-            _availableSources.value = repository.getDistinctSourcesForProduct(productId)
+            _clients.value = repository.clientsForProductMovements(productId).map { PartyOption(it.id, it.name) }
+            _suppliers.value = repository.suppliersForProductMovements(productId).map { PartyOption(it.id, it.name) }
         }
     }
 
-    fun loadFilteredMovements(
-        productId: Int? = null,
-        dateFrom: String? = null,
-        dateTo: String? = null,
-        direction: String? = null,
-        sourceLabel: String? = null
-    ) {
+    fun loadFilteredMovements(productId: Int?, filters: MovementFilters) {
         viewModelScope.launch {
             _isLoading.value = true
-            _movements.value = repository.getFilteredMovements(productId, dateFrom, dateTo, direction, sourceLabel)
+            _movements.value = repository.getFilteredMovements(
+                productId   = productId,
+                dateFrom    = filters.dateFrom,
+                dateTo      = filters.dateTo,
+                direction   = filters.direction,
+                emplacement = filters.emplacement,
+                types       = filters.types.map { it.key },
+                party       = filters.party?.key,
+                partyId     = filters.partyId,
+            )
             _isLoading.value = false
         }
     }
+
+    /**
+     * How many movements [filters] would leave, for the sheet's own button — asked of the database
+     * rather than counted over the list on screen, which holds the *applied* filters, not the draft.
+     */
+    suspend fun countFor(productId: Int?, filters: MovementFilters): Int = repository.countFilteredMovements(
+        productId   = productId,
+        dateFrom    = filters.dateFrom,
+        dateTo      = filters.dateTo,
+        direction   = filters.direction,
+        emplacement = filters.emplacement,
+        types       = filters.types.map { it.key },
+        party       = filters.party?.key,
+        partyId     = filters.partyId,
+    )
 
     fun loadMovementDetail(id: Int) {
         viewModelScope.launch {
@@ -73,6 +97,4 @@ class StockMovementViewModel @Inject constructor(
             _selectedMovement.value = movement
         }
     }
-
-
 }
