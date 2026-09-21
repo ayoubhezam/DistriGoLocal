@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -94,6 +95,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Declared, not inherited. From API 35 the system enforces edge-to-edge whatever the
+        // manifest says — `windowSoftInputMode="adjustResize"` included, which is why the window is
+        // never resized for the keyboard and the app must consume the IME inset itself (see the
+        // root's imePadding below). Saying so here makes API 34 and below behave the same way,
+        // rather than resizing there and not here — which would make that one padding double up.
+        // The system-bar icon appearance is set by DistriGoTheme, which runs after this.
+        enableEdgeToEdge()
         com.distrigo.app.data.geo.GeoRepository.init(this)
         if (RestoreStartup.inProgress) {
             // A restore is being installed on its own thread: wait for it with a screen rather than a frozen frame.
@@ -111,7 +119,11 @@ class MainActivity : ComponentActivity() {
     private fun showApp() {
         setContent {
             DistriGoTheme {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                // imePadding here is what lifts every form in the app: the root shrinks by the
+                // keyboard's height, so each scroll container inside shrinks with it, and Compose's
+                // own bring-into-view can finally scroll the focused field up. Padding a screen
+                // without shrinking its scroller would move nothing.
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -312,7 +324,11 @@ class MainActivity : ComponentActivity() {
                 // ── Edge-to-edge bottom nav: full-width, flush with the screen bottom, overlaying NavHost
                 // content directly (Scaffold no longer reserves height for it) so scrolled screen
                 // content scrolls up to meet it. ──
-                if (isTabRoute && !hideBottomBar) {
+                // The root is padded by the keyboard, so the bar would otherwise ride on top of it
+                // and take ~48dp from the little room a form has left.
+                @OptIn(ExperimentalLayoutApi::class)
+                val imeVisible = WindowInsets.isImeVisible
+                if (isTabRoute && !hideBottomBar && !imeVisible) {
                     ShiftingBottomNavBar(
                         currentRoute = currentRoute,
                         onNavigate   = { route -> navigateToTab(route) },
