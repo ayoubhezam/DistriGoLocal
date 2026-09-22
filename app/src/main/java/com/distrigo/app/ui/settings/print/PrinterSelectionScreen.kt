@@ -29,7 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.print.ConnectionMethod
+import com.distrigo.app.data.print.PaperProfile
 import com.distrigo.app.data.print.PaperSize
+import com.distrigo.app.data.print.RasterBenchmark
 import com.distrigo.app.data.print.discovery.WifiState
 import com.distrigo.app.data.print.transport.NetworkAddress
 import com.distrigo.app.data.print.PrintLanguage
@@ -232,6 +234,7 @@ fun PrinterSelectionScreen(
             onRename  = { menuFor = null; renaming = printer },
             onConfigure = { menuFor = null; configuring = printer },
             onTest    = { menuFor = null; viewModel.testPrint(printer) },
+            onBenchmark = { menuFor = null; viewModel.benchmarkRaster(printer) },
             onProbe   = { menuFor = null; viewModel.probe(printer) },
             onRemove  = { menuFor = null; viewModel.remove(printer.id) },
             onDismiss = { menuFor = null },
@@ -462,6 +465,7 @@ private fun PrinterActionsSheet(
     onRename   : () -> Unit,
     onConfigure: () -> Unit,
     onTest     : () -> Unit,
+    onBenchmark: () -> Unit,
     onProbe    : () -> Unit,
     onRemove   : () -> Unit,
     onDismiss  : () -> Unit,
@@ -489,6 +493,12 @@ private fun PrinterActionsSheet(
             Text(printer.displayName, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             Spacer(Modifier.height(DsSpacing.lg))
             SheetAction("Imprimer un test", "Confirme la largeur, les accents et le langage", enabled = !busy, onClick = onTest)
+            SheetAction(
+                "Test raster (~40 Ko)",
+                "Mesure la vitesse réelle et les saccades · ~${benchmarkPaperMm(printer)} cm de papier",
+                enabled = !busy,
+                onClick = onBenchmark,
+            )
             SheetAction("Vérifier la connexion", "Se connecte sans rien imprimer", enabled = !busy, onClick = onProbe)
             SheetAction("Format, langage, encodage", "${printer.paper.label} · ${printer.language.label} · ${printer.codePage.label}", onClick = onConfigure)
             SheetAction("Renommer", null, onClick = onRename)
@@ -496,6 +506,10 @@ private fun PrinterActionsSheet(
         }
     }
 }
+
+/** Roughly how much paper the benchmark will use, so the menu can say before it starts. */
+private fun benchmarkPaperMm(printer: SavedPrinter): Int =
+    PaperProfile.of(printer.paper)?.let { RasterBenchmark.paperMillimetres(it) / 10 } ?: 0
 
 @Composable
 private fun SheetAction(

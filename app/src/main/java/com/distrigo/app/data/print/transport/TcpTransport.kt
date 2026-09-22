@@ -21,6 +21,8 @@ import java.net.Socket
  */
 class TcpTransport : PrinterTransport {
 
+    override val pacing = Pacing(CHUNK_BYTES, CHUNK_PAUSE_MS, DRAIN_MS)
+
     override suspend fun send(address: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
         val target = NetworkAddress.parse(address) ?: throw PrintException(PrintFailure.NOT_CONFIGURED)
         var socket: Socket? = null
@@ -67,7 +69,7 @@ class TcpTransport : PrinterTransport {
         connect(InetSocketAddress(target.host, target.port), CONNECT_TIMEOUT_MS)
     }
 
-    private companion object {
+    companion object {
         const val CHUNK_BYTES = 1024
         const val CHUNK_PAUSE_MS = 10L
         const val DRAIN_MS = 250L

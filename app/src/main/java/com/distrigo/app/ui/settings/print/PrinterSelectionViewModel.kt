@@ -8,6 +8,9 @@ import com.distrigo.app.data.print.PrintSettings
 import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.print.PrinterGate
 import com.distrigo.app.data.print.PrinterLink
+import com.distrigo.app.data.print.RasterBenchmark
+import com.distrigo.app.data.print.RasterBenchmarkOutcome
+import com.distrigo.app.data.print.RasterBenchmarkResult
 import com.distrigo.app.data.print.ReceiptPrinter
 import com.distrigo.app.data.print.SavedPrinter
 import com.distrigo.app.data.print.ConnectionMethod
@@ -274,6 +277,30 @@ class PrinterSelectionViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Prints a dummy raster the size of a rasterised receipt and reports how long it took.
+     *
+     * Not a feature — an experiment, and the one that decides whether the whole receipt can be drawn
+     * as a bitmap (the only way to print Arabic). It uses real paper, so the menu says how much.
+     */
+    fun benchmarkRaster(target: SavedPrinter) {
+        if (_state.value.busy) return
+        _state.value = _state.value.copy(busy = true, notice = null)
+        viewModelScope.launch {
+            _state.value = when (val outcome = printer.benchmarkRaster(target)) {
+                is RasterBenchmarkOutcome.Measured -> _state.value.copy(
+                    busy   = false,
+                    link   = PrinterLink.Ready(target),
+                    notice = outcome.result.summary(),
+                )
+                is RasterBenchmarkOutcome.Failed -> _state.value.copy(
+                    busy = false,
+                    link = PrinterLink.Blocked(target, outcome.failure),
+                )
+            }
+        }
+    }
+
     /** Opens a connection without printing, to answer "is it there?" before a sale. */
     fun probe(target: SavedPrinter) {
         if (_state.value.busy) return
@@ -327,5 +354,27 @@ class PrinterSelectionViewModel @Inject constructor(
 
     private companion object {
         const val SCAN_CEILING_MS = 30_000L
+    }
+}
+
+/**
+ * The measurement, in the terms the decision turns on.
+ *
+ * The link rate is the number that matters — it is what a rasterised receipt would actually cost —
+ * and the pacing is reported beside it because the two have opposite fixes: a slow link means the
+ * architecture is not viable on this hardware, while a large pacing share means our own chunking is
+ * too cautious for payloads this size and can simply be raised.
+ */
+private fun RasterBenchmarkResult.summary(): String {
+    fun ko(bytes: Int) = String.format(java.util.Locale.FRENCH, "%.1f Ko", bytes / 1024.0)
+    fun secs(ms: Long) = String.format(java.util.Locale.FRENCH, "%.1f s", ms / 1000.0)
+    fun rate(bps: Double) = String.format(java.util.Locale.FRENCH, "%.1f Ko/s", bps / 1024.0)
+
+    return buildString {
+        appendLine("${ko(bytes)} en ${secs(elapsedMs)}")
+        appendLine("Lien : ${rate(linkBytesPerSecond)}")
+        appendLine("Cadencement interne : ${secs(pacingOverheadMs)}")
+        appendLine()
+        append("Vérifiez la bande : des variations de densité d'une bande à l'autre indiquent des saccades.")
     }
 }

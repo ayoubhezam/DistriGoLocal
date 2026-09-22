@@ -24,6 +24,8 @@ import java.util.UUID
  */
 class BluetoothSppTransport(private val context: Context) : PrinterTransport {
 
+    override val pacing = Pacing(CHUNK_BYTES, CHUNK_PAUSE_MS, DRAIN_MS)
+
     override suspend fun send(address: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
         val device = resolveDevice(address)
         var socket: BluetoothSocket? = null
@@ -108,9 +110,9 @@ class BluetoothSppTransport(private val context: Context) : PrinterTransport {
         /** The Serial Port Profile's well-known UUID. Every SPP printer answers on it. */
         val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-        private const val CHUNK_BYTES = 256
-        private const val CHUNK_PAUSE_MS = 20L
-        private const val DRAIN_MS = 250L
+        const val CHUNK_BYTES = 256
+        const val CHUNK_PAUSE_MS = 20L
+        const val DRAIN_MS = 250L
 
         /**
          * BLUETOOTH_CONNECT exists from API 31. Below that, connecting is covered by the install-time

@@ -3,6 +3,8 @@ package com.distrigo.app.data.print
 import android.content.Context
 import com.distrigo.app.data.print.lang.EscPosRenderer
 import com.distrigo.app.data.print.lang.ReceiptRow
+import com.distrigo.app.data.print.lang.RowAlign
+import com.distrigo.app.data.print.lang.RowWeight
 import com.distrigo.app.data.print.transport.PrintException
 import com.distrigo.app.data.print.transport.PrintFailure
 
@@ -58,6 +60,55 @@ class ReceiptPrinter(
             PrintResult.Success
         } catch (e: PrintException) {
             PrintResult.Failed(e.failure)
+        }
+    }
+
+    /**
+     * Sends a dummy raster the size of a rasterised receipt and times it.
+     *
+     * The one experiment that decides whether the Canvas architecture is viable: ~40 KB of dots
+     * against ~1.5 KB of text, over a link that may be a 9 600-baud serial bridge. See
+     * [RasterBenchmark] for what the pattern is and why.
+     *
+     * Only the send is timed. Building and rendering the pattern is a handful of milliseconds on the
+     * phone and would only blur the number that matters.
+     */
+    suspend fun benchmarkRaster(
+        printer    : SavedPrinter?,
+        targetBytes: Int = RasterBenchmark.DEFAULT_TARGET_BYTES,
+    ): RasterBenchmarkOutcome {
+        val target = printer ?: return RasterBenchmarkOutcome.Failed(PrintFailure.NOT_CONFIGURED)
+        when (val link = gate.check(target)) {
+            is PrinterLink.Blocked -> return RasterBenchmarkOutcome.Failed(link.reason)
+            PrinterLink.NotConfigured -> return RasterBenchmarkOutcome.Failed(PrintFailure.NOT_CONFIGURED)
+            else -> Unit
+        }
+        val paper = PaperProfile.of(target.paper)
+            ?: return RasterBenchmarkOutcome.Failed(PrintFailure.NOT_CONFIGURED)
+
+        val rows = listOf(
+            ReceiptRow.Line("TEST RASTER", RowAlign.Center, RowWeight.Bold),
+            ReceiptRow.Line("${targetBytes / 1024} Ko — ${paper.size.label}", RowAlign.Center),
+            ReceiptRow.Raster(RasterBenchmark.pattern(paper, targetBytes)),
+            ReceiptRow.Blank(2),
+            ReceiptRow.Cut,
+        )
+        val bytes = EscPosRenderer.render(rows, paper, target.codePage)
+        val transport = gate.transportFor(target)
+
+        return try {
+            val startedAt = System.nanoTime()
+            transport.send(target.id, bytes)
+            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+            RasterBenchmarkOutcome.Measured(
+                RasterBenchmarkResult(
+                    bytes            = bytes.size,
+                    elapsedMs        = elapsedMs,
+                    pacingOverheadMs = transport.pacing.overheadMs(bytes.size),
+                )
+            )
+        } catch (e: PrintException) {
+            RasterBenchmarkOutcome.Failed(e.failure)
         }
     }
 

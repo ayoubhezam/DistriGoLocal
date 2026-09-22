@@ -39,6 +39,20 @@ class PrintException(val failure: PrintFailure, cause: Throwable? = null) :
     Exception(failure.name, cause)
 
 /**
+ * How a transport paces itself, stated so a caller can tell its own delay from the link's speed.
+ *
+ * The pauses exist because these printers apply no back-pressure: hand one a whole receipt at once
+ * and the overflow is silent, leaving a band of the middle missing. At text sizes the cost is
+ * invisible; at raster sizes it is not, and the two failure modes — "the link is slow" and "our
+ * pacing is too cautious for a payload this size" — have opposite fixes.
+ */
+data class Pacing(val chunkBytes: Int, val pauseMs: Long, val drainMs: Long) {
+    /** What sending [totalBytes] will spend asleep rather than transmitting. */
+    fun overheadMs(totalBytes: Int): Long =
+        ((totalBytes - 1).coerceAtLeast(0) / chunkBytes).toLong() * pauseMs + drainMs
+}
+
+/**
  * A one-way pipe to a printer.
  *
  * **Open per job, not per session.** Connect, write, close, every time. Holding an RFCOMM socket open
@@ -48,6 +62,9 @@ class PrintException(val failure: PrintFailure, cause: Throwable? = null) :
  * failure land where the user can see it.
  */
 interface PrinterTransport {
+
+    /** This transport's own chunking, for callers that need to account for it. */
+    val pacing: Pacing
 
     /**
      * Sends [bytes] to the printer at [address], throwing [PrintException] if it cannot.
