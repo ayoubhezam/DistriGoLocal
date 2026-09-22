@@ -420,7 +420,47 @@ another screen, and says where to choose it.
 Nothing records that a receipt was printed. That was a deliberate call: it would be a Room column and
 therefore a migration, and the schema stays untouched at this stage. See the open questions.
 
-## 13. Found on the device, phase 2
+## 13. Selection is earned by connecting
+
+Reported from the field after phase 3: a printer could be tapped and become the active one while it
+was switched off, flat or still at the depot. Nothing checked, so the first anyone learned of it was a
+client waiting at the counter.
+
+A tap on a saved printer now opens a real connection first and the selection follows the outcome:
+**Connexion en cours…** while the socket is opening, and on a refusal **Non connectée — appuyez pour
+réessayer** on that row, with the printer *not* selected. Adding one from the paired list goes through
+the same path, so a printer never becomes active merely by being saved.
+
+Three rules keep it from being annoying rather than safe:
+
+- **A failure never un-selects what already works.** Only a successful probe changes which printer is
+  active; a failed one marks the row it was tried on and leaves the previous choice alone.
+- **Device-wide blockers go to the banner, printer-specific ones to the row.** A radio that is off
+  stops every printer, so "Bluetooth désactivé" belongs above the list. One unit not answering belongs
+  on that unit's row.
+- **Removing the selected printer clears the selection** rather than promoting another. Promoting one
+  would name a printer nobody has connected to, which is the whole thing this prevents.
+
+The cost, accepted deliberately: with the printer switched off there is no way to have one selected,
+so the receipt sheet reads "Aucune imprimante" until it answers. That is the honest state, and the
+PDF fallback covers it.
+
+## 14. The paper chips edit what is in force
+
+Also reported: with a printer selected, changing "Format du papier" moved the chip and left the
+preview unchanged.
+
+Not a Compose reactivity fault. The preview renders `effectivePaper`, which is
+`selectedPrinter?.paper ?: defaultPaper`, while the chip wrote `defaultPaper` unconditionally — so
+with a printer selected the control was editing a value nothing on the screen was showing. The chip
+and the preview were both right about different things.
+
+`setPaper`/`setLanguage` now write to whatever the value belongs to: the selected printer when there
+is one, the device default otherwise. The chips display `effectivePaper`/`effectiveLanguage` for the
+same reason, and each caption names its scope — "réglage de BT SPEAKER" or "défaut pour les nouvelles
+imprimantes" — so the per-printer model is visible instead of surprising.
+
+## 15. Found on the device, phase 2
 
 Three things the walk turned up that no unit test would have:
 
@@ -438,7 +478,7 @@ Three things the walk turned up that no unit test would have:
   rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
   mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
 
-## 14. Noted while building
+## 16. Noted while building
 
 **`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
 that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
@@ -450,7 +490,7 @@ so the device never showed it and the JVM tests did immediately. `PrintSettingsS
 reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
 that store ever gains a desktop or JVM-side test it will surface there first.
 
-## 15. Open questions
+## 17. Open questions
 
 - **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
   assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,

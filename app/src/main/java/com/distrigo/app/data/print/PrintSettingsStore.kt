@@ -60,16 +60,15 @@ class PrintSettingsStore(private val dir: File) {
     // cleverer than a list.
 
     /**
-     * Adds a printer, or updates the one with the same address, and selects it.
+     * Adds a printer, or updates the one with the same address. It does **not** become the selected
+     * one here.
      *
-     * Selecting on add is deliberate: a user who has just picked a printer out of a scan means to
-     * print to it, and leaving the selection on the previous one is the kind of quiet mismatch that
-     * only shows up on paper.
+     * Selection is earned by answering a connection, in PrinterSelectionViewModel.select — so a
+     * printer that was off when it was added does not end up labelled as the one receipts go to.
      */
     fun addPrinter(printer: SavedPrinter): PrintSettings = update { current ->
         current.copy(
             printers = current.printers.filterNot { it.id.equals(printer.id, ignoreCase = true) } + printer,
-            selectedPrinterId = printer.id,
         )
     }
 
@@ -101,11 +100,11 @@ class PrintSettingsStore(private val dir: File) {
         val remaining = current.printers.filterNot { it.id.equals(id, ignoreCase = true) }
         current.copy(
             printers = remaining,
-            selectedPrinterId = current.selectedPrinterId
-                ?.takeIf { !it.equals(id, ignoreCase = true) }
-                // Dropping the selected printer falls back to whatever is left rather than to nothing,
-                // so removing a spare does not silently disable printing.
-                ?: remaining.firstOrNull()?.id,
+            // Removing the selected printer clears the selection rather than quietly promoting
+            // another: promoting one would name a printer nobody has connected to, which is the whole
+            // thing selection-by-connection exists to prevent. The user picks the replacement, and
+            // that pick opens a connection.
+            selectedPrinterId = current.selectedPrinterId?.takeIf { !it.equals(id, ignoreCase = true) },
         )
     }
 

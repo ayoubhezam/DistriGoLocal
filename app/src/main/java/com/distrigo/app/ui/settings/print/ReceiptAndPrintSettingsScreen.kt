@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.print.ConnectionMethod
 import com.distrigo.app.data.print.PaperSize
 import com.distrigo.app.data.print.PrintLanguage
+import com.distrigo.app.data.print.PrintSettings
 import com.distrigo.app.ui.common.FileImage
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -236,13 +237,13 @@ fun ReceiptAndPrintSettingsScreen(
             FieldLabel("Format du papier")
             ChoiceRow(
                 options  = PaperSize.entries,
-                selected = printSettings.defaultPaper,
+                selected = printSettings.effectivePaper,
                 label    = { it.label },
                 onSelect = printViewModel::setPaper,
             )
             Spacer(Modifier.height(DsSpacing.xs))
             Text(
-                printSettings.defaultPaper.kindLabel,
+                settingScope(printSettings, printSettings.effectivePaper.kindLabel),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextTertiary,
             )
@@ -252,13 +253,13 @@ fun ReceiptAndPrintSettingsScreen(
             FieldLabel("Langage d'impression")
             ChoiceRow(
                 options  = PrintLanguage.entries,
-                selected = printSettings.defaultLanguage,
+                selected = printSettings.effectiveLanguage,
                 label    = { it.label },
                 onSelect = printViewModel::setLanguage,
             )
             Spacer(Modifier.height(DsSpacing.xs))
             Text(
-                printSettings.defaultLanguage.note,
+                settingScope(printSettings, printSettings.effectiveLanguage.note),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextTertiary,
             )
@@ -317,6 +318,17 @@ fun ReceiptAndPrintSettingsScreen(
         }
     }
 }
+
+/**
+ * Says who a hardware setting applies to, appended to its own description.
+ *
+ * Without this the per-printer model is invisible and surprising: two printers with different paper,
+ * one screen, and no clue that the chips followed the selection rather than the app.
+ */
+private fun settingScope(settings: PrintSettings, description: String): String =
+    settings.selectedPrinter
+        ?.let { "$description · réglage de ${it.displayName}" }
+        ?: "$description · défaut pour les nouvelles imprimantes"
 
 /** The numbers the layout was built against, stated so a surprising preview can be checked against them. */
 private fun paperCaption(preview: PreviewState): String? {

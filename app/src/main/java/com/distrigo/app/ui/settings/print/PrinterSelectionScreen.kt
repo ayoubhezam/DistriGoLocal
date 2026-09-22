@@ -133,6 +133,8 @@ fun PrinterSelectionScreen(
                     SavedPrinterRow(
                         printer    = printer,
                         isSelected = printer.id == state.selectedId,
+                        connecting = printer.id == state.connectingId,
+                        failure    = state.failures[printer.id],
                         link       = state.link,
                         onSelect   = { viewModel.select(printer.id) },
                         onMenu     = { menuFor = printer },
@@ -278,14 +280,18 @@ private fun ProblemBanner(failure: PrintFailure, onAction: () -> Unit) {
 private fun SavedPrinterRow(
     printer   : SavedPrinter,
     isSelected: Boolean,
+    connecting: Boolean,
+    failure   : PrintFailure?,
     link      : PrinterLink,
     onSelect  : () -> Unit,
     onMenu    : () -> Unit,
 ) {
-    // The status dot describes the *selected* printer only: the gate has not looked at the others, and
-    // a green dot on a printer nobody checked would be a claim the app cannot make.
+    // What this row can honestly claim. A printer nobody has connected to says nothing at all: the
+    // gate has not looked at it, so a green dot would be a claim the app cannot make.
     val status: Pair<String, androidx.compose.ui.graphics.Color>? = when {
-        !isSelected -> null
+        connecting        -> "Connexion en cours…" to DsColors.TextSecondary
+        failure != null   -> "Non connectée — appuyez pour réessayer" to DsColors.Danger
+        !isSelected       -> null
         link is PrinterLink.Ready   -> "Prête" to DsColors.Success
         link is PrinterLink.Idle    -> "Jumelée" to DsColors.TextSecondary
         link is PrinterLink.Blocked -> link.reason.message().title to DsColors.Danger
@@ -302,16 +308,26 @@ private fun SavedPrinterRow(
                 color = if (isSelected) DsColors.Primary else DsColors.Border,
                 shape = DsShapes.medium,
             )
-            .clickable { onSelect() }
+            // Disabled while connecting: the probe holds the radio, and a second tap would queue a
+            // connection to a printer the user may already have changed their mind about.
+            .clickable(enabled = !connecting) { onSelect() }
             .padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            Icons.Default.Print,
-            contentDescription = null,
-            tint     = if (isSelected) DsColors.Primary else DsColors.TextTertiary,
-            modifier = Modifier.size(20.dp),
-        )
+        if (connecting) {
+            CircularProgressIndicator(
+                modifier    = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color       = DsColors.Primary,
+            )
+        } else {
+            Icon(
+                Icons.Default.Print,
+                contentDescription = null,
+                tint     = if (isSelected) DsColors.Primary else DsColors.TextTertiary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
         Spacer(Modifier.width(DsSpacing.md))
         Column(Modifier.weight(1f)) {
             Text(

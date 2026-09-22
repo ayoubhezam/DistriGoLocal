@@ -45,6 +45,7 @@ class PrintSettingsStoreTest {
         store().apply {
             update { it.copy(defaultPaper = PaperSize.MM58, method = ConnectionMethod.WIFI) }
             addPrinter(printer("AA:BB:CC:DD:EE:FF", "Caisse"))
+            selectPrinter("AA:BB:CC:DD:EE:FF")
         }
 
         // A fresh instance reads the file rather than the cache, which is what the next launch does.
@@ -57,30 +58,48 @@ class PrintSettingsStoreTest {
     }
 
     @Test
-    fun `adding a printer selects it, and adding the same address twice replaces it`() {
+    fun `adding a printer does not select it`() {
         val store = store()
         store.addPrinter(printer("AA:11", "Premier"))
-        store.addPrinter(printer("BB:22", "Second"))
-        assertEquals("BB:22", store.current().selectedPrinterId)
-
-        store.addPrinter(printer("aa:11", "Renommé à l'ajout"))
-        val settings = store.current()
-        assertEquals("two entries for one address", 2, settings.printers.size)
-        assertEquals("Renommé à l'ajout", settings.selectedPrinter?.displayName)
+        // Selection is earned by answering a connection, so a printer that was switched off when it
+        // was added must not end up named as the one receipts go to.
+        assertNull(store.current().selectedPrinterId)
     }
 
     @Test
-    fun `removing the selected printer falls back to one that is left`() {
+    fun `adding the same address twice replaces it rather than duplicating`() {
+        val store = store()
+        store.addPrinter(printer("AA:11", "Premier"))
+        store.addPrinter(printer("BB:22", "Second"))
+        store.addPrinter(printer("aa:11", "Renommé à l'ajout"))
+
+        val settings = store.current()
+        assertEquals("two entries for one address", 2, settings.printers.size)
+        assertEquals("Renommé à l'ajout", settings.printers.first { it.id == "aa:11" }.displayName)
+    }
+
+    @Test
+    fun `removing the selected printer clears the selection rather than promoting another`() {
         val store = store()
         store.addPrinter(printer("AA:11"))
         store.addPrinter(printer("BB:22"))
+        store.selectPrinter("BB:22")
 
         store.removePrinter("BB:22")
-        // Not null: removing a spare must not silently disable printing.
-        assertEquals("AA:11", store.current().selectedPrinterId)
-
-        store.removePrinter("AA:11")
+        // Not AA:11: promoting it would name a printer nobody has connected to.
         assertNull(store.current().selectedPrinterId)
+        assertEquals(1, store.current().printers.size)
+    }
+
+    @Test
+    fun `removing a printer that is not selected leaves the selection alone`() {
+        val store = store()
+        store.addPrinter(printer("AA:11"))
+        store.addPrinter(printer("BB:22"))
+        store.selectPrinter("AA:11")
+
+        store.removePrinter("BB:22")
+        assertEquals("AA:11", store.current().selectedPrinterId)
     }
 
     @Test
@@ -115,6 +134,10 @@ class PrintSettingsStoreTest {
         val store = store()
         store.update { it.copy(defaultPaper = PaperSize.MM80) }
         store.addPrinter(printer("AA:11").copy(paper = PaperSize.MM58))
+        // Only once it is the selected one: an added-but-unselected printer's paper is nobody's paper.
+        assertEquals(PaperSize.MM80, store.current().effectivePaper)
+
+        store.selectPrinter("AA:11")
         assertEquals(PaperSize.MM58, store.current().effectivePaper)
 
         store.removePrinter("AA:11")

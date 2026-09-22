@@ -68,9 +68,31 @@ class PrintSettingsViewModel @Inject constructor(
 
     fun setMethod(method: ConnectionMethod) = store.update { it.copy(method = method) }
 
-    fun setPaper(paper: PaperSize) = store.update { it.copy(defaultPaper = paper) }
+    /**
+     * Sets the paper, on whatever the paper currently *belongs* to.
+     *
+     * Paper is a property of the printer, not of the app — a rep carries an 80 mm counter unit and a
+     * 58 mm belt printer. So with a printer selected this configures that printer, and only with none
+     * selected does it set the device default that the next added printer will start from.
+     *
+     * Writing the default unconditionally is what made the preview look frozen: the preview renders
+     * `effectivePaper`, which is the selected printer's, so changing the default moved the chip and
+     * nothing else. The control now always edits the value it is displaying.
+     */
+    fun setPaper(paper: PaperSize) = withSelected(
+        onPrinter = { id -> store.configurePrinter(id, paper = paper) },
+        onDefault = { store.update { it.copy(defaultPaper = paper) } },
+    )
 
-    fun setLanguage(language: PrintLanguage) = store.update { it.copy(defaultLanguage = language) }
+    fun setLanguage(language: PrintLanguage) = withSelected(
+        onPrinter = { id -> store.configurePrinter(id, language = language) },
+        onDefault = { store.update { it.copy(defaultLanguage = language) } },
+    )
+
+    private fun withSelected(onPrinter: (String) -> Unit, onDefault: () -> Unit) {
+        val selected = store.current().selectedPrinter
+        if (selected != null) onPrinter(selected.id) else onDefault()
+    }
 
     private fun buildPreview(paperSize: PaperSize, business: BusinessSettings): PreviewState {
         val paper = PaperProfile.of(paperSize) ?: return PreviewState(paper = null)

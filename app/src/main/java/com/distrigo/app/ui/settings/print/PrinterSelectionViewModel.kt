@@ -12,6 +12,7 @@ import com.distrigo.app.data.print.ReceiptPrinter
 import com.distrigo.app.data.print.SavedPrinter
 import com.distrigo.app.data.print.discovery.BluetoothScanner
 import com.distrigo.app.data.print.discovery.DiscoveredDevice
+import com.distrigo.app.data.print.transport.PrintFailure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -44,6 +45,15 @@ data class PrinterSelectionState(
      */
     val notice     : String?               = null,
     val busy       : Boolean               = false,
+    /** The printer a connection is being opened to right now, if any. */
+    val connectingId: String?              = null,
+    /**
+     * Why each printer's last connection attempt failed, by address.
+     *
+     * Per printer rather than one global value: with two saved printers, "non connectée" has to sit on
+     * the one that would not answer, not on the list.
+     */
+    val failures   : Map<String, PrintFailure> = emptyMap(),
 )
 
 /**
@@ -105,10 +115,12 @@ class PrinterSelectionViewModel @Inject constructor(
     }
 
     /**
-     * Saves a discovered device as a printer, starting from the device-wide defaults.
+     * Saves a discovered device as a printer, starting from the device-wide defaults, then tries to
+     * connect to it.
      *
-     * Its paper and language are guesses until the test print confirms them, which is why adding one
-     * leads straight to that.
+     * Adding does not select on its own — it goes through [select] like a tap, so a printer only
+     * becomes the active one by answering. Its paper and language are guesses until the test print
+     * confirms them.
      */
     fun save(device: DiscoveredDevice) {
         val defaults = store.current()
@@ -122,9 +134,49 @@ class PrinterSelectionViewModel @Inject constructor(
                 codePage    = defaults.defaultCodePage,
             )
         )
+        select(device.address)
     }
 
-    fun select(id: String) = store.selectPrinter(id)
+    /**
+     * Makes a printer the active one — but only if it answers.
+     *
+     * Selecting used to be a write and nothing more, so a printer that was off, flat or left at the
+     * depot could sit there labelled as the one receipts go to, and the first anyone knew of it was a
+     * client waiting at the counter. Now the tap opens a real connection first and the selection
+     * follows the outcome: a refusal leaves the previous choice alone and marks this one, and tapping
+     * again retries.
+     *
+     * A failure here never *un*-selects whatever was already working — only a successful probe ever
+     * changes which printer is active.
+     */
+    fun select(id: String) {
+        if (_state.value.connectingId != null) return
+        val target = store.current().printers.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: return
+
+        _state.value = _state.value.copy(
+            connectingId = id,
+            failures     = _state.value.failures - id,
+        )
+        viewModelScope.launch {
+            val link = gate.probe(target)
+            _state.value = if (link is PrinterLink.Ready) {
+                store.selectPrinter(target.id)
+                _state.value.copy(connectingId = null, link = link)
+            } else {
+                val failure = (link as? PrinterLink.Blocked)?.reason ?: PrintFailure.UNREACHABLE
+                _state.value.copy(
+                    connectingId = null,
+                    failures     = _state.value.failures + (target.id to failure),
+                    // A radio that is off or unpermitted stops every printer, so it belongs in the
+                    // banner. One printer not answering belongs on that printer's row.
+                    link = if (failure.isDeviceWide()) PrinterLink.Blocked(null, failure) else _state.value.link,
+                )
+            }
+        }
+    }
+
+    private fun PrintFailure.isDeviceWide() = this == PrintFailure.NO_BLUETOOTH ||
+        this == PrintFailure.PERMISSION_DENIED || this == PrintFailure.ADAPTER_OFF
 
     fun rename(id: String, name: String) = store.renamePrinter(id, name)
 
@@ -144,6 +196,7 @@ class PrinterSelectionViewModel @Inject constructor(
 
     fun remove(id: String) {
         store.removePrinter(id)
+        _state.value = _state.value.copy(failures = _state.value.failures - id)
         refresh()
     }
 
