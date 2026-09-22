@@ -8,6 +8,28 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!--
+      Thermal printers. Classic RFCOMM (SPP), not BLE.
+
+      BLUETOOTH/BLUETOOTH_ADMIN are install-time and were replaced at API 31, so they are capped at
+      30 rather than declared for every version. BLUETOOTH_SCAN carries neverForLocation because
+      discovering a printer tells us nothing about where the phone is, and the flag is what keeps
+      Android 12+ from demanding the location permission for a scan.
+
+      ACCESS_FINE_LOCATION is already declared above for the map pickers, and is needed here too: on
+      API <= 30 classic discovery requires it, and reading the Wi-Fi SSID requires it with location
+      services actually switched on.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Android 13+: asked for when automatic backups are turned on, to warn when they keep failing. -->

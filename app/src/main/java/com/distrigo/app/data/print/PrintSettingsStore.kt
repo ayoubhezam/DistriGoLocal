@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * This phone's printing configuration, kept in `no_backup/print/settings.json`.
@@ -50,6 +52,64 @@ class PrintSettingsStore(private val dir: File) {
         state.value = next
         next
     }
+
+    // ── Saved printers ──
+    //
+    // Add/rename/remove all go through update(), so each one is a whole-file write and a publish, the
+    // same as any other setting. There are at most a handful of printers; nothing here needs to be
+    // cleverer than a list.
+
+    /**
+     * Adds a printer, or updates the one with the same address, and selects it.
+     *
+     * Selecting on add is deliberate: a user who has just picked a printer out of a scan means to
+     * print to it, and leaving the selection on the previous one is the kind of quiet mismatch that
+     * only shows up on paper.
+     */
+    fun addPrinter(printer: SavedPrinter): PrintSettings = update { current ->
+        current.copy(
+            printers = current.printers.filterNot { it.id.equals(printer.id, ignoreCase = true) } + printer,
+            selectedPrinterId = printer.id,
+        )
+    }
+
+    fun renamePrinter(id: String, name: String): PrintSettings = update { current ->
+        current.copy(printers = current.printers.map {
+            if (it.id.equals(id, ignoreCase = true)) it.copy(displayName = name.trim().ifBlank { it.displayName }) else it
+        })
+    }
+
+    /** Changes one printer's hardware settings — what the test print confirms. */
+    fun configurePrinter(
+        id      : String,
+        paper   : PaperSize?       = null,
+        language: PrintLanguage?   = null,
+        codePage: PrinterCodePage? = null,
+    ): PrintSettings = update { current ->
+        current.copy(printers = current.printers.map {
+            if (!it.id.equals(id, ignoreCase = true)) it
+            else it.copy(
+                paper    = paper    ?: it.paper,
+                language = language ?: it.language,
+                codePage = codePage ?: it.codePage,
+            )
+        })
+    }
+
+    /** Removes a printer, clearing the selection if it was the selected one. */
+    fun removePrinter(id: String): PrintSettings = update { current ->
+        val remaining = current.printers.filterNot { it.id.equals(id, ignoreCase = true) }
+        current.copy(
+            printers = remaining,
+            selectedPrinterId = current.selectedPrinterId
+                ?.takeIf { !it.equals(id, ignoreCase = true) }
+                // Dropping the selected printer falls back to whatever is left rather than to nothing,
+                // so removing a spare does not silently disable printing.
+                ?: remaining.firstOrNull()?.id,
+        )
+    }
+
+    fun selectPrinter(id: String): PrintSettings = update { it.copy(selectedPrinterId = id) }
 
     private fun readFromDisk(): PrintSettings {
         if (!file.isFile) return PrintSettings()
@@ -93,7 +153,11 @@ class PrintSettingsStore(private val dir: File) {
         dir.mkdirs()
         val temp = File(dir, "settings.json.tmp")
         temp.writeText(GSON.toJson(json))
-        if (!temp.renameTo(file)) throw java.io.IOException("cannot write $file")
+        // Files.move with REPLACE_EXISTING rather than File.renameTo, which is specified to fail when
+        // the destination already exists and does so on some filesystems — so the first write would
+        // succeed and every write after it would throw. It happens to work on the phone's ext4/f2fs,
+        // which is exactly why it would have gone unnoticed until it did not.
+        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 
     private fun com.google.gson.JsonElement.toSavedPrinter(): SavedPrinter? {

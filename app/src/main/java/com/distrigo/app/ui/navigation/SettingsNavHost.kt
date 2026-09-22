@@ -9,6 +9,7 @@ import com.distrigo.app.ui.settings.data.DataBackupScreen
 import com.distrigo.app.ui.settings.data.export.ExportScreen
 import com.distrigo.app.ui.settings.data.importer.ImportScreen
 import com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen
+import com.distrigo.app.ui.settings.print.PrinterSelectionScreen
 import com.distrigo.app.ui.settings.print.ReceiptAndPrintSettingsScreen
 import com.distrigo.app.ui.settings.trash.TrashScreen
 
@@ -39,7 +40,13 @@ fun SettingsNavHost(onBack: () -> Unit) {
             )
         }
         composable(Screen.SettingsReceiptPrint.route) {
-            ReceiptAndPrintSettingsScreen(onBack = { navController.popBackStack() })
+            ReceiptAndPrintSettingsScreen(
+                onBack     = { navController.popBackStack() },
+                onPrinters = { navController.navigate(Screen.SettingsPrinters.route) },
+            )
+        }
+        composable(Screen.SettingsPrinters.route) {
+            PrinterSelectionScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.SettingsCommission.route) {
             CommissionPolicyScreen(onBack = { navController.popBackStack() })

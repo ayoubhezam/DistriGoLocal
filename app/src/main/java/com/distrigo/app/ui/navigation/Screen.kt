@@ -25,6 +25,7 @@ sealed class Screen(val route: String) {
     data object SettingsGraph      : Screen("settings_graph")
     data object SettingsHome       : Screen("settings_home")
     data object SettingsReceiptPrint : Screen("settings_receipt_print")
+    data object SettingsPrinters     : Screen("settings_printers")
     data object SettingsCommission : Screen("settings_commission")
     data object SettingsData       : Screen("settings_data")
     data object SettingsExport     : Screen("settings_data_export")

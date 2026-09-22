@@ -3,8 +3,8 @@
 Hardware printing for DistriGo receipts: how the module is laid out, why it is laid out that way,
 and the decisions that were settled before any of it was written.
 
-Written 2026-09-22, at the opening of the Print Settings feature. Phases 0 and 1 are implemented;
-phases 2–6 are the plan.
+Written 2026-09-22, at the opening of the Print Settings feature. Phases 0, 1 and 2 are implemented —
+phase 2's code is complete and unit-tested but has not yet met a real printer. Phases 3–5 are the plan.
 
 ---
 
@@ -103,13 +103,12 @@ So: one screen, three sections, in this order — content feeds preview feeds pa
 
 ── IMPRIMANTE ────────────────────────   device-local JSON, never synced
    Méthode de connexion   [ Bluetooth ▾ ]
-   Imprimante             MTP-II      ›   (phase 2)
-   Langage d'impression   [ ESC/POS ▾ ]
+   Imprimante             Aucune      ›   → PrinterSelectionScreen
    Format du papier       [ 80 mm ▾ ]
+   Langage d'impression   [ ESC/POS ▾ ]
 
 ── APERÇU ────────────────────────────
    [ live thermal mockup ]
-   [ Imprimer un test ]                   (phase 2)
 ```
 
 The section headers carry the whole explanation; nobody has to guess which one holds the logo.
@@ -224,30 +223,55 @@ ZXing and `ThermalRaster`.
 
 Planned for phase 2. The point is that the UI has a single `when`, whichever transport is in use:
 
+As built, in `PrinterGate.kt` and `transport/PrinterTransport.kt`:
+
 ```
 sealed interface PrinterLink
-  object NotConfigured                            "Aucune imprimante"
-  data class Idle(printer)                        saved, not opened
+  object NotConfigured                              "Aucune imprimante"
+  data class Idle(printer)                          saved, paired, radio on
   data class Connecting(printer)
-  data class Ready(printer)
-  data class Blocked(printer?, reason: Blocker)   ◄── the important one
+  data class Ready(printer)                         answered a probe
+  data class Blocked(printer?, reason)              ◄── the important one
 
-enum Blocker
-  PERMISSION_DENIED         → "Autoriser"
-  PERMISSION_DENIED_FOREVER → "Ouvrir les réglages"
-  ADAPTER_OFF               → "Activer le Bluetooth"
-  WIFI_OFF / WRONG_NETWORK  → shows SSID, "Réglages Wi-Fi"
-  NOT_PAIRED                → "Jumeler"
-  UNREACHABLE               → "Réessayer"
-  BUSY / PAPER_OUT          → informational
+enum PrintFailure                       message()           → action
+  NO_BLUETOOTH        "Bluetooth indisponible"   → (none; use the PDF)
+  PERMISSION_DENIED   "Autorisation refusée"     → "Autoriser"
+  ADAPTER_OFF         "Bluetooth désactivé"      → "Activer"
+  NOT_PAIRED          "Imprimante non jumelée"   → "Ouvrir les réglages"
+  UNREACHABLE         "Imprimante injoignable"   → "Réessayer"
+  INTERRUPTED         "Impression interrompue"   → "Réimprimer"
+  NOT_CONFIGURED      "Aucune imprimante"        → "Choisir"
 ```
 
-Two rules make it work:
+Two deviations from the sketch above, both deliberate:
+
+- **`PERMISSION_DENIED_FOREVER` was dropped.** Distinguishing it needs
+  `shouldShowRequestPermissionRationale`, which is an Activity call, so the gate cannot know it
+  without being handed UI state. Rather than add a parameter nothing else uses, the permission
+  launcher's own result handles the "don't ask again" case.
+- **`INTERRUPTED` was added.** A socket that breaks mid-job leaves half a receipt on the paper, which
+  the user has to be told about differently from a job that never started — "Réimprimer", not
+  "Réessayer".
+
+`PrinterGate.check()` does no I/O and is cheap enough to call per recomposition; `probe()` opens a real
+connection, because a printer that is paired, powered and already talking to another phone passes
+every cheap check and still refuses the socket.
+
+Three rules make it work:
 
 - **Every `Blocked` carries its own action.** No toast ever says "erreur d'impression"; it says what
   is wrong and shows the button that fixes it. A rep standing in front of a client cannot debug.
 - **`PrinterGate` runs the same checks in the same order** whether called from the settings screen or
   from the print button — so the settings screen cannot claim "Prête" while printing fails.
+- **Failures go to the banner, never to a dialog.** The banner is persistent, carries the action and
+  does not have to be dismissed before the user can act on it — they can walk over and switch the
+  printer on with it still on screen. A modal on top of it said the same thing twice and blocked the
+  screen while saying it. The dialog is kept only for something that went *right* and leaves no trace
+  otherwise: "Test envoyé", "l'imprimante répond".
+
+The label a failure shows and the action its button takes come from the same `message()` entry, so
+they cannot drift apart — a button reading "Réessayer" that opened the system settings instead was
+exactly the bug the device walk turned up.
 
 **Never block the sale on the printer.** The sale is already committed when printing is attempted; a
 failure offers *Réessayer / Partager en PDF / Plus tard* and leaves a reprint affordance on the
@@ -299,8 +323,10 @@ Follow the runtime-request pattern already in `ui/common/PhotoPicker.kt`.
 ```
 
 Scan runs ≤30 s with a visible timer and auto-stops; classic discovery is expensive and hammers the
-radio. Saving a printer opens a sheet for name + paper + language, which flows straight into a test
-print — so paper width is confirmed when the printer is added, not discovered at the counter.
+radio. A saved printer's row menu carries *Imprimer un test*, *Vérifier la connexion*, *Format / langage /
+encodage*, *Renommer* and *Supprimer* — so paper width is confirmed when the printer is added rather
+than discovered at the counter. The paper choice there excludes A4, which is not a thermal width at
+all and takes the PDF path instead.
 
 ---
 
@@ -316,24 +342,24 @@ data/print/
 │   ├── ThermalLayout.kt        ◄── the engine                             ✔ phase 0
 │   ├── PrinterCodePage.kt      encoding + transliteration + probe         ✔ phase 0
 │   ├── ThermalRaster.kt        Floyd–Steinberg 1-bit raster               ✔ phase 0
-│   ├── EscPosRenderer.kt                                                    phase 2
+│   ├── EscPosRenderer.kt        ESC/POS byte stream                      ✔ phase 2
 │   ├── TsplRenderer.kt / CpclRenderer.kt                                    phase 5
 ├── transport/
-│   ├── PrinterTransport.kt     suspend open/write/close + isReachable       phase 2
-│   ├── BluetoothSppTransport.kt   RFCOMM, UUID 00001101-0000-1000-8000-00805F9B34FB
+│   ├── PrinterTransport.kt     the contract + PrintFailure                ✔ phase 2
+│   ├── BluetoothSppTransport.kt   RFCOMM, UUID 00001101-…                ✔ phase 2
 │   └── TcpTransport.kt            raw socket, default port 9100             phase 4
 ├── discovery/
-│   ├── BluetoothScanner.kt     bonded devices + ACTION_FOUND                phase 2
+│   ├── BluetoothScanner.kt     bonded devices + ACTION_FOUND              ✔ phase 2
 │   └── WifiInfoProvider.kt     current SSID                                 phase 4
 ├── PrinterGate.kt              pre-flight: permission → adapter → paired → reachable   phase 2
-└── PrintReceiptUseCase.kt      the single entry point every screen calls    phase 3
+
 
 ui/settings/print/
 ├── ReceiptAndPrintSettingsScreen.kt   absorbs the old ReceiptSettingsScreen ✔ phase 1
 ├── PrintSettingsViewModel.kt                                               ✔ phase 0
 ├── ThermalReceiptPreview.kt           shared by settings + real preview     ✔ phase 0
 ├── SampleReceipt.kt                   hardcoded ReceiptData, no DB          ✔ phase 0
-├── PrinterSelectionScreen.kt / ViewModel                                      phase 2
+├── PrinterSelectionScreen.kt / ViewModel                                  ✔ phase 2
 ```
 
 `PrintSettingsStore` gets a `@Provides @Singleton` in `di/AppModule.kt`, following
@@ -347,8 +373,8 @@ ui/settings/print/
 |---|---|---|---|
 | **0** | `PrintSettings` + store + `PaperProfile` + `ThermalLayout` + `ThermalRaster` + `PrinterCodePage` + preview. No hardware. | Settings screen with a working live preview — reviewable before touching Bluetooth | **done** |
 | **1** | Merge receipt settings in; rename the card to "Reçus et impression" | The reorganisation of §3 | **done** |
-| **2** | BT permissions, `BluetoothSppTransport`, `PrinterSelectionScreen`, `PrinterGate`, `EscPosRenderer`, test print | Real printing, ESC/POS only | next |
-| **3** | `PrintReceiptUseCase` behind the buttons in `PurchaseOrderDetailScreen` + `VentesScreen`, **plus the new one in Tournées Ventes**, with PDF fallback | Hardware printing in production | |
+| **2** | BT permissions, `BluetoothSppTransport`, `PrinterSelectionScreen`, `PrinterGate`, `EscPosRenderer`, `TestPrint` calibration strip | Real printing, ESC/POS only | **code done, unverified against hardware** |
+| **3** | `ReceiptPrinter` behind the buttons in `PurchaseOrderDetailScreen` + `VentesScreen`, **plus the new one in Tournées Ventes**, with PDF fallback | Hardware printing in production | next |
 | **4** | `TcpTransport` + SSID display + manual IP | Wi-Fi | |
 | **5** | TSPL / CPCL renderers | Compatibility | |
 
@@ -357,7 +383,37 @@ testable on a desk with no printer (`app/src/test/.../data/print/`).
 
 ---
 
-## 12. Open questions
+## 12. Found on the device, phase 2
+
+Three things the walk turned up that no unit test would have:
+
+- **"Réessayer" opened the app's system settings.** `resolve()` handled the permission, adapter and
+  pairing blockers by name and sent *everything else* to the app details page — so the retry button on
+  an unreachable printer navigated away instead of retrying. Now `UNREACHABLE` and `INTERRUPTED`
+  re-probe, and the `when` is exhaustive over `PrintFailure` so a new failure cannot fall into a
+  default branch again.
+- **The action sheet ran under the navigation bar**, leaving "Supprimer" visible but untappable. Two
+  causes, both needed fixing: the sheet opened at its half-height detent and its rows ran past its own
+  background, and even expanded it drew under the system navigation. Fixed with
+  `skipPartiallyExpanded = true` plus `navigationBarsPadding()`, and the content scrolls for a large
+  font scale.
+- **A result dialog was observed not to appear once**, after a failed probe, though the same dialog
+  rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
+  mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
+
+## 13. Noted while building
+
+**`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
+that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
+when the destination exists, and does on some filesystems. It happens to work on the phone's ext4/f2fs,
+so the device never showed it and the JVM tests did immediately. `PrintSettingsStore` now uses
+`Files.move(…, REPLACE_EXISTING)`.
+
+**`AutoBackupStore.update` still has the original form.** It is not broken on Android for the same
+reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
+that store ever gains a desktop or JVM-side test it will surface there first.
+
+## 14. Open questions
 
 - **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
   assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,

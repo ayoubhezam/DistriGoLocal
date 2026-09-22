@@ -62,7 +62,8 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun ReceiptAndPrintSettingsScreen(
-    onBack: () -> Unit,
+    onBack    : () -> Unit,
+    onPrinters: () -> Unit,
     businessViewModel: BusinessSettingsViewModel = hiltViewModel(),
     printViewModel   : PrintSettingsViewModel    = hiltViewModel(),
 ) {
@@ -224,11 +225,11 @@ fun ReceiptAndPrintSettingsScreen(
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            // Inert until PrinterSelectionScreen exists. Shown anyway so the section reads as the whole
-            // job rather than as a settings list with a hole where the printer should be — and so the
-            // paper and language below are visibly the defaults *for* something.
             FieldLabel("Imprimante")
-            PrinterRowPlaceholder(printSettings.selectedPrinter?.displayName)
+            PrinterRow(
+                selectedName = printSettings.selectedPrinter?.displayName,
+                onClick      = onPrinters,
+            )
 
             Spacer(Modifier.height(DsSpacing.md))
 
@@ -324,15 +325,15 @@ private fun paperCaption(preview: PreviewState): String? {
 }
 
 /**
- * The printer row, before there is a printer to choose.
+ * The chosen printer, and the way to the list.
  *
- * Deliberately not clickable and deliberately not hidden: a row that greys itself out says "this
- * exists and is not ready", where an absent row says nothing at all and leaves the user wondering
- * which setting picks the device. It keeps the same shape the live row will take, so enabling it in
- * phase 2 changes its colours and its onClick, not the layout around it.
+ * Reads "Aucune" rather than hiding itself when nothing is chosen: an absent row says nothing at all
+ * and leaves the user wondering which setting picks the device, while a row that names its emptiness
+ * says "this exists and is not set yet" and offers the tap that sets it.
  */
 @Composable
-private fun PrinterRowPlaceholder(selectedName: String?) {
+private fun PrinterRow(selectedName: String?, onClick: () -> Unit) {
+    val hasPrinter = selectedName != null
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,26 +341,28 @@ private fun PrinterRowPlaceholder(selectedName: String?) {
             .clip(DsShapes.medium)
             .background(DsColors.SurfaceMuted)
             .border(1.dp, DsColors.Border, DsShapes.medium)
+            .clickable { onClick() }
             .padding(horizontal = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Default.Print,
             contentDescription = null,
-            tint     = DsColors.TextTertiary,
+            tint     = if (hasPrinter) DsColors.Primary else DsColors.TextTertiary,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
             selectedName ?: "Aucune",
-            fontSize = DsTextSize.bodySmall,
-            color    = DsColors.TextTertiary,
-            modifier = Modifier.weight(1f),
+            fontSize   = DsTextSize.bodySmall,
+            fontWeight = if (hasPrinter) FontWeight.Medium else FontWeight.Normal,
+            color      = if (hasPrinter) DsColors.TextPrimary else DsColors.TextTertiary,
+            modifier   = Modifier.weight(1f),
         )
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint     = DsColors.TextTertiary.copy(alpha = 0.5f),
+            tint     = DsColors.TextTertiary,
             modifier = Modifier.size(18.dp),
         )
     }
