@@ -405,6 +405,12 @@ somewhere else. A paper size should not be a surprise discovered on the roll.
 **The A4 half stays in the composable.** `PrintManager` refuses an application-scoped context, so the
 PDF path needs the Activity's; only the thermal half moved into `ReceiptPrintViewModel`.
 
+**A4 is declared, not left to the dialog.** `printReceiptPdf` passed an empty `PrintAttributes`, and
+the device walk showed the resulting dialog defaulting to **US Letter** — so choosing "A4" in the
+settings produced a print dialog offering Letter. It now sets `MediaSize.ISO_A4`, which is also
+simply true of the document: `ReceiptPdfGenerator` draws at 595×842 pt. §2 says the OS dialog owns
+the media size, and it still does — but it owns it better when told what the document is.
+
 **The sale is already committed when any of this runs.** So a printer that is off, out of range or
 unconfigured is never phrased as a failed sale, nothing is retried automatically, and *Partager en
 PDF* sits beside *Réessayer* on every failure — the share sheet the screen already had. An

@@ -503,5 +503,11 @@ private class PdfPrintAdapter(
 
 fun printReceiptPdf(context: Context, pdfFile: File, documentName: String) {
     val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-    printManager.print(documentName, PdfPrintAdapter(pdfFile, documentName), PrintAttributes.Builder().build())
+    // A4 is declared rather than left to the dialog's default, which on this phone is US Letter —
+    // so a user who chose "A4" in the settings was handed a print dialog offering Letter. The PDF is
+    // drawn at 595x842 pt, which is A4, so this is also simply the truth about the document.
+    val attributes = PrintAttributes.Builder()
+        .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+        .build()
+    printManager.print(documentName, PdfPrintAdapter(pdfFile, documentName), attributes)
 }
