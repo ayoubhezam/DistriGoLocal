@@ -63,17 +63,6 @@ sealed interface ReceiptRow {
      */
     data class Raster(val raster: MonoRaster, val align: RowAlign = RowAlign.Center) : ReceiptRow
 
-    /**
-     * A QR code, carried as its payload rather than as pixels.
-     *
-     * ESC/POS can emit this natively (`GS ( k`), which is sharper and a fraction of the bytes of a
-     * raster; the preview and any raster-only fallback go through ZXing instead. Handing the renderer
-     * a bitmap would throw that choice away.
-     *
-     * @param sizeDots the side length to aim for when it has to be rasterised.
-     */
-    data class Qr(val payload: String, val sizeDots: Int) : ReceiptRow
-
     /** Feed and cut. Ignored by printers without a cutter, which is most mobile ones. */
     data object Cut : ReceiptRow
 }

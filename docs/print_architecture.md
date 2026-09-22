@@ -79,12 +79,13 @@ do. Four rules:
 
 The numbers the thermal renderer is built against (203 dpi, the universal thermal resolution):
 
-| Paper | Printable | Dots | Font A (12×24) | Font B (9×17) |
+| Paper | Printable | Dots | Font A (12×24) | **Font B (9×17)** |
 |---|---|---|---|---|
-| 58 mm | ~48 mm | **384** | **32 chars** | 42 chars |
-| 80 mm | ~72 mm | **576** | **48 chars** | 64 chars |
+| 58 mm | ~48 mm | **384** | 32 chars | **42 chars** |
+| 80 mm | ~72 mm | **576** | 48 chars | **64 chars** |
 
-Those two numbers — 32 and 48 — are the entire layout spec.
+The receipt is set in **Font B**, so **42 and 64** are the layout spec. See §13 for why, and for the
+rest of what makes the printout short.
 
 ---
 
@@ -421,7 +422,47 @@ another screen, and says where to choose it.
 Nothing records that a receipt was printed. That was a deliberate call: it would be a Room column and
 therefore a migration, and the schema stays untouched at this stage. See the open questions.
 
-## 13. Wi-Fi: a second pipe, not a second app
+## 13. A receipt is a running cost
+
+A shop buying rolls by the box notices the difference between a twenty-line receipt and a thirty-line
+one, so the layout is built to be short. Four decisions, in descending order of how much paper they
+save:
+
+**Font B, not Font A.** Every ESC/POS printer carries exactly two built-in bitmap fonts, selected
+with `ESC M n`; there is no scale between them and no third choice. Font B is 9×17 dots against Font
+A's 12×24 — roughly a third less height per line, and 42/64 characters per line instead of 32/48, so
+fewer lines wrap in the first place. The trade is real and deliberate: 9×17 is small print, and
+anyone who finds it too small wants `PrinterFont.A`, which the profile already takes.
+
+**Tight line spacing.** The factory default feed is about 30–34 dots, sized for Font A's 24-dot
+glyphs and generous even for those; against Font B's 17 it spends a third of the roll on white space.
+`ESC 3 20` leaves three dots of gap — enough to keep descenders off the next line's capitals — and
+saves ~1.7 mm on *every* line, which is about 5 cm on a twenty-line receipt.
+
+**No blank line between items, and none anywhere else.** The indent on an item's figures line already
+groups it with its name; a separator per item is a line of paper per item. The only blanks left in the
+whole receipt are the two at the end, and those are not padding — they feed the last printed line
+clear of the tear bar, which sits ~15 mm above the head.
+
+**No QR.** It cost about a centimetre of roll on every receipt and encoded only the title, date and
+total that the receipt already prints in words, so nothing could be learned by scanning it that
+reading it did not already give. `ReceiptRow.Qr` and the `GS ( k` emitter went with it rather than
+being left as an unused path to rot; the A4 PDF keeps its QR, where the space is free.
+
+One consequence worth stating: at 42 columns the narrow roll *could* now rule a single-line item
+table, and deliberately does not. 42 minus the three numeric columns leaves twelve characters for a
+product name, and "Lait Candia demi-écrémé 1L" wrapped over three continuation lines is longer than
+the two-line form, not shorter. `MIN_COLUMNS_FOR_TABLE` is set to 50 to keep that from happening by
+accident.
+
+### The preview follows the profile, not a guess
+
+The on-screen line spacing used to be a chosen multiple of the font size. It is now derived:
+the gap between two lines is `lineSpacingDots` wide in the same dots the characters are
+`glyphWidthDots` wide in. Tighten `ESC 3 n` and the preview tightens with it — which is the only way
+the two can stay honest about a receipt's length.
+
+## 14. Wi-Fi: a second pipe, not a second app
 
 Phase 4. A network printer is the same dumb byte pipe as a Bluetooth one — open a TCP socket to
 **port 9100**, write ESC/POS, close — so almost nothing above the transport changed.
@@ -483,7 +524,7 @@ page produced host `192.168.1.50:9100` on port 9100, a printer nobody can reach.
 the address now wins, in `NetworkAddress.resolve`, which is a pure function precisely so the rule is
 pinned by a test rather than buried in a ViewModel.
 
-## 14. Selection is earned by connecting
+## 15. Selection is earned by connecting
 
 Reported from the field after phase 3: a printer could be tapped and become the active one while it
 was switched off, flat or still at the depot. Nothing checked, so the first anyone learned of it was a
@@ -508,7 +549,7 @@ The cost, accepted deliberately: with the printer switched off there is no way t
 so the receipt sheet reads "Aucune imprimante" until it answers. That is the honest state, and the
 PDF fallback covers it.
 
-## 15. The paper chips edit what is in force
+## 16. The paper chips edit what is in force
 
 Also reported: with a printer selected, changing "Format du papier" moved the chip and left the
 preview unchanged.
@@ -523,7 +564,7 @@ is one, the device default otherwise. The chips display `effectivePaper`/`effect
 same reason, and each caption names its scope — "réglage de BT SPEAKER" or "défaut pour les nouvelles
 imprimantes" — so the per-printer model is visible instead of surprising.
 
-## 16. Found on the device, phase 2
+## 17. Found on the device, phase 2
 
 Three things the walk turned up that no unit test would have:
 
@@ -541,7 +582,7 @@ Three things the walk turned up that no unit test would have:
   rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
   mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
 
-## 17. Noted while building
+## 18. Noted while building
 
 **`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
 that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
@@ -553,7 +594,7 @@ so the device never showed it and the JVM tests did immediately. `PrintSettingsS
 reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
 that store ever gains a desktop or JVM-side test it will surface there first.
 
-## 18. Open questions
+## 19. Open questions
 
 - **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
   assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,

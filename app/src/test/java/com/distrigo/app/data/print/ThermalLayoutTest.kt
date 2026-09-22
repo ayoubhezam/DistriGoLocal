@@ -1,5 +1,6 @@
 package com.distrigo.app.data.print
 
+import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.ReceiptRow
 import com.distrigo.app.data.print.lang.ThermalLayout
 import com.distrigo.app.ui.components.ReceiptData
@@ -14,6 +15,9 @@ import org.junit.Test
  * Phase 0's promise is that the receipt can be got right on a desk with no printer, so these pin the
  * invariants that a renderer or the preview would otherwise have to be trusted with: **no row is ever
  * wider than the paper**, and the money columns keep their thousands when they run out of room.
+ *
+ * The widths are Font B's — 42 on 58 mm, 64 on 80 mm — and the receipt is built to be short, so some
+ * of these pin the absence of things: no blank line between items, none anywhere but the tear-off feed.
  */
 class ThermalLayoutTest {
 
@@ -55,10 +59,17 @@ class ThermalLayoutTest {
         }
 
     @Test
+    fun `the profiles are Font B's 42 and 64 columns`() {
+        // 384 and 576 dots over a 9-dot glyph. If these move, every assertion below moves with them.
+        assertEquals(42, PaperProfile.MM58.charsPerLine)
+        assertEquals(64, PaperProfile.MM80.charsPerLine)
+    }
+
+    @Test
     fun `no row overflows 58mm paper`() {
         val rows = ThermalLayout.layout(receipt(), PaperProfile.MM58)
         printedWidths(rows, PaperProfile.MM58.charsPerLine).forEach { (text, w) ->
-            assertTrue("\"$text\" is $w wide, paper is 32", w <= 32)
+            assertTrue("\"$text\" is $w wide, paper is 42", w <= 42)
         }
     }
 
@@ -66,7 +77,7 @@ class ThermalLayoutTest {
     fun `no row overflows 80mm paper`() {
         val rows = ThermalLayout.layout(receipt(), PaperProfile.MM80)
         printedWidths(rows, PaperProfile.MM80.charsPerLine).forEach { (text, w) ->
-            assertTrue("\"$text\" is $w wide, paper is 48", w <= 48)
+            assertTrue("\"$text\" is $w wide, paper is 64", w <= 64)
         }
     }
 
@@ -81,10 +92,29 @@ class ThermalLayoutTest {
             paid  = 500000.0,
             note  = "Livraison prévue jeudi matin, entrée par la rue arrière du dépôt principal.",
         )
-        listOf(PaperProfile.MM58 to 32, PaperProfile.MM80 to 48).forEach { (paper, width) ->
+        listOf(PaperProfile.MM58 to 42, PaperProfile.MM80 to 64).forEach { (paper, width) ->
             printedWidths(ThermalLayout.layout(data, paper), width).forEach { (text, w) ->
                 assertTrue("[$width] \"$text\" is $w wide", w <= width)
             }
+        }
+    }
+
+    @Test
+    fun `items are not separated by blank lines`() {
+        val data = receipt(items = listOf(
+            line("Café", 2.0, "kg", 340.0, 680.0),
+            line("Sucre", 3.0, "kg", 120.0, 360.0),
+        ))
+        listOf(PaperProfile.MM58, PaperProfile.MM80).forEach { paper ->
+            val rows = ThermalLayout.layout(data, paper)
+            val first = rows.indexOfFirst { it is ReceiptRow.Line && it.text.contains("Café") }
+            val second = rows.indexOfFirst { it is ReceiptRow.Line && it.text.contains("Sucre") }
+            assertTrue("items not found on ${paper.size}", first >= 0 && second > first)
+            // Every line of paper between them is a line nobody asked for.
+            assertTrue(
+                "a blank line sits between two items on ${paper.size}",
+                rows.subList(first, second).none { it is ReceiptRow.Blank },
+            )
         }
     }
 
@@ -105,6 +135,26 @@ class ThermalLayoutTest {
             narrow.filterIsInstance<ReceiptRow.Line>().any { it.text == "Café" })
         assertTrue("total not pinned right",
             narrow.filterIsInstance<ReceiptRow.Columns>().any { it.right.trim() == "680.00" })
+    }
+
+    @Test
+    fun `no logo means no image row at all, rather than an empty one`() {
+        // What "print without any image" has to mean downstream: the row is absent, not a raster of
+        // zero height. A renderer handed an empty image emits a GS v 0 with no data, which some
+        // printers answer by feeding blank paper and others by dropping the rest of the receipt.
+        val rows = ThermalLayout.layout(receipt(), PaperProfile.MM58)
+        assertTrue("a raster was emitted with no logo", rows.none { it is ReceiptRow.Raster })
+    }
+
+    @Test
+    fun `a logo is emitted as a raster, above the business name`() {
+        val logo = MonoRaster(width = 8, height = 8, bits = ByteArray(8))
+        val rows = ThermalLayout.layout(receipt(), PaperProfile.MM58, logo)
+
+        val rasterAt = rows.indexOfFirst { it is ReceiptRow.Raster }
+        val nameAt = rows.indexOfFirst { it is ReceiptRow.Line && it.text.contains("DISTRIGO") }
+        assertTrue("no raster emitted for a logo", rasterAt >= 0)
+        assertTrue("the logo must print above the name", rasterAt < nameAt)
     }
 
     @Test
@@ -139,11 +189,10 @@ class ThermalLayoutTest {
     }
 
     @Test
-    fun `the QR is a whole number of bytes wide and no wider than half the paper`() {
-        listOf(PaperProfile.MM58, PaperProfile.MM80).forEach { paper ->
-            val size = ThermalLayout.qrSizeDots(paper)
-            assertEquals("not byte-aligned on ${paper.size}", 0, size % 8)
-            assertTrue("QR wider than half the paper on ${paper.size}", size <= paper.dotsPerLine / 2)
-        }
+    fun `the only blank lines are the two that clear the tear bar`() {
+        val rows = ThermalLayout.layout(receipt(), PaperProfile.MM80)
+        val blanks = rows.filterIsInstance<ReceiptRow.Blank>()
+        assertEquals("blank rows elsewhere in the receipt", 1, blanks.size)
+        assertEquals(2, blanks.single().count)
     }
 }

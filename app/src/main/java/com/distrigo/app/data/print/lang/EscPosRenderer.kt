@@ -47,6 +47,13 @@ object EscPosRenderer {
         // Select the code page before any text. A printer that was last used by another app may hold
         // any page at all, and INIT restores the factory one rather than the one we want.
         out.write(byteArrayOf(ESC, 't'.code.toByte(), codePage.escPosPage.toByte()))
+        // The font the layout was measured against. Get this wrong and every line is laid out for a
+        // width the printer is not using — 42 characters of text squeezed into a 32-character Font A
+        // line comes back wrapped, which looks like a layout bug and is not one.
+        out.write(byteArrayOf(ESC, 'M'.code.toByte(), paper.font.escPosSelector.toByte()))
+        // Line spacing, in dots. The factory default is sized for Font A and generous even for it;
+        // against Font B's 17-dot glyphs it spends a third of the roll on white space.
+        out.write(byteArrayOf(ESC, '3'.code.toByte(), paper.lineSpacingDots.toByte()))
 
         rows.forEach { row -> out.writeRow(row, paper, codePage) }
 
@@ -81,12 +88,6 @@ object EscPosRenderer {
             is ReceiptRow.Raster -> {
                 write(row.align.command())
                 writeRaster(row.raster)
-                write(ALIGN_LEFT)
-            }
-
-            is ReceiptRow.Qr -> {
-                write(ALIGN_CENTER)
-                writeQr(row.payload, row.sizeDots)
                 write(ALIGN_LEFT)
             }
 
@@ -136,41 +137,6 @@ object EscPosRenderer {
             write(raster.bits, row * bytesPerRow, band * bytesPerRow)
             row += band
         }
-    }
-
-    /**
-     * `GS ( k` — the printer's own QR encoder.
-     *
-     * Preferred over rasterising a ZXing bitmap: the printer draws the modules on its own dot grid, so
-     * the result is sharp at any size, and the payload is the URL's worth of bytes instead of tens of
-     * kilobytes of image. The preview rasterises instead, because it has no printer to ask.
-     */
-    private fun ByteArrayOutputStream.writeQr(payload: String, sizeDots: Int) {
-        val data = payload.toByteArray(Charsets.UTF_8)
-
-        // Model 2, the one every implementation supports.
-        write(byteArrayOf(GS, '('.code.toByte(), 'k'.code.toByte(), 4, 0, 49, 65, 50, 0))
-
-        // Module size in dots. A version-4-ish payload is about 33 modules across, so this is the
-        // multiplier that lands the code near the requested width, clamped to what the command allows.
-        val moduleSize = (sizeDots / 33).coerceIn(1, 16)
-        write(byteArrayOf(GS, '('.code.toByte(), 'k'.code.toByte(), 3, 0, 49, 67, moduleSize.toByte()))
-
-        // Error correction M (49=L, 50=M, 51=Q, 52=H). M survives the smudging a thermal receipt picks
-        // up in a pocket without costing the density that H would.
-        write(byteArrayOf(GS, '('.code.toByte(), 'k'.code.toByte(), 3, 0, 49, 69, 50))
-
-        // Store the payload. The length includes the three header bytes that follow pL/pH.
-        val len = data.size + 3
-        write(byteArrayOf(
-            GS, '('.code.toByte(), 'k'.code.toByte(),
-            (len and 0xFF).toByte(), ((len shr 8) and 0xFF).toByte(),
-            49, 80, 48,
-        ))
-        write(data)
-
-        // Print what was stored.
-        write(byteArrayOf(GS, '('.code.toByte(), 'k'.code.toByte(), 3, 0, 49, 81, 48))
     }
 
     private fun RowAlign.command(): ByteArray = when (this) {

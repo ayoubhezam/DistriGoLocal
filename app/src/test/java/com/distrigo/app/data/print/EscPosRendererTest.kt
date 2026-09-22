@@ -37,7 +37,7 @@ class EscPosRendererTest {
     }
 
     @Test
-    fun `the stream initialises and selects the code page before any text`() {
+    fun `the stream initialises, then selects code page, font and line spacing before any text`() {
         val bytes = render(ReceiptRow.Line("Café"), codePage = PrinterCodePage.CP858)
 
         // ESC @ then ESC t 19.
@@ -46,6 +46,12 @@ class EscPosRendererTest {
         assertEquals(0x1B.toByte(), bytes[2])
         assertEquals('t'.code.toByte(), bytes[3])
         assertEquals(19.toByte(), bytes[4])
+
+        // ESC M 1 — Font B, the width the layout was measured against. Wrong font, and every line is
+        // laid out for a width the printer is not using.
+        assertTrue("font not selected", bytes.indexOfBytes(0x1B, 'M'.code, 1) in 5..12)
+        // ESC 3 20 — the compact line spacing, the other half of a short receipt.
+        assertTrue("line spacing not set", bytes.indexOfBytes(0x1B, '3'.code, 20) in 5..12)
 
         // INIT resets the printer to its factory page, so selecting ours afterwards is the only order
         // that works — and text must come after that, not between.
@@ -131,20 +137,6 @@ class EscPosRendererTest {
             from += at + 4
         }
         assertEquals(4, count)
-    }
-
-    @Test
-    fun `the QR goes out as native commands, not as pixels`() {
-        val bytes = render(ReceiptRow.Qr("https://example.test/v/27", 192))
-
-        // Model, size, error-correction, store, print — the five GS ( k calls.
-        assertTrue("model not set",  bytes.indexOfBytes(0x1D, '('.code, 'k'.code, 4, 0, 49, 65, 50, 0) >= 0)
-        assertTrue("size not set",   bytes.indexOfBytes(0x1D, '('.code, 'k'.code, 3, 0, 49, 67) >= 0)
-        assertTrue("ec not set",     bytes.indexOfBytes(0x1D, '('.code, 'k'.code, 3, 0, 49, 69, 50) >= 0)
-        assertTrue("not printed",    bytes.indexOfBytes(0x1D, '('.code, 'k'.code, 3, 0, 49, 81, 48) >= 0)
-
-        // The payload is carried literally, which is the whole saving over a raster.
-        assertTrue("payload missing", String(bytes, Charsets.ISO_8859_1).contains("https://example.test/v/27"))
     }
 
     @Test

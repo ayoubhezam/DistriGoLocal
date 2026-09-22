@@ -64,6 +64,19 @@ class BusinessSettingsRepository(
         return saveLogoBytes(bytes)
     }
 
+    /**
+     * Clears the logo, so receipts print without one.
+     *
+     * Only the reference is dropped; the stored image is left alone. The ImageStore keys by content
+     * hash and is shared with every product, client and supplier photo, so the same bytes may well be
+     * some other row's picture — deleting the file to tidy up here is how an unrelated photo goes
+     * missing. An orphaned blob costs a few kilobytes; a vanished product photo costs a support call.
+     */
+    suspend fun removeLogo() {
+        importLegacyIfNeeded()
+        dao.updateLogo(null)
+    }
+
     internal suspend fun saveLogoBytes(bytes: ByteArray): Boolean {
         importLegacyIfNeeded()
         val ref = withContext(Dispatchers.IO) { ImageStore.put(context, bytes) } ?: return false

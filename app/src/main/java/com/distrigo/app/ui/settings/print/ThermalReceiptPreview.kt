@@ -39,8 +39,6 @@ import com.distrigo.app.data.print.lang.ReceiptRow
 import com.distrigo.app.data.print.lang.RowAlign
 import com.distrigo.app.data.print.lang.RowScale
 import com.distrigo.app.data.print.lang.RowWeight
-import com.distrigo.app.data.print.lang.ThermalRaster
-import com.distrigo.app.ui.components.QrCodeGenerator
 import com.distrigo.app.ui.designsystem.DsColors
 
 /** Thermal paper is not white: a faint warm grey, which is also what keeps the card off the surface. */
@@ -99,7 +97,14 @@ fun ThermalReceiptPreview(
             // preview a third of a character narrow is invisible; one a third wide loses a digit.
             if (probe.size.width <= 0) base else base * (targetPx / probe.size.width) * 0.997f
         }
-        val lineHeight = fontSize * 1.18f
+        // Line spacing taken from the profile rather than from a chosen multiple of the font size,
+        // so the preview's vertical rhythm is the printer's: the gap between two lines is
+        // lineSpacingDots wide in the same dots the characters are glyphWidthDots wide in. Tighten
+        // ESC 3 n and this tightens with it, which is the only way the two can stay honest.
+        val charWidthPx = with(density) { contentWidth.toPx() } / paper.charsPerLine
+        val lineHeight = with(density) {
+            (charWidthPx * paper.lineSpacingDots / paper.font.glyphWidthDots).toSp()
+        }
 
         Box(modifier = Modifier.width(cardWidth).align(Alignment.TopCenter)) {
             Column(
@@ -158,17 +163,6 @@ private fun RenderRow(
         }))
 
         is ReceiptRow.Raster -> RasterImage(row.raster, row.align, contentWidth)
-
-        // Rasterised through the same path the printer's fallback would use, so a QR that comes out too
-        // dense to scan looks too dense here too.
-        is ReceiptRow.Qr -> {
-            val raster = remember(row.payload, row.sizeDots) {
-                runCatching {
-                    ThermalRaster.fromBitmap(QrCodeGenerator.generate(row.payload, row.sizeDots), row.sizeDots)
-                }.getOrNull()
-            }
-            raster?.let { RasterImage(it, RowAlign.Center, contentWidth * 0.5f) }
-        }
 
         // The tear-off line. Shown because the roll really does advance and cut here, and the gap tells
         // the user how much paper each receipt costs them.

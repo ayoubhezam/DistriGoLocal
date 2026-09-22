@@ -29,4 +29,7 @@ class BusinessSettingsViewModel @Inject constructor(
 
     /** False if the picked image could not be read or stored; the current logo then stays. */
     suspend fun saveLogo(uri: Uri): Boolean = repository.saveLogo(uri)
+
+    /** Clears the logo. Receipts, the preview and the PDF all stop drawing one. */
+    suspend fun removeLogo() = repository.removeLogo()
 }

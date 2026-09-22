@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -168,6 +169,42 @@ fun ReceiptAndPrintSettingsScreen(
                         )
                         Spacer(Modifier.height(DsSpacing.xs))
                         Text("Ajouter un logo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                    }
+                }
+            }
+
+            // Explicit controls rather than only the tap-to-change box, because the box can offer one
+            // action and there are two — and "remove the logo entirely" is not something a user can
+            // guess is available by looking at a picture of their logo.
+            if (logoFile != null) {
+                Spacer(Modifier.height(DsSpacing.sm))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                ) {
+                    OutlinedButton(
+                        onClick  = { imagePicker.launch("image/*") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape    = DsShapes.medium,
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(DsSpacing.xs))
+                        Text("Changer", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+                    }
+                    OutlinedButton(
+                        onClick  = {
+                            scope.launch {
+                                businessViewModel.removeLogo()
+                                Toast.makeText(context, "Logo supprimé", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape    = DsShapes.medium,
+                        border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.DangerLight),
+                    ) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(DsSpacing.xs))
+                        Text("Supprimer", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                     }
                 }
             }

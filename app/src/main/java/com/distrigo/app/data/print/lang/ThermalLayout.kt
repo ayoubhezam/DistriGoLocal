@@ -5,7 +5,6 @@ import com.distrigo.app.ui.components.ReceiptData
 import com.distrigo.app.ui.components.ReceiptLineItem
 import com.distrigo.app.ui.components.formatQty
 import java.util.Locale
-import kotlin.math.min
 
 /**
  * Lays a [ReceiptData] out for thermal paper, once, for everybody.
@@ -15,15 +14,18 @@ import kotlin.math.min
  * from the paper the way `ReceiptPreviewSheet` and `ReceiptPdfGenerator` already have — those two each
  * carry their own copy of the same rules and agree only because somebody keeps checking.
  *
- * Everything is measured in Font A characters: 32 across on 58 mm, 48 on 80 mm. Those two numbers are
- * the whole layout spec (see docs/print_architecture.md §2).
+ * Everything is measured in the printer's own characters — Font B, so **42 across on 58 mm and 64 on
+ * 80 mm**. Those two numbers are the whole layout spec (see docs/print_architecture.md §2).
+ *
+ * The receipt is built to be short. Font B rather than Font A, tight line spacing, no blank line
+ * between items, no QR: a receipt is a running cost, and a shop buying rolls by the box notices the
+ * difference between twenty lines and thirty.
  *
  * The item table differs by width on purpose, because it has to:
- * - **48 columns** fit a real table, one line per item, with a header.
- * - **32 columns** do not. 32 minus the three numeric columns leaves nothing for a product name, so an
- *   item takes two lines — the name, then the quantity and the line total. This is what every receipt
- *   printed on a 58 mm roll does, and it is why switching the paper in the preview visibly rewrites the
- *   receipt instead of merely narrowing it.
+ * - **64 columns** fit a real table, one line per item, with a header.
+ * - **42 columns** do not, at least not usefully — see [MIN_COLUMNS_FOR_TABLE] — so an item takes two
+ *   lines: the name, then the quantity and the line total. It is why switching the paper in the
+ *   preview visibly rewrites the receipt instead of merely narrowing it.
  *
  * (The dependency on `ui.components.ReceiptData` points the wrong way for a `data` package. It is
  * where the receipt model already lives, and `BusinessSettingsRepository` already reaches into
@@ -32,8 +34,15 @@ import kotlin.math.min
  */
 object ThermalLayout {
 
-    /** The cut-off above which an item table fits on one line. 48-column paper clears it, 32 does not. */
-    private const val MIN_COLUMNS_FOR_TABLE = 40
+    /**
+     * The cut-off above which an item table fits on one line.
+     *
+     * 64-column paper clears it; 42 deliberately does not. 42 minus the three numeric columns leaves
+     * twelve characters for a product name, and "Lait Candia demi-écrémé 1L" wrapped across three
+     * continuation lines is *longer* than the two-line form, not shorter — so the narrow roll keeps
+     * its two-line items even though it could technically rule a table.
+     */
+    private const val MIN_COLUMNS_FOR_TABLE = 50
 
     /**
      * @param logo already scaled and dithered to [paper]'s dot width, or null when the business has no
@@ -48,19 +57,21 @@ object ThermalLayout {
         val w = paper.charsPerLine
 
         // ── Header ──
-        logo?.let { add(ReceiptRow.Raster(it)); add(ReceiptRow.Blank()) }
+        //
+        // No blank lines anywhere in here. Every one costs 20 dots of paper, and a rule already
+        // separates the header from what follows it.
+        logo?.let { add(ReceiptRow.Raster(it)) }
         add(ReceiptRow.Line(receipt.businessName.uppercase(Locale.FRENCH), RowAlign.Center, RowWeight.Bold))
         receipt.businessPhone?.takeIf { it.isNotBlank() }?.let {
             add(ReceiptRow.Line("Tel: $it", RowAlign.Center))
         }
-        add(ReceiptRow.Blank())
         add(ReceiptRow.Line(badgeLabel(receipt.documentTitle), RowAlign.Center, RowWeight.Bold))
         add(ReceiptRow.Rule())
 
         // ── What this document is, and who for ──
         //
         // A label column with the values wrapped and hanging-indented under it. The A4 receipt sets
-        // these in two side-by-side columns; 32 characters have room for one.
+        // these in two side-by-side columns; a thermal roll has room for one.
         val labelWidth = listOf("N°", "Date", "Heure", receipt.partyLabel, "Type", "Secteur", "Par")
             .maxOf { it.length }
         infix fun String.field(value: String?) {
@@ -95,7 +106,6 @@ object ThermalLayout {
         wrap(receipt.amountInWords, w).forEach { add(ReceiptRow.Line(it)) }
 
         receipt.note?.takeIf { it.isNotBlank() }?.let { note ->
-            add(ReceiptRow.Blank())
             addAll(field("Note", note, 4, w))
         }
 
@@ -104,16 +114,19 @@ object ThermalLayout {
         // On a fully paid receipt nobody signs anything; on one with a balance the signature is the
         // acknowledgement of the debt, which is the whole reason to print it.
         if (receipt.balance > 0) {
-            add(ReceiptRow.Blank())
             add(ReceiptRow.Line("Signature : " + "_".repeat((w - 12).coerceAtLeast(6))))
         }
 
         // ── Footer ──
-        add(ReceiptRow.Blank())
-        add(ReceiptRow.Qr(receipt.qrContent, qrSizeDots(paper)))
-        add(ReceiptRow.Blank())
+        //
+        // No QR. It cost about a centimetre of roll on every receipt and encoded only what the
+        // receipt already prints in words — the title, the date and the total — so nothing could be
+        // learned by scanning it that reading it did not already give. (The A4 PDF keeps its one:
+        // there the space is free.)
+        add(ReceiptRow.Rule())
         add(ReceiptRow.Line("Merci pour votre confiance !", RowAlign.Center, RowWeight.Bold))
-        add(ReceiptRow.Line("À bientôt", RowAlign.Center))
+        // The two blank lines are not padding: they feed the last printed line clear of the tear bar,
+        // which sits about 15 mm above the head on every mechanism we have seen.
         add(ReceiptRow.Blank(2))
         add(ReceiptRow.Cut)
     }
@@ -121,7 +134,7 @@ object ThermalLayout {
     // ───────────────────────────── items ─────────────────────────────
 
     /**
-     * 48 columns: `Article(18) Qté(10) P.U.(9) Total(8)`, single spaces between, one line per item.
+     * Wide paper: `Article Qté P.U. Total`, single spaces between, one line per item.
      *
      * The widths are derived from [width] rather than constants so an unusual profile still produces a
      * table that adds up, and the name column absorbs whatever is left over.
@@ -157,14 +170,15 @@ object ThermalLayout {
     }
 
     /**
-     * 32 columns: the name on its own line, then `qté × P.U.` indented with the line total pinned right.
+     * Narrow paper: the name on its own line, then `qté × P.U.` indented with the line total pinned right.
      *
-     * Two lines per item is not a compromise here — three numeric columns plus a separator already eat
-     * more than 32 characters, so there is no single-line table to fall back to.
+     * Two lines per item, with nothing between one item and the next — the indent on the figures line
+     * is what groups them, and it costs no paper.
      */
     private fun itemPairs(items: List<ReceiptLineItem>, width: Int): List<ReceiptRow> = buildList {
-        items.forEachIndexed { index, item ->
-            if (index > 0) add(ReceiptRow.Blank())
+        items.forEach { item ->
+            // No blank line between items. The indent on the figures line already groups each pair
+            // visually, and a separator per item is a line of paper per item.
             wrap(item.name, width).ifEmpty { listOf("") }.forEach { add(ReceiptRow.Line(it)) }
             val left  = "  ${formatQty(item.quantity)} ${item.unitLabel} x ${money(item.unitPrice, 9)}"
             val total = money(item.totalPrice, 9)
@@ -238,15 +252,6 @@ object ThermalLayout {
         val rounded = String.format(Locale.ROOT, "%.0f", value)
         return if (rounded.length <= width) rounded else rounded.takeLast(width)
     }
-
-    /**
-     * The QR's side length: half the paper, capped, and a whole number of bytes.
-     *
-     * Half the width keeps it scannable without spending 3 cm of roll on it; the cap stops an 80 mm
-     * roll from printing a QR the size of a coaster.
-     */
-    internal fun qrSizeDots(paper: PaperProfile): Int =
-        ((min(paper.dotsPerLine / 2, 240)) / 8) * 8
 
     private fun badgeLabel(documentTitle: String): String =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
