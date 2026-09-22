@@ -24,7 +24,7 @@ sealed class Screen(val route: String) {
     // ── Paramètres (PlusParametres content): its own NavHost, one destination per settings screen ──
     data object SettingsGraph      : Screen("settings_graph")
     data object SettingsHome       : Screen("settings_home")
-    data object SettingsReceipt    : Screen("settings_receipt")
+    data object SettingsReceiptPrint : Screen("settings_receipt_print")
     data object SettingsCommission : Screen("settings_commission")
     data object SettingsData       : Screen("settings_data")
     data object SettingsExport     : Screen("settings_data_export")

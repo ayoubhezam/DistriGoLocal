@@ -52,8 +52,8 @@ fun ParametresScreen(
                 icon     = Icons.Default.Receipt,
                 iconBg   = DsColors.SuccessLight,
                 iconTint = DsColors.Success,
-                title    = "Paramètres du reçu",
-                subtitle = "Logo, nom du commerce et informations affichées sur le reçu",
+                title    = "Reçus et impression",
+                subtitle = "Logo, format du papier et imprimante",
                 onClick  = onReceipt
             )
             SettingsNavCard(

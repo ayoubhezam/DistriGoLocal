@@ -9,7 +9,7 @@ import com.distrigo.app.ui.settings.data.DataBackupScreen
 import com.distrigo.app.ui.settings.data.export.ExportScreen
 import com.distrigo.app.ui.settings.data.importer.ImportScreen
 import com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen
-import com.distrigo.app.ui.settings.receipt.ReceiptSettingsScreen
+import com.distrigo.app.ui.settings.print.ReceiptAndPrintSettingsScreen
 import com.distrigo.app.ui.settings.trash.TrashScreen
 
 /**
@@ -32,14 +32,14 @@ fun SettingsNavHost(onBack: () -> Unit) {
         composable(Screen.SettingsHome.route) {
             ParametresScreen(
                 onBack       = onBack,
-                onReceipt    = { navController.navigate(Screen.SettingsReceipt.route) },
+                onReceipt    = { navController.navigate(Screen.SettingsReceiptPrint.route) },
                 onCommission = { navController.navigate(Screen.SettingsCommission.route) },
                 onData       = { navController.navigate(Screen.SettingsData.route) },
                 onTrash      = { navController.navigate(Screen.SettingsTrash.route) }
             )
         }
-        composable(Screen.SettingsReceipt.route) {
-            ReceiptSettingsScreen(onBack = { navController.popBackStack() })
+        composable(Screen.SettingsReceiptPrint.route) {
+            ReceiptAndPrintSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.SettingsCommission.route) {
             CommissionPolicyScreen(onBack = { navController.popBackStack() })

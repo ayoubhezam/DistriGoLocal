@@ -15,6 +15,7 @@ import com.distrigo.app.data.backup.BackupInspector
 import com.distrigo.app.data.backup.RestoreCoordinator
 import com.distrigo.app.data.backup.RestoreInstaller
 import com.distrigo.app.data.backup.RestorePreparer
+import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import android.content.Context
 import com.distrigo.app.data.local.database.AppDatabase
@@ -59,6 +60,15 @@ object AppModule {
     @Singleton
     fun provideAutoBackupStore(@ApplicationContext context: Context): AutoBackupStore =
         AutoBackupStore.forApp(context)
+
+    /**
+     * This phone's printing configuration. Device-local, like the backup store above and for the same
+     * reason — see PrintSettingsStore's header.
+     */
+    @Provides
+    @Singleton
+    fun providePrintSettingsStore(@ApplicationContext context: Context): PrintSettingsStore =
+        PrintSettingsStore.forApp(context)
 
     @Provides
     @Singleton
