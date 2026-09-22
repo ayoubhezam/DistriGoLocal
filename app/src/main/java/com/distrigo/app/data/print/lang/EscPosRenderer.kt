@@ -18,10 +18,24 @@ object EscPosRenderer {
 
     // ── The command vocabulary, named once so the call sites read as intent ──
     private const val ESC: Byte = 0x1B
+    private const val FS : Byte = 0x1C
     private const val GS : Byte = 0x1D
     private const val LF : Byte = 0x0A
 
     private val INIT          = byteArrayOf(ESC, '@'.code.toByte())
+
+    /**
+     * `FS .` — cancel Kanji character mode.
+     *
+     * The fix for French on printers built for the Chinese market, which ship with multi-byte mode
+     * *on*: a byte at or above 0x80 is read as the lead byte of a GBK pair, so `é` (0xE9 in CP1252)
+     * swallows the character after it and the two print as one unrelated CJK glyph. That is why
+     * accents came out as Chinese rather than as the wrong accent.
+     *
+     * It must follow `ESC @`, which restores the factory state and would re-enable the mode, and it
+     * costs two bytes on printers that were never in it.
+     */
+    private val KANJI_OFF     = byteArrayOf(FS, '.'.code.toByte())
     private val ALIGN_LEFT    = byteArrayOf(ESC, 'a'.code.toByte(), 0)
     private val ALIGN_CENTER  = byteArrayOf(ESC, 'a'.code.toByte(), 1)
     private val ALIGN_RIGHT   = byteArrayOf(ESC, 'a'.code.toByte(), 2)
@@ -44,6 +58,7 @@ object EscPosRenderer {
         val out = ByteArrayOutputStream()
 
         out.write(INIT)
+        out.write(KANJI_OFF)
         // Select the code page before any text. A printer that was last used by another app may hold
         // any page at all, and INIT restores the factory one rather than the one we want.
         out.write(byteArrayOf(ESC, 't'.code.toByte(), codePage.escPosPage.toByte()))

@@ -16,7 +16,7 @@ import org.junit.Test
  * invariants that a renderer or the preview would otherwise have to be trusted with: **no row is ever
  * wider than the paper**, and the money columns keep their thousands when they run out of room.
  *
- * The widths are Font B's — 42 on 58 mm, 64 on 80 mm — and the receipt is built to be short, so some
+ * The widths are Font A's — 32 on 58 mm, 48 on 80 mm — and the receipt is built to be short, so some
  * of these pin the absence of things: no blank line between items, none anywhere but the tear-off feed.
  */
 class ThermalLayoutTest {
@@ -59,17 +59,30 @@ class ThermalLayoutTest {
         }
 
     @Test
-    fun `the profiles are Font B's 42 and 64 columns`() {
-        // 384 and 576 dots over a 9-dot glyph. If these move, every assertion below moves with them.
-        assertEquals(42, PaperProfile.MM58.charsPerLine)
-        assertEquals(64, PaperProfile.MM80.charsPerLine)
+    fun `the profiles are Font A's 32 and 48 columns`() {
+        // 384 and 576 dots over a 12-dot glyph. If these move, every assertion below moves with them.
+        assertEquals(32, PaperProfile.MM58.charsPerLine)
+        assertEquals(48, PaperProfile.MM80.charsPerLine)
+    }
+
+    @Test
+    fun `the line feed always clears the font's own glyphs`() {
+        // A fixed feed is only ever right for one font: 20 dots suits Font B's 17-dot glyphs and
+        // overlaps Font A's 24, printing each line into the descenders of the one above.
+        listOf(PaperProfile.MM58, PaperProfile.MM80).forEach { paper ->
+            assertTrue(
+                "feed ${paper.lineSpacingDots} overlaps ${paper.font} glyphs",
+                paper.lineSpacingDots > paper.font.glyphHeightDots,
+            )
+        }
+        assertEquals(27, PaperProfile.MM80.lineSpacingDots)
     }
 
     @Test
     fun `no row overflows 58mm paper`() {
         val rows = ThermalLayout.layout(receipt(), PaperProfile.MM58)
         printedWidths(rows, PaperProfile.MM58.charsPerLine).forEach { (text, w) ->
-            assertTrue("\"$text\" is $w wide, paper is 42", w <= 42)
+            assertTrue("\"$text\" is $w wide, paper is 32", w <= 32)
         }
     }
 
@@ -77,7 +90,7 @@ class ThermalLayoutTest {
     fun `no row overflows 80mm paper`() {
         val rows = ThermalLayout.layout(receipt(), PaperProfile.MM80)
         printedWidths(rows, PaperProfile.MM80.charsPerLine).forEach { (text, w) ->
-            assertTrue("\"$text\" is $w wide, paper is 64", w <= 64)
+            assertTrue("\"$text\" is $w wide, paper is 48", w <= 48)
         }
     }
 
@@ -92,7 +105,7 @@ class ThermalLayoutTest {
             paid  = 500000.0,
             note  = "Livraison prévue jeudi matin, entrée par la rue arrière du dépôt principal.",
         )
-        listOf(PaperProfile.MM58 to 42, PaperProfile.MM80 to 64).forEach { (paper, width) ->
+        listOf(PaperProfile.MM58 to 32, PaperProfile.MM80 to 48).forEach { (paper, width) ->
             printedWidths(ThermalLayout.layout(data, paper), width).forEach { (text, w) ->
                 assertTrue("[$width] \"$text\" is $w wide", w <= width)
             }

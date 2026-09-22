@@ -14,18 +14,19 @@ import java.util.Locale
  * from the paper the way `ReceiptPreviewSheet` and `ReceiptPdfGenerator` already have — those two each
  * carry their own copy of the same rules and agree only because somebody keeps checking.
  *
- * Everything is measured in the printer's own characters — Font B, so **42 across on 58 mm and 64 on
+ * Everything is measured in the printer's own characters — Font A, so **32 across on 58 mm and 48 on
  * 80 mm**. Those two numbers are the whole layout spec (see docs/print_architecture.md §2).
  *
- * The receipt is built to be short. Font B rather than Font A, tight line spacing, no blank line
- * between items, no QR: a receipt is a running cost, and a shop buying rolls by the box notices the
- * difference between twenty lines and thirty.
+ * The receipt is still built to be short, just not at the cost of legibility: tight line spacing, no
+ * blank line between items, no QR. A receipt is a running cost, and a shop buying rolls by the box
+ * notices the difference between twenty lines and thirty — but Font B, tried for the same reason,
+ * was too small to read on the counter.
  *
  * The item table differs by width on purpose, because it has to:
- * - **64 columns** fit a real table, one line per item, with a header.
- * - **42 columns** do not, at least not usefully — see [MIN_COLUMNS_FOR_TABLE] — so an item takes two
- *   lines: the name, then the quantity and the line total. It is why switching the paper in the
- *   preview visibly rewrites the receipt instead of merely narrowing it.
+ * - **48 columns** fit a real table, one line per item, with a header.
+ * - **32 columns** do not — see [MIN_COLUMNS_FOR_TABLE] — so an item takes two lines: the name, then
+ *   the quantity and the line total. It is why switching the paper in the preview visibly rewrites
+ *   the receipt instead of merely narrowing it.
  *
  * (The dependency on `ui.components.ReceiptData` points the wrong way for a `data` package. It is
  * where the receipt model already lives, and `BusinessSettingsRepository` already reaches into
@@ -37,12 +38,12 @@ object ThermalLayout {
     /**
      * The cut-off above which an item table fits on one line.
      *
-     * 64-column paper clears it; 42 deliberately does not. 42 minus the three numeric columns leaves
-     * twelve characters for a product name, and "Lait Candia demi-écrémé 1L" wrapped across three
-     * continuation lines is *longer* than the two-line form, not shorter — so the narrow roll keeps
-     * its two-line items even though it could technically rule a table.
+     * 48-column paper clears it, 32 does not: 32 minus the three numeric columns leaves nothing for a
+     * product name at all. The threshold tracks the font — it was 50 while the receipt was set in
+     * Font B, where 42 columns *could* have ruled a table but a twelve-character name column would
+     * have wrapped every product over three lines and printed longer, not shorter.
      */
-    private const val MIN_COLUMNS_FOR_TABLE = 50
+    private const val MIN_COLUMNS_FOR_TABLE = 40
 
     /**
      * @param logo already scaled and dithered to [paper]'s dot width, or null when the business has no

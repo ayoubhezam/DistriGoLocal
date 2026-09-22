@@ -32,9 +32,9 @@ enum class PaperSize(val storageCode: String, val label: String, val kindLabel: 
  * Every ESC/POS printer carries exactly these two, selected with `ESC M n`. They are bitmap fonts of
  * fixed size — there is no scale between them, and no third choice.
  *
- * [B] is what DistriGo prints. It is smaller and a receipt set in it is materially shorter, which is
- * what a shop buying rolls by the box cares about; the trade is that 9×17 dots is small print, and
- * anyone who finds it too small is looking for [A].
+ * [A] is what DistriGo prints. [B] is a third shorter per line and was tried for exactly that reason,
+ * but 9×17 dots turned out to be too small to read comfortably on the counter — legibility is not a
+ * saving. The rest of the compaction (tight feed, no blank lines, no QR) kept the paper it saved.
  *
  * @param glyphWidthDots the character cell's width. Together with [com.distrigo.app.data.print.PaperProfile.dotsPerLine]
  *   this is what fixes the characters per line, and it is also the unit the preview scales its line
@@ -50,23 +50,21 @@ enum class PrinterFont(val escPosSelector: Int, val glyphWidthDots: Int, val gly
  *
  * All of it derives from 203 dpi, the universal thermal resolution: 8 dots per mm. The number that
  * actually shapes a receipt is [charsPerLine], which follows from the paper's [dotsPerLine] and the
- * chosen [font] — **42 and 64** in Font B, where it used to be 32 and 48 in Font A.
+ * chosen [font] — **32 and 48** in Font A.
  *
  * @param paperMm the physical roll width, which is what the user buys and what the preview's card is
  *   proportioned to. Wider than [printableMm]: the head does not reach the edges.
  * @param printableMm the width the head actually covers, which [dotsPerLine] is 8 dots per mm of.
- * @param lineSpacingDots the feed between one line's top and the next, set with `ESC 3 n`. The
- *   printer's own default is roughly 30–34 dots, sized for Font A's 24-dot glyphs and generous even
- *   for those; against Font B's 17 it is a third of the paper spent on white space. See
- *   [COMPACT_LINE_SPACING].
+ * @param lineSpacingDots the feed between one line's top and the next, set with `ESC 3 n`. Derived
+ *   from the font's own glyph height so it can never overlap; see [LINE_GAP_DOTS].
  */
 data class PaperProfile(
     val size            : PaperSize,
     val paperMm         : Int,
     val printableMm     : Int,
     val dotsPerLine     : Int,
-    val font            : PrinterFont = PrinterFont.B,
-    val lineSpacingDots : Int = COMPACT_LINE_SPACING,
+    val font            : PrinterFont = PrinterFont.A,
+    val lineSpacingDots : Int = font.glyphHeightDots + LINE_GAP_DOTS,
     val dpi             : Int = 203,
 ) {
     /** Characters per line in the chosen [font]: what the layout engine measures everything against. */
@@ -83,22 +81,23 @@ data class PaperProfile(
 
     companion object {
         /**
-         * The feed between lines, in dots.
+         * The gap left below a line's glyphs, in dots.
          *
-         * Chosen against Font B's 17-dot glyphs: 20 leaves three dots of gap, which is enough to keep
-         * descenders off the next line's capitals without the airy look of the factory default. At 203
-         * dpi it saves roughly 1.7 mm of paper on every single line — about 5 cm on a twenty-line
-         * receipt, which is the difference between two rolls and three over a month.
+         * The feed is derived from the font rather than fixed, because a fixed one is only ever right
+         * for one font: 20 dots suits Font B's 17-dot glyphs and **overlaps** Font A's 24, printing
+         * each line into the descenders of the one above. Three dots is enough to keep them apart
+         * without the airy look of the factory default, which is 30–34 and generous even for Font A —
+         * so 27 still saves 3–7 dots on every line.
          */
-        const val COMPACT_LINE_SPACING = 20
+        const val LINE_GAP_DOTS = 3
 
-        /** 58 mm roll: ~48 mm printable, 384 dots — 42 characters in Font B. */
+        /** 58 mm roll: ~48 mm printable, 384 dots — 32 characters in Font A. */
         val MM58 = PaperProfile(
             size = PaperSize.MM58,
             paperMm = 58, printableMm = 48, dotsPerLine = 384,
         )
 
-        /** 80 mm roll: ~72 mm printable, 576 dots — 64 characters in Font B. */
+        /** 80 mm roll: ~72 mm printable, 576 dots — 48 characters in Font A. */
         val MM80 = PaperProfile(
             size = PaperSize.MM80,
             paperMm = 80, printableMm = 72, dotsPerLine = 576,

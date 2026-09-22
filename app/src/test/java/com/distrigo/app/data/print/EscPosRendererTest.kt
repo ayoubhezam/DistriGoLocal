@@ -40,18 +40,25 @@ class EscPosRendererTest {
     fun `the stream initialises, then selects code page, font and line spacing before any text`() {
         val bytes = render(ReceiptRow.Line("Café"), codePage = PrinterCodePage.CP858)
 
-        // ESC @ then ESC t 19.
+        // ESC @ then FS . then ESC t 19.
         assertEquals(0x1B.toByte(), bytes[0])
         assertEquals('@'.code.toByte(), bytes[1])
-        assertEquals(0x1B.toByte(), bytes[2])
-        assertEquals('t'.code.toByte(), bytes[3])
-        assertEquals(19.toByte(), bytes[4])
 
-        // ESC M 1 — Font B, the width the layout was measured against. Wrong font, and every line is
+        // FS . cancels Kanji mode, and must come after ESC @ — which restores the factory state and
+        // would re-enable it. Left on, a 0xE9 ("é") is read as the lead byte of a GBK pair and two
+        // French characters print as one Chinese one.
+        assertEquals(0x1C.toByte(), bytes[2])
+        assertEquals('.'.code.toByte(), bytes[3])
+
+        assertEquals(0x1B.toByte(), bytes[4])
+        assertEquals('t'.code.toByte(), bytes[5])
+        assertEquals(19.toByte(), bytes[6])
+
+        // ESC M 0 — Font A, the width the layout was measured against. Wrong font, and every line is
         // laid out for a width the printer is not using.
-        assertTrue("font not selected", bytes.indexOfBytes(0x1B, 'M'.code, 1) in 5..12)
-        // ESC 3 20 — the compact line spacing, the other half of a short receipt.
-        assertTrue("line spacing not set", bytes.indexOfBytes(0x1B, '3'.code, 20) in 5..12)
+        assertTrue("font not selected", bytes.indexOfBytes(0x1B, 'M'.code, 0) in 7..14)
+        // ESC 3 27 — Font A's 24-dot glyphs plus three of gap.
+        assertTrue("line spacing not set", bytes.indexOfBytes(0x1B, '3'.code, 27) in 7..14)
 
         // INIT resets the printer to its factory page, so selecting ours afterwards is the only order
         // that works — and text must come after that, not between.
