@@ -22,10 +22,18 @@ dialog.
 | Share | `ui/components/ShareOptionsSheet.kt` | A second, independent call to the same PDF generator |
 
 Call sites, before this work: `ui/purchases/PurchaseOrderDetailScreen.kt` (Achats) and
-`ui/ventes/VentesScreen.kt` (Dépôt Ventes). **Tournées Ventes had none** — no `ReceiptPreviewSheet`,
-no `toReceiptData`, no "Imprimer" anywhere under `ui/tournees/`. Since `VenteEntity` carries a
-`tournee_id`, a tournée sale *is* a `Vente` and already has a `toReceiptData()`, so wiring it up is
-mostly adding the button. That is phase 3.
+`ui/ventes/VentesScreen.kt` (Dépôt Ventes).
+
+**Correction, made in phase 3.** The original audit reported that Tournées Ventes had no print button,
+on the strength of grepping `ui/tournees/` for `ReceiptPreviewSheet` and "Imprimer" and finding
+nothing. That grep was scoped to the wrong package. A tournée sale's detail screen is not in
+`ui/tournees/` at all: `TourneesNavHost` routes `Screen.TourneesVenteDetail` to
+`ui/ventes/VentesScreen.kt`'s `VenteDetailScreen`, the same screen Dépôt Ventes uses, whose
+unconditional bottom row already carried "Aperçu & Imprimer". Tournées Ventes could always print, and
+it inherits the thermal routing with no new button.
+
+There are therefore **two** receipt entry points, not three, and both go through
+`ReceiptPreviewSheet` — which is why phase 3 changed one button and reached all of them.
 
 No Bluetooth, Wi-Fi or socket code existed anywhere in the project. This module is greenfield.
 
@@ -374,7 +382,7 @@ ui/settings/print/
 | **0** | `PrintSettings` + store + `PaperProfile` + `ThermalLayout` + `ThermalRaster` + `PrinterCodePage` + preview. No hardware. | Settings screen with a working live preview — reviewable before touching Bluetooth | **done** |
 | **1** | Merge receipt settings in; rename the card to "Reçus et impression" | The reorganisation of §3 | **done** |
 | **2** | BT permissions, `BluetoothSppTransport`, `PrinterSelectionScreen`, `PrinterGate`, `EscPosRenderer`, `TestPrint` calibration strip | Real printing, ESC/POS only | **code done, unverified against hardware** |
-| **3** | `ReceiptPrinter` behind the buttons in `PurchaseOrderDetailScreen` + `VentesScreen`, **plus the new one in Tournées Ventes**, with PDF fallback | Hardware printing in production | next |
+| **3** | `ReceiptPrinter` behind the print button in `ReceiptPreviewSheet`, which Achats, Dépôt Ventes and Tournées Ventes all share; A4 keeps the PDF path; PDF offered as the fallback on every failure | Hardware printing in production | **done** |
 | **4** | `TcpTransport` + SSID display + manual IP | Wi-Fi | |
 | **5** | TSPL / CPCL renderers | Compatibility | |
 
@@ -383,7 +391,30 @@ testable on a desk with no printer (`app/src/test/.../data/print/`).
 
 ---
 
-## 12. Found on the device, phase 2
+## 12. Phase 3 — the button
+
+One button changed, in `ReceiptPreviewSheet`, and all three screens followed, because Achats, Dépôt
+Ventes and Tournées Ventes open the same sheet.
+
+**The paper picks the route, silently.** A4 keeps `ReceiptPdfGenerator` + `PrintManager`; 58/80 mm go
+to the thermal printer. The user is not asked which they meant — they already said, on the settings
+screen — but the button states where it is about to send the receipt underneath itself
+(`printTargetLabel`), because printing is the one action here whose outcome depends on a setting made
+somewhere else. A paper size should not be a surprise discovered on the roll.
+
+**The A4 half stays in the composable.** `PrintManager` refuses an application-scoped context, so the
+PDF path needs the Activity's; only the thermal half moved into `ReceiptPrintViewModel`.
+
+**The sale is already committed when any of this runs.** So a printer that is off, out of range or
+unconfigured is never phrased as a failed sale, nothing is retried automatically, and *Partager en
+PDF* sits beside *Réessayer* on every failure — the share sheet the screen already had. An
+unconfigured printer drops the retry entirely, since there is nothing to retry until one is chosen on
+another screen, and says where to choose it.
+
+Nothing records that a receipt was printed. That was a deliberate call: it would be a Room column and
+therefore a migration, and the schema stays untouched at this stage. See the open questions.
+
+## 13. Found on the device, phase 2
 
 Three things the walk turned up that no unit test would have:
 
@@ -401,7 +432,7 @@ Three things the walk turned up that no unit test would have:
   rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
   mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
 
-## 13. Noted while building
+## 14. Noted while building
 
 **`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
 that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
@@ -413,7 +444,7 @@ so the device never showed it and the JVM tests did immediately. `PrintSettingsS
 reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
 that store ever gains a desktop or JVM-side test it will surface there first.
 
-## 14. Open questions
+## 15. Open questions
 
 - **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
   assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,
@@ -421,6 +452,6 @@ that store ever gains a desktop or JVM-side test it will surface there first.
 - **Font B for 58 mm?** 42 chars instead of 32 would let the 58 mm layout keep the single-line table.
   It is small print on already-small paper; the two-line layout was chosen instead. Revisit if users
   complain about receipt length rather than legibility.
-- **Reprint history.** Phase 3 offers a reprint affordance, but nothing records *that* a receipt was
-  printed. If that turns out to matter (disputes, audits), it is a Room column and therefore a
-  migration — decide before phase 3 ends, not after.
+- **Reprint history.** Decided for now: **not tracked**. Nothing records that a receipt was printed,
+  and the schema is untouched. If disputes or audits make it matter, it is a Room column and therefore
+  a migration, and the receipts printed before that point will have no history to show.

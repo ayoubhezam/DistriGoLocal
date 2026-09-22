@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.settings.print
 
-import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.print.ConnectionMethod
@@ -11,8 +10,8 @@ import com.distrigo.app.data.print.PrintSettings
 import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.ReceiptRow
+import com.distrigo.app.data.print.ReceiptRasterizer
 import com.distrigo.app.data.print.lang.ThermalLayout
-import com.distrigo.app.data.print.lang.ThermalRaster
 import com.distrigo.app.data.model.BusinessSettings
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -87,25 +86,18 @@ class PrintSettingsViewModel @Inject constructor(
     }
 
     /**
-     * The logo, scaled and dithered to this paper's dot width.
+     * [ReceiptRasterizer.logo], remembered.
      *
-     * Null when there is no logo, when the file is missing — a database restored without its photos has
-     * a logo reference and no file — or when it cannot be decoded. The receipt then simply has no logo,
-     * which is what the A4 renderer already does in the same situation.
-     *
-     * Cached on the path and the width together, because the same logo has to be re-dithered when the
-     * paper changes: 384 dots and 576 dots are different images, not one image at two sizes.
+     * The dithering itself is shared with the print button — a logo decoded twice by two callers is a
+     * logo that eventually looks different on screen from on paper. Only the cache is local, and only
+     * because this screen is the one that re-lays the receipt out on every keystroke in the name
+     * field; a print job runs once and has nothing to cache.
      */
     private fun logoRaster(path: String?, paper: PaperProfile): MonoRaster? {
         val file = path?.let(::File)?.takeIf { it.isFile } ?: return null
         val key = file.path to paper.rasterWidthDots
         cachedLogo?.let { (cachedKey, raster) -> if (cachedKey == key) return raster }
-        val raster = runCatching {
-            val bitmap = BitmapFactory.decodeFile(file.path) ?: return null
-            // The logo is given the full printable width; a mark that wants to be smaller is smaller in
-            // the source image, which is the only place the user can control it from.
-            ThermalRaster.fromBitmap(bitmap, paper.rasterWidthDots)
-        }.getOrNull()
+        val raster = ReceiptRasterizer.logo(file.path, paper)
         cachedLogo = key to raster
         return raster
     }
