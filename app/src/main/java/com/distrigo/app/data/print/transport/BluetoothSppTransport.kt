@@ -110,8 +110,22 @@ class BluetoothSppTransport(private val context: Context) : PrinterTransport {
         /** The Serial Port Profile's well-known UUID. Every SPP printer answers on it. */
         val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-        const val CHUNK_BYTES = 256
-        const val CHUNK_PAUSE_MS = 20L
+        /**
+         * Chunk size and pause, measured rather than guessed.
+         *
+         * These were 256 bytes and 20 ms — cautious numbers chosen before any printer had been seen,
+         * when the payload was 1.5 KB of text and the 120 ms they cost was invisible. The raster
+         * benchmark changed what is known: 40 KB went out in 4.0 s of which **3.5 s was this pause**,
+         * the link itself ran at ~70 KB/s, and the paper came out in one continuous motion with no
+         * density banding at all. The printer was never the bottleneck; we were.
+         *
+         * Four times the chunk and a fifth of the pause turns that 3.5 s into about 0.16 s. The pause
+         * is reduced rather than removed because the benchmark ran *with* pacing in place, so what it
+         * proves is that the printer keeps up at this rate — not that it would keep up with no
+         * pacing at all. If banding ever appears, this is the knob.
+         */
+        const val CHUNK_BYTES = 1024
+        const val CHUNK_PAUSE_MS = 4L
         const val DRAIN_MS = 250L
 
         /**

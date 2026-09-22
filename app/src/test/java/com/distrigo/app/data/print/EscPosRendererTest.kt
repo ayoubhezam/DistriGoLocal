@@ -3,9 +3,7 @@ package com.distrigo.app.data.print
 import com.distrigo.app.data.print.lang.EscPosRenderer
 import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.PrinterCodePage
-import com.distrigo.app.data.print.lang.ReceiptRow
-import com.distrigo.app.data.print.lang.RowAlign
-import com.distrigo.app.data.print.lang.RowWeight
+import com.distrigo.app.data.print.lang.TestLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,18 +11,17 @@ import org.junit.Test
 /**
  * The ESC/POS byte stream, checked without a printer.
  *
- * These pin the parts that fail invisibly on paper: a code page selected too late, a formatting flag
- * left on so the rest of the receipt prints bold, and a raster header whose width and height are
- * swapped — which prints a band of noise rather than nothing, so it is not obviously a bug.
+ * Two streams now. The receipt goes out as **rasters**, because the printer's own text mode cannot
+ * shape or reorder Arabic; the self-test still goes out as **text**, because that is the only thing
+ * that can tell a printer which ignores `GS v 0` from one that is switched off — both print nothing.
+ *
+ * These pin the parts that fail invisibly on paper: a raster header whose width and height are
+ * swapped, which prints a band of noise rather than failing outright, and a code page selected after
+ * the text it was meant to encode.
  */
 class EscPosRendererTest {
 
-    private val NEWLINE = Char(0x0A)
-
     private val paper = PaperProfile.MM58
-
-    private fun render(vararg rows: ReceiptRow, codePage: PrinterCodePage = PrinterCodePage.CP1252) =
-        EscPosRenderer.render(rows.toList(), paper, codePage)
 
     /** Finds [needle] in [this], or -1. */
     private fun ByteArray.indexOfBytes(vararg needle: Int): Int {
@@ -36,87 +33,25 @@ class EscPosRendererTest {
         return -1
     }
 
-    @Test
-    fun `the stream initialises, then selects code page, font and line spacing before any text`() {
-        val bytes = render(ReceiptRow.Line("Café"), codePage = PrinterCodePage.CP858)
+    private fun raster(height: Int) = MonoRaster(384, height, ByteArray(48 * height))
 
-        // ESC @ then FS . then ESC t 19.
+    // ───────────────────────────── the receipt ─────────────────────────────
+
+    @Test
+    fun `a raster stream initialises and cancels Kanji mode before anything else`() {
+        val bytes = EscPosRenderer.renderRaster(listOf(raster(2)))
+
         assertEquals(0x1B.toByte(), bytes[0])
         assertEquals('@'.code.toByte(), bytes[1])
-
-        // FS . cancels Kanji mode, and must come after ESC @ — which restores the factory state and
-        // would re-enable it. Left on, a 0xE9 ("é") is read as the lead byte of a GBK pair and two
-        // French characters print as one Chinese one.
+        // Kanji mode has to be cancelled *after* init, which restores the factory state and would
+        // re-enable it. It costs two bytes and protects anything that later prints text.
         assertEquals(0x1C.toByte(), bytes[2])
         assertEquals('.'.code.toByte(), bytes[3])
-
-        assertEquals(0x1B.toByte(), bytes[4])
-        assertEquals('t'.code.toByte(), bytes[5])
-        assertEquals(19.toByte(), bytes[6])
-
-        // ESC M 0 — Font A, the width the layout was measured against. Wrong font, and every line is
-        // laid out for a width the printer is not using.
-        assertTrue("font not selected", bytes.indexOfBytes(0x1B, 'M'.code, 0) in 7..14)
-        // ESC 3 27 — Font A's 24-dot glyphs plus three of gap.
-        assertTrue("line spacing not set", bytes.indexOfBytes(0x1B, '3'.code, 27) in 7..14)
-
-        // INIT resets the printer to its factory page, so selecting ours afterwards is the only order
-        // that works — and text must come after that, not between.
-        val text = bytes.indexOfBytes('C'.code, 'a'.code, 'f'.code)
-        assertTrue("text at $text should follow the code page at 2", text > 4)
-    }
-
-    @Test
-    fun `bold and centring are turned back off after the line that used them`() {
-        val bytes = render(ReceiptRow.Line("TITRE", RowAlign.Center, RowWeight.Bold))
-
-        assertTrue("no bold on", bytes.indexOfBytes(0x1B, 'E'.code, 1) >= 0)
-        assertTrue("no bold off", bytes.indexOfBytes(0x1B, 'E'.code, 0) >= 0)
-        assertTrue(
-            "bold must be cleared after the line, or the whole receipt prints bold",
-            bytes.indexOfBytes(0x1B, 'E'.code, 0) > bytes.indexOfBytes(0x1B, 'E'.code, 1),
-        )
-        assertTrue(
-            "alignment must return to left",
-            bytes.indexOfBytes(0x1B, 'a'.code, 0) > bytes.indexOfBytes(0x1B, 'a'.code, 1),
-        )
-    }
-
-    @Test
-    fun `a rule spans exactly the paper width`() {
-        val bytes = render(ReceiptRow.Rule('-'))
-        val dashes = bytes.count { it == '-'.code.toByte() }
-        assertEquals(paper.charsPerLine, dashes)
-    }
-
-    /**
-     * The printed line that starts with [prefix], read from there to the newline that ends it.
-     *
-     * Measured this way rather than by stripping control bytes out of the whole stream: an ESC
-     * sequence's *parameters* are ordinary printable ASCII — the '@' of `ESC @`, the 't' of `ESC t` —
-     * so a filter on byte values leaves three stray characters on the first line and quietly reports a
-     * 32-character line as 35.
-     */
-    private fun printedLineFrom(bytes: ByteArray, prefix: String): String {
-        val start = bytes.indexOfBytes(*prefix.map { it.code }.toIntArray())
-        assertTrue("\"$prefix\" never printed", start >= 0)
-        var end = start
-        while (end < bytes.size && bytes[end] != NEWLINE.code.toByte()) end++
-        return String(bytes, start, end - start, charset("windows-1252"))
-    }
-
-    @Test
-    fun `columns are padded to the paper width with the right-hand value flush right`() {
-        val bytes = render(ReceiptRow.Columns("TOTAL", "15230.00 DA"))
-        val line = printedLineFrom(bytes, "TOTAL")
-        assertEquals(paper.charsPerLine, line.length)
-        assertTrue("right value not flush right: \"$line\"", line.endsWith("15230.00 DA"))
     }
 
     @Test
     fun `a raster carries GS v 0 with width in bytes and height in dot rows`() {
-        val raster = MonoRaster(width = 384, height = 2, bits = ByteArray(48 * 2))
-        val bytes = render(ReceiptRow.Raster(raster))
+        val bytes = EscPosRenderer.renderRaster(listOf(raster(2)))
 
         val at = bytes.indexOfBytes(0x1D, 'v'.code, '0'.code, 0)
         assertTrue("GS v 0 not emitted", at >= 0)
@@ -132,8 +67,7 @@ class EscPosRendererTest {
     fun `a tall raster is split into bands rather than sent as one image`() {
         // 400 rows is over the 128-row band, so it must come out as four GS v 0 calls: an image longer
         // than the printer's buffer is dropped whole, with nothing reported.
-        val raster = MonoRaster(width = 384, height = 400, bits = ByteArray(48 * 400))
-        val bytes = render(ReceiptRow.Raster(raster))
+        val bytes = EscPosRenderer.renderRaster(listOf(raster(400)))
 
         var count = 0
         var from = 0
@@ -147,22 +81,65 @@ class EscPosRendererTest {
     }
 
     @Test
+    fun `rows follow each other with no feed between them`() {
+        // A row's height is its own spacing — the renderer drew the gap. A line feed here would open
+        // one it never drew, and every row would sit further down the paper than the preview shows.
+        val bytes = EscPosRenderer.renderRaster(listOf(raster(1), raster(1)))
+        val first = bytes.indexOfBytes(0x1D, 'v'.code, '0'.code, 0)
+        val secondOffset = bytes.copyOfRange(first + 4, bytes.size).indexOfBytes(0x1D, 'v'.code, '0'.code, 0)
+        val between = bytes.copyOfRange(first + 8 + 48, first + 4 + secondOffset)
+        assertTrue("a line feed sits between two rows", between.none { it == 0x0A.toByte() })
+    }
+
+    @Test
     fun `the stream ends with a cut`() {
-        val bytes = render(ReceiptRow.Line("x"))
+        val bytes = EscPosRenderer.renderRaster(listOf(raster(1)))
         val tail = bytes.takeLast(4).map { it.toInt() and 0xFF }
         assertEquals(listOf(0x1D, 'V'.code, 66, 4), tail)
     }
 
+    // ───────────────────────────── the self-test ─────────────────────────────
+
     @Test
-    fun `the test strip prints rulers of exactly 32 and 48 characters`() {
-        val rows = TestPrint.rows(PaperProfile.MM58, PrintLanguage.ESC_POS, PrinterCodePage.CP1252)
-        val rulers = rows.filterIsInstance<ReceiptRow.Line>()
+    fun `the self-test selects code page, font and line spacing before any text`() {
+        val bytes = EscPosRenderer.renderText(
+            listOf(TestLine("Café")), paper, PrinterCodePage.CP858,
+        )
+        val text = bytes.indexOfBytes('C'.code, 'a'.code, 'f'.code)
+
+        // ESC t 19 — CP858. Selected before the text it encodes, or the first line prints in whatever
+        // page the previous app left behind.
+        assertTrue("code page not selected", bytes.indexOfBytes(0x1B, 't'.code, 19) in 0 until text)
+        // ESC M 0 — Font A, the width the ruler was measured against.
+        assertTrue("font not selected", bytes.indexOfBytes(0x1B, 'M'.code, 0) in 0 until text)
+        // ESC 3 27 — Font A's 24-dot glyphs plus three of gap.
+        assertTrue("line spacing not set", bytes.indexOfBytes(0x1B, '3'.code, 27) in 0 until text)
+    }
+
+    @Test
+    fun `the self-test turns bold and centring back off after the line that used them`() {
+        val bytes = EscPosRenderer.renderText(
+            listOf(TestLine("TITRE", bold = true, centered = true)), paper, PrinterCodePage.CP1252,
+        )
+        assertTrue(
+            "bold must be cleared after the line, or the whole strip prints bold",
+            bytes.indexOfBytes(0x1B, 'E'.code, 0) > bytes.indexOfBytes(0x1B, 'E'.code, 1),
+        )
+        assertTrue(
+            "alignment must return to left",
+            bytes.indexOfBytes(0x1B, 'a'.code, 0) > bytes.indexOfBytes(0x1B, 'a'.code, 1),
+        )
+    }
+
+    @Test
+    fun `the self-test prints rulers of exactly 32 and 48 characters`() {
+        val rulers = TestPrint.lines(paper, PrintLanguage.ESC_POS, PrinterCodePage.CP1252)
             .map { it.text }
             .filter { it.endsWith("|") && it.first().isDigit() }
 
         assertEquals("both rulers should be present", listOf(32, 48), rulers.map { it.length })
-        // They must be emitted un-truncated even on 58 mm paper: the 48-character line wrapping onto a
-        // second row is exactly the signal the user reads the width off.
+        // They go out un-truncated even on 58 mm paper: the 48-character line wrapping onto a second
+        // row is exactly the signal the user reads the width off.
         assertTrue(rulers.all { it.dropLast(1).all(Char::isDigit) })
     }
 }

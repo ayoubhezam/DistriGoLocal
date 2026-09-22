@@ -317,7 +317,7 @@ fun ReceiptAndPrintSettingsScreen(
                 if (paper == null) {
                     A4PreviewPlaceholder()
                 } else {
-                    ThermalReceiptPreview(rows = preview.rows, paper = paper)
+                    ThermalReceiptPreview(rasters = preview.rasters, paper = paper)
                 }
             }
 

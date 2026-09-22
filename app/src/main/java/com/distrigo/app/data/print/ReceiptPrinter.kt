@@ -2,11 +2,9 @@ package com.distrigo.app.data.print
 
 import android.content.Context
 import com.distrigo.app.data.print.lang.EscPosRenderer
-import com.distrigo.app.data.print.lang.ReceiptRow
-import com.distrigo.app.data.print.lang.RowAlign
-import com.distrigo.app.data.print.lang.RowWeight
 import com.distrigo.app.data.print.transport.PrintException
 import com.distrigo.app.data.print.transport.PrintFailure
+import com.distrigo.app.ui.components.ReceiptData
 
 /** What a print attempt did. */
 sealed interface PrintResult {
@@ -27,12 +25,22 @@ class ReceiptPrinter(
 ) {
 
     /**
-     * Renders [rows] for [printer] and sends them.
+     * Draws [receipt] and sends it as dots.
+     *
+     * Everything the printer receives for a receipt is now an image, because ESC/POS cannot shape or
+     * reorder Arabic. The drawing happens here rather than in the caller so that there is exactly one
+     * path from a receipt to paper, and so the preview can take the same one.
+     */
+    suspend fun print(receipt: ReceiptData, printer: SavedPrinter?): PrintResult =
+        send(printer) { paper -> EscPosRenderer.renderRaster(ReceiptRasterizer.rasters(receipt, paper)) }
+
+    /**
+     * Resolves the printer, renders with [bytes] and sends.
      *
      * The gate runs first and its refusal is returned as-is, so "Bluetooth is off" arrives as that
      * rather than as a connection timeout thirty seconds later.
      */
-    suspend fun print(rows: List<ReceiptRow>, printer: SavedPrinter?): PrintResult {
+    private suspend fun send(printer: SavedPrinter?, bytes: (PaperProfile) -> ByteArray): PrintResult {
         when (val link = gate.check(printer)) {
             is PrinterLink.Blocked -> return PrintResult.Failed(link.reason)
             PrinterLink.NotConfigured -> return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
@@ -45,18 +53,15 @@ class ReceiptPrinter(
             // ReceiptPdfGenerator and Android's print dialog. Phase 3 branches before calling here.
             ?: return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
 
-        val bytes = when (target.language) {
-            PrintLanguage.ESC_POS -> EscPosRenderer.render(rows, paper, target.codePage)
-            // Phase 5. Sending ESC/POS to a label printer would spool the commands out as text, so
-            // this refuses instead of printing something the user has to throw away.
-            PrintLanguage.TSPL, PrintLanguage.CPCL -> return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
-        }
+        // Phase 5. Sending ESC/POS to a label printer would spool the commands out as text, so this
+        // refuses rather than printing something the user has to throw away.
+        if (target.language != PrintLanguage.ESC_POS) return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
 
         return try {
             // The gate owns the choice of pipe, because it is also the thing that decided the printer
             // was reachable — one place deciding "Bluetooth or network" means the check and the send
             // cannot disagree about which one this printer is.
-            gate.transportFor(target).send(target.id, bytes)
+            gate.transportFor(target).send(target.id, bytes(paper))
             PrintResult.Success
         } catch (e: PrintException) {
             PrintResult.Failed(e.failure)
@@ -86,14 +91,7 @@ class ReceiptPrinter(
         val paper = PaperProfile.of(target.paper)
             ?: return RasterBenchmarkOutcome.Failed(PrintFailure.NOT_CONFIGURED)
 
-        val rows = listOf(
-            ReceiptRow.Line("TEST RASTER", RowAlign.Center, RowWeight.Bold),
-            ReceiptRow.Line("${targetBytes / 1024} Ko — ${paper.size.label}", RowAlign.Center),
-            ReceiptRow.Raster(RasterBenchmark.pattern(paper, targetBytes)),
-            ReceiptRow.Blank(2),
-            ReceiptRow.Cut,
-        )
-        val bytes = EscPosRenderer.render(rows, paper, target.codePage)
+        val bytes = EscPosRenderer.renderRaster(listOf(RasterBenchmark.pattern(paper, targetBytes)))
         val transport = gate.transportFor(target)
 
         return try {
@@ -112,10 +110,16 @@ class ReceiptPrinter(
         }
     }
 
-    /** The calibration strip of [TestPrint], for [printer]'s current paper, language and code page. */
-    suspend fun printTest(printer: SavedPrinter?): PrintResult {
-        val target = printer ?: return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
-        val paper = PaperProfile.of(target.paper) ?: return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
-        return print(TestPrint.rows(paper, target.language, target.codePage), target)
+    /**
+     * The calibration strip of [TestPrint], for [printer]'s current paper, language and code page.
+     *
+     * The one thing still printed in the printer's own font: a raster cannot tell a printer that
+     * ignores `GS v 0` from one that is switched off, and both produce blank paper.
+     */
+    suspend fun printTest(printer: SavedPrinter?): PrintResult = send(printer) { paper ->
+        val target = printer!!
+        EscPosRenderer.renderText(
+            TestPrint.lines(paper, target.language, target.codePage), paper, target.codePage,
+        )
     }
 }

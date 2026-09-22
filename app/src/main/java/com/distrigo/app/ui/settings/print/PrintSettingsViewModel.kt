@@ -9,9 +9,7 @@ import com.distrigo.app.data.print.PrintLanguage
 import com.distrigo.app.data.print.PrintSettings
 import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.print.lang.MonoRaster
-import com.distrigo.app.data.print.lang.ReceiptRow
 import com.distrigo.app.data.print.ReceiptRasterizer
-import com.distrigo.app.data.print.lang.ThermalLayout
 import com.distrigo.app.data.model.BusinessSettings
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +20,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import java.io.File
 import javax.inject.Inject
 
 /**
@@ -31,8 +28,8 @@ import javax.inject.Inject
  * Null [rows] means A4, which has no thermal layout — the screen shows the page placeholder instead.
  */
 data class PreviewState(
-    val paper: PaperProfile?,
-    val rows : List<ReceiptRow> = emptyList(),
+    val paper  : PaperProfile?,
+    val rasters: List<MonoRaster> = emptyList(),
 )
 
 /**
@@ -101,28 +98,8 @@ class PrintSettingsViewModel @Inject constructor(
             businessPhone    = business.phone,
             businessLogoPath = business.logoPath,
         )
-        return PreviewState(
-            paper = paper,
-            rows  = ThermalLayout.layout(receipt, paper, logoRaster(business.logoPath, paper)),
-        )
+        // The very bitmaps the printer would receive, not a second drawing of them.
+        return PreviewState(paper = paper, rasters = ReceiptRasterizer.rasters(receipt, paper))
     }
 
-    /**
-     * [ReceiptRasterizer.logo], remembered.
-     *
-     * The dithering itself is shared with the print button — a logo decoded twice by two callers is a
-     * logo that eventually looks different on screen from on paper. Only the cache is local, and only
-     * because this screen is the one that re-lays the receipt out on every keystroke in the name
-     * field; a print job runs once and has nothing to cache.
-     */
-    private fun logoRaster(path: String?, paper: PaperProfile): MonoRaster? {
-        val file = path?.let(::File)?.takeIf { it.isFile } ?: return null
-        val key = file.path to paper.rasterWidthDots
-        cachedLogo?.let { (cachedKey, raster) -> if (cachedKey == key) return raster }
-        val raster = ReceiptRasterizer.logo(file.path, paper)
-        cachedLogo = key to raster
-        return raster
-    }
-
-    private var cachedLogo: Pair<Pair<String, Int>, MonoRaster?>? = null
 }

@@ -55,8 +55,10 @@ enum class PrinterFont(val escPosSelector: Int, val glyphWidthDots: Int, val gly
  * @param paperMm the physical roll width, which is what the user buys and what the preview's card is
  *   proportioned to. Wider than [printableMm]: the head does not reach the edges.
  * @param printableMm the width the head actually covers, which [dotsPerLine] is 8 dots per mm of.
- * @param lineSpacingDots the feed between one line's top and the next, set with `ESC 3 n`. Derived
- *   from the font's own glyph height so it can never overlap; see [LINE_GAP_DOTS].
+ * @param font and [lineSpacingDots] apply only to the printer's own text mode, which now survives
+ *   solely for the diagnostic self-test — the receipt itself is drawn and sent as dots. See
+ *   [com.distrigo.app.data.print.lang.CanvasReceiptRenderer].
+ * @param bodyTextDots the size the drawn receipt is set in; see [BODY_TEXT_DOTS].
  */
 data class PaperProfile(
     val size            : PaperSize,
@@ -65,6 +67,7 @@ data class PaperProfile(
     val dotsPerLine     : Int,
     val font            : PrinterFont = PrinterFont.A,
     val lineSpacingDots : Int = font.glyphHeightDots + LINE_GAP_DOTS,
+    val bodyTextDots    : Int = BODY_TEXT_DOTS,
     val dpi             : Int = 203,
 ) {
     /** Characters per line in the chosen [font]: what the layout engine measures everything against. */
@@ -90,6 +93,16 @@ data class PaperProfile(
          * so 27 still saves 3–7 dots on every line.
          */
         const val LINE_GAP_DOTS = 3
+
+        /**
+         * Body text size for the drawn receipt, in dots.
+         *
+         * Once the receipt is drawn rather than typed, the printer's two fixed fonts stop being the
+         * choice and size becomes free. 26 dots sits a little above Font A's 24-dot cell, which is
+         * deliberate: Font B was rejected in the field for being hard to read, and the only reason
+         * not to go larger is the paper it costs.
+         */
+        const val BODY_TEXT_DOTS = 26
 
         /** 58 mm roll: ~48 mm printable, 384 dots — 32 characters in Font A. */
         val MM58 = PaperProfile(

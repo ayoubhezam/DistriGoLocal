@@ -62,7 +62,7 @@ class ReceiptPrintViewModel @Inject constructor(
     fun print(receipt: ReceiptData) {
         if (_status.value == ReceiptPrintStatus.Printing) return
         val current = settings.value
-        val paper = PaperProfile.of(current.effectivePaper) ?: run {
+        if (PaperProfile.of(current.effectivePaper) == null) {
             // A4 never reaches here; the composable branches first. Reaching this means the caller
             // skipped that branch, and saying so beats printing nothing without explanation.
             _status.value = ReceiptPrintStatus.Failed(PrintFailure.NOT_CONFIGURED)
@@ -71,10 +71,7 @@ class ReceiptPrintViewModel @Inject constructor(
 
         _status.value = ReceiptPrintStatus.Printing
         viewModelScope.launch {
-            // Laying out decodes and dithers the logo — a per-dot loop over an image — so it stays
-            // off the main thread even though the send below already would.
-            val rows = withContext(Dispatchers.Default) { ReceiptRasterizer.rows(receipt, paper) }
-            _status.value = when (val result = printer.print(rows, current.selectedPrinter)) {
+            _status.value = when (val result = printer.print(receipt, current.selectedPrinter)) {
                 PrintResult.Success   -> ReceiptPrintStatus.Sent
                 is PrintResult.Failed -> ReceiptPrintStatus.Failed(result.failure)
             }

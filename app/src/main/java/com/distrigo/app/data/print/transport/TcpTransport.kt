@@ -70,8 +70,10 @@ class TcpTransport : PrinterTransport {
     }
 
     companion object {
-        const val CHUNK_BYTES = 1024
-        const val CHUNK_PAUSE_MS = 10L
+        // Looser than Bluetooth's: TCP has real flow control, so the pacing here guards only the
+        // printer's own buffer behind the network module, not the link.
+        const val CHUNK_BYTES = 4096
+        const val CHUNK_PAUSE_MS = 2L
         const val DRAIN_MS = 250L
 
         /**

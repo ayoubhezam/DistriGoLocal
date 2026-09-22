@@ -163,7 +163,65 @@ compatibility choice, not a headline option.
 
 ---
 
-## 5. One layout engine, three consumers
+## 5. The receipt is drawn, not typed
+
+**The decision this module turns on.** ESC/POS has no bidirectional layout and no contextual
+shaping, so Arabic comes out unjoined, in isolated forms, running left to right — illegible rather
+than merely ugly. The apparent escape, CP864, holds *presentation* forms, which means doing the
+shaping and reordering yourself and mapping into those code points: writing a text engine to avoid
+the one Android already ships.
+
+So the receipt is drawn on a Canvas with `StaticLayout` — HarfBuzz for shaping, ICU for bidi —
+reduced to one bit per dot, and sent as images. Every POS app that prints Arabic, Hebrew, Thai or
+Devanagari does this.
+
+The cost is bytes: ~1.5 KB as text against ~40 KB as dots. **Measured before committing**, on the
+actual printer:
+
+| | |
+|---|---|
+| 40.1 KB sent in | 4.0 s |
+| of which our own chunk pacing | 3.5 s |
+| link rate | **69.8 KB/s** |
+| banding / stutter | none — one continuous motion |
+
+The link was never the bottleneck; the pacing was. It has been cut from 256 B/20 ms to 1 KB/4 ms,
+which turns that 3.5 s into about 0.16 s. Reduced rather than removed, because the benchmark ran
+*with* pacing in place: what it proves is that the printer keeps up at this rate, not that it would
+with none at all. If banding ever appears, that is the knob.
+
+### Row by row, not receipt by receipt
+
+Each `ReceiptRow` becomes its own small bitmap, emitted and released before the next is drawn. One
+image for a 200-item receipt would be a 14 MB bitmap; this way memory is bounded by the tallest
+single row whatever the receipt's length, and rows stay the unit the preview consumes too.
+
+`GS v 0` calls follow each other with **no line feed between them** — a row's height is its own
+spacing, so a feed would open a gap the renderer never drew.
+
+### Thresholded, not dithered
+
+Floyd–Steinberg is right for a photograph and wrong for text: it speckles glyph edges and makes
+small type look fuzzy. Text is drawn with `isAntiAlias = false` and reduced by a plain threshold, so
+the dots land exactly where the renderer put them. The logo still arrives pre-dithered by the other
+path — the two reach `MonoRaster` differently on purpose.
+
+### What this cost, and what it bought
+
+Gone: the character grid. `charsPerLine`, `pad`, `wrap`, `fit` and the money-shortening that dropped
+centimes when a number outgrew its column. `ThermalLayout` no longer measures anything — it decides
+what goes on the receipt and in what order, and the renderer, which alone knows what the glyphs look
+like, does the rest.
+
+Gained, beyond Arabic: cells that size themselves, so a long product name pushes its own row down
+without disturbing the figures beside it; a preview that is not an approximation but the same
+bitmaps; and amounts that always keep their centimes.
+
+The printer's own text mode survives in exactly one place — the self-test — because a raster cannot
+diagnose. A printer that ignores `GS v 0` and a printer that is switched off both produce blank
+paper, and the strip is what a user is told to run when something is wrong.
+
+## 6. One layout engine, three consumers
 
 The central decision. The preview is **not** a hand-drawn mockup. The layout is built once as plain
 monospace rows, and the same rows feed the preview and the printer. The preview is then literally
@@ -196,7 +254,7 @@ user sees product names truncating. That is the point, and a hand-drawn mockup c
 
 ---
 
-## 6. Accents and images, settled in the engine
+## 7. Accents and images, settled in the engine
 
 ### Accented French
 
@@ -228,7 +286,7 @@ ZXing and `ThermalRaster`.
 
 ---
 
-## 7. Connection state — one sealed hierarchy for both transports
+## 8. Connection state — one sealed hierarchy for both transports
 
 Planned for phase 2. The point is that the UI has a single `when`, whichever transport is in use:
 
@@ -288,7 +346,7 @@ receipt. This is the single biggest field-reliability decision in the module.
 
 ---
 
-## 8. Permissions (phase 2)
+## 9. Permissions (phase 2)
 
 Nothing Bluetooth is declared today. Spanning API 26 → 36:
 
@@ -317,7 +375,7 @@ Follow the runtime-request pattern already in `ui/common/PhotoPicker.kt`.
 
 ---
 
-## 9. PrinterSelectionScreen (phase 2)
+## 10. PrinterSelectionScreen (phase 2)
 
 ```
 ┌ Imprimantes ──────────────────── ⟳ ─┐   ⟳ = Scanner (secondary)
@@ -339,7 +397,7 @@ all and takes the PDF path instead.
 
 ---
 
-## 10. File layout
+## 11. File layout
 
 ```
 data/print/
@@ -377,7 +435,7 @@ ui/settings/print/
 
 ---
 
-## 11. Phases
+## 12. Phases
 
 | Phase | Scope | Ships | State |
 |---|---|---|---|
@@ -393,7 +451,7 @@ testable on a desk with no printer (`app/src/test/.../data/print/`).
 
 ---
 
-## 12. Phase 3 — the button
+## 13. Phase 3 — the button
 
 One button changed, in `ReceiptPreviewSheet`, and all three screens followed, because Achats, Dépôt
 Ventes and Tournées Ventes open the same sheet.
@@ -422,7 +480,7 @@ another screen, and says where to choose it.
 Nothing records that a receipt was printed. That was a deliberate call: it would be a Room column and
 therefore a migration, and the schema stays untouched at this stage. See the open questions.
 
-## 13. A receipt is a running cost
+## 14. A receipt is a running cost
 
 A shop buying rolls by the box notices the difference between a twenty-line receipt and a thirty-line
 one, so the layout is built to be short. Four decisions, in descending order of how much paper they
@@ -462,7 +520,7 @@ the gap between two lines is `lineSpacingDots` wide in the same dots the charact
 `glyphWidthDots` wide in. Tighten `ESC 3 n` and the preview tightens with it — which is the only way
 the two can stay honest about a receipt's length.
 
-## 14. Wi-Fi: a second pipe, not a second app
+## 15. Wi-Fi: a second pipe, not a second app
 
 Phase 4. A network printer is the same dumb byte pipe as a Bluetooth one — open a TCP socket to
 **port 9100**, write ESC/POS, close — so almost nothing above the transport changed.
@@ -524,7 +582,7 @@ page produced host `192.168.1.50:9100` on port 9100, a printer nobody can reach.
 the address now wins, in `NetworkAddress.resolve`, which is a pure function precisely so the rule is
 pinned by a test rather than buried in a ViewModel.
 
-## 15. Selection is earned by connecting
+## 16. Selection is earned by connecting
 
 Reported from the field after phase 3: a printer could be tapped and become the active one while it
 was switched off, flat or still at the depot. Nothing checked, so the first anyone learned of it was a
@@ -549,7 +607,7 @@ The cost, accepted deliberately: with the printer switched off there is no way t
 so the receipt sheet reads "Aucune imprimante" until it answers. That is the honest state, and the
 PDF fallback covers it.
 
-## 16. The paper chips edit what is in force
+## 17. The paper chips edit what is in force
 
 Also reported: with a printer selected, changing "Format du papier" moved the chip and left the
 preview unchanged.
@@ -564,7 +622,7 @@ is one, the device default otherwise. The chips display `effectivePaper`/`effect
 same reason, and each caption names its scope — "réglage de BT SPEAKER" or "défaut pour les nouvelles
 imprimantes" — so the per-printer model is visible instead of surprising.
 
-## 17. Found on the device, phase 2
+## 18. Found on the device, phase 2
 
 Three things the walk turned up that no unit test would have:
 
@@ -582,7 +640,7 @@ Three things the walk turned up that no unit test would have:
   rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
   mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
 
-## 18. Noted while building
+## 19. Noted while building
 
 **`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
 that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
@@ -594,11 +652,15 @@ so the device never showed it and the JVM tests did immediately. `PrintSettingsS
 reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
 that store ever gains a desktop or JVM-side test it will surface there first.
 
-## 19. Open questions
+## 20. Open questions
 
-- **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
-  assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,
-  not by reading datasheets.
+- **Which code page do the printers on the ground actually honour?** Now only affects the self-test
+  strip, since the receipt carries no text bytes at all. CP1252 (`ESC t 16`) is the assumption;
+  CP858 (`ESC t 19`) is the fallback.
+- **The Canvas renderer has never met a printer.** It compiles and the layout around it is unit
+  tested, but `CanvasReceiptRenderer` needs a real `StaticLayout` and `Bitmap`, so nothing below the
+  row model is covered by tests. The first print on hardware is the real review — especially the
+  threshold (too heavy and small text fills in, too light and it breaks up) and the Arabic shaping.
 - **Font B for 58 mm?** 42 chars instead of 32 would let the 58 mm layout keep the single-line table.
   It is small print on already-small paper; the two-line layout was chosen instead. Revisit if users
   complain about receipt length rather than legibility.

@@ -1,46 +1,71 @@
 package com.distrigo.app.data.print.lang
 
-/** Horizontal placement of a [ReceiptRow.Line] within the paper's character width. */
-enum class RowAlign { Left, Center, Right }
+/**
+ * Where a piece of text sits in the space it was given.
+ *
+ * [Start] and [End] follow the text's own direction rather than the page's: an Arabic line with
+ * [Start] is flush right, a French one flush left. That is the whole reason these are not called
+ * Left and Right — the receipt has to read correctly in both, and hardcoding a side would make one
+ * of them wrong.
+ */
+enum class RowAlign { Start, Center, End }
 
-/** How heavily a line is printed. [Bold] is ESC/POS emphasis, not a different font. */
+/** How heavily a line is drawn. */
 enum class RowWeight { Normal, Bold }
 
-/**
- * Character scale. [Double] is ESC/POS `GS !` double-width-and-height, which halves the characters
- * that fit on the line — the layout engine accounts for that, so a [RowScale.Double] line is laid out
- * against half the paper's [com.distrigo.app.data.print.PaperProfile.charsPerLine].
- */
-enum class RowScale { Normal, Double }
+/** Character scale. [Large] is for the total, the one number everybody checks. */
+enum class RowScale { Normal, Large }
+
+/** A drawn rule's thickness, in dots. */
+enum class RuleThickness(val dots: Int) { Thin(1), Thick(3) }
 
 /**
- * One row of a laid-out receipt.
+ * One cell of a [ReceiptRow.Cells] row.
  *
- * The whole point of this type: [ThermalLayout] produces a list of these once, and the ESC/POS
- * renderer, the label renderers and the on-screen preview all consume the same list. The preview is
- * then truthful by construction rather than by two layouts happening to agree — which is the state
- * `ReceiptPreviewSheet` and `ReceiptPdfGenerator` are already in, each carrying its own copy of the
- * same rules.
+ * @param fraction the share of the printable width this cell takes. The fractions in a row are
+ *   expected to sum to 1; they are relative rather than absolute so the same layout serves 58 mm and
+ *   80 mm without a second set of numbers.
+ */
+data class Cell(
+    val text    : String,
+    val fraction: Float,
+    val align   : RowAlign = RowAlign.Start,
+)
+
+/**
+ * One row of a laid-out receipt, in **dots rather than characters**.
  *
- * Everything here is already measured against a paper width. A row never has to be re-wrapped, and a
- * renderer never has to know how wide the paper is to emit it.
+ * The earlier version of this type carried text already padded and wrapped to a fixed character
+ * grid, which is what a printer's own font imposes. That model cannot express Arabic: the script is
+ * proportional, joins its letters into contextual forms, and runs right to left, so there is no
+ * column of cells to pad it into. ESC/POS cannot render it either — it has no bidi and no shaping —
+ * so the receipt is drawn on an Android Canvas and sent as dots, and the layout stopped counting
+ * characters.
+ *
+ * What survives is the principle: [com.distrigo.app.data.print.lang.ThermalLayout] produces this
+ * list once, and the renderer and the preview both consume it. The preview shows the very bitmaps
+ * that go to the printer, so the two cannot drift.
+ *
+ * Nothing here is measured or wrapped. Wrapping is the renderer's job, because only the renderer
+ * knows what the glyphs are — and it gets it from `StaticLayout`, which wraps, shapes and reorders
+ * in one step.
  */
 sealed interface ReceiptRow {
 
-    /** A single line of text, already truncated to fit. */
+    /** A run of text across the full width. Wrapped by the renderer if it does not fit. */
     data class Line(
         val text  : String,
-        val align : RowAlign  = RowAlign.Left,
+        val align : RowAlign  = RowAlign.Start,
         val weight: RowWeight = RowWeight.Normal,
         val scale : RowScale  = RowScale.Normal,
     ) : ReceiptRow
 
     /**
-     * Text pinned to both edges of the same line, with the gap between them padded out.
+     * Two runs pinned to opposite edges of the same row — a label and its amount.
      *
-     * Kept apart from [Line] rather than pre-padded into one string because the label languages
-     * position by dots, not by spaces, and a right-hand value that was spaced into place would land
-     * wherever the label font happened to put it.
+     * Kept apart from a two-cell [Cells] because the split is not a proportion: the right-hand value
+     * takes exactly what it needs and the left takes the rest, which is what keeps a column of
+     * amounts aligned while the labels beside them vary in length.
      */
     data class Columns(
         val left  : String,
@@ -49,17 +74,35 @@ sealed interface ReceiptRow {
         val scale : RowScale  = RowScale.Normal,
     ) : ReceiptRow
 
-    /** A full-width rule, repeating [char] across the paper. */
-    data class Rule(val char: Char = '-') : ReceiptRow
+    /**
+     * A row divided into proportional cells — the item table, and the labelled header fields.
+     *
+     * Each cell wraps within its own width, and the row is as tall as its tallest cell. That is how a
+     * long product name pushes its own row down without disturbing the figures beside it.
+     */
+    data class Cells(
+        val cells : List<Cell>,
+        val weight: RowWeight = RowWeight.Normal,
+    ) : ReceiptRow
 
-    /** [count] empty lines. */
-    data class Blank(val count: Int = 1) : ReceiptRow
+    /**
+     * A horizontal rule.
+     *
+     * Drawn as a line rather than printed as a row of hyphens. The character version existed because
+     * a character grid had nothing else to offer; a drawn rule is thinner, cleaner, and costs a
+     * single dot row instead of a whole line of text.
+     */
+    data class Rule(val thickness: RuleThickness = RuleThickness.Thin) : ReceiptRow
+
+    /** Vertical space, in dots. */
+    data class Blank(val dots: Int) : ReceiptRow
 
     /**
      * A 1-bit image, already scaled and dithered to the paper's dot width — the logo.
      *
-     * Rasterised in the layout, not in the renderer, so the preview draws the same speckles the paper
-     * will carry.
+     * Still dithered rather than thresholded, unlike the text around it: Floyd–Steinberg is right for
+     * a photographic mark and wrong for glyph edges, which is why the two take different paths into
+     * the same [MonoRaster].
      */
     data class Raster(val raster: MonoRaster, val align: RowAlign = RowAlign.Center) : ReceiptRow
 
