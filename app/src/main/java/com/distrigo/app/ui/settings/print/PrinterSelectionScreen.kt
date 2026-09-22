@@ -28,7 +28,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.data.print.ConnectionMethod
 import com.distrigo.app.data.print.PaperSize
+import com.distrigo.app.data.print.discovery.WifiState
+import com.distrigo.app.data.print.transport.NetworkAddress
 import com.distrigo.app.data.print.PrintLanguage
 import com.distrigo.app.data.print.PrinterLink
 import com.distrigo.app.data.print.SavedPrinter
@@ -68,6 +71,7 @@ fun PrinterSelectionScreen(
     var renaming  by remember { mutableStateOf<SavedPrinter?>(null) }
     var menuFor   by remember { mutableStateOf<SavedPrinter?>(null) }
     var configuring by remember { mutableStateOf<SavedPrinter?>(null) }
+    var addingByAddress by remember { mutableStateOf(false) }
 
     // Granting a Bluetooth permission does not restart the screen, so what the list could not read
     // before has to be re-read after.
@@ -98,6 +102,8 @@ fun PrinterSelectionScreen(
             // "Réessayer" / "Réimprimer" mean try the printer again, which is what probe does.
             PrintFailure.UNREACHABLE, PrintFailure.INTERRUPTED ->
                 state.saved.firstOrNull { it.id == state.selectedId }?.let(viewModel::probe)
+            PrintFailure.NO_NETWORK ->
+                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
             // Nothing for the app to do: no radio, or nothing chosen yet and the list is already open.
             PrintFailure.NO_BLUETOOTH, PrintFailure.NOT_CONFIGURED -> Unit
         }
@@ -144,16 +150,35 @@ fun PrinterSelectionScreen(
                 Spacer(Modifier.height(DsSpacing.lg))
             }
 
-            ListHeader("Appareils jumelés")
-            if (state.bonded.isEmpty()) {
-                EmptyNote(
-                    "Aucun appareil jumelé. Jumelez l'imprimante dans les réglages Bluetooth " +
-                        "du téléphone, ou lancez une recherche."
-                )
+            if (state.method == ConnectionMethod.WIFI) {
+                // The network's name is not needed to print — a printer is reached by address — but an
+                // unreachable printer's usual cause is the phone having drifted onto mobile data or the
+                // neighbour's router, and that is invisible unless it is said out loud.
+                ListHeader("Réseau")
+                NetworkNote(state.wifi)
+
+                Spacer(Modifier.height(DsSpacing.md))
+                OutlinedButton(
+                    onClick  = { addingByAddress = true },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape    = DsShapes.medium,
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text("Ajouter par adresse IP", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+                }
             } else {
-                state.bonded.forEach { device ->
-                    DiscoveredRow(device) { viewModel.save(device) }
-                    Spacer(Modifier.height(DsSpacing.sm))
+                ListHeader("Appareils jumelés")
+                if (state.bonded.isEmpty()) {
+                    EmptyNote(
+                        "Aucun appareil jumelé. Jumelez l'imprimante dans les réglages Bluetooth " +
+                            "du téléphone, ou lancez une recherche."
+                    )
+                } else {
+                    state.bonded.forEach { device ->
+                        DiscoveredRow(device) { viewModel.save(device) }
+                        Spacer(Modifier.height(DsSpacing.sm))
+                    }
                 }
             }
 
@@ -161,16 +186,23 @@ fun PrinterSelectionScreen(
 
             ListHeader("Recherche")
             ScanButton(
+                wifi     = state.method == ConnectionMethod.WIFI,
                 scanning = state.scanning,
                 onScan   = {
-                    if (!BluetoothSppTransport.hasScanPermission(context)) {
-                        permission.launch(BluetoothSppTransport.scanPermissions())
-                    } else {
-                        viewModel.startScan()
+                    when {
+                        // A network sweep needs no permission at all — just a subnet to sweep.
+                        state.method == ConnectionMethod.WIFI -> viewModel.startScan()
+                        !BluetoothSppTransport.hasScanPermission(context) ->
+                            permission.launch(BluetoothSppTransport.scanPermissions())
+                        else -> viewModel.startScan()
                     }
                 },
                 onStop = viewModel::stopScan,
             )
+            if (state.method == ConnectionMethod.WIFI && !state.scanning && !viewModel.canScanNetwork()) {
+                Spacer(Modifier.height(DsSpacing.sm))
+                EmptyNote("Connectez le téléphone au Wi-Fi pour pouvoir chercher sur le réseau.")
+            }
 
             if (state.discovered.isNotEmpty()) {
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -180,7 +212,11 @@ fun PrinterSelectionScreen(
                 }
             } else if (state.scanning) {
                 Spacer(Modifier.height(DsSpacing.sm))
-                EmptyNote("Recherche en cours… Assurez-vous que l'imprimante est allumée.")
+                EmptyNote(
+                    if (state.method == ConnectionMethod.WIFI)
+                        "Recherche sur le réseau local… Assurez-vous que l'imprimante est allumée."
+                    else "Recherche en cours… Assurez-vous que l'imprimante est allumée."
+                )
             }
 
             Spacer(Modifier.height(DsSpacing.xxl))
@@ -215,6 +251,16 @@ fun PrinterSelectionScreen(
             printer   = printer,
             viewModel = viewModel,
             onDismiss = { configuring = null },
+        )
+    }
+
+    if (addingByAddress) {
+        NetworkAddressDialog(
+            onConfirm = { host, port ->
+                addingByAddress = false
+                viewModel.addByAddress(host, port)
+            },
+            onDismiss = { addingByAddress = false },
         )
     }
 
@@ -386,7 +432,7 @@ private fun DiscoveredRow(device: DiscoveredDevice, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun ScanButton(scanning: Boolean, onScan: () -> Unit, onStop: () -> Unit) {
+private fun ScanButton(wifi: Boolean, scanning: Boolean, onScan: () -> Unit, onStop: () -> Unit) {
     OutlinedButton(
         onClick  = if (scanning) onStop else onScan,
         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -399,7 +445,11 @@ private fun ScanButton(scanning: Boolean, onScan: () -> Unit, onStop: () -> Unit
         } else {
             Icon(Icons.Default.Refresh, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Rechercher des imprimantes", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+            Text(
+                if (wifi) "Chercher sur le réseau" else "Rechercher des imprimantes",
+                fontSize = DsTextSize.bodySmall,
+                color    = DsColors.Primary,
+            )
         }
     }
 }
@@ -578,6 +628,82 @@ private fun <T> PrinterChoiceRow(
             }
         }
     }
+}
+
+/** The current network, or why it cannot be named. */
+@Composable
+private fun NetworkNote(wifi: WifiState?) {
+    val (text, colour) = when (wifi) {
+        is WifiState.Connected    -> "Réseau : ${wifi.ssid}" to DsColors.TextPrimary
+        WifiState.Off             -> "Wi-Fi désactivé" to DsColors.Danger
+        WifiState.NotConnected    -> "Téléphone non connecté au Wi-Fi" to DsColors.Danger
+        // The SSID is gated behind the location permission because knowing the network is knowing
+        // roughly where you are. Printing works without it, so this explains rather than demands.
+        is WifiState.Unnamed -> when (wifi.reason) {
+            WifiState.Unnamed.Reason.PERMISSION ->
+                "Connecté — nom du réseau masqué (autorisation de localisation)" to DsColors.TextSecondary
+            WifiState.Unnamed.Reason.LOCATION_OFF ->
+                "Connecté — nom du réseau masqué (localisation désactivée)" to DsColors.TextSecondary
+            WifiState.Unnamed.Reason.UNAVAILABLE ->
+                "Connecté au Wi-Fi" to DsColors.TextPrimary
+        }
+        null -> return
+    }
+    Text(text, fontSize = DsTextSize.bodySmall, color = colour)
+}
+
+/**
+ * Address entry for a network printer.
+ *
+ * The port is pre-filled with 9100 and rarely touched — it is what virtually every network receipt
+ * printer listens on — but it is editable, because the one that does not would otherwise be
+ * unreachable with no way to say so.
+ */
+@Composable
+private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: () -> Unit) {
+    var host by remember { mutableStateOf("") }
+    var port by remember { mutableStateOf(NetworkAddress.DEFAULT_PORT.toString()) }
+    val parsedPort = port.toIntOrNull()
+    val valid = host.isNotBlank() && parsedPort != null && parsedPort in 1..65535
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Imprimante réseau") },
+        text  = {
+            Column {
+                Text(
+                    "L'adresse est imprimée sur la page de test de l'imprimante.",
+                    fontSize = DsTextSize.caption,
+                    color    = DsColors.TextSecondary,
+                )
+                Spacer(Modifier.height(DsSpacing.md))
+                OutlinedTextField(
+                    value         = host,
+                    onValueChange = { host = it },
+                    label         = { Text("Adresse IP") },
+                    placeholder   = { Text("192.168.1.50") },
+                    singleLine    = true,
+                    shape         = DsShapes.medium,
+                    modifier      = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(DsSpacing.sm))
+                OutlinedTextField(
+                    value         = port,
+                    onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                    label         = { Text("Port") },
+                    singleLine    = true,
+                    shape         = DsShapes.medium,
+                    modifier      = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = valid, onClick = { onConfirm(host, parsedPort ?: NetworkAddress.DEFAULT_PORT) }) {
+                Text("Ajouter")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+    )
 }
 
 @Composable

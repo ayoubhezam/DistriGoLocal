@@ -27,6 +27,9 @@ enum class PrintFailure {
     /** The connection opened and then broke mid-job, so the paper holds half a receipt. */
     INTERRUPTED,
 
+    /** A network printer, and this phone is on no network at all. */
+    NO_NETWORK,
+
     /** Nothing is configured to print to. */
     NOT_CONFIGURED,
 }

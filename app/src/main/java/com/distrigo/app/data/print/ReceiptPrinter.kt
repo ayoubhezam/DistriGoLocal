@@ -3,10 +3,8 @@ package com.distrigo.app.data.print
 import android.content.Context
 import com.distrigo.app.data.print.lang.EscPosRenderer
 import com.distrigo.app.data.print.lang.ReceiptRow
-import com.distrigo.app.data.print.transport.BluetoothSppTransport
 import com.distrigo.app.data.print.transport.PrintException
 import com.distrigo.app.data.print.transport.PrintFailure
-import com.distrigo.app.data.print.transport.PrinterTransport
 
 /** What a print attempt did. */
 sealed interface PrintResult {
@@ -22,9 +20,8 @@ sealed interface PrintResult {
  * own socket would eventually skip one of the three.
  */
 class ReceiptPrinter(
-    private val context  : Context,
-    private val gate     : PrinterGate,
-    private val transport: PrinterTransport = BluetoothSppTransport(context),
+    private val context: Context,
+    private val gate   : PrinterGate,
 ) {
 
     /**
@@ -54,7 +51,10 @@ class ReceiptPrinter(
         }
 
         return try {
-            transport.send(target.id, bytes)
+            // The gate owns the choice of pipe, because it is also the thing that decided the printer
+            // was reachable — one place deciding "Bluetooth or network" means the check and the send
+            // cannot disagree about which one this printer is.
+            gate.transportFor(target).send(target.id, bytes)
             PrintResult.Success
         } catch (e: PrintException) {
             PrintResult.Failed(e.failure)

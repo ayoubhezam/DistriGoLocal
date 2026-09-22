@@ -10,7 +10,12 @@ import com.distrigo.app.data.print.PrinterGate
 import com.distrigo.app.data.print.PrinterLink
 import com.distrigo.app.data.print.ReceiptPrinter
 import com.distrigo.app.data.print.SavedPrinter
+import com.distrigo.app.data.print.ConnectionMethod
 import com.distrigo.app.data.print.discovery.BluetoothScanner
+import com.distrigo.app.data.print.discovery.NetworkPrinterScanner
+import com.distrigo.app.data.print.discovery.WifiInfoProvider
+import com.distrigo.app.data.print.discovery.WifiState
+import com.distrigo.app.data.print.transport.NetworkAddress
 import com.distrigo.app.data.print.discovery.DiscoveredDevice
 import com.distrigo.app.data.print.transport.PrintFailure
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +59,10 @@ data class PrinterSelectionState(
      * the one that would not answer, not on the list.
      */
     val failures   : Map<String, PrintFailure> = emptyMap(),
+    /** Which transport the list is offering to add from. */
+    val method     : ConnectionMethod      = ConnectionMethod.DEFAULT,
+    /** The network this phone is on, for the Wi-Fi header. Null while Bluetooth is the method. */
+    val wifi       : WifiState?            = null,
 )
 
 /**
@@ -69,9 +78,11 @@ class PrinterSelectionViewModel @Inject constructor(
     private val store: PrintSettingsStore,
 ) : ViewModel() {
 
-    private val scanner = BluetoothScanner(context)
-    private val gate    = PrinterGate(context)
-    private val printer = ReceiptPrinter(context, gate)
+    private val scanner    = BluetoothScanner(context)
+    private val netScanner = NetworkPrinterScanner(context)
+    private val wifi       = WifiInfoProvider(context)
+    private val gate       = PrinterGate(context)
+    private val printer    = ReceiptPrinter(context, gate)
 
     private val _state = MutableStateFlow(PrinterSelectionState())
     val state: StateFlow<PrinterSelectionState> = _state.asStateFlow()
@@ -84,28 +95,70 @@ class PrinterSelectionViewModel @Inject constructor(
         }
     }
 
-    /** Re-reads what needs a permission, after the screen has been granted one. */
+    /**
+     * Re-reads everything that can change behind the screen's back: a permission just granted, a radio
+     * just switched on, a network just joined.
+     */
     fun refresh() {
+        val method = store.current().method
         _state.value = _state.value.copy(
-            bonded = scanner.bonded().filterNot { device -> isSaved(device.address) },
+            method = method,
+            bonded = if (method == ConnectionMethod.BLUETOOTH)
+                scanner.bonded().filterNot { device -> isSaved(device.address) } else emptyList(),
+            wifi   = if (method == ConnectionMethod.WIFI) wifi.state() else null,
             link   = gate.check(store.current().selectedPrinter),
         )
     }
 
+    /**
+     * Looks for printers on whichever transport is configured.
+     *
+     * Two very different searches behind one button: a Bluetooth inquiry asks the air what is there,
+     * while the network sweep knocks on port 9100 across the local subnet. Both are bounded, both
+     * stop when the screen goes away, and both feed the same list.
+     */
     fun startScan() {
         if (_state.value.scanning) return
         _state.value = _state.value.copy(scanning = true, discovered = emptyList())
+        val source = if (_state.value.method == ConnectionMethod.WIFI) netScanner.scan() else scanner.discover()
         scanJob = viewModelScope.launch {
-            // Android ends an inquiry on its own after about twelve seconds, but a radio that never
-            // reports finished would otherwise leave the button spinning forever. The ceiling is the
-            // backstop, not the schedule.
+            // Each search ends on its own — Android stops an inquiry after about twelve seconds, and
+            // the sweep finishes when its last probe times out — but a radio that never reports
+            // finished would leave the button spinning forever. The ceiling is the backstop, not the
+            // schedule.
             withTimeoutOrNull(SCAN_CEILING_MS) {
-                scanner.discover()
+                source
                     .onCompletion { _state.value = _state.value.copy(scanning = false) }
                     .collect { device -> addDiscovered(device) }
             }
             _state.value = _state.value.copy(scanning = false)
         }
+    }
+
+    /** Whether a network sweep is possible — there has to be a local subnet to sweep. */
+    fun canScanNetwork(): Boolean = netScanner.canScan()
+
+    /**
+     * Adds a network printer by address, the way a printer's own self-test page gives it.
+     *
+     * The reliable path, and the reason the sweep is a convenience rather than the mechanism: a
+     * printer on a different subnet, or one behind a router that blocks the sweep, is still reachable
+     * by simply being told where it is.
+     */
+    fun addByAddress(host: String, port: Int) {
+        val address = NetworkAddress.resolve(host, port) ?: return
+        val defaults = store.current()
+        store.addPrinter(
+            SavedPrinter(
+                id          = address.toString(),
+                displayName = address.host,
+                method      = ConnectionMethod.WIFI,
+                paper       = defaults.defaultPaper,
+                language    = defaults.defaultLanguage,
+                codePage    = defaults.defaultCodePage,
+            )
+        )
+        select(address.toString())
     }
 
     fun stopScan() {
@@ -251,9 +304,11 @@ class PrinterSelectionViewModel @Inject constructor(
         _state.value = _state.value.copy(
             saved      = settings.printers,
             selectedId = settings.selectedPrinterId,
+            method     = settings.method,
             link       = gate.check(settings.selectedPrinter),
             // A device that has just been saved belongs in the saved list, not in both.
-            bonded     = scanner.bonded().filterNot { isSaved(it.address, settings) },
+            bonded     = if (settings.method == ConnectionMethod.BLUETOOTH)
+                scanner.bonded().filterNot { isSaved(it.address, settings) } else emptyList(),
             discovered = _state.value.discovered.filterNot { isSaved(it.address, settings) },
         )
     }

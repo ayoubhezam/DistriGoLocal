@@ -4,8 +4,13 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import com.distrigo.app.data.print.transport.BluetoothSppTransport
+import com.distrigo.app.data.print.transport.NetworkAddress
 import com.distrigo.app.data.print.transport.PrintFailure
+import com.distrigo.app.data.print.transport.PrinterTransport
+import com.distrigo.app.data.print.transport.TcpTransport
 
 /**
  * Where the printer stands right now.
@@ -50,9 +55,28 @@ sealed interface PrinterLink {
  */
 class PrinterGate(private val context: Context) {
 
-    private val transport = BluetoothSppTransport(context)
+    private val bluetooth = BluetoothSppTransport(context)
+    private val tcp       = TcpTransport()
 
-    fun check(printer: SavedPrinter?): PrinterLink {
+    /**
+     * The cheap pre-flight, by transport.
+     *
+     * Bluetooth and Wi-Fi fail in different ways and at different moments, and the point of the gate
+     * is that each one is named before a socket is attempted rather than after a timeout. There is no
+     * shared checklist to factor out: a radio can be switched off, a subnet cannot.
+     */
+    fun check(printer: SavedPrinter?): PrinterLink = when (printer?.method) {
+        ConnectionMethod.WIFI      -> checkNetwork(printer)
+        ConnectionMethod.BLUETOOTH -> checkBluetooth(printer)
+        // Nothing chosen: report whatever would stop the *configured* method, so "Bluetooth
+        // désactivé" still appears before the user has picked a printer that cannot work anyway.
+        null -> when (settingsMethod()) {
+            ConnectionMethod.WIFI -> checkNetwork(null)
+            else                  -> checkBluetooth(null)
+        }
+    }
+
+    private fun checkBluetooth(printer: SavedPrinter?): PrinterLink {
         val adapter = adapter()
             ?: return PrinterLink.Blocked(printer, PrintFailure.NO_BLUETOOTH)
 
@@ -69,6 +93,40 @@ class PrinterGate(private val context: Context) {
     }
 
     /**
+     * A network printer has no pairing and no adapter to switch on — only an address and whether this
+     * phone is on a network that can carry a packet to it.
+     *
+     * Being on *the wrong* network is not detectable here and is not treated as an error: the screen
+     * names the current Wi-Fi so an unreachable printer's usual cause — the phone having drifted onto
+     * mobile data or the neighbour's router — is visible rather than deduced.
+     */
+    private fun checkNetwork(printer: SavedPrinter?): PrinterLink {
+        if (!hasNetwork()) return PrinterLink.Blocked(printer, PrintFailure.NO_NETWORK)
+        if (printer == null) return PrinterLink.NotConfigured
+        return if (NetworkAddress.parse(printer.id) != null) PrinterLink.Idle(printer)
+        else PrinterLink.Blocked(printer, PrintFailure.NOT_CONFIGURED)
+    }
+
+    private fun hasNetwork(): Boolean {
+        val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return false
+        val network = connectivity.activeNetwork ?: return false
+        return connectivity.getNetworkCapabilities(network)
+            ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true ||
+            connectivity.getLinkProperties(network)?.linkAddresses?.isNotEmpty() == true
+    }
+
+    /**
+     * The configured method, read straight off the settings file.
+     *
+     * The gate is constructed ad hoc by several callers rather than injected, so it reads the store
+     * itself instead of being handed a value that could be stale by the time it is used.
+     */
+    private fun settingsMethod(): ConnectionMethod =
+        runCatching { PrintSettingsStore.forApp(context).current().method }
+            .getOrDefault(ConnectionMethod.DEFAULT)
+
+    /**
      * [check], then an actual connection to prove the printer is in range and free.
      *
      * A printer that is paired, powered and already talking to another phone passes every check above
@@ -77,9 +135,14 @@ class PrinterGate(private val context: Context) {
     suspend fun probe(printer: SavedPrinter?): PrinterLink {
         val checked = check(printer)
         if (checked !is PrinterLink.Idle) return checked
+        val transport = transportFor(checked.printer)
         return if (transport.isReachable(checked.printer.id)) PrinterLink.Ready(checked.printer)
         else PrinterLink.Blocked(checked.printer, PrintFailure.UNREACHABLE)
     }
+
+    /** The pipe this printer is reached through. */
+    fun transportFor(printer: SavedPrinter): PrinterTransport =
+        if (printer.method == ConnectionMethod.WIFI) tcp else bluetooth
 
     private fun isBonded(adapter: BluetoothAdapter, address: String): Boolean = try {
         adapter.bondedDevices.orEmpty().any { it.address.equalsIgnoreCase(address) }
@@ -127,8 +190,13 @@ fun PrintFailure.message(): PrinterProblemMessage = when (this) {
     )
     PrintFailure.UNREACHABLE -> PrinterProblemMessage(
         "Imprimante injoignable",
-        "Vérifiez qu'elle est allumée, à portée, et qu'aucun autre téléphone n'y est connecté.",
+        "Vérifiez qu'elle est allumée, à portée, et qu'aucun autre appareil n'y est connecté.",
         "Réessayer",
+    )
+    PrintFailure.NO_NETWORK -> PrinterProblemMessage(
+        "Aucun réseau",
+        "Connectez le téléphone au Wi-Fi de l'imprimante.",
+        "Réglages Wi-Fi",
     )
     PrintFailure.INTERRUPTED -> PrinterProblemMessage(
         "Impression interrompue",

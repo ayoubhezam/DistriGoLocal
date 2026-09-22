@@ -355,10 +355,11 @@ data/print/
 ├── transport/
 │   ├── PrinterTransport.kt     the contract + PrintFailure                ✔ phase 2
 │   ├── BluetoothSppTransport.kt   RFCOMM, UUID 00001101-…                ✔ phase 2
-│   └── TcpTransport.kt            raw socket, default port 9100             phase 4
+│   └── TcpTransport.kt            raw socket + NetworkAddress, port 9100 ✔ phase 4
 ├── discovery/
 │   ├── BluetoothScanner.kt     bonded devices + ACTION_FOUND              ✔ phase 2
-│   └── WifiInfoProvider.kt     current SSID                                 phase 4
+│   ├── WifiInfoProvider.kt     SSID + local subnet, with WifiState        ✔ phase 4
+│   └── NetworkPrinterScanner.kt   /24 sweep of port 9100                  ✔ phase 4
 ├── PrinterGate.kt              pre-flight: permission → adapter → paired → reachable   phase 2
 
 
@@ -383,7 +384,7 @@ ui/settings/print/
 | **1** | Merge receipt settings in; rename the card to "Reçus et impression" | The reorganisation of §3 | **done** |
 | **2** | BT permissions, `BluetoothSppTransport`, `PrinterSelectionScreen`, `PrinterGate`, `EscPosRenderer`, `TestPrint` calibration strip | Real printing, ESC/POS only | **code done, unverified against hardware** |
 | **3** | `ReceiptPrinter` behind the print button in `ReceiptPreviewSheet`, which Achats, Dépôt Ventes and Tournées Ventes all share; A4 keeps the PDF path; PDF offered as the fallback on every failure | Hardware printing in production | **done** |
-| **4** | `TcpTransport` + SSID display + manual IP | Wi-Fi | |
+| **4** | `TcpTransport` (port 9100) + SSID display + manual IP + a local-subnet sweep | Wi-Fi | **done** |
 | **5** | TSPL / CPCL renderers | Compatibility | |
 
 Phase 0 de-risks the module: the layout engine is where the real design decisions live, and it is
@@ -420,7 +421,69 @@ another screen, and says where to choose it.
 Nothing records that a receipt was printed. That was a deliberate call: it would be a Room column and
 therefore a migration, and the schema stays untouched at this stage. See the open questions.
 
-## 13. Selection is earned by connecting
+## 13. Wi-Fi: a second pipe, not a second app
+
+Phase 4. A network printer is the same dumb byte pipe as a Bluetooth one — open a TCP socket to
+**port 9100**, write ESC/POS, close — so almost nothing above the transport changed.
+
+**What is genuinely different is how it fails.** Bluetooth fails on a radio that is off, a permission
+that was refused, a pairing that was removed. A network printer has none of those: it has an address
+and a question of whether this phone is on a network that can reach it. So `PrinterGate.check` now
+branches by the printer's own `method`, and there is no shared checklist to factor out — a radio can
+be switched off, a subnet cannot. `NO_NETWORK` joins the failures, with "Réglages Wi-Fi" as its action.
+
+`transportFor()` lives on the gate rather than on `ReceiptPrinter`, because the gate is also what
+decided the printer was reachable: one place choosing Bluetooth-or-network means the check and the
+send cannot disagree about which kind of printer this is.
+
+### Typing the address is the mechanism; the sweep is the convenience
+
+A printer prints its own IP on its self-test page, so **Ajouter par adresse IP** is the path that
+always works — including for a printer on another subnet, or behind a router that blocks the sweep.
+Port 9100 is pre-filled and rarely touched, but editable, because the one printer that listens
+elsewhere would otherwise be unreachable with no way to say so.
+
+**Chercher sur le réseau** knocks on port 9100 across the local /24, 48 probes at a time with a
+400 ms timeout each — crude, and deliberately so. The polite alternative is mDNS, but the till
+printers this is for are cheap network modules that answer on 9100 and advertise nothing; mDNS finds
+the office machines that should be going through Android's own print service anyway. Anything
+answering on 9100 is a print server by convention, so unlike the Bluetooth scan there is no guessing
+about what a result is.
+
+The sweep needs **no permission at all** — just a local IPv4 address to sweep from.
+
+### The SSID is reassurance, not a requirement
+
+Printing never needs the network's name; a printer is reached by address. It is shown because an
+unreachable network printer's usual cause is the phone having drifted onto mobile data or onto the
+neighbour's router, and that is invisible unless it is said out loud.
+
+Android will report Wi-Fi as connected while refusing to name it: since API 27 the SSID is gated
+behind the location permission *and* location services actually being on, because knowing which
+Wi-Fi you are on is knowing roughly where you are. `WifiState` therefore has a distinct `Unnamed`
+case carrying which of the two is missing — an app that renders that as an empty string looks broken,
+and one that demands the permission is asking for location to print a receipt. It explains instead.
+
+### Two things the device walk turned up
+
+**The SSID came back empty on a phone with location on.** From API 31 the `WifiInfo` carried on a
+network's capabilities is *redacted* — the SSID reads `<unknown ssid>` — unless the caller asked for
+location info when registering a `NetworkCallback`, which a synchronous read has not. The first
+version stopped there and reported "nom du réseau masqué (localisation désactivée)" on a phone whose
+location was switched on: false, and the sort of message that sends a user to change a setting that
+was never the problem. It now falls back to the deprecated `WifiManager.connectionInfo`, which still
+answers for an app holding the location permission, and a third `UNAVAILABLE` reason covers the case
+where everything is granted and Android still will not say. The clean fix is
+`registerNetworkCallback` with `setIncludeLocationInfo(true)`, which would turn this into a
+subscription — worth doing if the SSID ever becomes more than reassurance.
+
+**A pasted `host:port` was mangled.** The dialog has a separate port box, and the first version
+appended it to whatever was in the address field — so pasting "192.168.1.50:9100" off a self-test
+page produced host `192.168.1.50:9100` on port 9100, a printer nobody can reach. A port typed into
+the address now wins, in `NetworkAddress.resolve`, which is a pure function precisely so the rule is
+pinned by a test rather than buried in a ViewModel.
+
+## 14. Selection is earned by connecting
 
 Reported from the field after phase 3: a printer could be tapped and become the active one while it
 was switched off, flat or still at the depot. Nothing checked, so the first anyone learned of it was a
@@ -445,7 +508,7 @@ The cost, accepted deliberately: with the printer switched off there is no way t
 so the receipt sheet reads "Aucune imprimante" until it answers. That is the honest state, and the
 PDF fallback covers it.
 
-## 14. The paper chips edit what is in force
+## 15. The paper chips edit what is in force
 
 Also reported: with a printer selected, changing "Format du papier" moved the chip and left the
 preview unchanged.
@@ -460,7 +523,7 @@ is one, the device default otherwise. The chips display `effectivePaper`/`effect
 same reason, and each caption names its scope — "réglage de BT SPEAKER" or "défaut pour les nouvelles
 imprimantes" — so the per-printer model is visible instead of surprising.
 
-## 15. Found on the device, phase 2
+## 16. Found on the device, phase 2
 
 Three things the walk turned up that no unit test would have:
 
@@ -478,7 +541,7 @@ Three things the walk turned up that no unit test would have:
   rendered correctly when the failure was instant (Bluetooth off). Never explained. It stopped
   mattering when failures moved to the banner, but it is recorded here rather than quietly dropped.
 
-## 16. Noted while building
+## 17. Noted while building
 
 **`File.renameTo` does not overwrite.** `PrintSettingsStore` originally used the temp-file-and-rename
 that `AutoBackupStore` uses, and every write after the first one threw: `renameTo` is specified to fail
@@ -490,7 +553,7 @@ so the device never showed it and the JVM tests did immediately. `PrintSettingsS
 reason, and it is outside this module, so it was left alone — but it is the same latent bug, and if
 that store ever gains a desktop or JVM-side test it will surface there first.
 
-## 17. Open questions
+## 18. Open questions
 
 - **Which code page do the printers on the ground actually honour?** CP1252 (`ESC t 16`) is the
   assumption; CP858 (`ESC t 19`) is the fallback. Settled by the phase-2 test print on real hardware,
