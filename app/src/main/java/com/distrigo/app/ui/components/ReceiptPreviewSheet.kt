@@ -30,10 +30,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.print.PaperProfile
 import com.distrigo.app.data.print.PaperSize
 import com.distrigo.app.data.print.PrintSettings
-import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.message
 import com.distrigo.app.data.print.transport.PrintFailure
 import com.distrigo.app.ui.settings.print.A4PreviewPlaceholder
+import com.distrigo.app.ui.settings.print.PreviewRow
 import com.distrigo.app.ui.settings.print.ThermalReceiptPreview
 import java.io.File
 import java.io.FileInputStream
@@ -87,8 +87,8 @@ fun ReceiptPreviewSheet(
     // Drawing every row costs a few tens of milliseconds, so it happens off the main thread and the
     // sheet shows a spinner until it lands. Re-run when the paper changes, because 384 dots and 576
     // dots are different images rather than one image at two sizes.
-    val rasters: List<MonoRaster>? by produceState<List<MonoRaster>?>(null, receipt, printSettings.effectivePaper) {
-        value = printViewModel.rasterize(receipt)
+    val rows: List<PreviewRow>? by produceState<List<PreviewRow>?>(null, receipt, printSettings.effectivePaper) {
+        value = printViewModel.preview(receipt)
     }
 
     // Success leaves nothing on screen to show for itself, and a dialog for it would be one more tap
@@ -126,11 +126,11 @@ fun ReceiptPreviewSheet(
             ) {
                 when {
                     paper == null      -> A4PreviewPlaceholder()
-                    rasters == null    -> CircularProgressIndicator(
+                    rows == null       -> CircularProgressIndicator(
                         modifier = Modifier.padding(48.dp),
                         color    = Ink,
                     )
-                    else               -> ThermalReceiptPreview(rasters = rasters!!, paper = paper)
+                    else               -> ThermalReceiptPreview(rows = rows!!, paper = paper)
                 }
             }
 

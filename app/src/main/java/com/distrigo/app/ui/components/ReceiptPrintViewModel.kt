@@ -11,8 +11,9 @@ import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.print.PrinterGate
 import com.distrigo.app.data.print.ReceiptPrinter
 import com.distrigo.app.data.print.ReceiptRasterizer
-import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.transport.PrintFailure
+import com.distrigo.app.ui.settings.print.PreviewRow
+import com.distrigo.app.ui.settings.print.toPreviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -86,19 +87,22 @@ class ReceiptPrintViewModel @Inject constructor(
      * Null for A4, which has no thermal profile and goes to `ReceiptPdfGenerator` and Android's own
      * dialog instead; the caller shows the page placeholder for that.
      *
-     * Off the main thread because it decodes and dithers the logo and draws every row on a Canvas.
+     * Off the main thread because it decodes and dithers the logo, draws every row on a Canvas, and
+     * turns every dot into the images the preview shows.
      *
-     * Kept in [drawn], so the print that usually follows sends these rasters instead of drawing the
-     * receipt again.
+     * The drawing is kept in [drawn], so the print that usually follows sends these rasters instead of
+     * drawing the receipt again.
      */
-    suspend fun rasterize(receipt: ReceiptData): List<MonoRaster>? {
+    suspend fun preview(receipt: ReceiptData): List<PreviewRow>? {
         val paper = PaperProfile.of(settings.value.effectivePaper) ?: return null
-        val result = withContext(Dispatchers.Default) { ReceiptRasterizer.draw(receipt, paper) }
-        drawn = result
-        return result.rasters
+        return withContext(Dispatchers.Default) {
+            val result = ReceiptRasterizer.draw(receipt, paper)
+            drawn = result
+            result.rasters.toPreviewRows()
+        }
     }
 
-    /** The last receipt [rasterize] drew. The printer uses it only if it matches what is printed. */
+    /** The last receipt [preview] drew. The printer uses it only if it matches what is printed. */
     @Volatile private var drawn: DrawnReceipt? = null
 
     fun clear() {

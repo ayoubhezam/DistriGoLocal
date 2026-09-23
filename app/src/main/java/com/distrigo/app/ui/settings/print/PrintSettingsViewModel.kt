@@ -8,7 +8,6 @@ import com.distrigo.app.data.print.PaperSize
 import com.distrigo.app.data.print.PrintLanguage
 import com.distrigo.app.data.print.PrintSettings
 import com.distrigo.app.data.print.PrintSettingsStore
-import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.ReceiptRasterizer
 import com.distrigo.app.data.model.BusinessSettings
 import com.distrigo.app.data.repository.BusinessSettingsRepository
@@ -25,11 +24,11 @@ import javax.inject.Inject
 /**
  * What the preview needs to draw itself: the rows, and the paper they were laid out for.
  *
- * Null [rows] means A4, which has no thermal layout — the screen shows the page placeholder instead.
+ * A null [paper] means A4, which has no thermal layout — the screen shows the page placeholder instead.
  */
 data class PreviewState(
     val paper  : PaperProfile?,
-    val rasters: List<MonoRaster> = emptyList(),
+    val rows   : List<PreviewRow> = emptyList(),
 )
 
 /**
@@ -99,7 +98,7 @@ class PrintSettingsViewModel @Inject constructor(
             businessLogoPath = business.logoPath,
         )
         // The very bitmaps the printer would receive, not a second drawing of them.
-        return PreviewState(paper = paper, rasters = ReceiptRasterizer.rasters(receipt, paper))
+        return PreviewState(paper = paper, rows = ReceiptRasterizer.rasters(receipt, paper).toPreviewRows())
     }
 
 }
