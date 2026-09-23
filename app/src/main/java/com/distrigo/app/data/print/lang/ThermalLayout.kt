@@ -47,7 +47,8 @@ object ThermalLayout {
     private const val TEAR_OFF_DOTS = 120
 
     /**
-     * @param logo already scaled and dithered to [paper]'s dot width, or null when the business has no
+     * @param logo already scaled, dithered and centred on [paper]'s dot width, no taller than
+     *   `ReceiptRasterizer.LOGO_MAX_HEIGHT_MM`, or null when the business has no
      *   logo or its file is missing on this device. Rasterising needs a `Bitmap`, so it is the
      *   caller's job and this object stays free of Android types.
      */

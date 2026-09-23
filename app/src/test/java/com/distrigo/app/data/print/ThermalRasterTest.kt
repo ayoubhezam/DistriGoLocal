@@ -63,6 +63,36 @@ class ThermalRasterTest {
     }
 
     @Test
+    fun `a square logo is capped in height instead of taking the full width`() {
+        // 80 mm paper, 20 mm cap: full width would be 576 dots tall — 72 mm of paper per receipt.
+        val logo = ThermalRaster.logo(flat(0, 100, 100), 100, 100, paperWidth = 576, maxHeight = 160)
+        assertEquals("every row the printer gets is the paper's width", 576, logo.width)
+        assertEquals(160, logo.height)
+    }
+
+    @Test
+    fun `a wide logo keeps the full width when it fits under the cap`() {
+        assertEquals(576, ThermalRaster.logoWidthFor(1000, 100, paperWidth = 576, maxHeight = 160))
+        val logo = ThermalRaster.logo(flat(0, 1000, 100), 1000, 100, paperWidth = 576, maxHeight = 160)
+        assertTrue("taller than the cap: ${logo.height}", logo.height <= 160)
+    }
+
+    @Test
+    fun `a capped logo is centred, with white either side`() {
+        val logo = ThermalRaster.logo(flat(0, 100, 100), 100, 100, paperWidth = 576, maxHeight = 160)
+        // 160 dots of black in 576: 208 white dots each side.
+        assertTrue(!logo.isBlack(207, 0))
+        assertTrue(logo.isBlack(208, 0))
+        assertTrue(logo.isBlack(367, 159))
+        assertTrue(!logo.isBlack(368, 159))
+    }
+
+    @Test
+    fun `a logo is never narrower than one byte`() {
+        assertEquals(8, ThermalRaster.logoWidthFor(1, 1000, paperWidth = 384, maxHeight = 160))
+    }
+
+    @Test
     fun `CP1252 carries French accents unchanged`() {
         val bytes = ReceiptEncoding.encode("Détail à Alger", PrinterCodePage.CP1252)
         assertEquals("Détail à Alger", String(bytes, charset("windows-1252")))

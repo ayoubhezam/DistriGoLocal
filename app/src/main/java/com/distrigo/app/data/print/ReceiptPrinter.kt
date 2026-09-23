@@ -32,9 +32,14 @@ class ReceiptPrinter(
      * Everything the printer receives for a receipt is now an image, because ESC/POS cannot shape or
      * reorder Arabic. The drawing happens here rather than in the caller so that there is exactly one
      * path from a receipt to paper, and so the preview can take the same one.
+     *
+     * @param drawn the preview's drawing of this receipt, if it has one. It is used only when it is
+     *   this receipt on this printer's paper; otherwise the receipt is drawn here.
      */
-    suspend fun print(receipt: ReceiptData, printer: SavedPrinter?): PrintResult =
-        send(printer) { paper -> EscPosRenderer.renderRaster(ReceiptRasterizer.rasters(receipt, paper)) }
+    suspend fun print(receipt: ReceiptData, printer: SavedPrinter?, drawn: DrawnReceipt? = null): PrintResult =
+        send(printer) { paper ->
+            EscPosRenderer.renderRaster(ReceiptRasterizer.rastersFor(receipt, paper, drawn))
+        }
 
     /**
      * Resolves the printer, renders with [bytes] and sends.

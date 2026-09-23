@@ -3,6 +3,7 @@ package com.distrigo.app.ui.components
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.distrigo.app.data.print.DrawnReceipt
 import com.distrigo.app.data.print.PaperProfile
 import com.distrigo.app.data.print.PrintResult
 import com.distrigo.app.data.print.PrintSettings
@@ -72,7 +73,7 @@ class ReceiptPrintViewModel @Inject constructor(
 
         _status.value = ReceiptPrintStatus.Printing
         viewModelScope.launch {
-            _status.value = when (val result = printer.print(receipt, current.selectedPrinter)) {
+            _status.value = when (val result = printer.print(receipt, current.selectedPrinter, drawn)) {
                 PrintResult.Success   -> ReceiptPrintStatus.Sent
                 is PrintResult.Failed -> ReceiptPrintStatus.Failed(result.failure)
             }
@@ -86,11 +87,19 @@ class ReceiptPrintViewModel @Inject constructor(
      * dialog instead; the caller shows the page placeholder for that.
      *
      * Off the main thread because it decodes and dithers the logo and draws every row on a Canvas.
+     *
+     * Kept in [drawn], so the print that usually follows sends these rasters instead of drawing the
+     * receipt again.
      */
     suspend fun rasterize(receipt: ReceiptData): List<MonoRaster>? {
         val paper = PaperProfile.of(settings.value.effectivePaper) ?: return null
-        return withContext(Dispatchers.Default) { ReceiptRasterizer.rasters(receipt, paper) }
+        val result = withContext(Dispatchers.Default) { ReceiptRasterizer.draw(receipt, paper) }
+        drawn = result
+        return result.rasters
     }
+
+    /** The last receipt [rasterize] drew. The printer uses it only if it matches what is printed. */
+    @Volatile private var drawn: DrawnReceipt? = null
 
     fun clear() {
         _status.value = ReceiptPrintStatus.Idle

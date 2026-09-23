@@ -40,7 +40,7 @@ data class MonoRaster(
  * spreads each pixel's rounding error into its neighbours, which reads as texture rather than loss.
  *
  * The grayscale entry point is pure Kotlin and takes no Android type, so the algorithm is unit-tested
- * on the desk; [fromBitmap] is the thin adapter over it.
+ * on the desk; [logoFromBitmap] is the thin adapter over it.
  */
 object ThermalRaster {
 
@@ -109,20 +109,63 @@ object ThermalRaster {
     }
 
     /**
-     * [fromGrayscale] for an Android bitmap, flattening transparency onto white first.
+     * How wide a logo is drawn: the full [paperWidth], unless that would make it taller than
+     * [maxHeight] dots, in which case as wide as [maxHeight] allows. Whole bytes, never below one.
+     *
+     * Full width alone was the rule until a square logo turned out to cost 72 mm of 80 mm paper on
+     * every receipt — the height of the mark followed its width, and its width was the roll's.
+     */
+    fun logoWidthFor(srcWidth: Int, srcHeight: Int, paperWidth: Int, maxHeight: Int): Int {
+        require(srcWidth > 0 && srcHeight > 0) { "empty source image: ${srcWidth}x$srcHeight" }
+        val byHeight = (maxHeight.toLong() * srcWidth / srcHeight).toInt()
+        return (minOf(paperWidth, byHeight) / 8 * 8).coerceAtLeast(8)
+    }
+
+    /**
+     * [raster] placed in the middle of a [width]-dot row, white either side.
+     *
+     * Every row the printer receives is the paper's full width: `GS v 0` is sent left-aligned, and the
+     * preview scales each row to the paper's width, so a narrower raster would print against the left
+     * edge and preview stretched. Centred to whole bytes, so off-centre by at most half a byte — 4 dots, half a millimetre.
+     */
+    fun centered(raster: MonoRaster, width: Int): MonoRaster {
+        require(width % 8 == 0 && width >= raster.width) { "cannot centre ${raster.width} dots in $width" }
+        if (raster.width == width) return raster
+        val bytesPerRow = width / 8
+        val offset = (bytesPerRow - raster.bytesPerRow) / 2
+        val bits = ByteArray(bytesPerRow * raster.height)
+        for (y in 0 until raster.height) {
+            System.arraycopy(raster.bits, y * raster.bytesPerRow, bits, y * bytesPerRow + offset, raster.bytesPerRow)
+        }
+        return MonoRaster(width = width, height = raster.height, bits = bits)
+    }
+
+    /**
+     * A logo ready for the paper: dithered at the width [logoWidthFor] allows, then centred on a row
+     * [paperWidth] dots wide. Never taller than [maxHeight], short of a source so narrow that one byte
+     * of width already exceeds it.
+     */
+    fun logo(gray: IntArray, srcWidth: Int, srcHeight: Int, paperWidth: Int, maxHeight: Int): MonoRaster {
+        val width = logoWidthFor(srcWidth, srcHeight, paperWidth, maxHeight)
+        return centered(fromGrayscale(gray, srcWidth, srcHeight, width), paperWidth)
+    }
+
+    /**
+     * [logo] for an Android bitmap, flattening transparency onto white first.
      *
      * A logo saved as a transparent PNG would otherwise dither its own empty background into noise:
      * an unset alpha channel reads as black in the luminance below, so the paper would come out with a
      * dark rectangle around the mark.
      */
-    fun fromBitmap(bitmap: android.graphics.Bitmap, targetWidth: Int): MonoRaster {
+    fun logoFromBitmap(bitmap: android.graphics.Bitmap, paperWidth: Int, maxHeight: Int): MonoRaster {
         val w = bitmap.width
         val h = bitmap.height
-        val pixels = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
         val gray = IntArray(w * h)
-        for (i in pixels.indices) {
-            val p = pixels[i]
+        bitmap.getPixels(gray, 0, w, 0, 0, w, h)
+        // In place: each ARGB pixel is read once and replaced by its grey, so the pixels and the grey
+        // image do not have to be held side by side.
+        for (i in gray.indices) {
+            val p = gray[i]
             val a = (p ushr 24) and 0xFF
             val r = (p ushr 16) and 0xFF
             val g = (p ushr 8) and 0xFF
@@ -131,6 +174,6 @@ object ThermalRaster {
             val luma = (r * 299 + g * 587 + b * 114) / 1000
             gray[i] = if (a == 255) luma else (luma * a + 255 * (255 - a)) / 255
         }
-        return fromGrayscale(gray, w, h, targetWidth)
+        return logo(gray, w, h, paperWidth, maxHeight)
     }
 }
