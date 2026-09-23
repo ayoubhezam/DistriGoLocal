@@ -10,6 +10,7 @@ import com.distrigo.app.data.print.PrintSettingsStore
 import com.distrigo.app.data.print.PrinterGate
 import com.distrigo.app.data.print.ReceiptPrinter
 import com.distrigo.app.data.print.ReceiptRasterizer
+import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.transport.PrintFailure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -76,6 +77,19 @@ class ReceiptPrintViewModel @Inject constructor(
                 is PrintResult.Failed -> ReceiptPrintStatus.Failed(result.failure)
             }
         }
+    }
+
+    /**
+     * The receipt drawn for the preview — the very rasters [print] would send.
+     *
+     * Null for A4, which has no thermal profile and goes to `ReceiptPdfGenerator` and Android's own
+     * dialog instead; the caller shows the page placeholder for that.
+     *
+     * Off the main thread because it decodes and dithers the logo and draws every row on a Canvas.
+     */
+    suspend fun rasterize(receipt: ReceiptData): List<MonoRaster>? {
+        val paper = PaperProfile.of(settings.value.effectivePaper) ?: return null
+        return withContext(Dispatchers.Default) { ReceiptRasterizer.rasters(receipt, paper) }
     }
 
     fun clear() {
