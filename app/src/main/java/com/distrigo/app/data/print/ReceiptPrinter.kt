@@ -5,6 +5,8 @@ import com.distrigo.app.data.print.lang.EscPosRenderer
 import com.distrigo.app.data.print.transport.PrintException
 import com.distrigo.app.data.print.transport.PrintFailure
 import com.distrigo.app.ui.components.ReceiptData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** What a print attempt did. */
 sealed interface PrintResult {
@@ -57,11 +59,16 @@ class ReceiptPrinter(
         // refuses rather than printing something the user has to throw away.
         if (target.language != PrintLanguage.ESC_POS) return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
 
+        // Off the caller's thread, which is Main for every caller today. For a receipt this is the
+        // whole drawing — the logo decoded and dithered, every row laid out on a Canvas — and the
+        // transport only moves to IO inside send(), after this argument has already been evaluated.
+        val payload = withContext(Dispatchers.Default) { bytes(paper) }
+
         return try {
             // The gate owns the choice of pipe, because it is also the thing that decided the printer
             // was reachable — one place deciding "Bluetooth or network" means the check and the send
             // cannot disagree about which one this printer is.
-            gate.transportFor(target).send(target.id, bytes(paper))
+            gate.transportFor(target).send(target.id, payload)
             PrintResult.Success
         } catch (e: PrintException) {
             PrintResult.Failed(e.failure)
