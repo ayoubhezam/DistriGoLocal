@@ -130,27 +130,40 @@ object ThermalLayout {
 
     // ───────────────────────────── items ─────────────────────────────
 
-    /** Wide paper: name, quantity, unit price and line total across one row. */
+    /**
+     * Wide paper: name, quantity, unit price and line total across one row.
+     *
+     * The shares are set by what must never wrap rather than by what looks balanced. A four-figure
+     * unit price and a five-figure total have to fit on one line — money broken across two lines is
+     * money misread — while a long product name wrapping is ordinary and costs a row nobody minds.
+     * So the numeric columns are sized for their worst realistic value and the name absorbs the rest.
+     */
     private fun itemTable(items: List<ReceiptLineItem>): List<ReceiptRow> = buildList {
         add(ReceiptRow.Cells(
             listOf(
-                Cell("Article", 0.44f),
-                Cell("Qté", 0.18f),
-                Cell("P.U.", 0.18f, RowAlign.End),
-                Cell("Total", 0.20f, RowAlign.End),
+                Cell("Article", NAME_SHARE),
+                Cell("Qté", QTY_SHARE),
+                Cell("P.U.", PRICE_SHARE, RowAlign.End),
+                Cell("Total", TOTAL_SHARE, RowAlign.End),
             ),
             weight = RowWeight.Bold,
         ))
         add(ReceiptRow.Rule())
         items.forEach { item ->
             add(ReceiptRow.Cells(listOf(
-                Cell(item.name, 0.44f),
-                Cell("${formatQty(item.quantity)} ${item.unitLabel}", 0.18f),
-                Cell(money(item.unitPrice), 0.18f, RowAlign.End),
-                Cell(money(item.totalPrice), 0.20f, RowAlign.End),
+                Cell(item.name, NAME_SHARE),
+                Cell("${formatQty(item.quantity)} ${item.unitLabel}", QTY_SHARE),
+                Cell(money(item.unitPrice), PRICE_SHARE, RowAlign.End),
+                Cell(money(item.totalPrice), TOTAL_SHARE, RowAlign.End),
             )))
         }
     }
+
+    // The four shares of the item table, summing to 1. See itemTable.
+    private const val NAME_SHARE  = 0.30f
+    private const val QTY_SHARE   = 0.21f
+    private const val PRICE_SHARE = 0.22f
+    private const val TOTAL_SHARE = 0.27f
 
     /**
      * Narrow paper: the name on its own row, then the figures beneath it with the line total pinned

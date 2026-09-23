@@ -8,7 +8,11 @@ import com.distrigo.app.ui.components.ReceiptLineItem
  * like", which needs no sale to exist and must work on a phone whose database is empty.
  *
  * Chosen to exercise what actually breaks a layout rather than to look tidy:
- * - a product name longer than either paper's name column, so wrapping and continuation lines show;
+ * - a product name longer than either paper's name column, so wrapping shows;
+ * - **an Arabic name**, which is the whole reason the receipt is drawn rather than typed: it has to
+ *   come out joined, in contextual forms, running right to left, with its Latin figures still in
+ *   reading order beside it. Nothing else on this receipt can go wrong so invisibly — unshaped
+ *   Arabic still looks like Arabic to someone who does not read it;
  * - a name with accents, so a wrong code page is visible at a glance;
  * - a quantity with decimals beside whole ones;
  * - a part payment, so the Payé / Reste rows and the signature line appear;
@@ -37,8 +41,12 @@ internal val SAMPLE_RECEIPT = ReceiptData(
             name = "Café Tchin-Tchin 250g", quantity = 12.5, unitLabel = "kg",
             unitPrice = 340.0, totalPrice = 4250.0,
         ),
+        ReceiptLineItem(
+            name = "بطاطا محلية طازجة", quantity = 30.0, unitLabel = "kg",
+            unitPrice = 80.0, totalPrice = 2400.0,
+        ),
     ),
-    total         = 15230.0,
+    total         = 17630.0,
     paid          = 10000.0,
     note          = "Livraison prévue jeudi matin.",
     businessName  = "DISTRIGO",

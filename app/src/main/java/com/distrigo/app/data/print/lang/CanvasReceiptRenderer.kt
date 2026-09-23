@@ -221,8 +221,15 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
         /** White space either side of a rule. */
         const val RULE_MARGIN = 4
 
-        /** Space between adjacent cells, so text never touches. */
-        const val GUTTER = 6
+        /**
+         * Space between adjacent cells, in dots.
+         *
+         * Wider than it looks necessary in a Latin-only table, because a right-to-left cell meets its
+         * neighbour in the middle rather than at one edge: an Arabic product name is flush *right*
+         * against a left-aligned quantity, so the two run together at a gap that would be ample
+         * between two left-aligned columns.
+         */
+        const val GUTTER = 12
 
         /** How much larger [RowScale.Large] draws. */
         const val LARGE_SCALE = 1.35f
