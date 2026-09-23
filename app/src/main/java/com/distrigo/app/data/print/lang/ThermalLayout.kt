@@ -141,7 +141,7 @@ object ThermalLayout {
     private fun itemTable(items: List<ReceiptLineItem>): List<ReceiptRow> = buildList {
         add(ReceiptRow.Cells(
             listOf(
-                Cell("Article", NAME_SHARE),
+                Cell("Article", NAME_SHARE, RowAlign.Left),
                 Cell("Qté", QTY_SHARE),
                 Cell("P.U.", PRICE_SHARE, RowAlign.End),
                 Cell("Total", TOTAL_SHARE, RowAlign.End),
@@ -151,7 +151,9 @@ object ThermalLayout {
         add(ReceiptRow.Rule())
         items.forEach { item ->
             add(ReceiptRow.Cells(listOf(
-                Cell(item.name, NAME_SHARE),
+                // Left rather than Start: a column of names is read down its left edge, and Arabic
+                // entries starting at the right would leave no edge to read down. See RowAlign.Left.
+                Cell(item.name, NAME_SHARE, RowAlign.Left),
                 Cell("${formatQty(item.quantity)} ${item.unitLabel}", QTY_SHARE),
                 Cell(money(item.unitPrice), PRICE_SHARE, RowAlign.End),
                 Cell(money(item.totalPrice), TOTAL_SHARE, RowAlign.End),
@@ -174,7 +176,7 @@ object ThermalLayout {
      */
     private fun itemPairs(items: List<ReceiptLineItem>): List<ReceiptRow> = buildList {
         items.forEach { item ->
-            add(ReceiptRow.Line(item.name))
+            add(ReceiptRow.Line(item.name, RowAlign.Left))
             add(ReceiptRow.Columns(
                 left  = "   ${formatQty(item.quantity)} ${item.unitLabel} × ${money(item.unitPrice)}",
                 right = money(item.totalPrice),

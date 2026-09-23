@@ -3,12 +3,16 @@ package com.distrigo.app.data.print.lang
 /**
  * Where a piece of text sits in the space it was given.
  *
- * [Start] and [End] follow the text's own direction rather than the page's: an Arabic line with
- * [Start] is flush right, a French one flush left. That is the whole reason these are not called
- * Left and Right — the receipt has to read correctly in both, and hardcoding a side would make one
- * of them wrong.
+ * [Start] and [End] follow the text's *own* direction rather than the page's: an Arabic line with
+ * [Start] is flush right, a French one flush left. That is right for a paragraph — a line of Arabic
+ * that began at the left edge would read as though it were indented.
+ *
+ * [Left] is the absolute one, and exists for a column rather than a paragraph. A list of product
+ * names is read by running an eye down its left edge, and a column where the Arabic entries start at
+ * the right and the French at the left has no edge to run down. It changes only where the text
+ * begins: the Arabic is still shaped, still joined, and still reads right to left within itself.
  */
-enum class RowAlign { Start, Center, End }
+enum class RowAlign { Start, Center, End, Left }
 
 /** How heavily a line is drawn. */
 enum class RowWeight { Normal, Bold }

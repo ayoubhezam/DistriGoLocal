@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
+import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import com.distrigo.app.data.print.PaperProfile
 import kotlin.math.ceil
@@ -64,7 +65,7 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
 
     private fun line(row: ReceiptRow.Line): MonoRaster {
         val paint = paintFor(row.weight, row.scale)
-        val layout = layoutOf(row.text, paint, width, row.align.toLayoutAlignment())
+        val layout = layoutOf(row.text, paint, width, row.align)
         return draw(layout.height + LINE_GAP) { canvas -> canvas.drawLayout(layout, 0) }
     }
 
@@ -80,8 +81,8 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
         val rightWidth = ceil(paint.measureText(row.right)).toInt().coerceAtMost(width)
         val leftWidth = (width - rightWidth - GUTTER).coerceAtLeast(1)
 
-        val left = layoutOf(row.left, paint, leftWidth, Layout.Alignment.ALIGN_NORMAL)
-        val right = layoutOf(row.right, paint, rightWidth, Layout.Alignment.ALIGN_OPPOSITE)
+        val left = layoutOf(row.left, paint, leftWidth, RowAlign.Start)
+        val right = layoutOf(row.right, paint, rightWidth, RowAlign.End)
 
         return draw(maxOf(left.height, right.height) + LINE_GAP) { canvas ->
             canvas.drawLayout(left, 0)
@@ -102,7 +103,7 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
             val last = index == row.cells.lastIndex
             val cellWidth = if (last) width - x else (width * cell.fraction).roundToInt()
             val textWidth = (cellWidth - GUTTER).coerceAtLeast(1)
-            val layout = layoutOf(cell.text, paint, textWidth, cell.align.toLayoutAlignment())
+            val layout = layoutOf(cell.text, paint, textWidth, cell.align)
             val at = x
             x += cellWidth
             layout to at
@@ -164,9 +165,18 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
      * product name beside a Latin number — in the order a reader expects. Hand-wrapping by character
      * count, which is what the previous renderer did, can do none of them.
      */
-    private fun layoutOf(text: String, paint: TextPaint, width: Int, alignment: Layout.Alignment): StaticLayout =
+    private fun layoutOf(text: String, paint: TextPaint, width: Int, align: RowAlign): StaticLayout =
         StaticLayout.Builder.obtain(text, 0, text.length, paint, width.coerceAtLeast(1))
-            .setAlignment(alignment)
+            .setAlignment(align.toLayoutAlignment())
+            // The paragraph's embedding direction, which is what actually decides which edge
+            // ALIGN_NORMAL means. Left over a strong-RTL string overrides the run's own direction for
+            // *placement* only — HarfBuzz still shapes the Arabic and it still reads right to left
+            // within itself, it simply starts at the left edge. Everything else keeps the default
+            // first-strong rule, so a paragraph of Arabic still behaves like one.
+            .setTextDirection(
+                if (align == RowAlign.Left) TextDirectionHeuristics.LTR
+                else TextDirectionHeuristics.FIRSTSTRONG_LTR
+            )
             .setIncludePad(false)
             .setLineSpacing(0f, 1f)
             .build()
@@ -203,12 +213,17 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
         return MonoRaster(width, height, bits)
     }
 
+    /**
+     * NORMAL and OPPOSITE are relative to the paragraph's direction, not to the page.
+     *
+     * Which is why [RowAlign.Left] maps to NORMAL as well and does its work in `setTextDirection`:
+     * the absolute `ALIGN_LEFT` exists in the platform but is hidden, so forcing the left edge means
+     * forcing the direction that makes NORMAL mean left.
+     */
     private fun RowAlign.toLayoutAlignment(): Layout.Alignment = when (this) {
-        // NORMAL and OPPOSITE are relative to the text's own direction, which is the point: an
-        // Arabic line with Start is flush right and a French one flush left, from the same row.
-        RowAlign.Start  -> Layout.Alignment.ALIGN_NORMAL
-        RowAlign.Center -> Layout.Alignment.ALIGN_CENTER
-        RowAlign.End    -> Layout.Alignment.ALIGN_OPPOSITE
+        RowAlign.Start, RowAlign.Left -> Layout.Alignment.ALIGN_NORMAL
+        RowAlign.Center               -> Layout.Alignment.ALIGN_CENTER
+        RowAlign.End                  -> Layout.Alignment.ALIGN_OPPOSITE
     }
 
     private companion object {

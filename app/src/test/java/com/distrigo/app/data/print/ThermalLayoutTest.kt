@@ -3,6 +3,7 @@ package com.distrigo.app.data.print
 import com.distrigo.app.data.print.lang.Cell
 import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.ReceiptRow
+import com.distrigo.app.data.print.lang.RowAlign
 import com.distrigo.app.data.print.lang.ThermalLayout
 import com.distrigo.app.ui.components.ReceiptData
 import com.distrigo.app.ui.components.ReceiptLineItem
@@ -92,6 +93,31 @@ class ThermalLayoutTest {
             "total not pinned to the far edge",
             narrow.filterIsInstance<ReceiptRow.Columns>().any { it.right == "680.00" },
         )
+    }
+
+    @Test
+    fun `product names are left-aligned whatever the script`() {
+        // A column of names is read by running an eye down its left edge. Left to itself, Android
+        // places a strong-RTL string flush right, so an Arabic entry would start where a French one
+        // ends and the column would have no edge to read down. RowAlign.Left overrides the placement
+        // without touching the shaping.
+        val data = receipt(items = listOf(
+            line("Café", 2.0, "kg", 340.0, 680.0),
+            line("بطاطا محلية", 30.0, "kg", 80.0, 2400.0),
+        ))
+
+        val wide = cellRows(ThermalLayout.layout(data, PaperProfile.MM80))
+            .flatMap { it.cells }
+            .filter { it.text == "Café" || it.text == "بطاطا محلية" || it.text == "Article" }
+        assertTrue("the table's name column is not forced left", wide.isNotEmpty())
+        wide.forEach { assertEquals("${it.text} is not left-aligned", RowAlign.Left, it.align) }
+
+        // The narrow roll puts the name on its own row; same rule applies.
+        ThermalLayout.layout(data, PaperProfile.MM58)
+            .filterIsInstance<ReceiptRow.Line>()
+            .filter { it.text == "Café" || it.text == "بطاطا محلية" }
+            .also { assertEquals("both names should be their own rows", 2, it.size) }
+            .forEach { assertEquals("${it.text} is not left-aligned", RowAlign.Left, it.align) }
     }
 
     @Test
