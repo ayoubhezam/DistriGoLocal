@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.distrigo.app.BuildConfig
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -80,6 +81,8 @@ fun ParametresScreen(
                 subtitle = "Restaurer les produits, clients et autres éléments supprimés",
                 onClick  = onTrash
             )
+            // Absent from release builds: BuildConfig.DEBUG is a compile-time false there.
+            if (BuildConfig.DEBUG) StressDataCard()
         }
     }
 }

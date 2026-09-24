@@ -47,6 +47,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG gates the debug-only stress-data generator in Paramètres.
+        buildConfig = true
     }
     // MigrationTestHelper builds a database at any exported version from these JSON files, so the
     // migration tests read the same schemas the migrations were copied from.
