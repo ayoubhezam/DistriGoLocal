@@ -7,7 +7,12 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "purchase_orders",
-    indices = [Index(value = ["supplier_id", "created_at"]), Index(value = ["uuid"], unique = true)]
+    indices = [
+        Index(value = ["supplier_id", "created_at"]),
+        Index(value = ["uuid"], unique = true),
+        // The Achats list reads newest first by created_at, a page at a time; see PurchaseOrderListSql.
+        Index(value = ["created_at"]),
+    ]
 )
 data class PurchaseOrderEntity(
     @PrimaryKey(autoGenerate = true)

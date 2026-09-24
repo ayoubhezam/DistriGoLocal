@@ -9,6 +9,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -43,11 +47,6 @@ import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
-import com.distrigo.app.ui.common.OrderListFilters
-import com.distrigo.app.ui.common.filterOrders
-import com.distrigo.app.ui.common.groupOrdersByDay
-import com.distrigo.app.ui.common.suppliersOfOrders
-import com.distrigo.app.ui.common.KeepIndexScrollPosition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,10 +64,11 @@ fun PurchasesScreen(
     onResumeDraft      : (PurchaseDraft) -> Unit = {},
     onOpenBrouillons   : () -> Unit = {}
 ) {
-    val orders    by viewModel.orders.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error     by viewModel.error.collectAsState()
-    val drafts    by viewModel.drafts.collectAsState()
+    // Paged: only the rows near the screen are loaded, from a query that already applies the search
+    // and the filters. The count and the supplier choices come from their own queries for that reason.
+    val pagedOrders = viewModel.pagedOrders.collectAsLazyPagingItems()
+    val orderCount  by viewModel.orderCount.collectAsState()
+    val drafts      by viewModel.drafts.collectAsState()
 
     var showDraftsSheet by remember { mutableStateOf(false) }
 
@@ -84,44 +84,15 @@ fun PurchasesScreen(
     val dateToState        = rememberDatePickerState()
     val listState          = rememberLazyListState()
 
-    LaunchedEffect(Unit) { viewModel.loadOrders() }
-
-    // ── Suppliers list (مستخرجة من الأوردرات الموجودة) ──
-    val suppliers = remember(orders) { suppliersOfOrders(orders) }
+    // ── Suppliers list: every supplier with at least one bon ──
+    val supplierChoices by viewModel.orderSuppliers.collectAsState()
+    val suppliers = remember(supplierChoices) { supplierChoices.map { it.id to it.name } }
 
     val hasActiveFilters = viewModel.filterReceptionStatus != null ||
             viewModel.filterPaymentStatus != null ||
             viewModel.filterSupplierId != null ||
             viewModel.filterDateFrom != null ||
             viewModel.filterDateTo != null
-
-    // Recomputed only when the orders, the search or a filter changes; see filterOrders.
-    val filteredOrders = remember(
-        orders,
-        viewModel.searchQuery,
-        viewModel.filterReceptionStatus,
-        viewModel.filterPaymentStatus,
-        viewModel.filterSupplierId,
-        viewModel.filterDateFrom,
-        viewModel.filterDateTo
-    ) {
-        filterOrders(
-            orders  = orders,
-            query   = viewModel.searchQuery,
-            filters = OrderListFilters(
-                receptionStatus = viewModel.filterReceptionStatus,
-                paymentStatus   = viewModel.filterPaymentStatus,
-                supplierId      = viewModel.filterSupplierId,
-                dateFrom        = viewModel.filterDateFrom,
-                dateTo          = viewModel.filterDateTo
-            )
-        )
-    }
-
-    // Keyed rows would keep the first visible bon in view when a search or filter changes the list;
-    // the list keeps its place by index, as it always has. Beside listState rather than the list,
-    // because the state outlives the list while a search shows nothing.
-    KeepIndexScrollPosition(listState, filteredOrders)
 
     // ── Long Press Dialog ──
     longPressOrder?.let { order ->
@@ -148,7 +119,6 @@ fun PurchasesScreen(
                                 showDeleteDialog = false
                                 longPressOrder   = null
                                 deleteError      = ""
-                                viewModel.loadOrders()
                             },
                             onError = { err -> deleteError = err }
                         )
@@ -474,7 +444,7 @@ fun PurchasesScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                     ) {
-                        Text("Appliquer (${filteredOrders.size})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Appliquer (${orderCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
@@ -529,7 +499,7 @@ fun PurchasesScreen(
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                     Text(
-                        "${filteredOrders.size} bons",
+                        "${orderCount?.toString() ?: "…"} bons",
                         fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary
@@ -605,17 +575,17 @@ fun PurchasesScreen(
 
             Spacer(Modifier.height(DsSpacing.sm))
 
-            // ── Loading ──
-            if (isLoading) {
+            // ── Loading, error, empty, or the list ──
+            val refresh = pagedOrders.loadState.refresh
+            if (pagedOrders.itemCount == 0 && refresh is LoadState.Loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
-            } else if (error != null) {
-                // ── Error ──
+            } else if (pagedOrders.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(error ?: "", color = DsColors.Danger)
+                    Text(refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
                 }
-            } else if (filteredOrders.isEmpty()) {
+            } else if (pagedOrders.itemCount == 0) {
                 // ── Empty State ──
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -636,7 +606,6 @@ fun PurchasesScreen(
                     }
                 }
             } else {
-                val groupedOrders = remember(filteredOrders) { groupOrdersByDay(filteredOrders) }
                 // ── List ──
                 LazyColumn(
                     state               = listState,
@@ -644,27 +613,35 @@ fun PurchasesScreen(
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
-                    groupedOrders.forEach { (date, dayOrders) ->
-                        // Keyed, like the rows under it, so a new bon at the top does not shift
-                        // every row's identity down by one.
-                        item(key = "date_$date") {
-                            Text(
-                                text       = formatOrderDate(date),
+                    // Keyed by bon and by day, so a page loading above or a bon changing below does
+                    // not move what is on screen.
+                    items(
+                        count       = pagedOrders.itemCount,
+                        key         = pagedOrders.itemKey { row ->
+                            when (row) {
+                                is AchatsListItem.DayHeader -> "date_${row.day}"
+                                is AchatsListItem.Order     -> row.order.id
+                            }
+                        },
+                        contentType = pagedOrders.itemContentType { row -> row is AchatsListItem.DayHeader }
+                    ) { index ->
+                        when (val row = pagedOrders[index]) {
+                            is AchatsListItem.DayHeader -> Text(
+                                text       = formatOrderDate(row.day),
                                 fontSize   = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = DsColors.TextSecondary,
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
-                        }
-                        items(dayOrders, key = { it.id }) { order ->
-                            PurchaseOrderCard(
-                                order   = order,
+                            is AchatsListItem.Order -> PurchaseOrderCard(
+                                order   = row.order,
                                 onClick = {
-                                    onOrderClick(order.id)
-                                    viewModel.loadOrderDetail(order.id)
+                                    onOrderClick(row.order.id)
+                                    viewModel.loadOrderDetail(row.order.id)
                                 },
-                                onLongClick = { longPressOrder = order }
+                                onLongClick = { longPressOrder = row.order }
                             )
+                            null -> Unit
                         }
                     }
                 }

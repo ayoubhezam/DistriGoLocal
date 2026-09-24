@@ -1,12 +1,30 @@
 package com.distrigo.app.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.distrigo.app.data.model.NUMBER_LABEL_SQL
 import com.distrigo.app.data.local.entity.PriceHistoryEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderItemEntity
+import com.distrigo.app.data.local.entity.SupplierEntity
+import kotlinx.coroutines.flow.Flow
+
+/** The supplier's name as the Achats list shows it; the same expression as `PurchaseOrderListSql.SUPPLIER_NAME`. */
+const val PURCHASE_LIST_SUPPLIER_NAME = "COALESCE(o.supplier_name, s.name, 'Fournisseur supprimé')"
+
+/** One row of the Achats list: the bon, the name to show for its supplier, and how many lines it has. */
+data class PurchaseOrderListRow(
+    @Embedded val order: PurchaseOrderEntity,
+    val display_supplier_name: String,
+    val items_count: Int,
+)
+
+/** A choice in the Achats supplier filter. */
+data class OrderSupplierChoice(val id: Int, val name: String)
 
 @Dao
 interface PurchaseDao {
@@ -15,8 +33,38 @@ interface PurchaseDao {
     @Insert
     suspend fun insertOrder(order: PurchaseOrderEntity): Long
 
+    /** Every bon. No screen reads this — the Achats list is paged, see [pageOrders] — but the database tests do. */
     @Query("SELECT * FROM purchase_orders ORDER BY id DESC")
     suspend fun getAllOrders(): List<PurchaseOrderEntity>
+
+    /**
+     * A page of the Achats list — see `PurchaseOrderListSql` for the SQL and why it is built per request.
+     *
+     * One query per page: the bon, its supplier's name and its line count come back together, where the
+     * list used to load every bon and then run two more queries for each of them.
+     */
+    @RawQuery
+    suspend fun pageOrders(query: SupportSQLiteQuery): List<PurchaseOrderListRow>
+
+    /** How many bons a `PurchaseOrderListSql.count` query matches, re-counted whenever a bon changes. */
+    @RawQuery(observedEntities = [PurchaseOrderEntity::class, SupplierEntity::class])
+    fun observeOrderCount(query: SupportSQLiteQuery): Flow<Int>
+
+    /**
+     * Every supplier that has at least one bon, once, by the name its bons show: the Achats supplier
+     * filter's choices. Read from the table, since the list no longer holds every bon.
+     */
+    @Query("""
+        SELECT o.supplier_id AS id, MIN(${PURCHASE_LIST_SUPPLIER_NAME}) AS name
+        FROM purchase_orders o LEFT JOIN suppliers s ON s.id = o.supplier_id
+        GROUP BY o.supplier_id
+        ORDER BY name
+    """)
+    fun observeOrderSuppliers(): Flow<List<OrderSupplierChoice>>
+
+    /** One bon, live: the detail screen's subject, now that it is not taken from a loaded list. */
+    @Query("SELECT * FROM purchase_orders WHERE id = :id")
+    fun observeOrderById(id: Int): Flow<PurchaseOrderEntity?>
 
     /** The supplier's purchase orders counted, with totals and amounts paid summed: its detail screen's figures. */
     @Query("""

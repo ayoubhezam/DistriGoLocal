@@ -121,8 +121,9 @@ fun AchatsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.AchatsGraph.route) }
             val viewModel: PurchaseViewModel = hiltViewModel(parentEntry)
             val orderId = entry.arguments!!.getInt("orderId")
-            val orders by viewModel.orders.collectAsState()
-            val fallbackOrder = orders.find { it.id == orderId }
+            // Observed on its own: the list holds only the page on screen, so the bon may not be in it.
+            val lookup by remember(orderId) { viewModel.observeOrder(orderId) }
+                .collectAsState(initial = OrderLookup.Loading)
 
             LaunchedEffect(orderId) { viewModel.loadOrderDetail(orderId) }
 
@@ -137,15 +138,16 @@ fun AchatsNavHost(
                 )
             )
 
-            if (fallbackOrder != null) {
+            val found = lookup as? OrderLookup.Found
+            if (found != null) {
                 PurchaseOrderDetailScreen(
-                    order      = fallbackOrder,
+                    order      = found.order,
                     viewModel  = viewModel,
                     onBack     = { navController.popBackStack() },
                     onEdit     = { editOrder(orderId) },
                     onReceived = { navController.popBackStack() }
                 )
-            } else {
+            } else if (lookup == OrderLookup.Gone) {
                 LeaveWhenGone(navController, entry)
             }
         }

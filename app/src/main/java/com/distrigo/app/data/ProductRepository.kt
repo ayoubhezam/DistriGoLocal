@@ -16,6 +16,12 @@ import com.distrigo.app.data.local.entity.SecteurEntity
 import com.distrigo.app.data.local.entity.TourneeSecteurEntity
 import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.data.model.TourneeSecteur
+import androidx.paging.Pager
+import androidx.paging.PagingData
+import com.distrigo.app.core.paging.PagingDefaults
+import com.distrigo.app.data.local.paging.PurchaseOrderListQuery
+import com.distrigo.app.data.local.paging.PurchaseOrderListSql
+import com.distrigo.app.data.local.paging.PurchaseOrderPagingSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
@@ -785,20 +791,38 @@ class ProductRepository(
 
 // ── Purchases (محلي بالكامل) ──
 
-    suspend fun getPurchaseOrders(): List<PurchaseOrder> {
-        return db.purchaseDao().getAllOrders().map { order ->
-            val items = db.purchaseDao().getItemsForOrder(order.id).map { it.toItem() }
-            val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
-            order.toOrder(items, supplierName)
-        }
-    }
+    /**
+     * The Achats list, paged — see [PurchaseOrderPagingSource]. It replaces a loader that read every bon
+     * ever made and then ran two queries for each of them: at a few thousand bons, ten seconds to open.
+     */
+    fun pagePurchaseOrders(query: PurchaseOrderListQuery): Flow<PagingData<PurchaseOrder>> =
+        Pager(PagingDefaults.config) { PurchaseOrderPagingSource(db, query) }.flow
+
+    /** How many bons [query] matches, live. */
+    fun observePurchaseOrderCount(query: PurchaseOrderListQuery): Flow<Int> =
+        db.purchaseDao().observeOrderCount(PurchaseOrderListSql.count(query))
+
+    /** The suppliers that have bons, by name: the Achats supplier filter's choices. */
+    fun observePurchaseOrderSuppliers(): Flow<List<OrderSupplierChoice>> =
+        db.purchaseDao().observeOrderSuppliers()
+
+    /**
+     * One bon with its lines, live, or null once it is gone — what the detail screen shows. It used to
+     * take the bon from the loaded list; the list now holds only the page on screen.
+     */
+    fun observePurchaseOrder(id: Int): Flow<PurchaseOrder?> =
+        db.purchaseDao().observeOrderById(id).map { order -> order?.withItems() }
 
     suspend fun getPurchaseOrder(id: Int): PurchaseOrder {
         val order = db.purchaseDao().getOrderById(id)
             ?: throw IllegalStateException("Bon introuvable: $id")
+        return order.withItems()
+    }
+
+    private suspend fun PurchaseOrderEntity.withItems(): PurchaseOrder {
         val items = db.purchaseDao().getItemsForOrder(id).map { it.toItem() }
-        val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
-        return order.toOrder(items, supplierName)
+        val supplierName = supplier_name ?: supplierDao.getSupplierById(supplier_id)?.name ?: "Fournisseur supprimé"
+        return toOrder(items, supplierName)
     }
 
     /**

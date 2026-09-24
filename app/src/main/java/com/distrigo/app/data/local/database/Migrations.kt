@@ -1020,6 +1020,26 @@ val MIGRATION_54_55 = object : Migration(54, 55) {
 }
 
 /**
+ * 55 → 56: an index on `purchase_orders(created_at)`.
+ *
+ * The Achats list is now paged newest first by `created_at`, then `id` (PurchaseOrderListSql). Without
+ * this every page sorted the whole table to find its twenty rows; with it a page is a walk down the
+ * index from the cursor. `id` needs no column of its own: it is the rowid, which every SQLite index
+ * already ends with.
+ *
+ * Nothing but the index changes: no column, row or table is touched.
+ *
+ * The statement is copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/56.json`). **Do not hand-edit it** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_55_56 = object : Migration(55, 56) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_purchase_orders_created_at` ON `purchase_orders` (`created_at`)")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1032,7 +1052,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
-    MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55,
+    MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
 )
 
 /**
