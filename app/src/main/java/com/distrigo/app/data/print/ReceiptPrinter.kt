@@ -1,7 +1,11 @@
 package com.distrigo.app.data.print
 
 import android.content.Context
+import com.distrigo.app.data.print.lang.CanvasReceiptRenderer
+import com.distrigo.app.data.print.lang.CpclRenderer
 import com.distrigo.app.data.print.lang.EscPosRenderer
+import com.distrigo.app.data.print.lang.MonoRaster
+import com.distrigo.app.data.print.lang.TsplRenderer
 import com.distrigo.app.data.print.transport.PrintException
 import com.distrigo.app.data.print.transport.PrintFailure
 import com.distrigo.app.ui.components.ReceiptData
@@ -31,14 +35,15 @@ class ReceiptPrinter(
      *
      * Everything the printer receives for a receipt is now an image, because ESC/POS cannot shape or
      * reorder Arabic. The drawing happens here rather than in the caller so that there is exactly one
-     * path from a receipt to paper, and so the preview can take the same one.
+     * path from a receipt to paper, and so the preview can take the same one. The same dots go to all
+     * three languages; only the commands around them differ — see [rasterBytes].
      *
      * @param drawn the preview's drawing of this receipt, if it has one. It is used only when it is
      *   this receipt on this printer's paper; otherwise the receipt is drawn here.
      */
     suspend fun print(receipt: ReceiptData, printer: SavedPrinter?, drawn: DrawnReceipt? = null): PrintResult =
-        send(printer) { paper ->
-            EscPosRenderer.renderRaster(ReceiptRasterizer.rastersFor(receipt, paper, drawn))
+        send(printer) { target, paper ->
+            rasterBytes(target.language, ReceiptRasterizer.rastersFor(receipt, paper, drawn), paper)
         }
 
     /**
@@ -47,7 +52,7 @@ class ReceiptPrinter(
      * The gate runs first and its refusal is returned as-is, so "Bluetooth is off" arrives as that
      * rather than as a connection timeout thirty seconds later.
      */
-    private suspend fun send(printer: SavedPrinter?, bytes: (PaperProfile) -> ByteArray): PrintResult {
+    private suspend fun send(printer: SavedPrinter?, bytes: (SavedPrinter, PaperProfile) -> ByteArray): PrintResult {
         when (val link = gate.check(printer)) {
             is PrinterLink.Blocked -> return PrintResult.Failed(link.reason)
             PrinterLink.NotConfigured -> return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
@@ -60,14 +65,10 @@ class ReceiptPrinter(
             // ReceiptPdfGenerator and Android's print dialog. Phase 3 branches before calling here.
             ?: return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
 
-        // Phase 5. Sending ESC/POS to a label printer would spool the commands out as text, so this
-        // refuses rather than printing something the user has to throw away.
-        if (target.language != PrintLanguage.ESC_POS) return PrintResult.Failed(PrintFailure.NOT_CONFIGURED)
-
         // Off the caller's thread, which is Main for every caller today. For a receipt this is the
         // whole drawing — the logo decoded and dithered, every row laid out on a Canvas — and the
         // transport only moves to IO inside send(), after this argument has already been evaluated.
-        val payload = withContext(Dispatchers.Default) { bytes(paper) }
+        val payload = withContext(Dispatchers.Default) { bytes(target, paper) }
 
         return try {
             // The gate owns the choice of pipe, because it is also the thing that decided the printer
@@ -103,7 +104,7 @@ class ReceiptPrinter(
         val paper = PaperProfile.of(target.paper)
             ?: return RasterBenchmarkOutcome.Failed(PrintFailure.NOT_CONFIGURED)
 
-        val bytes = EscPosRenderer.renderRaster(listOf(RasterBenchmark.pattern(paper, targetBytes)))
+        val bytes = rasterBytes(target.language, listOf(RasterBenchmark.pattern(paper, targetBytes)), paper)
         val transport = gate.transportFor(target)
 
         return try {
@@ -125,13 +126,35 @@ class ReceiptPrinter(
     /**
      * The calibration strip of [TestPrint], for [printer]'s current paper, language and code page.
      *
-     * The one thing still printed in the printer's own font: a raster cannot tell a printer that
-     * ignores `GS v 0` from one that is switched off, and both produce blank paper.
+     * On ESC/POS, the one thing still printed in the printer's own font: a raster cannot tell a printer
+     * that ignores `GS v 0` from one that is switched off, and both produce blank paper. On TSPL and
+     * CPCL it is drawn and sent as dots, like the receipt, because proving that the language's image
+     * command works is the point — see [TestPrint.drawnRows].
      */
-    suspend fun printTest(printer: SavedPrinter?): PrintResult = send(printer) { paper ->
-        val target = printer!!
-        EscPosRenderer.renderText(
-            TestPrint.lines(paper, target.language, target.codePage), paper, target.codePage,
-        )
+    suspend fun printTest(printer: SavedPrinter?): PrintResult = send(printer) { target, paper ->
+        when (target.language) {
+            PrintLanguage.ESC_POS -> EscPosRenderer.renderText(
+                TestPrint.lines(paper, target.language, target.codePage), paper, target.codePage,
+            )
+            PrintLanguage.TSPL, PrintLanguage.CPCL -> rasterBytes(
+                target.language,
+                CanvasReceiptRenderer(paper).render(TestPrint.drawnRows(paper, target.language)),
+                paper,
+            )
+        }
     }
+
+    /**
+     * Dots, in the language [language] printers speak.
+     *
+     * ESC/POS streams them band by band; TSPL and CPCL wrap them in a page whose height is declared
+     * first. The dots are the same in all three, which is why a language is a choice of wrapper here
+     * and not a second layout.
+     */
+    private fun rasterBytes(language: PrintLanguage, rasters: List<MonoRaster>, paper: PaperProfile): ByteArray =
+        when (language) {
+            PrintLanguage.ESC_POS -> EscPosRenderer.renderRaster(rasters)
+            PrintLanguage.TSPL    -> TsplRenderer.render(rasters, paper)
+            PrintLanguage.CPCL    -> CpclRenderer.render(rasters, paper)
+        }
 }

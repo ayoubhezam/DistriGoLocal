@@ -1,6 +1,10 @@
 package com.distrigo.app.data.print
 
+import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.PrinterCodePage
+import com.distrigo.app.data.print.lang.ReceiptRow
+import com.distrigo.app.data.print.lang.RowAlign
+import com.distrigo.app.data.print.lang.RowWeight
 import com.distrigo.app.data.print.lang.TestLine
 
 /**
@@ -64,6 +68,93 @@ object TestPrint {
         add(TestLine("Gras", bold = true))
         add(TestLine("Centre", centered = true))
     }
+
+    /**
+     * The strip for a **label-language** printer, TSPL or CPCL: drawn and sent as dots, like the
+     * receipt.
+     *
+     * Not the text strip above, because text in these grammars is a different command set with
+     * different fonts — and what the strip must prove is exactly what the receipt will need: that the
+     * printer accepts this language's image command, and how far across the paper the dots reach.
+     * Anything coming out at all proves the first; a printer set to the wrong language prints the
+     * commands as text, or nothing, which is the answer too.
+     *
+     * The ruler does the width. A code-page line would prove nothing here — there are no text bytes
+     * on this path — so the Arabic line takes its place: it is what the drawing exists for.
+     */
+    fun drawnRows(paper: PaperProfile, language: PrintLanguage): List<ReceiptRow> = buildList {
+        add(ReceiptRow.Line("TEST D'IMPRESSION", RowAlign.Center, RowWeight.Bold))
+        add(ReceiptRow.Line("DistriGo", RowAlign.Center))
+        add(ReceiptRow.Rule())
+        add(ReceiptRow.Line("Papier : ${paper.size.label} (${paper.printableMm} mm imprimables)"))
+        add(ReceiptRow.Line("Langage : ${language.label}"))
+        add(ReceiptRow.Rule())
+
+        add(ReceiptRow.Line("LARGEUR DU PAPIER", weight = RowWeight.Bold))
+        add(ReceiptRow.Line("Un trait tous les 10 mm. Les grands traits marquent 48 mm et 72 mm."))
+        add(ReceiptRow.Raster(widthRuler(paper)))
+        add(ReceiptRow.Line("La règle doit finir au bord du papier, sans être coupée."))
+        add(ReceiptRow.Rule())
+
+        add(ReceiptRow.Line("ARABE", weight = RowWeight.Bold))
+        add(ReceiptRow.Line("بطاطا محلية طازجة"))
+        add(ReceiptRow.Line("Les lettres doivent être liées."))
+        add(ReceiptRow.Rule())
+
+        // A full-width block of solid black, for the same reason as the "#" lines above: a head short
+        // of heat, or a roll that has been in a hot van, shows here first as grey or banding.
+        add(ReceiptRow.Line("DENSITÉ", weight = RowWeight.Bold))
+        add(ReceiptRow.Raster(solid(paper.rasterWidthDots, DENSITY_ROWS)))
+        add(ReceiptRow.Blank(TEAR_OFF_DOTS))
+    }
+
+    /**
+     * A millimetre ruler as wide as [paper]'s dots: a tick every millimetre, longer every 5 and 10,
+     * and a full-height bar at each paper's printable edge — 48 mm and 72 mm.
+     *
+     * The bar at an edge sits on the last dots *inside* it, so the 48 mm bar is what a 58 mm head
+     * prints last. Chosen too wide, the ruler is cut at the paper's edge and the 72 mm bar never
+     * appears; chosen too narrow, it stops short and leaves white paper beyond it.
+     */
+    fun widthRuler(paper: PaperProfile): MonoRaster {
+        val width = paper.rasterWidthDots
+        val bits = ByteArray(width / 8 * RULER_ROWS)
+        fun burn(x: Int, fromY: Int) {
+            if (x !in 0 until width) return
+            for (y in fromY until RULER_ROWS) {
+                val i = y * (width / 8) + (x shr 3)
+                bits[i] = (bits[i].toInt() or (1 shl (7 - (x and 7)))).toByte()
+            }
+        }
+        // The baseline, two dots thick along the bottom.
+        for (x in 0 until width) burn(x, RULER_ROWS - 2)
+        var mm = 0
+        while (mm * DOTS_PER_MM < width) {
+            val tick = when {
+                mm % 10 == 0 -> 22
+                mm % 5 == 0  -> 14
+                else         -> 7
+            }
+            burn(mm * DOTS_PER_MM, RULER_ROWS - tick)
+            mm++
+        }
+        for (edgeMm in EDGE_MARKS_MM) {
+            val last = edgeMm * DOTS_PER_MM - 1
+            for (x in last - 2..last) burn(x, 0)
+        }
+        return MonoRaster(width, RULER_ROWS, bits)
+    }
+
+    private fun solid(width: Int, height: Int) =
+        MonoRaster(width, height, ByteArray(width / 8 * height) { -1 })
+
+    private const val DOTS_PER_MM = 8
+    private const val RULER_ROWS = 40
+    private const val DENSITY_ROWS = 48
+    private const val TEAR_OFF_DOTS = 120
+
+    /** The printable edges of 58 mm and 80 mm paper. */
+    private val EDGE_MARKS_MM = listOf(48, 72)
 
     private fun rule(width: Int) = "-".repeat(width)
 

@@ -410,7 +410,7 @@ data/print/
 │   ├── PrinterCodePage.kt      encoding + transliteration + probe         ✔ phase 0
 │   ├── ThermalRaster.kt        Floyd–Steinberg 1-bit raster               ✔ phase 0
 │   ├── EscPosRenderer.kt        ESC/POS byte stream                      ✔ phase 2
-│   ├── TsplRenderer.kt / CpclRenderer.kt                                    phase 5
+│   ├── PageRenderers.kt        TSPL + CPCL pages around the same dots     ✔ phase 5
 ├── transport/
 │   ├── PrinterTransport.kt     the contract + PrintFailure                ✔ phase 2
 │   ├── BluetoothSppTransport.kt   RFCOMM, UUID 00001101-…                ✔ phase 2
@@ -444,7 +444,7 @@ ui/settings/print/
 | **2** | BT permissions, `BluetoothSppTransport`, `PrinterSelectionScreen`, `PrinterGate`, `EscPosRenderer`, `TestPrint` calibration strip | Real printing, ESC/POS only | **code done, unverified against hardware** |
 | **3** | `ReceiptPrinter` behind the print button in `ReceiptPreviewSheet`, which Achats, Dépôt Ventes and Tournées Ventes all share; A4 keeps the PDF path; PDF offered as the fallback on every failure | Hardware printing in production | **done** |
 | **4** | `TcpTransport` (port 9100) + SSID display + manual IP + a local-subnet sweep | Wi-Fi | **done** |
-| **5** | TSPL / CPCL renderers | Compatibility | |
+| **5** | TSPL / CPCL renderers, and a drawn test strip for both | Compatibility | **code done, unverified against hardware** — see §21 |
 
 Phase 0 de-risks the module: the layout engine is where the real design decisions live, and it is
 testable on a desk with no printer (`app/src/test/.../data/print/`).
@@ -667,3 +667,50 @@ that store ever gains a desktop or JVM-side test it will surface there first.
 - **Reprint history.** Decided for now: **not tracked**. Nothing records that a receipt was printed,
   and the schema is untouched. If disputes or audits make it matter, it is a Room column and therefore
   a migration, and the receipts printed before that point will have no history to show.
+
+## 21. Phase 5 — TSPL and CPCL
+
+**The same dots, a different wrapper.** §4 planned a two-phase renderer so that the page languages
+would not force a rewrite, and §5 then made every receipt a stack of 1-bit rows. Together they make
+Phase 5 small: `ThermalLayout` and `CanvasReceiptRenderer` are untouched, and `PageRenderers.kt` only
+wraps the rows the printer would have received over ESC/POS.
+
+- **TSPL** — `SIZE <printable mm>, <height mm>`, `GAP 0 mm, 0 mm`, `DIRECTION 0`, `REFERENCE 0,0`,
+  `CLS`, one `BITMAP x,y,widthBytes,height,0,<binary>` per band, `PRINT 1,1`.
+- **CPCL** — `! 0 200 200 <height dots> 1`, `PAGE-WIDTH <dots>`, one
+  `CG widthBytes height x y <binary>` per band, `PRINT`.
+
+The page height is the sum of the rows, white ones included. A page starts blank, so an all-white band
+is left out: the tear-off space and the gaps between sections cost height, not bytes. Bands are
+128 dot rows, as `GS v 0` sends them.
+
+`ReceiptPrinter.rasterBytes` picks the wrapper from the printer's `language`. The receipt, the preview's
+reused drawing (§13) and the raster benchmark all go through it. The language gate that refused every
+non-ESC/POS printer is gone.
+
+**The test strip is drawn for these two.** The ESC/POS strip stays text, for the reason in `TestPrint`.
+For TSPL and CPCL, text is a separate command set with its own fonts, and what the strip has to prove is
+what the receipt needs: that the printer accepts this language's image command, and how far across the
+paper the dots reach. So `TestPrint.drawnRows` is drawn by the Canvas renderer and sent through the
+page wrapper. It carries a millimetre ruler as wide as the chosen paper, with full-height bars at the
+48 mm and 72 mm printable edges, an Arabic line to check the shaping, and a solid density block. A
+code-page line would prove nothing here, because there are no text bytes on this path.
+
+### Three defaults that need a printer to confirm
+
+Nothing in this phase has met a TSPL or CPCL printer. Each of these is a one-line change if the first
+one proves it wrong:
+
+1. **Continuous paper.** `GAP 0 mm, 0 mm`. A receipt's length changes with every sale, so it cannot be
+   fitted to pre-cut labels; a printer loaded with gapped labels will run the receipt across several.
+2. **TSPL's bitmap is inverted.** In TSPL a set bit is a *white* dot, the opposite of ESC/POS and
+   CPCL, so `TsplRenderer` flips the bits. If the first receipt comes out as a black negative, the
+   printer reads bits the ESC/POS way and the flip goes.
+3. **CPCL uses `CG`, not `EG`.** `CG` (COMPRESSED-GRAPHICS) is binary despite its name; `EG` is hex
+   and doubles the bytes over the slowest link in the chain. A printer that prints nothing, or prints
+   the command as text, is the case for `EG`.
+
+Two more are worth watching on the first print: `DIRECTION 0` (the receipt may come out upside down
+relative to the tear bar, which is `DIRECTION 1`), and the page-height limit of mobile CPCL printers,
+which is set by their memory and is not documented per model. A receipt that stops partway is that
+limit, and would be answered by splitting the receipt into several pages.
