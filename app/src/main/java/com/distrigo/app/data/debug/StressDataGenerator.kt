@@ -28,19 +28,19 @@ import java.time.ZoneOffset
 import kotlin.random.Random
 
 /**
- * Fills the database with a year of made-up business, for stress-testing the lists, search and
+ * Fills the database with five years of made-up business, for stress-testing the lists, search and
  * printing. **Debug builds only** — the only caller is a button that exists when `BuildConfig.DEBUG`.
  *
  * Everything goes through the DAOs and therefore through the real triggers: the stock ledger computes
  * every product's stock, the numbering triggers number every document, and the balances are
  * recomputed at the end. The data is what the app itself would have produced, only more of it.
  *
- * Shaped like a real distributor's year rather than spread evenly:
+ * Shaped like a real distributor's years rather than spread evenly:
  * - a hundred best-sellers take most of the lines, so their movement history is long — which is what
  *   the stock ledger and the Mouvements screen have to cope with;
  * - product names are Arabic, French, and mixed — an Arabic name with a Latin brand and size — plus a
  *   few far too long, which are what break a layout;
- * - every sale is made on a **tournée**, 200 of them, closed, a hundred sales each: a chargement
+ * - every sale is made on a **tournée**, 4,000 of them, closed, 15 to 25 sales each: a chargement
  *   loads the camion first, so its stock covers what it sells, and every client visited is on the
  *   tournée's list;
  * - a handful of sales run to 80–100 lines, for printing a receipt that goes on and on;
@@ -55,7 +55,7 @@ class StressDataGenerator(private val db: AppDatabase) {
 
     suspend fun generate(onProgress: (Progress) -> Unit) = withContext(Dispatchers.Default) {
         val random = Random(SEED)
-        val start = Instant.now().minusSeconds(365L * DAY_SECONDS)
+        val start = Instant.now().minusSeconds(SPAN_DAYS * DAY_SECONDS)
 
         onProgress(Progress("Fournisseurs et clients…", 0f))
         val supplierIds = insertSuppliers()
@@ -76,7 +76,7 @@ class StressDataGenerator(private val db: AppDatabase) {
 
         for (k in 0 until TOURNEES) {
             insertTournee(k, random, start, clients, products)
-            onProgress(Progress("Tournées : ${k + 1} / $TOURNEES (${(k + 1) * SALES_PER_TOURNEE} ventes)",
+            onProgress(Progress("Tournées : ${k + 1} / $TOURNEES",
                 0.3f + 0.5f * (k + 1) / TOURNEES))
         }
 
@@ -176,8 +176,8 @@ class StressDataGenerator(private val db: AppDatabase) {
         suppliers: List<Int>, products: List<ProductEntity>,
     ) = db.withTransaction {
         for (n in from until until) {
-            // The first quarter of the year, so the stock is in before most of the selling.
-            val at = start.plusSeconds((n.toLong() * 90 * DAY_SECONDS) / PURCHASES)
+            // Spread over the whole span, as a distributor restocks all year round.
+            val at = start.plusSeconds((n.toLong() * SPAN_DAYS * DAY_SECONDS) / PURCHASES)
             val supplierIndex = n % suppliers.size
             val lines = (0 until random.nextInt(8, 25)).map { pickProduct(random, products) }.distinctBy { it.id }
             val quantities = lines.map { if (it.id % 100 < 5) random.nextInt(400, 1_500) else random.nextInt(20, 200) }
@@ -218,7 +218,7 @@ class StressDataGenerator(private val db: AppDatabase) {
     private suspend fun insertTournee(
         k: Int, random: Random, start: Instant, clients: List<ClientEntity>, products: List<ProductEntity>,
     ) = db.withTransaction {
-        val opens = start.plusSeconds((k.toLong() * 365 * DAY_SECONDS) / TOURNEES + 7 * 3_600)
+        val opens = start.plusSeconds((k.toLong() * SPAN_DAYS * DAY_SECONDS) / TOURNEES + 7 * 3_600)
         val closes = opens.plusSeconds(10 * 3_600)
         val place = PLACES[k % PLACES.size]
         val tourneeId = db.tourneeDao().insertTournee(
@@ -228,9 +228,9 @@ class StressDataGenerator(private val db: AppDatabase) {
             )
         ).toInt()
 
-        // A route of about 30 clients; each of the hundred sales goes to one of them.
+        // A route of about 30 clients; each of the day's sales goes to one of them.
         val route = (0 until TOURNEE_CLIENTS).map { clients[(k * 17 + it * 7) % clients.size] }.distinctBy { it.id }
-        val sales = (0 until SALES_PER_TOURNEE).map { n ->
+        val sales = (0 until random.nextInt(MIN_SALES_PER_TOURNEE, MAX_SALES_PER_TOURNEE + 1)).map { n ->
             val long = n == 0 && k % (TOURNEES / LONG_RECEIPTS) == 0
             val count = if (long) random.nextInt(80, 101) else random.nextInt(1, 10)
             val lines = (0 until count)
@@ -313,7 +313,7 @@ class StressDataGenerator(private val db: AppDatabase) {
         random: Random, start: Instant, clients: List<ClientEntity>, products: List<ProductEntity>,
     ) = db.withTransaction {
         repeat(DEPOT_CLIENT_RETURNS) { n ->
-            val at = start.plusSeconds(((n + 1).toLong() * 365 * DAY_SECONDS) / (DEPOT_CLIENT_RETURNS + 1))
+            val at = start.plusSeconds(((n + 1).toLong() * SPAN_DAYS * DAY_SECONDS) / (DEPOT_CLIENT_RETURNS + 1))
             val lines = (0 until random.nextInt(1, 4)).map { pickProduct(random, products) }.distinctBy { it.id }
             insertClientReturn(clients[random.nextInt(clients.size)], lines, null, "depot", at, random)
         }
@@ -354,7 +354,7 @@ class StressDataGenerator(private val db: AppDatabase) {
         random: Random, start: Instant, suppliers: List<Int>, products: List<ProductEntity>,
     ) = db.withTransaction {
         repeat(SUPPLIER_RETURNS) { n ->
-            val at = start.plusSeconds(((n + 1).toLong() * 365 * DAY_SECONDS) / (SUPPLIER_RETURNS + 1))
+            val at = start.plusSeconds(((n + 1).toLong() * SPAN_DAYS * DAY_SECONDS) / (SUPPLIER_RETURNS + 1))
             val supplierIndex = n % suppliers.size
             val own = products.filter { it.supplier_id == suppliers[supplierIndex] }
             if (own.isEmpty()) return@repeat
@@ -393,7 +393,7 @@ class StressDataGenerator(private val db: AppDatabase) {
         val subtypes = db.chargeDao().getAllSubTypes().filter { it.type_id in types }
         if (subtypes.isEmpty()) return@withTransaction
         repeat(CHARGES) { n ->
-            val at = start.plusSeconds(((n + 1).toLong() * 365 * DAY_SECONDS) / (CHARGES + 1))
+            val at = start.plusSeconds(((n + 1).toLong() * SPAN_DAYS * DAY_SECONDS) / (CHARGES + 1))
             val sub = subtypes[random.nextInt(subtypes.size)]
             db.chargeDao().insertCharge(
                 ChargeEntity(
@@ -412,7 +412,7 @@ class StressDataGenerator(private val db: AppDatabase) {
         val types = db.perteDao().getAllPerteTypes()
         if (types.isEmpty()) return@withTransaction
         repeat(PERTES) { n ->
-            val at = start.plusSeconds(((n + 1).toLong() * 365 * DAY_SECONDS) / (PERTES + 1))
+            val at = start.plusSeconds(((n + 1).toLong() * SPAN_DAYS * DAY_SECONDS) / (PERTES + 1))
             val type = types[random.nextInt(types.size)]
             val p = pickProduct(random, products)
             val quantity = random.nextInt(1, 6).toDouble()
@@ -447,18 +447,22 @@ class StressDataGenerator(private val db: AppDatabase) {
         const val SEED = 20260924
         const val PRODUCTS = 5_000
         const val CLIENTS = 500
-        const val PURCHASES = 600
-        const val TOURNEES = 200
-        const val SALES_PER_TOURNEE = 100
+        const val PURCHASES = 3_000
+        const val TOURNEES = 4_000
+        // A day on the road: one or two tournées a day for five years, 15 to 25 clients served on each.
+        const val MIN_SALES_PER_TOURNEE = 15
+        const val MAX_SALES_PER_TOURNEE = 25
         const val TOURNEE_CLIENTS = 30
         const val LONG_RECEIPTS = 10
-        const val DEPOT_CLIENT_RETURNS = 400
-        const val SUPPLIER_RETURNS = 150
-        const val CHARGES = 1_500
-        const val PERTES = 400
+        const val DEPOT_CLIENT_RETURNS = 2_000
+        const val SUPPLIER_RETURNS = 750
+        const val CHARGES = 7_500
+        const val PERTES = 2_000
         const val BATCH = 500
         const val PURCHASE_BATCH = 50
         const val DAY_SECONDS = 86_400L
+        // Five years of business: what the app must still handle comfortably.
+        const val SPAN_DAYS = 5 * 365L
         const val AR_COMBINATIONS = 20 * 8 * 8
         const val TAG = "Données de test"
         const val USER = "Test"

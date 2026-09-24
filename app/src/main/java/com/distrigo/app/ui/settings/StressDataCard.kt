@@ -72,7 +72,7 @@ class StressDataViewModel @Inject constructor(private val db: AppDatabase) : Vie
  * The generator's button, shown in Paramètres **only in debug builds**.
  *
  * Asks first, because what it adds cannot be taken back one row at a time: 5,000 products, 500
- * clients, 600 purchases, 200 tournées with 20,000 sales, returns, charges and pertes, numbered and
+ * clients, 3,000 purchases, 4,000 tournées with about 80,000 sales, returns, charges and pertes, numbered and
  * in the stock ledger like real ones.
  */
 @Composable
@@ -91,7 +91,7 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
         Text("DEBUG · Générer des données de test", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
         Text(
             when (val s = state) {
-                StressDataState.Idle       -> "5 000 produits, 500 clients, 600 achats, 200 tournées de 100 ventes (dont 10 reçus de 80 à 100 lignes), 750 retours, 1 500 charges, 400 pertes"
+                StressDataState.Idle       -> "Cinq ans : 5 000 produits, 500 clients, 3 000 achats, 4 000 tournées de 15 à 25 ventes (dont 10 reçus de 80 à 100 lignes), 6 750 retours, 7 500 charges, 2 000 pertes"
                 is StressDataState.Running -> "${s.step} — ne quittez pas cet écran"
                 is StressDataState.Done    -> "Terminé en ${s.seconds} s"
                 is StressDataState.Failed  -> "Échec : ${s.message}"
@@ -111,8 +111,8 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
             title = { Text("Générer des données de test ?") },
             text = {
                 Text(
-                    "Ajoute 5 000 produits, 500 clients, 600 achats, 200 tournées fermées avec 20 000 ventes, 750 retours, 1 500 charges et 400 pertes à la base actuelle. " +
-                        "Ils ne peuvent pas être retirés en une fois. Comptez quelques minutes."
+                    "Ajoute cinq ans d'activité : 5 000 produits, 500 clients, 3 000 achats, 4 000 tournées fermées avec environ 80 000 ventes, 6 750 retours, 7 500 charges et 2 000 pertes. " +
+                        "Ils ne peuvent pas être retirés en une fois. Comptez une dizaine de minutes, téléphone branché, sans quitter cet écran."
                 )
             },
             confirmButton = {
