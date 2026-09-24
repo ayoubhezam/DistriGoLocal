@@ -60,20 +60,40 @@ internal object StockLedgerTriggers {
         "UPDATE `products` SET `stock` = ${totalSql(productId)}, `camion_stock` = ${camionSql(productId)} " +
             "WHERE `id` = $productId$extra;"
 
+    /**
+     * The `app_meta` key present only while a ledger trigger is writing `products`.
+     *
+     * The guard below re-sums a product's whole history to decide whether a write to `stock` drifted
+     * from the ledger. When the write *is* the ledger's own recompute, that answer is already known —
+     * and asking it again doubled the cost of every sale line. SQLite gives a trigger no way to tell
+     * who fired it, so the ledger says so itself: it sets this key, writes, and clears it, all inside
+     * the one statement that fired it. The key never outlives that statement, so nothing else — a
+     * backup, a fingerprint, another connection — can ever see it.
+     */
+    private const val LEDGER_WRITING = "'stock.ledger_writing'"
+
+    /** [statements] with [LEDGER_WRITING] set around them. */
+    private fun ledgerWrite(vararg statements: String) =
+        "INSERT OR REPLACE INTO `app_meta` (`key`, `value`) VALUES ($LEDGER_WRITING, '1'); " +
+            statements.joinToString(" ") +
+            " DELETE FROM `app_meta` WHERE `key` = $LEDGER_WRITING;"
+
     fun triggers(): List<Pair<String, String>> {
         val ledgerTables = listOf("stock_movements", "chargement_items")
         val onLedger = ledgerTables.flatMap { table ->
             listOf(
                 "trg_${table}_stock_insert" to
                     "CREATE TRIGGER `trg_${table}_stock_insert` AFTER INSERT ON `$table` FOR EACH ROW " +
-                    "BEGIN ${recompute("NEW.`product_id`")} END",
+                    "BEGIN ${ledgerWrite(recompute("NEW.`product_id`"))} END",
                 "trg_${table}_stock_update" to
                     "CREATE TRIGGER `trg_${table}_stock_update` AFTER UPDATE ON `$table` FOR EACH ROW " +
-                    "BEGIN ${recompute("NEW.`product_id`")} " +
-                    "${recompute("OLD.`product_id`", " AND OLD.`product_id` IS NOT NEW.`product_id`")} END",
+                    "BEGIN ${ledgerWrite(
+                        recompute("NEW.`product_id`"),
+                        recompute("OLD.`product_id`", " AND OLD.`product_id` IS NOT NEW.`product_id`"),
+                    )} END",
                 "trg_${table}_stock_delete" to
                     "CREATE TRIGGER `trg_${table}_stock_delete` AFTER DELETE ON `$table` FOR EACH ROW " +
-                    "BEGIN ${recompute("OLD.`product_id`")} END",
+                    "BEGIN ${ledgerWrite(recompute("OLD.`product_id`"))} END",
             )
         }
         val drifted = "NEW.`stock` IS NOT ${totalSql("NEW.`id`")} OR NEW.`camion_stock` IS NOT ${camionSql("NEW.`id`")}"
@@ -83,7 +103,10 @@ internal object StockLedgerTriggers {
                 "WHEN $drifted BEGIN ${recompute("NEW.`id`")} END",
             "trg_products_stock_update" to
                 "CREATE TRIGGER `trg_products_stock_update` AFTER UPDATE OF `stock`, `camion_stock` ON `products` " +
-                "FOR EACH ROW WHEN $drifted BEGIN ${recompute("NEW.`id`")} END",
+                // The flag is checked first, and SQLite stops at the first false AND: during the
+                // ledger's own write the history is not summed at all.
+                "FOR EACH ROW WHEN NOT EXISTS (SELECT 1 FROM `app_meta` WHERE `key` = $LEDGER_WRITING) " +
+                "AND ($drifted) BEGIN ${recompute("NEW.`id`")} END",
         )
         return onLedger + guards
     }

@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
         Index(value = ["chargement_id"]),
         Index(value = ["uuid"], unique = true),
         // The stock ledger sums a product's transfer lines on every recompute (see StockLedger.kt).
-        Index(value = ["product_id"]),
+        // Covering: direction and quantity are all the sum reads, so it never touches the table.
+        Index(value = ["product_id", "direction", "quantity"]),
     ]
 )
 data class ChargementItemEntity(

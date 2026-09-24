@@ -988,6 +988,38 @@ val MIGRATION_53_54 = object : Migration(53, 54) {
 }
 
 /**
+ * 54 → 55: covering indexes for the stock ledger's sums.
+ *
+ * Every stock movement re-sums its product's history (StockLedger.kt). The index on
+ * `stock_movements(product_id, created_at)` found the rows but not the quantities, so each sum read
+ * every one of those rows from the table. These carry every column the sums read, so the table is
+ * never touched. `chargement_items(product_id)` becomes `(product_id, direction, quantity)` for the
+ * same reason; the new one serves every lookup the old one did.
+ *
+ * The triggers change too — the guard no longer re-sums during the ledger's own write — but they are
+ * replaced on every open (`withChangeTracking`), so the migration only has the indexes to do.
+ *
+ * Nothing but the indexes changes: no column, row or table is touched.
+ *
+ * The CREATE statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/55.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_54_55 = object : Migration(54, 55) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_stock_movements_product_id_emplacement_direction_quantity` " +
+                "ON `stock_movements` (`product_id`, `emplacement`, `direction`, `quantity`)"
+        )
+        db.execSQL("DROP INDEX IF EXISTS `index_chargement_items_product_id`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_chargement_items_product_id_direction_quantity` " +
+                "ON `chargement_items` (`product_id`, `direction`, `quantity`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1000,7 +1032,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_40_41, MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
-    MIGRATION_52_53, MIGRATION_53_54,
+    MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55,
 )
 
 /**
