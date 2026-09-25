@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import com.distrigo.app.data.model.barcodeContains
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -73,16 +76,17 @@ fun ChargementNavHost(
             val session: ChargementFormSessionViewModel = hiltViewModel(parentEntry)
             LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
             val productViewModel: ProductViewModel = hiltViewModel()
-            val products by productViewModel.products.collectAsState()
+            // Paged from the database, cached on the session — see PagedProductList.
+            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
             val cartItems by session.formCartItems.collectAsState()
-            var search by remember { mutableStateOf("") }
+            val search = session.productSearch
 
             // preSelectedProduct: jump straight to the cart/review screen with that one product
             // pre-added — matches the original's `showCart = preSelectedProduct != null` initial
             // state exactly.
-            LaunchedEffect(preSelectedProductId, products) {
-                if (preSelectedProductId != null && cartItems.isEmpty() && products.isNotEmpty()) {
-                    val product = products.find { it.id == preSelectedProductId }
+            LaunchedEffect(preSelectedProductId) {
+                if (preSelectedProductId != null && cartItems.isEmpty()) {
+                    val product = session.liveProduct(preSelectedProductId)
                     if (product != null) {
                         session.setFormCartItems(listOf(ChargementCartItem(product = product, targetCamion = product.camion_stock)))
                         navController.navigate(Screen.ChargementFormCart.route) {
@@ -93,12 +97,6 @@ fun ChargementNavHost(
             }
 
             BackHandler { onBack() }
-
-            val filteredProducts = products.filter { product ->
-                search.isBlank() ||
-                        product.name.contains(search, ignoreCase = true) ||
-                        product.barcodeContains(search)
-            }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
@@ -114,7 +112,7 @@ fun ChargementNavHost(
                 // tournée detail already have theirs, so only the products move.
                 DsCompactSearchField(
                     value         = search,
-                    onValueChange = { search = it },
+                    onValueChange = { session.productSearch = it },
                     placeholder   = "Rechercher un produit",
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
@@ -126,7 +124,8 @@ fun ChargementNavHost(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                 ) {
-                    items(filteredProducts, key = { "product_${it.id}" }) { product ->
+                    items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { "product_${it.id}" }) { index ->
+                        val product = pagedProducts[index] ?: return@items
                         val isInCart = cartItems.any { it.product.id == product.id }
 
                         Row(

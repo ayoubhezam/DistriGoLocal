@@ -291,6 +291,19 @@ class ProductRepository(
     fun observeProductsByIds(ids: Collection<Int>): Flow<List<Product>> =
         productDao.observeLiveProductsByIds(ids.toList()).map { rows -> rows.map { it.toProduct() } }
 
+    /**
+     * The live products among [ids], once, with their codes — what a form reads to rebuild a draft's
+     * or an edit's lines, instead of the whole catalogue it used to read for them.
+     */
+    suspend fun getLiveProductsByIds(ids: Collection<Int>): List<Product> =
+        // In chunks: a client's returnable products can run to thousands, and SQLite on older
+        // Android takes at most 999 values in one statement.
+        ids.distinct().chunked(IN_LIST_CHUNK).flatMap { chunk ->
+            val entities = productDao.getLiveProductsByIds(chunk)
+            val codes = db.productBarcodeDao().getForProducts(entities.map { it.id }).groupBy({ it.product_id }, { it.code })
+            entities.map { it.toProduct(codes[it.id]) }
+        }
+
     /** One live product, once: a product just created from a picker, to put in the cart. */
     suspend fun getLiveProduct(id: Int): Product? = productDao.getProductById(id)?.toProduct()
 
@@ -1975,3 +1988,6 @@ class ProductRepository(
 
 /** Slack for sums of decimals, so a quantity typed as 0.3 is not refused against a stock summed as 0.30000000000000004. */
 private const val AMOUNT_EPSILON = 1e-6
+
+/** The most values put in one SQL `IN (…)`: under the 999 older Android builds of SQLite accept. */
+private const val IN_LIST_CHUNK = 900

@@ -13,6 +13,14 @@ import com.distrigo.app.ui.common.DraftAutosave
 import com.distrigo.app.ui.common.DraftAutosaveHost
 import com.distrigo.app.ui.common.SessionPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -66,6 +74,24 @@ class ChargementFormSessionViewModel @Inject constructor(
         _formCartItems.value = items
         pruneMissingProducts(items.map { it.product.id })
     }
+
+    // ── The product list ─────────────────────────────────────────────────────
+
+    /** The product step's search, held beside the list it narrows so it survives a trip to the cart. */
+    var productSearch by mutableStateOf("")
+
+    /**
+     * The product step's products, paged from the database, newest first as the list always was —
+     * see [PagedProductList]. The step used to collect the whole catalogue and filter it in place.
+     */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
+    )
+
+    /** One live product, once: the product a chargement was started from. */
+    suspend fun liveProduct(id: Int): Product? = productRepository.getLiveProduct(id)
 
     fun setFormNote(note: String) { _formNote.value = note }
     fun setFormUserName(name: String) { _formUserName.value = name }
@@ -206,7 +232,7 @@ class ChargementFormSessionViewModel @Inject constructor(
      * was when the draft was written.
      */
     private suspend fun hydrate(draft: ChargementDraft) {
-        val products = productRepository.getProducts().associateBy { it.id }
+        val products = productRepository.getLiveProductsByIds(draft.lines.map { it.product_id }).associateBy { it.id }
         val missing  = mutableSetOf<Int>()
 
         _formCartItems.value = draft.lines.map { line ->

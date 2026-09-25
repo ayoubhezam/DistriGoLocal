@@ -349,7 +349,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
      * Both blocks are decided here, and only here, because both need the live catalogue.
      */
     private suspend fun hydrate(draft: TourneeVenteDraft) {
-        val products  = productRepository.getProducts().associateBy { it.id }
+        val products  = productRepository.getLiveProductsByIds(draft.lines.map { it.product_id }).associateBy { it.id }
         val missing   = mutableSetOf<Int>()
         val overStock = mutableSetOf<Int>()
 

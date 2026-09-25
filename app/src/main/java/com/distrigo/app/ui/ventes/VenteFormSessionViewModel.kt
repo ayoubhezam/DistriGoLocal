@@ -328,7 +328,7 @@ class VenteFormSessionViewModel @Inject constructor(
         // side of every fingerprint comparison with the same empty value, so the two agree.
         _formUserName.value    = ""
 
-        val products = productRepository.getProducts().associateBy { it.id }
+        val products = productRepository.getLiveProductsByIds(vente.items.orEmpty().map { it.product_id }).associateBy { it.id }
         _formCartItems.value = vente.items.orEmpty().map { item ->
             cartItem(
                 productId    = item.product_id,
@@ -399,7 +399,7 @@ class VenteFormSessionViewModel @Inject constructor(
      * have moved underneath in the meantime.
      */
     private suspend fun hydrate(draft: VenteDraft) {
-        val products = productRepository.getProducts().associateBy { it.id }
+        val products = productRepository.getLiveProductsByIds(draft.lines.map { it.product_id }).associateBy { it.id }
         val missing  = mutableSetOf<Int>()
 
         // Resolved here, not by the first destination: a process-death restore comes back on

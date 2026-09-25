@@ -292,7 +292,7 @@ class PurchaseFormSessionViewModel @Inject constructor(
         // every fingerprint comparison from the same fields. The two move together: if this
         // prefill ever stops being a verbatim copy, that mirror has to stop too, or an untouched
         // edit measures as modified and spawns a phantom draft on sight.
-        val products = productRepository.getProducts().associateBy { it.id }
+        val products = productRepository.getLiveProductsByIds(order.items.orEmpty().map { it.product_id }).associateBy { it.id }
         _formCartItems.value = order.items.orEmpty().map { item ->
             CartItem(
                 product       = products[item.product_id] ?: placeholderProduct(
@@ -358,7 +358,7 @@ class PurchaseFormSessionViewModel @Inject constructor(
      * back current.
      */
     private suspend fun hydrate(draft: PurchaseDraft) {
-        val products = productRepository.getProducts().associateBy { it.id }
+        val products = productRepository.getLiveProductsByIds(draft.lines.map { it.product_id }).associateBy { it.id }
         val missing  = mutableSetOf<Int>()
 
         // Resolved here, not by the first destination: a process-death restore comes back on

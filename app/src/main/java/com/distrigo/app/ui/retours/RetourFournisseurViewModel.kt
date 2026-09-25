@@ -74,7 +74,7 @@ class RetourFournisseurViewModel @Inject constructor(
             val receivedStatus = "received"
             val purchased = db.purchaseDao().getPurchasedQuantitiesForSupplier(supplierId, receivedStatus).associate { it.product_id to it.total_quantity }
             val returned   = db.retourFournisseurDao().getReturnedQuantitiesForSupplier(supplierId).associate { it.product_id to it.total_quantity }
-            val byId       = productRepository.getProducts().associateBy { it.id }
+            val byId       = productRepository.getLiveProductsByIds(purchased.keys).associateBy { it.id }
             _returnableProducts.value = purchased.mapNotNull { (productId, purchasedQty) ->
                 val remaining = purchasedQty - (returned[productId] ?: 0.0)
                 if (remaining > 0) byId[productId]?.let { ReturnableProduct(it, remaining) } else null
