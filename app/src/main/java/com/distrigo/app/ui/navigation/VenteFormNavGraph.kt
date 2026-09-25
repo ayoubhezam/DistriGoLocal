@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import com.distrigo.app.ui.common.documentLabel
 import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -214,10 +217,12 @@ fun NavGraphBuilder.venteFormGraph(
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
             val editSource by session.editSource.collectAsState()
-            val products by productViewModel.products.collectAsState()
+            // Paged from the database, cached on the session — see PagedProductList.
+            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
+            val productCount by session.productList.count.collectAsState()
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
-            var search by remember { mutableStateOf("") }
+            val search = session.productSearch
             var showScanner by remember { mutableStateOf(false) }
 
             // Two blocks used to live here and are now the session's:
@@ -229,34 +234,13 @@ fun NavGraphBuilder.venteFormGraph(
             //    guarantee; prefillEditFromVente runs on every path into the graph instead, and
             //    it is also the half that has to stay in step with the fingerprint's mirror of it.
 
-            // Keep each cart line's product snapshot synced with the live products flow. For
-            // edit-mode lines, re-apply the original saved reservation on every sync — see
-            // VenteCartItem.originalReservedQty.
-            LaunchedEffect(products) {
-                if (products.isEmpty()) return@LaunchedEffect
-                var changed = false
-                val resynced = cartItems.map { ci ->
-                    val fresh = products.find { it.id == ci.product.id } ?: return@map ci
-                    val adjusted = ci.originalReservedQty?.let { reserved ->
-                        if (editSource == "camion")
-                            fresh.copy(stock = fresh.stock + reserved, camion_stock = fresh.camion_stock + reserved)
-                        else
-                            fresh.copy(stock = fresh.stock + reserved)
-                    } ?: fresh
-                    if (adjusted.stock == ci.product.stock && adjusted.camion_stock == ci.product.camion_stock) {
-                        ci
-                    } else {
-                        changed = true
-                        ci.copy(product = adjusted)
-                    }
-                }
-                if (changed) session.setFormCartItems(resynced)
-            }
+            // Each cart line's product is kept current by the session now (resyncCart), watching the
+            // cart's own products rather than the whole catalogue.
 
             if (showScanner) {
                 BackHandler { showScanner = false }
                 BarcodeScannerScreen(
-                    onBarcodeScanned = { code -> search = code; showScanner = false },
+                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
                     onClose = { showScanner = false }
                 )
                 return@composable
@@ -266,8 +250,6 @@ fun NavGraphBuilder.venteFormGraph(
                 if (skipClientStep) onBack() else navController.popBackStack()
             }
 
-            // Recomputed only when the catalogue or the search changes; see searchProducts.
-            val filteredProducts = remember(products, search) { searchProducts(products, search) }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -288,7 +270,7 @@ fun NavGraphBuilder.venteFormGraph(
                         Column(modifier = Modifier.fillMaxSize()) {
                             DsCompactSearchField(
                                 value         = search,
-                                onValueChange = { search = it },
+                                onValueChange = { session.productSearch = it },
                                 placeholder   = "Rechercher un produit",
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
@@ -303,7 +285,7 @@ fun NavGraphBuilder.venteFormGraph(
                             Spacer(Modifier.height(DsSpacing.sm))
 
                             Text(
-                                "${filteredProducts.size} produit(s)",
+                                "${productCount?.toString() ?: "…"} produit(s)",
                                 fontSize = DsTextSize.caption,
                                 color    = DsColors.TextSecondary,
                                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
@@ -315,7 +297,8 @@ fun NavGraphBuilder.venteFormGraph(
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),
                                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
-                                items(filteredProducts, key = { it.id }) { product ->
+                                items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
+                                    val product = pagedProducts[index] ?: return@items
                                     val isInCart = cartItems.any { it.product.id == product.id }
 
                                     Row(
@@ -445,32 +428,10 @@ fun NavGraphBuilder.venteFormGraph(
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
             val editSource by session.editSource.collectAsState()
-            val products by productViewModel.products.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
-
-            LaunchedEffect(products) {
-                if (products.isEmpty()) return@LaunchedEffect
-                var changed = false
-                val resynced = cartItems.map { ci ->
-                    val fresh = products.find { it.id == ci.product.id } ?: return@map ci
-                    val adjusted = ci.originalReservedQty?.let { reserved ->
-                        if (editSource == "camion")
-                            fresh.copy(stock = fresh.stock + reserved, camion_stock = fresh.camion_stock + reserved)
-                        else
-                            fresh.copy(stock = fresh.stock + reserved)
-                    } ?: fresh
-                    if (adjusted.stock == ci.product.stock && adjusted.camion_stock == ci.product.camion_stock) {
-                        ci
-                    } else {
-                        changed = true
-                        ci.copy(product = adjusted)
-                    }
-                }
-                if (changed) session.setFormCartItems(resynced)
-            }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 

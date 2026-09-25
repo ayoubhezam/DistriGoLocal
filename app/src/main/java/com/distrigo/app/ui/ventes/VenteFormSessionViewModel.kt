@@ -16,6 +16,18 @@ import com.distrigo.app.ui.common.DraftAutosave
 import com.distrigo.app.ui.common.DraftAutosaveHost
 import com.distrigo.app.ui.common.SessionPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -45,6 +57,7 @@ import javax.inject.Inject
  * [VenteViewModel] keeps ventes, selectedVente, the create/update/deliver/delete commands and the
  * list filters, and keeps its existing tab-wide scoping in all three hosts.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class VenteFormSessionViewModel @Inject constructor(
     private val draftRepository  : VenteDraftRepository,
@@ -124,6 +137,61 @@ class VenteFormSessionViewModel @Inject constructor(
      */
     private val _editSource = MutableStateFlow<String?>(null)
     val editSource: StateFlow<String?> = _editSource
+
+    // ── Step 02: the product list, and the cart kept current ────────────────
+
+    /** Step 02's search. Held here, beside the list it narrows, so it survives a trip to the cart. */
+    var productSearch by mutableStateOf("")
+
+    /**
+     * Step 02's products, paged from the database, newest first as the list always was — see
+     * [PagedProductList]. The step used to collect the whole catalogue and search it in the composable.
+     */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
+    )
+
+    init {
+        // Each cart line carries a snapshot of its product; stock moves elsewhere while a sale is being
+        // written, so the snapshot is kept current. Only the cart's own products are watched — the
+        // step and the cart used to re-scan the whole catalogue on every write to it.
+        viewModelScope.launch {
+            _formCartItems
+                .map { items -> items.map { it.product.id }.toSet() }
+                .distinctUntilChanged()
+                .flatMapLatest { ids -> if (ids.isEmpty()) emptyFlow() else productRepository.observeProductsByIds(ids) }
+                .collect { fresh -> resyncCart(fresh) }
+        }
+    }
+
+    /**
+     * Each line's product replaced by its [fresh] copy, re-applying an edit's own reservation — see
+     * [VenteCartItem.originalReservedQty]. Written only when a line actually moved, so an unchanged
+     * catalogue never dirties the draft. The same rule both destinations used to apply themselves.
+     */
+    private fun resyncCart(fresh: List<Product>) {
+        if (fresh.isEmpty()) return
+        val byId = fresh.associateBy { it.id }
+        var changed = false
+        val resynced = _formCartItems.value.map { ci ->
+            val product = byId[ci.product.id] ?: return@map ci
+            val adjusted = ci.originalReservedQty?.let { reserved ->
+                if (_editSource.value == "camion")
+                    product.copy(stock = product.stock + reserved, camion_stock = product.camion_stock + reserved)
+                else
+                    product.copy(stock = product.stock + reserved)
+            } ?: product
+            if (adjusted.stock == ci.product.stock && adjusted.camion_stock == ci.product.camion_stock) {
+                ci
+            } else {
+                changed = true
+                ci.copy(product = adjusted)
+            }
+        }
+        if (changed) _formCartItems.value = resynced
+    }
 
     /**
      * Synchronous guard against double entry. During a navigation transition the outgoing and
