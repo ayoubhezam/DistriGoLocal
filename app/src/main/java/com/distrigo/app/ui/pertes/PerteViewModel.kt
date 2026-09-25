@@ -8,6 +8,14 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,9 +39,22 @@ class PerteViewModel @Inject constructor(
     private val _pertes = MutableStateFlow<List<Perte>>(emptyList())
     val pertes: StateFlow<List<Perte>> = _pertes
 
-    // ── المنتجات (لاختيار Produit في الفورم) — مُراقَبة مباشرة من Room، تتحدّث تلقائياً ──
-    val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    // -- The form's product picker --
+    //
+    // Paged and searched in the database; the form used to hold the whole catalogue for it.
+
+    /** The picker's search. */
+    var productSearch by mutableStateOf("")
+
+    /** The picker's products, paged, newest first as the picker always listed them. */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
+    )
+
+    /** One live product, once: the product of a perte being edited. */
+    suspend fun liveProduct(id: Int): Product? = productRepository.getLiveProduct(id)
 
     private val _selectedMonth = MutableStateFlow(currentMonth())
     val selectedMonth: StateFlow<String> = _selectedMonth

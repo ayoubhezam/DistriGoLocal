@@ -31,6 +31,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -44,18 +47,11 @@ class ProductViewModel @Inject constructor(
     private val repository: ProductRepository
 ) : ViewModel() {
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // Room-observed single source of truth: re-emits on every write to the products table,
-    // from any feature (vente, chargement, perte, retour, inventaire…) — no manual refresh.
-    val products: StateFlow<List<Product>> = repository.observeProducts()
-        .onEach { _isLoading.value = false; _error.value = null }
-        .catch { e -> _error.value = e.message; _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    // No whole-catalogue flow any more. Every screen reads what it shows: a page (pagedProducts,
+    // PagedProductList), one product (observeProduct), a few by id, or a sum.
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories
@@ -415,6 +411,34 @@ class ProductViewModel @Inject constructor(
     val pagedProducts: Flow<PagingData<Product>> = listQuery
         .flatMapLatest { repository.pageProducts(it) }
         .cachedIn(viewModelScope)
+
+    // -- The camion, for Stock Camion and the tournée --
+
+    /** Stock Camion's search. */
+    var camionSearch by mutableStateOf("")
+
+    /** What the camion carries, paged, newest first as Stock Camion always listed it. */
+    val camionProducts: PagedProductList by lazy {
+        PagedProductList(
+            scope      = viewModelScope,
+            repository = repository,
+            query      = debouncedSearch { camionSearch }
+                .map { ProductListQuery(search = it, inCamionOnly = true, sort = ProductSort.NEWEST) },
+        )
+    }
+
+    /** The camion's stock summed over the catalogue, live — null until it is first read. */
+    val camionStockTotal: StateFlow<Double?> = repository.observeCamionStockTotal()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** One live product, once. */
+    suspend fun liveProduct(id: Int): Product? = repository.getLiveProduct(id)
+
+    /** The live products among [ids], once. */
+    suspend fun liveProducts(ids: Collection<Int>): List<Product> = repository.getLiveProductsByIds(ids)
+
+    /** The first [limit] products [search] finds, newest first. */
+    suspend fun searchProducts(search: String, limit: Int): List<Product> = repository.searchProducts(search, limit)
 
     /** One product, live, for the detail, form and history screens: loading, found, or gone. */
     fun observeProduct(id: Int): Flow<ProductLookup> =

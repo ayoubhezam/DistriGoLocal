@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.inventory
 
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.itemKey
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -611,10 +614,14 @@ private fun InventorySummaryStatCard(icon: androidx.compose.ui.graphics.vector.I
 
 // ── Dialog : Recherche de produit ──
 @Composable
-fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) -> Unit, onDismiss: () -> Unit) {
-    var search by remember { mutableStateOf("") }
-    // Recomputed only when the catalogue or the search changes; see searchProducts.
-    val filtered = remember(products, search) { searchProducts(products, search) }
+fun InventoryProductSearchDialog(
+    products      : LazyPagingItems<Product>,
+    search        : String,
+    onSearchChange: (String) -> Unit,
+    onSelect      : (Product) -> Unit,
+    onDismiss     : () -> Unit,
+) {
+    // Paged and searched in the database (InventoryViewModel.productList), not in a held catalogue.
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
@@ -627,13 +634,14 @@ fun InventoryProductSearchDialog(products: List<Product>, onSelect: (Product) ->
                 }
                 DsCompactSearchField(
                     value         = search,
-                    onValueChange = { search = it },
+                    onValueChange = onSearchChange,
                     placeholder   = "Rechercher un produit",
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
                 LazyColumn(contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    items(filtered, key = { it.id }) { product ->
+                    items(count = products.itemCount, key = products.itemKey { it.id }) { index ->
+                        val product = products[index] ?: return@items
                         Surface(modifier = Modifier.fillMaxWidth().clickable { onSelect(product) }, shape = DsShapes.medium, color = DsColors.SurfaceMuted) {
                             Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {

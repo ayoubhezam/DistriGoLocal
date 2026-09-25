@@ -37,6 +37,24 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id IN (:ids) AND deleted_at IS NULL")
     suspend fun getLiveProductsByIds(ids: List<Int>): List<ProductEntity>
 
+    /**
+     * The newest live product with [code] among its barcodes, ignoring case - what a scan finds. Newest
+     * first because that is the order the scanners searched the catalogue list in.
+     */
+    @Query("""
+        SELECT p.* FROM products p
+        WHERE p.deleted_at IS NULL
+          AND (p.barcode = :code COLLATE NOCASE
+               OR EXISTS (SELECT 1 FROM product_barcodes b WHERE b.product_id = p.id AND b.code = :code COLLATE NOCASE))
+        ORDER BY p.id DESC
+        LIMIT 1
+    """)
+    suspend fun findLiveByBarcode(code: String): ProductEntity?
+
+    /** The camion's stock summed over every live product, live: the tournée's "empty truck" check. */
+    @Query("SELECT COALESCE(SUM(camion_stock), 0.0) FROM products WHERE deleted_at IS NULL")
+    fun observeCamionStockTotal(): Flow<Double>
+
     /** The highest id of a live product, for the form's generated barcode; null when there are none. */
     @Query("SELECT MAX(id) FROM products WHERE deleted_at IS NULL")
     suspend fun maxLiveId(): Int?

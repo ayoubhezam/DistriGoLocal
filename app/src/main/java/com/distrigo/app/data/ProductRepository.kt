@@ -21,6 +21,7 @@ import androidx.paging.PagingData
 import com.distrigo.app.core.paging.PagingDefaults
 import com.distrigo.app.data.local.paging.ProductListQuery
 import com.distrigo.app.data.local.paging.ProductListSql
+import com.distrigo.app.data.local.paging.ProductSort
 import com.distrigo.app.data.local.paging.ProductPagingSource
 import com.distrigo.app.data.local.paging.PurchaseOrderListQuery
 import com.distrigo.app.data.local.paging.PurchaseOrderListSql
@@ -253,20 +254,6 @@ class ProductRepository(
         return numberLabel(numero, id)
     }
 
-    suspend fun getProducts(): List<Product> {
-        val codes = db.productBarcodeDao().getAll().groupBy({ it.product_id }, { it.code })
-        return productDao.getAllProducts().map { it.toProduct(codes[it.id]) }
-    }
-
-    // Source of truth réactive : émet automatiquement à chaque écriture sur la table products,
-    // quel que soit l'écran ou le repository à l'origine de la modification.
-    // Combined with the codes, so a barcode added or removed re-emits the catalogue too.
-    fun observeProducts(): Flow<List<Product>> =
-        combine(productDao.observeAllProducts(), db.productBarcodeDao().observeAll()) { list, rows ->
-            val codes = rows.groupBy({ it.product_id }, { it.code })
-            list.map { it.toProduct(codes[it.id]) }
-        }
-
     /**
      * A product list, paged — see [ProductPagingSource]. What the Produits screen and the product
      * pickers read instead of [observeProducts], which re-materialised the whole catalogue on every
@@ -303,6 +290,21 @@ class ProductRepository(
             val codes = db.productBarcodeDao().getForProducts(entities.map { it.id }).groupBy({ it.product_id }, { it.code })
             entities.map { it.toProduct(codes[it.id]) }
         }
+
+    /** The live product a scanned [code] belongs to, or null - see ProductDao.findLiveByBarcode. */
+    suspend fun findLiveProductByBarcode(code: String): Product? =
+        code.trim().takeIf { it.isNotEmpty() }?.let { productDao.findLiveByBarcode(it)?.toProduct() }
+
+    /** The camion's stock summed over the catalogue, live. */
+    fun observeCamionStockTotal(): Flow<Double> = productDao.observeCamionStockTotal()
+
+    /**
+     * The first [limit] products [search] finds, newest first, without their codes: a short list of
+     * suggestions under a search box.
+     */
+    suspend fun searchProducts(search: String, limit: Int): List<Product> =
+        productDao.pageProducts(ProductListSql.page(ProductListQuery(search = search, sort = ProductSort.NEWEST), null, limit))
+            .map { it.product.toProduct() }
 
     /** One live product, once: a product just created from a picker, to put in the cart. */
     suspend fun getLiveProduct(id: Int): Product? = productDao.getProductById(id)?.toProduct()

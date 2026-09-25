@@ -1,5 +1,11 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.distrigo.app.ui.products.ProductLookup
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+
 import com.distrigo.app.data.model.hasBarcode
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -76,8 +82,8 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
                 val activeSession by viewModel.activeSession.collectAsState()
                 val sessionItems   by viewModel.sessionItems.collectAsState()
-                val products        by viewModel.products.collectAsState()
                 val userName by viewModel.userName.collectAsState()
+                val scanScope = rememberCoroutineScope()
 
                 var showScanner       by remember { mutableStateOf(false) }
                 var showSearchDialog  by remember { mutableStateOf(false) }
@@ -102,9 +108,11 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     BarcodeScannerScreen(
                         onBarcodeScanned = { code ->
                             showScanner = false
-                            val product = products.find { it.hasBarcode(code) }
-                            if (product == null) scanError = "Aucun produit trouvé pour ce code-barres"
-                            else openProduct(product)
+                            scanScope.launch {
+                                val product = viewModel.productByBarcode(code)
+                                if (product == null) scanError = "Aucun produit trouvé pour ce code-barres"
+                                else openProduct(product)
+                            }
                         },
                         onClose = { showScanner = false }
                     )
@@ -130,8 +138,10 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     }
                     if (showSearchDialog) {
                         InventoryProductSearchDialog(
-                            products  = products,
-                            onSelect  = { product -> showSearchDialog = false; openProduct(product) },
+                            products       = viewModel.productList.items.collectAsLazyPagingItems(),
+                            search         = viewModel.productSearch,
+                            onSearchChange = { viewModel.productSearch = it },
+                            onSelect       = { product -> showSearchDialog = false; openProduct(product) },
                             onDismiss = { showSearchDialog = false }
                         )
                     }
@@ -145,8 +155,9 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val productId = entry.arguments!!.getInt("productId")
-                val products by viewModel.products.collectAsState()
-                val product = products.find { it.id == productId }
+                val lookup by remember(productId) { viewModel.observeProduct(productId) }
+                    .collectAsState(initial = ProductLookup.Loading)
+                val product = (lookup as? ProductLookup.Found)?.product
                 val userName by viewModel.userName.collectAsState()
 
                 var qtePhysiqueText by remember { mutableStateOf("") }
@@ -183,7 +194,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             }
                         )
                     }
-                } else {
+                } else if (lookup == ProductLookup.Gone) {
                     LeaveWhenGone(navController, entry)
                 }
             }
@@ -192,9 +203,11 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val lastResult by viewModel.lastScanResult.collectAsState()
-                val products by viewModel.products.collectAsState()
                 val currentResult = lastResult
-                val product = currentResult?.let { r -> products.find { it.id == r.productId } }
+                val lookup by remember(currentResult?.productId) {
+                    currentResult?.let { viewModel.observeProduct(it.productId) } ?: flowOf(ProductLookup.Gone)
+                }.collectAsState(initial = ProductLookup.Loading)
+                val product = (lookup as? ProductLookup.Found)?.product
 
                 if (currentResult != null && product != null) {
                     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -208,7 +221,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             }
                         )
                     }
-                } else {
+                } else if (currentResult == null || lookup == ProductLookup.Gone) {
                     LeaveWhenGone(navController, entry)
                 }
             }

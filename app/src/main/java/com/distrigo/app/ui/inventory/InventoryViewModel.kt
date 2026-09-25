@@ -9,6 +9,16 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.repository.InventoryRepository
 import com.distrigo.app.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import com.distrigo.app.ui.products.ProductLookup
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,8 +44,26 @@ class InventoryViewModel @Inject constructor(
     val sessionItems: StateFlow<List<InventoryItem>> = _sessionItems
 
     // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
-    val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    // -- Finding a product to count --
+    //
+    // By scan or by search, from the database: the session used to hold the whole catalogue for both.
+
+    /** The search dialog's text. */
+    var productSearch by mutableStateOf("")
+
+    /** The search dialog's products, paged, newest first as the dialog always listed them. */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
+    )
+
+    /** The product a scanned code belongs to, or null. */
+    suspend fun productByBarcode(code: String): Product? = productRepository.findLiveProductByBarcode(code)
+
+    /** One product, live: the count and confirmation steps' subject. */
+    fun observeProduct(id: Int): Flow<ProductLookup> =
+        productRepository.observeProduct(id).map { product -> product?.let { ProductLookup.Found(it) } ?: ProductLookup.Gone }
 
     // ── Résumé après "Terminer l'inventaire" ──
     private val _summary = MutableStateFlow<InventorySessionSummary?>(null)

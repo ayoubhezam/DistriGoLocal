@@ -709,11 +709,12 @@ fun VenteDetailScreen(
     }
 
     // Units per colis for the receipt's "Unité/colis" column. A vente records what was sold, never
-    // how the product is packaged, so it comes from the catalogue — same reasoning, and the same
-    // Room-observed list, as the client lookup above.
-    val allProducts by productViewModel.products.collectAsState()
-    val receiptPackSizes = remember(allProducts) {
-        allProducts.filter { it.pack_size > 0 }.associate { it.id to it.pack_size }
+    // how the product is packaged, so it comes from the catalogue: this sale's products only, read by
+    // id, where it used to hold the whole catalogue for them.
+    val receiptProductIds = remember(displayVente.items) { displayVente.items.orEmpty().map { it.product_id } }
+    val receiptPackSizes by produceState(emptyMap<Int, Int>(), receiptProductIds) {
+        value = productViewModel.liveProducts(receiptProductIds)
+            .filter { it.pack_size > 0 }.associate { it.id to it.pack_size }
     }
 
     // The business header comes from the database; a receipt opens once it has loaded, a moment after

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.paging.compose.collectAsLazyPagingItems
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +77,6 @@ fun NavGraphBuilder.pertesFormGraph(
             val perteIdArg = parentEntry.arguments?.getInt("perteId")?.takeIf { it != -1 }
             val isEdit = perteIdArg != null
             val perteTypes by viewModel.perteTypes.collectAsState()
-            val products by viewModel.products.collectAsState()
             val pertes by viewModel.pertes.collectAsState()
             val editingPerte = perteIdArg?.let { id -> pertes.find { it.id == id } }
             val type = perteTypes.find { it.id == typeIdArg }
@@ -105,7 +106,7 @@ fun NavGraphBuilder.pertesFormGraph(
             var prefillDone by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(editingPerte) {
                 if (isEdit && editingPerte != null && !prefillDone) {
-                    viewModel.setFormProduct(products.find { it.id == editingPerte.product_id })
+                    viewModel.setFormProduct(viewModel.liveProduct(editingPerte.product_id))
                     viewModel.setFormQuantity(editingPerte.quantity)
                     viewModel.setFormSource(editingPerte.source)
                     viewModel.setFormDate(
@@ -279,8 +280,10 @@ fun NavGraphBuilder.pertesFormGraph(
 
             if (showProductPicker) {
                 ProductPickerDialog(
-                    products  = products,
-                    onSelect  = { viewModel.setFormProduct(it); showProductPicker = false },
+                    products       = viewModel.productList.items.collectAsLazyPagingItems(),
+                    search         = viewModel.productSearch,
+                    onSearchChange = { viewModel.productSearch = it },
+                    onSelect       = { viewModel.setFormProduct(it); showProductPicker = false },
                     onDismiss = { showProductPicker = false }
                 )
             }

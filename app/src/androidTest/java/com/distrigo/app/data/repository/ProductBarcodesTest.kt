@@ -66,7 +66,7 @@ class ProductBarcodesTest {
         // Trimmed, blanks and repeats dropped, order kept.
         assertEquals(listOf("111", "222"), codes(milk))
         assertEquals("111", mirror(milk))
-        val product = runBlocking { repo.observeProducts().first() }.single()
+        val product = runBlocking { repo.observeProduct(milk).first() }!!
         assertEquals(listOf("111", "222"), product.barcodes)
     }
 

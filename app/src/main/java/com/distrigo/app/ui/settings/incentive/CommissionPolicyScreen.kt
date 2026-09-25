@@ -74,7 +74,6 @@ fun CommissionPolicyScreen(
     var freeGoodQuantity by remember { mutableStateOf("") }
     var tiers by remember { mutableStateOf(listOf(TierDraft())) }
     var saveError by remember { mutableStateOf("") }
-    val products by productViewModel.products.collectAsState()
     var freeGoodProductId by remember { mutableStateOf<Int?>(null) }
     var freeGoodProductName by remember { mutableStateOf("") }
     var productSearchQuery by remember { mutableStateOf("") }
@@ -90,7 +89,7 @@ fun CommissionPolicyScreen(
             fixedBonusAmount = pwt.policy.fixed_bonus_amount?.toString() ?: ""
             freeGoodQuantity = pwt.policy.free_good_quantity?.toString() ?: ""
             freeGoodProductId = pwt.policy.free_good_product_id
-            freeGoodProductName = products.find { it.id == pwt.policy.free_good_product_id }?.name ?: ""
+            freeGoodProductName = pwt.policy.free_good_product_id?.let { productViewModel.liveProduct(it)?.name } ?: ""
             if (pwt.tiers.isNotEmpty()) {
                 tiers = pwt.tiers.sortedBy { it.tier_order }.map {
                     TierDraft(
@@ -276,8 +275,12 @@ fun CommissionPolicyScreen(
                             modifier      = Modifier
                         )
 
+                        // The first five matches, asked of the database as the query changes.
+                        val filtered by produceState(emptyList<com.distrigo.app.data.model.Product>(), productSearchQuery) {
+                            value = if (productSearchQuery.isBlank()) emptyList()
+                            else productViewModel.searchProducts(productSearchQuery, limit = 5)
+                        }
                         if (productSearchQuery.isNotBlank()) {
-                            val filtered = products.filter { it.name.contains(productSearchQuery, ignoreCase = true) }.take(5)
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()

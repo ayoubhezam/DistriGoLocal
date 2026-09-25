@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -44,10 +48,9 @@ fun StockCamionScreen(
     productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
         hiltViewModel()
 ) {
-    val products  by productViewModel.products.collectAsState()
-    val isLoading by productViewModel.isLoading.collectAsState()
-
-    var search by remember { mutableStateOf("") }
+    // What the camion carries, paged and searched in the database (ProductViewModel.camionProducts).
+    val camionProducts = productViewModel.camionProducts.items.collectAsLazyPagingItems()
+    val search = productViewModel.camionSearch
 
     var showNewChargement by remember { mutableStateOf(false) }
     var editingProduct    by remember { mutableStateOf<Product?>(null) }
@@ -59,10 +62,6 @@ fun StockCamionScreen(
     val chargementViewModel: ChargementViewModel = hiltViewModel()
     val drafts by chargementViewModel.drafts.collectAsState()
 
-    val camionProducts = products.filter { it.camion_stock > 0 }
-    val filtered = camionProducts.filter { it.name.contains(search, ignoreCase = true) }
-
-    val totalQuantity = camionProducts.sumOf { it.camion_stock }
 
     // ── New Chargement Screen (multi-produits) ──
     if (showNewChargement) {
@@ -171,7 +170,7 @@ fun StockCamionScreen(
             // ── Search ──
             DsCompactSearchField(
                 value         = search,
-                onValueChange = { search = it },
+                onValueChange = { productViewModel.camionSearch = it },
                 placeholder   = "Rechercher un produit",
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
@@ -207,12 +206,12 @@ fun StockCamionScreen(
             Spacer(Modifier.height(DsSpacing.sm))
 
             when {
-                isLoading && products.isEmpty() -> {
+                camionProducts.itemCount == 0 && camionProducts.loadState.refresh is LoadState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = DsColors.Primary)
                     }
                 }
-                filtered.isEmpty() -> {
+                camionProducts.itemCount == 0 -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
@@ -231,7 +230,8 @@ fun StockCamionScreen(
                         contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
-                        items(filtered, key = { it.id }) { product ->
+                        items(count = camionProducts.itemCount, key = camionProducts.itemKey { it.id }) { index ->
+                            val product = camionProducts[index] ?: return@items
                             StockCamionProductRow(
                                 product     = product,
                                 onLongClick = { longPressProduct = product }

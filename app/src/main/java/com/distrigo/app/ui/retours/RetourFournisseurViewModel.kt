@@ -26,10 +26,6 @@ class RetourFournisseurViewModel @Inject constructor(
     private val _retours = MutableStateFlow<List<RetourFournisseur>>(emptyList())
     val retours: StateFlow<List<RetourFournisseur>> = _retours
 
-    // Observés depuis Room — mise à jour automatique à chaque écriture sur la table products
-    val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 

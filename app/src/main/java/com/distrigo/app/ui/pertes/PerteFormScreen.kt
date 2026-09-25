@@ -1,6 +1,8 @@
 package com.distrigo.app.ui.pertes
 
-import com.distrigo.app.data.model.barcodeContains
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,18 +37,17 @@ internal fun formatQty(v: Double): String =
     else String.format(Locale.ROOT, "%.2f", v)
 
 @Composable
-internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) -> Unit, onDismiss: () -> Unit) {
-    var search      by remember { mutableStateOf("") }
+internal fun ProductPickerDialog(
+    products      : LazyPagingItems<Product>,
+    search        : String,
+    onSearchChange: (String) -> Unit,
+    onSelect      : (Product) -> Unit,
+    onDismiss     : () -> Unit,
+) {
     var showScanner by remember { mutableStateOf(false) }
 
-    // ── Recherche par tokens (ex: "br li 5L" → "Brilex Linge 5L") + code-barres ──
-    val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    val filtered = products.filter { product ->
-        tokens.isEmpty() || tokens.all { token ->
-            product.name.contains(token, ignoreCase = true) ||
-                    product.barcodeContains(token)
-        }
-    }
+    // Searched in the database, every word in the name or a barcode ("br li 5L" finds "Brilex
+    // Linge 5L") - see PerteViewModel.productList.
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
@@ -55,7 +56,7 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
             if (showScanner) {
                 BarcodeScannerScreen(
                     onBarcodeScanned = { code ->
-                        search = code
+                        onSearchChange(code)
                         showScanner = false
                     },
                     onClose = { showScanner = false }
@@ -72,7 +73,7 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
                 }
                 DsCompactSearchField(
                     value         = search,
-                    onValueChange = { search = it },
+                    onValueChange = onSearchChange,
                     placeholder   = "Rechercher un produit",
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 ) {
@@ -85,7 +86,7 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
                 }
                 Spacer(Modifier.height(DsSpacing.sm))
 
-                if (filtered.isEmpty()) {
+                if (products.itemCount == 0 && products.loadState.refresh is LoadState.NotLoading) {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         Text("Aucun produit trouvé", color = DsColors.TextSecondary)
                     }
@@ -94,7 +95,8 @@ internal fun ProductPickerDialog(products: List<Product>, onSelect: (Product) ->
                         contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
-                        items(filtered, key = { it.id }) { product ->
+                        items(count = products.itemCount, key = products.itemKey { it.id }) { index ->
+                            val product = products[index] ?: return@items
                             ProductPickerRow(product = product, onClick = { onSelect(product) })
                         }
                     }

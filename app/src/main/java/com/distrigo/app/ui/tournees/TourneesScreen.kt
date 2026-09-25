@@ -171,7 +171,8 @@ fun TourneeDetailScreen(
     val tournee by viewModel.selectedTournee.collectAsState()
     val current = tournee
     val tourneeClients by viewModel.tourneeClients.collectAsState()
-    val products by productViewModel.products.collectAsState()
+    // Only the total is needed, for the "empty truck" block — summed in SQL, not over a held catalogue.
+    val camionStockTotal by productViewModel.camionStockTotal.collectAsState()
 
     LaunchedEffect(tourneeId) {
         viewModel.prepareVenteFilters(tourneeId)
@@ -703,8 +704,8 @@ fun TourneeDetailScreen(
                     // empty truck, carrying the way to fix it. It rides with the list rather than
                     // the fixed block above, which is already as tall as it should get.
                     if (current.status == "ouverte") {
-                        val totalCamionStock = products.sumOf { it.camion_stock }
-                        if (totalCamionStock <= 0) {
+                        val totalCamionStock = camionStockTotal
+                        if (totalCamionStock != null && totalCamionStock <= 0) {
                             item {
                                 Column(
                                     modifier = Modifier
