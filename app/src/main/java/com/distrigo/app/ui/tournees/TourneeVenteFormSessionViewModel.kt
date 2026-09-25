@@ -14,6 +14,18 @@ import com.distrigo.app.ui.common.DraftAutosave
 import com.distrigo.app.ui.common.DraftAutosaveHost
 import com.distrigo.app.ui.common.SessionPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -46,6 +58,7 @@ import javax.inject.Inject
  *
  * [TourneeViewModel] keeps the tournées, their clients, and the commands that act on them.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TourneeVenteFormSessionViewModel @Inject constructor(
     private val draftRepository  : TourneeVenteDraftRepository,
@@ -76,6 +89,52 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     fun setFormCartItems(items: List<TourneeVenteCartItem>) {
         _formCartItems.value = items
         pruneBlocks(items.map { it.product.id })
+    }
+
+    // ── Step 02: the product list, and the cart kept current ────────────────
+
+    /** Step 02's search, held beside the list it narrows so it survives a trip to the cart. */
+    var productSearch by mutableStateOf("")
+
+    /**
+     * Step 02's products: only what the camion carries, paged from the database, newest first as the
+     * list always was — see [PagedProductList].
+     */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = debouncedSearch { productSearch }
+            .map { ProductListQuery(search = it, inCamionOnly = true, sort = ProductSort.NEWEST) },
+    )
+
+    init {
+        // A cart line's camion stock can move elsewhere (a chargement, a perte) while a sale is being
+        // written; the stepper's ceiling and "Disponible" line follow it. UX only — createVente
+        // re-checks the camion at save time regardless. Only the cart's own products are watched.
+        viewModelScope.launch {
+            _formCartItems
+                .map { items -> items.map { it.product.id }.toSet() }
+                .distinctUntilChanged()
+                .flatMapLatest { ids -> if (ids.isEmpty()) emptyFlow() else productRepository.observeProductsByIds(ids) }
+                .collect { fresh -> resyncCart(fresh) }
+        }
+    }
+
+    /** Each line's product replaced by its [fresh] copy when its camion stock moved; unchanged otherwise. */
+    private fun resyncCart(fresh: List<Product>) {
+        if (fresh.isEmpty()) return
+        val byId = fresh.associateBy { it.id }
+        var changed = false
+        val resynced = _formCartItems.value.map { ci ->
+            val product = byId[ci.product.id] ?: return@map ci
+            if (product.camion_stock == ci.product.camion_stock) {
+                ci
+            } else {
+                changed = true
+                ci.copy(product = product)
+            }
+        }
+        if (changed) setFormCartItems(resynced)
     }
 
     fun setFormNote(note: String) { _formNote.value = note }

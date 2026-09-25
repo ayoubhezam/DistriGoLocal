@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import com.distrigo.app.data.model.barcodeContains
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -186,10 +189,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val productViewModel = productViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val products by productViewModel.products.collectAsState()
+            // Only what the camion carries, paged from the database and cached on the session.
+            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
+            val productCount by session.productList.count.collectAsState()
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
-            var search by remember { mutableStateOf("") }
+            val search = session.productSearch
             var showScanner by remember { mutableStateOf(false) }
 
             if (skipClientStep) {
@@ -212,31 +217,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 }
             }
 
-            // Because this graph's ViewModel can stay alive across multiple wizard visits
-            // (graph-scoped to TourneesGraph, not to this nested graph), a product's camion_stock
-            // can change elsewhere (Chargement, Perte) while a cart is being built. Re-sync each
-            // cart item's product snapshot against the live list so the stepper's ceiling /
-            // "Disponible" line stay honest. UX refresh only — ProductRepository.createVente
-            // re-checks camion_stock against the database at save time regardless.
-            LaunchedEffect(products) {
-                if (products.isEmpty()) return@LaunchedEffect
-                var changed = false
-                val resynced = cartItems.map { ci ->
-                    val fresh = products.find { it.id == ci.product.id } ?: return@map ci
-                    if (fresh.camion_stock == ci.product.camion_stock) {
-                        ci
-                    } else {
-                        changed = true
-                        ci.copy(product = fresh)
-                    }
-                }
-                if (changed) session.setFormCartItems(resynced)
-            }
+            // Each cart line's camion stock is kept current by the session now (resyncCart), watching
+            // the cart's own products rather than the whole catalogue.
 
             if (showScanner) {
                 BackHandler { showScanner = false }
                 BarcodeScannerScreen(
-                    onBarcodeScanned = { code -> search = code; showScanner = false },
+                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
                     onClose = { showScanner = false }
                 )
                 return@composable
@@ -246,14 +233,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 if (skipClientStep) onBack() else navController.popBackStack()
             }
 
-            val filteredProducts = products.filter { product ->
-                val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-                val matchesSearch = tokens.isEmpty() || tokens.all { token ->
-                    product.name.contains(token, ignoreCase = true) ||
-                            product.barcodeContains(token)
-                }
-                product.camion_stock > 0 && matchesSearch
-            }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -274,7 +253,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         Column(modifier = Modifier.fillMaxSize()) {
                             DsCompactSearchField(
                                 value         = search,
-                                onValueChange = { search = it },
+                                onValueChange = { session.productSearch = it },
                                 placeholder   = "Rechercher un produit",
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
@@ -289,7 +268,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             Spacer(Modifier.height(DsSpacing.sm))
 
                             Text(
-                                "${filteredProducts.size} produit(s)",
+                                "${productCount?.toString() ?: "…"} produit(s)",
                                 fontSize = DsTextSize.caption,
                                 color    = DsColors.TextSecondary,
                                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
@@ -301,7 +280,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),
                                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
-                                items(filteredProducts, key = { it.id }) { product ->
+                                items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
+                                    val product = pagedProducts[index] ?: return@items
                                     val isInCart = cartItems.any { it.product.id == product.id }
 
                                     Row(
@@ -432,26 +412,10 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val productViewModel = productViewModel()
-            val products by productViewModel.products.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
-
-            LaunchedEffect(products) {
-                if (products.isEmpty()) return@LaunchedEffect
-                var changed = false
-                val resynced = cartItems.map { ci ->
-                    val fresh = products.find { it.id == ci.product.id } ?: return@map ci
-                    if (fresh.camion_stock == ci.product.camion_stock) {
-                        ci
-                    } else {
-                        changed = true
-                        ci.copy(product = fresh)
-                    }
-                }
-                if (changed) session.setFormCartItems(resynced)
-            }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
