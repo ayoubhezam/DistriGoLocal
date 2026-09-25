@@ -6,10 +6,26 @@ import com.distrigo.app.data.model.VenteDraft
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.ui.common.extractErrorMessage
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
+import androidx.compose.runtime.snapshotFlow
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.insertSeparators
+import androidx.paging.map
+import com.distrigo.app.data.local.dao.VenteClientChoice
+import com.distrigo.app.data.local.paging.VenteListQuery
+import com.distrigo.app.data.time.BusinessDates
+import com.distrigo.app.ui.common.VenteListFilters
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,14 +66,8 @@ class VenteViewModel @Inject constructor(
         viewModelScope.launch { draftRepository.deleteAll(ids.toList()) }
     }
 
-    private val _ventes = MutableStateFlow<List<Vente>>(emptyList())
-    val ventes: StateFlow<List<Vente>> = _ventes
-
     private val _selectedVente = MutableStateFlow<Vente?>(null)
     val selectedVente: StateFlow<Vente?> = _selectedVente
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
@@ -69,34 +79,40 @@ class VenteViewModel @Inject constructor(
     // survives process death. This ViewModel keeps the list, the detail, the commands and the
     // filters.
 
-    init { loadVentes() }
+    // -- The list --
+    //
+    // Paged from the database a screenful at a time, filtered and searched in SQL, and live: Room
+    // invalidates the pages when a sale changes anywhere, so no command below has to reload it.
 
-    fun loadVentes() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _ventes.value = repository.getVentes()
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = extractErrorMessage(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-    fun loadVentesForClient(clientId: Int) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _ventes.value = repository.getVentes(clientId = clientId)
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = extractErrorMessage(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+    /** The search and the filter sheet, as the query they ask for. The search waits for typing to pause. */
+    private val listQuery: Flow<VenteListQuery> = combine(
+        snapshotFlow {
+            VenteListFilters(filterStatus, filterPaymentStatus, filterClientId, filterDateFrom, filterDateTo)
+        },
+        debouncedSearch { searchQuery },
+    ) { filters, search -> filters.toListQuery(search) }
+        .distinctUntilChanged()
+
+    /** The dépôt's sales, newest first, with a header row before each day's first sale. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val pagedVentes: Flow<PagingData<VentesListItem>> = listQuery
+        .flatMapLatest { repository.pageVentes(it) }
+        .map { page -> page.map<Vente, VentesListItem> { VentesListItem.Sale(it) }.withDayHeaders() }
+        .cachedIn(viewModelScope)
+
+    /** How many sales the search and filters match - null until the first count lands. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val venteCount: StateFlow<Int?> = listQuery
+        .flatMapLatest { repository.observeVenteCount(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The client filter's choices: every client with a dépôt sale. */
+    val venteClients: StateFlow<List<VenteClientChoice>> = repository.observeVenteClients("depot")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** One sale, live, for the detail screen: loading, found, or gone. */
+    fun observeVente(id: Int): Flow<VenteLookup> =
+        repository.observeVente(id).map { vente -> vente?.let { VenteLookup.Found(it) } ?: VenteLookup.Gone }
 
     fun loadVenteDetail(id: Int) {
         viewModelScope.launch {
@@ -125,7 +141,6 @@ class VenteViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.createVente(clientId, tourneeId, source, items, note, montantPaye, userName, draftId, tourneeDraftId)
-                loadVentes()
                 onSuccess()
             } catch (e: Exception) {
                 onError(extractErrorMessage(e))
@@ -146,7 +161,6 @@ class VenteViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.updateVente(id, clientId, items, note, montantPaye, userName, draftId)
-                loadVentes()
                 loadVenteDetail(id)
                 onSuccess()
             } catch (e: Exception) {
@@ -163,7 +177,6 @@ class VenteViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.deliverVente(id)
-                loadVentes()
                 onSuccess()
             } catch (e: Exception) {
                 onError(extractErrorMessage(e))
@@ -179,7 +192,6 @@ class VenteViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.deleteVente(id)
-                loadVentes()
                 onSuccess()
             } catch (e: Exception) {
                 onError(extractErrorMessage(e))
@@ -206,4 +218,38 @@ class VenteViewModel @Inject constructor(
     }
 }
 
+/** A row of the Ventes list: a day's header, or a sale. */
+sealed interface VentesListItem {
+    data class DayHeader(val day: String) : VentesListItem
+    data class Sale(val vente: Vente) : VentesListItem
+}
 
+/** The detail screen's sale: still being read, read, or no longer in the database. */
+sealed interface VenteLookup {
+    data object Loading : VenteLookup
+    data class Found(val vente: Vente) : VenteLookup
+    data object Gone : VenteLookup
+}
+
+/** The filter sheet in database terms: the dépôt's sales, the picked local days as instant bounds. */
+private fun VenteListFilters.toListQuery(search: String): VenteListQuery {
+    val (from, before) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
+    return VenteListQuery(
+        source        = "depot",
+        search        = search,
+        status        = status,
+        paymentStatus = paymentStatus,
+        clientId      = clientId,
+        createdFrom   = from,
+        createdBefore = before,
+    )
+}
+
+/** A header before the first sale of each local day, inserted between loaded rows as they load. */
+private fun PagingData<VentesListItem>.withDayHeaders(): PagingData<VentesListItem> =
+    insertSeparators { before, after ->
+        val next = (after as? VentesListItem.Sale)?.vente ?: return@insertSeparators null
+        val previous = (before as? VentesListItem.Sale)?.vente
+        val day = BusinessDates.localDay(next.created_at)
+        if (previous == null || BusinessDates.localDay(previous.created_at) != day) VentesListItem.DayHeader(day) else null
+    }

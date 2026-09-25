@@ -54,12 +54,13 @@ interface VenteDraftDao {
      * Which ventes exist, so the drafts list can badge an edit draft whose vente has since been
      * deleted. One statement for the whole list, not one per row.
      *
-     * Observed rather than fetched inside the mapping, and unfiltered rather than
-     * `WHERE id IN (:ids)`, because **this is what makes the badge live**. Room invalidates a Flow
-     * only when a table the query itself reads is written, so a suspend call made inside
-     * `observeDrafts`'s `map` would never re-run when a vente was deleted — the badge would go on
-     * claiming the draft was fine until something else touched `vente_drafts`. Reading two columns
-     * for every vente is the price of the list telling the truth.
+     * Observed rather than fetched inside the mapping, because **this is what makes the badge live**:
+     * Room invalidates a Flow when a table the query reads is written, so a suspend call made inside
+     * `observeDrafts`'s `map` would never re-run when a vente was deleted.
+     *
+     * Only the ventes that have a draft, through a subquery. Room watches every table a query reads,
+     * the subquery's included, so this still re-runs when a vente is deleted — it simply returns a
+     * handful of ids instead of every sale ever made, which it read again after each new one.
      *
      * Achats asks for the *status* in its equivalent, because a received bon is a second, separate
      * block. Dépôt Vente has no equivalent: `ProductRepository.updateVente` reverses every old line
@@ -67,6 +68,6 @@ interface VenteDraftDao {
      * thing that can stop a draft being applied is the vente being gone. Existence is the whole
      * question.
      */
-    @Query("SELECT id FROM ventes")
+    @Query("SELECT id FROM ventes WHERE id IN (SELECT source_vente_id FROM vente_drafts WHERE source_vente_id IS NOT NULL)")
     fun observeVenteIds(): Flow<List<Int>>
 }

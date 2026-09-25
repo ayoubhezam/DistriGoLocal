@@ -4,12 +4,57 @@ import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.distrigo.app.data.model.NUMBER_LABEL_SQL
+import com.distrigo.app.data.local.entity.ClientEntity
 import com.distrigo.app.data.local.entity.VenteEntity
 import com.distrigo.app.data.local.entity.VenteItemEntity
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * The client's name as the Ventes list shows it: the live client's, blank once the client is deleted —
+ * the rule getVentesWithDetails has always had. The same expression as `VenteListSql.CLIENT_NAME`.
+ */
+const val VENTE_LIST_CLIENT_NAME = "COALESCE(c.name, '')"
+
+/** One row of the Ventes list: the sale, its client's name as shown, and how many lines it has. */
+data class VenteListRow(
+    @Embedded val vente: VenteEntity,
+    val display_client_name: String,
+    val items_count: Int,
+)
+
+/** A choice in the Ventes client filter. */
+data class VenteClientChoice(val id: Int, val name: String)
 
 @Dao
 interface VenteDao {
+
+    /** A page of the Ventes list — see `VenteListSql`. One query per page, lines counted in it. */
+    @RawQuery
+    suspend fun pageVentes(query: SupportSQLiteQuery): List<VenteListRow>
+
+    /** How many sales a `VenteListSql.count` query matches, re-counted when a sale or client changes. */
+    @RawQuery(observedEntities = [VenteEntity::class, ClientEntity::class])
+    fun observeVenteCount(query: SupportSQLiteQuery): Flow<Int>
+
+    /**
+     * Every client with at least one sale from [source], once, by the name the list shows: the client
+     * filter's choices, read from the table now that the list no longer holds every sale.
+     */
+    @Query("""
+        SELECT v.client_id AS id, MIN(${VENTE_LIST_CLIENT_NAME}) AS name
+        FROM ventes v LEFT JOIN clients c ON c.id = v.client_id AND c.deleted_at IS NULL
+        WHERE v.source = :source
+        GROUP BY v.client_id
+        ORDER BY name
+    """)
+    fun observeVenteClients(source: String): Flow<List<VenteClientChoice>>
+
+    /** One sale, live: the detail screen's subject, now that it is not taken from a loaded list. */
+    @Query("SELECT * FROM ventes WHERE id = :id")
+    fun observeVenteById(id: Int): Flow<VenteEntity?>
 
     @Insert
     suspend fun insertVente(vente: VenteEntity): Long

@@ -62,13 +62,14 @@ interface PurchaseDraftDao {
      * expensive check (comparing contents through DraftFingerprint) is left to resume, which is
      * the only moment it changes what happens.
      *
-     * Observed rather than fetched inside the mapping, and unfiltered rather than
-     * `WHERE id IN (:ids)`, because **this is what makes the badge live**. Room invalidates a Flow
-     * only when a table the query itself reads is written, so a suspend call made inside
-     * `observeDrafts`'s `map` would never re-run when a bon was received or deleted — the badge
-     * would go on claiming the draft was fine until something else touched `purchase_drafts`.
-     * Reading two columns for every bon is the price of the list telling the truth.
+     * Observed rather than fetched inside the mapping, because **this is what makes the badge live**:
+     * Room invalidates a Flow when a table the query reads is written, so a suspend call made inside
+     * `observeDrafts`'s `map` would never re-run when a bon was received or deleted.
+     *
+     * Only the bons that have a draft, through a subquery. Room watches every table a query reads,
+     * the subquery's included, so this still re-runs when a bon is received or deleted — it simply
+     * returns a handful of rows instead of every bon ever made.
      */
-    @Query("SELECT id, status FROM purchase_orders")
+    @Query("SELECT id, status FROM purchase_orders WHERE id IN (SELECT source_order_id FROM purchase_drafts WHERE source_order_id IS NOT NULL)")
     fun observeOrderStatuses(): Flow<List<DraftOrderStatus>>
 }

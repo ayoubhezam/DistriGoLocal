@@ -24,6 +24,9 @@ import com.distrigo.app.data.local.paging.ProductListSql
 import com.distrigo.app.data.local.paging.ProductSort
 import com.distrigo.app.data.local.paging.ProductPagingSource
 import com.distrigo.app.data.local.paging.PurchaseOrderListQuery
+import com.distrigo.app.data.local.paging.VenteListQuery
+import com.distrigo.app.data.local.paging.VenteListSql
+import com.distrigo.app.data.local.paging.VentePagingSource
 import com.distrigo.app.data.local.paging.PurchaseOrderListSql
 import com.distrigo.app.data.local.paging.PurchaseOrderPagingSource
 import kotlinx.coroutines.flow.Flow
@@ -1119,6 +1122,31 @@ class ProductRepository(
                 itemsCount = row.items_count,
                 items      = null
             )
+        }
+
+    /**
+     * The Ventes list, paged — see [VentePagingSource]. It replaces reading every sale on each opening
+     * of the screen (about 100,000 on the test data) and filtering them in the composable.
+     */
+    fun pageVentes(query: VenteListQuery): Flow<PagingData<Vente>> =
+        Pager(PagingDefaults.config) {
+            VentePagingSource(db, query) { row ->
+                row.vente.toVenteWith(clientName = row.display_client_name, itemsCount = row.items_count, items = null)
+            }
+        }.flow
+
+    /** How many sales [query] matches, live. */
+    fun observeVenteCount(query: VenteListQuery): Flow<Int> =
+        db.venteDao().observeVenteCount(VenteListSql.count(query))
+
+    /** The clients with sales from [source], by name: the Ventes client filter's choices. */
+    fun observeVenteClients(source: String): Flow<List<VenteClientChoice>> =
+        db.venteDao().observeVenteClients(source)
+
+    /** One sale with its lines, live, or null once it is gone — what the detail screen shows. */
+    fun observeVente(id: Int): Flow<Vente?> =
+        db.venteDao().observeVenteById(id).map { vente ->
+            vente?.toVente(db.venteDao().getItemsForVente(vente.id).map { it.toItem() })
         }
 
     suspend fun getVente(id: Int): Vente {

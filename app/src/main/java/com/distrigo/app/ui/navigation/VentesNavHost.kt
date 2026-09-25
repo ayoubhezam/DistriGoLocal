@@ -137,8 +137,10 @@ fun VentesNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.VentesGraph.route) }
             val viewModel: VenteViewModel = hiltViewModel(parentEntry)
             val venteId = entry.arguments!!.getInt("venteId")
-            val ventes by viewModel.ventes.collectAsState()
-            val fallbackVente = ventes.find { it.id == venteId }
+            // Observed on its own: the list holds only the page on screen, so the sale may not be in it.
+            val lookup by remember(venteId) { viewModel.observeVente(venteId) }
+                .collectAsState(initial = VenteLookup.Loading)
+            val fallbackVente = (lookup as? VenteLookup.Found)?.vente
 
             LaunchedEffect(venteId) { viewModel.loadVenteDetail(venteId) }
 
@@ -150,8 +152,8 @@ fun VentesNavHost(
                     onDelivered = { navController.popBackStack() },
                     onDeleted   = { navController.popBackStack() }
                 )
-            } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+            } else if (lookup == VenteLookup.Gone) {
+                LeaveWhenGone(navController, entry)
             }
         }
     }

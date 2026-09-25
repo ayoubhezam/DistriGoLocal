@@ -10,9 +10,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.distrigo.app.ui.common.KeepIndexScrollPosition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -48,11 +51,6 @@ import com.distrigo.app.ui.products.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
-import com.distrigo.app.ui.common.VenteListFilters
-import com.distrigo.app.ui.common.clientsOfVentes
-import com.distrigo.app.ui.common.depotVentesOf
-import com.distrigo.app.ui.common.filterVentes
-import com.distrigo.app.ui.common.groupVentesByDay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,15 +64,12 @@ fun VentesScreen(
     onResumeDraft    : (com.distrigo.app.data.model.VenteDraft) -> Unit = {},
     onOpenBrouillons : () -> Unit = {}
 ) {
-    val ventes      by viewModel.ventes.collectAsState()
+    // Paged: only the sales near the screen are loaded, from a query that already applies the dépôt,
+    // the search and the filters. The count and the client choices come from their own queries.
+    val pagedVentes = viewModel.pagedVentes.collectAsLazyPagingItems()
+    val venteCount  by viewModel.venteCount.collectAsState()
     val drafts      by viewModel.drafts.collectAsState()
     var showDraftsSheet by remember { mutableStateOf(false) }
-    // Remembered against `ventes`, which only changes when the list reloads. Built inline, this
-    // was a new list on every recomposition, so the remember(depotVentes) below — keyed on it —
-    // never once reused its result.
-    val depotVentes = remember(ventes) { depotVentesOf(ventes) }
-    val isLoading   by viewModel.isLoading.collectAsState()
-    val error       by viewModel.error.collectAsState()
 
     var longPressVente   by remember { mutableStateOf<Vente?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -87,39 +82,15 @@ fun VentesScreen(
     val dateFromState      = rememberDatePickerState()
     val dateToState        = rememberDatePickerState()
 
-    LaunchedEffect(Unit) { viewModel.loadVentes() }
-
-    // ── Clients list (مستخرجة من المبيعات الموجودة) ──
-    val clients = remember(depotVentes) { clientsOfVentes(depotVentes) }
+    // -- Clients list: every client with a dépôt sale --
+    val clientChoices by viewModel.venteClients.collectAsState()
+    val clients = remember(clientChoices) { clientChoices.map { it.id to it.name } }
 
     val hasActiveFilters = viewModel.filterStatus != null ||
             viewModel.filterPaymentStatus != null ||
             viewModel.filterClientId != null ||
             viewModel.filterDateFrom != null ||
             viewModel.filterDateTo != null
-
-    // Recomputed only when the depot list, the search or a filter changes; see filterVentes.
-    val filteredVentes = remember(
-        depotVentes,
-        viewModel.searchQuery,
-        viewModel.filterStatus,
-        viewModel.filterPaymentStatus,
-        viewModel.filterClientId,
-        viewModel.filterDateFrom,
-        viewModel.filterDateTo
-    ) {
-        filterVentes(
-            ventes  = depotVentes,
-            query   = viewModel.searchQuery,
-            filters = VenteListFilters(
-                status        = viewModel.filterStatus,
-                paymentStatus = viewModel.filterPaymentStatus,
-                clientId      = viewModel.filterClientId,
-                dateFrom      = viewModel.filterDateFrom,
-                dateTo        = viewModel.filterDateTo
-            )
-        )
-    }
 
     // ── Long Press Dialog ──
     longPressVente?.let { vente ->
@@ -144,7 +115,6 @@ fun VentesScreen(
                                 showDeleteDialog = false
                                 longPressVente   = null
                                 deleteError      = ""
-                                viewModel.loadVentes()
                             },
                             onError = { err -> deleteError = err }
                         )
@@ -446,7 +416,7 @@ fun VentesScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                     ) {
-                        Text("Appliquer (${filteredVentes.size})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Appliquer (${venteCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
@@ -496,7 +466,7 @@ fun VentesScreen(
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                     Text(
-                        "${filteredVentes.size} ventes",
+                        "${venteCount?.toString() ?: "…"} ventes",
                         fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary
@@ -570,15 +540,16 @@ fun VentesScreen(
 
             Spacer(Modifier.height(DsSpacing.sm))
 
-            if (isLoading) {
+            val refresh = pagedVentes.loadState.refresh
+            if (pagedVentes.itemCount == 0 && refresh is LoadState.Loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
-            } else if (error != null) {
+            } else if (pagedVentes.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(error ?: "", color = DsColors.Danger)
+                    Text(refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
                 }
-            } else if (filteredVentes.isEmpty()) {
+            } else if (pagedVentes.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -594,14 +565,9 @@ fun VentesScreen(
                     }
                 }
             } else {
-                val groupedVentes = remember(filteredVentes) { groupVentesByDay(filteredVentes) }
-
-                // Keyed rows would keep the first visible sale in view when a search or filter
-                // changes the list; the list keeps its place by index, as it always has.
                 val listState = rememberLazyListState()
-                KeepIndexScrollPosition(listState, filteredVentes)
 
-                // ── List ──
+                // -- List --
                 LazyColumn(
                     state               = listState,
                     // Bottom pad clears the raised FAB (clearance + 56dp FAB), so the last card
@@ -615,25 +581,32 @@ fun VentesScreen(
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
                     modifier            = Modifier.weight(1f)
                 ) {
-                    groupedVentes.forEach { (date, dayVentes) ->
-                        // ── Date Header ──
-                        // Keyed, like the rows under it, so a new sale at the top does not shift
-                        // every row's identity down by one.
-                        item(key = "date_$date") {
-                            Text(
-                                text       = formatOrderDate(date),
+                    // Keyed by sale and by day, so a page loading or a sale changing does not move
+                    // what is on screen.
+                    items(
+                        count       = pagedVentes.itemCount,
+                        key         = pagedVentes.itemKey { row ->
+                            when (row) {
+                                is VentesListItem.DayHeader -> "date_${row.day}"
+                                is VentesListItem.Sale      -> row.vente.id
+                            }
+                        },
+                        contentType = pagedVentes.itemContentType { row -> row is VentesListItem.DayHeader }
+                    ) { index ->
+                        when (val row = pagedVentes[index]) {
+                            is VentesListItem.DayHeader -> Text(
+                                text       = formatOrderDate(row.day),
                                 fontSize   = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = DsColors.TextSecondary,
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
-                        }
-                        items(dayVentes, key = { it.id }) { vente ->
-                            VenteCard(
-                                vente       = vente,
-                                onClick     = { onVenteClick(vente.id) },
-                                onLongClick = { longPressVente = vente }
+                            is VentesListItem.Sale -> VenteCard(
+                                vente       = row.vente,
+                                onClick     = { onVenteClick(row.vente.id) },
+                                onLongClick = { longPressVente = row.vente }
                             )
+                            null -> Unit
                         }
                     }
                 }
@@ -761,7 +734,6 @@ fun VenteDetailScreen(
                             onSuccess = {
                                 isDeleting       = false
                                 showDeleteDialog = false
-                                viewModel.loadVentes()
                                 onDeleted()
                             },
                             onError = { err -> isDeleting = false; deleteError = err }
@@ -1076,7 +1048,6 @@ fun VenteDetailScreen(
                         id        = displayVente.id,
                         onSuccess = {
                             isDelivering = false
-                            viewModel.loadVentes()
                             onDelivered()
                         },
                         onError = { isDelivering = false }
