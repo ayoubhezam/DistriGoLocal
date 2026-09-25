@@ -21,6 +21,14 @@ interface ProductBarcodeDao {
     @Query("SELECT * FROM product_barcodes ORDER BY product_id, position")
     suspend fun getAll(): List<ProductBarcodeEntity>
 
+    /** One product's codes, live, primary first. */
+    @Query("SELECT * FROM product_barcodes WHERE product_id = :productId ORDER BY position ASC")
+    fun observeForProduct(productId: Int): Flow<List<ProductBarcodeEntity>>
+
+    /** The codes of [productIds] only, each product's primary first: one page of a paged list, in one query. */
+    @Query("SELECT * FROM product_barcodes WHERE product_id IN (:productIds) ORDER BY product_id, position")
+    suspend fun getForProducts(productIds: List<Int>): List<ProductBarcodeEntity>
+
     @Query("SELECT * FROM product_barcodes WHERE product_id = :productId ORDER BY position ASC")
     suspend fun getForProduct(productId: Int): List<ProductBarcodeEntity>
 

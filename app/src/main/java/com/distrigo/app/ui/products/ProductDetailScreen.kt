@@ -67,8 +67,8 @@ fun ProductDetailScreen(
     onPriceHistory   : () -> Unit,
     viewModel: ProductViewModel = hiltViewModel()
 ) {
-    val currentProduct = viewModel.products.collectAsState().value
-        .find { it.id == product.id } ?: product
+    // Already live: the route observes this one product (ProductViewModel.observeProduct).
+    val currentProduct = product
 
     LaunchedEffect(product.id) {
         viewModel.loadPriceMovements(product.id)

@@ -27,6 +27,16 @@ import com.distrigo.app.data.model.StockMovement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.distrigo.app.data.local.paging.ProductListQuery
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @HiltViewModel
@@ -375,6 +385,52 @@ class ProductViewModel @Inject constructor(
     // into a product or another tab — the ViewModel is scoped to the Produits graph, while the
     // screen's own `remember`s die with its composition. clearAllFilters() deliberately leaves
     // the search box, the sort order and the grid toggle alone: none of them is a filter chip.
+    // ── The Produits list, paged ──
+    //
+    // Read a screenful at a time from a query that already applies the search, the sheet and the sort.
+    // [products] above stays for the screens that still hold the whole catalogue; they move to paged
+    // or by-id reads one at a time.
+
+    /** The search, the sheet and the sort, as the query they ask for. The search waits for typing to pause. */
+    @OptIn(FlowPreview::class)
+    private val listQuery: Flow<ProductListQuery> = combine(
+        snapshotFlow {
+            ProductListFilters(
+                categoryId      = filterCategoryId,
+                sousCategorieId = filterSousCategorieId,
+                marqueId        = filterMarqueId,
+                supplierId      = filterSupplierId,
+                unitType        = filterUnitType,
+                stockLevel      = filterStockLevel,
+                priceMin        = filterPriceMin,
+                priceMax        = filterPriceMax,
+                expiringSoon    = filterExpiringSoon,
+            ) to sortOption
+        },
+        snapshotFlow { searchQuery }.debounce { if (it.isEmpty()) 0L else 300L },
+    ) { (filters, sort), search -> filters.toListQuery(search, sort) }
+        .distinctUntilChanged()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val pagedProducts: Flow<PagingData<Product>> = listQuery
+        .flatMapLatest { repository.pageProducts(it) }
+        .cachedIn(viewModelScope)
+
+    /** One product, live, for the detail, form and history screens: loading, found, or gone. */
+    fun observeProduct(id: Int): Flow<ProductLookup> =
+        repository.observeProduct(id).map { product -> product?.let { ProductLookup.Found(it) } ?: ProductLookup.Gone }
+
+    /** A barcode made from the next product id, 13 digits — what the form's "Générer" button fills in. */
+    fun generateBarcode(onResult: (String) -> Unit) {
+        viewModelScope.launch { onResult((repository.maxLiveProductId() + 1).toString().padStart(13, '0')) }
+    }
+
+    /** How many products the search and sheet match — null until the first count lands. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val productCount: StateFlow<Int?> = listQuery
+        .flatMapLatest { repository.observeProductCount(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     var searchQuery           by mutableStateOf("")
     var sortOption            by mutableStateOf(SortOption.NAME_ASC)
     var isGridView            by mutableStateOf(false)
@@ -399,4 +455,11 @@ class ProductViewModel @Inject constructor(
         filterPriceMax        = ""
         filterExpiringSoon    = false
     }
+}
+
+/** A screen's product: still being read, read, or no longer in the catalogue. */
+sealed interface ProductLookup {
+    data object Loading : ProductLookup
+    data class Found(val product: Product) : ProductLookup
+    data object Gone : ProductLookup
 }

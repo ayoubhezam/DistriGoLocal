@@ -65,7 +65,6 @@ fun ProductFormScreen(
     val isEdit = product != null
 
     val context  = LocalContext.current
-    val products by viewModel.products.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     var name          by remember { mutableStateOf(product?.name ?: "") }
@@ -753,10 +752,9 @@ fun ProductFormScreen(
                         }
                         Button(
                             onClick        = {
-                                // نبحث عن أعلى ID في قائمة المنتجات، وإذا كانت فارغة نعتبره 0
-                                val maxId = products.maxOfOrNull { it.id } ?: 0
-                                val nextId = (maxId + 1).toLong()
-                                barcode = nextId.toString().padStart(13, '0')
+                                // The next product id, as 13 digits — asked of the database, not of a
+                                // catalogue held in memory.
+                                viewModel.generateBarcode { barcode = it }
                             },
                             modifier       = Modifier.height(56.dp),
                             shape          = DsShapes.medium,

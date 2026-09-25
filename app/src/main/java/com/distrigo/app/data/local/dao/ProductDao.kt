@@ -1,15 +1,41 @@
 package com.distrigo.app.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Update
+import androidx.sqlite.db.SupportSQLiteQuery
+import com.distrigo.app.data.local.entity.ProductBarcodeEntity
 import com.distrigo.app.data.local.entity.ProductEntity
 import kotlinx.coroutines.flow.Flow
 
+/** A row of a paged product list: the product, and `LOWER(name)` exactly as SQLite computed it. */
+data class ProductPageRow(
+    @Embedded val product: ProductEntity,
+    val sort_name: String,
+)
+
 @Dao
 interface ProductDao {
+
+    /** A page of a product list — see `ProductListSql` for the SQL and why it is built per request. */
+    @RawQuery
+    suspend fun pageProducts(query: SupportSQLiteQuery): List<ProductPageRow>
+
+    /** One live product, or null once it is deleted or binned: the Produits detail, form and history screens. */
+    @Query("SELECT * FROM products WHERE id = :id AND deleted_at IS NULL")
+    fun observeLiveProduct(id: Int): Flow<ProductEntity?>
+
+    /** The highest id of a live product, for the form's generated barcode; null when there are none. */
+    @Query("SELECT MAX(id) FROM products WHERE deleted_at IS NULL")
+    suspend fun maxLiveId(): Int?
+
+    /** How many products a `ProductListSql.count` query matches, re-counted when a product or barcode changes. */
+    @RawQuery(observedEntities = [ProductEntity::class, ProductBarcodeEntity::class])
+    fun observeProductCount(query: SupportSQLiteQuery): Flow<Int>
 
     // 1. جلب جميع المنتجات (رتبناها تنازلياً حسب الـ ID لتظهر الأحدث أولاً، ويمكن تعديلها لاحقاً)
     @Query("SELECT * FROM products WHERE deleted_at IS NULL ORDER BY id DESC")

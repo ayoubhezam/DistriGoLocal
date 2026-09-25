@@ -5,6 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -12,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.distrigo.app.ui.common.KeepIndexScrollPosition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -85,9 +87,9 @@ fun ProductsScreen(
     onEditProduct  : (Int) -> Unit = {},
     onProductClick : (Int) -> Unit = {}
 ) {
-    val products      by viewModel.products.collectAsState()
-    val isLoading     by viewModel.isLoading.collectAsState()
-    val error         by viewModel.error.collectAsState()
+    // Paged: a screenful at a time, from a query that applies the search, the sheet and the sort.
+    val pagedProducts = viewModel.pagedProducts.collectAsLazyPagingItems()
+    val productCount  by viewModel.productCount.collectAsState()
     val categories    by viewModel.categories.collectAsState()
     val sousCategories by viewModel.sousCategories.collectAsState()
     val marques        by viewModel.marques.collectAsState()
@@ -134,40 +136,6 @@ fun ProductsScreen(
         )
         return
     }
-
-    // Filtered and sorted only when something they read changes. Inline, both re-ran on every
-    // recomposition — each keystroke, but also opening the sort sheet, a long press, the photo
-    // viewer. Every value the filter reads is a key; ProductListFilters.kt has the logic.
-    val filtered = remember(
-        products,
-        viewModel.searchQuery,
-        viewModel.filterCategoryId,
-        viewModel.filterSousCategorieId,
-        viewModel.filterMarqueId,
-        viewModel.filterSupplierId,
-        viewModel.filterUnitType,
-        viewModel.filterStockLevel,
-        viewModel.filterPriceMin,
-        viewModel.filterPriceMax,
-        viewModel.filterExpiringSoon
-    ) {
-        filterProducts(
-            products = products,
-            query    = viewModel.searchQuery,
-            filters  = ProductListFilters(
-                categoryId      = viewModel.filterCategoryId,
-                sousCategorieId = viewModel.filterSousCategorieId,
-                marqueId        = viewModel.filterMarqueId,
-                supplierId      = viewModel.filterSupplierId,
-                unitType        = viewModel.filterUnitType,
-                stockLevel      = viewModel.filterStockLevel,
-                priceMin        = viewModel.filterPriceMin,
-                priceMax        = viewModel.filterPriceMax,
-                expiringSoon    = viewModel.filterExpiringSoon
-            )
-        )
-    }
-    val sorted = remember(filtered, viewModel.sortOption) { sortProducts(filtered, viewModel.sortOption) }
 
     val activeFilters = buildList {
         viewModel.filterCategoryId?.let { id ->
@@ -605,7 +573,7 @@ fun ProductsScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                     ) {
-                        Text("Appliquer (${filtered.size})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Appliquer (${productCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
@@ -652,7 +620,7 @@ fun ProductsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${sorted.size} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text("${productCount?.toString() ?: "…"} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     Row(
                         modifier = Modifier
@@ -794,16 +762,16 @@ fun ProductsScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            if (isLoading) {
+            val refresh = pagedProducts.loadState.refresh
+            if (pagedProducts.itemCount == 0 && refresh is LoadState.Loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
-            } else if (error != null) {
-                val errorMessage = error
+            } else if (pagedProducts.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = errorMessage ?: "", color = DsColors.Danger)
+                    Text(text = refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
                 }
-            } else if (sorted.isEmpty()) {
+            } else if (pagedProducts.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -817,17 +785,16 @@ fun ProductsScreen(
                     }
                 }
             } else {
+                val productKey = pagedProducts.itemKey { it.id }
                 if (!viewModel.isGridView) {
-                    // Keyed rows would keep the first visible product in view when a search, filter
-                    // or sort changes the list; the list keeps its place by index, as it always has.
                     val listState = rememberLazyListState()
-                    KeepIndexScrollPosition(listState, sorted)
                     LazyColumn(
                         state          = listState,
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(sorted, key = { it.id }) { product ->
+                        items(count = pagedProducts.itemCount, key = productKey) { index ->
+                            val product = pagedProducts[index] ?: return@items
                             ProductCard(product = product,
                                 onClick = { onProductClick(product.id) },
                                 onImageClick = {
@@ -842,7 +809,6 @@ fun ProductsScreen(
                     }
                 } else {
                     val gridState = rememberLazyGridState()
-                    KeepIndexScrollPosition(gridState, sorted)
                     LazyVerticalGrid(
                         state               = gridState,
                         columns             = GridCells.Fixed(2),
@@ -850,7 +816,8 @@ fun ProductsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(sorted, key = { it.id }) { product ->
+                        items(count = pagedProducts.itemCount, key = productKey) { index ->
+                            val product = pagedProducts[index] ?: return@items
                             ProductGridCard(product = product,
                                 onClick = { onProductClick(product.id) },
                                 onImageClick = {

@@ -19,6 +19,9 @@ import com.distrigo.app.data.model.TourneeSecteur
 import androidx.paging.Pager
 import androidx.paging.PagingData
 import com.distrigo.app.core.paging.PagingDefaults
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductListSql
+import com.distrigo.app.data.local.paging.ProductPagingSource
 import com.distrigo.app.data.local.paging.PurchaseOrderListQuery
 import com.distrigo.app.data.local.paging.PurchaseOrderListSql
 import com.distrigo.app.data.local.paging.PurchaseOrderPagingSource
@@ -263,6 +266,30 @@ class ProductRepository(
             val codes = rows.groupBy({ it.product_id }, { it.code })
             list.map { it.toProduct(codes[it.id]) }
         }
+
+    /**
+     * A product list, paged — see [ProductPagingSource]. What the Produits screen and the product
+     * pickers read instead of [observeProducts], which re-materialised the whole catalogue on every
+     * write to `products` — and every sale is one.
+     */
+    fun pageProducts(query: ProductListQuery): Flow<PagingData<Product>> =
+        Pager(PagingDefaults.config) { ProductPagingSource(db, query) { entity, codes -> entity.toProduct(codes) } }.flow
+
+    /**
+     * One product with its codes, live, or null once it is gone: the Produits detail, form and
+     * history screens, which used to find it in the whole catalogue.
+     */
+    fun observeProduct(id: Int): Flow<Product?> =
+        combine(productDao.observeLiveProduct(id), db.productBarcodeDao().observeForProduct(id)) { entity, rows ->
+            entity?.toProduct(rows.map { it.code }.takeIf { it.isNotEmpty() })
+        }
+
+    /** The highest id of a live product, or 0. */
+    suspend fun maxLiveProductId(): Int = productDao.maxLiveId() ?: 0
+
+    /** How many products [query] matches, live. */
+    fun observeProductCount(query: ProductListQuery): Flow<Int> =
+        productDao.observeProductCount(ProductListSql.count(query))
 
     /**
      * The live product, other than [excludeId], that already has [name] (ignoring case and spaces) or one of

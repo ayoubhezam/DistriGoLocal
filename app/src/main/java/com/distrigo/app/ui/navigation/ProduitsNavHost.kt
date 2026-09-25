@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import kotlinx.coroutines.flow.flowOf
+
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -62,15 +64,27 @@ fun ProduitsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId").takeIf { it != -1 }
-            val products by viewModel.products.collectAsState()
-            val product = productId?.let { id -> products.find { it.id == id } }
+            // A new product has nothing to wait for; an edit waits for its product rather than opening
+            // as an empty new-product form for the moment it takes to read it.
+            val lookup by remember(productId) {
+                productId?.let { viewModel.observeProduct(it) } ?: flowOf(ProductLookup.Gone)
+            }.collectAsState(initial = ProductLookup.Loading)
 
-            ProductFormScreen(
-                product   = product,
-                viewModel = viewModel,
-                onBack    = { navController.popBackStack() },
-                onSaved   = { navController.popBackStack() }
-            )
+            when {
+                productId == null -> ProductFormScreen(
+                    product   = null,
+                    viewModel = viewModel,
+                    onBack    = { navController.popBackStack() },
+                    onSaved   = { navController.popBackStack() }
+                )
+                lookup is ProductLookup.Found -> ProductFormScreen(
+                    product   = (lookup as ProductLookup.Found).product,
+                    viewModel = viewModel,
+                    onBack    = { navController.popBackStack() },
+                    onSaved   = { navController.popBackStack() }
+                )
+                lookup == ProductLookup.Gone -> LeaveWhenGone(navController, entry)
+            }
         }
 
         composable(
@@ -80,8 +94,10 @@ fun ProduitsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId")
-            val products by viewModel.products.collectAsState()
-            val product = products.find { it.id == productId }
+            // Observed on its own: the Produits list holds only the page on screen.
+            val lookup by remember(productId) { viewModel.observeProduct(productId) }
+                .collectAsState(initial = ProductLookup.Loading)
+            val product = (lookup as? ProductLookup.Found)?.product
 
             if (product != null) {
                 ProductDetailScreen(
@@ -106,7 +122,7 @@ fun ProduitsNavHost(
                     },
                     onPriceHistory  = { navController.navigate(Screen.ProduitsPriceHistory.createRoute(productId)) }
                 )
-            } else {
+            } else if (lookup == ProductLookup.Gone) {
                 LeaveWhenGone(navController, entry)
             }
         }
@@ -118,8 +134,9 @@ fun ProduitsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId")
-            val products by viewModel.products.collectAsState()
-            val product = products.find { it.id == productId }
+            val lookup by remember(productId) { viewModel.observeProduct(productId) }
+                .collectAsState(initial = ProductLookup.Loading)
+            val product = (lookup as? ProductLookup.Found)?.product
 
             // Loaded here as well as on the detail screen: the back stack can be restored straight
             // onto this destination after process death, with the detail never composed.
@@ -139,7 +156,7 @@ fun ProduitsNavHost(
                     onRetry     = { viewModel.loadPriceMovements(productId) },
                     onBack      = { navController.popBackStack() }
                 )
-            } else {
+            } else if (lookup == ProductLookup.Gone) {
                 LeaveWhenGone(navController, entry)
             }
         }
@@ -155,8 +172,9 @@ fun ProduitsNavHost(
                 val movementsProductId = parentEntry.arguments!!.getInt("productId")
                 val parentProductsEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
                 val productsViewModel: ProductViewModel = hiltViewModel(parentProductsEntry)
-                val products by productsViewModel.products.collectAsState()
-                val product = products.find { it.id == movementsProductId }
+                val lookup by remember(movementsProductId) { productsViewModel.observeProduct(movementsProductId) }
+                    .collectAsState(initial = ProductLookup.Loading)
+                val product = (lookup as? ProductLookup.Found)?.product
 
                 if (product != null) {
                     MouvementsScreen(
@@ -165,7 +183,7 @@ fun ProduitsNavHost(
                         onBack          = { navController.popBackStack() },
                         onMovementClick = { movement -> navController.navigate(Screen.ProduitsMovementDetail.createRoute(movement.id)) }
                     )
-                } else {
+                } else if (lookup == ProductLookup.Gone) {
                     LeaveWhenGone(navController, entry)
                 }
             }
