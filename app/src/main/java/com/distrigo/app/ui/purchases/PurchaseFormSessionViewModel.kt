@@ -18,6 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.compose.runtime.snapshotFlow
+import com.distrigo.app.ui.common.PagedProductList
+import com.distrigo.app.ui.common.debouncedSearch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -98,6 +102,21 @@ class PurchaseFormSessionViewModel @Inject constructor(
     /** Read once, when Step 02 composes; written when it leaves. Not state — nothing observes it. */
     var productListIndex  = 0
     var productListOffset = 0
+
+    /**
+     * Step 02's products, paged from the database with the search and filters applied there — see
+     * [PagedProductList]. Cached here, so the list comes back loaded and in place after a detour.
+     */
+    val productList = PagedProductList(
+        scope      = viewModelScope,
+        repository = productRepository,
+        query      = combine(snapshotFlow { productFilters }, debouncedSearch { productSearch }) { filters, search ->
+            filters.toListQuery(search)
+        },
+    )
+
+    /** One live product, once: a product just created from Step 02, to put in the cart. */
+    suspend fun liveProduct(id: Int): Product? = productRepository.getLiveProduct(id)
 
     // ── Session state ────────────────────────────────────────────────────────
 

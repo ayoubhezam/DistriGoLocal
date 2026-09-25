@@ -4,6 +4,8 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 
 /** The orders a product list can be read in. */
 enum class ProductSort(val column: String, val ascending: Boolean) {
+    /** Newest product first — the pickers' order, which never sorted the catalogue they were given. */
+    NEWEST    ("p.id",               false),
     NAME_ASC  ("LOWER(p.name)",      true),
     NAME_DESC ("LOWER(p.name)",      false),
     STOCK_ASC ("p.stock",            true),

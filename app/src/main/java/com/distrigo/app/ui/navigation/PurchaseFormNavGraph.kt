@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import com.distrigo.app.ui.common.documentLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -500,7 +504,10 @@ fun NavGraphBuilder.purchaseFormGraph(
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val supplierIdArg = parentEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val products by productViewModel.products.collectAsState()
+            // Paged from the database with the search and filters applied there, and cached on the
+            // session — see PagedProductList. The list no longer holds the whole catalogue.
+            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
+            val productCount by session.productList.count.collectAsState()
             val formSupplier by session.formSupplier.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             var showScanner by remember { mutableStateOf(false) }
@@ -528,13 +535,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                 }
             }
 
-            // Auto-add a freshly created product ("Nouveau produit") to the cart once the
-            // observed products flow actually contains it — the flow's emission arrives
-            // asynchronously after ProductFormScreen.onSaved fires, so reading `products` in
-            // that callback would race.
-            LaunchedEffect(products, pendingNewProductId) {
+            // Auto-add a freshly created product ("Nouveau produit") to the cart. Read by id once
+            // it is saved — onSaved fires after the insert has committed — rather than waited for
+            // in a catalogue this screen no longer holds.
+            LaunchedEffect(pendingNewProductId) {
                 val id = pendingNewProductId ?: return@LaunchedEffect
-                val newProduct = products.find { it.id == id } ?: return@LaunchedEffect
+                val newProduct = session.liveProduct(id) ?: return@LaunchedEffect
                 if (cartItems.none { it.product.id == id }) {
                     // Seeded exactly as a tap on the list is, so a product starts with the same
                     // line however it reached the cart.
@@ -571,12 +577,6 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             BackHandler {
                 if (supplierIdArg != null) onBack() else navController.popBackStack()
-            }
-
-            // matchesSearch is the rule this step always used (every word, in the name or barcode);
-            // matches adds the filters. Both are unit-tested in PurchaseProductFiltersTest.
-            val filteredProducts = remember(products, search, filters) {
-                products.filter { it.matchesSearch(search) && it.matches(filters) }
             }
 
             // One removable chip per active criterion, each carrying the filters without it.
@@ -661,7 +661,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                             Step2Chip(
                                 icon      = Icons.Default.Inventory2,
-                                label     = "${filteredProducts.size} produit(s)",
+                                label     = "${productCount?.toString() ?: "…"} produit(s)",
                                 container = DsColors.SurfaceSunken,
                                 content   = DsColors.TextSecondary
                             )
@@ -735,7 +735,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             sousCategories = sousCategories,
                             marques        = marques,
                             suppliers      = suppliers,
-                            resultCount    = filteredProducts.size,
+                            resultCount    = productCount ?: 0,
                             onChange       = { session.productFilters = it },
                             onDismiss      = { showFilterSheet = false }
                         )
@@ -747,7 +747,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                         contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg),
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
-                        items(filteredProducts, key = { it.id }) { product ->
+                        items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
+                            val product = pagedProducts[index] ?: return@items
                             val isInCart = cartItems.any { it.product.id == product.id }
                             val isLow    = product.stock < product.min_stock
 
@@ -836,7 +837,8 @@ fun NavGraphBuilder.purchaseFormGraph(
 
                         // Filtering can leave nothing; say so, and offer the way back, instead of an
                         // empty white list that looks like a missing catalogue.
-                        if (filteredProducts.isEmpty() && (search.isNotBlank() || filters.isActive)) {
+                        if (pagedProducts.itemCount == 0 && pagedProducts.loadState.refresh is LoadState.NotLoading &&
+                            (search.isNotBlank() || filters.isActive)) {
                             item(key = "no-match") {
                                 Column(
                                     modifier            = Modifier.fillMaxWidth().padding(top = DsSpacing.xxl),

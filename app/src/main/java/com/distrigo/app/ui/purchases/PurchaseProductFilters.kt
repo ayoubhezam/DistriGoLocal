@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.local.paging.PriceColumn
+import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.ProductSort
 import com.distrigo.app.data.model.barcodeContains
 import com.distrigo.app.data.model.Product
 import java.time.LocalDate
@@ -76,3 +79,24 @@ private fun expiresWithin(expiryDate: String?, today: LocalDate, days: Long): Bo
     } ?: return false
     return ChronoUnit.DAYS.between(today, date) in 0..days
 }
+
+/**
+ * Step 02's search and filters as the query its paged list runs: the Produits rules, with price read
+ * from the purchase price, newest product first as the list has always been.
+ */
+fun ProductListFilters.toListQuery(search: String, today: LocalDate = LocalDate.now()): ProductListQuery =
+    ProductListQuery(
+        search          = search,
+        categoryId      = categoryId,
+        sousCategorieId = sousCategorieId,
+        marqueId        = marqueId,
+        supplierId      = supplierId,
+        unitType        = unitType,
+        stockLevel      = stockLevel,
+        priceColumn     = PriceColumn.PURCHASE,
+        priceMin        = priceMin.toDoubleOrNull(),
+        priceMax        = priceMax.toDoubleOrNull(),
+        expiringFrom    = if (expiringSoon) today.toString() else null,
+        expiringTo      = if (expiringSoon) today.plusDays(30).toString() else null,
+        sort            = ProductSort.NEWEST,
+    )

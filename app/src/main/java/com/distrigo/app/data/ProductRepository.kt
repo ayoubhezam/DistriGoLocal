@@ -284,6 +284,16 @@ class ProductRepository(
             entity?.toProduct(rows.map { it.code }.takeIf { it.isNotEmpty() })
         }
 
+    /**
+     * The live products among [ids], live — what a form's cart re-reads to keep each line's stock and
+     * prices current, instead of scanning the whole catalogue on every write to it.
+     */
+    fun observeProductsByIds(ids: Collection<Int>): Flow<List<Product>> =
+        productDao.observeLiveProductsByIds(ids.toList()).map { rows -> rows.map { it.toProduct() } }
+
+    /** One live product, once: a product just created from a picker, to put in the cart. */
+    suspend fun getLiveProduct(id: Int): Product? = productDao.getProductById(id)?.toProduct()
+
     /** The highest id of a live product, or 0. */
     suspend fun maxLiveProductId(): Int = productDao.maxLiveId() ?: 0
 

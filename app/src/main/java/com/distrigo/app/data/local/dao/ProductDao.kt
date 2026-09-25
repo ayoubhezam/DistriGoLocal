@@ -29,6 +29,10 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id AND deleted_at IS NULL")
     fun observeLiveProduct(id: Int): Flow<ProductEntity?>
 
+    /** The live products among [ids], observed: a form's cart lines. */
+    @Query("SELECT * FROM products WHERE id IN (:ids) AND deleted_at IS NULL")
+    fun observeLiveProductsByIds(ids: List<Int>): Flow<List<ProductEntity>>
+
     /** The highest id of a live product, for the form's generated barcode; null when there are none. */
     @Query("SELECT MAX(id) FROM products WHERE deleted_at IS NULL")
     suspend fun maxLiveId(): Int?

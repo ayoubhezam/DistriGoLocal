@@ -77,6 +77,7 @@ class ProductPagingSource(
     /** The row's value in the column the list is sorted by, exactly as SQLite compares it. */
     private fun ProductPageRow.cursor(): ProductCursor = ProductCursor(
         sortValue = when (query.sort) {
+            ProductSort.NEWEST                            -> product.id
             ProductSort.NAME_ASC, ProductSort.NAME_DESC   -> sort_name
             ProductSort.STOCK_ASC, ProductSort.STOCK_DESC -> product.stock
             ProductSort.PRICE_ASC, ProductSort.PRICE_DESC -> product.selling_price
