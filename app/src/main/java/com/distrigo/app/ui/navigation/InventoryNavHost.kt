@@ -21,7 +21,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.distrigo.app.data.model.InventorySessionSummary
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.inventory.*
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
@@ -81,7 +80,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 LaunchedEffect(Unit) { viewModel.startOrResumeSession() }
 
                 val activeSession by viewModel.activeSession.collectAsState()
-                val sessionItems   by viewModel.sessionItems.collectAsState()
+                val counts   by viewModel.counts.collectAsState()
                 val userName by viewModel.userName.collectAsState()
                 val scanScope = rememberCoroutineScope()
 
@@ -94,7 +93,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     navController.popBackStack(Screen.InventaireSessionGraph.route, inclusive = true)
                 }
 
-                fun openProduct(product: com.distrigo.app.data.model.Product) {
+                suspend fun openProduct(product: com.distrigo.app.data.model.Product) {
                     if (viewModel.isProductAlreadyScanned(product.id)) {
                         scanError = "\"${product.name}\" a déjà été scanné dans cette session"
                         return
@@ -121,11 +120,11 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
                         InventoryScanStep(
                             numero            = activeSession?.let { inventoryNumero(it.id) } ?: "",
-                            sessionItemsCount = sessionItems.size,
-                            ecartsCount       = sessionItems.count { it.ecart != 0.0 },
-                            totalValueEcarts  = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) },
+                            sessionItemsCount = counts.total_products,
+                            ecartsCount       = counts.total_ecarts,
+                            totalValueEcarts  = counts.total_value_ecarts,
                             scanError         = scanError,
-                            canFinish         = sessionItems.isNotEmpty(),
+                            canFinish         = counts.total_products > 0,
                             isSaving          = false,
                             userName          = userName,
                             onUserNameChange  = viewModel::setUserName,
@@ -141,7 +140,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             products       = viewModel.productList.items.collectAsLazyPagingItems(),
                             search         = viewModel.productSearch,
                             onSearchChange = { viewModel.productSearch = it },
-                            onSelect       = { product -> showSearchDialog = false; openProduct(product) },
+                            onSelect       = { product -> showSearchDialog = false; scanScope.launch { openProduct(product) } },
                             onDismiss = { showSearchDialog = false }
                         )
                     }
@@ -177,6 +176,9 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             isSaving  = isSaving,
                             onCancel  = { navController.popBackStack() },
                             onSave    = {
+                                // A second tap before the button greys out would save the line twice;
+                                // the database would refuse it, but the worker would see an error.
+                                if (isSaving) return@InventoryQuantityStep
                                 val qte = qtePhysiqueText.toDoubleOrNull()
                                 if (qte == null || qte < 0) { saveError = "Quantité invalide"; return@InventoryQuantityStep }
                                 isSaving = true
@@ -229,13 +231,16 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             composable(Screen.InventaireSessionReview.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val sessionItems by viewModel.sessionItems.collectAsState()
+                // Paged and live while listed: collected here only, so the scans themselves never reload it.
+                val items = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems()
+                val counts by viewModel.counts.collectAsState()
                 val userName by viewModel.userName.collectAsState()
                 var scanError by remember { mutableStateOf("") }
 
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
                     InventoryReviewStep(
-                        items    = sessionItems,
+                        items    = items,
+                        count    = counts.total_products,
                         isSaving = false,
                         onBack   = { navController.popBackStack() },
                         onEdit   = { item, newQte ->
@@ -250,11 +255,11 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             composable(Screen.InventaireSessionReadyToFinish.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val sessionItems by viewModel.sessionItems.collectAsState()
+                val counts by viewModel.counts.collectAsState()
 
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
                     InventoryReadyToFinishStep(
-                        itemsCount    = sessionItems.size,
+                        itemsCount    = counts.total_products,
                         onBack        = { navController.popBackStack() },
                         onShowSummary = { navController.navigate(Screen.InventaireSessionSummary.route) }
                     )
@@ -264,20 +269,13 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             composable(Screen.InventaireSessionSummary.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val sessionItems by viewModel.sessionItems.collectAsState()
+                val summaryPreview by viewModel.counts.collectAsState()
 
                 var isConfirmed      by remember { mutableStateOf(false) }
                 var isConfirming     by remember { mutableStateOf(false) }
                 var confirmError     by remember { mutableStateOf("") }
                 var showDetailDialog by remember { mutableStateOf(false) }
 
-                val summaryPreview = remember(sessionItems) {
-                    InventorySessionSummary(
-                        total_products     = sessionItems.size,
-                        total_ecarts       = sessionItems.count { it.ecart != 0.0 },
-                        total_value_ecarts = sessionItems.sumOf { kotlin.math.abs(it.valeur_ecart) }
-                    )
-                }
 
                 fun exitToHistory() {
                     viewModel.loadHistory()
@@ -305,7 +303,10 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     )
                 }
                 if (showDetailDialog) {
-                    InventoryDetailDialog(items = sessionItems, onDismiss = { showDetailDialog = false })
+                    InventoryDetailDialog(
+                        items     = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems(),
+                        onDismiss = { showDetailDialog = false }
+                    )
                 }
             }
         }

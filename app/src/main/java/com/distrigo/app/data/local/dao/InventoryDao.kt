@@ -36,6 +36,19 @@ interface InventoryDao {
     @Query("SELECT * FROM inventory_items WHERE session_id = :sessionId ORDER BY created_at DESC")
     suspend fun getItemsForSession(sessionId: Int): List<InventoryItemEntity>
 
+    /**
+     * A session's figures — lines counted, lines with an écart, the écarts' value — in one pass over
+     * its lines. Read when a count opens and when it is finished; between the two, the count keeps
+     * them up to date line by line (see InventoryViewModel.counts) rather than re-summing each scan.
+     */
+    @Query("""
+        SELECT COUNT(*) AS total_products,
+               COALESCE(SUM(CASE WHEN ecart != 0 THEN 1 ELSE 0 END), 0) AS total_ecarts,
+               COALESCE(SUM(ABS(valeur_ecart)), 0.0) AS total_value_ecarts
+        FROM inventory_items WHERE session_id = :sessionId
+    """)
+    suspend fun getSessionSummary(sessionId: Int): InventorySessionSummary
+
     /** A page of one session's lines — see `InventoryListSql.itemPage`. */
     @RawQuery
     suspend fun pageItems(query: SupportSQLiteQuery): List<InventoryItemEntity>

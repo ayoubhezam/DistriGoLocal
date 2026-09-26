@@ -54,10 +54,6 @@ class InventoryRepository(
     }
 
     // ── Items ──
-    suspend fun getSessionItems(sessionId: Int): List<InventoryItem> {
-        return inventoryDao.getItemsForSession(sessionId).map { it.toInventoryItem() }
-    }
-
     suspend fun isProductAlreadyScanned(sessionId: Int, productId: Int): Boolean {
         return inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null
     }
@@ -158,7 +154,12 @@ class InventoryRepository(
                 )
             }
         }
-        return mapOf("message" to "Modifié avec succès")
+        // What the line was and is now, so the count's figures can be corrected without re-summing.
+        return mapOf(
+            "message" to "Modifié avec succès",
+            "old_ecart" to item.ecart, "old_valeur_ecart" to item.valeur_ecart,
+            "ecart" to newEcart, "valeur_ecart" to newValeurEcart
+        )
     }
 
     suspend fun deleteScan(itemId: Int): Map<String, Any> {
@@ -170,18 +171,14 @@ class InventoryRepository(
             db.stockMovementDao().deleteBySource("inventory_item", itemId)
             inventoryDao.deleteItem(itemId)
         }
-        return mapOf("message" to "Supprimé, stock restauré")
+        // What was removed, so the count's figures can take it off without re-summing.
+        return mapOf("message" to "Supprimé, stock restauré", "ecart" to item.ecart, "valeur_ecart" to item.valeur_ecart)
     }
 
     // ── Résumé ──
-    suspend fun getSessionSummary(sessionId: Int): InventorySessionSummary {
-        val items = inventoryDao.getItemsForSession(sessionId)
-        return InventorySessionSummary(
-            total_products     = items.size,
-            total_ecarts       = items.count { it.ecart != 0.0 },
-            total_value_ecarts = items.sumOf { abs(it.valeur_ecart) }
-        )
-    }
+    /** Summed in SQL: this used to load every line of the count to count them. */
+    suspend fun getSessionSummary(sessionId: Int): InventorySessionSummary =
+        inventoryDao.getSessionSummary(sessionId)
 
     // -- History --
     //
@@ -192,7 +189,10 @@ class InventoryRepository(
     fun sessionHistorySource(query: InventorySessionListQuery): InventorySessionPagingSource =
         InventorySessionPagingSource(db, query)
 
-    /** A finished session's lines, newest scanned first, a page at a time. */
-    fun pageSessionItems(sessionId: Int): Flow<PagingData<InventoryItem>> =
-        Pager(PagingDefaults.config) { InventoryItemPagingSource(db, sessionId) { it.toInventoryItem() } }.flow
+    /**
+     * A session's lines, newest scanned first, a page at a time — [live] for the count in progress,
+     * whose lines can still be corrected; see [InventoryItemPagingSource].
+     */
+    fun pageSessionItems(sessionId: Int, live: Boolean): Flow<PagingData<InventoryItem>> =
+        Pager(PagingDefaults.config) { InventoryItemPagingSource(db, sessionId, live) { it.toInventoryItem() } }.flow
 }

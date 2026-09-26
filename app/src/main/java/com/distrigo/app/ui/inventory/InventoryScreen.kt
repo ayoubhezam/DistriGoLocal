@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.inventory
 
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 
@@ -337,7 +338,8 @@ private fun InventorySummaryRow(label: String, value: String, valueColor: Color 
 // ── Étape : Liste des produits scannés (type panier, modifiable) ──
 @Composable
 fun ColumnScope.InventoryReviewStep(
-    items      : List<com.distrigo.app.data.model.InventoryItem>,
+    items      : LazyPagingItems<com.distrigo.app.data.model.InventoryItem>,
+    count      : Int,
     isSaving   : Boolean,
     onBack     : () -> Unit,
     onEdit     : (com.distrigo.app.data.model.InventoryItem, Double) -> Unit,
@@ -349,11 +351,16 @@ fun ColumnScope.InventoryReviewStep(
     var deletingItem by remember { mutableStateOf<com.distrigo.app.data.model.InventoryItem?>(null) }
 
     DsTopAppBar(
-        title   = "Produits scannés (${items.size})",
+        title   = "Produits scannés ($count)",
         leading = DsTopBarLeading.Back(onBack)
     )
 
-    if (items.isEmpty()) {
+    // A page at a time: a full count lists the whole catalogue.
+    if (items.itemCount == 0 && items.loadState.refresh is LoadState.Loading) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = DsColors.Primary)
+        }
+    } else if (items.itemCount == 0) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text("Aucun produit scanné", color = DsColors.TextSecondary)
         }
@@ -363,7 +370,8 @@ fun ColumnScope.InventoryReviewStep(
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            items(items, key = { it.id }) { item ->
+            items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
+                val item = items[index] ?: return@items
                 val ecartColor = when {
                     item.ecart < 0 -> DsColors.Danger
                     item.ecart > 0 -> Color(0xFF12B76A)
@@ -394,7 +402,7 @@ fun ColumnScope.InventoryReviewStep(
 
     Button(
         onClick  = onFinish,
-        enabled  = items.isNotEmpty() && !isSaving,
+        enabled  = count > 0 && !isSaving,
         modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
         shape    = DsShapes.medium,
         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
@@ -659,7 +667,7 @@ fun InventoryProductSearchDialog(
 
 // ── Dialog : Détail des écarts ──
 @Composable
-fun InventoryDetailDialog(items: List<com.distrigo.app.data.model.InventoryItem>, onDismiss: () -> Unit) {
+fun InventoryDetailDialog(items: LazyPagingItems<com.distrigo.app.data.model.InventoryItem>, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
             Column(Modifier.fillMaxSize()) {
@@ -670,7 +678,8 @@ fun InventoryDetailDialog(items: List<com.distrigo.app.data.model.InventoryItem>
                     Text("Détail des écarts", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 }
                 LazyColumn(contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    items(items, key = { it.id }) { item ->
+                    items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
+                        val item = items[index] ?: return@items
                         val ecartColor = when {
                             item.ecart < 0 -> DsColors.Danger
                             item.ecart > 0 -> Color(0xFF12B76A)

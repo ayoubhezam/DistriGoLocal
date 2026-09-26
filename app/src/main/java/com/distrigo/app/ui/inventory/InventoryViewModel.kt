@@ -35,6 +35,9 @@ import com.distrigo.app.data.time.BusinessDates
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
 import javax.inject.Inject
@@ -49,9 +52,37 @@ class InventoryViewModel @Inject constructor(
     private val _activeSession = MutableStateFlow<InventorySession?>(null)
     val activeSession: StateFlow<InventorySession?> = _activeSession
 
-    // ── Éléments scannés dans la session ──
-    private val _sessionItems = MutableStateFlow<List<InventoryItem>>(emptyList())
-    val sessionItems: StateFlow<List<InventoryItem>> = _sessionItems
+    // -- The count in progress --
+    //
+    // Its figures are kept up to date line by line, not re-read: the count used to reload every line
+    // it held after each scan, edit and delete — on a full count, 15,000 lines read back to show three
+    // numbers, more of them with every scan. Now a scan costs its own write and nothing else; the lines
+    // themselves are only read, a page at a time, where they are listed (the review and the écarts).
+
+    private val _counts = MutableStateFlow(InventorySessionSummary(total_products = 0, total_ecarts = 0, total_value_ecarts = 0.0))
+
+    /** Lines counted, lines with an écart, and the écarts' value, for the count in progress. */
+    val counts: StateFlow<InventorySessionSummary> = _counts
+
+    // Each write and the figures' update after it are one step, and so is a re-read of the figures:
+    // a re-read can then never land between a write and its update and count a line twice, or miss one.
+    // It also takes rapid scans one at a time, in the order they were made.
+    private val countLock = Mutex()
+
+    /** The figures moved by a line going from ([oldEcart], [oldValeur]) to ([newEcart], [newValeur]); null for none. */
+    private fun InventorySessionSummary.moved(oldEcart: Double?, oldValeur: Double, newEcart: Double?, newValeur: Double) =
+        InventorySessionSummary(
+            total_products     = total_products + (if (newEcart != null) 1 else 0) - (if (oldEcart != null) 1 else 0),
+            total_ecarts       = total_ecarts + (if (newEcart != null && newEcart != 0.0) 1 else 0) - (if (oldEcart != null && oldEcart != 0.0) 1 else 0),
+            total_value_ecarts = total_value_ecarts + abs(newValeur) - abs(oldValeur),
+        )
+
+    /** The count's lines, a page at a time, live while listed. Collected by the screen that lists them. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun sessionItemPages(): Flow<PagingData<InventoryItem>> =
+        _activeSession.flatMapLatest { session ->
+            if (session == null) flowOf(PagingData.empty()) else repository.pageSessionItems(session.id, live = true)
+        }
 
     // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
     // -- Finding a product to count --
@@ -115,7 +146,7 @@ class InventoryViewModel @Inject constructor(
     /** The detail's lines, a page at a time — a count can hold the whole catalogue. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val historyItems: Flow<PagingData<InventoryItem>> = _detailSessionId
-        .flatMapLatest { id -> if (id == null) flowOf(PagingData.empty()) else repository.pageSessionItems(id) }
+        .flatMapLatest { id -> if (id == null) flowOf(PagingData.empty()) else repository.pageSessionItems(id, live = false) }
         .cachedIn(viewModelScope)
 
     init {
@@ -130,7 +161,8 @@ class InventoryViewModel @Inject constructor(
             try {
                 val session = repository.getOrCreateActiveSession()
                 _activeSession.value = session
-                loadSessionItems(session.id)
+                // The figures from the lines themselves, once, as the count opens.
+                countLock.withLock { _counts.value = repository.getSessionSummary(session.id) }
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message
@@ -140,19 +172,14 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun loadSessionItems(sessionId: Int) {
-        viewModelScope.launch {
-            try {
-                _sessionItems.value = repository.getSessionItems(sessionId)
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
-    }
-
-    // ── Vérification locale rapide (sans requête DB) avant d'ouvrir l'écran de saisie ──
-    fun isProductAlreadyScanned(productId: Int): Boolean {
-        return _sessionItems.value.any { it.product_id == productId }
+    /**
+     * Whether the count already has [productId] — asked of the database, through the unique index on
+     * (session, product), where it was looked for in the list the count kept in memory. That list
+     * could lag a scan behind, so a product scanned twice in quick succession got past it.
+     */
+    suspend fun isProductAlreadyScanned(productId: Int): Boolean {
+        val sessionId = _activeSession.value?.id ?: return false
+        return repository.isProductAlreadyScanned(sessionId, productId)
     }
 
     fun recordScan(
@@ -164,11 +191,16 @@ class InventoryViewModel @Inject constructor(
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = repository.recordScan(sessionId, productId, qtePhysique, userName)
+            val result = countLock.withLock {
+                repository.recordScan(sessionId, productId, qtePhysique, userName).also { result ->
+                    if (!result.containsKey("error")) {
+                        _counts.value = _counts.value.moved(null, 0.0, result["ecart"] as Double, result["valeur_ecart"] as Double)
+                    }
+                }
+            }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                loadSessionItems(sessionId)
                 _lastScanResult.value = LastScanResult(
                     productId   = productId,
                     qtePhysique = qtePhysique,
@@ -190,7 +222,8 @@ class InventoryViewModel @Inject constructor(
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val summary = repository.getSessionSummary(sessionId)
+            // The final figures from the lines themselves, after any write still under way.
+            val summary = countLock.withLock { repository.getSessionSummary(sessionId) }
             val result  = repository.finishSession(sessionId)
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
@@ -211,25 +244,38 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
+        _activeSession.value ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = repository.updateScan(itemId, newQtePhysique, userName)
+            val result = countLock.withLock {
+                repository.updateScan(itemId, newQtePhysique, userName).also { result ->
+                    if (!result.containsKey("error")) {
+                        _counts.value = _counts.value.moved(
+                            result["old_ecart"] as Double, result["old_valeur_ecart"] as Double,
+                            result["ecart"] as Double, result["valeur_ecart"] as Double,
+                        )
+                    }
+                }
+            }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                loadSessionItems(sessionId)
                 onSuccess()
             }
         }
     }
     fun deleteScan(itemId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
+        _activeSession.value ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = repository.deleteScan(itemId)
+            val result = countLock.withLock {
+                repository.deleteScan(itemId).also { result ->
+                    if (!result.containsKey("error")) {
+                        _counts.value = _counts.value.moved(result["ecart"] as Double, result["valeur_ecart"] as Double, null, 0.0)
+                    }
+                }
+            }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                loadSessionItems(sessionId)
                 onSuccess()
             }
         }
