@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -7,7 +8,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.rememberCoroutineScope
 import com.distrigo.app.ui.purchases.*
@@ -48,7 +48,7 @@ fun AchatsNavHost(
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {}
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
         onFullScreenChange(currentRoute != null && currentRoute != Screen.AchatsHome.route)

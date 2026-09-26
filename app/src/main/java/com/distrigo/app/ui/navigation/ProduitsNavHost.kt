@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import kotlinx.coroutines.flow.flowOf
 
 import androidx.compose.runtime.*
@@ -8,7 +9,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.distrigo.app.ui.products.*
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -22,7 +22,7 @@ fun ProduitsNavHost(
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {}
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
     // Two things can want the bottom nav out of the way: being on any route other than the list,

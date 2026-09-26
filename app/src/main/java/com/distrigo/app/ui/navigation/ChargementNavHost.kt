@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 
@@ -26,7 +27,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.chargements.ChargementCartItem
 import com.distrigo.app.ui.chargements.ChargementCartRow
 import com.distrigo.app.ui.chargements.ChargementFormSessionViewModel
@@ -58,7 +58,7 @@ fun ChargementNavHost(
     /** A Brouillon to resume, or null to start clean. */
     draftId                : Int? = null
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
 
     NavHost(
         navController      = navController,

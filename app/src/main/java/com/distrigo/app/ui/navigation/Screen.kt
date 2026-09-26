@@ -31,6 +31,7 @@ sealed class Screen(val route: String) {
     data object SettingsExport     : Screen("settings_data_export")
     data object SettingsImport     : Screen("settings_data_import")
     data object SettingsTrash      : Screen("settings_trash")
+    data object SettingsDiagnostics : Screen("settings_diagnostics")
 
     // ── Ventes Hub (TabVentes content): Dépôt Vente / Tournées / Stock Camion ──
     data object VentesHubGraph       : Screen("ventes_hub_graph")

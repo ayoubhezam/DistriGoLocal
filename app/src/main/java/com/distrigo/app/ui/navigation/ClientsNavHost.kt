@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.ClientTransaction
@@ -44,7 +44,7 @@ fun ClientsNavHost(
     onFullScreenChange  : (Boolean) -> Unit = {},
     onBack              : () -> Unit = {}
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
 
     LaunchedEffect(preSelectedClientId) {
         if (preSelectedClientId != null) {

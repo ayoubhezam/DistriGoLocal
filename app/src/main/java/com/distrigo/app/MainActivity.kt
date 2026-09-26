@@ -1,5 +1,6 @@
 package com.distrigo.app
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import kotlinx.coroutines.withContext
 import com.distrigo.app.ui.common.RestoringScreen
 import com.distrigo.app.data.backup.RestoreStartup
@@ -56,7 +57,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.core.view.WindowCompat
 import com.distrigo.app.R
@@ -125,7 +125,7 @@ class MainActivity : ComponentActivity() {
                 // without shrinking its scroller would move nothing.
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
-                    val navController = rememberNavController()
+                    val navController = rememberTrackedNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
                     val isTabRoute = currentRoute == Screen.TabDashboard.route ||
                         currentRoute == Screen.TabVentes.route ||

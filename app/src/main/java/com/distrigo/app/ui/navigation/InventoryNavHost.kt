@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.ui.products.ProductLookup
@@ -19,7 +20,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.inventory.*
@@ -27,7 +27,7 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 
 @Composable
 fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit = {}) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
 
     NavHost(
         navController      = navController,

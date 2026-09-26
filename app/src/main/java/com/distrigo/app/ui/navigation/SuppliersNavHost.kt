@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,7 +17,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.model.AchatFilter
@@ -42,7 +42,7 @@ fun SuppliersNavHost(
     onNavigateToOrder  : (Int) -> Unit = {},
     onBack             : (() -> Unit)? = null
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
 
     NavHost(
         navController      = navController,

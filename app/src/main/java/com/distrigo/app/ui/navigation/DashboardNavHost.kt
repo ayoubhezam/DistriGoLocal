@@ -1,9 +1,9 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.dashboard.DashboardScreen
 
 @Composable
@@ -12,7 +12,7 @@ fun DashboardNavHost(
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {}
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
     NavHost(
         navController      = navController,
         startDestination   = Screen.Dashboard.route,

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -43,7 +43,7 @@ fun TourneesHubScreen(
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {}
 ) {
-    val navController = rememberNavController()
+    val navController = rememberTrackedNavController()
 
     LaunchedEffect(Unit) { tourneeViewModel.loadTournees() }
     val tournees by tourneeViewModel.tournees.collectAsState()

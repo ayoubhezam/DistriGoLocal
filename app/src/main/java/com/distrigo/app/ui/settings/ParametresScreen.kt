@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Percent
@@ -32,6 +35,7 @@ fun ParametresScreen(
     onCommission: () -> Unit,
     onData: () -> Unit,
     onTrash: () -> Unit,
+    onDiagnostics: () -> Unit,
 ) {
     BackHandler { onBack() }
 
@@ -45,8 +49,9 @@ fun ParametresScreen(
             leading = DsTopBarLeading.Back(onBack)
         )
 
+        // Scrolls: the debug cards below the last entry used to fall off the bottom of the screen.
         Column(
-            modifier            = Modifier.padding(DsSpacing.lg),
+            modifier            = Modifier.verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
             SettingsNavCard(
@@ -80,6 +85,14 @@ fun ParametresScreen(
                 title    = "Corbeille",
                 subtitle = "Restaurer les produits, clients et autres éléments supprimés",
                 onClick  = onTrash
+            )
+            SettingsNavCard(
+                icon     = Icons.Default.BugReport,
+                iconBg   = DsColors.SurfaceMuted,
+                iconTint = DsColors.TextSecondary,
+                title    = "Diagnostic",
+                subtitle = "Plantages et blocages enregistrés sur ce téléphone",
+                onClick  = onDiagnostics
             )
             // Absent from release builds: BuildConfig.DEBUG is a compile-time false there.
             if (BuildConfig.DEBUG) StressDataCard()

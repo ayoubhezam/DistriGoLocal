@@ -5,4 +5,6 @@
     <cache-path name="exports" path="exports/" />
     <!-- Where the camera writes a product photo; read into the image store, then deleted. -->
     <cache-path name="camera" path="camera/" />
+    <!-- Diagnostic reports (crashes, ANRs), shared one at a time from Paramètres → Diagnostic. -->
+    <files-path name="diagnostics" path="diagnostics/" />
 </paths>
