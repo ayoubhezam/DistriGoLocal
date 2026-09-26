@@ -8,10 +8,14 @@ import com.distrigo.app.data.model.InventoryItem
 import com.distrigo.app.data.model.InventorySession
 import com.distrigo.app.data.model.InventorySessionSummary
 import kotlin.math.abs
-import com.distrigo.app.data.model.InventorySessionHistory
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.distrigo.app.data.local.paging.InventoryItemPagingSource
+import com.distrigo.app.data.local.paging.InventorySessionListQuery
+import com.distrigo.app.data.local.paging.InventorySessionPagingSource
+import com.distrigo.app.core.paging.PagingDefaults
+import androidx.paging.Pager
+import androidx.paging.PagingData
+import kotlinx.coroutines.flow.Flow
 class InventoryRepository(
     private val db: AppDatabase
 ) {
@@ -179,22 +183,16 @@ class InventoryRepository(
         )
     }
 
-    // Every session's totals come from one GROUP BY query over inventory_items. This used to run one
-    // query per session, loading all its items to count them. A session with no items gets zeros, as
-    // before. On Dispatchers.Default, like every Kotlin step after a query here.
-    suspend fun getAllSessionsHistory(): List<InventorySessionHistory> = withContext(Dispatchers.Default) {
-        val sessions = inventoryDao.getAllSessions()   // déjà ORDER BY started_at DESC
-        val totals = inventoryDao.getSessionTotals().associateBy { it.session_id }
-        sessions.map { session ->
-            val t = totals[session.id]
-            InventorySessionHistory(
-                session = session.toInventorySession(),
-                summary = InventorySessionSummary(
-                    total_products     = t?.total_products ?: 0,
-                    total_ecarts       = t?.total_ecarts ?: 0,
-                    total_value_ecarts = t?.total_value_ecarts ?: 0.0
-                )
-            )
-        }
-    }
+    // -- History --
+    //
+    // Paged: the history used to read every session and sum every line of every inventory each time
+    // it opened, and a session's detail read all its lines, up to the whole catalogue.
+
+    /** A new history source for [query]. The caller keeps it to invalidate — see [InventorySessionPagingSource]. */
+    fun sessionHistorySource(query: InventorySessionListQuery): InventorySessionPagingSource =
+        InventorySessionPagingSource(db, query)
+
+    /** A finished session's lines, newest scanned first, a page at a time. */
+    fun pageSessionItems(sessionId: Int): Flow<PagingData<InventoryItem>> =
+        Pager(PagingDefaults.config) { InventoryItemPagingSource(db, sessionId) { it.toInventoryItem() } }.flow
 }

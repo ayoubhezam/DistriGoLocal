@@ -51,13 +51,18 @@ class StressDataViewModel @Inject constructor(private val db: AppDatabase) : Vie
     private val _state = MutableStateFlow<StressDataState>(StressDataState.Idle)
     val state: StateFlow<StressDataState> = _state.asStateFlow()
 
-    fun generate() {
+    fun generate() = run { generator, progress -> generator.generate(progress) }
+
+    /** Only the inventory history, over the products already there. */
+    fun generateInventories() = run { generator, progress -> generator.generateInventories(progress) }
+
+    private fun run(block: suspend (StressDataGenerator, (StressDataGenerator.Progress) -> Unit) -> Unit) {
         if (_state.value is StressDataState.Running) return
         _state.value = StressDataState.Running("Démarrage…", 0f)
         viewModelScope.launch {
             val startedAt = System.currentTimeMillis()
             _state.value = try {
-                StressDataGenerator(db).generate { _state.value = StressDataState.Running(it.step, it.fraction) }
+                block(StressDataGenerator(db)) { _state.value = StressDataState.Running(it.step, it.fraction) }
                 StressDataState.Done((System.currentTimeMillis() - startedAt) / 1000)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -79,6 +84,7 @@ class StressDataViewModel @Inject constructor(private val db: AppDatabase) : Vie
 fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     var confirming by remember { mutableStateOf(false) }
+    var confirmingInventories by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -103,6 +109,42 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
             Spacer(Modifier.height(DsSpacing.sm))
             LinearProgressIndicator(progress = { running.fraction }, modifier = Modifier.fillMaxWidth())
         }
+    }
+
+    Spacer(Modifier.height(DsSpacing.sm))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.DangerLight)
+            .clickable(enabled = state !is StressDataState.Running) { confirmingInventories = true }
+            .padding(DsSpacing.lg),
+    ) {
+        Text("DEBUG · Générer des inventaires", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
+        Text(
+            "62 inventaires terminés sur cinq ans, sur les produits existants : un par mois de 500 à 3 000 produits, et deux du catalogue entier",
+            fontSize = DsTextSize.caption,
+            color = DsColors.TextSecondary,
+        )
+    }
+
+    if (confirmingInventories) {
+        AlertDialog(
+            onDismissRequest = { confirmingInventories = false },
+            title = { Text("Générer des inventaires ?") },
+            text = {
+                Text(
+                    "Ajoute 62 inventaires terminés sur les produits existants. Environ un produit compté sur dix a un écart, " +
+                        "ajusté dans le stock comme par un vrai inventaire. Ils ne peuvent pas être retirés en une fois."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmingInventories = false; viewModel.generateInventories() }) { Text("Générer") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingInventories = false }) { Text("Annuler") }
+            },
+        )
     }
 
     if (confirming) {

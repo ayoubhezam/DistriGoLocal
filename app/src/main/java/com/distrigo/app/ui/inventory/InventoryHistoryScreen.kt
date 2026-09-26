@@ -5,7 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
+import kotlinx.coroutines.flow.drop
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -36,17 +41,15 @@ fun InventoryHistoryScreen(
     onSessionClick : (InventorySessionHistory) -> Unit,
     onAddNew       : () -> Unit
 ) {
-    val history by viewModel.history.collectAsState()
-    var search   by remember { mutableStateOf("") }
+    // Paged, each page's totals summed in SQL - see InventoryViewModel.history. It is reloaded where
+    // it changes (leaving or finishing a count), not on every opening as the full list was.
+    val history = viewModel.history.collectAsLazyPagingItems()
+    val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) { viewModel.loadHistory() }
-
-    val filteredHistory = remember(history, search) {
-        if (search.isBlank()) history
-        else history.filter {
-            inventoryNumero(it.session.id).contains(search, ignoreCase = true) ||
-                    it.session.id.toString().contains(search)
-        }
+    // A new search starts its pages at the top again: send the list there, or it would open part-way
+    // down the new results. Not on opening, where the list keeps the position it had.
+    LaunchedEffect(Unit) {
+        snapshotFlow { viewModel.historySearch }.drop(1).collect { listState.scrollToItem(0) }
     }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -67,41 +70,56 @@ fun InventoryHistoryScreen(
         Spacer(Modifier.height(DsSpacing.md))
 
         DsCompactSearchField(
-            value         = search,
-            onValueChange = { search = it },
+            value         = viewModel.historySearch,
+            onValueChange = { viewModel.historySearch = it },
             placeholder   = "Rechercher un inventaire",
             modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
         Spacer(Modifier.height(DsSpacing.sm))
 
-        if (filteredHistory.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.History, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(DsSpacing.sm))
-                    Text("Aucun inventaire terminé pour l'instant", color = DsColors.TextSecondary)
+        val refresh = history.loadState.refresh
+        when {
+            history.itemCount == 0 && refresh is LoadState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DsColors.Primary)
                 }
             }
-        } else {
-            val grouped = remember(filteredHistory) {
-                filteredHistory.groupBy { BusinessDates.localDay(it.session.completed_at ?: it.session.started_at) }
-            }
-            LazyColumn(
-                contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-            ) {
-                grouped.forEach { (date, sessions) ->
-                    item {
-                        Text(
-                            text       = formatOrderDate(date),
-                            fontSize   = DsTextSize.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = DsColors.TextTertiary,
-                            modifier   = Modifier.padding(vertical = DsSpacing.sm)
-                        )
+            history.itemCount == 0 -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.History, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text("Aucun inventaire terminé pour l'instant", color = DsColors.TextSecondary)
                     }
-                    items(sessions, key = { it.session.id }) { entry ->
-                        InventoryHistoryRow(entry = entry, onClick = { onSessionClick(entry) })
+                }
+            }
+            else -> {
+                LazyColumn(
+                    state               = listState,
+                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    items(
+                        count       = history.itemCount,
+                        key         = history.itemKey { row ->
+                            when (row) {
+                                is InventoryHistoryItem.DayHeader -> "header_${row.day}"
+                                is InventoryHistoryItem.Row       -> row.entry.session.id
+                            }
+                        },
+                        contentType = history.itemContentType { row -> row is InventoryHistoryItem.DayHeader }
+                    ) { index ->
+                        when (val row = history[index]) {
+                            is InventoryHistoryItem.DayHeader -> Text(
+                                text       = formatOrderDate(row.day),
+                                fontSize   = DsTextSize.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = DsColors.TextTertiary,
+                                modifier   = Modifier.padding(vertical = DsSpacing.sm)
+                            )
+                            is InventoryHistoryItem.Row -> InventoryHistoryRow(entry = row.entry, onClick = { onSessionClick(row.entry) })
+                            null -> Unit
+                        }
                     }
                 }
             }
@@ -165,9 +183,9 @@ fun InventorySessionDetailScreen(
     viewModel : InventoryViewModel,
     onBack    : () -> Unit
 ) {
-    val items by viewModel.historyItems.collectAsState()
+    val items = viewModel.historyItems.collectAsLazyPagingItems()
 
-    LaunchedEffect(sessionId) { viewModel.loadHistoryItems(sessionId) }
+    LaunchedEffect(sessionId) { viewModel.showSessionDetail(sessionId) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
         DsTopAppBar(
@@ -177,28 +195,38 @@ fun InventorySessionDetailScreen(
 
         Spacer(Modifier.height(DsSpacing.md))
 
-        if (items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = DsColors.Primary)
+        // A session with no lines is shown as such; this used to spin for ever on one.
+        when {
+            items.itemCount == 0 && items.loadState.refresh is LoadState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DsColors.Primary)
+                }
             }
-        } else {
-            LazyColumn(
-                contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-            ) {
-                items(items, key = { it.id }) { item ->
-                    val ecartColor = when {
-                        item.ecart < 0 -> DsColors.Danger
-                        item.ecart > 0 -> Color(0xFF12B76A)
-                        else           -> DsColors.TextSecondary
-                    }
-                    Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column(Modifier.weight(1f)) {
-                                Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            items.itemCount == 0 -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Aucun produit compté", color = DsColors.TextSecondary)
+                }
+            }
+            else -> {
+                LazyColumn(
+                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
+                        val item = items[index] ?: return@items
+                        val ecartColor = when {
+                            item.ecart < 0 -> DsColors.Danger
+                            item.ecart > 0 -> Color(0xFF12B76A)
+                            else           -> DsColors.TextSecondary
+                        }
+                        Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                                    Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                }
+                                Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
                             }
-                            Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
                         }
                     }
                 }

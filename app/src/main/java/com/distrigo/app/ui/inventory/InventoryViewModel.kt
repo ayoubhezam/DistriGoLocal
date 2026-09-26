@@ -23,8 +23,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
+import androidx.paging.Pager
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.insertSeparators
+import androidx.paging.map
+import com.distrigo.app.core.paging.PagingDefaults
+import com.distrigo.app.data.local.paging.InventorySessionListQuery
+import com.distrigo.app.data.local.paging.InventorySessionPagingSource
+import com.distrigo.app.data.time.BusinessDates
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
 import javax.inject.Inject
@@ -75,11 +85,38 @@ class InventoryViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    private val _history = MutableStateFlow<List<InventorySessionHistory>>(emptyList())
-    val history: StateFlow<List<InventorySessionHistory>> = _history
+    // -- History --
+    //
+    // Paged from the database, each page's totals summed in SQL for its sessions alone: the history
+    // used to read every session and sum every line of every inventory each time it opened.
 
-    private val _historyItems = MutableStateFlow<List<InventoryItem>>(emptyList())
-    val historyItems: StateFlow<List<InventoryItem>> = _historyItems
+    /** The history's search text. */
+    var historySearch by mutableStateOf("")
+
+    // The source in use, so the history can be told to reload — see InventorySessionPagingSource.
+    private var historySource: InventorySessionPagingSource? = null
+
+    /** The sessions, newest first, with a header before each day's first session. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val history: Flow<PagingData<InventoryHistoryItem>> = debouncedSearch { historySearch }
+        .flatMapLatest { search ->
+            Pager(PagingDefaults.config) {
+                repository.sessionHistorySource(InventorySessionListQuery(search)).also { historySource = it }
+            }.flow
+        }
+        .map { page -> page.map<InventorySessionHistory, InventoryHistoryItem> { InventoryHistoryItem.Row(it) }.withDayHeaders() }
+        .cachedIn(viewModelScope)
+
+    private val _detailSessionId = MutableStateFlow<Int?>(null)
+
+    /** Points the detail at a session. Called by the detail screen as it opens. */
+    fun showSessionDetail(sessionId: Int) { _detailSessionId.value = sessionId }
+
+    /** The detail's lines, a page at a time — a count can hold the whole catalogue. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val historyItems: Flow<PagingData<InventoryItem>> = _detailSessionId
+        .flatMapLatest { id -> if (id == null) flowOf(PagingData.empty()) else repository.pageSessionItems(id) }
+        .cachedIn(viewModelScope)
 
     init {
         viewModelScope.launch {
@@ -165,31 +202,12 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    // The history screen loads on opening, and finishing or cancelling a session loads it again.
-    // A new request cancels the one still running, so a slower earlier load cannot overwrite it.
-    private var historyLoad: Job? = null
-
+    /**
+     * Reloads the history where it stands — leaving a count or finishing one. Paging keeps the rows
+     * in view where they were.
+     */
     fun loadHistory() {
-        historyLoad?.cancel()
-        historyLoad = viewModelScope.launch {
-            try {
-                _history.value = repository.getAllSessionsHistory()
-            } catch (e: CancellationException) {
-                throw e   // superseded by a newer load: not an error to show
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
-    }
-
-    fun loadHistoryItems(sessionId: Int) {
-        viewModelScope.launch {
-            try {
-                _historyItems.value = repository.getSessionItems(sessionId)
-            } catch (e: Exception) {
-                _error.value = e.message
-            }
-        }
+        historySource?.invalidate()
     }
 
     fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -232,3 +250,20 @@ class InventoryViewModel @Inject constructor(
     private val _lastScanResult = MutableStateFlow<LastScanResult?>(null)
     val lastScanResult: StateFlow<LastScanResult?> = _lastScanResult
 }
+
+/** A row of the inventory history: a day's header, or a session. */
+sealed interface InventoryHistoryItem {
+    data class DayHeader(val day: String) : InventoryHistoryItem
+    data class Row(val entry: InventorySessionHistory) : InventoryHistoryItem
+}
+
+/** The local day a session is listed under: when it finished, or when it started while a draft. */
+private fun InventorySessionHistory.day(): String = BusinessDates.localDay(session.completed_at ?: session.started_at)
+
+/** A header before the first session of each local day, inserted between loaded rows as they load. */
+private fun PagingData<InventoryHistoryItem>.withDayHeaders(): PagingData<InventoryHistoryItem> =
+    insertSeparators { before, after ->
+        val next = (after as? InventoryHistoryItem.Row)?.entry ?: return@insertSeparators null
+        val previous = (before as? InventoryHistoryItem.Row)?.entry
+        if (previous == null || previous.day() != next.day()) InventoryHistoryItem.DayHeader(next.day()) else null
+    }

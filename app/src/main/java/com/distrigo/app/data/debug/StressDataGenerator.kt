@@ -7,6 +7,8 @@ import com.distrigo.app.data.local.entity.ChargementEntity
 import com.distrigo.app.data.local.entity.ChargementItemEntity
 import com.distrigo.app.data.local.entity.ChargementSessionEntity
 import com.distrigo.app.data.local.entity.ClientEntity
+import com.distrigo.app.data.local.entity.InventoryItemEntity
+import com.distrigo.app.data.local.entity.InventorySessionEntity
 import com.distrigo.app.data.local.entity.PerteEntity
 import com.distrigo.app.data.local.entity.ProductEntity
 import com.distrigo.app.data.local.entity.PurchaseOrderEntity
@@ -94,6 +96,70 @@ class StressDataGenerator(private val db: AppDatabase) {
             supplierIds.forEach { db.supplierDao().recomputeBalance(it) }
         }
         onProgress(Progress("Terminé", 1f))
+    }
+
+    /**
+     * Five years of finished inventories over the products already in the database — a separate
+     * button, so the history can be filled without adding another catalogue: a count a month of
+     * [MIN_INVENTORY_LINES] to [MAX_INVENTORY_LINES] products, and [FULL_COUNTS] of the whole
+     * catalogue, the heaviest a session's detail gets.
+     *
+     * About one line in ten is off by a few units, and, as a real count does, brings the stock to the
+     * counted quantity with an adjustment movement; a shortage is never counted below zero.
+     */
+    suspend fun generateInventories(onProgress: (Progress) -> Unit) = withContext(Dispatchers.Default) {
+        val random = Random(SEED + 1)
+        val products = db.productDao().getAllProducts()
+        require(products.isNotEmpty()) { "Aucun produit : générez d'abord les données de test" }
+        val start = Instant.now().minusSeconds(SPAN_DAYS * DAY_SECONDS)
+        val sessions = INVENTORIES + FULL_COUNTS
+        // The full counts fall a third and two thirds of the way through.
+        val fullAt = (1..FULL_COUNTS).map { it * sessions / (FULL_COUNTS + 1) }.toSet()
+        for (k in 0 until sessions) {
+            val at = start.plusSeconds(((k + 1).toLong() * SPAN_DAYS * DAY_SECONDS) / (sessions + 1))
+            val counted = if (k in fullAt) products.shuffled(random)
+                          else products.shuffled(random).take(random.nextInt(MIN_INVENTORY_LINES, MAX_INVENTORY_LINES + 1))
+            insertInventory(random, at, counted)
+            onProgress(Progress("Inventaires : ${k + 1} / $sessions", (k + 1).toFloat() / sessions))
+        }
+        onProgress(Progress("Terminé", 1f))
+    }
+
+    private suspend fun insertInventory(random: Random, startedAt: Instant, counted: List<ProductEntity>) = db.withTransaction {
+        // A line every few seconds, as scanning goes; the session finishes a minute after the last.
+        val lineAt = { i: Int -> startedAt.plusSeconds(i * 4L).toString() }
+        val sessionId = db.inventoryDao().insertSession(
+            InventorySessionEntity(
+                status = "completed", started_at = startedAt.toString(),
+                completed_at = startedAt.plusSeconds(counted.size * 4L + 60).toString(),
+                created_at = startedAt.toString(),
+            )
+        ).toInt()
+        counted.forEachIndexed { i, p ->
+            val system = p.stock
+            val off = if (random.nextInt(10) == 0) random.nextInt(1, 6).toDouble() * (if (random.nextBoolean()) 1 else -1) else 0.0
+            val ecart = if (p.stock - p.camion_stock + off < 0) 0.0 else off   // counted at the dépôt
+            val itemId = db.inventoryDao().insertItem(
+                InventoryItemEntity(
+                    session_id = sessionId, product_id = p.id, product_name = p.name, product_image_uri = null,
+                    qte_systeme = system, qte_physique = system + ecart, ecart = ecart,
+                    purchase_price_snapshot = p.purchase_price, valeur_ecart = ecart * p.purchase_price,
+                    created_at = lineAt(i),
+                )
+            ).toInt()
+            if (ecart != 0.0) {
+                db.stockMovementDao().insert(
+                    StockMovementEntity(
+                        product_id = p.id, product_name = p.name, type = "ajustement",
+                        direction = if (ecart > 0) "entree" else "sortie", quantity = kotlin.math.abs(ecart),
+                        emplacement = "depot", source_label = "Inventaire session #$sessionId",
+                        source_type = "inventory_item", source_id = itemId, unit_price = p.purchase_price,
+                        total_value = kotlin.math.abs(ecart * p.purchase_price), user_name = USER, note = TAG,
+                        created_at = lineAt(i),
+                    )
+                )
+            }
+        }
     }
 
     // ───────────────────────────── parties ─────────────────────────────
@@ -458,6 +524,10 @@ class StressDataGenerator(private val db: AppDatabase) {
         const val SUPPLIER_RETURNS = 750
         const val CHARGES = 7_500
         const val PERTES = 2_000
+        const val INVENTORIES = 60
+        const val FULL_COUNTS = 2
+        const val MIN_INVENTORY_LINES = 500
+        const val MAX_INVENTORY_LINES = 3_000
         const val BATCH = 500
         const val PURCHASE_BATCH = 50
         const val DAY_SECONDS = 86_400L

@@ -3,9 +3,14 @@ package com.distrigo.app.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Update
 import com.distrigo.app.data.local.entity.InventoryItemEntity
 import com.distrigo.app.data.local.entity.InventorySessionEntity
+import com.distrigo.app.data.model.InventorySession
+import com.distrigo.app.data.model.InventorySessionHistory
+import com.distrigo.app.data.model.InventorySessionSummary
+import androidx.sqlite.db.SupportSQLiteQuery
 
 @Dao
 interface InventoryDao {
@@ -17,8 +22,9 @@ interface InventoryDao {
     @Query("SELECT * FROM inventory_sessions WHERE id = :id")
     suspend fun getSessionById(id: Int): InventorySessionEntity?
 
-    @Query("SELECT * FROM inventory_sessions ORDER BY started_at DESC")
-    suspend fun getAllSessions(): List<InventorySessionEntity>
+    /** A page of the history, each session with its totals — see `InventoryListSql.sessionPage`. */
+    @RawQuery
+    suspend fun pageSessions(query: SupportSQLiteQuery): List<InventorySessionListRow>
 
     @Insert
     suspend fun insertSession(session: InventorySessionEntity): Long
@@ -30,19 +36,9 @@ interface InventoryDao {
     @Query("SELECT * FROM inventory_items WHERE session_id = :sessionId ORDER BY created_at DESC")
     suspend fun getItemsForSession(sessionId: Int): List<InventoryItemEntity>
 
-    /**
-     * Each session's item count, number of items with a non-zero écart, and sum of the absolute
-     * écart values. Sessions without items have no row.
-     */
-    @Query("""
-        SELECT session_id,
-               COUNT(*) AS total_products,
-               SUM(CASE WHEN ecart != 0 THEN 1 ELSE 0 END) AS total_ecarts,
-               SUM(ABS(valeur_ecart)) AS total_value_ecarts
-        FROM inventory_items
-        GROUP BY session_id
-    """)
-    suspend fun getSessionTotals(): List<InventorySessionTotals>
+    /** A page of one session's lines — see `InventoryListSql.itemPage`. */
+    @RawQuery
+    suspend fun pageItems(query: SupportSQLiteQuery): List<InventoryItemEntity>
 
     @Query("SELECT * FROM inventory_items WHERE session_id = :sessionId AND product_id = :productId LIMIT 1")
     suspend fun getItemForSessionAndProduct(sessionId: Int, productId: Int): InventoryItemEntity?
@@ -60,10 +56,19 @@ interface InventoryDao {
     suspend fun deleteItem(id: Int)
 }
 
-/** One inventory session's totals, from [InventoryDao.getSessionTotals]. */
-data class InventorySessionTotals(
-    val session_id: Int,
+/** A row of the inventory history: a session, its date as the list sorts it, and its totals. */
+data class InventorySessionListRow(
+    val id: Int,
+    val status: String,
+    val started_at: String,
+    val completed_at: String?,
+    val sort_at: String,
     val total_products: Int,
     val total_ecarts: Int,
     val total_value_ecarts: Double
-)
+) {
+    fun toHistory() = InventorySessionHistory(
+        session = InventorySession(id = id, status = status, started_at = started_at, completed_at = completed_at),
+        summary = InventorySessionSummary(total_products, total_ecarts, total_value_ecarts)
+    )
+}
