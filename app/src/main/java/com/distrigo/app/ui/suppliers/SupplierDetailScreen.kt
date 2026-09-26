@@ -17,6 +17,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -286,7 +287,7 @@ fun SupplierDetailScreen(
     // ── "Voir tout l'historique" (écran plein, paginé) ──
 
 
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
 
     Column(
@@ -581,174 +582,185 @@ fun SupplierDetailScreen(
                 }
             }
 
-            ElasticUnderlineTabRow(tabs = tabTitles, selected = selectedTab, onSelect = { selectedTab = it })
+            ElasticUnderlineTabRow(tabs = tabTitles, pagerState = pagerState)
 
-            Column(
-                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-            ) {
-                when (selectedTab) {
-                    0 -> {
-                        // ── Informations ──
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(DsShapes.large)
-                                .background(DsColors.Surface)
-                                .border(1.dp, DsColors.Border, DsShapes.large)
-                                .padding(DsSpacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                        ) {
-                            SupplierInfoRow(
-                                icon = Icons.Default.Phone,
-                                label = "Téléphone",
-                                value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
-                            )
-                            SupplierInfoRow(
-                                icon = Icons.Default.LocationOn,
-                                label = "Wilaya",
-                                value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                            )
-                            SupplierInfoRow(
-                                icon = Icons.Default.Map,
-                                label = "Commune",
-                                value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                            )
-                            SupplierInfoRow(
-                                icon = Icons.Default.Home,
-                                label = "Adresse",
-                                value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
-                            )
-                            if (!currentSupplier.note.isNullOrBlank()) {
-                                SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
-                            }
-                        }
-                    }
-                    1 -> {
-                        // ── Achats & Paiements ──
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(DsShapes.large)
-                                .background(DsColors.Surface)
-                                .border(1.dp, DsColors.Border, DsShapes.large)
-                                .padding(DsSpacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+            // Tabs still swipe sideways inside the one vertical scroll. The pager has no height of
+            // its own here: it takes its current page's, so a short tab leaves no blank space under
+            // it. Pages sit at the top while two share the screen mid-swipe.
+            HorizontalPager(
+                state             = pagerState,
+                verticalAlignment = Alignment.Top,
+                modifier          = Modifier.fillMaxWidth()
+            ) { page ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+                ) {
+                    when (page) {
+                        0 -> {
+                            // ── Informations ──
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.Surface)
+                                    .border(1.dp, DsColors.Border, DsShapes.large)
+                                    .padding(DsSpacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                             ) {
-                                Text("Transactions récentes", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                                // The whole history, and the button that adds to it, live on their
-                                // own screen; this card only shows the last few.
-                                Row(
-                                    modifier = Modifier
-                                        .clip(DsShapes.pill)
-                                        .clickable(
-                                            indication        = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { onAchatHistory() }
-                                        .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Voir tout",
-                                        fontSize = DsTextSize.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = DsColors.Primary
-                                    )
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = DsColors.Primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            if (ledger.count == 0) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                                        Spacer(Modifier.height(DsSpacing.sm))
-                                        Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
-                                    }
-                                }
-                            } else {
-                                // Flat and short: three rows, no date headings. The grouped, paged
-                                // history is a screen of its own behind « Voir tout ».
-                                ledger.latest.take(ACHAT_PREVIEW).forEach { transaction ->
-                                    AchatRow(
-                                        transaction,
-                                        onLongPressPaiement = { longPressPayment = it },
-                                        onClickFacture = { onNavigateToOrder(it.id) }
-                                    )
+                                SupplierInfoRow(
+                                    icon = Icons.Default.Phone,
+                                    label = "Téléphone",
+                                    value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
+                                )
+                                SupplierInfoRow(
+                                    icon = Icons.Default.LocationOn,
+                                    label = "Wilaya",
+                                    value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                )
+                                SupplierInfoRow(
+                                    icon = Icons.Default.Map,
+                                    label = "Commune",
+                                    value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                )
+                                SupplierInfoRow(
+                                    icon = Icons.Default.Home,
+                                    label = "Adresse",
+                                    value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                )
+                                if (!currentSupplier.note.isNullOrBlank()) {
+                                    SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
                                 }
                             }
                         }
-                    }
-                    2 -> {
-                        // ── Retours ──
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(DsShapes.large)
-                                .background(DsColors.Surface)
-                                .border(1.dp, DsColors.Border, DsShapes.large)
-                                .padding(DsSpacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                        1 -> {
+                            // ── Achats & Paiements ──
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.Surface)
+                                    .border(1.dp, DsColors.Border, DsShapes.large)
+                                    .padding(DsSpacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
-                                Text("Retours récents", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                                // A new return starts from the « Retour » quick action; the whole
-                                // history lives on its own screen.
                                 Row(
-                                    modifier = Modifier
-                                        .clip(DsShapes.pill)
-                                        .clickable(
-                                            indication        = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { onRetourHistory() }
-                                        .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        "Voir tout",
-                                        fontSize = DsTextSize.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = DsColors.Primary
-                                    )
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = DsColors.Primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            if (retourPreview.count == 0) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                                        Spacer(Modifier.height(DsSpacing.sm))
-                                        Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                    Text("Transactions récentes", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                    // The whole history, and the button that adds to it, live on their
+                                    // own screen; this card only shows the last few.
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(DsShapes.pill)
+                                            .clickable(
+                                                indication        = null,
+                                                interactionSource = remember { MutableInteractionSource() }
+                                            ) { onAchatHistory() }
+                                            .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            "Voir tout",
+                                            fontSize = DsTextSize.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = DsColors.Primary
+                                        )
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = DsColors.Primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
                                 }
-                            } else {
-                                retourPreview.latest.take(3).forEach { retour ->
-                                    RetourFournisseurRow(retour = retour, onClick = {})
+
+                                if (ledger.count == 0) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxxl),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                            Spacer(Modifier.height(DsSpacing.sm))
+                                            Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                        }
+                                    }
+                                } else {
+                                    // Flat and short: three rows, no date headings. The grouped, paged
+                                    // history is a screen of its own behind « Voir tout ».
+                                    ledger.latest.take(ACHAT_PREVIEW).forEach { transaction ->
+                                        AchatRow(
+                                            transaction,
+                                            onLongPressPaiement = { longPressPayment = it },
+                                            onClickFacture = { onNavigateToOrder(it.id) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        2 -> {
+                            // ── Retours ──
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.Surface)
+                                    .border(1.dp, DsColors.Border, DsShapes.large)
+                                    .padding(DsSpacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Retours récents", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                    // A new return starts from the « Retour » quick action; the whole
+                                    // history lives on its own screen.
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(DsShapes.pill)
+                                            .clickable(
+                                                indication        = null,
+                                                interactionSource = remember { MutableInteractionSource() }
+                                            ) { onRetourHistory() }
+                                            .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            "Voir tout",
+                                            fontSize = DsTextSize.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = DsColors.Primary
+                                        )
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = DsColors.Primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                if (retourPreview.count == 0) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xxl),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                            Spacer(Modifier.height(DsSpacing.sm))
+                                            Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                        }
+                                    }
+                                } else {
+                                    retourPreview.latest.take(3).forEach { retour ->
+                                        RetourFournisseurRow(retour = retour, onClick = {})
+                                    }
                                 }
                             }
                         }
