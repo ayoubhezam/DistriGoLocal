@@ -2,9 +2,7 @@ package com.distrigo.app.ui.chargements
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.distrigo.app.data.model.Chargement
 import com.distrigo.app.data.model.ChargementDraft
-import com.distrigo.app.data.model.ChargementSession
 import com.distrigo.app.data.repository.ChargementDraftRepository
 import com.distrigo.app.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,19 +19,6 @@ class ChargementViewModel @Inject constructor(
     private val draftRepository: ChargementDraftRepository
 ) : ViewModel() {
 
-    private val _chargements = MutableStateFlow<List<Chargement>>(emptyList())
-    val chargements: StateFlow<List<Chargement>> = _chargements
-
-    private val _selectedChargement = MutableStateFlow<Chargement?>(null)
-    val selectedChargement: StateFlow<Chargement?> = _selectedChargement
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
-
-    // ── Chargement form (wizard) state — shared across ChargementNavHost's Products/Cart steps ──
     // ── Brouillons ───────────────────────────────────────────────────────────
     //
     // Listed drafts only. The repository's query excludes every row belonging to the
@@ -117,50 +102,11 @@ class ChargementViewModel @Inject constructor(
         viewModelScope.launch { draftRepository.deleteForProduct(productId) }
     }
 
-    private val _formCartItems = MutableStateFlow<List<ChargementCartItem>>(emptyList())
-    val formCartItems: StateFlow<List<ChargementCartItem>> = _formCartItems
-
-    private val _formNote = MutableStateFlow("")
-    val formNote: StateFlow<String> = _formNote
-
-    private val _formUserName = MutableStateFlow("")
-    val formUserName: StateFlow<String> = _formUserName
-
-    fun setFormCartItems(items: List<ChargementCartItem>) { _formCartItems.value = items }
-    fun setFormNote(note: String) { _formNote.value = note }
-    fun setFormUserName(name: String) { _formUserName.value = name }
-
-    fun resetChargementForm() {
-        _formCartItems.value = emptyList()
-        _formNote.value = ""
-        _formUserName.value = ""
-    }
-
-    init { loadChargements() }
-
-    fun loadChargements() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _chargements.value = repository.getChargements()
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadChargementDetail(id: Int) {
-        viewModelScope.launch {
-            try {
-                _selectedChargement.value = repository.getChargement(id)
-            } catch (e: Exception) {
-                android.util.Log.e("DISTRIGO", "chargement detail error: ${e.message}")
-            }
-        }
-    }
+    // No chargement list, no sessions and no form state here any more. Nothing on screen showed the
+    // list or the sessions, yet `init` read every chargement and then each one's lines, one query each,
+    // whenever this ViewModel was created - opening Stock Camion or a chargement screen started 4,224
+    // queries over 369,564 lines on the test data. The form's state lives on
+    // ChargementFormSessionViewModel.
 
     fun createChargement(
         note      : String?,
@@ -174,73 +120,9 @@ class ChargementViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.createChargement(note, items, userName, draftId)
-                loadChargements()
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")
-            }
-        }
-    }
-
-    fun deleteChargement(
-        id        : Int,
-        onSuccess : () -> Unit,
-        onError   : (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repository.deleteChargement(id)
-                loadChargements()
-                onSuccess()
-            } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
-            }
-        }
-    }
-
-    private val _sessions = MutableStateFlow<List<ChargementSession>>(emptyList())
-    val sessions: StateFlow<List<ChargementSession>> = _sessions
-
-    private val _selectedSession = MutableStateFlow<ChargementSession?>(null)
-    val selectedSession: StateFlow<ChargementSession?> = _selectedSession
-
-    fun loadSessions() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _sessions.value = repository.getChargementSessions()
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = com.distrigo.app.ui.common.extractErrorMessage(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadSessionDetail(id: Int) {
-        viewModelScope.launch {
-            try {
-                _selectedSession.value = repository.getChargementSession(id)
-            } catch (e: Exception) {
-                android.util.Log.e("DISTRIGO", "session detail error: ${e.message}")
-            }
-        }
-    }
-
-    fun updateSessionNote(
-        id        : Int,
-        note      : String?,
-        onSuccess : () -> Unit,
-        onError   : (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repository.updateChargementSessionNote(id, note)
-                loadSessions()
-                onSuccess()
-            } catch (e: Exception) {
-                onError(com.distrigo.app.ui.common.extractErrorMessage(e))
             }
         }
     }

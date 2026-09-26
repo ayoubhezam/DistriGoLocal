@@ -1548,19 +1548,7 @@ class ProductRepository(
 
 // ── Chargements (محلي بالكامل عبر Room) ──
 
-    suspend fun getChargements(): List<Chargement> {
-        return db.chargementDao().getAllChargements().map { entity ->
-            val items = db.chargementDao().getItemsForChargement(entity.id).map { it.toChargementItem() }
-            entity.toChargement(items)
-        }
-    }
 
-    suspend fun getChargement(id: Int): Chargement {
-        val entity = db.chargementDao().getChargementById(id)
-            ?: throw IllegalStateException("Chargement introuvable: $id")
-        val items = db.chargementDao().getItemsForChargement(entity.id).map { it.toChargementItem() }
-        return entity.toChargement(items)
-    }
 
     /**
      * @param draftId a `chargement_drafts` row to delete on success — either a listed Brouillon or
@@ -1627,30 +1615,8 @@ class ProductRepository(
         return mapOf("message" to "Chargement supprimé avec succès")
     }
 
-    suspend fun getChargementSessions(): List<ChargementSession> {
-        return db.chargementDao().getAllSessions().map { session ->
-            val chargements = db.chargementDao().getChargementsBySession(session.id).map { c ->
-                val items = db.chargementDao().getItemsForChargement(c.id).map { it.toChargementItem() }
-                c.toChargement(items)
-            }
-            session.toChargementSession(chargements)
-        }
-    }
 
-    suspend fun getChargementSession(id: Int): ChargementSession {
-        val session = db.chargementDao().getSessionById(id)
-            ?: throw IllegalStateException("Session introuvable: $id")
-        val chargements = db.chargementDao().getChargementsBySession(session.id).map { c ->
-            val items = db.chargementDao().getItemsForChargement(c.id).map { it.toChargementItem() }
-            c.toChargement(items)
-        }
-        return session.toChargementSession(chargements)
-    }
 
-    suspend fun updateChargementSessionNote(id: Int, note: String?): Map<String, Any> {
-        db.chargementDao().updateSessionNote(id, note)
-        return mapOf("message" to "Note mise à jour")
-    }
 
     // ── Mouvements de stock (lecture) ──
     private fun StockMovementEntity.toStockMovement() = StockMovement(
