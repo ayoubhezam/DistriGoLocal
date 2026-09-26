@@ -23,6 +23,10 @@ import com.distrigo.app.data.local.paging.ProductListQuery
 import com.distrigo.app.data.local.paging.ProductListSql
 import com.distrigo.app.data.local.paging.ProductSort
 import com.distrigo.app.data.local.paging.ProductPagingSource
+import com.distrigo.app.data.local.dao.mouvement.MovementTotals
+import com.distrigo.app.data.local.paging.MovementListQuery
+import com.distrigo.app.data.local.paging.MovementListSql
+import com.distrigo.app.data.local.paging.MovementPagingSource
 import com.distrigo.app.data.local.paging.PurchaseOrderListQuery
 import com.distrigo.app.data.local.paging.VenteListQuery
 import com.distrigo.app.data.local.paging.VenteListSql
@@ -1628,9 +1632,24 @@ class ProductRepository(
         user_name = this.user_name, note = this.note, created_at = this.created_at
     )
 
-    suspend fun getMovementsForProduct(productId: Int): List<StockMovement> {
-        return db.stockMovementDao().getMovementsForProduct(productId).map { it.toStockMovement() }
-    }
+    /**
+     * A product's latest [limit] movements, for the detail screen's short list. It used to read the
+     * product's whole history - over 3,000 rows for a best-seller on the test data - and keep four.
+     */
+    suspend fun getRecentMovementsForProduct(productId: Int, limit: Int): List<StockMovement> =
+        db.stockMovementDao().getRecentMovementsForProduct(productId, limit).map { it.toStockMovement() }
+
+    /** A Mouvements list, paged - see [MovementPagingSource]. */
+    fun pageMovements(query: MovementListQuery): Flow<PagingData<StockMovement>> =
+        Pager(PagingDefaults.config) { MovementPagingSource(db, query) { it.toStockMovement() } }.flow
+
+    /** The list's three figures - count, entrées, sorties - for [query], summed in SQL, live. */
+    fun observeMovementTotals(query: MovementListQuery): Flow<MovementTotals> =
+        db.stockMovementDao().observeMovementTotals(MovementListSql.totals(query))
+
+    /** How many movements [query] matches, once. */
+    suspend fun countMovements(query: MovementListQuery): Int =
+        db.stockMovementDao().countMovements(MovementListSql.count(query))
 
     suspend fun getMovementById(id: Int): StockMovement? {
         return db.stockMovementDao().getMovementById(id)?.toStockMovement()
@@ -1652,27 +1671,27 @@ class ProductRepository(
         types       : List<String> = emptyList(),
         party       : String? = null,
         partyId     : Int? = null,
-    ): List<StockMovement> {
-        val (start, end) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
-        return db.stockMovementDao()
-            .filtered(productId, start, end, direction, emplacement, types.isEmpty(), types, party, partyId)
+    ): List<StockMovement> =
+        db.stockMovementDao()
+            .pageMovements(MovementListSql.all(movementQuery(productId, dateFrom, dateTo, direction, emplacement, types, party, partyId)))
             .map { it.toStockMovement() }
-    }
 
-    /** How many movements [getFilteredMovements] would return, for the sheet's own button. */
-    suspend fun countFilteredMovements(
-        productId   : Int? = null,
-        dateFrom    : String? = null,
-        dateTo      : String? = null,
-        direction   : String? = null,
-        emplacement : String? = null,
-        types       : List<String> = emptyList(),
-        party       : String? = null,
-        partyId     : Int? = null,
-    ): Int {
+    /**
+     * The filter sheet's values as a [MovementListQuery]. The picked days are local and both included:
+     * from the first moment of [dateFrom] to the first moment after [dateTo].
+     */
+    fun movementQuery(
+        productId   : Int?,
+        dateFrom    : String?,
+        dateTo      : String?,
+        direction   : String?,
+        emplacement : String?,
+        types       : List<String>,
+        party       : String?,
+        partyId     : Int?,
+    ): MovementListQuery {
         val (start, end) = BusinessDates.dayRangeBounds(dateFrom, dateTo)
-        return db.stockMovementDao()
-            .countFiltered(productId, start, end, direction, emplacement, types.isEmpty(), types, party, partyId)
+        return MovementListQuery(productId, start, end, direction, emplacement, types, party, partyId)
     }
 
     /** The clients this product's movements name, for the filter's own list. */

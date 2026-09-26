@@ -86,7 +86,7 @@ class MovementFilterQueryTest {
     }
 
     private fun count(filters: MovementFilters) = runBlocking {
-        repo.countFilteredMovements(
+        repo.countMovements(repo.movementQuery(
             productId   = product,
             dateFrom    = filters.dateFrom,
             dateTo      = filters.dateTo,
@@ -95,7 +95,7 @@ class MovementFilterQueryTest {
             types       = filters.types.map { it.key },
             party       = filters.party?.key,
             partyId     = filters.partyId,
-        )
+        ))
     }
 
     @Test

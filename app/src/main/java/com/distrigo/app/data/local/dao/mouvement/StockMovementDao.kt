@@ -3,7 +3,13 @@ package com.distrigo.app.data.local.dao.mouvement
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
+import kotlinx.coroutines.flow.Flow
+
+/** The Mouvements screen's three figures: how many movements, what came in, what went out. */
+data class MovementTotals(val count: Int, val entrees: Double, val sorties: Double)
 
 /** A client or a supplier a product's movements name. */
 data class PartyRow(val id: Int, val name: String)
@@ -29,78 +35,25 @@ interface StockMovementDao {
     @Query("DELETE FROM stock_movements WHERE source_type = :sourceType AND source_id = :sourceId")
     suspend fun deleteBySource(sourceType: String, sourceId: Int)
 
-    // ── Filtrage combiné : produit + période + sens + type + emplacement + partie ──
-    //
-    // NULL dans un paramètre = filtre ignoré. The period is [dateFrom, dateBefore), instant bounds
-    // from BusinessDates.dayRangeBounds.
-    //
-    // A movement names its document by [source_type] and [source_id]; whom it was with is that
-    // document's client or supplier. `party` keeps the kinds that belong to a client or to a
-    // supplier, and `partyId` narrows to one of them — a client id can only match a client-side
-    // document, so the two conditions never disagree.
-    //
-    // **[filtered] and [countFiltered] must move together**: the second exists only to say how many
-    // rows the first would return, and a predicate in one and not the other would make the sheet's
-    // count a lie.
-    @Query("""
-        SELECT * FROM stock_movements
-        WHERE (:productId IS NULL OR product_id = :productId)
-          AND (:dateFrom IS NULL OR created_at >= :dateFrom)
-          AND (:dateBefore IS NULL OR created_at < :dateBefore)
-          AND (:direction IS NULL OR direction = :direction)
-          AND (:emplacement IS NULL OR emplacement = :emplacement)
-          AND (:allTypes OR type IN (:types))
-          AND (:party IS NULL
-               OR (:party = 'client' AND source_type IN ('vente', 'retour_client'))
-               OR (:party = 'fournisseur' AND source_type IN ('purchase_order', 'retour_fournisseur')))
-          AND (:partyId IS NULL OR
-               (source_type = 'vente' AND EXISTS (SELECT 1 FROM ventes v WHERE v.id = source_id AND v.client_id = :partyId))
-            OR (source_type = 'retour_client' AND EXISTS (SELECT 1 FROM retour_client r WHERE r.id = source_id AND r.client_id = :partyId))
-            OR (source_type = 'purchase_order' AND EXISTS (SELECT 1 FROM purchase_orders o WHERE o.id = source_id AND o.supplier_id = :partyId))
-            OR (source_type = 'retour_fournisseur' AND EXISTS (SELECT 1 FROM retour_fournisseur f WHERE f.id = source_id AND f.supplier_id = :partyId)))
-        ORDER BY created_at DESC
-    """)
-    suspend fun filtered(
-        productId: Int?,
-        dateFrom: String?,
-        dateBefore: String?,
-        direction: String?,
-        emplacement: String?,
-        allTypes: Boolean,
-        types: List<String>,
-        party: String?,
-        partyId: Int?,
-    ): List<StockMovementEntity>
+    // The Mouvements list's filtering is built per request (MovementListSql): one clause per filter
+    // that is set, where this file held one fixed query with `(:x IS NULL OR …)` for every filter.
 
-    /** How many rows [filtered] would return — the same predicate, counted. */
-    @Query("""
-        SELECT COUNT(*) FROM stock_movements
-        WHERE (:productId IS NULL OR product_id = :productId)
-          AND (:dateFrom IS NULL OR created_at >= :dateFrom)
-          AND (:dateBefore IS NULL OR created_at < :dateBefore)
-          AND (:direction IS NULL OR direction = :direction)
-          AND (:emplacement IS NULL OR emplacement = :emplacement)
-          AND (:allTypes OR type IN (:types))
-          AND (:party IS NULL
-               OR (:party = 'client' AND source_type IN ('vente', 'retour_client'))
-               OR (:party = 'fournisseur' AND source_type IN ('purchase_order', 'retour_fournisseur')))
-          AND (:partyId IS NULL OR
-               (source_type = 'vente' AND EXISTS (SELECT 1 FROM ventes v WHERE v.id = source_id AND v.client_id = :partyId))
-            OR (source_type = 'retour_client' AND EXISTS (SELECT 1 FROM retour_client r WHERE r.id = source_id AND r.client_id = :partyId))
-            OR (source_type = 'purchase_order' AND EXISTS (SELECT 1 FROM purchase_orders o WHERE o.id = source_id AND o.supplier_id = :partyId))
-            OR (source_type = 'retour_fournisseur' AND EXISTS (SELECT 1 FROM retour_fournisseur f WHERE f.id = source_id AND f.supplier_id = :partyId)))
-    """)
-    suspend fun countFiltered(
-        productId: Int?,
-        dateFrom: String?,
-        dateBefore: String?,
-        direction: String?,
-        emplacement: String?,
-        allTypes: Boolean,
-        types: List<String>,
-        party: String?,
-        partyId: Int?,
-    ): Int
+    /** A page (or all) of a Mouvements list — see `MovementListSql`, built per request. */
+    @RawQuery
+    suspend fun pageMovements(query: SupportSQLiteQuery): List<StockMovementEntity>
+
+    /** A `MovementListSql.totals` query, re-run whenever a movement is written. */
+    @RawQuery(observedEntities = [StockMovementEntity::class])
+    fun observeMovementTotals(query: SupportSQLiteQuery): Flow<MovementTotals>
+
+    /** A `MovementListSql.count` query, once — the filter sheet's button. */
+    @RawQuery
+    suspend fun countMovements(query: SupportSQLiteQuery): Int
+
+    /** A product's latest [limit] movements, newest first: the product detail's short list. */
+    @Query("SELECT * FROM stock_movements WHERE product_id = :productId ORDER BY created_at DESC, id DESC LIMIT :limit")
+    suspend fun getRecentMovementsForProduct(productId: Int, limit: Int): List<StockMovementEntity>
+
 
     /**
      * The clients this product actually moved with — those on a vente or a retour client of it.

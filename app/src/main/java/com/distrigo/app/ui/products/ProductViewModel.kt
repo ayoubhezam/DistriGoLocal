@@ -359,7 +359,7 @@ class ProductViewModel @Inject constructor(
     fun loadRecentMovements(productId: Int, count: Int = 4) {
         viewModelScope.launch {
             try {
-                _recentMovements.value = repository.getMovementsForProduct(productId).take(count)
+                _recentMovements.value = repository.getRecentMovementsForProduct(productId, count)
             } catch (e: Exception) {
                 _recentMovements.value = emptyList()
             }

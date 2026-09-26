@@ -1,5 +1,10 @@
 package com.distrigo.app.ui.mouvements
 
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
+
 import com.distrigo.app.data.time.BusinessDates
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -7,6 +12,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -48,14 +56,19 @@ fun MouvementsScreen(
 ) {
 
     val filters by viewModel.filters.collectAsState()
-    val movements by viewModel.movements.collectAsState()
+    // Paged, with the figures summed in SQL for the same filters - see StockMovementViewModel.
+    val pagedMovements = viewModel.pagedMovements.collectAsLazyPagingItems()
+    val totals    by viewModel.totals.collectAsState()
     val clients   by viewModel.clients.collectAsState()
     val suppliers by viewModel.suppliers.collectAsState()
-    val isLoading  by viewModel.isLoading.collectAsState()
     var filtersOpen by remember { mutableStateOf(false) }
+    // Hoisted so a new filter can send the list back to the top: its pages start there again, and a
+    // list left at its old index would open mid-way through the new results.
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(product.id) { viewModel.loadPartiesForProduct(product.id) }
-    LaunchedEffect(product.id, filters) { viewModel.loadFilteredMovements(product.id, filters) }
+    LaunchedEffect(product.id) { viewModel.showProduct(product.id) }
 
     if (filtersOpen) {
         MovementFiltersSheet(
@@ -63,7 +76,11 @@ fun MouvementsScreen(
             clients   = clients,
             suppliers = suppliers,
             countOf   = { draft -> viewModel.countFor(product.id, draft) },
-            onApply   = { viewModel.setFilters(it); filtersOpen = false },
+            onApply   = {
+                if (it != filters) scope.launch { listState.scrollToItem(0) }
+                viewModel.setFilters(it)
+                filtersOpen = false
+            },
             onDismiss = { filtersOpen = false }
         )
     }
@@ -120,26 +137,27 @@ fun MouvementsScreen(
         Spacer(Modifier.height(DsSpacing.md))
 
         // ── Stats ──
-        val entrees = movements.filter { it.direction == "entree" }.sumOf { it.quantity }
-        val sorties = movements.filter { it.direction == "sortie" }.sumOf { it.quantity }
+        val entrees = totals?.entrees ?: 0.0
+        val sorties = totals?.sorties ?: 0.0
         Row(
             modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
             StatCard(modifier = Modifier.weight(1f), label = "Entrées",    value = formatQty(entrees),  color = DsColors.Success)
             StatCard(modifier = Modifier.weight(1f), label = "Sorties",    value = formatQty(sorties),  color = DsColors.Danger)
-            StatCard(modifier = Modifier.weight(1f), label = "Mouvements", value = "${movements.size}", color = DsColors.Primary)
+            StatCard(modifier = Modifier.weight(1f), label = "Mouvements", value = "${totals?.count ?: 0}", color = DsColors.Primary)
         }
 
         Spacer(Modifier.height(DsSpacing.md))
 
+        val refresh = pagedMovements.loadState.refresh
         when {
-            isLoading -> {
+            pagedMovements.itemCount == 0 && refresh is LoadState.Loading -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
             }
-            movements.isEmpty() -> {
+            pagedMovements.itemCount == 0 -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.SwapVert, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(56.dp))
@@ -149,23 +167,31 @@ fun MouvementsScreen(
                 }
             }
             else -> {
-                val grouped = movements.groupBy { BusinessDates.localDay(it.created_at) }
                 LazyColumn(
+                    state               = listState,
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    grouped.forEach { (date, dayMovements) ->
-                        item(key = "header_$date") {
-                            Text(
-                                formatMovementDateLabel(date),
+                    items(
+                        count       = pagedMovements.itemCount,
+                        key         = pagedMovements.itemKey { row ->
+                            when (row) {
+                                is MovementListItem.DayHeader -> "header_${row.day}"
+                                is MovementListItem.Row       -> row.movement.id
+                            }
+                        },
+                        contentType = pagedMovements.itemContentType { row -> row is MovementListItem.DayHeader }
+                    ) { index ->
+                        when (val row = pagedMovements[index]) {
+                            is MovementListItem.DayHeader -> Text(
+                                formatMovementDateLabel(row.day),
                                 fontSize   = DsTextSize.caption,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = DsColors.TextSecondary,
                                 modifier   = Modifier.padding(top = DsSpacing.sm, bottom = DsSpacing.xs)
                             )
-                        }
-                        items(dayMovements, key = { it.id }) { movement ->
-                            MovementRow(movement = movement, onClick = { onMovementClick(movement) })
+                            is MovementListItem.Row -> MovementRow(movement = row.movement, onClick = { onMovementClick(row.movement) })
+                            null -> Unit
                         }
                     }
                 }
