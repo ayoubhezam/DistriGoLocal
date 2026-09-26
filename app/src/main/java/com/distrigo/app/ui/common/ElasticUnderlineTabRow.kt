@@ -2,8 +2,10 @@ package com.distrigo.app.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -40,59 +42,64 @@ fun ElasticUnderlineTabRow(
     val tabWidthsPx     = remember(tabs.size) { mutableStateListOf<Float>().apply { repeat(tabs.size) { add(0f) } } }
 
     Box(modifier = modifier.fillMaxWidth().background(DsColors.Surface)) {
-        val pageFraction = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
-            .coerceIn(0f, (tabs.size - 1).toFloat())
+        // A label never wraps: on a screen too narrow for all of them, the row scrolls instead.
+        Box(Modifier.horizontalScroll(rememberScrollState())) {
+            val pageFraction = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                .coerceIn(0f, (tabs.size - 1).toFloat())
 
-        Row(Modifier.fillMaxWidth()) {
-            tabs.forEachIndexed { index, title ->
-                val proximity = (1f - abs(pageFraction - index)).coerceIn(0f, 1f)
-                val tint = lerp(DsColors.TextSecondary, DsColors.Primary, proximity)
-                Text(
-                    text       = title,
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = if (proximity > 0.5f) FontWeight.Bold else FontWeight.Medium,
-                    color      = tint,
-                    modifier   = Modifier
-                        .onGloballyPositioned {
-                            tabOffsetsPx[index] = it.positionInParent().x
-                            tabWidthsPx[index]  = it.size.width.toFloat()
-                        }
-                        .clickable { coroutineScope.launch { pagerState.animateScrollToPage(index) } }
-                        .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-                )
-            }
-        }
-
-        if (tabWidthsPx.all { it > 0f }) {
-            val leftIndex  = floor(pageFraction).toInt().coerceIn(0, tabs.size - 1)
-            val rightIndex = ceil(pageFraction).toInt().coerceIn(0, tabs.size - 1)
-            val localT     = pageFraction - leftIndex
-
-            val indicatorLeftPx: Float
-            val indicatorRightPx: Float
-            if (leftIndex == rightIndex) {
-                indicatorLeftPx  = tabOffsetsPx[leftIndex]
-                indicatorRightPx = tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex]
-            } else {
-                val easeIn  = localT * localT
-                val easeOut = 1f - (1f - localT) * (1f - localT)
-                indicatorLeftPx  = lerpFloat(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], easeIn)
-                indicatorRightPx = lerpFloat(
-                    tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex],
-                    tabOffsetsPx[rightIndex] + tabWidthsPx[rightIndex],
-                    easeOut
-                )
+            Row {
+                tabs.forEachIndexed { index, title ->
+                    val proximity = (1f - abs(pageFraction - index)).coerceIn(0f, 1f)
+                    val tint = lerp(DsColors.TextSecondary, DsColors.Primary, proximity)
+                    Text(
+                        text       = title,
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = if (proximity > 0.5f) FontWeight.Bold else FontWeight.Medium,
+                        color      = tint,
+                        maxLines   = 1,
+                        softWrap   = false,
+                        modifier   = Modifier
+                            .onGloballyPositioned {
+                                tabOffsetsPx[index] = it.positionInParent().x
+                                tabWidthsPx[index]  = it.size.width.toFloat()
+                            }
+                            .clickable { coroutineScope.launch { pagerState.animateScrollToPage(index) } }
+                            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md)
+                    )
+                }
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
-                    .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
-                    .height(2.5.dp)
-                    .clip(DsShapes.pill)
-                    .background(DsColors.Primary)
-            )
+            if (tabWidthsPx.all { it > 0f }) {
+                val leftIndex  = floor(pageFraction).toInt().coerceIn(0, tabs.size - 1)
+                val rightIndex = ceil(pageFraction).toInt().coerceIn(0, tabs.size - 1)
+                val localT     = pageFraction - leftIndex
+
+                val indicatorLeftPx: Float
+                val indicatorRightPx: Float
+                if (leftIndex == rightIndex) {
+                    indicatorLeftPx  = tabOffsetsPx[leftIndex]
+                    indicatorRightPx = tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex]
+                } else {
+                    val easeIn  = localT * localT
+                    val easeOut = 1f - (1f - localT) * (1f - localT)
+                    indicatorLeftPx  = lerpFloat(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], easeIn)
+                    indicatorRightPx = lerpFloat(
+                        tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex],
+                        tabOffsetsPx[rightIndex] + tabWidthsPx[rightIndex],
+                        easeOut
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
+                        .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
+                        .height(2.5.dp)
+                        .clip(DsShapes.pill)
+                        .background(DsColors.Primary)
+                )
+            }
         }
 
         HorizontalDivider(

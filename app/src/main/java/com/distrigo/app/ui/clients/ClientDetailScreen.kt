@@ -709,7 +709,7 @@ fun ClientDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "Historique",
+                                    "Transactions récentes",
                                     fontSize = DsTextSize.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = DsColors.TextSecondary
@@ -788,16 +788,31 @@ fun ClientDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Text("Historique", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-                                Button(
-                                    onClick        = {onRetourForm()},
-                                    shape          = DsShapes.pill,
-                                    colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                Text("Retours récents", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                // A new return starts from the « Retour » quick action; the whole
+                                // history lives on its own screen.
+                                Row(
+                                    modifier = Modifier
+                                        .clip(DsShapes.pill)
+                                        .clickable(
+                                            indication        = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { onRetourHistory() }
+                                        .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Nouveau retour", fontSize = DsTextSize.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "Voir tout",
+                                        fontSize = DsTextSize.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DsColors.Primary
+                                    )
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = DsColors.Primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             }
 
@@ -826,33 +841,6 @@ fun ClientDetailScreen(
                             } else {
                                 retourPreview.latest.take(3).forEach { retour ->
                                     RetourRow(retour = retour)
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(DsShapes.medium)
-                                        .background(DsColors.SurfaceSunken)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { onRetourHistory() }
-                                        .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Voir tout l'historique (${retourPreview.count})",
-                                        fontSize = DsTextSize.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = DsColors.TextPrimary
-                                    )
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = DsColors.TextSecondary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
                                 }
                             }
                         }
