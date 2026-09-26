@@ -17,8 +17,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,11 +51,8 @@ import com.distrigo.app.ui.common.StatCell
 import com.distrigo.app.ui.common.SoldeCell
 import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
-import com.distrigo.app.ui.designsystem.DsCollapsingHeaderState
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import com.distrigo.app.ui.designsystem.dsCollapsingHeader
-import com.distrigo.app.ui.designsystem.rememberDsCollapsingHeaderState
 import com.distrigo.app.ui.components.paging.PagedHistoryScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -67,8 +63,6 @@ import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import com.distrigo.app.ui.common.EntityImage
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -292,18 +286,17 @@ fun SupplierDetailScreen(
     // ── "Voir tout l'historique" (écran plein, paginé) ──
 
 
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    val density = LocalDensity.current
-    val collapsingHeader = rememberDsCollapsingHeaderState()
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DsColors.SurfaceMuted)
-            .nestedScroll(collapsingHeader.nestedScrollConnection)
     ) {
-        // The bar stays put; only the identity block below it collapses.
+        // The bar stays put; everything under it scrolls as one page, the way the product detail
+        // does. A collapsing header over a pager of short tabs made flings race the header away
+        // and then stop dead, and relaid the whole pager out on every frame of it.
         DsTopAppBar(
             title          = "Fournisseur",
             leading        = DsTopBarLeading.Back(onBack),
@@ -329,270 +322,271 @@ fun SupplierDetailScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .dsCollapsingHeader(collapsingHeader)
-                .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            // ── Carte d'identité (dégradé) ──
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(DsShapes.large)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(DsColors.Primary, lerp(DsColors.Primary, Color.Black, 0.35f))
-                        )
-                    )
-                    .padding(DsSpacing.lg)
+                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.BottomEnd) {
-                        Box(
-                            modifier = Modifier
-                                .size(76.dp)
-                                .clip(DsShapes.pill)
-                                .background(Color.White.copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            EntityImage(
-                                ref                = currentSupplier.image_uri,
-                                contentDescription = null,
-                                modifier           = Modifier.fillMaxSize().clip(DsShapes.pill)
-                            ) {
-                                Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-                        Box {
+                // ── Carte d'identité (dégradé) ──
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(DsColors.Primary, lerp(DsColors.Primary, Color.Black, 0.35f))
+                            )
+                        )
+                        .padding(DsSpacing.lg)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.BottomEnd) {
                             Box(
                                 modifier = Modifier
-                                    .size(26.dp)
+                                    .size(76.dp)
                                     .clip(DsShapes.pill)
-                                    .background(Color.White)
-                                    .clickable(
-                                        indication        = null,
-                                        interactionSource  = remember { MutableInteractionSource() }
-                                    ) { showPhotoMenu = true },
+                                    .background(Color.White.copy(alpha = 0.18f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                EntityImage(
+                                    ref                = currentSupplier.image_uri,
+                                    contentDescription = null,
+                                    modifier           = Modifier.fillMaxSize().clip(DsShapes.pill)
+                                ) {
+                                    Text(initials, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
-                            DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Ajouter une nouvelle photo") },
-                                    leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
-                                    onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
-                                )
-                                if (currentSupplier.image_uri != null) {
+                            Box {
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(DsShapes.pill)
+                                        .background(Color.White)
+                                        .clickable(
+                                            indication        = null,
+                                            interactionSource  = remember { MutableInteractionSource() }
+                                        ) { showPhotoMenu = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                }
+                                DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
                                     DropdownMenuItem(
-                                        text = { Text("Supprimer la photo actuelle") },
-                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                        onClick = {
-                                            showPhotoMenu = false
-                                            viewModel.updateSupplier(
-                                                id        = currentSupplier.id,
-                                                supplier  = supplierToUpdateMap(currentSupplier, null),
-                                                onSuccess = {},
-                                                onError   = {}
-                                            )
-                                        }
+                                        text = { Text("Ajouter une nouvelle photo") },
+                                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
+                                        onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
                                     )
+                                    if (currentSupplier.image_uri != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Supprimer la photo actuelle") },
+                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                            onClick = {
+                                                showPhotoMenu = false
+                                                viewModel.updateSupplier(
+                                                    id        = currentSupplier.id,
+                                                    supplier  = supplierToUpdateMap(currentSupplier, null),
+                                                    onSuccess = {},
+                                                    onError   = {}
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.width(DsSpacing.md))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(currentSupplier.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = Color.White)
+                            if (!currentSupplier.phone.isNullOrBlank()) {
+                                Spacer(Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                    Text(formatPhone(currentSupplier.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                                }
+                            }
+                            if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
+                                Spacer(Modifier.height(4.dp))
+                                val location = listOfNotNull(
+                                    currentSupplier.commune_name?.takeIf { it.isNotBlank() },
+                                    currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
+                                ).joinToString(", ")
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                                    Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
                                 }
                             }
                         }
                     }
-
-                    Spacer(Modifier.width(DsSpacing.md))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(currentSupplier.name, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = Color.White)
-                        if (!currentSupplier.phone.isNullOrBlank()) {
-                            Spacer(Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                                Text(formatPhone(currentSupplier.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
-                            }
-                        }
-                        if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
-                            Spacer(Modifier.height(4.dp))
-                            val location = listOfNotNull(
-                                currentSupplier.commune_name?.takeIf { it.isNotBlank() },
-                                currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
-                            ).joinToString(", ")
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                                Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Statistiques (Total facturé / Total payé / Solde) ──
-            // Summed in SQL over the supplier's whole history (see getSupplierLedgerPreview), not here
-            // on every recomposition.
-            val totalFacture = ledger.totalFacture
-            val totalPaye = ledger.totalPaye
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(DsShapes.large)
-                    .background(DsColors.Surface)
-                    .border(1.dp, DsColors.Border, DsShapes.large)
-                    .padding(vertical = DsSpacing.md)
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
-                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                    StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
-                    Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                    // Paying more than billed is an advance, shown as such rather than as a negative debt.
-                    SoldeCell(modifier = Modifier.weight(1f), balance = currentSupplier.balance)
                 }
 
-                // What turns "Total facturé − Total payé" into the Solde beside them.
-                BalanceAdjustments(
-                    returns        = retourPreview.total,
-                    initialBalance = currentSupplier.initial_balance
-                )
+                // ── Statistiques (Total facturé / Total payé / Solde) ──
+                // Summed in SQL over the supplier's whole history (see getSupplierLedgerPreview), not here
+                // on every recomposition.
+                val totalFacture = ledger.totalFacture
+                val totalPaye = ledger.totalPaye
 
-                if (balanceStatus == "due") {
-                    Spacer(Modifier.height(DsSpacing.sm))
-                    Button(
-                        onClick        = { showPaymentDialog = true },
-                        modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                        shape          = DsShapes.medium,
-                        colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
-                        contentPadding = PaddingValues(vertical = 10.dp)
-                    ) {
-                        Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(vertical = DsSpacing.md)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
+                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                        StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
+                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                        // Paying more than billed is an advance, shown as such rather than as a negative debt.
+                        SoldeCell(modifier = Modifier.weight(1f), balance = currentSupplier.balance)
                     }
-                }
-            }
 
-            // ── Actions rapides (rangée défilante horizontalement) ──
-            val hasPhone = !currentSupplier.phone.isNullOrBlank()
-            val hasLocation = currentSupplier.latitude != null && currentSupplier.longitude != null
+                    // What turns "Total facturé − Total payé" into the Solde beside them.
+                    BalanceAdjustments(
+                        returns        = retourPreview.total,
+                        initialBalance = currentSupplier.initial_balance
+                    )
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                contentPadding = PaddingValues(horizontal = 2.dp)
-            ) {
-                item {
-                    QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
-                        if (hasPhone) {
-                            context.startActivity(
-                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
-                            )
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Ce fournisseur n'a pas de numéro de téléphone enregistré",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                }
-                item {
-                    QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
-                        if (hasLocation) {
-                            try {
-                                val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
-                                )
-                            } catch (e: ActivityNotFoundException) {
-                                Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                item {
-                    QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
-                        if (hasPhone) {
-                            val digits = currentSupplier.phone!!.filter { it.isDigit() }
-                            try {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }
-                                )
-                            } catch (e: ActivityNotFoundException) {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
-                                } catch (e2: ActivityNotFoundException) {
-                                    Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Ce fournisseur n'a pas de numéro de téléphone enregistré",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                }
-                item {
-                    QuickActionButton(
-                        icon = Icons.Default.ShoppingCart,
-                        label = "Nouvel\nachat"
-                    ) {
-                        onNewAchat()
-                    }
-                }
-                item {
-                    QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
-                        showPaymentDialog = true
-                    }
-                }
-                item {
-                    QuickActionButton(
-                        icon = Icons.Default.AssignmentReturn,
-                        label = "Retour"
-                    )  {
-                        onRetourForm()
-                    }
-                }
-                item {
-                    Box {
-                        QuickActionButton(
-                            icon = Icons.Default.MoreHoriz,
-                            label = "Plus",
-                            tint = DsColors.TextSecondary,
-                            bg = DsColors.SurfaceSunken
+                    if (balanceStatus == "due") {
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Button(
+                            onClick        = { showPaymentDialog = true },
+                            modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                            shape          = DsShapes.medium,
+                            colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
+                            contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
-                            showMoreMenu = true
+                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
-                        DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Modifier le fournisseur") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
-                                onClick = { showMoreMenu = false; onEdit() }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Supprimer le fournisseur") },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                onClick = { showMoreMenu = false; onDelete() }
-                            )
+                    }
+                }
+
+                // ── Actions rapides (rangée défilante horizontalement) ──
+                val hasPhone = !currentSupplier.phone.isNullOrBlank()
+                val hasLocation = currentSupplier.latitude != null && currentSupplier.longitude != null
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
+                ) {
+                    item {
+                        QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                            if (hasPhone) {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
+                                )
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
+                            if (hasLocation) {
+                                try {
+                                    val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
+                                    )
+                                } catch (e: ActivityNotFoundException) {
+                                    Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
+                            if (hasPhone) {
+                                val digits = currentSupplier.phone!!.filter { it.isDigit() }
+                                try {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }
+                                    )
+                                } catch (e: ActivityNotFoundException) {
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
+                                    } catch (e2: ActivityNotFoundException) {
+                                        Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    item {
+                        QuickActionButton(
+                            icon = Icons.Default.ShoppingCart,
+                            label = "Nouvel\nachat"
+                        ) {
+                            onNewAchat()
+                        }
+                    }
+                    item {
+                        QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                            showPaymentDialog = true
+                        }
+                    }
+                    item {
+                        QuickActionButton(
+                            icon = Icons.Default.AssignmentReturn,
+                            label = "Retour"
+                        )  {
+                            onRetourForm()
+                        }
+                    }
+                    item {
+                        Box {
+                            QuickActionButton(
+                                icon = Icons.Default.MoreHoriz,
+                                label = "Plus",
+                                tint = DsColors.TextSecondary,
+                                bg = DsColors.SurfaceSunken
+                            ) {
+                                showMoreMenu = true
+                            }
+                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Modifier le fournisseur") },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                                    onClick = { showMoreMenu = false; onEdit() }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Supprimer le fournisseur") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
+                                    onClick = { showMoreMenu = false; onDelete() }
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        ElasticUnderlineTabRow(tabs = tabTitles, pagerState = pagerState)
+            ElasticUnderlineTabRow(tabs = tabTitles, selected = selectedTab, onSelect = { selectedTab = it })
 
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f).fillMaxWidth()) { page ->
             Column(
-                modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
             ) {
-                when (page) {
+                when (selectedTab) {
                     0 -> {
                         // ── Informations ──
                         Column(

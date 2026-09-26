@@ -79,8 +79,7 @@ val DsTopBarActionSize : Dp = 40.dp
  * Back deliberately uses `Icons.AutoMirrored`; the deprecated `Icons.Default.ArrowBack` the screens
  * used to import does not mirror in RTL layouts, and no longer appears anywhere in the app.
  *
- * The bar itself is static. Screens whose header shrinks on scroll compose it inside
- * [DsCollapsingHeaderState]'s block rather than asking the bar to animate itself.
+ * The bar itself is static; screens that scroll put their content below it.
  *
  * @param subtitle secondary line under the title — wizard steps use it for context ("Nouveau bon ·
  *   Fournisseur X"); most screens leave it null.

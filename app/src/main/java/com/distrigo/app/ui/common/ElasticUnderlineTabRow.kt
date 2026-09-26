@@ -1,10 +1,12 @@
 package com.distrigo.app.ui.common
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -24,27 +26,36 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
+/**
+ * Tabs whose underline stretches from one label to the next. The tabs switch content in place
+ * (no pager): the screens using this scroll as one page, like the product detail.
+ */
 @Composable
 fun ElasticUnderlineTabRow(
-    tabs       : List<String>,
-    pagerState : PagerState,
-    modifier   : Modifier = Modifier
+    tabs     : List<String>,
+    selected : Int,
+    onSelect : (Int) -> Unit,
+    modifier : Modifier = Modifier
 ) {
     val density         = LocalDensity.current
-    val coroutineScope  = rememberCoroutineScope()
+    // The underline travels between tabs the way it used to follow a pager's swipe.
+    val position by animateFloatAsState(
+        targetValue   = selected.toFloat(),
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label         = "tabPosition"
+    )
     val tabOffsetsPx    = remember(tabs.size) { mutableStateListOf<Float>().apply { repeat(tabs.size) { add(0f) } } }
     val tabWidthsPx     = remember(tabs.size) { mutableStateListOf<Float>().apply { repeat(tabs.size) { add(0f) } } }
 
     Box(modifier = modifier.fillMaxWidth().background(DsColors.Surface)) {
         // A label never wraps: on a screen too narrow for all of them, the row scrolls instead.
         Box(Modifier.horizontalScroll(rememberScrollState())) {
-            val pageFraction = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+            val pageFraction = position
                 .coerceIn(0f, (tabs.size - 1).toFloat())
 
             Row {
@@ -63,7 +74,7 @@ fun ElasticUnderlineTabRow(
                                 tabOffsetsPx[index] = it.positionInParent().x
                                 tabWidthsPx[index]  = it.size.width.toFloat()
                             }
-                            .clickable { coroutineScope.launch { pagerState.animateScrollToPage(index) } }
+                            .clickable { onSelect(index) }
                             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md)
                     )
                 }
