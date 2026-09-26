@@ -1,5 +1,7 @@
 package com.distrigo.app.data.backup
 
+import org.junit.Assume.assumeTrue
+import android.os.Build
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
@@ -63,8 +65,10 @@ class DatabaseSnapshotTest {
         root.deleteRecursively()
     }
 
-    private fun snapshot(checkpointFirst: Boolean = true) =
-        DatabaseSnapshot.take(db, context.getDatabasePath(TEST_DB), images, staging, checkpointFirst)
+    /** The way this phone copies — `VACUUM INTO` from Android 11 — unless [method] says otherwise. */
+    private fun snapshot(checkpointFirst: Boolean = true, method: DatabaseSnapshot.Method? = null) =
+        if (method == null) DatabaseSnapshot.take(db, context.getDatabasePath(TEST_DB), images, staging, checkpointFirst)
+        else DatabaseSnapshot.take(db, context.getDatabasePath(TEST_DB), images, staging, checkpointFirst, method)
 
     private fun product(name: String, image: String? = null) = sql.execSQL(
         "INSERT INTO products (name, selling_price, purchase_price, stock, min_stock, unit_type, packages, pack_size, " +
@@ -112,19 +116,42 @@ class DatabaseSnapshotTest {
         }
     }
 
-    /** Rows still only in the write-ahead journal reach the copy: its journal is copied and folded in. */
+    /** Rows still only in the write-ahead journal reach the copy, whichever way it is taken. */
     @Test
     fun rowsNotYetCheckpointedAreInTheCopy() {
-        sql.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
-        repeat(20) { product("Produit $it") }
-        val wal = File(context.getDatabasePath(TEST_DB).path + "-wal")
-        assertTrue("the rows are in the journal", wal.length() > 0)
+        for (method in DatabaseSnapshot.Method.entries) {
+            if (method == DatabaseSnapshot.Method.VACUUM_INTO && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) continue
+            sql.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+            sql.execSQL("DELETE FROM products")
+            repeat(20) { product("Produit $it") }
+            val wal = File(context.getDatabasePath(TEST_DB).path + "-wal")
+            assertTrue("$method: the rows are in the journal", wal.length() > 0)
 
-        val snapshot = snapshot(checkpointFirst = false)
+            val snapshot = snapshot(checkpointFirst = false, method = method)
 
-        assertEquals(20L, snapshot.rowCounts["products"])
-        assertEquals(listOf(BackupFormat.DATABASE_ENTRY), staging.list()!!.toList())
-        openCopy(snapshot.database) { assertEquals(20L, it.count("SELECT COUNT(*) FROM products")) }
+            assertEquals("$method", 20L, snapshot.rowCounts["products"])
+            assertEquals("$method", listOf(BackupFormat.DATABASE_ENTRY), staging.list()!!.toList())
+            openCopy(snapshot.database) { assertEquals("$method", 20L, it.count("SELECT COUNT(*) FROM products")) }
+        }
+    }
+
+    /** Both ways give the same data, schema version and identity: older phones still copy the files. */
+    @Test
+    fun theFileCopyAndVacuumIntoHoldTheSame() {
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        product("Lait Candia 1L", image = "img:" + photo(7))
+        product("Yaourt Soummam")
+
+        val byVacuum = snapshot(method = DatabaseSnapshot.Method.VACUUM_INTO)
+        val vacuumed = File(root, "vacuumed.db").also { byVacuum.database.copyTo(it) }
+        val byFiles = snapshot(method = DatabaseSnapshot.Method.FILE_COPY)
+
+        assertEquals(byFiles.rowCounts, byVacuum.rowCounts)
+        assertEquals(byFiles.schemaVersion, byVacuum.schemaVersion)
+        assertEquals(byFiles.databaseId, byVacuum.databaseId)
+        assertEquals(byFiles.imageHashes, byVacuum.imageHashes)
+        assertEquals(DataFingerprint.of(byFiles.database), DataFingerprint.of(vacuumed))
+        openCopy(vacuumed) { assertEquals("delete", it.rawQuery("PRAGMA journal_mode", null).use { c -> c.moveToFirst(); c.getString(0) }) }
     }
 
     /**

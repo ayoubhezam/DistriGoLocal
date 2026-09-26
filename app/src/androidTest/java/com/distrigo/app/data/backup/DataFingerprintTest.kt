@@ -83,6 +83,17 @@ class DataFingerprintTest {
         assertChanges("a delete") { sql.execSQL("DELETE FROM products WHERE uuid = ?", arrayOf(uuid)) }
     }
 
+    /** One row deleted and another added between two backups: the count is the same, the fingerprint is not. */
+    @Test
+    fun aDeleteAndAnInsertTogetherStillChangeIt() {
+        product("Lait Candia 1L")
+        val last = product("Yaourt Soummam")
+        assertChanges("a row replaced by another") {
+            sql.execSQL("DELETE FROM products WHERE uuid = ?", arrayOf(last))
+            product("Fromage Président")
+        }
+    }
+
     /** An edit stamped with an earlier time than the newest row, as after the phone's clock is set back. */
     @Test
     fun anEditStampedInThePastStillChangesIt() {

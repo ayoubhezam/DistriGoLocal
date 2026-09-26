@@ -3,6 +3,7 @@ package com.distrigo.app.data.backup
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import android.os.Build
 import androidx.room.RoomDatabase
 import com.distrigo.app.data.image.ImageStore
 import java.io.File
@@ -29,13 +30,23 @@ class SnapshotException(message: String, cause: Throwable? = null) : Exception(m
 /**
  * Copies the live database while the app keeps running.
  *
- * ### Why the copy is consistent
+ * ### Android 11 and later: `VACUUM INTO`, while sales carry on
  *
- * Android before 11 has no `VACUUM INTO`, so the copy is of the files. The journal is folded into the
+ * SQLite writes the copy itself, inside one read transaction, so the copy is the database as it stood
+ * when the statement started. A read transaction in WAL mode blocks no one: sales, and every other write,
+ * carry on while the copy is written. It runs on a connection of its own, opened read-only for the copy,
+ * not through Room — Room's write connection is the only one, and a statement holding it would make every
+ * write in the app wait for the copy just the same. The copy also comes out compact: `VACUUM` leaves out
+ * the free pages the live file keeps.
+ *
+ * ### Before Android 11: the files, under the write lock
+ *
+ * Their SQLite has no `VACUUM INTO`, so the copy is of the files. The journal is folded into the
  * main file first, then a write transaction is held while the main file and whatever journal is left
  * are copied. In WAL mode only a writer changes either file (readers never checkpoint), so with the
- * write lock held neither can change mid-copy; readers carry on, and writers wait a few milliseconds.
- * In rollback-journal mode, a reserved lock leaves the main file untouched until the next commit.
+ * write lock held neither can change mid-copy; readers carry on, and writers wait for the copy — about
+ * a second per few hundred megabytes. In rollback-journal mode, a reserved lock leaves the main file
+ * untouched until the next commit.
  *
  * The copied journal is folded into the copy, not into the live file, so a checkpoint the first step
  * could not finish — a long read in progress — costs nothing but a larger copy.
@@ -52,7 +63,7 @@ object DatabaseSnapshot {
      * Copies [db], whose file is [databaseFile], to [stagingDir]/`distrigo.db`, replacing any earlier
      * copy there, and looks up the photos it refers to in [imagesDir].
      *
-     * Blocks, doing file I/O: call it off the main thread.
+     * Blocks, doing file I/O: call it off the main thread. [method] is for tests, which check both.
      */
     fun take(
         db: RoomDatabase,
@@ -60,11 +71,46 @@ object DatabaseSnapshot {
         imagesDir: File,
         stagingDir: File,
         checkpointFirst: Boolean = true,
+        method: Method = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Method.VACUUM_INTO else Method.FILE_COPY,
     ): Snapshot {
         stagingDir.mkdirs()
         val copy = File(stagingDir, BackupFormat.DATABASE_ENTRY)
         deleteWithJournals(copy)
 
+        val createdAt = when (method) {
+            Method.VACUUM_INTO -> vacuumInto(databaseFile, copy)
+            Method.FILE_COPY   -> copyFiles(db, databaseFile, copy, checkpointFirst)
+        }
+        return inspect(copy, imagesDir, createdAt).also { requireSingleFile(copy) }
+    }
+
+    /** How [take] copies the database. */
+    enum class Method {
+        /** SQLite writes the copy in a read transaction: nothing waits. Android 11 and later. */
+        VACUUM_INTO,
+        /** The files are copied under the write lock: writes wait for the copy. */
+        FILE_COPY,
+    }
+
+    /** The copy written by SQLite from a connection of its own — see the class notes. Returns when it was taken. */
+    private fun vacuumInto(databaseFile: File, copy: File): Instant {
+        val source = SQLiteDatabase.openDatabase(
+            databaseFile.path, null,
+            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS, KEEP_CORRUPT_FILE,
+        )
+        return try {
+            val createdAt = Instant.now()
+            source.execSQL("VACUUM INTO ?", arrayOf(copy.path))
+            createdAt
+        } catch (e: SQLiteException) {
+            throw SnapshotException("the copy could not be written: ${e.message}", e)
+        } finally {
+            source.close()
+        }
+    }
+
+    /** The files copied under the write lock — see the class notes. Returns when the copy was taken. */
+    private fun copyFiles(db: RoomDatabase, databaseFile: File, copy: File, checkpointFirst: Boolean): Instant {
         val live = db.openHelper.writableDatabase
         if (checkpointFirst) {
             live.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
@@ -82,8 +128,7 @@ object DatabaseSnapshot {
                 if (journal.isFile) journal.copyTo(File(copy.path + suffix), overwrite = true)
             }
         }
-
-        return inspect(copy, imagesDir, createdAt).also { requireSingleFile(copy) }
+        return createdAt
     }
 
     /**
@@ -115,12 +160,19 @@ object DatabaseSnapshot {
             val tables = userTables(sql)
             val rowCounts = tables.associateWith { sql.long("SELECT COUNT(*) FROM `$it`") }
 
+            // One pass per table over all its text columns, where there was one per column: ten over the
+            // stock ledger alone.
             val referenced = sortedSetOf<String>()
             for (table in tables) {
-                for (column in textColumns(sql, table)) {
-                    sql.rawQuery("SELECT `$column` FROM `$table` WHERE instr(`$column`, '${ImageStore.REF_PREFIX}') > 0", null).use { cursor ->
-                        while (cursor.moveToNext()) {
-                            IMAGE_REF.findAll(cursor.getString(0)).forEach { referenced += it.groupValues[1] }
+                val columns = textColumns(sql, table)
+                if (columns.isEmpty()) continue
+                val select = columns.joinToString(", ") { "`$it`" }
+                val where = columns.joinToString(" OR ") { "instr(`$it`, '${ImageStore.REF_PREFIX}') > 0" }
+                sql.rawQuery("SELECT $select FROM `$table` WHERE $where", null).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        for (i in columns.indices) {
+                            val value = cursor.getString(i) ?: continue
+                            IMAGE_REF.findAll(value).forEach { referenced += it.groupValues[1] }
                         }
                     }
                 }
