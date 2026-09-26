@@ -3,18 +3,18 @@ package com.distrigo.app.ui.products
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,8 +92,9 @@ fun ProductDetailScreen(
     var pendingDelete by remember { mutableStateOf<ProductImage?>(null) }
     var galleryError  by remember { mutableStateOf<String?>(null) }
 
-    // Kept across a trip to the movements or the form, so Back returns to the tab that was open.
-    var selectedTab   by rememberSaveable { mutableIntStateOf(0) }
+    // Saved like any pager state: Back from the movements or the form returns to the tab that was open.
+    val pagerState    = rememberPagerState(pageCount = { 2 })
+    val tabScope      = rememberCoroutineScope()
     var showStockInfo by remember { mutableStateOf(false) }
 
     // Camera or gallery, the same choice the form offers — see PhotoPicker.
@@ -244,39 +245,49 @@ fun ProductDetailScreen(
         }
 
         // ── Onglets ──
-        // Both tabs live in this one scrolling column, under the gallery, so they switch in place
-        // rather than paging: a pager inside a vertical scroll would need a fixed height.
+        // Both tabs live in this one scrolling column, under the gallery, and swipe sideways like
+        // the client and supplier details' tabs. The pager takes its current page's height, so the
+        // shorter tab leaves no blank space; pages sit at the top while two share the screen.
         DetailTabs(
             titles   = listOf("Informations produit", "Stock & mouvements"),
-            selected = selectedTab,
-            onSelect = { selectedTab = it },
+            selected = pagerState.currentPage,
+            position = pagerState.currentPage + pagerState.currentPageOffsetFraction,
+            onSelect = { tabScope.launch { pagerState.animateScrollToPage(it) } },
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        Column(
-            modifier            = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            when (selectedTab) {
-                0 -> {
-                    ProductInfoCard(currentProduct)
-                    PriceHistoryCard(priceMovements, onSeeAll = onPriceHistory)
+        HorizontalPager(
+            state             = pagerState,
+            verticalAlignment = Alignment.Top,
+            modifier          = Modifier.fillMaxWidth()
+        ) { page ->
+            Column(
+                modifier            = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                when (page) {
+                    0 -> {
+                        ProductInfoCard(currentProduct)
+                        PriceHistoryCard(priceMovements, onSeeAll = onPriceHistory)
+                    }
+                    else -> {
+                        CurrentStockCard(
+                            product    = currentProduct,
+                            onInfo     = { showStockInfo = true },
+                            onEditMin  = onEdit
+                        )
+                        RecentMovementsCard(
+                            movements  = recentMovements,
+                            unit       = currentProduct.unit_type,
+                            onSeeAll   = onViewMovements,
+                            onOpen     = onOpenMovement
+                        )
+                    }
                 }
-                else -> {
-                    CurrentStockCard(
-                        product    = currentProduct,
-                        onInfo     = { showStockInfo = true },
-                        onEditMin  = onEdit
-                    )
-                    RecentMovementsCard(
-                        movements  = recentMovements,
-                        unit       = currentProduct.unit_type,
-                        onSeeAll   = onViewMovements,
-                        onOpen     = onOpenMovement
-                    )
-                }
+                Spacer(Modifier.height(4.dp))
             }
-            Spacer(Modifier.height(4.dp))
         }
     }
 
@@ -361,15 +372,15 @@ fun ProductDetailScreen(
 
 // ── Onglets ──
 
-/** Two equal tabs over an underline that slides to the selected one. */
+/** Two equal tabs over an underline that follows the pager's [position], mid-swipe included. */
 @Composable
 private fun DetailTabs(
     titles   : List<String>,
     selected : Int,
+    position : Float,
     onSelect : (Int) -> Unit,
     modifier : Modifier = Modifier
 ) {
-    val position by animateFloatAsState(selected.toFloat(), label = "tab underline")
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val tabWidth = maxWidth / titles.size
         Row(Modifier.fillMaxWidth()) {
