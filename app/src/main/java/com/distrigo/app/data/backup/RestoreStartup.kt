@@ -9,6 +9,11 @@ import java.util.concurrent.CountDownLatch
  * has no place on the main thread. `DistriGoApplication.onCreate` starts it here; `AppDatabase.getDatabase`
  * waits for it before opening anything, so no code ever sees the half-replaced data; and `MainActivity`
  * shows a waiting screen instead of blocking its first frame.
+ *
+ * Even *whether* a restore waits is found out on that thread: building the installer resolves three folders
+ * and the check reads two marker files, which StrictMode flagged on the main thread at every start. So the
+ * thread always runs; on a start with nothing waiting it is done in about a millisecond, and the database's
+ * first open waits for that at most.
  */
 object RestoreStartup {
 
@@ -21,24 +26,26 @@ object RestoreStartup {
 
     val inProgress: Boolean get() = gate?.let { it.count > 0 } ?: false
 
+    /** Whether [begin] ran in this process: from then on the database waits for it, not for its own check. */
+    val started: Boolean get() = gate != null
+
     /**
-     * Starts installing whatever [installer] has waiting, on a thread of its own. Returns false, and starts
-     * nothing, when nothing waits. [onDone] runs on the install thread once it ends.
+     * On a thread of its own: builds the installer, and installs whatever it has waiting — a restore, or an
+     * install a kill interrupted; with nothing waiting it only clears what an earlier one left. [onDone] runs
+     * on that thread once it ends, with how a restore ended, or null when none was installed.
      */
-    fun begin(installer: RestoreInstaller, onDone: (RestoreResult?) -> Unit = {}): Boolean = synchronized(lock) {
-        if (gate != null) return true
-        if (!installer.needsStart) return false
+    fun begin(installer: () -> RestoreInstaller, onDone: (RestoreResult?) -> Unit = {}) = synchronized(lock) {
+        if (gate != null) return
         val latch = CountDownLatch(1)
         gate = latch
         Thread({
             try {
-                result = installer.installPending()
+                result = installer().installPending()
             } finally {
                 latch.countDown()
                 onDone(result)
             }
         }, "restore-install").start()
-        true
     }
 
     /** Blocks until a running install ends; returns at once when none runs. */

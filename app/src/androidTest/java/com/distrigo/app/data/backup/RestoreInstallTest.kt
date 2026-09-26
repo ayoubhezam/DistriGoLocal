@@ -130,15 +130,17 @@ class RestoreInstallTest {
         db = null
         RestoreStartup.reset()
         try {
-            assertTrue(RestoreStartup.begin(installer))
-            assertTrue(RestoreStartup.inProgress || RestoreStartup.result != null)
+            RestoreStartup.begin({ installer })
+            assertTrue(RestoreStartup.started)
             RestoreStartup.await()
             assertFalse(RestoreStartup.inProgress)
             assertTrue(RestoreStartup.result!!.installed)
             assertRestored()
-            // Nothing waits any more: a start has nothing to do.
+            // Nothing waits any more: a start installs nothing.
             RestoreStartup.reset()
-            assertFalse(RestoreStartup.begin(installer))
+            RestoreStartup.begin({ installer })
+            RestoreStartup.await()
+            assertNull(RestoreStartup.result)
         } finally {
             RestoreStartup.reset()
         }

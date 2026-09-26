@@ -152,9 +152,10 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                // Application.onCreate started any waiting restore's install on its own thread; nothing may open
-                // the database before it ends. When none was started, the install is a no-op done here for safety.
-                if (RestoreStartup.inProgress) RestoreStartup.await() else RestoreInstaller.forApp(context).installPending()
+                // Application.onCreate started the restore check, and any waiting restore's install, on its own
+                // thread; nothing may open the database before it ends. Where it was never started (tests),
+                // the check is done here.
+                if (RestoreStartup.started) RestoreStartup.await() else RestoreInstaller.forApp(context).installPending()
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

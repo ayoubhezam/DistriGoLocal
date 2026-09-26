@@ -90,8 +90,11 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    // Lazy, and built on IO below: injection runs inside super.onCreate, on the main thread, and building the
+    // database waits for the restore check — which also kept the "restoring" screen from ever showing, as
+    // injection blocked before the code that decides to show it.
     @javax.inject.Inject
-    lateinit var database: com.distrigo.app.data.local.database.AppDatabase
+    lateinit var database: dagger.Lazy<com.distrigo.app.data.local.database.AppDatabase>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -390,7 +393,8 @@ class MainActivity : ComponentActivity() {
         // on Dispatchers.IO, so it costs the first frame nothing; it does its own no-op check, and
         // a run that never finishes is resumed next launch — see ImageBackfill.
         lifecycleScope.launch {
-            com.distrigo.app.data.image.ImageBackfill.runIfNeeded(this@MainActivity, database)
+            val db = withContext(Dispatchers.IO) { database.get() }
+            com.distrigo.app.data.image.ImageBackfill.runIfNeeded(this@MainActivity, db)
         }
 
         // Parses the wilaya/commune file off the main thread. It used to be parsed before

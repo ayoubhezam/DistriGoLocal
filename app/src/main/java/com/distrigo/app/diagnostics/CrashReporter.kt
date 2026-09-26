@@ -21,19 +21,22 @@ import java.time.Instant
 object CrashReporter {
 
     @Volatile private var reserve: ByteArray? = null
-    private lateinit var dir: File
+    @Volatile private var dir: File? = null
     private lateinit var header: String
 
     /** First thing in `Application.onCreate`, so a crash in anything after it is caught. */
     fun install(context: Context) {
-        dir = DiagnosticReports.dir(context)
+        val app = context.applicationContext
         header = header()
         reserve = ByteArray(RESERVE_BYTES)
+        // The folder is found on disk, so off the main thread; a crash before that finds it itself.
+        Thread({ dir = DiagnosticReports.dir(app) }, "crash-reports-dir").start()
         val android = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             reserve = null
             try {
-                DiagnosticReports.write(dir, ReportKind.CRASH, System.currentTimeMillis(), title(error), body(thread, error))
+                val into = dir ?: DiagnosticReports.dir(app)
+                DiagnosticReports.write(into, ReportKind.CRASH, System.currentTimeMillis(), title(error), body(thread, error))
             } catch (_: Throwable) {
                 // Nothing more can be done here; Android's handler still logs the crash.
             }

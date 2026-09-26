@@ -31,7 +31,6 @@ object MainThreadWatchdog {
     private val visible = AtomicInteger(0)
 
     fun install(app: Application) {
-        val dir = DiagnosticReports.dir(app)
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) { visible.incrementAndGet() }
             override fun onActivityStopped(activity: Activity) { visible.decrementAndGet() }
@@ -42,7 +41,8 @@ object MainThreadWatchdog {
             override fun onActivityDestroyed(activity: Activity) = Unit
         })
         val main = Handler(Looper.getMainLooper())
-        Thread({ watch(main, dir) }, "main-watchdog").apply { isDaemon = true }.start()
+        // The reports folder is found on the watchdog's own thread: it touches the disk.
+        Thread({ watch(main, DiagnosticReports.dir(app)) }, "main-watchdog").apply { isDaemon = true }.start()
     }
 
     private fun watch(main: Handler, dir: File) {

@@ -24,8 +24,9 @@ class DistriGoApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    // Lazy: building it resolves its settings folder on disk, which injection would do on the main thread.
     @Inject
-    lateinit var autoBackupScheduler: AutoBackupScheduler
+    lateinit var autoBackupScheduler: dagger.Lazy<AutoBackupScheduler>
 
     override fun onCreate() {
         // First, so a crash in anything after is written up (every build), and StrictMode sees all of
@@ -36,7 +37,7 @@ class DistriGoApplication : Application(), Configuration.Provider {
         // Before Hilt and before anything can open the database or read a photo: a restore scheduled before the
         // restart is installed on its own thread, and the first database open waits for it (RestoreStartup).
         // Nothing starts when none is waiting.
-        RestoreStartup.begin(RestoreInstaller.forApp(this)) { result ->
+        RestoreStartup.begin({ RestoreInstaller.forApp(this) }) { result ->
             result?.let { Handler(Looper.getMainLooper()).post { Toast.makeText(this, BackupMessages.of(it), Toast.LENGTH_LONG).show() } }
         }
         super.onCreate()
@@ -46,7 +47,7 @@ class DistriGoApplication : Application(), Configuration.Provider {
         // Off the main thread: it reads the settings file and may start WorkManager.
         Thread({
             try {
-                autoBackupScheduler.ensureScheduled()
+                autoBackupScheduler.get().ensureScheduled()
             } catch (e: RuntimeException) {
                 // A scheduling problem must not take the app down at launch; the next launch tries again.
                 Log.w("DistriGoApplication", "could not schedule the daily backup", e)

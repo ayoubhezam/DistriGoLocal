@@ -28,7 +28,9 @@ object DebugStrictMode {
 
     fun install(context: Context) {
         if (!BuildConfig.DEBUG) return
-        val dir = DiagnosticReports.dir(context)
+        // Found on disk the first time a violation is recorded — on the listener's executor, not here.
+        val app = context.applicationContext
+        val dir by lazy { DiagnosticReports.dir(app) }
         val executor = Executors.newSingleThreadExecutor { Thread(it, "strictmode-reports") }
 
         StrictMode.setThreadPolicy(
@@ -61,12 +63,26 @@ object DebugStrictMode {
     private val seen = mutableSetOf<String>()
     private var loaded = false
 
+    private fun isGenerated(className: String): Boolean {
+        val simple = className.substringAfterLast('.')
+        return simple.startsWith("Hilt_") || simple.startsWith("Dagger") || "_Factory" in simple ||
+            "_MembersInjector" in simple || "_HiltModules" in simple || "_Provide" in simple
+    }
+
     @RequiresApi(Build.VERSION_CODES.P)
     private fun record(dir: File, policy: String, violation: Violation) {
         try {
             // Only what the app's own code set off: the phone's framework does its own disk work too (Samsung's
             // reads and deletes a preferences file on every resume), which the app cannot change — logged only.
-            val frame = violation.stackTrace.firstOrNull { it.className.startsWith("com.distrigo") } ?: return
+            // Hilt's and Dagger's generated classes live in the app's package but are not its code: Android's
+            // own Application.onCreate (Samsung's font switching) showed up as the app's through Hilt_….
+            val stack = violation.stackTrace
+            val at = stack.indexOfFirst { it.className.startsWith("com.distrigo") && !isGenerated(it.className) }
+            if (at < 0) return
+            // Android's own Application.onCreate between the violation and the app's frame: the framework's
+            // work, done inside the app's super.onCreate() call (Samsung loads its fonts there).
+            if (stack.take(at).any { it.className == "android.app.Application" && it.methodName == "onCreate" }) return
+            val frame = stack[at]
             val signature = "${violation.javaClass.simpleName}@${frame.className}.${frame.methodName}:${frame.lineNumber}"
             val seenFile = File(dir, SEEN_FILE)
             synchronized(seen) {
