@@ -35,7 +35,8 @@ fun ChargesNavHost(
             ChargesScreen(
                 viewModel   = viewModel,
                 onBack      = onBack,
-                onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) }
+                onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) },
+                onAddCharge = { navController.navigate(Screen.ChargesForm.createRoute()) }
             )
         }
 
@@ -65,17 +66,24 @@ fun ChargesNavHost(
                 subtypeId    = subtypeId,
                 viewModel    = viewModel,
                 onBack       = { navController.popBackStack() },
-                onAddCharge  = { navController.navigate(Screen.ChargesFormGraph.createRoute(subtypeId)) },
-                onEditCharge = { charge -> navController.navigate(Screen.ChargesFormGraph.createRoute(subtypeId, charge.id)) }
+                onAddCharge  = { navController.navigate(Screen.ChargesForm.createRoute(subtypeId)) },
+                onEditCharge = { charge -> navController.navigate(Screen.ChargesForm.createRoute(subtypeId, charge.id)) }
             )
         }
 
-        chargesFormGraph(
-            navController = navController,
-            graphRoute    = Screen.ChargesFormGraph.route,
-            viewModel     = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) }) },
-            onBack  = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) },
-            onSaved = { navController.popBackStack(Screen.ChargesFormGraph.route, inclusive = true) }
-        )
+        composable(
+            route     = Screen.ChargesForm.route,
+            arguments = listOf(
+                navArgument(ChargeEntryViewModel.ARG_SUBTYPE) { type = NavType.IntType; defaultValue = -1 },
+                navArgument(ChargeEntryViewModel.ARG_CHARGE)  { type = NavType.IntType; defaultValue = -1 }
+            )
+        ) {
+            val shared: ChargeViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) })
+            ChargeEntryScreen(
+                onBack    = { navController.popBackStack() },
+                onSaved   = { saved -> shared.onChargeSaved(saved); navController.popBackStack() },
+                onDeleted = { deleted -> shared.onChargeDeleted(deleted); navController.popBackStack() }
+            )
+        }
     }
 }

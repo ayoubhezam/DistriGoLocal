@@ -99,6 +99,28 @@ interface ChargeDao {
     @Query("SELECT * FROM charges WHERE id = :id")
     suspend fun getChargeById(id: Int): ChargeEntity?
 
+    /** A subtype's last distinct amounts, the most recently used first: the form's one-tap chips. */
+    @Query("""
+        SELECT montant FROM charges WHERE subtype_id = :subtypeId
+        GROUP BY montant ORDER BY MAX(date_time) DESC LIMIT :limit
+    """)
+    suspend fun getRecentAmounts(subtypeId: Int, limit: Int): List<Double>
+
+    /** The suppliers or stations a subtype's charges named, the most recently used first. */
+    @Query("""
+        SELECT trim(fournisseur) FROM charges
+        WHERE subtype_id = :subtypeId AND fournisseur IS NOT NULL AND trim(fournisseur) != ''
+        GROUP BY trim(fournisseur) COLLATE NOCASE ORDER BY MAX(date_time) DESC LIMIT :limit
+    """)
+    suspend fun getRecentSuppliers(subtypeId: Int, limit: Int): List<String>
+
+    /** The live subtype of the charge entered last, which the quick "Ajouter une dépense" starts on. */
+    @Query("""
+        SELECT c.subtype_id FROM charges c JOIN charge_subtypes s ON s.id = c.subtype_id
+        WHERE s.deleted_at IS NULL ORDER BY c.created_at DESC, c.id DESC LIMIT 1
+    """)
+    suspend fun getLastUsedSubtypeId(): Int?
+
     @Insert
     suspend fun insertCharge(charge: ChargeEntity): Long
 

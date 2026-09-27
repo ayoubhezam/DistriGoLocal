@@ -181,6 +181,22 @@ class ChargeRepository(
         chargeDao.softDeleteSubTypeById(id)
     }
 
+    // ── The entry form ──
+
+    /** Every live type, without stats: the form only names them. */
+    suspend fun getChargeTypes(): List<ChargeType> = chargeDao.getAllChargeTypes().map { it.toChargeType() }
+
+    /** Every live subtype, without stats: the quick form's picker. */
+    suspend fun getAllSubTypes(): List<ChargeSubType> = chargeDao.getAllSubTypes().map { it.toChargeSubType() }
+
+    suspend fun getCharge(id: Int): Charge? = chargeDao.getChargeById(id)?.toCharge()
+
+    suspend fun getRecentAmounts(subtypeId: Int, limit: Int = 3): List<Double> = chargeDao.getRecentAmounts(subtypeId, limit)
+
+    suspend fun getRecentSuppliers(subtypeId: Int, limit: Int = 3): List<String> = chargeDao.getRecentSuppliers(subtypeId, limit)
+
+    suspend fun getLastUsedSubtypeId(): Int? = chargeDao.getLastUsedSubtypeId()
+
     // ── Charges ──
     suspend fun getCharges(subtypeId: Int, month: String? = null): List<Charge> {
         val charges = if (month == null) {
@@ -192,16 +208,17 @@ class ChargeRepository(
         return charges.map { it.toCharge() }
     }
 
+    /** The new charge's id, which an "Annuler" right after saving deletes. */
     suspend fun addCharge(
         subtypeId: Int, montant: Double, dateTime: String,
         fournisseur: String?, note: String?
-    ): Map<String, Any> {
+    ): Int {
         val subType = chargeDao.getSubTypeById(subtypeId)
             ?: throw IllegalStateException("Sous-type introuvable: $subtypeId")
         val type = chargeDao.getChargeTypeById(subType.type_id)
             ?: throw IllegalStateException("Type introuvable: ${subType.type_id}")
 
-        chargeDao.insertCharge(
+        return chargeDao.insertCharge(
             ChargeEntity(
                 type_id = type.id, type_name = type.name,
                 subtype_id = subType.id, subtype_name = subType.name,
@@ -209,8 +226,7 @@ class ChargeRepository(
                 fournisseur = if (subType.has_fournisseur) fournisseur else null,
                 note = note, created_at = java.time.Instant.now().toString()
             )
-        )
-        return mapOf("message" to "Dépense ajoutée avec succès")
+        ).toInt()
     }
 
     suspend fun updateCharge(

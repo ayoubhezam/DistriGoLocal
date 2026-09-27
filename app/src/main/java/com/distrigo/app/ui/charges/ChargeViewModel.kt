@@ -41,34 +41,40 @@ class ChargeViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // ── Charge form (wizard) state — shared across ChargesFormNavGraph steps ──
-    private val _formMontant = MutableStateFlow("")
-    val formMontant: StateFlow<String> = _formMontant
+    // ── Just saved, for the list the form returns to: its "Annuler" (see ChargeSavedSnackbar) ──
+    private val _lastSaved = MutableStateFlow<SavedCharge?>(null)
+    val lastSaved: StateFlow<SavedCharge?> = _lastSaved
 
-    private val _formDate = MutableStateFlow(java.time.LocalDate.now())
-    val formDate: StateFlow<java.time.LocalDate> = _formDate
+    /** The form saved [saved]: what it touched is reloaded, and the list offers to undo a new one. */
+    fun onChargeSaved(saved: SavedCharge) {
+        _lastSaved.value = saved
+        refreshAfter(saved)
+    }
 
-    private val _formTime = MutableStateFlow(java.time.LocalTime.now())
-    val formTime: StateFlow<java.time.LocalTime> = _formTime
+    /** The form deleted a charge: its totals and list are reloaded. */
+    fun onChargeDeleted(deleted: SavedCharge) = refreshAfter(deleted)
 
-    private val _formFournisseur = MutableStateFlow("")
-    val formFournisseur: StateFlow<String> = _formFournisseur
+    fun dismissLastSaved() { _lastSaved.value = null }
 
-    private val _formNote = MutableStateFlow("")
-    val formNote: StateFlow<String> = _formNote
+    /** "Annuler": a charge just added is deleted again. */
+    fun undoLastSaved() {
+        val saved = _lastSaved.value ?: return
+        _lastSaved.value = null
+        if (!saved.isNew) return
+        viewModelScope.launch {
+            try {
+                repository.deleteCharge(saved.id)
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+            refreshAfter(saved)
+        }
+    }
 
-    fun setFormMontant(montant: String) { _formMontant.value = montant }
-    fun setFormDate(date: java.time.LocalDate) { _formDate.value = date }
-    fun setFormTime(time: java.time.LocalTime) { _formTime.value = time }
-    fun setFormFournisseur(fournisseur: String) { _formFournisseur.value = fournisseur }
-    fun setFormNote(note: String) { _formNote.value = note }
-
-    fun resetChargeForm() {
-        _formMontant.value = ""
-        _formDate.value = java.time.LocalDate.now()
-        _formTime.value = java.time.LocalTime.now()
-        _formFournisseur.value = ""
-        _formNote.value = ""
+    private fun refreshAfter(charge: SavedCharge) {
+        loadChargeTypes()
+        charge.typeId?.let(::loadSubTypes)
+        loadCharges(charge.subtypeId)
     }
 
     init {
@@ -184,47 +190,6 @@ class ChargeViewModel @Inject constructor(
             try {
                 repository.addSubType(typeId, name, icon, hasFournisseur)
                 loadSubTypes(typeId)
-                onSuccess()
-            } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
-            }
-        }
-    }
-
-    fun addCharge(
-        subtypeId   : Int,
-        montant     : Double,
-        dateTime    : String,
-        fournisseur : String?,
-        note        : String?,
-        onSuccess   : () -> Unit,
-        onError     : (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repository.addCharge(subtypeId, montant, dateTime, fournisseur, note)
-                loadCharges(subtypeId)
-                onSuccess()
-            } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
-            }
-        }
-    }
-
-    fun updateCharge(
-        id          : Int,
-        subtypeId   : Int,
-        montant     : Double,
-        dateTime    : String,
-        fournisseur : String?,
-        note        : String?,
-        onSuccess   : () -> Unit,
-        onError     : (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repository.updateCharge(id, montant, dateTime, fournisseur, note)
-                loadCharges(subtypeId)
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Erreur inconnue")

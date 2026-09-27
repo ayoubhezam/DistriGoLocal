@@ -33,7 +33,9 @@ import androidx.compose.material3.Text
 fun ChargesScreen(
     viewModel   : ChargeViewModel = hiltViewModel(),
     onBack      : (() -> Unit)? = null,
-    onTypeClick : (Int) -> Unit
+    onTypeClick : (Int) -> Unit,
+    /** The quick entry: the expense form with its category picked on the form itself. */
+    onAddCharge : () -> Unit = {}
 ) {
     val chargeTypes by viewModel.chargeTypes.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
@@ -53,63 +55,79 @@ fun ChargesScreen(
 
 
     // ── Types de charges (accueil) ──
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
-        // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
-        // affordance; null-safe because the screen is still usable as a root.
-        DsTopAppBar(
-            title    = "Types de charges",
-            subtitle = "Gérez vos catégories de charges",
-            leading  = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
-            size     = DsTopBarSize.Large
-        ) {
-            Box(
-                modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showAddTypeDialog = true },
-                contentAlignment = Alignment.Center
+    Box(Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
+            // affordance; null-safe because the screen is still usable as a root.
+            DsTopAppBar(
+                title    = "Types de charges",
+                subtitle = "Gérez vos catégories de charges",
+                leading  = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+                size     = DsTopBarSize.Large
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter un type", tint = Color.White)
-            }
-        }
-
-        // ── Carte résumé globale (toutes les charges confondues) ──
-        if (chargeTypes.isNotEmpty()) {
-            val totalValue = chargeTypes.sumOf { it.total_this_month }
-
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                shape    = DsShapes.large,
-                colors   = CardDefaults.cardColors(containerColor = DsColors.Primary)
-            ) {
-                Column(Modifier.padding(DsSpacing.lg)) {
-                    Text("Total des charges ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
-                    Spacer(Modifier.height(DsSpacing.sm))
-                    Text("${"%,.0f".format(totalValue)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text("${chargeTypes.size} types de charges actifs", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
+                Box(
+                    modifier         = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { showAddTypeDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Ajouter un type", tint = Color.White)
                 }
             }
-            Spacer(Modifier.height(DsSpacing.md))
-        }
 
-        if (isLoading && chargeTypes.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = DsColors.Primary)
-            }
-        } else {
-            LazyColumn(
-                modifier               = Modifier.fillMaxSize(),
-                contentPadding         = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-                verticalArrangement    = Arrangement.spacedBy(DsSpacing.sm)
-            ) {
-                items(chargeTypes, key = { it.id }) { type ->
-                    ChargeTypeRow(
-                        type        = type,
-                        onClick     = { onTypeClick(type.id) },
-                        onLongClick = { longPressType = type; showDeleteTypeDialog = true }
-                    )
+            // ── Carte résumé globale (toutes les charges confondues) ──
+            if (chargeTypes.isNotEmpty()) {
+                val totalValue = chargeTypes.sumOf { it.total_this_month }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                    shape    = DsShapes.large,
+                    colors   = CardDefaults.cardColors(containerColor = DsColors.Primary)
+                ) {
+                    Column(Modifier.padding(DsSpacing.lg)) {
+                        Text("Total des charges ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text("${"%,.0f".format(totalValue)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Spacer(Modifier.height(DsSpacing.xs))
+                        Text("${chargeTypes.size} types de charges actifs", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
+                    }
                 }
-                item { Spacer(Modifier.height(DsSpacing.xl)) }
+                Spacer(Modifier.height(DsSpacing.md))
+            }
+
+            if (isLoading && chargeTypes.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DsColors.Primary)
+                }
+            } else {
+                LazyColumn(
+                    modifier               = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding         = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                    verticalArrangement    = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    items(chargeTypes, key = { it.id }) { type ->
+                        ChargeTypeRow(
+                            type        = type,
+                            onClick     = { onTypeClick(type.id) },
+                            onLongClick = { longPressType = type; showDeleteTypeDialog = true }
+                        )
+                    }
+                    item { Spacer(Modifier.height(DsSpacing.xl)) }
+                }
+            }
+    
+            // The quick entry: an expense from here, without going through a type and a subtype first.
+            Button(
+                onClick  = onAddCharge,
+                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text("Ajouter une dépense", color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
+        // Above the bottom button: "Annuler" right after the form saved an expense.
+        ChargeSavedSnackbar(viewModel, Modifier.align(Alignment.BottomCenter).padding(bottom = 84.dp))
     }
 
     if (showAddTypeDialog) {

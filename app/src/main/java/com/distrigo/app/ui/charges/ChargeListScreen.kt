@@ -56,100 +56,104 @@ fun ChargeListScreen(
     val monthTotal = charges.sumOf { it.montant }
     val avgPerCharge = if (charges.isNotEmpty()) monthTotal / charges.size else 0.0
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        DsTopAppBar(
-            title   = subType?.name ?: "",
-            leading = DsTopBarLeading.Custom {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+            DsTopAppBar(
+                title   = subType?.name ?: "",
+                leading = DsTopBarLeading.Custom {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                        }
+                        subType?.let {
+                            Box(
+                                modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(DsSpacing.sm))
                     }
-                    subType?.let {
-                        Box(
-                            modifier         = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(ChargeIconMapper.iconFor(it.icon), contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                }
+            )
+
+            Spacer(Modifier.height(DsSpacing.md))
+
+            // ── Carte statistique ──
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                shape    = DsShapes.large,
+                colors   = CardDefaults.cardColors(containerColor = DsColors.Primary)
+            ) {
+                Column(Modifier.padding(DsSpacing.lg)) {
+                    Text("Total ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.8f))
+                    Text("${"%,.0f".format(monthTotal)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Spacer(Modifier.height(DsSpacing.md))
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
+                        Column {
+                            Text("${charges.size}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Nombre de dépenses", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
+                        }
+                        Column {
+                            Text("${"%,.0f".format(avgPerCharge)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Moyenne par dépense", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
                         }
                     }
-                    Spacer(Modifier.width(DsSpacing.sm))
                 }
             }
-        )
 
-        Spacer(Modifier.height(DsSpacing.md))
+            Spacer(Modifier.height(DsSpacing.md))
 
-        // ── Carte statistique ──
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-            shape    = DsShapes.large,
-            colors   = CardDefaults.cardColors(containerColor = DsColors.Primary)
-        ) {
-            Column(Modifier.padding(DsSpacing.lg)) {
-                Text("Total ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.8f))
-                Text("${"%,.0f".format(monthTotal)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                Spacer(Modifier.height(DsSpacing.md))
-                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
-                    Column {
-                        Text("${charges.size}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Nombre de dépenses", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
-                    }
-                    Column {
-                        Text("${"%,.0f".format(avgPerCharge)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Moyenne par dépense", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
+            if (charges.isEmpty()) {
+                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text("Aucune dépense ce mois-ci", color = DsColors.TextSecondary)
                     }
                 }
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.md))
-
-        if (charges.isEmpty()) {
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(DsSpacing.sm))
-                    Text("Aucune dépense ce mois-ci", color = DsColors.TextSecondary)
-                }
-            }
-        }  else {
-        val groupedCharges = remember(charges) { charges.groupBy { BusinessDates.localDay(it.date_time) } }
-        LazyColumn(
-            modifier            = Modifier.fillMaxWidth().weight(1f),
-            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-        ) {
-            groupedCharges.forEach { (date, dayCharges) ->
-                item {
-                    Text(
-                        text       = formatOrderDate(date),
-                        fontSize   = DsTextSize.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = DsColors.TextTertiary,
-                        modifier   = Modifier.padding(vertical = DsSpacing.sm)
-                    )
-                }
-                items(dayCharges, key = { it.id }) { charge ->
-                    ChargeRow(
-                        charge        = charge,
-                        onClick       = { onEditCharge(charge) },
-                        onLongClick   = { longPressCharge = charge; showDeleteDialog = true }
-                    )
+            }  else {
+            val groupedCharges = remember(charges) { charges.groupBy { BusinessDates.localDay(it.date_time) } }
+            LazyColumn(
+                modifier            = Modifier.fillMaxWidth().weight(1f),
+                contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                groupedCharges.forEach { (date, dayCharges) ->
+                    item {
+                        Text(
+                            text       = formatOrderDate(date),
+                            fontSize   = DsTextSize.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DsColors.TextTertiary,
+                            modifier   = Modifier.padding(vertical = DsSpacing.sm)
+                        )
+                    }
+                    items(dayCharges, key = { it.id }) { charge ->
+                        ChargeRow(
+                            charge        = charge,
+                            onClick       = { onEditCharge(charge) },
+                            onLongClick   = { longPressCharge = charge; showDeleteDialog = true }
+                        )
+                    }
                 }
             }
         }
-    }
 
-        Button(
-            onClick  = onAddCharge,
-            modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
-            shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Ajouter une dépense", color = Color.White, fontWeight = FontWeight.SemiBold)
+            Button(
+                onClick  = onAddCharge,
+                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
+                shape    = DsShapes.medium,
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text("Ajouter une dépense", color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
         }
+        // Above the bottom button: "Annuler" right after the form saved an expense.
+        ChargeSavedSnackbar(viewModel, Modifier.align(Alignment.BottomCenter).padding(bottom = 84.dp))
     }
 
     if (showDeleteDialog && longPressCharge != null) {

@@ -68,13 +68,12 @@ sealed class Screen(val route: String) {
     data object ChargesList     : Screen("charges_list/{subtypeId}") {
         fun createRoute(subtypeId: Int) = "charges_list/$subtypeId"
     }
-    // ── Charges Form (multi-step nested graph) ──
-    data object ChargesFormGraph : Screen("charges_form_graph/{subtypeId}?chargeId={chargeId}") {
-        fun createRoute(subtypeId: Int, chargeId: Int? = null) =
-            "charges_form_graph/$subtypeId" + if (chargeId != null) "?chargeId=$chargeId" else ""
+    // ── Charges Form (one screen) ──
+    /** No subtype: the quick entry, which picks it on the form. A charge: editing it. */
+    data object ChargesForm : Screen("charges_form?subtypeId={subtypeId}&chargeId={chargeId}") {
+        fun createRoute(subtypeId: Int? = null, chargeId: Int? = null) =
+            "charges_form?subtypeId=${subtypeId ?: -1}&chargeId=${chargeId ?: -1}"
     }
-    data object ChargesFormDetails : Screen("charges_form_details")
-    data object ChargesFormSummary : Screen("charges_form_summary")
 
     // ── Produits ──
     data object ProduitsGraph     : Screen("produits_graph")
