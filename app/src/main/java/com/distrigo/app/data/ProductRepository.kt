@@ -49,6 +49,9 @@ class ProductRepository(
 
 
 ) {
+    /** Strict stock ("Autoriser le stock négatif" off): see DepotStockGuard. */
+    private val depotGuard = DepotStockGuard(db)
+
 
     private fun ProductEntity.toProduct(codes: List<String>? = null): Product {
         return Product(
@@ -319,6 +322,9 @@ class ProductRepository(
     /** The highest id of a live product, or 0. */
     suspend fun maxLiveProductId(): Int = productDao.maxLiveId() ?: 0
 
+    /** Live products the dépôt holds less than none of: what strict stock would stop selling. */
+    suspend fun countNegativeDepotProducts(): Int = productDao.countNegativeDepot()
+
     /** How many products [query] matches, live. */
     fun observeProductCount(query: ProductListQuery): Flow<Int> =
         productDao.observeProductCount(ProductListSql.count(query))
@@ -482,7 +488,7 @@ class ProductRepository(
         // movement, and the ledger triggers bring `stock` to it. The edit form does not send one
         // today; this keeps the ledger whole for any caller that does.
         val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() else null
-        db.withTransaction {
+        depotGuard.guard(if (typedStock != null) listOf(id) else emptyList()) {
             requireNoDuplicate(updatedEntity.name, codes ?: currentCodes, excludeId = id)
             productDao.updateProduct(updatedEntity)
             codes?.let { writeBarcodes(id, it) }
@@ -1067,10 +1073,10 @@ class ProductRepository(
     }
 
     suspend fun reopenPurchaseOrder(id: Int): Map<String, Any> {
-        db.withTransaction {
+        depotGuard.guard(purchaseProductIds(id)) {
             val order = db.purchaseDao().getOrderById(id)
                 ?: throw IllegalStateException("Bon introuvable: $id")
-            if (order.status != "received") return@withTransaction
+            if (order.status != "received") return@guard
 
             db.purchaseDao().updateOrderStatus(id, "pending")
             // Removing the reception's movements takes their quantities back out of stock.
@@ -1080,7 +1086,7 @@ class ProductRepository(
     }
 
     suspend fun deletePurchaseOrder(id: Int): Map<String, Any> {
-        db.withTransaction {
+        depotGuard.guard(purchaseProductIds(id)) {
             val order = db.purchaseDao().getOrderById(id)
                 ?: throw IllegalStateException("Bon introuvable: $id")
 
@@ -1180,6 +1186,12 @@ class ProductRepository(
      * so two lines of the same product are checked as one. The product may be in the bin: a sale being
      * edited already names it.
      */
+    private fun productIdsOf(items: List<Map<String, Any?>>): List<Int> =
+        items.map { (it["product_id"] as Number).toInt() }
+
+    private suspend fun purchaseProductIds(orderId: Int): List<Int> =
+        db.purchaseDao().getItemsForOrder(orderId).map { it.product_id }
+
     private suspend fun requireCamionStock(items: List<Map<String, Any?>>) {
         val wanted = items.groupBy { (it["product_id"] as Number).toInt() }
             .mapValues { (_, lines) -> lines.sumOf { (it["quantity"] as Number).toDouble() } }
@@ -1219,12 +1231,13 @@ class ProductRepository(
         draftId: Int? = null,
         tourneeDraftId: Int? = null
     ): Map<String, Any> {
-        db.withTransaction {
+        depotGuard.guard(productIdsOf(items)) {
             val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
             val now = java.time.Instant.now().toString()
             requireDocumentAmounts(items, "unit_price", montantPaye, total)
 
-            // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) — Dépôt يسمح بمخزون سالب ──
+            // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée). A dépôt sale goes below zero only when
+            // negative stock is allowed; the guard around this refuses it otherwise. ──
             if (source == "camion") requireCamionStock(items)
 
             val clientEntity   = clientDao.getClientById(clientId)
@@ -1296,7 +1309,8 @@ class ProductRepository(
         userName: String? = null,
         draftId: Int? = null
     ): Map<String, Any> {
-        db.withTransaction {
+        // Only the new lines can lower the dépôt: a product taken off the sale gets its stock back.
+        depotGuard.guard(productIdsOf(items)) {
             val existing = db.venteDao().getVenteById(id)
                 ?: throw IllegalStateException("Vente introuvable: $id")
 
@@ -1565,7 +1579,7 @@ class ProductRepository(
         userName: String? = null,
         draftId: Int? = null
     ): Map<String, Any> {
-        db.withTransaction {
+        depotGuard.guard(productIdsOf(items)) {
             val today = java.time.LocalDate.now().toString()
             val now   = java.time.Instant.now().toString()
 
@@ -1611,7 +1625,9 @@ class ProductRepository(
         return mapOf("message" to "Chargement créé avec succès")
     }
     suspend fun deleteChargement(id: Int): Map<String, Any> {
-        db.withTransaction {
+        // Undoing a transfer back to the dépôt puts that stock in the camion again.
+        val productIds = db.chargementDao().getItemsForChargement(id).map { it.product_id }
+        depotGuard.guard(productIds) {
             // عكس التأثير: removing the transfer lines returns their quantities to where they came from.
             db.chargementDao().deleteItemsForChargement(id)
             db.chargementDao().deleteChargementById(id)

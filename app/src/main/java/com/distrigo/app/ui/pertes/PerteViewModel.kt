@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.data.model.PerteType
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.data.model.StockPolicy
+import com.distrigo.app.data.repository.BusinessSettingsRepository
 import com.distrigo.app.data.repository.PerteRepository
 import com.distrigo.app.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,8 +30,14 @@ import javax.inject.Inject
 @HiltViewModel
 class PerteViewModel @Inject constructor(
     private val repository: PerteRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    businessSettings: BusinessSettingsRepository
 ) : ViewModel() {
+
+    /** "Autoriser le stock négatif", as the cap on a dépôt perte: see StockPolicy. */
+    val stockPolicy: StateFlow<StockPolicy> = businessSettings.observeAllowNegativeStock()
+        .map { StockPolicy(allowNegative = it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StockPolicy.ALLOWED)
 
     // ── قائمة الأنواع ──
     private val _perteTypes = MutableStateFlow<List<PerteType>>(emptyList())

@@ -9,6 +9,8 @@ import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.VenteDraft
 import com.distrigo.app.data.model.VenteDraftLine
 import com.distrigo.app.data.model.VenteDraftSnapshot
+import com.distrigo.app.data.model.StockPolicy
+import com.distrigo.app.data.repository.BusinessSettingsRepository
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.data.repository.VenteFingerprint
@@ -29,7 +31,9 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,8 +66,18 @@ import javax.inject.Inject
 class VenteFormSessionViewModel @Inject constructor(
     private val draftRepository  : VenteDraftRepository,
     private val productRepository: ProductRepository,
+    businessSettings             : BusinessSettingsRepository,
     private val savedState       : SavedStateHandle
 ) : ViewModel(), DraftAutosaveHost<VenteDraftSnapshot> {
+
+    /**
+     * "Autoriser le stock négatif", as caps for the dépôt form: see StockPolicy. Read eagerly so it
+     * is known before the first line is added; until then it is the permissive default, and the
+     * repository's guard refuses whatever strict stock would not allow.
+     */
+    val stockPolicy: StateFlow<StockPolicy> = businessSettings.observeAllowNegativeStock()
+        .map { StockPolicy(allowNegative = it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StockPolicy.ALLOWED)
 
     /** The number of the document being edited, for the form title — see ProductRepository.documentLabel. */
     suspend fun documentLabel(sourceType: String, id: Int): String = productRepository.documentLabel(sourceType, id)

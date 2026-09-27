@@ -231,7 +231,7 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
                                     product     = rp.product,
                                     quantity    = cartItem?.quantity,
                                     maxQuantity = rp.maxQuantity,
-                                    onAdd       = { viewModel.setFormCartItems(cartItems + RetourCartItem(product = rp.product, quantity = 1.0, maxQuantity = rp.maxQuantity)) },
+                                    onAdd       = { viewModel.setFormCartItems(cartItems + RetourCartItem(product = rp.product, quantity = minOf(1.0, rp.maxQuantity), maxQuantity = rp.maxQuantity)) },
                                     onQuantityChange = { newQty ->
                                         viewModel.setFormCartItems(
                                             if (newQty <= 0) cartItems.filter { it.product.id != rp.product.id }

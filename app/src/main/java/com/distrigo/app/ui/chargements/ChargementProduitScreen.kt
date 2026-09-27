@@ -98,6 +98,10 @@ fun ChargementProduitScreen(
     }
 
     val delta = targetCamion - product.camion_stock
+    val stockPolicy by viewModel.stockPolicy.collectAsState()
+    val camionCap = stockPolicy.camionTargetCap(product)
+    // Strict stock: the stock moved after the target was set (a restored pending edit).
+    val overStock = camionCap != null && targetCamion > camionCap + 1e-6
 
     // Anything that would be written counts, not just the quantity: a note typed and then lost to
     // a back gesture is the same broken promise as a quantity typed and lost.
@@ -184,7 +188,8 @@ fun ChargementProduitScreen(
                 item              = ChargementCartItem(product = product, targetCamion = targetCamion),
                 onQuantityChange  = { targetCamion = it.coerceAtLeast(0.0) },
                 onRemove          = { attemptBack() },
-                initiallyExpanded = true
+                initiallyExpanded = true,
+                camionCap         = camionCap
             )
 
             OutlinedTextField(
@@ -243,7 +248,7 @@ fun ChargementProduitScreen(
             },
             // A zero delta has nothing to write, so the button says so by being dead rather than
             // by silently doing nothing — which is what the cart screen does today.
-            enabled  = delta != 0.0 && !isSaving,
+            enabled  = delta != 0.0 && !isSaving && !overStock,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)

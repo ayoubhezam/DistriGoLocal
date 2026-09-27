@@ -12,6 +12,9 @@ import com.distrigo.app.data.local.entity.ProductBarcodeEntity
 import com.distrigo.app.data.local.entity.ProductEntity
 import kotlinx.coroutines.flow.Flow
 
+/** A product's dépôt stock (`stock - camion_stock`), with what a message needs to name it. */
+data class DepotStockRow(val id: Int, val name: String, val unit_type: String, val depot: Double)
+
 /** A row of a paged product list: the product, and `LOWER(name)` exactly as SQLite computed it. */
 data class ProductPageRow(
     @Embedded val product: ProductEntity,
@@ -82,6 +85,14 @@ interface ProductDao {
      */
     @Query("SELECT * FROM products WHERE id = :productId")
     suspend fun getProductByIdIncludingBin(productId: Int): ProductEntity?
+
+    /** What the dépôt holds of each product, the bin included: documents that already name a binned product still move it. */
+    @Query("SELECT id, name, unit_type, stock - camion_stock AS depot FROM products WHERE id IN (:ids)")
+    suspend fun getDepotStocks(ids: List<Int>): List<DepotStockRow>
+
+    /** Live products whose dépôt stock is below zero. */
+    @Query("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL AND stock - camion_stock < -0.000001")
+    suspend fun countNegativeDepot(): Int
 
     /** A live product with this name, ignoring case and surrounding spaces, other than [excludeId]. */
     @Query("SELECT * FROM products WHERE deleted_at IS NULL AND id != :excludeId AND trim(name) = trim(:name) COLLATE NOCASE LIMIT 1")

@@ -1040,6 +1040,22 @@ val MIGRATION_55_56 = object : Migration(55, 56) {
 }
 
 /**
+ * 56 → 57: `business_settings.allow_negative_stock`, the "Autoriser le stock négatif" setting.
+ *
+ * 1 on the existing row: the app has always allowed negative stock, and a dépôt already below zero
+ * must not become unsellable because of an update. The user turns strict stock on in Paramètres.
+ *
+ * The column definition is copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/57.json`). **Do not hand-edit it** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_56_57 = object : Migration(56, 57) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `business_settings` ADD COLUMN `allow_negative_stock` INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1053,6 +1069,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
+    MIGRATION_56_57,
 )
 
 /**

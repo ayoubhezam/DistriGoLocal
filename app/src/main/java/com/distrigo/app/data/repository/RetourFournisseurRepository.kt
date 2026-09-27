@@ -110,7 +110,7 @@ class RetourFournisseurRepository(
 
         PerteRepository(db).seedDefaultPerteTypesIfNeeded()
 
-        db.withTransaction {
+        return DepotStockGuard(db).guardOrError(items.map { (it["product_id"] as Number).toInt() }) {
             val supplier = supplierDao.getSupplierById(supplierId)
                 ?: throw IllegalStateException("Fournisseur introuvable: $supplierId")
             val now = java.time.Instant.now().toString()
@@ -176,13 +176,14 @@ class RetourFournisseurRepository(
             retourDao.insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
             supplierDao.recomputeBalance(supplierId)
+            mapOf("message" to "Retour enregistré avec succès")
         }
-        return mapOf("message" to "Retour enregistré avec succès")
     }
 
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
-        db.withTransaction {
+        // Undoing a motif that brought stock in takes it back out of the dépôt.
+        return DepotStockGuard(db).guardOrError(retourDao.getItemsForRetour(id).map { it.product_id }) {
             // Raw DAO delete, not PerteRepository.deletePerte: these linked pertes have affectsStock=false,
             // so their stock was never separately decremented — restoring would incorrectly add quantity back.
             db.perteDao().getPertesBySource("retour_fournisseur", id).forEach { db.perteDao().deletePerteById(it.id) }
@@ -192,7 +193,7 @@ class RetourFournisseurRepository(
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
             supplierDao.recomputeBalance(retour.supplier_id)
+            mapOf("message" to "Retour supprimé, stock restauré")
         }
-        return mapOf("message" to "Retour supprimé, stock restauré")
     }
 }

@@ -263,9 +263,17 @@ fun ChargementNavHost(
             // cartItems rather than tracked separately, so the button cannot drift out of step with
             // what the save would actually do.
             val hasChanges = cartItems.any { it.targetCamion != it.product.camion_stock }
+            val stockPolicy by session.stockPolicy.collectAsState()
+            // Strict stock: a line whose target the dépôt can no longer cover (the stock moved
+            // after it was set). Its card says what to bring it back to; the save waits for that.
+            val overStock = cartItems.any { ci ->
+                stockPolicy.camionTargetCap(ci.product)?.let { ci.targetCamion > it + 1e-6 } ?: false
+            }
+            var saveError by remember { mutableStateOf("") }
 
             fun save() {
                 isSaving = true
+                saveError = ""
                 val items = cartItems.mapNotNull { ci ->
                     val delta = ci.targetCamion - ci.product.camion_stock
                     if (delta == 0.0) return@mapNotNull null
@@ -288,7 +296,8 @@ fun ChargementNavHost(
                     userName  = userName.trim().ifEmpty { null },
                     items     = items,
                     onSuccess = { session.onCommitted(); onSaved() },
-                    onError   = { isSaving = false }
+                    // Shown: a refused save used to leave only a button that stopped spinning.
+                    onError   = { isSaving = false; saveError = it }
                 )
             }
 
@@ -341,6 +350,7 @@ fun ChargementNavHost(
                             ChargementCartRow(
                                 item              = item,
                                 initiallyExpanded = preSelectedProductId == item.product.id,
+                                camionCap         = stockPolicy.camionTargetCap(item.product),
                                 onQuantityChange  = { newTarget ->
                                     session.setFormCartItems(cartItems.map {
                                         if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0.0)) else it
@@ -389,9 +399,17 @@ fun ChargementNavHost(
                     // live and did nothing, which looks like a failure rather than a no-op. The
                     // same rule the single-product card uses: the control is dead when there is
                     // nothing for it to do, and says so.
+                    if (saveError.isNotEmpty()) {
+                        Text(
+                            saveError,
+                            fontSize = DsTextSize.bodySmall,
+                            color    = DsColors.Danger,
+                            modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                        )
+                    }
                     Button(
                         onClick  = { save() },
-                        enabled  = hasChanges && !isSaving,
+                        enabled  = hasChanges && !isSaving && !overStock,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)

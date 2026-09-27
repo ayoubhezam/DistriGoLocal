@@ -15,6 +15,7 @@ class PerteRepository(
 ) {
     private val perteDao  = db.perteDao()
     private val productDao = db.productDao()
+    private val depotGuard = DepotStockGuard(db)
 
     // ── Mapping ──
     private fun PerteTypeEntity.toPerteType(count: Int = 0, totalValue: Double = 0.0, totalQty: Double = 0.0) = PerteType(
@@ -139,7 +140,7 @@ class PerteRepository(
         val valeurTotale = product.purchase_price * quantity
         val now = java.time.Instant.now().toString()
 
-        db.withTransaction {
+        return depotGuard.guardOrError(listOf(product.id)) {
             val perteId = perteDao.insertPerte(
                 PerteEntity(
                     type_id = type.id, type_name = type.name,
@@ -173,8 +174,8 @@ class PerteRepository(
                     )
                 )
             }
+            mapOf("message" to "Perte enregistrée avec succès")
         }
-        return mapOf("message" to "Perte enregistrée avec succès")
     }
 
     suspend fun deletePerte(id: Int): Map<String, Any> {
@@ -203,7 +204,8 @@ class PerteRepository(
         if (quantity <= 0) return mapOf("error" to "Quantité invalide")
 
         return try {
-            db.withTransaction {
+            // Only the perte's new product can lose dépôt stock: the old one gets its quantity back.
+            depotGuard.guard(listOf(productId)) {
                 // 1) إعادة الكمية القديمة إلى مصدرها ومنتجها الأصليين — removing the old movement
                 //    puts the old quantity back, so the camion check below sees the stock without it.
                 db.stockMovementDao().deleteBySource("perte", id)

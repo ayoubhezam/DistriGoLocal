@@ -222,6 +222,7 @@ fun NavGraphBuilder.venteFormGraph(
             val productCount by session.productList.count.collectAsState()
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
+            val stockPolicy by session.stockPolicy.collectAsState()
             val search = session.productSearch
             var showScanner by remember { mutableStateOf(false) }
 
@@ -300,6 +301,10 @@ fun NavGraphBuilder.venteFormGraph(
                                 items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
                                     val product = pagedProducts[index] ?: return@items
                                     val isInCart = cartItems.any { it.product.id == product.id }
+                                    // Strict stock: a product the dépôt has none of cannot start a
+                                    // line. A camion sale being edited is capped by the camion instead.
+                                    val depotEmpty = editSource != "camion" &&
+                                        (stockPolicy.depotCap(product)?.let { it <= 0.0 } ?: false)
 
                                     Row(
                                         modifier = Modifier
@@ -347,7 +352,12 @@ fun NavGraphBuilder.venteFormGraph(
                                                 color    = DsColors.TextSecondary
                                             )
                                             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                                                Text("Dépôt: ${formatQty(product.stock - product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                                Text(
+                                                    if (depotEmpty && !isInCart) "Rupture · Dépôt: ${formatQty(product.stock - product.camion_stock)}"
+                                                    else "Dépôt: ${formatQty(product.stock - product.camion_stock)}",
+                                                    fontSize = DsTextSize.caption,
+                                                    color    = if (depotEmpty && !isInCart) DsColors.Danger else DsColors.TextSecondary
+                                                )
                                                 Text("Camion: ${formatQty(product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                             }
                                         }
@@ -357,17 +367,27 @@ fun NavGraphBuilder.venteFormGraph(
                                         if (!isInCart) {
                                             IconButton(
                                                 onClick = {
+                                                    // Strict stock: a first line of 1 unless the
+                                                    // dépôt holds less than one (a kg product).
+                                                    val cap = if (editSource == "camion") null else stockPolicy.depotCap(product)
                                                     session.setFormCartItems(
                                                         cartItems + VenteCartItem(
                                                             product   = product,
-                                                            quantity  = 1.0,
+                                                            quantity  = cap?.let { minOf(1.0, it) } ?: 1.0,
                                                             unitPrice = product.selling_price
                                                         )
                                                     )
                                                 },
-                                                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                                                enabled  = !depotEmpty,
+                                                modifier = Modifier.size(40.dp).clip(DsShapes.medium)
+                                                    .background(if (depotEmpty) DsColors.SurfaceSunken else DsColors.PrimaryLight)
                                             ) {
-                                                Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                                                Icon(
+                                                    Icons.Default.AddShoppingCart,
+                                                    contentDescription = if (depotEmpty) "Rupture de stock" else "Ajouter au panier",
+                                                    tint     = if (depotEmpty) DsColors.TextTertiary else DsColors.Primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
                                             }
                                         } else {
                                             IconButton(
@@ -431,6 +451,7 @@ fun NavGraphBuilder.venteFormGraph(
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
+            val stockPolicy by session.stockPolicy.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -523,6 +544,7 @@ fun NavGraphBuilder.venteFormGraph(
                                     // the user remembers — but validation is blocked until they
                                     // remove it themselves.
                                     isMissingProduct = item.product.id in missingProductIds,
+                                    depotCap         = stockPolicy.depotCap(item.product),
                                     isExpanded       = isRowExpanded,
                                     onToggleExpand   = toggleExpand,
                                     onQuantityChange = changeQuantity,
@@ -606,9 +628,15 @@ fun NavGraphBuilder.venteFormGraph(
             val userName by session.formUserName.collectAsState()
             val montantPaye by session.formMontantPaye.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
+            val stockPolicy by session.stockPolicy.collectAsState()
+            val editSource by session.editSource.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            // Strict stock: a line the dépôt can no longer cover, marked in the cart. A camion sale
+            // being edited is checked against the camion by the repository instead.
+            val overStockProduct = if (editSource == "camion") null
+                else cartItems.firstOrNull { stockPolicy.exceedsDepot(it.product, it.quantity) }?.product?.name
 
             fun doSave() {
                 if (formClient == null) return
@@ -617,7 +645,7 @@ fun NavGraphBuilder.venteFormGraph(
                 // back, so nothing is corrupted, but the button appears to do nothing at all.
                 // The line has to go first. The cart step marks it; this is the block behind
                 // that marker, matching what Achats has always done.
-                if (missingProductIds.isNotEmpty()) return
+                if (missingProductIds.isNotEmpty() || overStockProduct != null) return
                 isSaving = true; saveError = ""
                 val items = cartItems.map { ci ->
                     mapOf("product_id" to ci.product.id, "quantity" to ci.quantity, "unit_price" to ci.unitPrice)
@@ -666,6 +694,7 @@ fun NavGraphBuilder.venteFormGraph(
                 isSaving            = isSaving,
                 saveError           = saveError,
                 hasMissingProducts  = missingProductIds.isNotEmpty(),
+                overStockProduct    = overStockProduct,
                 onBack              = { navController.popBackStack() },
                 onConfirm           = { doSave() }
             )

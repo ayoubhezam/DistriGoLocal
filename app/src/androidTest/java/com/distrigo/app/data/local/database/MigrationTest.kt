@@ -647,6 +647,25 @@ class MigrationTest {
         }
     }
 
+    /** 56 -> 57 adds "Autoriser le stock négatif", on for the existing row: an update changes nothing. */
+    @Test
+    fun migration56To57AllowsNegativeStockOnTheExistingRow() {
+        helper.createDatabase(TEST_DB, 56).apply {
+            execSQL(
+                "INSERT INTO business_settings (id, business_name, business_phone, logo_ref, uuid, created_at, updated_at, version) " +
+                    "VALUES (1, 'Distri Sétif', NULL, NULL, 'u-settings', '2026-09-01T10:00:00Z', 1000, 3)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 57, true, MIGRATION_56_57)
+        try {
+            assertEquals(1, sql.count("business_settings", "allow_negative_stock = 1 AND business_name = 'Distri Sétif' AND version = 3"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

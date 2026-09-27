@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.BuildConfig
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -54,6 +56,7 @@ fun ParametresScreen(
             modifier            = Modifier.verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
+            NegativeStockCard()
             SettingsNavCard(
                 icon     = Icons.Default.Receipt,
                 iconBg   = DsColors.SuccessLight,
@@ -97,6 +100,67 @@ fun ParametresScreen(
             // Absent from release builds: BuildConfig.DEBUG is a compile-time false there.
             if (BuildConfig.DEBUG) StressDataCard()
         }
+    }
+}
+
+/**
+ * "Autoriser le stock négatif": on, the dépôt may go below zero and the forms only warn; off (strict
+ * stock), nothing can take the dépôt below zero — sales, chargements, pertes, supplier returns,
+ * inventories, or undoing a document that brought stock in.
+ */
+@Composable
+private fun NegativeStockCard(viewModel: StockSettingsViewModel = hiltViewModel()) {
+    val allowNegative by viewModel.allowNegative.collectAsState()
+    val pendingStrict by viewModel.pendingStrict.collectAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.SurfaceMuted)
+            .padding(DsSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(DsSpacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Autoriser le stock négatif", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(
+                if (allowNegative == false) "Désactivé : le stock du dépôt ne peut jamais passer sous zéro"
+                else "Activé : le dépôt peut passer sous zéro, avec un avertissement",
+                fontSize = DsTextSize.caption,
+                color    = DsColors.TextSecondary
+            )
+        }
+        Spacer(Modifier.width(DsSpacing.sm))
+        Switch(
+            checked         = allowNegative ?: true,
+            enabled         = allowNegative != null,
+            onCheckedChange = { viewModel.setAllowNegative(it) }
+        )
+    }
+
+    pendingStrict?.let { count ->
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelStrict() },
+            title = { Text("Désactiver le stock négatif ?") },
+            text  = {
+                Text(
+                    "$count produit(s) sont déjà en stock négatif au dépôt. Ils ne pourront plus être " +
+                        "vendus, chargés ni sortis du dépôt avant d'être réapprovisionnés."
+                )
+            },
+            confirmButton = { TextButton(onClick = { viewModel.confirmStrict() }) { Text("Désactiver") } },
+            dismissButton = { TextButton(onClick = { viewModel.cancelStrict() }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
     }
 }
 

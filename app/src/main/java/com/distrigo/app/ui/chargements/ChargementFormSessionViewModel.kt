@@ -7,6 +7,8 @@ import com.distrigo.app.data.model.ChargementDraft
 import com.distrigo.app.data.model.ChargementDraftLine
 import com.distrigo.app.data.model.ChargementDraftSnapshot
 import com.distrigo.app.data.model.Product
+import com.distrigo.app.data.model.StockPolicy
+import com.distrigo.app.data.repository.BusinessSettingsRepository
 import com.distrigo.app.data.repository.ChargementDraftRepository
 import com.distrigo.app.data.repository.ProductRepository
 import com.distrigo.app.ui.common.DraftAutosave
@@ -22,7 +24,9 @@ import com.distrigo.app.ui.common.PagedProductList
 import com.distrigo.app.ui.common.debouncedSearch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -56,8 +60,14 @@ import javax.inject.Inject
 class ChargementFormSessionViewModel @Inject constructor(
     private val draftRepository  : ChargementDraftRepository,
     private val productRepository: ProductRepository,
+    businessSettings             : BusinessSettingsRepository,
     private val savedState       : SavedStateHandle
 ) : ViewModel(), DraftAutosaveHost<ChargementDraftSnapshot> {
+
+    /** "Autoriser le stock négatif", as caps for the chargement card: see StockPolicy. */
+    val stockPolicy: StateFlow<StockPolicy> = businessSettings.observeAllowNegativeStock()
+        .map { StockPolicy(allowNegative = it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StockPolicy.ALLOWED)
 
     // ── Form state ───────────────────────────────────────────────────────────
 

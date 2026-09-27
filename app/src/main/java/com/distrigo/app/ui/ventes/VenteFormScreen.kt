@@ -237,6 +237,11 @@ internal fun Step3Validation(
      * goes dead until the offending line is removed — the cart step marks which one it is.
      */
     hasMissingProducts  : Boolean = false,
+    /**
+     * Strict stock: the name of a line's product the dépôt can no longer cover (the stock moved
+     * after the line was added). Blocks the sale like a missing product, until the cart fixes it.
+     */
+    overStockProduct    : String? = null,
     onBack              : () -> Unit,
     /** Where "Corriger" goes. Here the cart is the previous destination, so it is [onBack]. */
     onFixMissing        : () -> Unit = onBack,
@@ -463,6 +468,13 @@ internal fun Step3Validation(
                 actionLabel = "Corriger",
                 onAction    = onFixMissing
             )
+        } else if (overStockProduct != null) {
+            CartBlockingBanner(
+                text        = "Stock dépôt insuffisant pour « $overStockProduct ». " +
+                              "Réduisez sa quantité dans la sélection pour pouvoir enregistrer.",
+                actionLabel = "Corriger",
+                onAction    = onFixMissing
+            )
         } else if (saveError.isNotEmpty()) {
             CartBlockingBanner(text = saveError)
         }
@@ -470,7 +482,7 @@ internal fun Step3Validation(
         // ── Confirm button ──
         Button(
             onClick  = onConfirm,
-            enabled  = !isSaving && !hasMissingProducts && selectedClient != null && cartItems.isNotEmpty(),
+            enabled  = !isSaving && !hasMissingProducts && overStockProduct == null && selectedClient != null && cartItems.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
@@ -499,6 +511,11 @@ internal fun VenteCartRow(
     item             : VenteCartItem,
     /** The catalogue no longer has this product; the line survives on the draft's own copy. */
     isMissingProduct : Boolean = false,
+    /**
+     * Strict stock: the most this line may take from the dépôt (StockPolicy.depotCap). Null when
+     * negative stock is allowed, and the row warns about overselling instead of preventing it.
+     */
+    depotCap         : Double? = null,
     isExpanded       : Boolean,
     onToggleExpand   : () -> Unit,
     onQuantityChange : (Double) -> Unit,
@@ -512,12 +529,20 @@ internal fun VenteCartRow(
     val isNegative     = remainingAfter < 0
     val isLow          = !isNegative && remainingAfter <= item.product.min_stock
 
+    // Strict stock. Reaching the cap is normal — the "+" simply stops there. A line above it can only
+    // come from outside this form (stock that moved since the line was added, another draft that took
+    // it, or a sale saved while negative stock was allowed), so it is marked and blocks the sale, but
+    // nothing vibrates: the user did not cause it.
+    val isStrict  = depotCap != null
+    val overCap   = depotCap != null && item.quantity > depotCap + 1e-6
+    val atCap     = depotCap != null && !overCap && item.quantity >= depotCap - 1e-6
+
     val progressFraction = if (availableStock > 0)
         (remainingAfter.toFloat() / availableStock.toFloat()).coerceIn(0f, 1f)
     else 0f
 
     LaunchedEffect(isNegative) {
-        if (isNegative) {
+        if (isNegative && !isStrict) {
             com.distrigo.app.ui.components.vibrateWarning(context)
         }
     }
@@ -526,17 +551,19 @@ internal fun VenteCartRow(
     // Its placeholder carries stock 0, so the rupture branch fires and tells the user to restock
     // something the catalogue no longer holds — advice that cannot be followed. The missing
     // state takes precedence, in the wording Achats already uses for it.
+    val isDanger = isMissingProduct || overCap || (isNegative && !isStrict)
     val tone = when {
-        isMissingProduct -> CartStatusTone.DANGER
-        isNegative       -> CartStatusTone.DANGER
-        isLow            -> CartStatusTone.WARNING
+        isDanger         -> CartStatusTone.DANGER
+        atCap || isLow   -> CartStatusTone.WARNING
         else             -> CartStatusTone.OK
     }
+    val unit = item.product.unit_type
     val statusText = when {
         isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
-        isNegative       ->
-            "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} ${item.product.unit_type}"
-        else             -> "Reste ${formatQty(remainingAfter)} ${item.product.unit_type}"
+        overCap          -> "Stock insuffisant — disponible ${formatQty(depotCap!!)} $unit, réduisez la quantité"
+        atCap            -> "Maximum atteint — ${formatQty(depotCap!!)} $unit en dépôt"
+        isNegative       -> "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} $unit"
+        else             -> "Reste ${formatQty(remainingAfter)} $unit"
     }
 
     SelectionCartCard(
@@ -546,31 +573,32 @@ internal fun VenteCartRow(
         totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
         isExpanded      = isExpanded,
         onToggleExpand  = onToggleExpand,
-        isDanger        = isNegative || isMissingProduct,
+        isDanger        = isDanger,
         statusLine = {
             CartStatusLine(
-                icon             = if (isNegative || isMissingProduct) Icons.Default.Warning
-                                   else Icons.Default.Inventory2,
+                icon             = if (isDanger) Icons.Default.Warning else Icons.Default.Inventory2,
                 text             = statusText,
                 tone             = tone,
                 // No stock bar for a product with no stock to report on.
                 progressFraction = if (isMissingProduct) null else progressFraction,
-                maxLines         = if (isMissingProduct) 2 else 1
+                maxLines         = if (isMissingProduct || overCap) 2 else 1
             )
         },
         expandedContent = {
-            // `max` intentionally omitted: Dépôt sales are permissive by design and only
-            // soft-warn (color + vibration) on overselling, unlike Camion/Tournée's
-            // TourneeVenteCartRow stepper, which enforces a hard ceiling via `max`.
+            // With negative stock allowed there is no `max`: the stepper only soft-warns (color +
+            // vibration) on overselling. Strict stock caps it at the dépôt stock, as the camion
+            // sale's TourneeVenteCartRow caps at the camion's. Never below `min`, which the stepper
+            // cannot take.
             QuantityStepper(
                 label         = "Quantité",
                 value         = item.quantity,
                 onValueChange = { newQty ->
-                    if (availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
+                    if (!isStrict && availableStock - newQty < 0) com.distrigo.app.ui.components.vibrateWarning(context)
                     onQuantityChange(newQty)
                 },
                 formatValue   = ::formatQty,
-                min = 0.01
+                min = 0.01,
+                max = depotCap?.coerceAtLeast(0.01)
             )
 
             Spacer(Modifier.height(DsSpacing.md))

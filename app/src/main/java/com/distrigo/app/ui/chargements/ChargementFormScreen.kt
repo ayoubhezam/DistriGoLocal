@@ -38,11 +38,20 @@ internal fun ChargementCartRow(
     item              : ChargementCartItem,
     onQuantityChange  : (Double) -> Unit,
     onRemove          : () -> Unit,
-    initiallyExpanded : Boolean = false
+    initiallyExpanded : Boolean = false,
+    /**
+     * Strict stock: the most the camion may end up holding (StockPolicy.camionTargetCap), which leaves
+     * the dépôt at zero. Null when negative stock is allowed.
+     */
+    camionCap         : Double? = null
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     val delta         = item.targetCamion - item.product.camion_stock
     val depotPreview  = item.product.stock - item.targetCamion   // stock = total désormais
+    // Above the cap only when the stock moved after the target was set: the save is refused, so the
+    // card says what to bring it back to.
+    val overCap       = camionCap != null && item.targetCamion > camionCap + 1e-6
+    val atCap         = camionCap != null && !overCap && item.targetCamion >= camionCap - 1e-6
     val subtitle = when {
         delta > 0 -> "+$delta vers le camion"
         delta < 0 -> "${-delta} vers le dépôt"
@@ -139,16 +148,34 @@ internal fun ChargementCartRow(
                         modifier   = Modifier.widthIn(min = 48.dp).padding(horizontal = DsSpacing.md)
                     )
                     IconButton(
-                        onClick  = { onQuantityChange(item.targetCamion + 1) },
+                        onClick  = {
+                            val next = item.targetCamion + 1
+                            onQuantityChange(camionCap?.let { minOf(next, it) } ?: next)
+                        },
+                        enabled  = camionCap == null || item.targetCamion < camionCap - 1e-6,
                         modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
                     ) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = null,
-                            tint = DsColors.TextPrimary,
+                            tint = if (camionCap == null || item.targetCamion < camionCap - 1e-6) DsColors.TextPrimary
+                                   else DsColors.TextTertiary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                }
+
+                // Strict stock: the "+" stops when the dépôt is empty, and says why.
+                if (overCap || (atCap && delta > 0)) {
+                    Spacer(Modifier.height(DsSpacing.xs))
+                    Text(
+                        if (overCap) "Stock dépôt insuffisant — maximum ${formatQty(camionCap!!)} dans le camion"
+                        else "Tout le stock du dépôt est chargé",
+                        fontSize  = DsTextSize.caption,
+                        color     = if (overCap) DsColors.Danger else DsColors.Warning,
+                        textAlign = TextAlign.Center,
+                        modifier  = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Spacer(Modifier.height(DsSpacing.md))

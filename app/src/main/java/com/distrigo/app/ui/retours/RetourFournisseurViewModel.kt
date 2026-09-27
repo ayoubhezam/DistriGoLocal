@@ -1,6 +1,9 @@
 package com.distrigo.app.ui.retours
 
 import androidx.lifecycle.ViewModel
+import com.distrigo.app.data.model.StockPolicy
+import com.distrigo.app.data.repository.BusinessSettingsRepository
+import kotlinx.coroutines.flow.first
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.Product
@@ -20,7 +23,8 @@ import javax.inject.Inject
 class RetourFournisseurViewModel @Inject constructor(
     private val db: AppDatabase,
     private val repository: RetourFournisseurRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val businessSettings: BusinessSettingsRepository
 ) : ViewModel() {
 
     private val _retours = MutableStateFlow<List<RetourFournisseur>>(emptyList())
@@ -71,9 +75,15 @@ class RetourFournisseurViewModel @Inject constructor(
             val purchased = db.purchaseDao().getPurchasedQuantitiesForSupplier(supplierId, receivedStatus).associate { it.product_id to it.total_quantity }
             val returned   = db.retourFournisseurDao().getReturnedQuantitiesForSupplier(supplierId).associate { it.product_id to it.total_quantity }
             val byId       = productRepository.getLiveProductsByIds(purchased.keys).associateBy { it.id }
+            // Strict stock: a return goes back out of the dépôt, so it can take no more than the dépôt
+            // holds, whatever was bought. A product the dépôt has none of is not offered. The
+            // repository's guard refuses anything that gets past this.
+            val policy     = StockPolicy(businessSettings.observeAllowNegativeStock().first())
             _returnableProducts.value = purchased.mapNotNull { (productId, purchasedQty) ->
-                val remaining = purchasedQty - (returned[productId] ?: 0.0)
-                if (remaining > 0) byId[productId]?.let { ReturnableProduct(it, remaining) } else null
+                val product   = byId[productId] ?: return@mapNotNull null
+                val returnable = purchasedQty - (returned[productId] ?: 0.0)
+                val remaining = policy.depotCap(product)?.let { minOf(returnable, it) } ?: returnable
+                if (remaining > 0) ReturnableProduct(product, remaining) else null
             }
             _isLoading.value = false
         }

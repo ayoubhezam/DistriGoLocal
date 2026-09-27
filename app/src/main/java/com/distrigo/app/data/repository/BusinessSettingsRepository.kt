@@ -9,6 +9,7 @@ import com.distrigo.app.data.model.BusinessSettings
 import com.distrigo.app.ui.common.ImageCapture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -53,6 +54,20 @@ class BusinessSettingsRepository(
     suspend fun saveIdentity(name: String, phone: String) {
         importLegacyIfNeeded()
         dao.updateIdentity(name.trim().ifBlank { null }, phone.trim().ifBlank { null })
+    }
+
+    /**
+     * "Autoriser le stock négatif", and every change to it. Its own stream rather than a field of
+     * [observe], so the sale and chargement forms are not recomputed when the logo or the name changes.
+     */
+    fun observeAllowNegativeStock(): Flow<Boolean> = flow {
+        importLegacyIfNeeded()
+        emitAll(dao.observeAllowNegativeStock().map { it ?: true }.distinctUntilChanged())
+    }
+
+    suspend fun setAllowNegativeStock(allow: Boolean) {
+        importLegacyIfNeeded()
+        dao.updateAllowNegativeStock(allow)
     }
 
     /**

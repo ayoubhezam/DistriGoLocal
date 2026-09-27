@@ -88,8 +88,15 @@ fun NavGraphBuilder.pertesFormGraph(
             val formMotif by viewModel.formMotif.collectAsState()
             val formUserName by viewModel.formUserName.collectAsState()
             val formSaveError by viewModel.formSaveError.collectAsState()
+            val stockPolicy by viewModel.stockPolicy.collectAsState()
             var quantityError by remember { mutableStateOf("") }
             var showProductPicker by remember { mutableStateOf(false) }
+            // Strict stock: a dépôt perte takes no more than the dépôt holds — plus, when editing, what
+            // this perte already took from it, since the form's product is the live one.
+            val depotCap = if (formSource != "depot") null else formProduct?.let { product ->
+                val own = editingPerte?.takeIf { it.source == "depot" && it.product_id == product.id }?.quantity ?: 0.0
+                stockPolicy.depotCap(product, ownQuantity = own)
+            }
             var showDatePicker by remember { mutableStateOf(false) }
 
             var initialized by rememberSaveable { mutableStateOf(false) }
@@ -192,12 +199,26 @@ fun NavGraphBuilder.pertesFormGraph(
                                     Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary)
                                 }
                                 Text(formatQty(formQuantity), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                IconButton(onClick = { viewModel.setFormQuantity(formQuantity + 1); quantityError = "" }) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.TextPrimary)
+                                val canAdd = depotCap == null || formQuantity < depotCap - 1e-6
+                                IconButton(
+                                    onClick = {
+                                        val next = formQuantity + 1
+                                        viewModel.setFormQuantity(depotCap?.let { minOf(next, it) } ?: next); quantityError = ""
+                                    },
+                                    enabled = canAdd
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = if (canAdd) DsColors.TextPrimary else DsColors.TextTertiary)
                                 }
                             }
                             if (quantityError.isNotEmpty()) {
                                 Text(quantityError, fontSize = DsTextSize.caption, color = DsColors.Danger, modifier = Modifier.padding(top = 2.dp))
+                            } else if (depotCap != null && formProduct != null) {
+                                Text(
+                                    "Disponible au dépôt : ${formatQty(depotCap)}",
+                                    fontSize = DsTextSize.caption,
+                                    color    = if (formQuantity > depotCap + 1e-6) DsColors.Danger else DsColors.TextSecondary,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
                             }
                         }
                         Column(Modifier.weight(1f)) {
@@ -252,6 +273,9 @@ fun NavGraphBuilder.pertesFormGraph(
                         var valid = true
                         if (formProduct == null) { viewModel.setFormSaveError("Sélectionnez un produit"); valid = false } else viewModel.setFormSaveError("")
                         if (formQuantity <= 0) { quantityError = "Quantité invalide"; valid = false }
+                        else if (depotCap != null && formQuantity > depotCap + 1e-6) {
+                            quantityError = "Stock dépôt insuffisant : disponible ${formatQty(depotCap)}"; valid = false
+                        }
                         if (valid) navController.navigate(Screen.PertesFormSummary.route)
                     },
                     modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),

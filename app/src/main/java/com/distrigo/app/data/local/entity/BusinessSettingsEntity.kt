@@ -37,6 +37,17 @@ data class BusinessSettingsEntity(
     val version: Int = 1,
     /** The device that created the row. */
     val origin_device_id: String? = null,
+    /**
+     * "Autoriser le stock négatif". When false (strict stock), no operation may leave a product's dépôt
+     * stock below zero — see DepotStockGuard. On by default: the app always allowed it, and a database
+     * already holding negative stock must not have those products blocked by an update.
+     */
+    //
+    // Last on purpose: MIGRATION_56_57 appends it, and a new database must list its columns in the
+    // same order, or the change-tracking trigger built from them differs and a migrated backup is
+    // refused as damaged.
+    @ColumnInfo(defaultValue = "1")
+    val allow_negative_stock: Boolean = true,
 ) {
     companion object {
         const val ROW_ID = 1

@@ -25,4 +25,14 @@ interface BusinessSettingsDao {
 
     @Query("UPDATE business_settings SET logo_ref = :ref WHERE id = 1")
     suspend fun updateLogo(ref: String?)
+
+    @Query("UPDATE business_settings SET allow_negative_stock = :allow WHERE id = 1")
+    suspend fun updateAllowNegativeStock(allow: Boolean)
+
+    /** Null when the row does not exist yet, which means allowed: the default. */
+    @Query("SELECT allow_negative_stock FROM business_settings WHERE id = 1")
+    suspend fun allowNegativeStock(): Boolean?
+
+    @Query("SELECT allow_negative_stock FROM business_settings WHERE id = 1")
+    fun observeAllowNegativeStock(): Flow<Boolean?>
 }

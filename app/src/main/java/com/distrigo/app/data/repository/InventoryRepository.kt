@@ -21,6 +21,7 @@ class InventoryRepository(
 ) {
     private val inventoryDao = db.inventoryDao()
     private val productDao   = db.productDao()
+    private val depotGuard   = DepotStockGuard(db)
 
     // ── Mapping ──
     private fun InventorySessionEntity.toInventorySession() = InventorySession(
@@ -64,12 +65,15 @@ class InventoryRepository(
         // transaction: two taps can no longer both pass the check. The unique index on
         // (session_id, product_id) is what guarantees it; this is what turns a second scan into the
         // message rather than a constraint error.
-        return db.withTransaction {
+        //
+        // The count is of the total stock and its adjustment is booked at the dépôt, so a count below
+        // what the camion holds would leave the dépôt negative: strict stock refuses it.
+        return depotGuard.guardOrError(listOf(productId)) {
             if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
-                return@withTransaction mapOf("error" to "Ce produit a déjà été scanné dans cette session")
+                return@guardOrError mapOf("error" to "Ce produit a déjà été scanné dans cette session")
             }
             val product = productDao.getProductById(productId)
-                ?: return@withTransaction mapOf("error" to "Produit introuvable")
+                ?: return@guardOrError mapOf("error" to "Produit introuvable")
 
             val qteSysteme  = product.stock
             val ecart       = qtePhysique - qteSysteme
@@ -123,7 +127,7 @@ class InventoryRepository(
         val newEcart       = newQtePhysique - item.qte_systeme
         val newValeurEcart = newEcart * item.purchase_price_snapshot
 
-        db.withTransaction {
+        return depotGuard.guardOrError(listOf(item.product_id)) {
             inventoryDao.updateItem(
                 item.copy(qte_physique = newQtePhysique, ecart = newEcart, valeur_ecart = newValeurEcart)
             )
@@ -153,26 +157,27 @@ class InventoryRepository(
                     )
                 )
             }
+            // What the line was and is now, so the count's figures can be corrected without re-summing.
+            mapOf(
+                "message" to "Modifié avec succès",
+                "old_ecart" to item.ecart, "old_valeur_ecart" to item.valeur_ecart,
+                "ecart" to newEcart, "valeur_ecart" to newValeurEcart
+            )
         }
-        // What the line was and is now, so the count's figures can be corrected without re-summing.
-        return mapOf(
-            "message" to "Modifié avec succès",
-            "old_ecart" to item.ecart, "old_valeur_ecart" to item.valeur_ecart,
-            "ecart" to newEcart, "valeur_ecart" to newValeurEcart
-        )
     }
 
     suspend fun deleteScan(itemId: Int): Map<String, Any> {
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
 
-        db.withTransaction {
+        // Removing a scan that raised the stock takes that back out of the dépôt.
+        return depotGuard.guardOrError(listOf(item.product_id)) {
             // ── Restaure le stock — removing the scan's adjustment undoes it, keeping anything that
             // moved since, where setting it back to qte_systeme would have erased that too ──
             db.stockMovementDao().deleteBySource("inventory_item", itemId)
             inventoryDao.deleteItem(itemId)
+            // What was removed, so the count's figures can take it off without re-summing.
+            mapOf("message" to "Supprimé, stock restauré", "ecart" to item.ecart, "valeur_ecart" to item.valeur_ecart)
         }
-        // What was removed, so the count's figures can take it off without re-summing.
-        return mapOf("message" to "Supprimé, stock restauré", "ecart" to item.ecart, "valeur_ecart" to item.valeur_ecart)
     }
 
     // ── Résumé ──

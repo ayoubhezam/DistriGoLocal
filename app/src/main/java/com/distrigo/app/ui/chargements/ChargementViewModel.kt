@@ -3,12 +3,15 @@ package com.distrigo.app.ui.chargements
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.ChargementDraft
+import com.distrigo.app.data.model.StockPolicy
+import com.distrigo.app.data.repository.BusinessSettingsRepository
 import com.distrigo.app.data.repository.ChargementDraftRepository
 import com.distrigo.app.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,8 +19,14 @@ import javax.inject.Inject
 @HiltViewModel
 class ChargementViewModel @Inject constructor(
     private val repository     : ProductRepository,
-    private val draftRepository: ChargementDraftRepository
+    private val draftRepository: ChargementDraftRepository,
+    businessSettings           : BusinessSettingsRepository
 ) : ViewModel() {
+
+    /** "Autoriser le stock négatif", as caps for the chargement card: see StockPolicy. */
+    val stockPolicy: StateFlow<StockPolicy> = businessSettings.observeAllowNegativeStock()
+        .map { StockPolicy(allowNegative = it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StockPolicy.ALLOWED)
 
     // ── Brouillons ───────────────────────────────────────────────────────────
     //
