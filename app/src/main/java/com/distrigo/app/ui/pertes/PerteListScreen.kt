@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
@@ -241,7 +242,7 @@ private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLon
 
             Column(horizontalAlignment = Alignment.End) {
                 Text("${Amount.format(perte.valeur_totale)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                Text("${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+                Text("${formatQty(perte.quantity)} ${ProductUnit.plural(perte.unit, perte.quantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }
     }
