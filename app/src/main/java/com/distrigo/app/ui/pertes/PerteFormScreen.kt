@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -141,7 +142,7 @@ private fun ProductPickerRow(product: Product, onClick: () -> Unit) {
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    "${formatQty(product.stock)} ${product.unit_type}",
+                    "${formatQty(product.stock)} ${ProductUnit.plural(product.unit_type, product.stock)}",
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                     color      = if (isLow) DsColors.Danger else DsColors.TextPrimary

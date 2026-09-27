@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.CompactQuantityStepper
 import com.distrigo.app.data.model.Quantity
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -374,7 +375,7 @@ fun NavGraphBuilder.pertesFormGraph(
                     Text("Vérifiez les informations", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                     SummaryRow("Type de perte", type?.name ?: "")
                     SummaryRow("Produit", formProduct?.name ?: "")
-                    SummaryRow("Quantité", "${formatQty(formQuantity)} ${formProduct?.unit_type ?: ""}")
+                    SummaryRow("Quantité", "${formatQty(formQuantity)} ${formProduct?.unit_type?.let { ProductUnit.plural(it, formQuantity) } ?: ""}")
                     SummaryRow("Source", if (formSource == "camion") "Camion" else "Dépôt")
                     SummaryRow("Valeur totale", "${"%,.0f".format(valeurEstimee)} DA", highlight = true)
                     SummaryRow("Date", formatOrderDate(isoDateTime))
