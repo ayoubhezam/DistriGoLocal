@@ -1,5 +1,6 @@
 ﻿package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -584,8 +585,8 @@ internal fun VenteCartRow(
         expandedContent = {
             // With negative stock allowed there is no `max`: the stepper only soft-warns (color +
             // vibration) on overselling. Strict stock caps it at the dépôt stock, as the camion
-            // sale's TourneeVenteCartRow caps at the camion's. Never below `min`, which the stepper
-            // cannot take.
+            // sale's TourneeVenteCartRow caps at the camion's. The unit decides the step: a carton
+            // product takes fractions, a pièce product whole units.
             QuantityStepper(
                 label         = "Quantité",
                 value         = item.quantity,
@@ -594,8 +595,9 @@ internal fun VenteCartRow(
                     onQuantityChange(newQty)
                 },
                 formatValue   = ::formatQty,
-                min = 0.01,
-                max = depotCap?.coerceAtLeast(0.01)
+                min            = Quantity.smallest(item.product.unit_type),
+                max            = depotCap,
+                allowFractions = Quantity.allowsFractions(item.product.unit_type)
             )
 
             Spacer(Modifier.height(DsSpacing.md))

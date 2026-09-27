@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.paging
 
+import com.distrigo.app.data.model.StockLevel
 import androidx.sqlite.db.SimpleSQLiteQuery
 
 /** The orders a product list can be read in. */
@@ -115,13 +116,8 @@ internal object ProductListSql {
         query.supplierId?.let { clauses += "p.supplier_id = ?"; args += it }
         query.unitType?.let { clauses += "p.unit_type = ?"; args += it }
 
-        val stock = query.stockColumn.column
-        when (query.stockLevel) {
-            // The bands the filter sheets have always used; "low" is 1 up to the minimum, inclusive.
-            "in_stock"     -> clauses += "$stock > p.min_stock"
-            "low_stock"    -> clauses += "($stock >= 1 AND $stock <= p.min_stock)"
-            "out_of_stock" -> clauses += "$stock <= 0"
-        }
+        // The bands the filter sheets use, written once: see StockLevel.
+        query.stockLevel?.let { level -> StockLevel.sql(level, query.stockColumn.column, "p.min_stock")?.let { clauses += it } }
         query.priceMin?.let { clauses += "${query.priceColumn.column} >= ?"; args += it }
         query.priceMax?.let { clauses += "${query.priceColumn.column} <= ?"; args += it }
         if (query.expiringFrom != null && query.expiringTo != null) {

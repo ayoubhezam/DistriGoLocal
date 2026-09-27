@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -534,7 +535,8 @@ fun TourneeVenteCartRow(
                 // they get to decide what to do about it.
                 max           = if (overStock) null else availableStock,
                 formatValue   = ::formatQty,
-                min = 0.01,
+                min            = Quantity.smallest(item.product.unit_type),
+                allowFractions = Quantity.allowsFractions(item.product.unit_type),
             )
 
             Spacer(Modifier.height(DsSpacing.md))

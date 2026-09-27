@@ -132,6 +132,7 @@ class PerteRepository(
         val type = perteDao.getPerteTypeById(typeId) ?: return mapOf("error" to "Type introuvable")
         val product = productDao.getProductById(productId) ?: return mapOf("error" to "Produit introuvable")
         val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
+        unitError(product.name, product.unit_type, qty)?.let { return mapOf("error" to it) }
 
         if (qty <= 0) return mapOf("error" to "Quantité invalide")
 
@@ -216,6 +217,7 @@ class PerteRepository(
                 // 2) إعادة جلب المنتج الجديد (بعد الاستعادة، مهم لو كان نفس المنتج)
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable")
+                requireFitsUnit(product.name, product.unit_type, qty)   // reported as an error below
 
                 if (source == "camion" && qty > product.camion_stock) {
                     throw IllegalStateException("Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")

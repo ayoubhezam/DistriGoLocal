@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.Quantity
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -1008,21 +1009,20 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         // Counted by the colis, so "+" and "−" step one whole colis
                                         // and the pieces follow: 30 to a colis, "+" adds 30. The same
                                         // stepper the carton branch below uses, stepping colis instead
-                                        // of cartons.
+                                        // of cartons. A colis may be split — half a colis of 30 is 15
+                                        // pieces — but the pieces it makes must be whole: the line
+                                        // says so below, and the bon cannot be confirmed until it is.
                                         QuantityStepper(
-                                            label         = "Nombre de colis",
-                                            value         = item.nbColis,
-                                            onValueChange = { newNb ->
-                                                // The floor the free-text field enforced before it:
-                                                // under one colis is not a quantity to receive.
-                                                if (newNb >= 1.0) {
-                                                    session.setFormCartItems(cartItems.map { ci ->
-                                                        if (ci.product.id == item.product.id) ci.withNbColis(newNb) else ci
-                                                    })
-                                                }
+                                            label          = "Nombre de colis",
+                                            value          = item.nbColis,
+                                            onValueChange  = { newNb ->
+                                                session.setFormCartItems(cartItems.map { ci ->
+                                                    if (ci.product.id == item.product.id) ci.withNbColis(newNb) else ci
+                                                })
                                             },
-                                            formatValue   = ::formatQty,
-                                            min           = 1.0
+                                            formatValue    = ::formatQty,
+                                            min            = Quantity.STEP,
+                                            allowFractions = true
                                         )
 
                                         Spacer(Modifier.height(DsSpacing.md))
@@ -1065,9 +1065,17 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                     "${formatQty(item.quantity)} pièces",
                                                     fontSize   = DsTextSize.bodySmall,
                                                     fontWeight = FontWeight.Bold,
-                                                    color      = DsColors.Primary
+                                                    color      = if (Quantity.isWhole(item.quantity)) DsColors.Primary else DsColors.Danger
                                                 )
                                             }
+                                        }
+                                        if (!Quantity.isWhole(item.quantity)) {
+                                            Spacer(Modifier.height(DsSpacing.xs))
+                                            Text(
+                                                "Une pièce ne se coupe pas : choisissez un nombre de colis qui donne des pièces entières.",
+                                                fontSize = DsTextSize.caption,
+                                                color    = DsColors.Danger
+                                            )
                                         }
                                     } else {
                                         QuantityStepper(
@@ -1079,7 +1087,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 })
                                             },
                                             formatValue   = ::formatQty,
-                                            min = 0.01
+                                            min = Quantity.STEP
                                         )
                                     }
 
@@ -1208,6 +1216,8 @@ fun NavGraphBuilder.purchaseFormGraph(
             val note by session.formNote.collectAsState()
             val montantPaye by session.formMontantPaye.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
+            // A pièce line whose colis make part of a piece: marked in the cart, and the bon waits for it.
+            val fractionalPieces = cartItems.firstOrNull { !Quantity.fitsUnit(it.quantity, it.product.unit_type) }?.product?.name
             var isSaving by remember { mutableStateOf(false) }
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
@@ -1217,7 +1227,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                 // anyway would throw "Produit introuvable" deep inside the transaction and roll
                 // back with nothing the user can act on, so the line has to go first. Part 3 marks
                 // it in the cart; this is the block behind that marker.
-                if (missingProductIds.isNotEmpty()) return
+                if (missingProductIds.isNotEmpty() || fractionalPieces != null) return
                 isSaving = true
                 val orderItems = cartItems.map { ci ->
                     mapOf(
@@ -1277,6 +1287,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isEdit              = isEdit,
                     isSaving            = isSaving,
                     hasMissingProducts  = missingProductIds.isNotEmpty(),
+                    fractionalPieces    = fractionalPieces,
                     onBack              = { navController.popBackStack() },
                     // The cart, not popBackStack: reaching this step pops the cart off
                     // (see the cart's own "Suivant", which popUpTo's the product list), so

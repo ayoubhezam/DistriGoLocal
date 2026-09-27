@@ -269,7 +269,10 @@ class StockLedgerTest {
      */
     @Test
     fun fractionalQuantitiesLeaveAnExactThousandth() = runBlocking {
-        val id = product(0.3)
+        // A carton product: a pièce one moves by whole units only.
+        val id = repository.addProduct(
+            mapOf("name" to "Lait Candia 1L (carton)", "selling_price" to 110.0, "purchase_price" to 95.0, "stock" to 0.3, "unit_type" to "carton")
+        ).newId()
         val client = client()
         repeat(3) { sale(client, id, 0.1, "depot") }
         assertEquals(0.0, db.productDao().getProductById(id)!!.stock, 0.0)

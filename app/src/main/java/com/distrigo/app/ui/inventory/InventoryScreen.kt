@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.inventory
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -174,7 +175,7 @@ fun ColumnScope.InventoryQuantityStep(
     onCancel          : () -> Unit,
     onSave            : () -> Unit
 ) {
-    val qtePhysique = qtePhysiqueText.toDoubleOrNull()
+    val qtePhysique = Quantity.parse(qtePhysiqueText)
     val ecart = qtePhysique?.let { it - product.stock }
 
     DsTopAppBar(
@@ -419,10 +420,8 @@ fun ColumnScope.InventoryReviewStep(
             text = {
                 OutlinedTextField(
                     value = editQtyText,
-                    onValueChange = { raw ->
-                        val filtered = raw.filter { c -> c.isDigit() || c == '.' }
-                        editQtyText = if (filtered.count { it == '.' } > 1) editQtyText else filtered
-                    },
+                    // ',' or '.', as when the line was scanned.
+                    onValueChange = { raw -> editQtyText = Quantity.sanitizeInput(raw) },
                     label = { Text("Qté physique") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = DsShapes.medium
@@ -430,7 +429,7 @@ fun ColumnScope.InventoryReviewStep(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    editQtyText.toDoubleOrNull()?.let { onEdit(item, it) }
+                    Quantity.parse(editQtyText)?.let { onEdit(item, it) }
                     editingItem = null
                 }) { Text("Enregistrer") }
             },

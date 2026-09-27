@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.CompactQuantityStepper
+import com.distrigo.app.data.model.Quantity
 import androidx.paging.compose.collectAsLazyPagingItems
 
 import androidx.activity.compose.BackHandler
@@ -190,25 +192,20 @@ fun NavGraphBuilder.pertesFormGraph(
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                         Column(Modifier.weight(1f)) {
                             Text("Quantité *", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                            Row(
+                            // Typed too: half a carton lost is as common as a whole one. Whole units for
+                            // a pièce product; strict stock caps a dépôt perte at the dépôt stock.
+                            Box(
                                 modifier = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceSunken),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                contentAlignment = Alignment.Center
                             ) {
-                                IconButton(onClick = { if (formQuantity > 0) { viewModel.setFormQuantity(formQuantity - 1); quantityError = "" } }) {
-                                    Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.TextPrimary)
-                                }
-                                Text(formatQty(formQuantity), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                val canAdd = depotCap == null || formQuantity < depotCap - 1e-6
-                                IconButton(
-                                    onClick = {
-                                        val next = formQuantity + 1
-                                        viewModel.setFormQuantity(depotCap?.let { minOf(next, it) } ?: next); quantityError = ""
-                                    },
-                                    enabled = canAdd
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = if (canAdd) DsColors.TextPrimary else DsColors.TextTertiary)
-                                }
+                                CompactQuantityStepper(
+                                    value          = formQuantity,
+                                    onValueChange  = { viewModel.setFormQuantity(it); quantityError = "" },
+                                    onRemove       = { viewModel.setFormQuantity(0.0) },
+                                    allowFractions = Quantity.allowsFractions(formProduct?.unit_type),
+                                    max            = depotCap,
+                                    tint           = DsColors.TextPrimary
+                                )
                             }
                             if (quantityError.isNotEmpty()) {
                                 Text(quantityError, fontSize = DsTextSize.caption, color = DsColors.Danger, modifier = Modifier.padding(top = 2.dp))
@@ -216,7 +213,7 @@ fun NavGraphBuilder.pertesFormGraph(
                                 Text(
                                     "Disponible au dépôt : ${formatQty(depotCap)}",
                                     fontSize = DsTextSize.caption,
-                                    color    = if (formQuantity > depotCap + 1e-6) DsColors.Danger else DsColors.TextSecondary,
+                                    color    = if (Quantity.exceeds(formQuantity, depotCap)) DsColors.Danger else DsColors.TextSecondary,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -273,7 +270,7 @@ fun NavGraphBuilder.pertesFormGraph(
                         var valid = true
                         if (formProduct == null) { viewModel.setFormSaveError("Sélectionnez un produit"); valid = false } else viewModel.setFormSaveError("")
                         if (formQuantity <= 0) { quantityError = "Quantité invalide"; valid = false }
-                        else if (depotCap != null && formQuantity > depotCap + 1e-6) {
+                        else if (depotCap != null && Quantity.exceeds(formQuantity, depotCap)) {
                             quantityError = "Stock dépôt insuffisant : disponible ${formatQty(depotCap)}"; valid = false
                         }
                         if (valid) navController.navigate(Screen.PertesFormSummary.route)

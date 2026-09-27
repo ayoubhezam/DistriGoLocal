@@ -77,6 +77,7 @@ class InventoryRepository(
             }
             val product = productDao.getProductById(productId)
                 ?: return@guardOrError mapOf("error" to "Produit introuvable")
+            unitError(product.name, product.unit_type, counted)?.let { return@guardOrError mapOf("error" to it) }
 
             val qteSysteme  = product.stock
             val ecart       = Quantity.normalize(counted - qteSysteme)
@@ -127,6 +128,9 @@ class InventoryRepository(
         if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")
         val counted = Quantity.normalize(newQtePhysique)   // to the thousandth, as every quantity is written
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
+        productDao.getProductById(item.product_id)?.let { p ->
+            unitError(p.name, p.unit_type, counted)?.let { return mapOf("error" to it) }
+        }
 
         val newEcart       = Quantity.normalize(counted - item.qte_systeme)
         val newValeurEcart = newEcart * item.purchase_price_snapshot

@@ -108,6 +108,7 @@ class RetourClientRepository(
         userName  : String? = null
     ): Map<String, Any> {
         if (items.isEmpty()) return mapOf("error" to "Ajoutez au moins un produit")
+        db.unitErrorIn(items)?.let { return mapOf("error" to it) }
 
         PerteRepository(db).seedDefaultPerteTypesIfNeeded()
 

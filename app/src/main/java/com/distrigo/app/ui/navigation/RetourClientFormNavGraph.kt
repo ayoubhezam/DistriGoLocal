@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.CompactQuantityStepper
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.model.barcodeContains
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -325,7 +327,7 @@ fun NavGraphBuilder.retourClientFormGraph(
                                     product     = rp.product,
                                     quantity    = cartItem?.quantity,
                                     maxQuantity = rp.maxQuantity,
-                                    onAdd       = { viewModel.setFormCartItems(cartItems + RetourCartItem(product = rp.product, quantity = 1.0, maxQuantity = rp.maxQuantity)) },
+                                    onAdd       = { viewModel.setFormCartItems(cartItems + RetourCartItem(product = rp.product, quantity = Quantity.firstLine(rp.product.unit_type, rp.maxQuantity), maxQuantity = rp.maxQuantity)) },
                                     onQuantityChange = { newQty ->
                                         viewModel.setFormCartItems(
                                             if (newQty <= 0) cartItems.filter { it.product.id != rp.product.id }
@@ -422,33 +424,16 @@ fun NavGraphBuilder.retourClientFormGraph(
                                 Text("${"%.2f".format(item.product.selling_price)} DA / ${item.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 Text("Max : ${formatQty(item.maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = {
-                                        val newQty = item.quantity - 1
-                                        viewModel.setFormCartItems(
-                                            if (newQty <= 0) cartItems.filter { it.product.id != item.product.id }
-                                            else cartItems.map { if (it.product.id == item.product.id) it.copy(quantity = newQty) else it }
-                                        )
-                                    },
-                                    modifier = Modifier.size(32.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                                ) { Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(15.dp)) }
-                                Text(
-                                    formatQty(item.quantity), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
-                                    color = DsColors.Success, modifier = Modifier.widthIn(min = 28.dp),
-                                    textAlign = TextAlign.Center
-                                )
-                                val atMax = item.quantity >= item.maxQuantity
-                                IconButton(
-                                    onClick = {
-                                        viewModel.setFormCartItems(cartItems.map {
-                                            if (it.product.id == item.product.id) it.copy(quantity = (it.quantity + 1).coerceAtMost(it.maxQuantity)) else it
-                                        })
-                                    },
-                                    enabled = !atMax,
-                                    modifier = Modifier.size(32.dp).alpha(if (atMax) 0.4f else 1f).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                                ) { Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(15.dp)) }
-                            }
+                            // Typed too: half a carton comes back as often as a whole one.
+                            CompactQuantityStepper(
+                                value          = item.quantity,
+                                onValueChange  = { newQty ->
+                                    viewModel.setFormCartItems(cartItems.map { if (it.product.id == item.product.id) it.copy(quantity = newQty) else it })
+                                },
+                                onRemove       = { viewModel.setFormCartItems(cartItems.filter { it.product.id != item.product.id }) },
+                                allowFractions = Quantity.allowsFractions(item.product.unit_type),
+                                max            = item.maxQuantity
+                            )
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.model.Product
 
 // How a new Achats cart line starts, and how its pieces follow its colis.
@@ -44,8 +45,8 @@ internal fun newPurchaseCartItem(product: Product): CartItem {
 
 /** Another count of colis, the pieces following it: `quantity = nbColis × uniteParColis`. */
 internal fun CartItem.withNbColis(nbColis: Double): CartItem =
-    copy(nbColis = nbColis, quantity = nbColis * uniteParColis)
+    copy(nbColis = nbColis, quantity = Quantity.normalize(nbColis * uniteParColis))
 
 /** Another packaging for this bon only, the pieces recomputed the same way. */
 internal fun CartItem.withUniteParColis(uniteParColis: Int): CartItem =
-    copy(uniteParColis = uniteParColis, quantity = nbColis * uniteParColis)
+    copy(uniteParColis = uniteParColis, quantity = Quantity.normalize(nbColis * uniteParColis))

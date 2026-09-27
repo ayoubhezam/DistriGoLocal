@@ -215,7 +215,7 @@ fun ProductFormScreen(
                 "barcodes"       to allBarcodes(),
                 "selling_price"  to sp,
                 "purchase_price" to pp,
-                "min_stock"      to (minStock.toIntOrNull() ?: 10),
+                "min_stock"      to (minStock.toIntOrNull() ?: 0),
                 "packages"       to 0,
                 // `packages` stays 0 — stock is moved by chargements and purchases, never typed
                 // here. `pack_size` is different: it describes the packaging, not the stock level,
@@ -237,7 +237,7 @@ fun ProductFormScreen(
                 "selling_price"  to sp,
                 "purchase_price" to pp,
                 "stock"          to 0,
-                "min_stock"      to (minStock.toIntOrNull() ?: 10),
+                "min_stock"      to (minStock.toIntOrNull() ?: 0),
                 "packages"       to 0,
                 "pack_size"      to if (unitType == "pièce") (packSize.toIntOrNull() ?: 0) else 0,
                 "unit_type"      to unitType,
@@ -873,7 +873,8 @@ fun ProductFormScreen(
                     FormField(
                         label         = "Stock minimum",
                         value         = minStock,
-                        onValueChange = { minStock = it },
+                        // Whole units: anything else used to be dropped for a silent 10.
+                        onValueChange = { minStock = it.filter(Char::isDigit) },
                         placeholder   = "0",
                         isNumber      = true,
                         imeAction     = ImeAction.Done,

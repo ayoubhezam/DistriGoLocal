@@ -236,6 +236,8 @@ internal fun Step3Validation(
      * which one it is.
      */
     hasMissingProducts      : Boolean = false,
+    /** The name of a pièce line whose colis make part of a piece: the bon waits until the cart fixes it. */
+    fractionalPieces        : String? = null,
     onBack                  : () -> Unit,
     /**
      * Where "Corriger" on the blocking banner goes: the cart, the only place the offending
@@ -462,12 +464,19 @@ internal fun Step3Validation(
                 actionLabel = "Corriger",
                 onAction    = onFixMissing
             )
+        } else if (fractionalPieces != null) {
+            CartBlockingBanner(
+                text        = "« $fractionalPieces » se compte à la pièce : ses colis doivent donner " +
+                              "un nombre entier de pièces.",
+                actionLabel = "Corriger",
+                onAction    = onFixMissing
+            )
         }
 
         // ── Confirm button ──
         Button(
             onClick  = onConfirm,
-            enabled  = !isSaving && !hasMissingProducts && selectedSupplier != null &&
+            enabled  = !isSaving && !hasMissingProducts && fractionalPieces == null && selectedSupplier != null &&
                        (cartItems.isNotEmpty() || isEdit),
             modifier = Modifier
                 .fillMaxWidth()

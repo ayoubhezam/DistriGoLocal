@@ -30,6 +30,9 @@ object Quantity {
 
     const val DECIMALS = 3
 
+    /** One thousandth: the smallest step of a carton product. */
+    const val STEP = 0.001
+
     /** Half of the smallest step: below this, two quantities are the same quantity. */
     const val EPSILON = 0.0005
 
@@ -83,6 +86,13 @@ object Quantity {
 
     /** A carton product moves by fractions; a pièce product by whole units only. */
     fun allowsFractions(unitType: String?): Boolean = unitType != UNIT_PIECE
+
+    /** The smallest quantity of a product of [unitType]: a thousandth of a carton, one pièce. */
+    fun smallest(unitType: String?): Double = if (allowsFractions(unitType)) STEP else 1.0
+
+    /** The first quantity of a new line: one, or all there is when there is less than one. */
+    fun firstLine(unitType: String?, available: Double? = null): Double =
+        if (available == null || !isBelow(available, 1.0)) 1.0 else maxOf(smallest(unitType), normalize(available))
 
     /** True when [value] is a quantity a product of [unitType] can move. */
     fun fitsUnit(value: Double, unitType: String?): Boolean = allowsFractions(unitType) || isWhole(value)

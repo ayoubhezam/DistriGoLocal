@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -369,12 +370,12 @@ fun NavGraphBuilder.venteFormGraph(
                                             IconButton(
                                                 onClick = {
                                                     // Strict stock: a first line of 1 unless the
-                                                    // dépôt holds less than one (a kg product).
+                                                    // dépôt holds less than one (half a carton).
                                                     val cap = if (editSource == "camion") null else stockPolicy.depotCap(product)
                                                     session.setFormCartItems(
                                                         cartItems + VenteCartItem(
                                                             product   = product,
-                                                            quantity  = cap?.let { minOf(1.0, it) } ?: 1.0,
+                                                            quantity  = Quantity.firstLine(product.unit_type, cap),
                                                             unitPrice = product.selling_price
                                                         )
                                                     )
@@ -511,7 +512,7 @@ fun NavGraphBuilder.venteFormGraph(
                             }
                             val changeQuantity: (Double) -> Unit = { newQty ->
                                 session.setFormCartItems(cartItems.map {
-                                    if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
+                                    if (it.product.id == item.product.id) it.copy(quantity = newQty) else it
                                 })
                             }
                             val changePrice: (Double) -> Unit = { newPrice ->

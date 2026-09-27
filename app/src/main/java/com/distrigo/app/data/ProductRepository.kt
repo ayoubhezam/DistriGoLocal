@@ -933,6 +933,7 @@ class ProductRepository(
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
+                requireFitsUnit(product.name, product.unit_type, quantity)
 
                 itemEntities.add(
                     PurchaseOrderItemEntity(
@@ -1044,6 +1045,7 @@ class ProductRepository(
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
+                requireFitsUnit(product.name, product.unit_type, quantity)
 
                 itemEntities.add(
                     PurchaseOrderItemEntity(
@@ -1200,6 +1202,7 @@ class ProductRepository(
         for ((productId, quantity) in wanted) {
             val product = productDao.getProductByIdIncludingBin(productId)
                 ?: throw IllegalStateException("Produit introuvable: $productId")
+            requireFitsUnit(product.name, product.unit_type, quantity)
             if (quantity > product.camion_stock + AMOUNT_EPSILON) {
                 throw IllegalStateException(
                     "Stock insuffisant pour ${product.name} : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(quantity)}"
@@ -1264,6 +1267,7 @@ class ProductRepository(
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
+                requireFitsUnit(product.name, product.unit_type, quantity)
 
                 movementEntities += StockMovementEntity(
                     product_id   = productId,
@@ -1336,6 +1340,7 @@ class ProductRepository(
                 // The sale already names the product: it stays editable after the product went to the bin.
                 val product = productDao.getProductByIdIncludingBin(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
+                requireFitsUnit(product.name, product.unit_type, quantity)
 
                 movementEntities += StockMovementEntity(
                     product_id   = productId,
@@ -1602,6 +1607,8 @@ class ProductRepository(
 
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
+
+                requireFitsUnit(product.name, product.unit_type, quantity)
 
                 // Chargement = transfert interne pur (dépôt ↔ camion) : ne touche jamais au total (stock)
                 // Ne génère volontairement aucun StockMovementEntity : ce n'est pas un mouvement

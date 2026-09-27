@@ -38,9 +38,10 @@ class ProductListSqlTest {
 
     @Test
     fun `stock bands read the column the list asks for`() {
-        assertTrue(whereOf(ProductListQuery(stockLevel = "low_stock")).first.contains("(p.stock >= 1 AND p.stock <= p.min_stock)"))
+        val low = whereOf(ProductListQuery(stockLevel = "low_stock")).first
+        assertTrue(low, low.contains("(p.stock >= 5.0E-4 AND p.stock < p.min_stock + 5.0E-4)"))
         val camion = whereOf(ProductListQuery(stockLevel = "out_of_stock", stockColumn = StockColumn.CAMION)).first
-        assertTrue(camion, camion.contains("p.camion_stock <= 0"))
+        assertTrue(camion, camion.contains("p.camion_stock < 5.0E-4"))
     }
 
     @Test

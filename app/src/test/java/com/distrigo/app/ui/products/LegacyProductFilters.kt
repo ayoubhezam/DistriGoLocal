@@ -1,11 +1,15 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.model.StockLevel
 import com.distrigo.app.data.model.Product
 
 /**
  * A verbatim copy of the Produits screen's inline filter and sort before C6, kept only to prove the
  * extracted versions return the same thing. The ViewModel fields became parameters of the same
  * name; nothing else is changed. It calls the same [isExpiringSoon], which moved unchanged.
+ *
+ * One deliberate difference: the stock bands. "Stock faible" started at 1, so a stock between 0 and 1
+ * (half a carton) was in no band at all; the app now uses [StockLevel], and so does this copy.
  */
 internal object LegacyProductFilters {
 
@@ -34,12 +38,7 @@ internal object LegacyProductFilters {
                     (filterMarqueId == null || product.marque_id == filterMarqueId) &&
                     (filterSupplierId == null || product.supplier_id == filterSupplierId) &&
                     (filterUnitType == null || product.unit_type == filterUnitType) &&
-                    (filterStockLevel == null || when (filterStockLevel) {
-                        "in_stock"     -> product.stock > product.min_stock
-                        "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
-                        "out_of_stock" -> product.stock <= 0
-                        else           -> true
-                    }) &&
+                    (filterStockLevel == null || StockLevel.matches(filterStockLevel, product.stock, product.min_stock.toDouble())) &&
                     (filterPriceMin.toDoubleOrNull()?.let { product.selling_price >= it } ?: true) &&
                     (filterPriceMax.toDoubleOrNull()?.let { product.selling_price <= it } ?: true) &&
                     (!filterExpiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))

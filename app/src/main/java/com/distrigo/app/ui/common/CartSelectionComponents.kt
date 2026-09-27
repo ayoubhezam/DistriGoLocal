@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.data.model.Quantity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -304,6 +306,14 @@ fun CartBlockingBanner(
     }
 }
 
+/**
+ * A quantity: "−" and "+" step by one, and the field takes a typed quantity.
+ *
+ * [allowFractions] follows the product's unit (Quantity.allowsFractions): a carton product takes decimals
+ * — typed with ',' or '.', up to 3 of them — and a pièce product whole units only. The value never leaves
+ * [min]..[max]: "−" is off when one less would go below [min], rather than jumping to it, and a typed
+ * value outside the range is brought back to it when the field is left.
+ */
 @Composable
 fun QuantityStepper(
     label: String,
@@ -312,21 +322,23 @@ fun QuantityStepper(
     min: Double = 1.0,
     max: Double? = null,
     formatValue: (Double) -> String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allowFractions: Boolean = true
 ) {
-    val canDecrement = value > min
-    val canIncrement = max == null || value < max
+    // A max below min (a cap of zero) cannot hold the value; min wins, and the caller marks the line.
+    val ceiling = max?.coerceAtLeast(min)
+    val canDecrement = !Quantity.isBelow(value - 1.0, min)
+    val canIncrement = ceiling == null || Quantity.isBelow(value, ceiling)
     val focusManager = LocalFocusManager.current
 
     var text by remember(value) { mutableStateOf(formatValue(value)) }
 
+    fun inRange(v: Double): Double = Quantity.normalize(if (ceiling != null) v.coerceIn(min, ceiling) else v.coerceAtLeast(min))
+
     fun commit() {
-        val parsed = text.replace(',', '.').toDoubleOrNull()
-        val next = when {
-            parsed == null || parsed <= 0.0 -> value
-            max != null                      -> parsed.coerceIn(min.coerceAtMost(parsed), max)
-            else                              -> parsed.coerceAtLeast(min.coerceAtMost(parsed))
-        }.let { if (parsed != null && parsed > 0.0) parsed.coerceIn(min.coerceAtMost(parsed), max ?: Double.MAX_VALUE) else value }
+        // Nothing readable keeps the value; anything else is brought into range (a min of 0 — a camion
+        // emptied by a chargement — takes 0).
+        val next = Quantity.parse(text)?.let(::inRange) ?: value
         text = formatValue(next)
         if (next != value) onValueChange(next)
     }
@@ -340,7 +352,7 @@ fun QuantityStepper(
             verticalAlignment     = Alignment.CenterVertically
         ) {
             IconButton(
-                onClick  = { onValueChange(maxOf(min, value - 1.0)) },
+                onClick  = { onValueChange(inRange(value - 1.0)) },
                 enabled  = canDecrement,
                 modifier = Modifier.size(44.dp).alpha(if (canDecrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
@@ -350,15 +362,12 @@ fun QuantityStepper(
             OutlinedTextField(
                 value           = text,
                 onValueChange   = { raw ->
-                    val filtered = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
-                    if (filtered.count { it == '.' } <= 1) {
-                        text = filtered
-                        // نُحدّث البطاقة فوراً بمجرد أن يصبح النص رقماً كاملاً وصالحاً ضمن الحدود —
-                        // الحالات غير المكتملة ("0"، "0.") تُترك محلياً بلا تحديث، وهذا وحده يكفي لتفادي الخلل القديم
-                        val parsed = filtered.toDoubleOrNull()
-                        if (parsed != null && parsed >= min && (max == null || parsed <= max)) {
-                            onValueChange(parsed)
-                        }
+                    text = Quantity.sanitizeInput(raw, allowFractions)
+                    // نُحدّث البطاقة فوراً بمجرد أن يصبح النص رقماً كاملاً وصالحاً ضمن الحدود —
+                    // الحالات غير المكتملة ("0"، "0.") تُترك محلياً بلا تحديث، وهذا وحده يكفي لتفادي الخلل القديم
+                    val parsed = Quantity.parse(text)
+                    if (parsed != null && !Quantity.isBelow(parsed, min) && (ceiling == null || !Quantity.exceeds(parsed, ceiling))) {
+                        onValueChange(parsed)
                     }
                 },
                 modifier        = Modifier
@@ -373,7 +382,10 @@ fun QuantityStepper(
                     color      = DsColors.Primary,
                     textAlign  = TextAlign.Center
                 ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (allowFractions) KeyboardType.Decimal else KeyboardType.Number,
+                    imeAction    = ImeAction.Done
+                ),
                 keyboardActions = KeyboardActions(onDone = { commit(); focusManager.clearFocus() }),
                 colors          = dsTextFieldColors(
                     unfocusedBorderColor = DsColors.Border,
@@ -382,13 +394,78 @@ fun QuantityStepper(
             )
 
             IconButton(
-                onClick  = { if (max != null) onValueChange(minOf(max, value + 1.0)) else onValueChange(value + 1.0) },
+                onClick  = { onValueChange(inRange(value + 1.0)) },
                 enabled  = canIncrement,
                 modifier = Modifier.size(44.dp).alpha(if (canIncrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Augmenter", tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
             }
         }
+    }
+}
+
+/**
+ * [QuantityStepper] for a line in a list: "−", a small typed field, "+", on one row.
+ *
+ * "−" below the unit's smallest quantity takes the line away ([onRemove]), as the return carts always
+ * did. The field takes decimals for a carton product ([allowFractions]), ',' or '.', and keeps the value
+ * within the smallest quantity and [max] when it is left.
+ */
+@Composable
+fun CompactQuantityStepper(
+    value          : Double,
+    onValueChange  : (Double) -> Unit,
+    onRemove       : () -> Unit,
+    allowFractions : Boolean,
+    max            : Double? = null,
+    tint           : Color = DsColors.Success
+) {
+    val min = if (allowFractions) Quantity.STEP else 1.0
+    val ceiling = max?.coerceAtLeast(min)
+    val atMax = ceiling != null && !Quantity.isBelow(value, ceiling)
+    val focusManager = LocalFocusManager.current
+    var text by remember(value) { mutableStateOf(formatQty(value)) }
+
+    fun inRange(v: Double) = Quantity.normalize(if (ceiling != null) v.coerceIn(min, ceiling) else v.coerceAtLeast(min))
+    fun commit() {
+        val next = Quantity.parse(text)?.let(::inRange) ?: value
+        text = formatQty(next)
+        if (next != value) onValueChange(next)
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick  = { if (Quantity.isBelow(value - 1.0, min)) onRemove() else onValueChange(inRange(value - 1.0)) },
+            modifier = Modifier.size(32.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
+        ) { Icon(Icons.Default.Remove, contentDescription = "Diminuer", tint = tint, modifier = Modifier.size(15.dp)) }
+        BasicTextField(
+            value         = text,
+            onValueChange = { raw ->
+                text = Quantity.sanitizeInput(raw, allowFractions)
+                Quantity.parse(text)?.takeIf { !Quantity.isBelow(it, min) && (ceiling == null || !Quantity.exceeds(it, ceiling)) }
+                    ?.let(onValueChange)
+            },
+            singleLine      = true,
+            textStyle       = LocalTextStyle.current.copy(
+                fontSize   = DsTextSize.body,
+                fontWeight = FontWeight.Bold,
+                color      = tint,
+                textAlign  = TextAlign.Center
+            ),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (allowFractions) KeyboardType.Decimal else KeyboardType.Number,
+                imeAction    = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = { commit(); focusManager.clearFocus() }),
+            modifier        = Modifier
+                .width(56.dp)
+                .onFocusChanged { if (!it.isFocused) commit() }
+        )
+        IconButton(
+            onClick  = { onValueChange(inRange(value + 1.0)) },
+            enabled  = !atMax,
+            modifier = Modifier.size(32.dp).alpha(if (atMax) 0.4f else 1f).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
+        ) { Icon(Icons.Default.Add, contentDescription = "Augmenter", tint = tint, modifier = Modifier.size(15.dp)) }
     }
 }
 

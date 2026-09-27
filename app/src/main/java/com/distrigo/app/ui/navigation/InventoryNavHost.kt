@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -168,9 +169,10 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                         InventoryQuantityStep(
                             product          = product,
                             qtePhysiqueText  = qtePhysiqueText,
+                            // ',' or '.': the French keyboard's decimal key types ',', which used to be
+                            // dropped and turned "2,5" into 25. Whole units only for a pièce product.
                             onQuantityChange = { raw ->
-                                val filtered = raw.filter { c -> c.isDigit() || c == '.' }
-                                qtePhysiqueText = if (filtered.count { it == '.' } > 1) qtePhysiqueText else filtered
+                                qtePhysiqueText = Quantity.sanitizeInput(raw, Quantity.allowsFractions(product.unit_type))
                             },
                             saveError = saveError,
                             isSaving  = isSaving,
@@ -179,7 +181,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                                 // A second tap before the button greys out would save the line twice;
                                 // the database would refuse it, but the worker would see an error.
                                 if (isSaving) return@InventoryQuantityStep
-                                val qte = qtePhysiqueText.toDoubleOrNull()
+                                val qte = Quantity.parse(qtePhysiqueText)
                                 if (qte == null || qte < 0) { saveError = "Quantité invalide"; return@InventoryQuantityStep }
                                 isSaving = true
                                 viewModel.recordScan(

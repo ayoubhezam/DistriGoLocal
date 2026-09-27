@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.StockLevel
 import com.distrigo.app.data.local.paging.PriceColumn
 import com.distrigo.app.data.local.paging.ProductListQuery
 import com.distrigo.app.data.local.paging.ProductSort
@@ -60,13 +61,8 @@ internal fun Product.matches(filters: ProductListFilters, today: LocalDate = Loc
     (filters.marqueId        == null || marque_id         == filters.marqueId) &&
     (filters.supplierId      == null || supplier_id       == filters.supplierId) &&
     (filters.unitType        == null || unit_type         == filters.unitType) &&
-    (filters.stockLevel == null || when (filters.stockLevel) {
-        // Same bands as the Produits sheet, so "Stock faible" means the same thing on both.
-        "in_stock"     -> stock > min_stock
-        "low_stock"    -> stock in 1.0..min_stock.toDouble()
-        "out_of_stock" -> stock <= 0
-        else           -> true
-    }) &&
+    // The same bands as the Produits sheet and the paged list: see StockLevel.
+    (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, stock, min_stock.toDouble())) &&
     (filters.priceMin.toDoubleOrNull()?.let { purchase_price >= it } ?: true) &&
     (filters.priceMax.toDoubleOrNull()?.let { purchase_price <= it } ?: true) &&
     (!filters.expiringSoon || (has_expiry == 1 && expiresWithin(expiry_date, today, days = 30)))

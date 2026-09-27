@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.Quantity
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 
@@ -344,7 +345,9 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                     session.setFormCartItems(
                                                         cartItems + TourneeVenteCartItem(
                                                             product   = product,
-                                                            quantity  = 1.0,
+                                                            // One, or what the camion has left when
+                                                            // that is less (half a carton).
+                                                            quantity  = Quantity.firstLine(product.unit_type, product.camion_stock),
                                                             unitPrice = product.selling_price
                                                         )
                                                     )
@@ -476,7 +479,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 },
                                 onQuantityChange = { newQty ->
                                     session.setFormCartItems(cartItems.map {
-                                        if (it.product.id == item.product.id) it.copy(quantity = maxOf(1.0, newQty)) else it
+                                        if (it.product.id == item.product.id) it.copy(quantity = newQty) else it
                                     })
                                     // An over-stock line has a second cure the others do not:
                                     // asking for less. Re-checked here so lowering the quantity

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.model.StockLevel
 import com.distrigo.app.data.local.paging.PriceColumn
 import com.distrigo.app.data.local.paging.ProductListQuery
 import com.distrigo.app.data.local.paging.ProductSort
@@ -40,12 +41,7 @@ fun filterProducts(products: List<Product>, query: String, filters: ProductListF
             (filters.marqueId == null || product.marque_id == filters.marqueId) &&
             (filters.supplierId == null || product.supplier_id == filters.supplierId) &&
             (filters.unitType == null || product.unit_type == filters.unitType) &&
-            (filters.stockLevel == null || when (filters.stockLevel) {
-                "in_stock"     -> product.stock > product.min_stock
-                "low_stock"    -> product.stock in 1.0..product.min_stock.toDouble()
-                "out_of_stock" -> product.stock <= 0
-                else           -> true
-            }) &&
+            (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, product.stock, product.min_stock.toDouble())) &&
             (priceMin?.let { product.selling_price >= it } ?: true) &&
             (priceMax?.let { product.selling_price <= it } ?: true) &&
             (!filters.expiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.chargements
 
+import com.distrigo.app.ui.common.QuantityStepper
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -47,12 +49,12 @@ internal fun ChargementCartRow(
     val depotPreview  = item.product.stock - item.targetCamion   // stock = total désormais
     // Above the cap only when the stock moved after the target was set: the save is refused, so the
     // card says what to bring it back to.
-    val overCap       = camionCap != null && item.targetCamion > camionCap + 1e-6
-    val atCap         = camionCap != null && !overCap && item.targetCamion >= camionCap - 1e-6
+    val overCap       = camionCap != null && Quantity.exceeds(item.targetCamion, camionCap)
+    val atCap         = camionCap != null && !overCap && !Quantity.isBelow(item.targetCamion, camionCap)
     val subtitle = when {
-        delta > 0 -> "+$delta vers le camion"
-        delta < 0 -> "${-delta} vers le dépôt"
-        else      -> "Aucun changement"
+        Quantity.isZero(delta) -> "Aucun changement"
+        delta > 0              -> "+${formatQty(delta)} vers le camion"
+        else                   -> "${formatQty(-delta)} vers le dépôt"
     }
 
     Column(
@@ -111,56 +113,17 @@ internal fun ChargementCartRow(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── Stepper ──
-                Text(
-                    "Quantité actuellement dans le camion",
-                    fontSize  = DsTextSize.caption,
-                    color     = DsColors.TextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier  = Modifier.fillMaxWidth()
+                // Typed too: half a carton for a carton product, whole units for a pièce one. The
+                // floor is 0 — an empty camion — and strict stock caps it at the whole stock.
+                QuantityStepper(
+                    label          = "Quantité actuellement dans le camion",
+                    value          = item.targetCamion,
+                    onValueChange  = onQuantityChange,
+                    min            = 0.0,
+                    max            = camionCap,
+                    formatValue    = ::formatQty,
+                    allowFractions = Quantity.allowsFractions(item.product.unit_type)
                 )
-                Spacer(Modifier.height(DsSpacing.sm))
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick  = { onQuantityChange(item.targetCamion - 1) },
-                        enabled  = item.targetCamion > 0.0,
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                    ) {
-                        Icon(
-                            Icons.Default.Remove,
-                            contentDescription = null,
-                            tint = if (item.targetCamion > 0.0) DsColors.TextPrimary else DsColors.TextTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Text(
-                        formatQty(item.targetCamion),
-                        fontSize   = DsTextSize.display,
-                        fontWeight = FontWeight.Medium,
-                        color      = DsColors.Primary,
-                        textAlign  = TextAlign.Center,
-                        modifier   = Modifier.widthIn(min = 48.dp).padding(horizontal = DsSpacing.md)
-                    )
-                    IconButton(
-                        onClick  = {
-                            val next = item.targetCamion + 1
-                            onQuantityChange(camionCap?.let { minOf(next, it) } ?: next)
-                        },
-                        enabled  = camionCap == null || item.targetCamion < camionCap - 1e-6,
-                        modifier = Modifier.size(36.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = if (camionCap == null || item.targetCamion < camionCap - 1e-6) DsColors.TextPrimary
-                                   else DsColors.TextTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
 
                 // Strict stock: the "+" stops when the dépôt is empty, and says why.
                 if (overCap || (atCap && delta > 0)) {

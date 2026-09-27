@@ -69,6 +69,8 @@ class ProductListFiltersEquivalenceTest {
         assertTrue(products.any { it.has_expiry == 1 && isExpiringSoon(it.expiry_date) })
         // Stock in every band.
         assertTrue(products.any { it.stock > it.min_stock } && products.any { it.stock <= 0 } && products.any { it.stock in 1.0..it.min_stock.toDouble() })
+        // Half a carton under its minimum: the band the old rule dropped.
+        assertTrue(products.any { it.stock > 0 && it.stock < 1 && it.min_stock >= 1 })
     }
 
     @Test
