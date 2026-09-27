@@ -52,6 +52,10 @@ sealed class Screen(val route: String) {
         fun createRoute(typeId: Int) = "pertes_list/$typeId"
     }
     // ── Pertes Form (multi-step nested graph) ──
+    // ── Perte details (read-only) ──
+    data object PertesDetail : Screen("pertes_detail/{perteId}") {
+        fun createRoute(perteId: Int) = "pertes_detail/$perteId"
+    }
     data object PertesFormGraph : Screen("pertes_form_graph/{typeId}?perteId={perteId}") {
         fun createRoute(typeId: Int, perteId: Int? = null) =
             "pertes_form_graph/$typeId" + if (perteId != null) "?perteId=$perteId" else ""

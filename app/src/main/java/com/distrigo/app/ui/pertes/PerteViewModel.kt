@@ -239,6 +239,12 @@ class PerteViewModel @Inject constructor(
         }
     }
 
+    /** A perte of [typeId] changed or went away from its details: its list and the month's totals reload. */
+    fun refreshAfterChange(typeId: Int) {
+        loadPertes(typeId)
+        loadPerteTypes()
+    }
+
     fun deletePerte(
         id        : Int,
         typeId    : Int,

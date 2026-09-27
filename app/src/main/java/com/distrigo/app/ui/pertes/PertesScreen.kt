@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.formatQty
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -89,7 +90,7 @@ fun PertesScreen(
                     Spacer(Modifier.height(DsSpacing.sm))
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
                         Column {
-                            Text("${"%,.0f".format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
                         Column {
@@ -224,7 +225,7 @@ private fun PerteTypeRow(type: PerteType, onClick: () -> Unit, onLongClick: () -
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("${"%,.0f".format(type.total_value)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = PerteIconMapper.colorFor(type.color_hex))
+                Text("${Amount.format(type.total_value)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = PerteIconMapper.colorFor(type.color_hex))
                 Text(formatQty(type.total_qty), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.pertes.PerteDetailViewModel
+import com.distrigo.app.ui.pertes.PerteDetailScreen
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,7 +55,20 @@ fun PertesNavHost(
                 viewModel   = viewModel,
                 onBack      = { navController.popBackStack() },
                 onAddPerte  = { navController.navigate(Screen.PertesFormGraph.createRoute(typeId)) },
-                onEditPerte = { perte -> navController.navigate(Screen.PertesFormGraph.createRoute(typeId, perte.id)) }
+                onOpenPerte = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) }
+            )
+        }
+
+        // Read-only: a perte is looked at here, and changed only through "Modifier", confirmed.
+        composable(
+            route     = Screen.PertesDetail.route,
+            arguments = listOf(navArgument(PerteDetailViewModel.ARG_PERTE) { type = NavType.IntType })
+        ) {
+            val shared: PerteViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) })
+            PerteDetailScreen(
+                onBack    = { navController.popBackStack() },
+                onEdit    = { perte -> navController.navigate(Screen.PertesFormGraph.createRoute(perte.type_id, perte.id)) },
+                onDeleted = { typeId -> shared.refreshAfterChange(typeId); navController.popBackStack() }
             )
         }
 

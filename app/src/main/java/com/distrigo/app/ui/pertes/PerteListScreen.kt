@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -43,7 +44,8 @@ fun PerteListScreen(
     viewModel  : PerteViewModel = hiltViewModel(),
     onBack     : () -> Unit,
     onAddPerte : () -> Unit,
-    onEditPerte: (Perte) -> Unit
+    /** The perte's read-only details: a tap only looks, it never opens the form. */
+    onOpenPerte: (Perte) -> Unit
 ) {
     val pertes     by viewModel.pertes.collectAsState()
     val perteTypes by viewModel.perteTypes.collectAsState()
@@ -93,7 +95,7 @@ fun PerteListScreen(
                 Spacer(Modifier.height(DsSpacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
                     Column {
-                        Text("${"%,.0f".format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
                     Column {
@@ -140,15 +142,8 @@ fun PerteListScreen(
                         PerteRow(
                             perte    = perte,
                             isLinked = isLinked,
-                            onClick  = {
-                                if (isLinked) {
-                                    Toast.makeText(
-                                        context,
-                                        "Cette perte provient d'un retour ${if (perte.source_type == "retour_client") "client" else "fournisseur"} — modifiez-la depuis l'écran Retours.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } else onEditPerte(perte)
-                            },
+                            // Linked ones too: their details say where they come from.
+                            onClick  = { onOpenPerte(perte) },
                             onLongClick = {
                                 if (isLinked) {
                                     Toast.makeText(
@@ -179,8 +174,8 @@ fun PerteListScreen(
     if (showDeleteDialog && longPressPerte != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title            = { Text("Supprimer cette perte ?") },
-            text             = { Text("La quantité (${formatQty(longPressPerte!!.quantity)} ${longPressPerte!!.unit}) sera restaurée au stock.") },
+            title            = { Text("Supprimer la perte") },
+            text             = { Text(deletePerteQuestion(longPressPerte!!)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deletePerte(
@@ -245,7 +240,7 @@ private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLon
             Spacer(Modifier.width(DsSpacing.sm))
 
             Column(horizontalAlignment = Alignment.End) {
-                Text("${"%,.0f".format(perte.valeur_totale)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                Text("${Amount.format(perte.valeur_totale)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                 Text("${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }

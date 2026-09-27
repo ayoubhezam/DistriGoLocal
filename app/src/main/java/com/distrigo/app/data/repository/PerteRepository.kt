@@ -105,6 +105,11 @@ class PerteRepository(
         perteDao.softDeletePerteTypeById(id)
     }
 
+    // ── One perte, for its read-only details ──
+    suspend fun getPerte(id: Int): Perte? = perteDao.getPerteById(id)?.toPerte()
+
+    suspend fun getPerteType(id: Int): PerteType? = perteDao.getPerteTypeById(id)?.toPerteType()
+
     // ── Pertes ──
     suspend fun getPertes(typeId: Int, month: String? = null): List<Perte> {
         val pertes = if (month == null) {
