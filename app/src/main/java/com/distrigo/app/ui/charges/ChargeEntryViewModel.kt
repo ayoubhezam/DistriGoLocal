@@ -155,20 +155,6 @@ class ChargeEntryViewModel @Inject constructor(
         }
     }
 
-    fun delete(onDeleted: (SavedCharge) -> Unit) {
-        val charge = editing ?: return
-        saving = true
-        viewModelScope.launch {
-            try {
-                repository.deleteCharge(charge.id)
-                onDeleted(SavedCharge(charge.id, charge.subtype_id, charge.type_id, charge.montant, isNew = false))
-            } catch (e: Exception) {
-                error = e.message ?: "La suppression a échoué."
-                saving = false
-            }
-        }
-    }
-
     private data class Snapshot(val amount: Double?, val date: LocalDate, val time: LocalTime, val fournisseur: String, val note: String)
 
     private fun snapshot() = Snapshot(Amount.parse(amount), date, time, fournisseur.trim(), note.trim())

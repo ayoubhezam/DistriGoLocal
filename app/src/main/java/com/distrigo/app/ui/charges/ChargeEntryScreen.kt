@@ -57,18 +57,19 @@ import java.util.Locale
  * when they are not; a subtype's recent amounts and suppliers are one tap away; and the button,
  * which the keyboard never covers, says what it will save. The summary's safety net is an "Annuler"
  * on the list after saving (see ChargeSavedSnackbar).
+ *
+ * An existing expense reaches it only through its read-only details and a confirmed "Modifier"
+ * (ChargeDetailScreen), which is also where it is deleted.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChargeEntryScreen(
     onBack    : () -> Unit,
     onSaved   : (SavedCharge) -> Unit,
-    onDeleted : (SavedCharge) -> Unit,
     viewModel : ChargeEntryViewModel = hiltViewModel()
 ) {
     val vm = viewModel
     var confirmLeave by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
     var showWhen by remember { mutableStateOf(false) }
 
     fun attemptBack() { if (vm.isDirty && !vm.saving) confirmLeave = true else onBack() }
@@ -79,13 +80,7 @@ fun ChargeEntryScreen(
             title    = if (vm.isEdit) "Modifier la dépense" else "Nouvelle dépense",
             subtitle = vm.subtitle.ifEmpty { null },
             leading  = DsTopBarLeading.Back { attemptBack() }
-        ) {
-            if (vm.isEdit) {
-                IconButton(onClick = { confirmDelete = true }, enabled = !vm.saving) {
-                    Icon(Icons.Default.Delete, contentDescription = "Supprimer la dépense", tint = DsColors.Danger)
-                }
-            }
-        }
+        )
 
         if (!vm.loaded) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -204,16 +199,6 @@ fun ChargeEntryScreen(
         )
     }
 
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title            = { Text("Supprimer la dépense ?") },
-            text             = { Text("Cette action est irréversible.") },
-            confirmButton    = { TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) { Text("Supprimer", color = DsColors.Danger) } },
-            dismissButton    = { TextButton(onClick = { confirmDelete = false }) { Text("Annuler") } },
-            containerColor   = DsColors.Surface
-        )
-    }
 }
 
 // ── Pieces ───────────────────────────────────────────────────────────────────

@@ -26,9 +26,9 @@ fun ChargeSavedSnackbar(viewModel: ChargeViewModel, modifier: Modifier = Modifie
     LaunchedEffect(saved) {
         val charge = saved ?: return@LaunchedEffect
         val result = host.showSnackbar(
-            message     = if (charge.isNew) "Dépense de ${Amount.format(charge.montant)} DA enregistrée" else "Dépense modifiée",
-            actionLabel = if (charge.isNew) "Annuler" else null,
-            duration    = if (charge.isNew) SnackbarDuration.Long else SnackbarDuration.Short
+            message     = "Dépense de ${Amount.format(charge.montant)} DA enregistrée",
+            actionLabel = "Annuler",
+            duration    = SnackbarDuration.Long
         )
         if (result == SnackbarResult.ActionPerformed) viewModel.undoLastSaved() else viewModel.dismissLastSaved()
     }

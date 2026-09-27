@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.data.model.Amount
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -212,7 +213,7 @@ private fun ChargeSubTypeRow(sub: ChargeSubType, onClick: () -> Unit, onLongClic
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${"%,.0f".format(sub.total_this_month)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text("${Amount.format(sub.total_this_month)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
                     Text("Total ce mois", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
                 }
                 Spacer(Modifier.width(DsSpacing.sm))

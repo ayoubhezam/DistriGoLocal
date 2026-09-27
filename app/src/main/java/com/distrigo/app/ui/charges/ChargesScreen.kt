@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.data.model.Amount
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -85,7 +86,7 @@ fun ChargesScreen(
                     Column(Modifier.padding(DsSpacing.lg)) {
                         Text("Total des charges ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                         Spacer(Modifier.height(DsSpacing.sm))
-                        Text("${"%,.0f".format(totalValue)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Spacer(Modifier.height(DsSpacing.xs))
                         Text("${chargeTypes.size} types de charges actifs", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }

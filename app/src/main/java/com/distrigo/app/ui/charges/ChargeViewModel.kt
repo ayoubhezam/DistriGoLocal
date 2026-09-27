@@ -45,9 +45,12 @@ class ChargeViewModel @Inject constructor(
     private val _lastSaved = MutableStateFlow<SavedCharge?>(null)
     val lastSaved: StateFlow<SavedCharge?> = _lastSaved
 
-    /** The form saved [saved]: what it touched is reloaded, and the list offers to undo a new one. */
+    /**
+     * The form saved [saved]: what it touched is reloaded. A new expense gets its "Annuler"; an edited
+     * one returns to its details, which show the new values themselves.
+     */
     fun onChargeSaved(saved: SavedCharge) {
-        _lastSaved.value = saved
+        if (saved.isNew) _lastSaved.value = saved
         refreshAfter(saved)
     }
 

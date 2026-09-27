@@ -67,7 +67,20 @@ fun ChargesNavHost(
                 viewModel    = viewModel,
                 onBack       = { navController.popBackStack() },
                 onAddCharge  = { navController.navigate(Screen.ChargesForm.createRoute(subtypeId)) },
-                onEditCharge = { charge -> navController.navigate(Screen.ChargesForm.createRoute(subtypeId, charge.id)) }
+                onOpenCharge = { charge -> navController.navigate(Screen.ChargesDetail.createRoute(charge.id)) }
+            )
+        }
+
+        // Read-only: a record is looked at here, and changed only through "Modifier", confirmed.
+        composable(
+            route     = Screen.ChargesDetail.route,
+            arguments = listOf(navArgument(ChargeDetailViewModel.ARG_CHARGE) { type = NavType.IntType })
+        ) {
+            val shared: ChargeViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) })
+            ChargeDetailScreen(
+                onBack    = { navController.popBackStack() },
+                onEdit    = { charge -> navController.navigate(Screen.ChargesForm.createRoute(charge.subtype_id, charge.id)) },
+                onDeleted = { deleted -> shared.onChargeDeleted(deleted); navController.popBackStack() }
             )
         }
 
@@ -80,9 +93,8 @@ fun ChargesNavHost(
         ) {
             val shared: ChargeViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ChargesGraph.route) })
             ChargeEntryScreen(
-                onBack    = { navController.popBackStack() },
-                onSaved   = { saved -> shared.onChargeSaved(saved); navController.popBackStack() },
-                onDeleted = { deleted -> shared.onChargeDeleted(deleted); navController.popBackStack() }
+                onBack  = { navController.popBackStack() },
+                onSaved = { saved -> shared.onChargeSaved(saved); navController.popBackStack() }
             )
         }
     }
