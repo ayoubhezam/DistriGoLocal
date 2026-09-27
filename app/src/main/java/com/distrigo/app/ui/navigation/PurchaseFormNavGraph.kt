@@ -63,7 +63,7 @@ import com.distrigo.app.ui.purchases.PurchaseFormSessionViewModel
 import com.distrigo.app.ui.purchases.PurchaseViewModel
 import com.distrigo.app.ui.purchases.Step1Fournisseur
 import com.distrigo.app.ui.purchases.Step3Validation
-import com.distrigo.app.ui.purchases.formatQty
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.purchases.newPurchaseCartItem
 import com.distrigo.app.ui.purchases.withNbColis
 import com.distrigo.app.ui.purchases.withUniteParColis

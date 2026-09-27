@@ -47,7 +47,7 @@ import com.distrigo.app.ui.tournees.TourneeVenteCartItem
 import com.distrigo.app.ui.tournees.TourneeVenteCartRow
 import com.distrigo.app.ui.tournees.TourneeVenteFormSessionViewModel
 import com.distrigo.app.ui.tournees.TourneeViewModel
-import com.distrigo.app.ui.tournees.formatQty
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.ventes.VenteViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField

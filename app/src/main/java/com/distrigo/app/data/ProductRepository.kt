@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.time.BusinessDates
 import androidx.room.withTransaction
 import com.distrigo.app.data.model.numberLabel
@@ -125,8 +126,9 @@ class ProductRepository(
      * stock typed over — as an `ajustement` at the dépôt. The movement is what changes the stock: the
      * ledger triggers recompute the product from it (see StockLedger.kt).
      */
-    private suspend fun recordStockAdjustment(product: ProductEntity, delta: Double, label: String) {
-        if (delta == 0.0) return
+    private suspend fun recordStockAdjustment(product: ProductEntity, rawDelta: Double, label: String) {
+        val delta = Quantity.normalize(rawDelta)
+        if (Quantity.isZero(delta)) return
         db.stockMovementDao().insert(
             StockMovementEntity(
                 product_id   = product.id,
@@ -413,7 +415,7 @@ class ProductRepository(
             barcode = codes.firstOrNull(),
             selling_price = (product["selling_price"] as? Number)?.toDouble() ?: 0.0,
             purchase_price = (product["purchase_price"] as? Number)?.toDouble() ?: 0.0,
-            stock = (product["stock"] as? Number)?.toDouble() ?: 0.0,
+            stock = Quantity.normalize((product["stock"] as? Number)?.toDouble() ?: 0.0),
             min_stock = (product["min_stock"] as? Number)?.toInt() ?: 10,
             unit_type = product["unit_type"] as? String ?: "pièce",
             packages = (product["packages"] as? Number)?.toInt() ?: 0,
@@ -487,7 +489,7 @@ class ProductRepository(
         // A stock typed over is not written to the column: the difference becomes an adjustment
         // movement, and the ledger triggers bring `stock` to it. The edit form does not send one
         // today; this keeps the ledger whole for any caller that does.
-        val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble() else null
+        val typedStock = if (product.containsKey("stock")) (product["stock"] as? Number)?.toDouble()?.let(Quantity::normalize) else null
         depotGuard.guard(if (typedStock != null) listOf(id) else emptyList()) {
             requireNoDuplicate(updatedEntity.name, codes ?: currentCodes, excludeId = id)
             productDao.updateProduct(updatedEntity)
@@ -907,7 +909,7 @@ class ProductRepository(
             val itemsList = order["items"] as List<Map<String, Any?>>
 
             val now = java.time.Instant.now().toString()
-            val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
+            val total = itemsList.sumOf { it.lineQuantity() * (it["unit_cost"] as Number).toDouble() }
             requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
             val supplierEntity = supplierDao.getSupplierById(supplierId)
             val supplierName   = supplierEntity?.name
@@ -927,7 +929,7 @@ class ProductRepository(
 
             for (map in itemsList) {
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toDouble()
+                val quantity = map.lineQuantity()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -937,7 +939,7 @@ class ProductRepository(
                         purchase_order_id = orderId, product_id = productId, quantity = quantity,
                         unit_cost = unitCost, total_cost = quantity * unitCost,
                         product_name = product.name, unit_type = product.unit_type,
-                        nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
+                        nb_colis = (map["nb_colis"] as? Number)?.toDouble()?.let(Quantity::normalize) ?: 1.0,
                         unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
                         has_expiry = (map["has_expiry"] as? Boolean) ?: false,
                         expiry_date = map["expiry_date"] as? String
@@ -1028,7 +1030,7 @@ class ProductRepository(
                 ?: throw IllegalStateException("Bon introuvable: $id")
             val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
-            val total = itemsList.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_cost"] as Number).toDouble() }
+            val total = itemsList.sumOf { it.lineQuantity() * (it["unit_cost"] as Number).toDouble() }
             requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
             db.purchaseDao().deleteItemsForOrder(id)
 
@@ -1038,7 +1040,7 @@ class ProductRepository(
 
             for (map in itemsList) {
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toDouble()
+                val quantity = map.lineQuantity()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -1048,7 +1050,7 @@ class ProductRepository(
                         purchase_order_id = id, product_id = productId, quantity = quantity,
                         unit_cost = unitCost, total_cost = quantity * unitCost,
                         product_name = product.name, unit_type = product.unit_type,
-                        nb_colis = (map["nb_colis"] as? Number)?.toDouble() ?: 1.0,
+                        nb_colis = (map["nb_colis"] as? Number)?.toDouble()?.let(Quantity::normalize) ?: 1.0,
                         unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
                         has_expiry = (map["has_expiry"] as? Boolean) ?: false,
                         expiry_date = map["expiry_date"] as? String
@@ -1194,13 +1196,13 @@ class ProductRepository(
 
     private suspend fun requireCamionStock(items: List<Map<String, Any?>>) {
         val wanted = items.groupBy { (it["product_id"] as Number).toInt() }
-            .mapValues { (_, lines) -> lines.sumOf { (it["quantity"] as Number).toDouble() } }
+            .mapValues { (_, lines) -> lines.sumOf { it.lineQuantity() } }
         for ((productId, quantity) in wanted) {
             val product = productDao.getProductByIdIncludingBin(productId)
                 ?: throw IllegalStateException("Produit introuvable: $productId")
             if (quantity > product.camion_stock + AMOUNT_EPSILON) {
                 throw IllegalStateException(
-                    "Stock insuffisant pour ${product.name} : disponible ${product.camion_stock}, demandé $quantity"
+                    "Stock insuffisant pour ${product.name} : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(quantity)}"
                 )
             }
         }
@@ -1212,7 +1214,7 @@ class ProductRepository(
      */
     private fun requireDocumentAmounts(items: List<Map<String, Any?>>, priceKey: String, montantPaye: Double, total: Double) {
         for (line in items) {
-            val quantity = (line["quantity"] as Number).toDouble()
+            val quantity = line.lineQuantity()
             val price = (line[priceKey] as Number).toDouble()
             if (!(quantity > 0)) throw IllegalStateException("La quantité doit être supérieure à zéro.")
             if (!(price >= 0)) throw IllegalStateException("Le prix ne peut pas être négatif.")
@@ -1232,7 +1234,7 @@ class ProductRepository(
         tourneeDraftId: Int? = null
     ): Map<String, Any> {
         depotGuard.guard(productIdsOf(items)) {
-            val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
+            val total = items.sumOf { it.lineQuantity() * (it["unit_price"] as Number).toDouble() }
             val now = java.time.Instant.now().toString()
             requireDocumentAmounts(items, "unit_price", montantPaye, total)
 
@@ -1258,7 +1260,7 @@ class ProductRepository(
 
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toDouble()
+                val quantity = map.lineQuantity()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
@@ -1325,11 +1327,11 @@ class ProductRepository(
             val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
             val movementEntities = mutableListOf<StockMovementEntity>()
 
-            val total = items.sumOf { (it["quantity"] as Number).toDouble() * (it["unit_price"] as Number).toDouble() }
+            val total = items.sumOf { it.lineQuantity() * (it["unit_price"] as Number).toDouble() }
             requireDocumentAmounts(items, "unit_price", montantPaye, total)
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity = (map["quantity"] as Number).toDouble()
+                val quantity = map.lineQuantity()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 // The sale already names the product: it stays editable after the product went to the bin.
                 val product = productDao.getProductByIdIncludingBin(productId)
@@ -1595,7 +1597,7 @@ class ProductRepository(
 
             for (map in items) {
                 val productId = map["product_id"] as Int
-                val quantity  = (map["quantity"] as Number).toDouble()
+                val quantity  = map.lineQuantity()
                 val direction = map["direction"] as String
 
                 val product = productDao.getProductById(productId)

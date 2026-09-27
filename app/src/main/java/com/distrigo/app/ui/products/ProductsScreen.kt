@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,10 +55,6 @@ import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
-
-internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
 
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),

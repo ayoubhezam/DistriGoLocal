@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background

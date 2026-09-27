@@ -44,7 +44,7 @@ import com.distrigo.app.ui.retours.RetourCartItem
 import com.distrigo.app.ui.retours.RetourClientViewModel
 import com.distrigo.app.ui.retours.RetourProductRow
 import com.distrigo.app.ui.retours.RetourSummaryRow
-import com.distrigo.app.ui.retours.formatRetourQty
+import com.distrigo.app.ui.common.formatQty
 import java.time.Instant
 import java.time.ZoneOffset
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -420,7 +420,7 @@ fun NavGraphBuilder.retourClientFormGraph(
                             Column(Modifier.weight(1f)) {
                                 Text(item.product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
                                 Text("${"%.2f".format(item.product.selling_price)} DA / ${item.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                Text("Max : ${formatRetourQty(item.maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+                                Text("Max : ${formatQty(item.maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(
@@ -434,7 +434,7 @@ fun NavGraphBuilder.retourClientFormGraph(
                                     modifier = Modifier.size(32.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
                                 ) { Icon(Icons.Default.Remove, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(15.dp)) }
                                 Text(
-                                    formatRetourQty(item.quantity), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+                                    formatQty(item.quantity), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
                                     color = DsColors.Success, modifier = Modifier.widthIn(min = 28.dp),
                                     textAlign = TextAlign.Center
                                 )
@@ -531,7 +531,7 @@ fun NavGraphBuilder.retourClientFormGraph(
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1)
-                                    Text("${formatRetourQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.product.selling_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text("${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.product.selling_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                                 Text("${"%.2f".format(item.quantity * item.product.selling_price)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             }
@@ -545,7 +545,7 @@ fun NavGraphBuilder.retourClientFormGraph(
                                 Spacer(Modifier.height(DsSpacing.sm))
                                 RetourSummaryRow("Motif", formMotif ?: "—")
                                 RetourSummaryRow("Produits", "${cartItems.size}")
-                                RetourSummaryRow("Cartons", formatRetourQty(totalQuantity))
+                                RetourSummaryRow("Cartons", formatQty(totalQuantity))
                                 RetourSummaryRow("Valeur totale (DA)", "${"%,.2f".format(totalValue)} DA", highlight = true)
                             }
                         }

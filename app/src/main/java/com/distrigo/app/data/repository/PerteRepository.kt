@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.model.DefaultPerteType
@@ -130,14 +131,15 @@ class PerteRepository(
     ): Map<String, Any> {
         val type = perteDao.getPerteTypeById(typeId) ?: return mapOf("error" to "Type introuvable")
         val product = productDao.getProductById(productId) ?: return mapOf("error" to "Produit introuvable")
+        val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
 
-        if (quantity <= 0) return mapOf("error" to "Quantité invalide")
+        if (qty <= 0) return mapOf("error" to "Quantité invalide")
 
-        if (source == "camion" && quantity > product.camion_stock) {
-            return mapOf("error" to "Stock camion insuffisant : disponible ${product.camion_stock}, demandé $quantity")
+        if (source == "camion" && qty > product.camion_stock) {
+            return mapOf("error" to "Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")
         }
 
-        val valeurTotale = product.purchase_price * quantity
+        val valeurTotale = product.purchase_price * qty
         val now = java.time.Instant.now().toString()
 
         return depotGuard.guardOrError(listOf(product.id)) {
@@ -145,7 +147,7 @@ class PerteRepository(
                 PerteEntity(
                     type_id = type.id, type_name = type.name,
                     product_id = product.id, product_name = product.name, product_image_uri = product.image_uri,
-                    quantity = quantity, unit = product.unit_type, source = source,
+                    quantity = qty, unit = product.unit_type, source = source,
                     purchase_price_snapshot = product.purchase_price, valeur_totale = valeurTotale,
                     date_time = dateTime, motif = motif, photo_path = photoPath,
                     created_at = now, source_type = sourceType, source_id = sourceId
@@ -161,7 +163,7 @@ class PerteRepository(
                         product_name = product.name,
                         type         = "perte",
                         direction    = "sortie",
-                        quantity     = quantity,
+                        quantity     = qty,
                         emplacement  = source,
                         source_label = type.name,
                         source_type  = "perte",
@@ -201,7 +203,8 @@ class PerteRepository(
         userName  : String? = null
     ): Map<String, Any> {
         val existing = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
-        if (quantity <= 0) return mapOf("error" to "Quantité invalide")
+        val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
+        if (qty <= 0) return mapOf("error" to "Quantité invalide")
 
         return try {
             // Only the perte's new product can lose dépôt stock: the old one gets its quantity back.
@@ -214,17 +217,17 @@ class PerteRepository(
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable")
 
-                if (source == "camion" && quantity > product.camion_stock) {
-                    throw IllegalStateException("Stock camion insuffisant : disponible ${product.camion_stock}, demandé $quantity")
+                if (source == "camion" && qty > product.camion_stock) {
+                    throw IllegalStateException("Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")
                 }
 
-                val valeurTotale = product.purchase_price * quantity
+                val valeurTotale = product.purchase_price * qty
                 val type = perteDao.getPerteTypeById(existing.type_id)
 
                 perteDao.updatePerte(
                     existing.copy(
                         product_id = product.id, product_name = product.name, product_image_uri = product.image_uri,
-                        quantity = quantity, unit = product.unit_type, source = source,
+                        quantity = qty, unit = product.unit_type, source = source,
                         purchase_price_snapshot = product.purchase_price, valeur_totale = valeurTotale,
                         date_time = dateTime, motif = motif, photo_path = photoPath
                     )
@@ -237,7 +240,7 @@ class PerteRepository(
                         product_name = product.name,
                         type         = "perte",
                         direction    = "sortie",
-                        quantity     = quantity,
+                        quantity     = qty,
                         emplacement  = source,
                         source_label = type?.name ?: existing.type_name,
                         source_type  = "perte",

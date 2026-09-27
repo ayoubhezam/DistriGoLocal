@@ -44,10 +44,6 @@ import kotlinx.coroutines.launch
 private val Ink   = Color(0xFF14213D)
 private val Muted = Color(0xFF64748B)
 
-internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
-
 /**
  * The receipt, exactly as it will come out of the printer.
  *

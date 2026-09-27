@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.inventory
 
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

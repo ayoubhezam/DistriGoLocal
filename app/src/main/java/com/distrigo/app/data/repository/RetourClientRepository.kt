@@ -118,7 +118,7 @@ class RetourClientRepository(
 
             val lines: List<Pair<ProductEntity, Double>> = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
-                val quantity  = (map["quantity"] as Number).toDouble()
+                val quantity  = map.lineQuantity()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
                 product to quantity

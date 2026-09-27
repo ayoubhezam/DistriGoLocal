@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -69,7 +70,7 @@ fun RetourClientDetailScreen(
                 ) {
                     Column {
                         Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text("${formatRetourQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Text("${"%.2f".format(item.total_price)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 }

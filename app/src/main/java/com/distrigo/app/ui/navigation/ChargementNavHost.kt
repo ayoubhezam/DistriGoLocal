@@ -31,7 +31,7 @@ import com.distrigo.app.ui.chargements.ChargementCartItem
 import com.distrigo.app.ui.chargements.ChargementCartRow
 import com.distrigo.app.ui.chargements.ChargementFormSessionViewModel
 import com.distrigo.app.ui.chargements.ChargementViewModel
-import com.distrigo.app.ui.chargements.formatQty
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsColors

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,10 +21,6 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
-
-internal fun formatRetourQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
 
 internal val RETOUR_FOURNISSEUR_MOTIFS = com.distrigo.app.data.model.RetourFournisseurMotifs.ALL.map { it.id }
 
@@ -66,7 +63,7 @@ internal fun RetourProductRow(
         Column(Modifier.weight(1f)) {
             Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
             Text(product.category_name ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
-            Text("Retour max : ${formatRetourQty(maxQuantity)} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+            Text("Retour max : ${formatQty(maxQuantity)} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         }
         Spacer(Modifier.width(DsSpacing.sm))
         if (isInCart) {

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -34,10 +35,6 @@ import com.distrigo.app.ui.suppliers.formatDZD
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
-
-internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
 
 data class CartItem(
     val product       : Product,

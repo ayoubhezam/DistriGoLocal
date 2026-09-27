@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.InventoryItemEntity
@@ -59,7 +60,9 @@ class InventoryRepository(
         return inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null
     }
 
-    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Double, userName: String? = null): Map<String, Any> {        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
+    suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Double, userName: String? = null): Map<String, Any> {
+        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
+        val counted = Quantity.normalize(qtePhysique)   // to the thousandth, as every quantity is written
 
         // The "already scanned" check, the stock it measures against and the insert are one
         // transaction: two taps can no longer both pass the check. The unique index on
@@ -76,7 +79,7 @@ class InventoryRepository(
                 ?: return@guardOrError mapOf("error" to "Produit introuvable")
 
             val qteSysteme  = product.stock
-            val ecart       = qtePhysique - qteSysteme
+            val ecart       = Quantity.normalize(counted - qteSysteme)
             val valeurEcart = ecart * product.purchase_price
             val now = java.time.Instant.now().toString()
 
@@ -84,7 +87,7 @@ class InventoryRepository(
                 InventoryItemEntity(
                     session_id = sessionId, product_id = product.id, product_name = product.name,
                     product_image_uri = product.image_uri,
-                    qte_systeme = qteSysteme, qte_physique = qtePhysique, ecart = ecart,
+                    qte_systeme = qteSysteme, qte_physique = counted, ecart = ecart,
                     purchase_price_snapshot = product.purchase_price, valeur_ecart = valeurEcart,
                     created_at = now
                 )
@@ -122,14 +125,15 @@ class InventoryRepository(
     }
     suspend fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null): Map<String, Any> {
         if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")
+        val counted = Quantity.normalize(newQtePhysique)   // to the thousandth, as every quantity is written
         val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
 
-        val newEcart       = newQtePhysique - item.qte_systeme
+        val newEcart       = Quantity.normalize(counted - item.qte_systeme)
         val newValeurEcart = newEcart * item.purchase_price_snapshot
 
         return depotGuard.guardOrError(listOf(item.product_id)) {
             inventoryDao.updateItem(
-                item.copy(qte_physique = newQtePhysique, ecart = newEcart, valeur_ecart = newValeurEcart)
+                item.copy(qte_physique = counted, ecart = newEcart, valeur_ecart = newValeurEcart)
             )
             // The scan's adjustment is replaced by one measured against the same qte_systeme, so the
             // stock becomes the corrected count plus whatever moved since the scan — not the count

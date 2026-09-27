@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.components
 
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.receiptNumber
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.model.BusinessSettings

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.mouvements
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -41,10 +42,6 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
-
-private fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
 
 
 @Composable

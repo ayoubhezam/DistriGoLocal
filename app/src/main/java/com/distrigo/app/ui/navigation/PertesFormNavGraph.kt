@@ -39,7 +39,7 @@ import com.distrigo.app.ui.pertes.PerteViewModel
 import com.distrigo.app.ui.pertes.ProductPickerDialog
 import com.distrigo.app.ui.pertes.StepIndicator
 import com.distrigo.app.ui.pertes.SummaryRow
-import com.distrigo.app.ui.pertes.formatQty
+import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import java.time.Instant
 import java.time.LocalDate

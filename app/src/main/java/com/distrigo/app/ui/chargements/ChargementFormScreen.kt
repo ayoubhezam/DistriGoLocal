@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.chargements
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,10 +29,6 @@ data class ChargementCartItem(
     val product      : Product,
     val targetCamion : Double  // desired final quantity in camion (not a delta)
 )
-
-internal fun formatQty(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString()
-    else String.format(Locale.ROOT, "%.2f", v)
 
 @Composable
 internal fun ChargementCartRow(

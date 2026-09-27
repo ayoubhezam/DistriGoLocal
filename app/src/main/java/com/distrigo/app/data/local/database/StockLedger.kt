@@ -35,6 +35,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * this file can make the caches wrong, and a sync will never need to carry them: it carries the
  * movements and each device recomputes.
  *
+ * ### Rounded to the thousandth
+ *
+ * Quantities have 3 decimals (see Quantity), but a sum of doubles does not: 0.1 + 0.2 is
+ * 0.30000000000000004, and a stock of 0.1 + 0.2 − 0.3 would be a hair above zero — neither "en stock"
+ * nor "en rupture". Both sums are rounded to 3 decimals, so a cache always holds an exact thousandth.
+ *
  * A recompute reads one product's movements through `index_stock_movements_product_id_created_at`
  * and its transfer lines through `index_chargement_items_product_id`.
  *
@@ -45,16 +51,16 @@ internal object StockLedgerTriggers {
     private fun signed(entree: String) =
         "CASE WHEN `direction` = '$entree' THEN `quantity` ELSE -`quantity` END"
 
-    /** The product's total stock according to its movements. */
+    /** The product's total stock according to its movements, to the thousandth. */
     fun totalSql(productId: String) =
-        "(SELECT COALESCE(SUM(${signed("entree")}), 0.0) FROM `stock_movements` WHERE `product_id` = $productId)"
+        "ROUND((SELECT COALESCE(SUM(${signed("entree")}), 0.0) FROM `stock_movements` WHERE `product_id` = $productId), 3)"
 
-    /** The camion's share: camion movements plus transfers. */
+    /** The camion's share: camion movements plus transfers, to the thousandth. */
     fun camionSql(productId: String) =
-        "((SELECT COALESCE(SUM(${signed("entree")}), 0.0) FROM `stock_movements` " +
+        "ROUND((SELECT COALESCE(SUM(${signed("entree")}), 0.0) FROM `stock_movements` " +
             "WHERE `product_id` = $productId AND `emplacement` = 'camion') + " +
             "(SELECT COALESCE(SUM(${signed("vers_camion")}), 0.0) FROM `chargement_items` " +
-            "WHERE `product_id` = $productId))"
+            "WHERE `product_id` = $productId), 3)"
 
     private fun recompute(productId: String, extra: String = "") =
         "UPDATE `products` SET `stock` = ${totalSql(productId)}, `camion_stock` = ${camionSql(productId)} " +

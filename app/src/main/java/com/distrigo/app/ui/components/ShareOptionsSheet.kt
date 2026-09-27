@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.components
 
+import com.distrigo.app.ui.common.formatQty
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context

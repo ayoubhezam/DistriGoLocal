@@ -20,7 +20,7 @@ data class StockPolicy(val allowNegative: Boolean) {
      * product copy is the live one rather than one with the document's own quantity added back.
      */
     fun depotCap(product: Product, ownQuantity: Double = 0.0): Double? =
-        if (allowNegative) null else maxOf(0.0, product.stock - product.camion_stock + ownQuantity)
+        if (allowNegative) null else Quantity.normalize(maxOf(0.0, product.stock - product.camion_stock + ownQuantity))
 
     /**
      * The most a chargement may leave in the camion: all of the stock, which leaves the dépôt at zero.
@@ -32,11 +32,10 @@ data class StockPolicy(val allowNegative: Boolean) {
 
     /** True when [quantity] of [product] is more than strict stock lets the dépôt give. */
     fun exceedsDepot(product: Product, quantity: Double): Boolean =
-        depotCap(product)?.let { quantity > it + EPSILON } ?: false
+        depotCap(product)?.let { Quantity.exceeds(quantity, it) } ?: false
 
     companion object {
         /** Until the setting is read: the app's behaviour before strict stock existed. */
         val ALLOWED = StockPolicy(allowNegative = true)
-        private const val EPSILON = 1e-6
     }
 }

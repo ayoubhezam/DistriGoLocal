@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey

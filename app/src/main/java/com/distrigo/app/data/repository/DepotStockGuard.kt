@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.dao.DepotStockRow
 import com.distrigo.app.data.local.database.AppDatabase
@@ -34,7 +35,7 @@ internal class DepotStockGuard(private val db: AppDatabase) {
         val result = block()
         val broken = depots(ids).filter { row ->
             val was = before[row.id] ?: 0.0
-            row.depot < -EPSILON && row.depot < was - EPSILON
+            Quantity.isBelow(row.depot, 0.0) && Quantity.isBelow(row.depot, was)
         }
         if (broken.isNotEmpty()) throw DepotStockException(message(broken))
         result
@@ -59,14 +60,7 @@ internal class DepotStockGuard(private val db: AppDatabase) {
         val first = broken.first()
         val others = if (broken.size > 1) " (et ${broken.size - 1} autre(s) produit(s))" else ""
         return "Stock dépôt insuffisant pour « ${first.name} »$others : l'opération le laisserait à " +
-            "${formatQuantity(first.depot)} ${first.unit_type}. Le stock négatif est désactivé dans Paramètres."
-    }
-
-    private fun formatQuantity(value: Double): String =
-        if (value == Math.rint(value)) value.toLong().toString() else "%.2f".format(value)
-
-    private companion object {
-        const val EPSILON = 1e-6
+            "${Quantity.format(first.depot)} ${first.unit_type}. Le stock négatif est désactivé dans Paramètres."
     }
 }
 

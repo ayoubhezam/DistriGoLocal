@@ -262,6 +262,23 @@ class StockLedgerTest {
         assertStock(id, total = 35.0, camion = 0.0)
     }
 
+    /**
+     * Fractions of a carton leave the stock on an exact thousandth: three sales of 0.1 out of 0.3 leave
+     * 0, not the 5.5e-17 a sum of doubles would, and a quantity typed with more decimals is written
+     * with three.
+     */
+    @Test
+    fun fractionalQuantitiesLeaveAnExactThousandth() = runBlocking {
+        val id = product(0.3)
+        val client = client()
+        repeat(3) { sale(client, id, 0.1, "depot") }
+        assertEquals(0.0, db.productDao().getProductById(id)!!.stock, 0.0)
+
+        sale(client, id, 1.2345, "depot")
+        assertEquals(1.235, sql.text("SELECT quantity FROM vente_items ORDER BY id DESC LIMIT 1").toDouble(), 0.0)
+        assertEquals(-1.235, db.productDao().getProductById(id)!!.stock, 0.0)
+    }
+
     // ── helpers ──
 
     private suspend fun product(stock: Double): Int =

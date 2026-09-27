@@ -3,7 +3,7 @@ package com.distrigo.app.data.print.lang
 import com.distrigo.app.data.print.PaperProfile
 import com.distrigo.app.ui.components.ReceiptData
 import com.distrigo.app.ui.components.ReceiptLineItem
-import com.distrigo.app.ui.components.formatQty
+import com.distrigo.app.data.model.Quantity
 import java.util.Locale
 
 /**
@@ -155,7 +155,7 @@ object ThermalLayout {
                 // Left rather than Start: a column of names is read down its left edge, and Arabic
                 // entries starting at the right would leave no edge to read down. See RowAlign.Left.
                 Cell(item.name, NAME_SHARE, RowAlign.Left),
-                Cell("${formatQty(item.quantity)} ${item.unitLabel}", QTY_SHARE),
+                Cell("${Quantity.format(item.quantity)} ${item.unitLabel}", QTY_SHARE),
                 Cell(money(item.unitPrice), PRICE_SHARE, RowAlign.End),
                 Cell(money(item.totalPrice), TOTAL_SHARE, RowAlign.End),
             )))
@@ -179,7 +179,7 @@ object ThermalLayout {
         items.forEach { item ->
             add(ReceiptRow.Line(item.name, RowAlign.Left))
             add(ReceiptRow.Columns(
-                left  = "   ${formatQty(item.quantity)} ${item.unitLabel} × ${money(item.unitPrice)}",
+                left  = "   ${Quantity.format(item.quantity)} ${item.unitLabel} × ${money(item.unitPrice)}",
                 right = money(item.totalPrice),
             ))
         }
