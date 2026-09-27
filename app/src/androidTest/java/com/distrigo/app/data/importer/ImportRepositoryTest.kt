@@ -120,7 +120,7 @@ class ImportRepositoryTest {
         assertEquals(6, eau.pack_size)
         assertEquals(40.0, eau.purchase_price, 0.0)
         assertEquals(55.0, eau.selling_price, 0.0)
-        assertEquals(5, eau.min_stock)
+        assertEquals(5.0, eau.min_stock, 0.0)
         assertEquals(1, eau.has_expiry)
         assertEquals("2027-06-30", eau.expiry_date)
         // Stock comes from an opening movement, as the form makes it.

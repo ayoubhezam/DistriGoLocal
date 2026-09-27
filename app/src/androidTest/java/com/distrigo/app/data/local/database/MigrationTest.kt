@@ -666,6 +666,45 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 57 -> 58 rebuilds `products` with a REAL `min_stock`: every row as it was, ids and change tracking
+     * untouched, the AUTOINCREMENT counter kept — a product deleted for good does not give its id back —
+     * and no trigger left behind for the rename to trip over (the app installs them on open).
+     */
+    @Test
+    fun migration57To58MakesTheMinimumAQuantityAndKeepsEveryProduct() {
+        helper.createDatabase(TEST_DB, 57).apply {
+            fun product(id: Int, minStock: Int, deletedAt: Long? = null) = execSQL(
+                "INSERT INTO products (id, name, barcode, selling_price, purchase_price, stock, min_stock, unit_type, packages, " +
+                    "pack_size, has_expiry, camion_stock, uuid, created_at, updated_at, version, deleted_at) VALUES ($id, 'P$id', " +
+                    "NULL, 110.0, 95.0, 12.5, $minStock, 'carton', 0, 0, 0, 2.0, 'u-product-$id', '2026-09-0${id}T10:00:00Z', " +
+                    "${1000 + id}, $id, ${deletedAt ?: "NULL"})"
+            )
+            product(1, 5)
+            product(2, 0, deletedAt = 5000)
+            product(9, 10)
+            execSQL("DELETE FROM products WHERE id = 9")   // gone for good: its id must not come back
+            execSQL("CREATE TRIGGER `trg_test_products` AFTER UPDATE ON `stock_movements` BEGIN UPDATE products SET stock = 0 WHERE 0; END")
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 58, true, MIGRATION_57_58)
+        try {
+            assertEquals(
+                listOf("1|5.0|real|12.5|2.0|u-product-1|1001|1|", "2|0.0|real|12.5|2.0|u-product-2|1002|2|5000"),
+                sql.texts(
+                    "SELECT id || '|' || min_stock || '|' || typeof(min_stock) || '|' || stock || '|' || camion_stock || '|' || " +
+                        "uuid || '|' || updated_at || '|' || version || '|' || COALESCE(deleted_at, '') FROM products ORDER BY id"
+                )
+            )
+            assertEquals(listOf("9"), sql.texts("SELECT seq FROM sqlite_sequence WHERE name = 'products'"))
+            assertEquals(0, sql.count("sqlite_master", "type = 'trigger'"))
+            assertEquals(0, sql.count("sqlite_master", "name = 'products_new'"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -715,7 +716,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
             Spacer(Modifier.width(DsSpacing.sm))
             Text("Seuil minimum", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
             Text(
-                "${product.min_stock} ${pluralUnit(product.min_stock.toDouble(), product.unit_type)}",
+                "${formatQty(product.min_stock)} ${pluralUnit(product.min_stock, product.unit_type)}",
                 fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
             )
             Icon(Icons.Default.ChevronRight, contentDescription = "Modifier le seuil", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
@@ -862,5 +863,4 @@ private fun displayDay(value: String?): String {
 }
 
 // ── Pluriel simple : 0 et 1 restent au singulier (règle du français) ──
-private fun pluralUnit(qty: Double, unit: String): String =
-    if (qty <= 1.0 || unit.endsWith("s")) unit else "${unit}s"
+private fun pluralUnit(qty: Double, unit: String): String = ProductUnit.plural(unit, qty)

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.ProductUnit
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -115,7 +116,7 @@ internal fun PurchaseProductFilterSheet(
 
             Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                listOf<Pair<String?, String>>(null to "Toutes", "carton" to "Carton", "pièce" to "Pièce").forEach { (value, label) ->
+                (listOf<Pair<String?, String>>(null to "Toutes") + ProductUnit.ALL.map { it to ProductUnit.label(it) }).forEach { (value, label) ->
                     val active = filters.unitType == value
                     Box(
                         modifier = Modifier

@@ -21,7 +21,7 @@ class ImportPlannerTest {
 
     private fun product(
         id: Int, name: String, barcode: String?, selling: Double = 100.0, purchase: Double = 80.0, category: CategoryEntity? = null,
-        unit: String = "carton", packSize: Int = 0, minStock: Int = 10, expiry: String? = null, supplier: SupplierEntity? = null,
+        unit: String = "carton", packSize: Int = 0, minStock: Double = 10.0, expiry: String? = null, supplier: SupplierEntity? = null,
     ) = ProductEntity(
         id = id, name = name, barcode = barcode, selling_price = selling, purchase_price = purchase, stock = 5.0, min_stock = minStock,
         unit_type = unit, packages = 0, pack_size = packSize, has_expiry = if (expiry != null) 1 else 0, expiry_date = expiry, image_uri = null,
@@ -145,7 +145,7 @@ class ImportPlannerTest {
         ))
         val (jus, eau) = plan.rows.map { it.outcome as RowOutcome.CreateProduct }
         assertEquals(
-            ProductValues("Jus Rouiba 1L", "6130000000789", "Boissons", "Jus", "Rouiba", "Cevital", "pièce", 12, 60.5, 80.0, 24.0, 5, LocalDate.of(2027, 6, 30)),
+            ProductValues("Jus Rouiba 1L", "6130000000789", "Boissons", "Jus", "Rouiba", "Cevital", "pièce", 12, 60.5, 80.0, 24.0, 5.0, LocalDate.of(2027, 6, 30)),
             jus.values,
         )
         assertEquals(LocalDate.of(2026, 12, 31), eau.values.expiry)
@@ -191,7 +191,7 @@ class ImportPlannerTest {
         assertEquals("« selecto 1l » est déjà sur une ligne plus haut.", reason(3))
         // A new name with the milk's barcode: the barcode finds the milk, and the name is a rename — allowed.
         assertEquals(listOf(Change("Nom", "Lait Candia 1L", "Nouveau")), (outcomes[4] as RowOutcome.UpdateProduct).changes)
-        assertEquals("L'unité « bouteille » n'existe pas : carton ou pièce.", reason(5))
+        assertEquals("L'unité « bouteille » n'existe pas : carton, pièce ou kg.", reason(5))
         assertEquals("La sous-catégorie « Jus » a besoin d'une catégorie.", reason(6))
         assertEquals("Le prix d'achat ne peut pas être négatif.", reason(7))
         assertEquals("« abc » n'est pas un nombre.", reason(8))

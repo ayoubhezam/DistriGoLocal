@@ -7,7 +7,7 @@ data class Product(
     val selling_price  : Double,
     val purchase_price : Double,
     val stock       : Double,
-    val min_stock   : Int,
+    val min_stock   : Double,
     val unit_type   : String,
     val packages    : Int,
     val pack_size   : Int,

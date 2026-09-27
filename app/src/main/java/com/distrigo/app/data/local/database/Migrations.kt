@@ -1056,6 +1056,69 @@ val MIGRATION_56_57 = object : Migration(56, 57) {
 }
 
 /**
+ * 57 → 58: `products.min_stock` becomes REAL, so a minimum can be half a carton or 1.250 kg.
+ *
+ * SQLite cannot change a column's type, so `products` is rebuilt: a new table exactly as Room creates
+ * it, every row copied as it was, the old table dropped and the new one renamed, and its indices
+ * recreated. Rows keep their ids, uuids, `updated_at` and `version` — nothing about a product changed,
+ * only how its minimum is stored — and the AUTOINCREMENT counter keeps its value, so the id of a
+ * product removed for good is never handed out again.
+ *
+ * Every trigger is dropped first. Several of them — the stock ledger's, the change tracking's — name
+ * `products` in their bodies, and renaming a table re-reads every trigger in the schema; the app
+ * installs all of them again each time the database opens (see withChangeTracking), so nothing is
+ * lost, and none of them fires on the copy.
+ *
+ * Because the new table is Room's own definition, a database migrated here — a restored backup
+ * included — has `products` column for column as a new database does, so its change-tracking trigger
+ * matches too and the restore check passes (see RestorePreparer).
+ *
+ * The statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/58.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_57_58 = object : Migration(57, 58) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val triggers = db.query("SELECT name FROM sqlite_master WHERE type = 'trigger'").use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
+        triggers.forEach { db.execSQL("DROP TRIGGER IF EXISTS `$it`") }
+
+        val sequence = db.query("SELECT seq FROM sqlite_sequence WHERE name = 'products'").use { c ->
+            if (c.moveToFirst()) c.getLong(0) else null
+        }
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `products_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, " +
+                "`barcode` TEXT, `selling_price` REAL NOT NULL, `purchase_price` REAL NOT NULL, `stock` REAL NOT NULL, " +
+                "`min_stock` REAL NOT NULL, `unit_type` TEXT NOT NULL, `packages` INTEGER NOT NULL, `pack_size` INTEGER NOT NULL, " +
+                "`has_expiry` INTEGER NOT NULL, `expiry_date` TEXT, `image_uri` TEXT, `category_name` TEXT, `category_id` INTEGER, " +
+                "`supplier_name` TEXT, `supplier_id` INTEGER, `camion_stock` REAL NOT NULL, `sous_categorie_id` INTEGER, " +
+                "`sous_categorie_name` TEXT, `marque_id` INTEGER, `marque_name` TEXT, `uuid` TEXT NOT NULL DEFAULT '', " +
+                "`created_at` TEXT NOT NULL DEFAULT '', `updated_at` INTEGER NOT NULL DEFAULT 0, `version` INTEGER NOT NULL DEFAULT 1, " +
+                "`origin_device_id` TEXT, `deleted_at` INTEGER)"
+        )
+        val columns = "`id`, `name`, `barcode`, `selling_price`, `purchase_price`, `stock`, `min_stock`, `unit_type`, " +
+            "`packages`, `pack_size`, `has_expiry`, `expiry_date`, `image_uri`, `category_name`, `category_id`, " +
+            "`supplier_name`, `supplier_id`, `camion_stock`, `sous_categorie_id`, `sous_categorie_name`, `marque_id`, " +
+            "`marque_name`, `uuid`, `created_at`, `updated_at`, `version`, `origin_device_id`, `deleted_at`"
+        db.execSQL("INSERT INTO `products_new` ($columns) SELECT $columns FROM `products`")
+        db.execSQL("DROP TABLE `products`")
+        db.execSQL("ALTER TABLE `products_new` RENAME TO `products`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_products_supplier_id` ON `products` (`supplier_id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_products_uuid` ON `products` (`uuid`)")
+
+        // The copy set the counter to the highest id copied; the old one may have been higher. An empty
+        // table leaves no counter at all, so it is put back.
+        if (sequence != null) {
+            val kept = db.query("SELECT COUNT(*) FROM sqlite_sequence WHERE name = 'products'").use { it.moveToFirst(); it.getInt(0) }
+            if (kept > 0) db.execSQL("UPDATE sqlite_sequence SET seq = max(seq, $sequence) WHERE name = 'products'")
+            else db.execSQL("INSERT INTO sqlite_sequence (name, seq) VALUES ('products', $sequence)")
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1069,7 +1132,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
-    MIGRATION_56_57,
+    MIGRATION_56_57, MIGRATION_57_58,
 )
 
 /**

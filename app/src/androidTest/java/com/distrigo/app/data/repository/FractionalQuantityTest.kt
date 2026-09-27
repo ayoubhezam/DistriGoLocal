@@ -105,6 +105,19 @@ class FractionalQuantityTest {
         assertStock(id, total = 8.0, camion = 0.0)
     }
 
+    /** A kg product is weighed to the gram, and its minimum can be a fraction too. */
+    @Test
+    fun kgIsWeighedToTheGram() = runBlocking {
+        val id = product("kg", 20.0)
+        repository.updateProduct(id, mapOf("min_stock" to 0.5))
+        assertEquals(0.5, db.productDao().getProductById(id)!!.min_stock, 0.0)
+        assertEquals("real", sql.text("SELECT typeof(min_stock) FROM products WHERE id = $id"))
+
+        repository.createVente(client(), null, "depot", listOf(line(id, 1.25)), null, 0.0)
+        repository.createVente(client(), null, "depot", listOf(line(id, 3.0005)), null, 0.0)   // to the gram
+        assertStock(id, total = 15.749, camion = 0.0)
+    }
+
     // ── helpers ──
 
     private suspend fun product(unit: String, stock: Double): Int =
@@ -136,6 +149,9 @@ class FractionalQuantityTest {
 
     private fun SupportSQLiteDatabase.long(query: String): Long =
         query(query).use { assertTrue(query, it.moveToFirst()); it.getLong(0) }
+
+    private fun SupportSQLiteDatabase.text(query: String): String =
+        query(query).use { assertTrue(query, it.moveToFirst()); it.getString(0) }
 
     private fun SupportSQLiteDatabase.double(query: String): Double =
         query(query).use { assertTrue(query, it.moveToFirst()); it.getDouble(0) }

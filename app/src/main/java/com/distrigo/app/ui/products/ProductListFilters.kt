@@ -41,7 +41,7 @@ fun filterProducts(products: List<Product>, query: String, filters: ProductListF
             (filters.marqueId == null || product.marque_id == filters.marqueId) &&
             (filters.supplierId == null || product.supplier_id == filters.supplierId) &&
             (filters.unitType == null || product.unit_type == filters.unitType) &&
-            (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, product.stock, product.min_stock.toDouble())) &&
+            (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, product.stock, product.min_stock)) &&
             (priceMin?.let { product.selling_price >= it } ?: true) &&
             (priceMax?.let { product.selling_price <= it } ?: true) &&
             (!filters.expiringSoon || (product.has_expiry == 1 && isExpiringSoon(product.expiry_date)))

@@ -93,7 +93,7 @@ class ImportRepository(
             "selling_price" to (values.sellingPrice ?: 0.0),
             "purchase_price" to (values.purchasePrice ?: 0.0),
             "stock" to (values.initialStock ?: 0.0),
-            "min_stock" to (values.minStock ?: 10),
+            "min_stock" to (values.minStock ?: 10.0),
             "unit_type" to unit,
             "pack_size" to if (unit == "pièce") (values.packSize ?: 0) else 0,
             "has_expiry" to if (values.expiry != null) 1 else 0,

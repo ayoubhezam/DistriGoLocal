@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -156,7 +157,7 @@ fun ProductsScreen(
             }
         }
         viewModel.filterUnitType?.let { unit ->
-            add(ActiveFilterEntry("Unité: ${if (unit == "pièce") "Pièce" else "Carton"}") { viewModel.filterUnitType = null })
+            add(ActiveFilterEntry("Unité: ${ProductUnit.label(unit)}") { viewModel.filterUnitType = null })
         }
         viewModel.filterStockLevel?.let { level ->
             val label = when (level) {
@@ -445,7 +446,7 @@ fun ProductsScreen(
 
                 Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf<Pair<String?, String>>(null to "Toutes", "carton" to "Carton", "pièce" to "Pièce").forEach { (value, label) ->
+                    (listOf<Pair<String?, String>>(null to "Toutes") + ProductUnit.ALL.map { it to ProductUnit.label(it) }).forEach { (value, label) ->
                         val active = viewModel.filterUnitType == value
                         Box(
                             modifier = Modifier

@@ -24,7 +24,7 @@ data class ProductListFilters(
     val sousCategorieId : Int?    = null,
     val marqueId        : Int?    = null,
     val supplierId      : Int?    = null,
-    val unitType        : String? = null,   // "carton" | "pièce"
+    val unitType        : String? = null,   // ProductUnit: "carton" | "pièce" | "kg"
     val stockLevel      : String? = null,   // "in_stock" | "low_stock" | "out_of_stock"
     val priceMin        : String  = "",     // the raw text typed, as the Produits sheet keeps it
     val priceMax        : String  = "",
@@ -62,7 +62,7 @@ internal fun Product.matches(filters: ProductListFilters, today: LocalDate = Loc
     (filters.supplierId      == null || supplier_id       == filters.supplierId) &&
     (filters.unitType        == null || unit_type         == filters.unitType) &&
     // The same bands as the Produits sheet and the paged list: see StockLevel.
-    (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, stock, min_stock.toDouble())) &&
+    (filters.stockLevel == null || StockLevel.matches(filters.stockLevel, stock, min_stock)) &&
     (filters.priceMin.toDoubleOrNull()?.let { purchase_price >= it } ?: true) &&
     (filters.priceMax.toDoubleOrNull()?.let { purchase_price <= it } ?: true) &&
     (!filters.expiringSoon || (has_expiry == 1 && expiresWithin(expiry_date, today, days = 30)))

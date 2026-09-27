@@ -499,7 +499,7 @@ class VenteFormSessionViewModel @Inject constructor(
         selling_price  = unitPrice,
         purchase_price = 0.0,
         stock          = 0.0,
-        min_stock      = 0,
+        min_stock      = 0.0,
         unit_type      = unitType,
         packages       = 0,
         pack_size      = 0,

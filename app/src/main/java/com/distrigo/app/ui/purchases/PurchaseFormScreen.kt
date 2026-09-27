@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -303,7 +304,7 @@ internal fun Step3Validation(
                 val quantityLine = if (item.product.unit_type == "pièce")
                     "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                 else
-                    "${formatQty(item.nbColis)} cartons"
+                    "${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)}"
 
                 Card(
                     modifier  = Modifier.fillMaxWidth(),

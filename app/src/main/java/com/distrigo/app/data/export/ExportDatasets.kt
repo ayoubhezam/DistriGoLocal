@@ -174,7 +174,7 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                     ExportCell.Number(total?.let { it - (row.double("camion_stock") ?: 0.0) }, decimals = 3, trimZeros = true)
                 },
                 quantity("Stock camion", "camion_stock"),
-                ExportColumn("Stock minimum") { ExportCell.Integer(it.long("min_stock")) },
+                quantity("Stock minimum", "min_stock"),
                 ExportColumn("Date de péremption") { row -> ExportCell.Date(row.text("expiry_date")?.takeIf { row.long("has_expiry") == 1L }) },
             )
             MOUVEMENTS_STOCK -> listOf(

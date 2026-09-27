@@ -1,5 +1,6 @@
 package com.distrigo.app.data.importer
 
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.local.entity.ClientEntity
 import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
 import com.distrigo.app.data.local.entity.ProductEntity
@@ -120,13 +121,13 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             codes.firstOrNull { !seenBarcodes.add(it) }?.let { return RowOutcome.Refused("Le code-barres $it est déjà sur une ligne plus haut.") }
         }
 
-        val unitType = cells.text("unite")?.let { UNITS[ImportText.key(it)] ?: return RowOutcome.Refused("L'unité « $it » n'existe pas : carton ou pièce.") }
+        val unitType = cells.text("unite")?.let { UNITS[ImportText.key(it)] ?: return RowOutcome.Refused("L'unité « $it » n'existe pas : carton, pièce ou kg.") }
         val packSize = cells.int("unites par colis")?.let { if (it < 0) return RowOutcome.Refused("Les unités par colis ne peuvent pas être négatives.") else it }
         val purchase = cells.amount("prix d achat") ?: cells.amount("prix achat")
         val selling = cells.amount("prix de vente") ?: cells.amount("prix vente")
         if (purchase != null && purchase < 0) return RowOutcome.Refused("Le prix d'achat ne peut pas être négatif.")
         if (selling != null && selling < 0) return RowOutcome.Refused("Le prix de vente ne peut pas être négatif.")
-        val minStock = cells.int("stock minimum")?.let { if (it < 0) return RowOutcome.Refused("Le stock minimum ne peut pas être négatif.") else it }
+        val minStock = cells.quantity("stock minimum")?.let { if (it < 0) return RowOutcome.Refused("Le stock minimum ne peut pas être négatif.") else it }
         val stock = cells.quantity("stock depot") ?: cells.quantity("stock")
         if (stock != null && stock < 0) return RowOutcome.Refused("Le stock ne peut pas être négatif.")
         val expiry = cells.date("date de peremption")
@@ -170,7 +171,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         changed("Unités par colis", existing.pack_size.toString(), packSize?.toString())
         changed("Prix d'achat", money(existing.purchase_price), purchase?.let(::money))
         changed("Prix de vente", money(existing.selling_price), selling?.let(::money))
-        changed("Stock minimum", existing.min_stock.toString(), minStock?.toString())
+        changed("Stock minimum", Quantity.format(existing.min_stock), minStock?.let(Quantity::format))
         changed("Date de péremption", existing.expiry_date?.takeIf { existing.has_expiry == 1 }?.let(::day), expiry?.let { day(it.toString()) })
         return if (changes.isEmpty()) RowOutcome.Unchanged(existing.id) else RowOutcome.UpdateProduct(existing.id, values.copy(initialStock = null), changes)
     }
@@ -382,7 +383,10 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             "type" to "type", "type de client" to "type",
             "secteur" to "secteur", "wilaya" to "wilaya", "commune" to "commune", "adresse" to "adresse", "solde" to "solde", "note" to "note",
         )
-        private val UNITS = mapOf("carton" to "carton", "cartons" to "carton", "piece" to "pièce", "pieces" to "pièce", "unite" to "pièce", "unites" to "pièce")
+        private val UNITS = mapOf(
+            "carton" to "carton", "cartons" to "carton", "piece" to "pièce", "pieces" to "pièce", "unite" to "pièce", "unites" to "pièce",
+            "kg" to "kg", "kgs" to "kg", "kilo" to "kg", "kilos" to "kg", "kilogramme" to "kg", "kilogrammes" to "kg",
+        )
         private val CLIENT_TYPES = mapOf(
             "detail" to "retail", "retail" to "retail", "gros" to "wholesale", "wholesale" to "wholesale",
             "societe" to "business", "business" to "business", "entreprise" to "business",

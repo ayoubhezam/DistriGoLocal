@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.components
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.receiptNumber
 import com.distrigo.app.data.model.numberLabel
@@ -137,9 +138,10 @@ fun Vente.toReceiptData(
             // from the packaging: pieces / units-per-colis, the same product of the two that a
             // purchase multiplies out. Without a stated packaging it stays null and prints "-".
             nbColis = when {
-                line.unit_type != "pièce" -> line.quantity
-                packSize != null         -> line.quantity / packSize
-                else                     -> null
+                line.unit_type == ProductUnit.KG    -> null   // weighed: no colis to count
+                line.unit_type != ProductUnit.PIECE -> line.quantity
+                packSize != null                    -> line.quantity / packSize
+                else                                -> null
             },
             unitePerColis = packSize
         )
@@ -166,7 +168,8 @@ fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = Recei
         ReceiptLineItem(
             name = it.product_name, quantity = it.quantity, unitLabel = it.unit_type,
             unitPrice = it.unit_cost, totalPrice = it.total_cost,
-            nbColis = it.nb_colis, unitePerColis = it.unite_par_colis
+            // A kg line is one total weight: its nb_colis is that weight, not a count of colis.
+            nbColis = it.nb_colis.takeIf { _ -> it.unit_type != ProductUnit.KG }, unitePerColis = it.unite_par_colis
         )
     },
     total = total,

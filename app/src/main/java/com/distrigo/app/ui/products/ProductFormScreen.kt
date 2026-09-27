@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.data.model.ProductUnit
+import com.distrigo.app.ui.common.formatQty
+import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.repository.ProductDuplicate
 import com.distrigo.app.data.repository.TOO_MANY_BARCODES
 import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
@@ -79,7 +82,7 @@ fun ProductFormScreen(
     var purchasePrice by remember { mutableStateOf(if (isEdit) product!!.purchase_price.toString() else "") }
     var packages      by remember { mutableStateOf(if (isEdit) product!!.packages.toString() else "") }
     var packSize      by remember { mutableStateOf(if (isEdit) product!!.pack_size.toString() else "") }
-    var minStock      by remember { mutableStateOf(if (isEdit) product!!.min_stock.toString() else "0") }
+    var minStock      by remember { mutableStateOf(if (isEdit) formatQty(product!!.min_stock) else "0") }
     var unitType      by remember { mutableStateOf(if (isEdit) product!!.unit_type else "carton") }
     var hasExpiry     by remember { mutableStateOf(if (isEdit) product!!.has_expiry == 1 else false) }
     var expiryDate    by remember { mutableStateOf(if (isEdit) product?.expiry_date ?: "" else "") }
@@ -215,7 +218,7 @@ fun ProductFormScreen(
                 "barcodes"       to allBarcodes(),
                 "selling_price"  to sp,
                 "purchase_price" to pp,
-                "min_stock"      to (minStock.toIntOrNull() ?: 0),
+                "min_stock"      to (Quantity.parse(minStock) ?: 0.0),
                 "packages"       to 0,
                 // `packages` stays 0 — stock is moved by chargements and purchases, never typed
                 // here. `pack_size` is different: it describes the packaging, not the stock level,
@@ -237,7 +240,7 @@ fun ProductFormScreen(
                 "selling_price"  to sp,
                 "purchase_price" to pp,
                 "stock"          to 0,
-                "min_stock"      to (minStock.toIntOrNull() ?: 0),
+                "min_stock"      to (Quantity.parse(minStock) ?: 0.0),
                 "packages"       to 0,
                 "pack_size"      to if (unitType == "pièce") (packSize.toIntOrNull() ?: 0) else 0,
                 "unit_type"      to unitType,
@@ -873,9 +876,11 @@ fun ProductFormScreen(
                     FormField(
                         label         = "Stock minimum",
                         value         = minStock,
-                        // Whole units: anything else used to be dropped for a silent 10.
-                        onValueChange = { minStock = it.filter(Char::isDigit) },
+                        // A threshold in the product's unit: half a carton or 1.250 kg, whole pieces.
+                        // Read with ',' or '.'; anything else used to be dropped for a silent 10.
+                        onValueChange = { minStock = Quantity.sanitizeInput(it, Quantity.allowsFractions(unitType)) },
                         placeholder   = "0",
+                        isDecimal     = Quantity.allowsFractions(unitType),
                         isNumber      = true,
                         imeAction     = ImeAction.Done,
                     )
@@ -894,7 +899,7 @@ fun ProductFormScreen(
                             Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             Spacer(Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("carton", "pièce").forEach { unit ->
+                                ProductUnit.ALL.forEach { unit ->
                                     val active = unitType == unit
                                     Box(
                                         modifier = Modifier
@@ -908,14 +913,14 @@ fun ProductFormScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                Icons.Default.Inventory2,
+                                                if (unit == ProductUnit.KG) Icons.Default.Scale else Icons.Default.Inventory2,
                                                 contentDescription = null,
                                                 tint     = if (active) Color.White else DsColors.TextSecondary,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Spacer(Modifier.width(6.dp))
                                             Text(
-                                                if (unit == "pièce") "Pièce" else "Carton",
+                                                ProductUnit.label(unit),
                                                 fontSize   = DsTextSize.body,
                                                 fontWeight = FontWeight.Medium,
                                                 color      = if (active) Color.White else DsColors.TextPrimary
@@ -1273,6 +1278,8 @@ fun FormField(
     error         : String = "",
     placeholder   : String = "",
     isNumber      : Boolean = false,
+    /** A quantity with decimals: the decimal keyboard, whose key types ',' in French. */
+    isDecimal     : Boolean = false,
     imeAction     : ImeAction = ImeAction.Next,
     onNext        : (() -> Unit)? = null,
     leadingIcon   : androidx.compose.ui.graphics.vector.ImageVector? = null,
@@ -1296,8 +1303,11 @@ fun FormField(
                 { Text(txt, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, fontWeight = FontWeight.Medium) }
             },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                keyboardType = if (isNumber) androidx.compose.ui.text.input.KeyboardType.Number
-                               else          androidx.compose.ui.text.input.KeyboardType.Text,
+                keyboardType = when {
+                    isDecimal -> androidx.compose.ui.text.input.KeyboardType.Decimal
+                    isNumber  -> androidx.compose.ui.text.input.KeyboardType.Number
+                    else      -> androidx.compose.ui.text.input.KeyboardType.Text
+                },
                 imeAction    = imeAction
             ),
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(

@@ -17,7 +17,7 @@ class PurchaseProductFiltersTest {
         purchasePrice : Double  = 140.0,
         sellingPrice  : Double  = 250.0,
         stock         : Double  = 10.0,
-        minStock      : Int     = 5,
+        minStock      : Double  = 5.0,
         unitType      : String  = "pièce",
         hasExpiry     : Int     = 0,
         expiryDate    : String? = null,
@@ -85,12 +85,12 @@ class PurchaseProductFiltersTest {
         val low      = ProductListFilters(stockLevel = "low_stock")
         val out      = ProductListFilters(stockLevel = "out_of_stock")
 
-        assertTrue(product(stock = 10.0, minStock = 5).matches(inStock, today))
-        assertFalse(product(stock = 5.0, minStock = 5).matches(inStock, today))
+        assertTrue(product(stock = 10.0, minStock = 5.0).matches(inStock, today))
+        assertFalse(product(stock = 5.0, minStock = 5.0).matches(inStock, today))
 
-        assertTrue(product(stock = 5.0, minStock = 5).matches(low, today))
-        assertTrue(product(stock = 1.0, minStock = 5).matches(low, today))
-        assertFalse(product(stock = 0.0, minStock = 5).matches(low, today))
+        assertTrue(product(stock = 5.0, minStock = 5.0).matches(low, today))
+        assertTrue(product(stock = 1.0, minStock = 5.0).matches(low, today))
+        assertFalse(product(stock = 0.0, minStock = 5.0).matches(low, today))
 
         assertTrue(product(stock = 0.0).matches(out, today))
         assertFalse(product(stock = 1.0).matches(out, today))

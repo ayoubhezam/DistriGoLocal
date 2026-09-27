@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.data.model.Quantity
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -595,7 +596,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     add("Fournisseur : ${suppliers.find { it.id == id }?.name ?: "—"}" to filters.copy(supplierId = null))
                 }
                 filters.unitType?.let { unit ->
-                    add((if (unit == "pièce") "Pièce" else "Carton") to filters.copy(unitType = null))
+                    add(ProductUnit.label(unit) to filters.copy(unitType = null))
                 }
                 filters.stockLevel?.let { level ->
                     val label = when (level) {
@@ -973,7 +974,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             val metaLine = if (item.product.unit_type == "pièce")
                                 "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                             else
-                                "${formatQty(item.quantity)} carton × ${"%.2f".format(item.unitCost)} DA"
+                                "${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.unitCost)} DA"
 
                             // A restored draft can name a product that has since been deleted. The
                             // line stays visible, under the name the draft stored, because dropping
@@ -1078,8 +1079,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             )
                                         }
                                     } else {
+                                        // A carton product counts cartons; a kg product is bought as
+                                        // one total weight (15.750), since bulk weight has no fixed colis.
                                         QuantityStepper(
-                                            label         = "Nombre de cartons",
+                                            label         = if (item.product.unit_type == ProductUnit.KG) "Poids total (kg)" else "Nombre de cartons",
                                             value         = item.quantity,
                                             onValueChange = { newQty ->
                                                 session.setFormCartItems(cartItems.map { ci ->

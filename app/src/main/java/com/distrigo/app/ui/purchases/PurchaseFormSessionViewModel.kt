@@ -396,7 +396,7 @@ class PurchaseFormSessionViewModel @Inject constructor(
         selling_price  = 0.0,
         purchase_price = line.unit_cost,
         stock          = 0.0,
-        min_stock      = 0,
+        min_stock      = 0.0,
         unit_type      = "unité",
         packages       = 0,
         pack_size      = 0,

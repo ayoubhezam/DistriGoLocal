@@ -201,7 +201,7 @@ class StressDataGenerator(private val db: AppDatabase) {
                 val entity = ProductEntity(
                     name = productName(i), barcode = null,
                     selling_price = (purchase * 1.2).roundCentimes(), purchase_price = purchase,
-                    stock = 0.0, min_stock = 10,
+                    stock = 0.0, min_stock = 10.0,
                     unit_type = if (i % 4 == 0) "carton" else "pièce",
                     packages = 0, pack_size = if (i % 4 == 0) 12 else 0,
                     has_expiry = 0, expiry_date = null, image_uri = null,

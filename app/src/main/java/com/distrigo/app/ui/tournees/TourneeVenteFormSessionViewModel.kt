@@ -387,7 +387,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
         selling_price  = line.unit_price,
         purchase_price = 0.0,
         stock          = 0.0,
-        min_stock      = 0,
+        min_stock      = 0.0,
         unit_type      = line.unit_type,
         packages       = 0,
         pack_size      = 0,

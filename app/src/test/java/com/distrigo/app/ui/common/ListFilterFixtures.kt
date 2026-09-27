@@ -66,7 +66,7 @@ internal object ListFilterFixtures {
                 selling_price  = pick(r, 0.0, 10.0, 50.5, 100.0, 140.0, 140.0, 999.99, -1.0),
                 purchase_price = 0.0,
                 stock          = pick(r, -5.0, 0.0, 0.5, 1.0, 2.0, 3.0, 10.0, 99.5),
-                min_stock      = pick(r, 0, 1, 2, 5, 10),
+                min_stock      = pick(r, 0.0, 0.5, 1.0, 2.0, 5.0, 10.0),
                 unit_type      = pick(r, "pièce", "carton", "kg", "litre", ""),
                 packages       = 0,
                 pack_size      = 0,

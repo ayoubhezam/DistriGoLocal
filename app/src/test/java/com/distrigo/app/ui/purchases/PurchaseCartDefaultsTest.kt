@@ -9,7 +9,7 @@ class PurchaseCartDefaultsTest {
     private fun product(unitType: String, packSize: Int) = Product(
         id = 1, name = "Thé rouge 500g", barcode = null,
         selling_price = 250.0, purchase_price = 200.0,
-        stock = 0.0, min_stock = 0, unit_type = unitType,
+        stock = 0.0, min_stock = 0.0, unit_type = unitType,
         packages = 0, pack_size = packSize,
         has_expiry = 0, expiry_date = null, image_uri = null,
         category_name = null, category_id = null,

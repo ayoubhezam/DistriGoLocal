@@ -35,7 +35,7 @@ data class ProductValues(
     val sellingPrice: Double? = null,
     /** Only a new product takes stock from the file: an existing one is corrected by an inventory or an adjustment. */
     val initialStock: Double? = null,
-    val minStock: Int? = null,
+    val minStock: Double? = null,
     val expiry: LocalDate? = null,
     /**
      * Every code the product has once the row is applied, [barcode] first: the file's codes, then those an existing
