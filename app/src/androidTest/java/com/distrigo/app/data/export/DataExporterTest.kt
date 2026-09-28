@@ -110,9 +110,9 @@ class DataExporterTest {
     fun ventesAreTheLocalDaysSalesWithTheirNumbersAndLabels() {
         val rows = export(ExportDataset.VENTES)
         assertEquals(listOf("N°", "Date", "Client", "Origine", "Statut", "Total (DA)", "Payé (DA)", "Reste (DA)", "Note"), rows[0])
-        assertEquals(listOf("V-6DED-000001", "17/09/2026 00:30", "Épicerie El Amel", "Dépôt", "En attente", "3450,00", "1000,00", "2450,00", "", ""), rows[1])
+        assertEquals(listOf("V-6DED-000001", "17/09/2026 00:30", "Épicerie El Amel", "Dépôt", "En attente", "3450,00", "1000,00", "2450,00", ""), rows[1])
         assertEquals(listOf("#26", "17/09/2026 13:00"), rows[2].take(2))
-        assertEquals(listOf("V-6DED-000002", "17/09/2026 23:30", "'=HYPERLINK(\"http://x\")", "Camion", "Livré", "800,00", "800,00", "0,00", "Livré; payé", ""), rows[3])
+        assertEquals(listOf("V-6DED-000002", "17/09/2026 23:30", "'=HYPERLINK(\"http://x\")", "Camion", "Livré", "800,00", "800,00", "0,00", "Livré; payé"), rows[3])
         assertEquals("00:10 on the 18th is not in the 17th", 4, rows.size)
     }
 
@@ -174,7 +174,7 @@ class DataExporterTest {
     @Test
     fun movementsChargesAndPertesUseTheAppsWords() {
         assertEquals(
-            listOf("17/09/2026 16:00", "Lait Candia 1L", "Retour client", "Entrée", "Camion", "2,25", "100,00", "225,00", "Retour client #3", "", ""),
+            listOf("17/09/2026 16:00", "Lait Candia 1L", "Retour client", "Entrée", "Camion", "2,25", "100,00", "225,00", "Retour client #3", ""),
             export(ExportDataset.MOUVEMENTS_STOCK)[1]
         )
         assertEquals(
