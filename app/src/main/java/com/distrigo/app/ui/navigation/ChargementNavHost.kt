@@ -255,7 +255,6 @@ fun ChargementNavHost(
             LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
-            val userName by session.formUserName.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
 
             // Exactly the condition save() uses to decide whether to write anything: a line counts
@@ -293,7 +292,6 @@ fun ChargementNavHost(
                     // draft outlives any failure.
                     draftId   = session.draftId,
                     note      = note.trim().ifEmpty { null },
-                    userName  = userName.trim().ifEmpty { null },
                     items     = items,
                     onSuccess = { session.onCommitted(); onSaved() },
                     // Shown: a refused save used to leave only a button that stopped spinning.
@@ -359,22 +357,6 @@ fun ChargementNavHost(
                                 onRemove = {
                                     session.setFormCartItems(cartItems.filter { it.product.id != item.product.id })
                                 }
-                            )
-                        }
-
-                        item {
-                            OutlinedTextField(
-                                value         = userName,
-                                onValueChange = { session.setFormUserName(it) },
-                                placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
-                                leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
-                                modifier      = Modifier.fillMaxWidth(),
-                                shape         = DsShapes.medium,
-                                singleLine    = true,
-                                colors = dsTextFieldColors(
-                                    unfocusedBorderColor = DsColors.Border,
-                                    focusedBorderColor   = DsColors.Primary
-                                )
                             )
                         }
 

@@ -55,7 +55,6 @@ fun PurchaseOrderDetailScreen(
     val isReceived    = displayOrder.status == "received"
     var isLoading     by remember { mutableStateOf(false) }
     var showReceiveDialog by remember { mutableStateOf(false) }
-    var receiveUserName   by remember { mutableStateOf("") }
     var showReopenDialog  by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
     var showReceiptPreview by remember { mutableStateOf(false) }
@@ -474,15 +473,6 @@ fun PurchaseOrderDetailScreen(
                             fontSize = DsTextSize.bodySmall,
                             color = DsColors.TextSecondary
                         )
-                        Spacer(Modifier.height(DsSpacing.md))
-                        OutlinedTextField(
-                            value         = receiveUserName,
-                            onValueChange = { receiveUserName = it },
-                            placeholder   = { Text("Effectué par (optionnel)") },
-                            leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
-                            singleLine    = true,
-                            modifier      = Modifier.fillMaxWidth()
-                        )
                     }
                 },
                 confirmButton = {
@@ -492,7 +482,6 @@ fun PurchaseOrderDetailScreen(
                             isLoading = true
                             viewModel.receiveOrder(
                                 id        = displayOrder.id,
-                                userName  = receiveUserName.trim().ifEmpty { null },
                                 onSuccess = {
                                     onReceived()
                                 },

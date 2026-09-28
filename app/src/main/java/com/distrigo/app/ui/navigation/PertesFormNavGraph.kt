@@ -50,7 +50,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 // Mirrors venteFormGraph/purchaseFormGraph/retourClientFormGraph: form state (product/quantity/
-// source/date/motif/userName/photo) lives on the PertesGraph-scoped PerteViewModel instance —
+// source/date/motif/photo) lives on the PertesGraph-scoped PerteViewModel instance —
 // the same one PertesHome/PertesList already share. See
 // PerteViewModel.formProduct/formQuantity/formSource/.../formSaveError.
 //
@@ -89,7 +89,6 @@ fun NavGraphBuilder.pertesFormGraph(
             val formSource by viewModel.formSource.collectAsState()
             val formDate by viewModel.formDate.collectAsState()
             val formMotif by viewModel.formMotif.collectAsState()
-            val formUserName by viewModel.formUserName.collectAsState()
             val formSaveError by viewModel.formSaveError.collectAsState()
             val stockPolicy by viewModel.stockPolicy.collectAsState()
             var quantityError by remember { mutableStateOf("") }
@@ -249,17 +248,6 @@ fun NavGraphBuilder.pertesFormGraph(
                     }
 
                     Spacer(Modifier.height(DsSpacing.md))
-                    Column {
-                        Text("Effectué par (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                        OutlinedTextField(
-                            value = formUserName, onValueChange = { viewModel.setFormUserName(it) },
-                            placeholder = { Text("Nom du responsable") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                        )
-                    }
-
                     if (formSaveError.isNotEmpty()) {
                         Text(formSaveError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                     }
@@ -325,7 +313,6 @@ fun NavGraphBuilder.pertesFormGraph(
             val formSource by viewModel.formSource.collectAsState()
             val formDate by viewModel.formDate.collectAsState()
             val formMotif by viewModel.formMotif.collectAsState()
-            val formUserName by viewModel.formUserName.collectAsState()
             val formPhotoBase64 by viewModel.formPhotoBase64.collectAsState()
             val formSaveError by viewModel.formSaveError.collectAsState()
             var isSaving by remember { mutableStateOf(false) }

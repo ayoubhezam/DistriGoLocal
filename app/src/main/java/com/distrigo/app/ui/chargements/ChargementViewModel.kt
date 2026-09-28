@@ -75,7 +75,6 @@ class ChargementViewModel @Inject constructor(
         product : com.distrigo.app.data.model.Product,
         target  : Double,
         note    : String,
-        userName: String,
         isDirty : Boolean
     ): Int? {
         if (!isDirty) {
@@ -95,7 +94,7 @@ class ChargementViewModel @Inject constructor(
                     )
                 ),
                 note     = note,
-                userName = userName
+                userName = ""   // "Effectué par" is hidden until it comes from the user profile
             )
         )
     }

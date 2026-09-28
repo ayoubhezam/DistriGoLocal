@@ -89,8 +89,6 @@ class PerteViewModel @Inject constructor(
     private val _formMotif = MutableStateFlow("")
     val formMotif: StateFlow<String> = _formMotif
 
-    private val _formUserName = MutableStateFlow("")
-    val formUserName: StateFlow<String> = _formUserName
 
     private val _formPhotoBase64 = MutableStateFlow<String?>(null)
     val formPhotoBase64: StateFlow<String?> = _formPhotoBase64
@@ -103,7 +101,6 @@ class PerteViewModel @Inject constructor(
     fun setFormSource(source: String) { _formSource.value = source }
     fun setFormDate(date: java.time.LocalDate) { _formDate.value = date }
     fun setFormMotif(motif: String) { _formMotif.value = motif }
-    fun setFormUserName(name: String) { _formUserName.value = name }
     fun setFormPhotoBase64(photo: String?) { _formPhotoBase64.value = photo }
     fun setFormSaveError(error: String) { _formSaveError.value = error }
 
@@ -113,7 +110,6 @@ class PerteViewModel @Inject constructor(
         _formSource.value = "depot"
         _formDate.value = java.time.LocalDate.now()
         _formMotif.value = ""
-        _formUserName.value = ""
         _formPhotoBase64.value = null
         _formSaveError.value = ""
     }

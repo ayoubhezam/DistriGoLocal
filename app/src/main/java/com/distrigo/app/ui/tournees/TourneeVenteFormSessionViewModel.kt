@@ -80,9 +80,6 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     private val _formMontantPaye = MutableStateFlow("")
     val formMontantPaye: StateFlow<String> = _formMontantPaye
 
-    /** "Effectué par" — optional, and written onto the vente so the receipt can print it. */
-    private val _formUserName = MutableStateFlow("")
-    val formUserName: StateFlow<String> = _formUserName
 
     fun setFormClient(client: Client?) { _formClient.value = client }
 
@@ -139,7 +136,6 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
 
     fun setFormNote(note: String) { _formNote.value = note }
     fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
-    fun setFormUserName(value: String) { _formUserName.value = value }
 
     // ── Session state ────────────────────────────────────────────────────────
 
@@ -220,7 +216,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     private val autosave = DraftAutosave(
         host    = this,
         scope   = viewModelScope,
-        signals = listOf(_formClient, _formCartItems, _formNote, _formMontantPaye, _formUserName)
+        signals = listOf(_formClient, _formCartItems, _formNote, _formMontantPaye)
     )
 
     /** Writes the current form now rather than waiting out the debounce. */
@@ -259,7 +255,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
         lines       = _formCartItems.value.map { it.toDraftLine() },
         note        = _formNote.value,
         montantPaye = _formMontantPaye.value,
-        userName    = _formUserName.value,
+        userName    = "",   // "Effectué par" is hidden until it comes from the user profile
         lastStep    = savedState[KEY_LAST_STEP] ?: ""
     )
 
@@ -376,7 +372,6 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
         _overStockProductIds.value = overStock
         _formNote.value            = draft.note
         _formMontantPaye.value     = draft.montantPaye
-        _formUserName.value        = draft.userName
     }
 
     /** Keeps a deleted product's line visible and named instead of dropping it. */
@@ -414,7 +409,6 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
         _formCartItems.value       = emptyList()
         _formNote.value            = ""
         _formMontantPaye.value     = ""
-        _formUserName.value        = ""
         _missingProductIds.value   = emptySet()
         _overStockProductIds.value = emptySet()
     }

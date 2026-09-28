@@ -224,8 +224,6 @@ internal fun Step3Validation(
     onMontantPayeChange : (String) -> Unit,
     note                : String,
     onNoteChange        : (String) -> Unit,
-    userName            : String,
-    onUserNameChange    : (String) -> Unit,
     isSaving            : Boolean,
     saveError           : String,
     /**
@@ -418,23 +416,6 @@ internal fun Step3Validation(
                     }
                 }
             }
-            // ── Effectué par ──
-            item {
-                OutlinedTextField(
-                    value         = userName,
-                    onValueChange = onUserNameChange,
-                    placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
-                    leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
-                    modifier      = Modifier.fillMaxWidth(),
-                    shape         = DsShapes.medium,
-                    singleLine    = true,
-                    colors = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
-                )
-            }
-
             // ── Note ──
             item {
                 OutlinedTextField(

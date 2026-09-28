@@ -77,8 +77,6 @@ class ChargementFormSessionViewModel @Inject constructor(
     private val _formNote = MutableStateFlow("")
     val formNote: StateFlow<String> = _formNote
 
-    private val _formUserName = MutableStateFlow("")
-    val formUserName: StateFlow<String> = _formUserName
 
     fun setFormCartItems(items: List<ChargementCartItem>) {
         _formCartItems.value = items
@@ -104,7 +102,6 @@ class ChargementFormSessionViewModel @Inject constructor(
     suspend fun liveProduct(id: Int): Product? = productRepository.getLiveProduct(id)
 
     fun setFormNote(note: String) { _formNote.value = note }
-    fun setFormUserName(name: String) { _formUserName.value = name }
 
     // ── Session state ────────────────────────────────────────────────────────
 
@@ -145,7 +142,7 @@ class ChargementFormSessionViewModel @Inject constructor(
     private val autosave = DraftAutosave(
         host    = this,
         scope   = viewModelScope,
-        signals = listOf(_formCartItems, _formNote, _formUserName)
+        signals = listOf(_formCartItems, _formNote)
     )
 
     fun flushDraft() = autosave.flush()
@@ -176,7 +173,7 @@ class ChargementFormSessionViewModel @Inject constructor(
         singleProductId = null,
         lines           = _formCartItems.value.map { it.toDraftLine() },
         note            = _formNote.value,
-        userName        = _formUserName.value
+        userName        = ""   // "Effectué par" is hidden until it comes from the user profile
     )
 
     // ── Session entry ────────────────────────────────────────────────────────
@@ -255,7 +252,6 @@ class ChargementFormSessionViewModel @Inject constructor(
 
         _missingProductIds.value = missing
         _formNote.value          = draft.note
-        _formUserName.value      = draft.userName
     }
 
     /** Keeps a deleted product's line visible and named instead of dropping it. */
@@ -290,7 +286,6 @@ class ChargementFormSessionViewModel @Inject constructor(
     private fun resetForm() {
         _formCartItems.value     = emptyList()
         _formNote.value          = ""
-        _formUserName.value      = ""
         _missingProductIds.value = emptySet()
     }
 

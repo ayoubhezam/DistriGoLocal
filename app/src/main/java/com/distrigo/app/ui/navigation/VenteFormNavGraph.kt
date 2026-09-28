@@ -120,7 +120,7 @@ private fun FlushDraftOnStop(session: VenteFormSessionViewModel) {
 //    The client step composable is never registered in this mode, so it can never be navigated
 //    to, composed, or animated — not even for a single frame.
 //
-// The form's own state (client / cart / note / userName / montantPaye) is NOT on the
+// The form's own state (client / cart / note / montantPaye) is NOT on the
 // `viewModel` provider any more: it lives on VenteFormSessionViewModel, scoped to this graph's
 // back stack entry, which is also what enters the session and keeps its Brouillon. The provider
 // still supplies the ventes list and the create/update commands. See venteFormSession above.
@@ -627,7 +627,6 @@ fun NavGraphBuilder.venteFormGraph(
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
-            val userName by session.formUserName.collectAsState()
             val montantPaye by session.formMontantPaye.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
             val stockPolicy by session.stockPolicy.collectAsState()
@@ -656,7 +655,6 @@ fun NavGraphBuilder.venteFormGraph(
                     viewModel.updateVente(
                         id = venteId!!, clientId = formClient!!.id, items = items,
                         note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
-                        userName = userName.trim().ifEmpty { null },
                         draftId = session.draftId,
                         onSuccess = {
                             session.onCommitted()
@@ -669,7 +667,6 @@ fun NavGraphBuilder.venteFormGraph(
                     viewModel.createVente(
                         clientId = formClient!!.id, tourneeId = null, source = "depot", items = items,
                         note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
-                        userName = userName.trim().ifEmpty { null },
                         draftId = session.draftId,
                         onSuccess = {
                             session.onCommitted()
@@ -691,8 +688,6 @@ fun NavGraphBuilder.venteFormGraph(
                 onMontantPayeChange = { session.setFormMontantPaye(it) },
                 note                = note,
                 onNoteChange        = { session.setFormNote(it) },
-                userName            = userName,
-                onUserNameChange    = { session.setFormUserName(it) },
                 isSaving            = isSaving,
                 saveError           = saveError,
                 hasMissingProducts  = missingProductIds.isNotEmpty(),

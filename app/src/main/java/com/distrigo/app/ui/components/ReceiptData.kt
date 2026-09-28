@@ -46,8 +46,6 @@ data class ReceiptData(
     val businessName     : String = "DISTRIGO",
     val businessPhone    : String? = null,
     val businessLogoPath : String? = null,
-    /** "Effectué par". Null on documents that never recorded it — printed as "-". */
-    val performedBy   : String? = null,
     /** Already French ("Détail" / "Gros" / "Société"); null for a supplier document. */
     val clientType    : String? = null,
     val clientSecteur : String? = null
@@ -152,7 +150,6 @@ fun Vente.toReceiptData(
     businessName     = business.name,
     businessPhone    = business.phone,
     businessLogoPath = business.logoPath,
-    performedBy   = user_name,
     clientType    = customerTypeLabel(client?.customer_type),
     clientSecteur = client?.secteur_name
 )
@@ -178,6 +175,5 @@ fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = Recei
     businessName     = business.name,
     businessPhone    = business.phone,
     businessLogoPath = business.logoPath
-    // performedBy / clientType / clientSecteur stay null: a purchase order records neither an
-    // operator nor a customer, and the header omits those rows rather than printing empty ones.
+    // clientType / clientSecteur stay null: a purchase order records no customer, and the header omits those rows rather than printing empty ones.
 )

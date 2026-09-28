@@ -84,7 +84,6 @@ object ThermalLayout {
         field(receipt.partyLabel, receipt.partyName)
         field("Type", receipt.clientType)
         field("Secteur", receipt.clientSecteur)
-        field("Par", receipt.performedBy)
         add(ReceiptRow.Rule())
 
         // ── Items ──

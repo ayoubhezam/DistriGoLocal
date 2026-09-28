@@ -282,9 +282,6 @@ class InventoryViewModel @Inject constructor(
     }
 
     // ── Nom de l'utilisateur (partagé entre les étapes Scan/Quantity/Review) ──
-    private val _userName = MutableStateFlow("")
-    val userName: StateFlow<String> = _userName
-    fun setUserName(name: String) { _userName.value = name }
 
     // ── Dernier scan confirmé (pour l'écran Confirmed) ──
     data class LastScanResult(

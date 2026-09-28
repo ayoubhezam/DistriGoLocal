@@ -110,7 +110,6 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 amount("Payé (DA)", "montant_paye"),
                 ExportColumn("Reste (DA)") { ExportCell.Number(remaining(it.double("total"), it.double("montant_paye"))) },
                 text("Note", "note"),
-                text("Vendeur", "user_name"),
             )
             LIGNES_VENTE -> listOf(
                 text("N° vente", "numero_label"),
@@ -188,7 +187,6 @@ enum class ExportDataset(val fileName: String, val label: String, val byPeriod: 
                 amount("Valeur (DA)", "total_value"),
                 text("Origine", "source_label"),
                 text("Note", "note"),
-                text("Utilisateur", "user_name"),
             )
             CHARGES -> listOf(
                 dateTime("Date", "date_time"),

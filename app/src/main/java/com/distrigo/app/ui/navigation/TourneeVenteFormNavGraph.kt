@@ -570,7 +570,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val cartItems by session.formCartItems.collectAsState()
             val note by session.formNote.collectAsState()
             val montantPaye by session.formMontantPaye.collectAsState()
-            val userName by session.formUserName.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
             val overStockProductIds by session.overStockProductIds.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
@@ -610,7 +609,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     items       = items,
                     note        = note.trim().ifEmpty { null },
                     montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
-                    userName    = userName.trim().ifEmpty { null },
                     // Deleted as the final statement inside the sale's transaction, so the draft
                     // outlives any failure: if the insert, the stock deltas or the balance
                     // recalculation throw, the whole thing rolls back and the unsaved work is
@@ -644,8 +642,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 onMontantPayeChange = { session.setFormMontantPaye(it) },
                 note                = note,
                 onNoteChange        = { session.setFormNote(it) },
-                userName            = userName,
-                onUserNameChange    = { session.setFormUserName(it) },
                 isSaving            = isSaving,
                 blockedReason       = blockedReason,
                 onBack              = { navController.popBackStack() },

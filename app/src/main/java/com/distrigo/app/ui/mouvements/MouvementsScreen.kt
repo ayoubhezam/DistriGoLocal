@@ -366,7 +366,6 @@ fun MovementDetailView(
                     DetailInfoRow("Prix unitaire", "${"%.2f".format(it)} DA")
                 }
                 DetailInfoRow("Valeur totale", "${"%.2f".format(currentMovement.total_value)} DA")
-                DetailInfoRow("Utilisateur", currentMovement.user_name ?: "—")
                 DetailInfoRow("Notes", currentMovement.note ?: "—")
             }
         }

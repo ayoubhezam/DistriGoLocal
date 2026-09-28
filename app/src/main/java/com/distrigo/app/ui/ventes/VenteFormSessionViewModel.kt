@@ -94,8 +94,6 @@ class VenteFormSessionViewModel @Inject constructor(
     private val _formNote = MutableStateFlow("")
     val formNote: StateFlow<String> = _formNote
 
-    private val _formUserName = MutableStateFlow("")
-    val formUserName: StateFlow<String> = _formUserName
 
     private val _formMontantPaye = MutableStateFlow("")
     val formMontantPaye: StateFlow<String> = _formMontantPaye
@@ -106,7 +104,6 @@ class VenteFormSessionViewModel @Inject constructor(
         pruneMissingProducts(items.map { it.product.id })
     }
     fun setFormNote(note: String) { _formNote.value = note }
-    fun setFormUserName(name: String) { _formUserName.value = name }
     fun setFormMontantPaye(value: String) { _formMontantPaye.value = value }
 
     // ── Session state ────────────────────────────────────────────────────────
@@ -224,7 +221,7 @@ class VenteFormSessionViewModel @Inject constructor(
     private val autosave = DraftAutosave(
         host    = this,
         scope   = viewModelScope,
-        signals = listOf(_formClient, _formCartItems, _formNote, _formUserName, _formMontantPaye)
+        signals = listOf(_formClient, _formCartItems, _formNote, _formMontantPaye)
     )
 
     /** Writes the current form now rather than waiting out the debounce — see [DraftAutosave.flush]. */
@@ -253,7 +250,7 @@ class VenteFormSessionViewModel @Inject constructor(
         lines           = _formCartItems.value.map { it.toDraftLine() },
         note            = _formNote.value,
         montantPaye     = _formMontantPaye.value,
-        userName        = _formUserName.value,
+        userName        = "",   // "Effectué par" is hidden until it comes from the user profile
         lastStep        = savedState[KEY_LAST_STEP] ?: "",
         sourceVenteId   = sourceVenteId,
         baseFingerprint = baseFingerprint
@@ -337,10 +334,6 @@ class VenteFormSessionViewModel @Inject constructor(
         _formNote.value        = vente.note.orEmpty()
         _formMontantPaye.value = VenteDraftRepository.montantPayeText(vente.montant_paye ?: 0.0)
         _formClient.value      = productRepository.getClients().find { it.id == vente.client_id }
-        // Not restored, because a committed vente has nowhere to hold it: "Effectué par" is written
-        // onto the stock movements, not onto the ventes row. VenteDraftRepository builds the other
-        // side of every fingerprint comparison with the same empty value, so the two agree.
-        _formUserName.value    = ""
 
         val products = productRepository.getLiveProductsByIds(vente.items.orEmpty().map { it.product_id }).associateBy { it.id }
         _formCartItems.value = vente.items.orEmpty().map { item ->
@@ -445,7 +438,6 @@ class VenteFormSessionViewModel @Inject constructor(
         _missingProductIds.value = missing
         _formNote.value        = draft.note
         _formMontantPaye.value = draft.montantPaye
-        _formUserName.value    = draft.userName
     }
 
     /**
@@ -525,7 +517,6 @@ class VenteFormSessionViewModel @Inject constructor(
         _formClient.value        = null
         _formCartItems.value     = emptyList()
         _formNote.value          = ""
-        _formUserName.value      = ""
         _formMontantPaye.value   = ""
         _missingProductIds.value = emptySet()
         _editSource.value        = null

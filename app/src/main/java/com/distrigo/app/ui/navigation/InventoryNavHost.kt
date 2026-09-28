@@ -82,7 +82,6 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
                 val activeSession by viewModel.activeSession.collectAsState()
                 val counts   by viewModel.counts.collectAsState()
-                val userName by viewModel.userName.collectAsState()
                 val scanScope = rememberCoroutineScope()
 
                 var showScanner       by remember { mutableStateOf(false) }
@@ -127,8 +126,6 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             scanError         = scanError,
                             canFinish         = counts.total_products > 0,
                             isSaving          = false,
-                            userName          = userName,
-                            onUserNameChange  = viewModel::setUserName,
                             onBack            = { exitSession() },
                             onScan            = { showScanner = true },
                             onSearch          = { showSearchDialog = true },
@@ -158,7 +155,6 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 val lookup by remember(productId) { viewModel.observeProduct(productId) }
                     .collectAsState(initial = ProductLookup.Loading)
                 val product = (lookup as? ProductLookup.Found)?.product
-                val userName by viewModel.userName.collectAsState()
 
                 var qtePhysiqueText by remember { mutableStateOf("") }
                 var saveError       by remember { mutableStateOf("") }
@@ -186,7 +182,6 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                                 isSaving = true
                                 viewModel.recordScan(
                                     productId = product.id, qtePhysique = qte,
-                                    userName  = userName.trim().ifEmpty { null },
                                     onSuccess = { _, _, _ ->
                                         isSaving = false; saveError = ""
                                         navController.navigate(Screen.InventaireSessionConfirmed.route) {
@@ -236,7 +231,6 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 // Paged and live while listed: collected here only, so the scans themselves never reload it.
                 val items = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems()
                 val counts by viewModel.counts.collectAsState()
-                val userName by viewModel.userName.collectAsState()
                 var scanError by remember { mutableStateOf("") }
 
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -246,7 +240,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                         isSaving = false,
                         onBack   = { navController.popBackStack() },
                         onEdit   = { item, newQte ->
-                            viewModel.updateScan(item.id, newQte, userName = userName.trim().ifEmpty { null }, onSuccess = {}, onError = { scanError = it })
+                            viewModel.updateScan(item.id, newQte, onSuccess = {}, onError = { scanError = it })
                         },
                         onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = {}, onError = { scanError = it }) },
                         onFinish = { navController.navigate(Screen.InventaireSessionReadyToFinish.route) }

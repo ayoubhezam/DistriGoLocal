@@ -36,7 +36,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
  *
  * ### Nothing is written until the button
  *
- * The quantity, the note and "Effectué par" are local state. [ChargementViewModel.createChargement]
+ * The quantity and the note are local state. [ChargementViewModel.createChargement]
  * is called once, from "Enregistrer le mouvement", and only for a non-zero delta — the same rule
  * the cart screen applies, so a save that changes nothing writes nothing.
  *
@@ -73,7 +73,6 @@ fun ChargementProduitScreen(
     // "Aucun changement" on it — the same starting point the cart row shows.
     var targetCamion by remember(product.id) { mutableStateOf(product.camion_stock) }
     var note         by remember(product.id) { mutableStateOf("") }
-    var userName     by remember(product.id) { mutableStateOf("") }
     var isSaving     by remember { mutableStateOf(false) }
     var showDiscard  by remember { mutableStateOf(false) }
     var saveError    by remember { mutableStateOf("") }
@@ -92,7 +91,6 @@ fun ChargementProduitScreen(
             draftId      = pending.id
             pending.lines.firstOrNull()?.let { targetCamion = it.target_camion }
             note         = pending.note
-            userName     = pending.userName
         }
         restored = true
     }
@@ -105,21 +103,20 @@ fun ChargementProduitScreen(
 
     // Anything that would be written counts, not just the quantity: a note typed and then lost to
     // a back gesture is the same broken promise as a quantity typed and lost.
-    val isDirty = delta != 0.0 || note.isNotBlank() || userName.isNotBlank()
+    val isDirty = delta != 0.0 || note.isNotBlank()
 
     // Written on every change rather than on the way out, because the events this protects against
     // — a crash, a flat battery, a swipe-away — do not run any code on the way out. Nothing is
     // written until there is something to write, and once dirty the row is kept in step; when the
     // card is brought back to a zero delta with both fields empty, the row goes with it rather than
     // lingering as a pending edit that would restore nothing.
-    LaunchedEffect(restored, targetCamion, note, userName) {
+    LaunchedEffect(restored, targetCamion, note) {
         if (!restored) return@LaunchedEffect
         draftId = viewModel.saveProductDraft(
             draftId  = draftId,
             product  = product,
             target   = targetCamion,
             note     = note,
-            userName = userName,
             isDirty  = isDirty
         )
     }
@@ -193,20 +190,6 @@ fun ChargementProduitScreen(
             )
 
             OutlinedTextField(
-                value         = userName,
-                onValueChange = { userName = it },
-                placeholder   = { Text("Effectué par (optionnel)", fontSize = DsTextSize.body) },
-                leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
-                modifier      = Modifier.fillMaxWidth(),
-                shape         = DsShapes.medium,
-                singleLine    = true,
-                colors = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
-                )
-            )
-
-            OutlinedTextField(
                 value         = note,
                 onValueChange = { note = it },
                 placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
@@ -231,7 +214,6 @@ fun ChargementProduitScreen(
                 saveError = ""
                 viewModel.createChargement(
                     note     = note.trim().ifEmpty { null },
-                    userName = userName.trim().ifEmpty { null },
                     items    = listOf(
                         mapOf(
                             "product_id" to product.id,

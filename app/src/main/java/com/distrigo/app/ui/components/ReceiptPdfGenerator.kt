@@ -126,8 +126,6 @@ object ReceiptPdfGenerator {
         drawInfoLineLeft("Date", receipt.dateLabel)
         if (receipt.timeLabel.isNotBlank()) drawInfoLineLeft("Heure", receipt.timeLabel)
         drawInfoLineLeft("Téléphone", receipt.orDash(receipt.businessPhone))
-        // Only on documents that can have one — a bon d'achat has no operator.
-        if (isVente) drawInfoLineLeft("Effectué par", receipt.orDash(receipt.performedBy))
 
         drawInfoLineRight(receipt.partyLabel, receipt.partyName)
         if (isVente) {

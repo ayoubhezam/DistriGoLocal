@@ -51,7 +51,6 @@ internal val SAMPLE_RECEIPT = ReceiptData(
     note          = "Livraison prévue jeudi matin.",
     businessName  = "DISTRIGO",
     businessPhone = "0555 12 34 56",
-    performedBy   = "Youcef",
     clientType    = "Détail",
     clientSecteur = "Alger-Centre",
 )

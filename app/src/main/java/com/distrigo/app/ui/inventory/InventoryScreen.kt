@@ -74,8 +74,6 @@ fun ColumnScope.InventoryScanStep(
     scanError         : String,
     canFinish         : Boolean,
     isSaving          : Boolean,
-    userName          : String,
-    onUserNameChange  : (String) -> Unit,
     onBack            : () -> Unit,
     onScan            : () -> Unit,
     onSearch          : () -> Unit,
@@ -92,16 +90,6 @@ fun ColumnScope.InventoryScanStep(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedTextField(
-            value         = userName,
-            onValueChange = onUserNameChange,
-            placeholder   = { Text("Effectué par (optionnel)") },
-            leadingIcon   = { Icon(Icons.Default.Person, contentDescription = null) },
-            singleLine    = true,
-            modifier      = Modifier.fillMaxWidth(),
-            shape         = DsShapes.medium
-        )
-
         Spacer(Modifier.height(DsSpacing.xl))
         Box(
             modifier = Modifier.size(140.dp).clip(DsShapes.pill).background(DsColors.PrimaryLight).clickable { onScan() },

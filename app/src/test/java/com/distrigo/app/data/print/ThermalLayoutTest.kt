@@ -42,7 +42,6 @@ class ThermalLayoutTest {
         note            = note,
         businessName    = "DISTRIGO",
         businessPhone   = "0555 12 34 56",
-        performedBy     = "Youcef",
         clientType      = "Détail",
         clientSecteur   = "Alger-Centre",
     )

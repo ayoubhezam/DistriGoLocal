@@ -109,7 +109,7 @@ class DataExporterTest {
     @Test
     fun ventesAreTheLocalDaysSalesWithTheirNumbersAndLabels() {
         val rows = export(ExportDataset.VENTES)
-        assertEquals(listOf("N°", "Date", "Client", "Origine", "Statut", "Total (DA)", "Payé (DA)", "Reste (DA)", "Note", "Vendeur"), rows[0])
+        assertEquals(listOf("N°", "Date", "Client", "Origine", "Statut", "Total (DA)", "Payé (DA)", "Reste (DA)", "Note"), rows[0])
         assertEquals(listOf("V-6DED-000001", "17/09/2026 00:30", "Épicerie El Amel", "Dépôt", "En attente", "3450,00", "1000,00", "2450,00", "", ""), rows[1])
         assertEquals(listOf("#26", "17/09/2026 13:00"), rows[2].take(2))
         assertEquals(listOf("V-6DED-000002", "17/09/2026 23:30", "'=HYPERLINK(\"http://x\")", "Camion", "Livré", "800,00", "800,00", "0,00", "Livré; payé", ""), rows[3])

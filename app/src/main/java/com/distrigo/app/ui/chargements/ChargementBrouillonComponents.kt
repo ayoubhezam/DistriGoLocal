@@ -21,14 +21,8 @@ import com.distrigo.app.ui.common.formatRelativeFr
 internal fun ChargementDraft.cardTitle(): String =
     if (itemCount <= 1) "Mouvement · $itemCount produit" else "Mouvement · $itemCount produits"
 
-/** "il y a 12 min", or the user's name if they gave one: "Karim · il y a 12 min". */
-internal fun ChargementDraft.cardMeta(): String {
-    val parts = buildList {
-        if (userName.isNotBlank()) add(userName)
-        formatRelativeFr(updatedAt)?.let { add(it) }
-    }
-    return parts.joinToString(" · ").ifEmpty { "Brouillon" }
-}
+/** "il y a 12 min". */
+internal fun ChargementDraft.cardMeta(): String = formatRelativeFr(updatedAt) ?: "Brouillon"
 
 /**
  * How a chargement draft renders as a card.
