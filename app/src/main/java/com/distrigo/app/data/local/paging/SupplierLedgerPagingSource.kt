@@ -46,7 +46,9 @@ class SupplierLedgerPagingSource(
     private val orderBuffer = ArrayDeque<PurchaseOrderEntity>()
     private val paiementBuffer = ArrayDeque<SupplierPaymentEntity>()
     private var orderCursor: String? = null
+    private var orderCursorId: Int? = null
     private var paiementCursor: String? = null
+    private var paiementCursorId: Int? = null
     private var orderExhausted = !includeOrders
     private var paiementExhausted = !includePaiements
 
@@ -55,12 +57,13 @@ class SupplierLedgerPagingSource(
 
     private suspend fun refillOrderBuffer(target: Int) {
         while (orderBuffer.size < target && !orderExhausted) {
-            val batch = purchaseDao.pageOrdersForSupplier(supplierId, orderCursor, search, statusFilter, FETCH_BATCH)
+            val batch = purchaseDao.pageOrdersForSupplier(supplierId, orderCursor, orderCursorId, search, statusFilter, FETCH_BATCH)
             if (batch.isEmpty()) {
                 orderExhausted = true
             } else {
                 orderBuffer.addAll(batch)
                 orderCursor = batch.last().created_at
+                orderCursorId = batch.last().id
                 if (batch.size < FETCH_BATCH) orderExhausted = true
             }
         }
@@ -68,12 +71,13 @@ class SupplierLedgerPagingSource(
 
     private suspend fun refillPaiementBuffer(target: Int) {
         while (paiementBuffer.size < target && !paiementExhausted) {
-            val batch = paymentDao.pagePaymentsForSupplier(supplierId, paiementCursor, search, FETCH_BATCH)
+            val batch = paymentDao.pagePaymentsForSupplier(supplierId, paiementCursor, paiementCursorId, search, FETCH_BATCH)
             if (batch.isEmpty()) {
                 paiementExhausted = true
             } else {
                 paiementBuffer.addAll(batch)
                 paiementCursor = batch.last().created_at
+                paiementCursorId = batch.last().id
                 if (batch.size < FETCH_BATCH) paiementExhausted = true
             }
         }

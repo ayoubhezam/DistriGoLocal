@@ -1412,7 +1412,7 @@ class ProductRepository(
         val orders   = db.purchaseDao().getInvoiceTotalsForSupplier(id)
         val payments = db.supplierPaymentDao().getPaymentTotalsForSupplier(id)
 
-        val factureTx = db.purchaseDao().pageOrdersForSupplier(id, null, "", "TOUTES", limit)
+        val factureTx = db.purchaseDao().pageOrdersForSupplier(id, null, null, "", "TOUTES", limit)
             .map { order ->
                 SupplierTransaction(
                     type = "facture", id = order.id, amount = order.total,
@@ -1421,7 +1421,7 @@ class ProductRepository(
                 )
             }
 
-        val paiementTx = db.supplierPaymentDao().pagePaymentsForSupplier(id, null, "", limit)
+        val paiementTx = db.supplierPaymentDao().pagePaymentsForSupplier(id, null, null, "", limit)
             .map { payment ->
                 SupplierTransaction(
                     type = "paiement", id = payment.id, amount = payment.amount,
@@ -1750,7 +1750,7 @@ class ProductRepository(
         val ventes   = db.venteDao().getInvoiceTotalsForClient(id)
         val payments = db.clientPaymentDao().getPaymentTotalsForClient(id)
 
-        val venteTx = db.venteDao().pageVentesForClient(id, null, "", "TOUTES", limit).map { vente ->
+        val venteTx = db.venteDao().pageVentesForClient(id, null, null, "", "TOUTES", limit).map { vente ->
             ClientTransaction(
                 type = "vente", id = vente.id, amount = null,
                 total = vente.total, montant_paye = vente.montant_paye,
@@ -1759,7 +1759,7 @@ class ProductRepository(
             )
         }
 
-        val paiementTx = db.clientPaymentDao().pagePaymentsForClient(id, null, "", limit).map { payment ->
+        val paiementTx = db.clientPaymentDao().pagePaymentsForClient(id, null, null, "", limit).map { payment ->
             ClientTransaction(
                 type = "paiement", id = payment.id, amount = payment.amount,
                 total = null, montant_paye = null, status = null,

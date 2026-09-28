@@ -31,7 +31,8 @@ interface ClientPaymentDao {
     @Query("""
         SELECT * FROM client_payments
         WHERE client_id = :clientId
-        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
+             OR (created_at = :cursorCreatedAt AND id < :cursorId))
         AND (:search = '' OR note LIKE '%' || :search || '%')
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
@@ -39,6 +40,8 @@ interface ClientPaymentDao {
     suspend fun pagePaymentsForClient(
         clientId: Int,
         cursorCreatedAt: String?,
+        /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
+        cursorId: Int?,
         search: String,
         limit: Int
     ): List<ClientPaymentEntity>

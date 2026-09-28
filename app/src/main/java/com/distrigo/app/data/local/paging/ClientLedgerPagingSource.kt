@@ -14,7 +14,9 @@ import com.distrigo.app.data.model.FactureFilter
  * Merges `ventes` and `client_payments` — two separate tables, no shared ledger —
  * into a single chronological, searchable, status-filtered feed for one client.
  *
- * Each source is queried with its own keyset (created_at) cursor and buffered a
+ * Each source is queried with its own keyset (created_at, id) cursor — the id tells apart
+ * rows written in the same millisecond, which a created_at cursor alone skipped at a page
+ * boundary — and buffered a
  * page ahead; load() interleaves the two buffers by created_at to produce a
  * correctly ordered page. Buffers/cursors live on the instance, which Paging3
  * recreates whenever the filter or search query changes (new PagingSource).
@@ -45,18 +47,21 @@ class ClientLedgerPagingSource(
     private val venteBuffer = ArrayDeque<VenteEntity>()
     private val paiementBuffer = ArrayDeque<ClientPaymentEntity>()
     private var venteCursor: String? = null
+    private var venteCursorId: Int? = null
     private var paiementCursor: String? = null
+    private var paiementCursorId: Int? = null
     private var venteExhausted = !includeVentes
     private var paiementExhausted = !includePaiements
 
     private suspend fun refillVenteBuffer(target: Int) {
         while (venteBuffer.size < target && !venteExhausted) {
-            val batch = venteDao.pageVentesForClient(clientId, venteCursor, search, statusFilter, FETCH_BATCH)
+            val batch = venteDao.pageVentesForClient(clientId, venteCursor, venteCursorId, search, statusFilter, FETCH_BATCH)
             if (batch.isEmpty()) {
                 venteExhausted = true
             } else {
                 venteBuffer.addAll(batch)
                 venteCursor = batch.last().created_at
+                venteCursorId = batch.last().id
                 if (batch.size < FETCH_BATCH) venteExhausted = true
             }
         }
@@ -64,12 +69,13 @@ class ClientLedgerPagingSource(
 
     private suspend fun refillPaiementBuffer(target: Int) {
         while (paiementBuffer.size < target && !paiementExhausted) {
-            val batch = paymentDao.pagePaymentsForClient(clientId, paiementCursor, search, FETCH_BATCH)
+            val batch = paymentDao.pagePaymentsForClient(clientId, paiementCursor, paiementCursorId, search, FETCH_BATCH)
             if (batch.isEmpty()) {
                 paiementExhausted = true
             } else {
                 paiementBuffer.addAll(batch)
                 paiementCursor = batch.last().created_at
+                paiementCursorId = batch.last().id
                 if (batch.size < FETCH_BATCH) paiementExhausted = true
             }
         }

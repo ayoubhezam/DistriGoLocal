@@ -1,5 +1,7 @@
 package com.distrigo.app.data.local.paging
 
+import com.distrigo.app.data.local.entity.SupplierPaymentEntity
+import com.distrigo.app.data.local.entity.ClientPaymentEntity
 import androidx.paging.PagingSource
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -51,7 +53,7 @@ class LiveLedgerTest {
         val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
         repository.addClientPayment(client, 500.0, null)
         repository.addClientPayment(client, 700.0, null)
-        val payment = db.clientPaymentDao().pagePaymentsForClient(client, null, "", 10).first().id
+        val payment = db.clientPaymentDao().pagePaymentsForClient(client, null, null, "", 10).first().id
 
         val source = ClientLedgerPagingSource(db, db.venteDao(), db.clientPaymentDao(), client, FactureFilter.TOUTES, "")
         val page = source.load(PagingSource.LoadParams.Refresh(null, 20, false)) as PagingSource.LoadResult.Page
@@ -66,7 +68,7 @@ class LiveLedgerTest {
     fun editingAVersementInvalidatesTheClientLedger() = runBlocking {
         val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
         repository.addClientPayment(client, 500.0, null)
-        val payment = db.clientPaymentDao().pagePaymentsForClient(client, null, "", 10).first().id
+        val payment = db.clientPaymentDao().pagePaymentsForClient(client, null, null, "", 10).first().id
 
         val source = ClientLedgerPagingSource(db, db.venteDao(), db.clientPaymentDao(), client, FactureFilter.TOUTES, "")
         source.load(PagingSource.LoadParams.Refresh(null, 20, false))
@@ -79,7 +81,7 @@ class LiveLedgerTest {
     fun deletingAPaymentInvalidatesTheSupplierLedger() = runBlocking {
         val supplier = (repository.addSupplier(mapOf("name" to "Laiterie Soummam"))["id"] as Number).toInt()
         repository.addSupplierPayment(supplier, 300.0, null)
-        val payment = db.supplierPaymentDao().pagePaymentsForSupplier(supplier, null, "", 10).first().id
+        val payment = db.supplierPaymentDao().pagePaymentsForSupplier(supplier, null, null, "", 10).first().id
 
         val source = SupplierLedgerPagingSource(db, db.purchaseDao(), db.supplierPaymentDao(), db.supplierDao(), supplier, AchatFilter.TOUTES, "")
         source.load(PagingSource.LoadParams.Refresh(null, 20, false))
@@ -92,8 +94,7 @@ class LiveLedgerTest {
     @Test
     fun aRefreshReachesBackDownToWhereTheListWas() = runBlocking {
         val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
-        // Apart by a few milliseconds: the ledger's cursor is created_at (see the DAO).
-        repeat(45) { repository.addClientPayment(client, 100.0 + it, null); delay(3) }
+        repeat(45) { repository.addClientPayment(client, 100.0 + it, null) }
 
         val source = ClientLedgerPagingSource(db, db.venteDao(), db.clientPaymentDao(), client, FactureFilter.TOUTES, "")
         val page = source.load(PagingSource.LoadParams.Refresh(40, 20, false)) as PagingSource.LoadResult.Page
@@ -102,6 +103,44 @@ class LiveLedgerTest {
         val next = source.load(PagingSource.LoadParams.Append(40, 20, false)) as PagingSource.LoadResult.Page
         assertEquals(5, next.data.size)
         assertEquals(null, next.nextKey)
+    }
+
+    /**
+     * Rows written in the same millisecond — a burst of entries, generated or imported data — are all
+     * paged, each once. With a created_at cursor alone, the rows sharing the last one's instant were
+     * skipped at every page boundary.
+     */
+    @Test
+    fun rowsWrittenInTheSameMillisecondAreAllPaged() = runBlocking {
+        val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
+        val supplier = (repository.addSupplier(mapOf("name" to "Laiterie Soummam"))["id"] as Number).toInt()
+        repeat(45) {
+            db.clientPaymentDao().insertPayment(ClientPaymentEntity(client_id = client, amount = 10.0 + it, note = null, created_at = SAME_INSTANT))
+            db.supplierPaymentDao().insertPayment(SupplierPaymentEntity(supplier_id = supplier, amount = 10.0 + it, note = null, created_at = SAME_INSTANT))
+        }
+
+        val clientIds = pageAll(ClientLedgerPagingSource(db, db.venteDao(), db.clientPaymentDao(), client, FactureFilter.TOUTES, "")).map { it.id }
+        assertEquals(45, clientIds.size)
+        assertEquals(45, clientIds.toSet().size)
+
+        val supplierIds = pageAll(SupplierLedgerPagingSource(db, db.purchaseDao(), db.supplierPaymentDao(), db.supplierDao(), supplier, AchatFilter.TOUTES, ""))
+            .filter { it.type == "paiement" }.map { it.id }
+        assertEquals(45, supplierIds.size)
+        assertEquals(45, supplierIds.toSet().size)
+    }
+
+    /** Every page of [source], 20 at a time, as the list scrolls. */
+    private suspend fun <T : Any> pageAll(source: PagingSource<Int, T>): List<T> {
+        val rows = mutableListOf<T>()
+        var key: Int? = null
+        do {
+            val params: PagingSource.LoadParams<Int> =
+                if (key == null) PagingSource.LoadParams.Refresh(null, 20, false) else PagingSource.LoadParams.Append(key, 20, false)
+            val page = source.load(params) as PagingSource.LoadResult.Page
+            rows += page.data
+            key = page.nextKey
+        } while (key != null)
+        return rows
     }
 
     /** The result count's signal: it fires once at start, then on a write to the ledger's tables. */
@@ -123,5 +162,9 @@ class LiveLedgerTest {
             delay(50)
         }
         return source.invalid
+    }
+
+    private companion object {
+        const val SAME_INSTANT = "2026-09-28T08:00:00.123Z"
     }
 }

@@ -154,7 +154,8 @@ interface VenteDao {
     @Query("""
         SELECT * FROM ventes
         WHERE client_id = :clientId
-        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
+             OR (created_at = :cursorCreatedAt AND id < :cursorId))
         AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
@@ -168,6 +169,8 @@ interface VenteDao {
     suspend fun pageVentesForClient(
         clientId: Int,
         cursorCreatedAt: String?,
+        /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
+        cursorId: Int?,
         search: String,
         statusFilter: String,
         limit: Int

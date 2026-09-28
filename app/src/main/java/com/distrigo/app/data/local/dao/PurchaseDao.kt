@@ -111,7 +111,8 @@ interface PurchaseDao {
     @Query("""
         SELECT * FROM purchase_orders
         WHERE supplier_id = :supplierId
-        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt)
+        AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
+             OR (created_at = :cursorCreatedAt AND id < :cursorId))
         AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
         AND (
             :statusFilter = 'TOUTES'
@@ -125,6 +126,8 @@ interface PurchaseDao {
     suspend fun pageOrdersForSupplier(
         supplierId: Int,
         cursorCreatedAt: String?,
+        /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
+        cursorId: Int?,
         search: String,
         statusFilter: String,
         limit: Int
