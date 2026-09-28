@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,7 +64,7 @@ internal fun RetourProductRow(
         Column(Modifier.weight(1f)) {
             Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
             Text(product.category_name ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
-            Text("Retour max : ${formatQty(maxQuantity)} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+            Text("Retour max : ${formatQty(maxQuantity)} ${ProductUnit.plural(product.unit_type, maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         }
         Spacer(Modifier.width(DsSpacing.sm))
         if (isInCart) {

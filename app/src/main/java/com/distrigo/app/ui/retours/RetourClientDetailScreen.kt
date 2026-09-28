@@ -1,30 +1,16 @@
 package com.distrigo.app.ui.retours
 
-import com.distrigo.app.ui.common.formatQty
-import com.distrigo.app.data.model.numberLabel
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import com.distrigo.app.ui.designsystem.DsTopAppBar
-import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.RetourClient
-import com.distrigo.app.ui.designsystem.DsColors
-import com.distrigo.app.ui.designsystem.DsShapes
-import com.distrigo.app.ui.designsystem.DsSpacing
-import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.purchases.formatOrderDate
-import com.distrigo.app.ui.purchases.formatOrderTime
+import com.distrigo.app.data.model.RetourClientMotifs
+import com.distrigo.app.data.model.numberLabel
 
+/**
+ * A client return, read-only (RetourDetailContent). Deleting it takes back what it did: the goods it
+ * put back in the camion leave it again — or, for a defective or expired product, the pertes it
+ * recorded go away and the camion is unchanged — and its value is owed by the client again.
+ */
 @Composable
 fun RetourClientDetailScreen(
     retourSummary : RetourClient,
@@ -33,89 +19,43 @@ fun RetourClientDetailScreen(
     onDeleted     : () -> Unit
 ) {
     val detail by viewModel.retourDetail.collectAsState()
-    val display = detail?.takeIf { it.id == retourSummary.id } ?: retourSummary
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    val loaded = detail?.takeIf { it.id == retourSummary.id }
+    val retour = loaded ?: retourSummary
+    var deleting by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(retourSummary.id) { viewModel.loadRetourDetail(retourSummary.id) }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-        DsTopAppBar(
-            title    = "Retour ${display.numberLabel}",
-            subtitle = display.client_name,
-            leading  = DsTopBarLeading.Back(onBack)
-        ) {
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
-            }
-        }
-        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+    // "Produit défectueux" and "Produit périmé" come back and go straight out again as pertes.
+    val asPertes = RetourClientMotifs.resolve(retour.motif).perteType != null
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(DsSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-        ) {
-            item {
-                Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted).padding(DsSpacing.lg)) {
-                    RetourDetailSummaryRow("Date", "${formatOrderDate(display.created_at)} · ${formatOrderTime(display.created_at)}")
-                    RetourDetailSummaryRow("Motif", display.motif ?: "—")
-                    RetourDetailSummaryRow("Valeur totale (DA)", "${"%,.2f".format(display.total)} DA", highlight = true)
-                }
-            }
-            item { Spacer(Modifier.height(DsSpacing.sm)); Text("Produits", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary) }
-            items(display.items ?: emptyList(), key = { it.id }) { item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text("${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                    Text("${"%.2f".format(item.total_price)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
-            }
-            if (detail == null) {
-                item { Box(Modifier.fillMaxWidth().padding(DsSpacing.lg), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) } }
-            }
-        }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer ce retour ?") },
-            text  = { Text("Le stock sera ajusté automatiquement pour refléter l'annulation de ce retour.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteRetour(
-                        id = display.id,
-                        onSuccess = { showDeleteDialog = false; onDeleted() },
-                        onError   = { showDeleteDialog = false }
-                    )
-                }) { Text("Supprimer", color = DsColors.Danger) }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") } },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
-        )
-    }
-}
-
-@Composable
-private fun RetourDetailSummaryRow(label: String, value: String, highlight: Boolean = false) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = DsSpacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        Text(
-            value,
-            fontSize = DsTextSize.bodySmall,
-            fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium,
-            color = if (highlight) DsColors.Danger else DsColors.TextPrimary
-        )
-    }
+    RetourDetailContent(
+        numberLabel   = retour.numberLabel,
+        partyLabel    = "Client",
+        partyName     = retour.client_name,
+        total         = retour.total,
+        date          = retour.date,
+        createdAt     = retour.created_at,
+        motif         = retour.motif,
+        stockEffect   = if (asPertes) "Enregistré en perte — le stock camion ne change pas" else "Remis dans le stock camion",
+        note          = retour.note,
+        lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price) },
+        deleteEffects = listOf(
+            if (asPertes) "Stock : les pertes liées à ce retour seront supprimées ; le stock camion ne change pas."
+            else "Stock : les produits retournés seront retirés du stock camion.",
+            "Solde : ${Amount.format(retour.total)} DA seront rajoutés au solde du client « ${retour.client_name} »."
+        ),
+        deleting       = deleting,
+        deleteError    = deleteError,
+        onDelete       = {
+            deleting = true
+            viewModel.deleteRetour(
+                id        = retour.id,
+                onSuccess = { deleting = false; onDeleted() },
+                onError   = { deleting = false; deleteError = it }
+            )
+        },
+        onDismissError = { deleteError = null },
+        onBack         = onBack
+    )
 }

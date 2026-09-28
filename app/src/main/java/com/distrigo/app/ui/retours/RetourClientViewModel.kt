@@ -151,7 +151,11 @@ class RetourClientViewModel @Inject constructor(
         onError   : (String) -> Unit
     ) {
         viewModelScope.launch {
-            val result = repository.deleteRetour(id)
+            val result = try {
+                repository.deleteRetour(id)
+            } catch (e: Exception) {
+                mapOf("error" to (e.message ?: "La suppression a échoué."))
+            }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {

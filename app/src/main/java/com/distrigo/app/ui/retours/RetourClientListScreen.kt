@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -117,7 +118,7 @@ fun RetourClientListScreen(
                 ) {
                     RetourClientStatColumn(value = "${retours.size}", label = "Retours")
                     RetourClientStatColumn(value = "$totalProduits", label = "Produits")
-                    RetourClientStatColumn(value = "${"%,.0f".format(retours.sumOf { it.total })} DA", label = "Valeur totale")
+                    RetourClientStatColumn(value = "${Amount.format(retours.sumOf { it.total })} DA", label = "Valeur totale")
                 }
 
                 Spacer(Modifier.height(DsSpacing.md))
@@ -187,11 +188,11 @@ fun RetourRow(retour: RetourClient, onClick: (() -> Unit)? = null) {
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary
                 )
                 Text(
-                    "${retour.items_count ?: 0} produit(s)",
+                    productCount(retour.items_count ?: 0),
                     fontSize = DsTextSize.caption, color = DsColors.TextTertiary
                 )
             }
-            Text("${"%,.2f".format(retour.total)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+            Text("${Amount.format(retour.total)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
         }
     }
 }
