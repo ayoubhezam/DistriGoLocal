@@ -44,6 +44,8 @@ class AchatHistoryViewModel @Inject constructor(
         viewModelScope.launch {
             newController.filter
                 .combine(newController.query.debounce(300L).distinctUntilChanged()) { filter, query -> filter to query }
+                // And each time the ledger is written: the count follows the list, which is live too.
+                .combine(repository.supplierLedgerChanges()) { selection, _ -> selection }
                 .collectLatest { (filter, query) ->
                     _totalCount.value = repository.countSupplierLedger(supplierId, filter, query)
                 }

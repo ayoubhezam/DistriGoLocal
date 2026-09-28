@@ -47,6 +47,8 @@ class FactureHistoryViewModel @Inject constructor(
         viewModelScope.launch {
             newController.filter
                 .combine(newController.query.debounce(300L).distinctUntilChanged()) { filter, query -> filter to query }
+                // And each time the ledger is written: the count follows the list, which is live too.
+                .combine(repository.clientLedgerChanges()) { selection, _ -> selection }
                 .collectLatest { (filter, query) ->
                     _totalCount.value = repository.countClientLedger(clientId, filter, query)
                 }

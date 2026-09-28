@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.compose.runtime.mutableIntStateOf
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -226,6 +227,8 @@ fun SuppliersNavHost(
             var showEditPayment by remember { mutableStateOf(false) }
             var editPaymentAmount by remember { mutableStateOf("") }
             var editError by remember { mutableStateOf("") }
+            var deleteError by remember { mutableStateOf("") }
+            var newestRequests by remember { mutableIntStateOf(0) }
 
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val supplierViewModel: SupplierViewModel = hiltViewModel(parentEntry)
@@ -240,7 +243,7 @@ fun SuppliersNavHost(
                                 supplierId = supplierId,
                                 amount     = amount,
                                 note       = note,
-                                onSuccess  = { pagingItems.refresh(); onSuccess() },
+                                onSuccess  = { newestRequests++; onSuccess() },
                                 onError    = onError
                             )
                         },
@@ -265,6 +268,7 @@ fun SuppliersNavHost(
                 // The day each entry falls on, as the supplier's card used to head its groups.
                 groupLabel        = { formatOrderDate(BusinessDates.localDay(it.created_at)) },
                 // Recording a payment belongs where the payments are listed.
+                newestRequests    = newestRequests,
                 floatingAction    = {
                     ExtendedFloatingActionButton(
                         onClick        = { showPaymentDialog = true },
@@ -305,23 +309,32 @@ fun SuppliersNavHost(
             if (longPressPayment != null && showDeletePayment) {
                 val payment = longPressPayment!!
                 AlertDialog(
-                    onDismissRequest = { showDeletePayment = false; longPressPayment = null },
+                    onDismissRequest = { showDeletePayment = false; longPressPayment = null; deleteError = "" },
                     title = { Text("Supprimer le paiement", fontWeight = FontWeight.Bold) },
-                    text  = { Text("Êtes-vous sûr de vouloir supprimer ce paiement ?") },
+                    // A refusal is said here, in the dialog it came from: it used to be dropped (onError = {}),
+                    // leaving a button that did nothing.
+                    text  = {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                            Text("Êtes-vous sûr de vouloir supprimer ce paiement ?")
+                            if (deleteError.isNotEmpty()) {
+                                Text(deleteError, color = DsColors.Danger, fontSize = DsTextSize.caption)
+                            }
+                        }
+                    },
                     confirmButton = {
                         Button(
                             onClick = {
                                 supplierViewModel.deletePayment(
                                     supplierId = supplierId,
                                     paymentId  = payment.id,
-                                    onSuccess  = { showDeletePayment = false; longPressPayment = null },
-                                    onError    = {}
+                                    onSuccess  = { showDeletePayment = false; longPressPayment = null; deleteError = "" },
+                                    onError    = { deleteError = it }
                                 )
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                         ) { Text("Supprimer", color = Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) { Text("Annuler") } },
+                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null; deleteError = "" }) { Text("Annuler") } },
                     containerColor    = DsColors.Surface,
                     titleContentColor = DsColors.TextPrimary,
                     textContentColor  = DsColors.TextSecondary

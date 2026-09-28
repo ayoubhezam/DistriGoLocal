@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.paging
 
+import com.distrigo.app.data.local.database.AppDatabase
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.distrigo.app.data.local.dao.ClientPaymentDao
@@ -19,14 +20,23 @@ import com.distrigo.app.data.model.FactureFilter
  * recreates whenever the filter or search query changes (new PagingSource).
  * This is forward-only (no prevKey/jump support), matching the LazyColumn
  * infinite-scroll usage in PagedHistoryScreen.
+ *
+ * Live (see InvalidateOnWrite): a sale or a payment written anywhere reloads the feed, and the reload
+ * reaches back down to where the list was, so a versement deleted deep in the history disappears
+ * without the list jumping to the top. The key is how many rows come before a page.
  */
 class ClientLedgerPagingSource(
+    db: AppDatabase,
     private val venteDao: VenteDao,
     private val paymentDao: ClientPaymentDao,
     private val clientId: Int,
     private val filter: FactureFilter,
     private val search: String
 ) : PagingSource<Int, ClientTransaction>() {
+
+    private val live = InvalidateOnWrite(db, arrayOf("ventes", "client_payments"), this)
+    /** Rows handed out so far: the next page's key. */
+    private var loaded = 0
 
     private val includeVentes = filter != FactureFilter.VERSEMENT
     private val includePaiements = filter == FactureFilter.TOUTES || filter == FactureFilter.VERSEMENT
@@ -67,7 +77,9 @@ class ClientLedgerPagingSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ClientTransaction> {
         return try {
-            val limit = params.loadSize
+            live.start()
+            // A refresh after a write asks for every row down to where the list was (getRefreshKey).
+            val limit = if (params is LoadParams.Refresh && params.key != null) maxOf(params.loadSize, params.key!!) else params.loadSize
             refillVenteBuffer(limit)
             refillPaiementBuffer(limit)
 
@@ -90,17 +102,19 @@ class ClientLedgerPagingSource(
             val hasMore = venteBuffer.isNotEmpty() || paiementBuffer.isNotEmpty() ||
                 !venteExhausted || !paiementExhausted
 
+            loaded += page.size
             LoadResult.Page(
                 data = page,
                 prevKey = null,
-                nextKey = if (hasMore && page.isNotEmpty()) (params.key ?: 0) + page.size else null
+                nextKey = if (hasMore && page.isNotEmpty()) loaded else null
             )
         } catch (e: Exception) {
             LoadResult.Error(e)
         }
     }
 
-    override fun getRefreshKey(state: PagingState<Int, ClientTransaction>): Int? = null
+    override fun getRefreshKey(state: PagingState<Int, ClientTransaction>): Int? =
+        InvalidateOnWrite.refreshCount(state.anchorPosition, state.config.initialLoadSize)
 
     companion object {
         private const val FETCH_BATCH = 20

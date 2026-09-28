@@ -1,5 +1,10 @@
 package com.distrigo.app.ui.components.paging
 
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,8 +77,24 @@ fun <Filter, T : Any> PagedHistoryScreen(
     groupLabel: ((T) -> String)? = null,
     /** Shown over the bottom-right of the list: the action this history is the place to take. */
     floatingAction: (@Composable () -> Unit)? = null,
+    /**
+     * Raised by one each time the screen's own action adds an entry. The list reloads by itself, but
+     * a new entry arrives above the rows in view, where a LazyColumn keeps its place — so the screen
+     * waits for the newest entry to change and then brings it into view.
+     */
+    newestRequests: Int = 0,
     itemContent: @Composable (T) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(newestRequests) {
+        if (newestRequests == 0) return@LaunchedEffect
+        val before = pagingItems.itemSnapshotList.firstOrNull()?.let(itemKey)
+        withTimeoutOrNull(2_000) {
+            snapshotFlow { pagingItems.itemSnapshotList.firstOrNull()?.let(itemKey) }.first { it != before }
+        }
+        listState.animateScrollToItem(0)
+    }
+
   Box(modifier = modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
 
@@ -152,6 +173,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
             }
             else -> {
                 LazyColumn(
+                    state    = listState,
                     modifier = Modifier.fillMaxSize(),
                     // A floating action sits over the list, so the list ends above it: without this
                     // the last entry is covered by the very button that is drawn on top of it.

@@ -1466,6 +1466,7 @@ class ProductRepository(
     ): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<SupplierTransaction>> =
         com.distrigo.app.core.paging.pagedFlow {
             com.distrigo.app.data.local.paging.SupplierLedgerPagingSource(
+                db = db,
                 purchaseDao = db.purchaseDao(),
                 paymentDao = db.supplierPaymentDao(),
                 supplierDao = supplierDao,
@@ -1791,6 +1792,7 @@ class ProductRepository(
     ): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<ClientTransaction>> =
         com.distrigo.app.core.paging.pagedFlow {
             com.distrigo.app.data.local.paging.ClientLedgerPagingSource(
+                db = db,
                 venteDao = db.venteDao(),
                 paymentDao = db.clientPaymentDao(),
                 clientId = clientId,
@@ -1798,6 +1800,17 @@ class ProductRepository(
                 search = search
             )
         }
+
+    /**
+     * Emits at once, then each time a client's ledger may have changed — a sale or a payment written
+     * anywhere — so its result count follows the list instead of only the filter.
+     */
+    fun clientLedgerChanges(): kotlinx.coroutines.flow.Flow<Set<String>> =
+        db.invalidationTracker.createFlow("ventes", "client_payments")
+
+    /** The supplier-side [clientLedgerChanges]: bons, payments and the opening balance. */
+    fun supplierLedgerChanges(): kotlinx.coroutines.flow.Flow<Set<String>> =
+        db.invalidationTracker.createFlow("purchase_orders", "supplier_payments", "suppliers")
 
     suspend fun addClientPayment(id: Int, amount: Double, note: String?): Map<String, Any> {
         requirePayment(amount)

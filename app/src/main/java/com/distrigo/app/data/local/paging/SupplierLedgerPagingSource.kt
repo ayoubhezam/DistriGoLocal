@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.paging
 
+import com.distrigo.app.data.local.database.AppDatabase
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.distrigo.app.data.local.dao.PurchaseDao
@@ -19,8 +20,12 @@ import com.distrigo.app.data.model.SupplierTransaction
  * The solde_initial row only ever appears under AchatFilter.TOUTES with a
  * blank search (it has no invoice/payment identity to filter or search on),
  * and is emitted at most once per PagingSource instance.
+ *
+ * Live, like ClientLedgerPagingSource: a bon, a payment or the supplier's opening balance written
+ * anywhere reloads the feed, back down to where the list was.
  */
 class SupplierLedgerPagingSource(
+    db: AppDatabase,
     private val purchaseDao: PurchaseDao,
     private val paymentDao: SupplierPaymentDao,
     private val supplierDao: SupplierDao,
@@ -28,6 +33,10 @@ class SupplierLedgerPagingSource(
     private val filter: AchatFilter,
     private val search: String
 ) : PagingSource<Int, SupplierTransaction>() {
+
+    private val live = InvalidateOnWrite(db, arrayOf("purchase_orders", "supplier_payments", "suppliers"), this)
+    /** Rows handed out so far: the next page's key. */
+    private var loaded = 0
 
     private val includeOrders = filter != AchatFilter.VERSEMENT
     private val includePaiements = filter == AchatFilter.TOUTES || filter == AchatFilter.VERSEMENT
@@ -83,7 +92,9 @@ class SupplierLedgerPagingSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SupplierTransaction> {
         return try {
-            val limit = params.loadSize
+            live.start()
+            // A refresh after a write asks for every row down to where the list was (getRefreshKey).
+            val limit = if (params is LoadParams.Refresh && params.key != null) maxOf(params.loadSize, params.key!!) else params.loadSize
             refillOrderBuffer(limit)
             refillPaiementBuffer(limit)
             ensureSoldeInitialLoaded()
@@ -117,17 +128,19 @@ class SupplierLedgerPagingSource(
             val hasMore = orderBuffer.isNotEmpty() || paiementBuffer.isNotEmpty() || soldeInitialTx != null ||
                 !orderExhausted || !paiementExhausted
 
+            loaded += page.size
             LoadResult.Page(
                 data = page,
                 prevKey = null,
-                nextKey = if (hasMore && page.isNotEmpty()) (params.key ?: 0) + page.size else null
+                nextKey = if (hasMore && page.isNotEmpty()) loaded else null
             )
         } catch (e: Exception) {
             LoadResult.Error(e)
         }
     }
 
-    override fun getRefreshKey(state: PagingState<Int, SupplierTransaction>): Int? = null
+    override fun getRefreshKey(state: PagingState<Int, SupplierTransaction>): Int? =
+        InvalidateOnWrite.refreshCount(state.anchorPosition, state.config.initialLoadSize)
 
     companion object {
         private const val FETCH_BATCH = 20
