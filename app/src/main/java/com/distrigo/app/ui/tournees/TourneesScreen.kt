@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.tournees
 
+import kotlinx.coroutines.launch
+import com.distrigo.app.ui.common.showUndo
 import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -436,6 +438,10 @@ fun TourneeDetailScreen(
         )
     }
 
+    // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
+    val swipeSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val swipeScope    = rememberCoroutineScope()
+
     Box(modifier = modifier.fillMaxSize()) {
         if (current == null || current.id != tourneeId) {
             Box(
@@ -794,12 +800,38 @@ fun TourneeDetailScreen(
                     if (shownVentes.isNotEmpty()) {
                         items(shownVentes, key = { it.id }) { vente ->
                             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs.div(2))) {
-                                TourneeVenteRow(
-                                    vente       = vente,
-                                    lateEntry   = isAfterClosing(vente.created_at, current.date_fin),
-                                    onClick     = { onOpenVente(vente) },
-                                    onLongClick = { longPressVenteInTournee = vente }
-                                )
+                                com.distrigo.app.ui.common.SwipeToConfirm(
+                                    enabled     = vente.status != "delivered",
+                                    label       = "Livré",
+                                    icon        = Icons.Default.LocalShipping,
+                                    onConfirmed = {
+                                        // Not a live list: it is reloaded after the change, and after its undo.
+                                        val reload = { viewModel.loadTourneeDetail(tourneeId) }
+                                        venteViewModel.deliverVente(
+                                            id        = vente.id,
+                                            onSuccess = {
+                                                reload()
+                                                swipeScope.launch {
+                                                    swipeSnackbar.showUndo("Vente ${vente.numberLabel} marquée comme livrée") {
+                                                        venteViewModel.undeliverVente(
+                                                            id        = vente.id,
+                                                            onSuccess = { reload() },
+                                                            onError   = { err -> swipeScope.launch { swipeSnackbar.showSnackbar(err) } }
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            onError   = { err -> swipeScope.launch { swipeSnackbar.showSnackbar(err) } }
+                                        )
+                                    }
+                                ) {
+                                    TourneeVenteRow(
+                                        vente       = vente,
+                                        lateEntry   = isAfterClosing(vente.created_at, current.date_fin),
+                                        onClick     = { onOpenVente(vente) },
+                                        onLongClick = { longPressVenteInTournee = vente }
+                                    )
+                                }
                             }
                         }
                     } else {
@@ -824,6 +856,11 @@ fun TourneeDetailScreen(
                 }
             }
         }
+
+        androidx.compose.material3.SnackbarHost(
+            hostState = swipeSnackbar,
+            modifier  = Modifier.align(Alignment.BottomCenter).padding(bottom = DsSpacing.lg)
+        )
     }
 }
 

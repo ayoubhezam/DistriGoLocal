@@ -1,5 +1,11 @@
 package com.distrigo.app.ui.purchases
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import com.distrigo.app.ui.common.showUndo
+import com.distrigo.app.ui.common.SwipeToConfirm
 import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.background
@@ -451,6 +457,10 @@ fun PurchasesScreen(
         }
     }
 
+    // Swipe-to-receive: the "Annuler" snackbar, and a scope that outlives the swiped row.
+    val swipeSnackbar = remember { SnackbarHostState() }
+    val swipeScope    = rememberCoroutineScope()
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -633,14 +643,36 @@ fun PurchasesScreen(
                                 color      = DsColors.TextSecondary,
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
-                            is AchatsListItem.Order -> PurchaseOrderCard(
-                                order   = row.order,
-                                onClick = {
-                                    onOrderClick(row.order.id)
-                                    viewModel.loadOrderDetail(row.order.id)
-                                },
-                                onLongClick = { longPressOrder = row.order }
-                            )
+                            is AchatsListItem.Order -> SwipeToConfirm(
+                                enabled     = row.order.status != "received",
+                                label       = "Reçu",
+                                icon        = Icons.Default.Inventory2,
+                                onConfirmed = {
+                                    val order = row.order
+                                    viewModel.receiveOrder(
+                                        id        = order.id,
+                                        onSuccess = {
+                                            swipeScope.launch {
+                                                swipeSnackbar.showUndo("Bon ${order.numberLabel} marqué comme reçu") {
+                                                    viewModel.reopenOrder(order.id, onSuccess = {}, onError = { err ->
+                                                        swipeScope.launch { swipeSnackbar.showSnackbar(err) }
+                                                    })
+                                                }
+                                            }
+                                        },
+                                        onError   = { err -> swipeScope.launch { swipeSnackbar.showSnackbar(err) } }
+                                    )
+                                }
+                            ) {
+                                PurchaseOrderCard(
+                                    order   = row.order,
+                                    onClick = {
+                                        onOrderClick(row.order.id)
+                                        viewModel.loadOrderDetail(row.order.id)
+                                    },
+                                    onLongClick = { longPressOrder = row.order }
+                                )
+                            }
                             null -> Unit
                         }
                     }
@@ -661,6 +693,11 @@ fun PurchasesScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouveau bon")
         }
+
+        SnackbarHost(
+            hostState = swipeSnackbar,
+            modifier  = Modifier.align(Alignment.BottomCenter).padding(bottom = DsSpacing.fabBottomClearance + 64.dp)
+        )
     }
 
     if (showDraftsSheet) {

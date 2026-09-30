@@ -1374,6 +1374,12 @@ class ProductRepository(
         return mapOf("message" to "Vente mise à jour avec succès")
     }
 
+    /** Takes back "Livré" — the undo of a delivery swiped by mistake. Only the status changes. */
+    suspend fun undeliverVente(id: Int): Map<String, Any> {
+        db.venteDao().updateVenteStatus(id, "pending")
+        return mapOf("message" to "Vente remise en attente")
+    }
+
     suspend fun deliverVente(id: Int): Map<String, Any> {
         db.venteDao().updateVenteStatus(id, "delivered")
         return mapOf("message" to "Vente marquée comme livrée")

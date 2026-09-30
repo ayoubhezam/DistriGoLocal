@@ -1,5 +1,11 @@
 package com.distrigo.app.ui.ventes
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import com.distrigo.app.ui.common.showUndo
+import com.distrigo.app.ui.common.SwipeToConfirm
 import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
@@ -407,6 +413,10 @@ fun VentesScreen(
         }
     }
 
+    // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
+    val swipeSnackbar = remember { SnackbarHostState() }
+    val swipeScope    = rememberCoroutineScope()
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -585,11 +595,33 @@ fun VentesScreen(
                                 color      = DsColors.TextSecondary,
                                 modifier   = Modifier.padding(vertical = DsSpacing.sm)
                             )
-                            is VentesListItem.Sale -> VenteCard(
-                                vente       = row.vente,
-                                onClick     = { onVenteClick(row.vente.id) },
-                                onLongClick = { longPressVente = row.vente }
-                            )
+                            is VentesListItem.Sale -> SwipeToConfirm(
+                                enabled     = row.vente.status != "delivered",
+                                label       = "Livré",
+                                icon        = Icons.Default.LocalShipping,
+                                onConfirmed = {
+                                    val vente = row.vente
+                                    viewModel.deliverVente(
+                                        id        = vente.id,
+                                        onSuccess = {
+                                            swipeScope.launch {
+                                                swipeSnackbar.showUndo("Vente ${vente.numberLabel} marquée comme livrée") {
+                                                    viewModel.undeliverVente(vente.id) { err ->
+                                                        swipeScope.launch { swipeSnackbar.showSnackbar(err) }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onError   = { err -> swipeScope.launch { swipeSnackbar.showSnackbar(err) } }
+                                    )
+                                }
+                            ) {
+                                VenteCard(
+                                    vente       = row.vente,
+                                    onClick     = { onVenteClick(row.vente.id) },
+                                    onLongClick = { longPressVente = row.vente }
+                                )
+                            }
                             null -> Unit
                         }
                     }
@@ -613,6 +645,11 @@ fun VentesScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
         }
+
+        SnackbarHost(
+            hostState = swipeSnackbar,
+            modifier  = Modifier.align(Alignment.BottomCenter).padding(bottom = DsSpacing.fabBottomClearance + 64.dp)
+        )
     }
 
     if (showDraftsSheet) {

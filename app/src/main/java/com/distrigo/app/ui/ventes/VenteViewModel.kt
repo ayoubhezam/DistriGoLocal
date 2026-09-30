@@ -174,6 +174,17 @@ class VenteViewModel @Inject constructor(
         }
     }
 
+    fun undeliverVente(id: Int, onSuccess: () -> Unit = {}, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.undeliverVente(id)
+                onSuccess()
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
+
     fun deliverVente(
         id        : Int,
         onSuccess : () -> Unit,
