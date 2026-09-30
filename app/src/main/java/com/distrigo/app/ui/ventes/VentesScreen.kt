@@ -639,7 +639,9 @@ fun VenteDetailScreen(
     businessViewModel : com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel =
         hiltViewModel(),
     onDelivered       : () -> Unit = {},
-    onDeleted         : () -> Unit = {}
+    onDeleted         : () -> Unit = {},
+    /** "Modifier" in the menu, as the list's long-press offers it. Null where a sale is not edited — a tournée's. */
+    onEdit            : (() -> Unit)? = null
 ) {
     BackHandler { onBack() }
 
@@ -754,6 +756,16 @@ fun VenteDetailScreen(
                     expanded         = overflowMenuExpanded,
                     onDismissRequest = { overflowMenuExpanded = false }
                 ) {
+                    onEdit?.let { edit ->
+                        DropdownMenuItem(
+                            text        = { Text("Modifier") },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
+                            onClick     = {
+                                overflowMenuExpanded = false
+                                edit()
+                            }
+                        )
+                    }
                     DropdownMenuItem(
                         text        = { Text("Supprimer", color = DsColors.Danger) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },

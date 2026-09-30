@@ -144,13 +144,24 @@ fun VentesNavHost(
 
             LaunchedEffect(venteId) { viewModel.loadVenteDetail(venteId) }
 
+            // The same way into edit mode as the list's long-press: an unsaved edit draft of this
+            // sale is offered first. "Voir la vente" from that choice is this screen already.
+            val openForm = openVenteFormAction(navController)
+            val resumeDraft = venteDraftResumeAction(
+                viewModel   = viewModel,
+                onOpenForm  = openForm,
+                onViewVente = { }
+            )
+            val editVente = editVenteAction(viewModel, openForm, resumeDraft)
+
             if (fallbackVente != null) {
                 VenteDetailScreen(
                     vente       = fallbackVente,
                     viewModel   = viewModel,
                     onBack      = { navController.popBackStack() },
                     onDelivered = { navController.popBackStack() },
-                    onDeleted   = { navController.popBackStack() }
+                    onDeleted   = { navController.popBackStack() },
+                    onEdit      = { editVente(venteId) }
                 )
             } else if (lookup == VenteLookup.Gone) {
                 LeaveWhenGone(navController, entry)
