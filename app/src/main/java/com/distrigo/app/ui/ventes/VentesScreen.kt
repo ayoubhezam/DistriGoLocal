@@ -74,6 +74,7 @@ fun VentesScreen(
     var longPressVente   by remember { mutableStateOf<Vente?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var deleteError      by remember { mutableStateOf("") }
+    var listDeleting     by remember { mutableStateOf(false) }
 
     // ── Local UI state (لا تُحفظ في ViewModel) ──
     var showFilterSheet    by remember { mutableStateOf(false) }
@@ -95,41 +96,24 @@ fun VentesScreen(
     // ── Long Press Dialog ──
     longPressVente?.let { vente ->
         if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false; longPressVente = null; deleteError = "" },
-                title = { Text("Supprimer la vente ?") },
-                text  = {
-                    Column {
-                        Text("Voulez-vous supprimer la vente ${vente.numberLabel} de ${vente.client_name} ?")
-                        if (deleteError.isNotEmpty()) {
-                            Spacer(Modifier.height(DsSpacing.sm))
-                            Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
-                        }
-                    }
+            VenteDeleteDialog(
+                vente     = vente,
+                deleting  = listDeleting,
+                error     = deleteError,
+                onConfirm = {
+                    listDeleting = true
+                    viewModel.deleteVente(
+                        id        = vente.id,
+                        onSuccess = {
+                            listDeleting     = false
+                            showDeleteDialog = false
+                            longPressVente   = null
+                            deleteError      = ""
+                        },
+                        onError = { err -> listDeleting = false; deleteError = err }
+                    )
                 },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.deleteVente(
-                            id        = vente.id,
-                            onSuccess = {
-                                showDeleteDialog = false
-                                longPressVente   = null
-                                deleteError      = ""
-                            },
-                            onError = { err -> deleteError = err }
-                        )
-                    }) {
-                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false; longPressVente = null; deleteError = "" }) {
-                        Text("Annuler")
-                    }
-                },
-                containerColor    = DsColors.Surface,
-                titleContentColor = DsColors.TextPrimary,
-                textContentColor  = DsColors.TextSecondary
+                onDismiss = { showDeleteDialog = false; longPressVente = null; deleteError = "" }
             )
         } else {
             AlertDialog(
@@ -713,49 +697,23 @@ fun VenteDetailScreen(
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false; deleteError = "" },
-            title = { Text("Supprimer ce reçu ?") },
-            text  = {
-                Column {
-                    Text("Cette action est irréversible. Les quantités vendues seront remises en stock.")
-                    if (deleteError.isNotEmpty()) {
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        isDeleting = true
-                        viewModel.deleteVente(
-                            id        = displayVente.id,
-                            onSuccess = {
-                                isDeleting       = false
-                                showDeleteDialog = false
-                                onDeleted()
-                            },
-                            onError = { err -> isDeleting = false; deleteError = err }
-                        )
+        VenteDeleteDialog(
+            vente     = displayVente,
+            deleting  = isDeleting,
+            error     = deleteError,
+            onConfirm = {
+                isDeleting = true
+                viewModel.deleteVente(
+                    id        = displayVente.id,
+                    onSuccess = {
+                        isDeleting       = false
+                        showDeleteDialog = false
+                        onDeleted()
                     },
-                    enabled = !isDeleting
-                ) {
-                    if (isDeleting) {
-                        CircularProgressIndicator(color = DsColors.Danger, modifier = Modifier.size(16.dp))
-                    } else {
-                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+                    onError = { err -> isDeleting = false; deleteError = err }
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false; deleteError = "" }) {
-                    Text("Annuler")
-                }
-            },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
+            onDismiss = { showDeleteDialog = false; deleteError = "" }
         )
     }
 

@@ -231,6 +231,7 @@ fun TourneeDetailScreen(
     var longPressVenteInTournee by remember { mutableStateOf<Vente?>(null) }
     var showDeleteVenteInTournee by remember { mutableStateOf(false) }
     var deleteVenteError        by remember { mutableStateOf("") }
+    var deletingVenteInTournee  by remember { mutableStateOf(false) }
     var confirmReopenSaleClient by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
     var showFilterSheet         by remember { mutableStateOf(false) }
     var confirmRemoveClient     by remember { mutableStateOf<com.distrigo.app.data.model.TourneeClientInfo?>(null) }
@@ -319,17 +320,29 @@ fun TourneeDetailScreen(
     }
 
     confirmReopenSaleClient?.let { info ->
+        val isClosed = current?.status == "fermée"
         AlertDialog(
             onDismissRequest = { confirmReopenSaleClient = null },
-            title = { Text("Créer une vente ?") },
-            text  = { Text("Voulez-vous effectuer une vente pour ${info.client.name} ?") },
+            title = { Text(if (isClosed) "Vente de rattrapage ?" else "Créer une vente ?") },
+            text  = {
+                if (isClosed) {
+                    // Correction mode: the sale joins this closed tournée, dated today and marked
+                    // "Ajouté après clôture" on its list; its goods leave today's camion stock.
+                    Text(
+                        "Cette tournée est clôturée. La vente pour ${info.client.name} y sera ajoutée avec la date " +
+                            "d'aujourd'hui et marquée « Ajouté après clôture ». Ses produits sortiront du stock camion actuel."
+                    )
+                } else {
+                    Text("Voulez-vous effectuer une vente pour ${info.client.name} ?")
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     val cid = info.client.id
                     confirmReopenSaleClient = null
                     onCreateVente(cid)
                 }) {
-                    Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(if (isClosed) "Continuer" else "Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -434,44 +447,26 @@ fun TourneeDetailScreen(
         } else {
             longPressVenteInTournee?.let { vente ->
                 if (showDeleteVenteInTournee) {
-                    AlertDialog(
-                        onDismissRequest = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" },
-                        title = { Text("Supprimer ce reçu ?") },
-                        text  = {
-                            Column {
-                                Text("Cette action est irréversible. Les quantités vendues seront remises en stock.")
-                                if (deleteVenteError.isNotEmpty()) {
-                                    Spacer(Modifier.height(DsSpacing.sm))
-                                    Text(deleteVenteError, fontSize = DsTextSize.caption, color = DsColors.Danger)
-                                }
-                            }
+                    com.distrigo.app.ui.ventes.VenteDeleteDialog(
+                        vente     = vente,
+                        deleting  = deletingVenteInTournee,
+                        error     = deleteVenteError,
+                        onConfirm = {
+                            deletingVenteInTournee = true
+                            venteViewModel.deleteVente(
+                                id        = vente.id,
+                                onSuccess = {
+                                    deletingVenteInTournee   = false
+                                    showDeleteVenteInTournee = false
+                                    longPressVenteInTournee  = null
+                                    deleteVenteError         = ""
+                                    viewModel.loadTourneeDetail(tourneeId)
+                                    viewModel.refreshAfterVenteChange(tourneeId)
+                                },
+                                onError = { error -> deletingVenteInTournee = false; deleteVenteError = error }
+                            )
                         },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                venteViewModel.deleteVente(
-                                    id        = vente.id,
-                                    onSuccess = {
-                                        showDeleteVenteInTournee = false
-                                        longPressVenteInTournee  = null
-                                        deleteVenteError         = ""
-                                        viewModel.loadTourneeDetail(tourneeId)
-                                        viewModel.refreshAfterVenteChange(tourneeId)
-
-                                    },
-                                    onError = { error -> deleteVenteError = error }
-                                )
-                            }) {
-                                Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" }) {
-                                Text("Annuler")
-                            }
-                        },
-                        containerColor    = DsColors.Surface,
-                        titleContentColor = DsColors.TextPrimary,
-                        textContentColor  = DsColors.TextSecondary
+                        onDismiss = { showDeleteVenteInTournee = false; longPressVenteInTournee = null; deleteVenteError = "" }
                     )
                 } else {
                     AlertDialog(
@@ -786,6 +781,7 @@ fun TourneeDetailScreen(
                             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs.div(2))) {
                                 TourneeVenteRow(
                                     vente       = vente,
+                                    lateEntry   = isAfterClosing(vente.created_at, current.date_fin),
                                     onClick     = { onOpenVente(vente) },
                                     onLongClick = { longPressVenteInTournee = vente }
                                 )
@@ -878,16 +874,14 @@ private fun TourneeClientActionsSheet(
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            if (isOpen) {
-                TourneeClientActionRow(
-                    icon     = Icons.Default.ShoppingCart,
-                    tint     = DsColors.Primary,
-                    bg       = DsColors.PrimaryLight,
-                    title    = "Créer une vente",
-                    subtitle = "Nouvelle vente pour ce client",
-                    onClick  = onCreateSale
-                )
-            }
+            TourneeClientActionRow(
+                icon     = Icons.Default.ShoppingCart,
+                tint     = DsColors.Primary,
+                bg       = DsColors.PrimaryLight,
+                title    = if (isOpen) "Créer une vente" else "Vente de rattrapage",
+                subtitle = if (isOpen) "Nouvelle vente pour ce client" else "Tournée clôturée : ajoutée avec la date d'aujourd'hui",
+                onClick  = onCreateSale
+            )
 
             TourneeClientActionRow(
                 icon     = Icons.Default.Navigation,
@@ -1025,7 +1019,6 @@ private fun TourneeClientActionRow(
 private fun TourneeClientAvatarItem(
     info        : com.distrigo.app.data.model.TourneeClientInfo,
     hasVente    : Boolean,
-    enabled     : Boolean,
     onTap       : () -> Unit,
     onLongTap   : () -> Unit
 ) {
@@ -1054,7 +1047,6 @@ private fun TourneeClientAvatarItem(
         modifier = Modifier
             .width(58.dp)
             .combinedClickable(
-                enabled     = enabled,
                 onClick     = onTap,
                 onLongClick = onLongTap
             )
@@ -1239,7 +1231,6 @@ private fun TourneeClientStrip(
             TourneeClientAvatarItem(
                 info      = info,
                 hasVente  = info.client.id in clientIdsWithVente,
-                enabled   = isOpen,
                 onTap     = { sheetClientId = info.client.id },
                 onLongTap = { sheetClientId = info.client.id }
             )
@@ -1254,10 +1245,11 @@ private fun TourneeClientStrip(
                 hasVente      = cid in clientIdsWithVente,
                 isOpen        = isOpen,
                 // Same guard the inline card had: a client already served asks before a
-                // second sale is opened for them, rather than silently starting one.
+                // second sale is opened for them, rather than silently starting one. On a closed
+                // tournée every sale is a late one, and always asks.
                 onCreateSale  = {
                     sheetClientId = null
-                    if (cid in clientIdsWithVente) onReopenSaleForVisited(cid) else onCreateSale(cid)
+                    if (!isOpen || cid in clientIdsWithVente) onReopenSaleForVisited(cid) else onCreateSale(cid)
                 },
                 onMarkVisited = { sheetClientId = null; onMarkVisitedNoSale(cid) },
                 onRemove      = { sheetClientId = null; onRemoveClient(cid) },
@@ -1618,6 +1610,7 @@ private fun <T> TourneeFilterSegments(
 @Composable
 private fun TourneeVenteRow(
     vente        : Vente,
+    lateEntry    : Boolean,
     onClick      : () -> Unit,
     onLongClick  : () -> Unit
 ) {
@@ -1680,6 +1673,19 @@ private fun TourneeVenteRow(
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
+            if (lateEntry) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Ajouté après clôture",
+                    fontSize   = DsTextSize.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = DsColors.Warning,
+                    modifier   = Modifier
+                        .clip(DsShapes.pill)
+                        .background(DsColors.WarningLight)
+                        .padding(horizontal = DsSpacing.sm, vertical = 2.dp)
+                )
+            }
         }
 
         Column(
@@ -1704,4 +1710,16 @@ private fun TourneeVenteRow(
             modifier = Modifier.align(Alignment.TopEnd)
         )
     }
+}
+
+/**
+ * True when a record was saved after its tournée was closed — a late sale, entered in correction
+ * mode. Derived from the two timestamps, so it needs no column of its own. A tournée reopened and
+ * closed again takes its new closing time, and what was added while it was open is no longer late.
+ */
+internal fun isAfterClosing(createdAt: String?, dateFin: String?): Boolean {
+    if (createdAt == null || dateFin == null) return false
+    val created = runCatching { java.time.Instant.parse(createdAt) }.getOrNull() ?: return false
+    val closed  = runCatching { java.time.Instant.parse(dateFin) }.getOrNull() ?: return false
+    return created.isAfter(closed)
 }
