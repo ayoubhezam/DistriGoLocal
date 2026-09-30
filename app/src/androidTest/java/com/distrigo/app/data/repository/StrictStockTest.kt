@@ -214,6 +214,27 @@ class StrictStockTest {
         assertEquals("received", db.purchaseDao().getOrderById(order)!!.status)
     }
 
+    /**
+     * The swipe's "Annuler" on a reception puts the dépôt back exactly where it was, even below zero —
+     * the reopen strict stock refuses. A product already at −3 was received +10 by mistake: undo is −3.
+     */
+    @Test
+    fun undoingASwipedReceptionIsForcedPastStrictStock() = runBlocking {
+        val id = product(0.0)
+        repository.createVente(client(), null, "depot", listOf(line(id, 3.0)), null, 0.0)
+        assertDepot(id, -3.0)
+        strict()
+        val order = receivedBon(id, 10.0)
+        assertDepot(id, 7.0)
+
+        refused { repository.reopenPurchaseOrder(order) }
+        repository.undoReceivePurchaseOrder(order)
+
+        assertDepot(id, -3.0)
+        assertEquals("pending", db.purchaseDao().getOrderById(order)!!.status)
+        assertEquals(0L, sql.long("SELECT COUNT(*) FROM stock_movements WHERE source_type = 'purchase_order' AND source_id = $order"))
+    }
+
     /** The count is of the total stock, booked at the dépôt: a count below what the camion holds is refused. */
     @Test
     fun aStrictCountCannotGoBelowTheCamion() = runBlocking {

@@ -60,9 +60,25 @@ fun PurchaseOrderDetailScreen(
     var showReceiptPreview by remember { mutableStateOf(false) }
     var showShareOptions    by remember { mutableStateOf(false) }
     var deleteError       by remember { mutableStateOf("") }
+    // A reopen or a reception the repository refused — strict stock, most often — said in a
+    // dialog instead of the button quietly doing nothing: (title, message).
+    var actionError       by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overflowMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler { onBack() }
+
+    actionError?.let { (title, message) ->
+        AlertDialog(
+            onDismissRequest = { actionError = null },
+            icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
+            title            = { Text(title) },
+            text             = { Text(message, fontSize = DsTextSize.bodySmall) },
+            confirmButton    = { TextButton(onClick = { actionError = null }) { Text("OK") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
 
     if (showReopenDialog) {
         AlertDialog(
@@ -84,7 +100,10 @@ fun PurchaseOrderDetailScreen(
                             isLoading = false
                             onEdit()
                         },
-                        onError   = { isLoading = false }
+                        onError   = { error ->
+                            isLoading = false
+                            actionError = "Impossible de rouvrir le bon" to error
+                        }
                     )
                 }) {
                     Text("Rouvrir", color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
@@ -485,7 +504,10 @@ fun PurchaseOrderDetailScreen(
                                 onSuccess = {
                                     onReceived()
                                 },
-                                onError   = { isLoading = false }
+                                onError   = { error ->
+                                    isLoading = false
+                                    actionError = "Impossible de recevoir le bon" to error
+                                }
                             )
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success)

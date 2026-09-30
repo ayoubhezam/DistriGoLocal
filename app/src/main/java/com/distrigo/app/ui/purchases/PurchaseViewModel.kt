@@ -193,6 +193,17 @@ class PurchaseViewModel @Inject constructor(
         }
     }
 
+    /** The swipe's "Annuler": forced, see ProductRepository.undoReceivePurchaseOrder. */
+    fun undoReceive(id: Int, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.undoReceivePurchaseOrder(id)
+            } catch (e: Exception) {
+                onError(extractErrorMessage(e))
+            }
+        }
+    }
+
     fun reopenOrder(
         id        : Int,
         onSuccess : () -> Unit,

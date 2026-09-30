@@ -1076,6 +1076,24 @@ class ProductRepository(
         return mapOf("message" to "Bon mis à jour avec succès")
     }
 
+    /**
+     * "Annuler" on a reception just swiped by mistake: the bon goes back to pending and its
+     * movements go, exactly as before the swipe — without the strict-stock check [reopenPurchaseOrder]
+     * makes. That check refuses a reopen that would leave a product below zero, which is right for a
+     * deliberate reopen but would trap the user in a reception they never meant: when a product was
+     * already negative before the swipe, going back to that state is the whole point.
+     */
+    suspend fun undoReceivePurchaseOrder(id: Int): Map<String, Any> {
+        db.withTransaction {
+            val order = db.purchaseDao().getOrderById(id)
+                ?: throw IllegalStateException("Bon introuvable: $id")
+            if (order.status != "received") return@withTransaction
+            db.purchaseDao().updateOrderStatus(id, "pending")
+            db.stockMovementDao().deleteBySource("purchase_order", id)
+        }
+        return mapOf("message" to "Réception annulée")
+    }
+
     suspend fun reopenPurchaseOrder(id: Int): Map<String, Any> {
         depotGuard.guard(purchaseProductIds(id)) {
             val order = db.purchaseDao().getOrderById(id)

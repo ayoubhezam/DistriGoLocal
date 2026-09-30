@@ -654,9 +654,9 @@ fun PurchasesScreen(
                                         onSuccess = {
                                             swipeScope.launch {
                                                 swipeSnackbar.showUndo("Bon ${order.numberLabel} marqué comme reçu") {
-                                                    viewModel.reopenOrder(order.id, onSuccess = {}, onError = { err ->
+                                                    viewModel.undoReceive(order.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
-                                                    })
+                                                    }
                                                 }
                                             }
                                         },
