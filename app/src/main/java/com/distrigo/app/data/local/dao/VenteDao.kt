@@ -77,7 +77,8 @@ interface VenteDao {
      * Replaces [getVentesForTournee] followed by a client lookup and an item count for every sale —
      * 1 + 2V queries. The name is read from `clients`, not from the `ventes.client_name` snapshot,
      * because the live name is what the detail screen has always shown; it is aliased so it cannot
-     * collide with that snapshot column. Same order as [getVentesForTournee].
+     * collide with that snapshot column. Newest saved first, the id breaking a tie — so a sale
+     * added after the tournée closed leads the list instead of sitting among the day's.
      */
     @Query("""
         SELECT v.*,
@@ -86,7 +87,7 @@ interface VenteDao {
         FROM ventes v
         LEFT JOIN clients c ON c.id = v.client_id AND c.deleted_at IS NULL
         WHERE v.tournee_id = :tourneeId
-        ORDER BY v.id DESC
+        ORDER BY v.created_at DESC, v.id DESC
     """)
     suspend fun getVentesWithDetailsForTournee(tourneeId: Int): List<VenteWithDetails>
 

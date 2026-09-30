@@ -147,6 +147,11 @@ class VenteViewModel @Inject constructor(
             }
         }
     }
+    /** The sale as saved right now, lines included — what an edit is compared against before it is saved. */
+    fun loadSavedVente(id: Int, onLoaded: (Vente?) -> Unit) {
+        viewModelScope.launch { onLoaded(runCatching { repository.getVente(id) }.getOrNull()) }
+    }
+
     fun updateVente(
         id          : Int,
         clientId    : Int,

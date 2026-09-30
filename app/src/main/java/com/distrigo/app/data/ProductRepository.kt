@@ -1388,6 +1388,9 @@ class ProductRepository(
             db.venteDao().deleteItemsForVente(id)
             db.venteDao().deleteVenteById(id)
             clientDao.recomputeBalance(existing.client_id)
+            // The sale was what made the client "visité" on its tournée: without it, and with no
+            // other sale there, they are to visit again.
+            existing.tournee_id?.let { db.tourneeClientDao().unvisitIfNoSale(it, existing.client_id) }
         }
         return mapOf("message" to "Vente supprimée avec succès")
     }

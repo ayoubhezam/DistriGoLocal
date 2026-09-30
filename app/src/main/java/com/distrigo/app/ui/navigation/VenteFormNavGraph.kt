@@ -633,6 +633,8 @@ fun NavGraphBuilder.venteFormGraph(
             val editSource by session.editSource.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
+            // Edit mode: the saved sale and what saving over it changes, while the user decides.
+            var editConfirm by remember { mutableStateOf<Pair<com.distrigo.app.data.model.Vente, List<String>>?>(null) }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
             // Strict stock: a line the dépôt can no longer cover, marked in the cart. A camion sale
             // being edited is checked against the camion by the repository instead.
@@ -678,6 +680,38 @@ fun NavGraphBuilder.venteFormGraph(
                 }
             }
 
+            // An edit rewrites the sale's stock, total and payment, so it first says what changes —
+            // compared against the sale as saved now, not as it was when the form opened. Nothing
+            // changed, nothing to ask. A blocked save (missing product, strict stock) goes straight
+            // to doSave, which shows why.
+            fun requestSave() {
+                val id = venteId
+                if (id == null || formClient == null || missingProductIds.isNotEmpty() || overStockProduct != null) {
+                    doSave(); return
+                }
+                viewModel.loadSavedVente(id) { saved ->
+                    if (saved == null) { doSave(); return@loadSavedVente }
+                    val effects = com.distrigo.app.ui.ventes.venteEditEffects(
+                        original = saved,
+                        lines    = cartItems.map {
+                            com.distrigo.app.ui.ventes.EditedLine(it.product.id, it.product.name, it.product.unit_type, it.quantity)
+                        },
+                        newTotal = total,
+                        newPaid  = montantPaye.toDoubleOrNull() ?: 0.0
+                    )
+                    if (effects.isEmpty()) doSave() else editConfirm = saved to effects
+                }
+            }
+
+            editConfirm?.let { (saved, effects) ->
+                com.distrigo.app.ui.ventes.VenteEditConfirmDialog(
+                    original  = saved,
+                    effects   = effects,
+                    onConfirm = { editConfirm = null; doSave() },
+                    onDismiss = { editConfirm = null }
+                )
+            }
+
             BackHandler { navController.popBackStack() }
 
             Step3Validation(
@@ -693,7 +727,7 @@ fun NavGraphBuilder.venteFormGraph(
                 hasMissingProducts  = missingProductIds.isNotEmpty(),
                 overStockProduct    = overStockProduct,
                 onBack              = { navController.popBackStack() },
-                onConfirm           = { doSave() }
+                onConfirm           = { requestSave() }
             )
         }
     }

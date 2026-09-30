@@ -245,7 +245,7 @@ fun TourneeDetailScreen(
             title = { Text("Fermer cette tournée ?", fontWeight = FontWeight.Bold) },
             text  = {
                 Column {
-                    Text("Ceci enregistre l'heure de fin et empêche l'ajout de nouvelles ventes à cette tournée.")
+                    Text("Ceci enregistre l'heure de fin. Une vente ajoutée ensuite sera marquée « Ajouté après clôture ».")
                     if (actionError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(actionError, color = DsColors.Danger, fontSize = DsTextSize.caption)
@@ -730,8 +730,23 @@ fun TourneeDetailScreen(
 
                 Spacer(Modifier.height(DsSpacing.sm))
 
+                // A LazyColumn keeps the row you were looking at in place when one is inserted above
+                // it, so a sale just added — at the top, newest first — would land out of sight.
+                // When the newest sale changes, the list goes back to the top to show it; coming
+                // back to the screen with the same newest sale keeps the scroll where it was.
+                val venteListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                val newestVenteId = ventes.firstOrNull()?.id
+                var seenNewestVenteId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Int?>(null) }
+                LaunchedEffect(newestVenteId) {
+                    if (seenNewestVenteId != null && newestVenteId != null && newestVenteId != seenNewestVenteId) {
+                        venteListState.scrollToItem(0)
+                    }
+                    if (newestVenteId != null) seenNewestVenteId = newestVenteId
+                }
+
                 // ── The only thing that scrolls ──
                 LazyColumn(
+                    state          = venteListState,
                     modifier       = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = DsSpacing.lg)
                 ) {
