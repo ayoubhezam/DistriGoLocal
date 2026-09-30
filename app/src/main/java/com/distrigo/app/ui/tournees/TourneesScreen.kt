@@ -90,7 +90,8 @@ fun TourneesScreen(
                 onClick        = {
                     val open = openTournee
                     if (open != null) {
-                        toast(context, "Une tournée est déjà ouverte (« ${open.nom} ») : clôturez-la avant d'en ouvrir une autre.")
+                        // Short on purpose: a toast shows two lines and cuts the rest.
+                        toast(context, "« ${open.nom} » est en cours : clôturez-la d'abord.")
                     } else {
                         onAddTournee()
                     }
