@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.common.DsFilterChip
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
@@ -275,32 +276,6 @@ fun ClientsScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DsFilterChip(
-    label        : String,
-    active       : Boolean,
-    activeBg     : Color,
-    activeBorder : Color,
-    activeText   : Color,
-    onClick      : () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(DsShapes.pill)
-            .background(if (active) activeBg else DsColors.Surface)
-            .border(1.dp, if (active) activeBorder else DsColors.Border, DsShapes.pill)
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(
-            label,
-            fontSize   = DsTextSize.bodySmall,
-            color      = if (active) activeText else DsColors.TextSecondary,
-            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal
-        )
     }
 }
 

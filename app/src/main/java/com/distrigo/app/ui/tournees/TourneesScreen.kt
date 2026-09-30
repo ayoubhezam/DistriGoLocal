@@ -46,6 +46,9 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsFilterChip
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.platform.LocalContext
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -60,6 +63,11 @@ fun TourneesScreen(
     val isLoading    by viewModel.isLoading.collectAsState()
     val error        by viewModel.error.collectAsState()
     val openTournee  by viewModel.openTournee.collectAsState()
+    val context      = LocalContext.current
+    val statusFilter = viewModel.listStatusFilter
+    val shown        = remember(tournees, statusFilter) {
+        if (statusFilter == null) tournees else tournees.filter { it.status == statusFilter }
+    }
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
 
@@ -77,7 +85,16 @@ fun TourneesScreen(
             size    = DsTopBarSize.Large
         ) {
             FloatingActionButton(
-                onClick        = onAddTournee,
+                // Only one tournée is open at a time (the repository refuses a second): said here,
+                // before a whole form is filled in for nothing.
+                onClick        = {
+                    val open = openTournee
+                    if (open != null) {
+                        toast(context, "Une tournée est déjà ouverte (« ${open.nom} ») : clôturez-la avant d'en ouvrir une autre.")
+                    } else {
+                        onAddTournee()
+                    }
+                },
                 containerColor = DsColors.Primary,
                 contentColor   = Color.White,
                 modifier       = Modifier.size(40.dp),
@@ -109,6 +126,19 @@ fun TourneesScreen(
             }
         }
 
+        // ── Status chips ──
+        if (!isLoading && error == null && tournees.isNotEmpty()) {
+            LazyRow(
+                contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                modifier              = Modifier.padding(bottom = DsSpacing.sm)
+            ) {
+                item { DsFilterChip(label = "Toutes", active = statusFilter == null, onClick = { viewModel.listStatusFilter = null }) }
+                item { DsFilterChip(label = "En cours", active = statusFilter == "ouverte", onClick = { viewModel.listStatusFilter = "ouverte" }) }
+                item { DsFilterChip(label = "Clôturées", active = statusFilter == "fermée", onClick = { viewModel.listStatusFilter = "fermée" }) }
+            }
+        }
+
         when {
             isLoading -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -134,12 +164,21 @@ fun TourneesScreen(
                     }
                 }
             }
+            shown.isEmpty() -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (statusFilter == "ouverte") "Aucune tournée en cours" else "Aucune tournée clôturée",
+                        color      = DsColors.TextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
             else -> {
                 LazyColumn(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    items(tournees, key = { it.id }) { tournee ->
+                    items(shown, key = { it.id }) { tournee ->
                         TourneeCard(
                             tournee = tournee,
                             onClick = { onTourneeClick(tournee.id) }
