@@ -4,11 +4,11 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
- * A sum of money in DA, as it is typed and shown: 2 decimals, read with ',' or '.', shown with its
- * thousands apart — "3 500", "1 250.50".
+ * A sum of money in DA, as it is typed: 2 decimals, read with ',' or '.'.
  *
  * The money counterpart of [Quantity]: same reading rules (the French keyboard's decimal key types
- * ','), a different precision.
+ * ','), a different precision. Showing an amount is not done here but by the business's format —
+ * see com.distrigo.app.core.format.MoneyFormatter.
  */
 object Amount {
 
@@ -35,15 +35,6 @@ object Amount {
         val cleaned = text.trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
         if (cleaned.isEmpty() || cleaned.count { it == '.' } > 1 || !cleaned.all { it.isDigit() || it == '.' }) return null
         return cleaned.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::normalize)
-    }
-
-    /** "3 500", "1 250.5" → "1 250.50": thousands apart, cents only when there are some. */
-    fun format(value: Double): String {
-        val v = normalize(value)
-        val whole = v == Math.rint(v)
-        val text = if (whole) BigDecimal.valueOf(v).setScale(0, RoundingMode.HALF_UP).toPlainString()
-                   else BigDecimal.valueOf(v).setScale(DECIMALS, RoundingMode.HALF_UP).toPlainString()
-        return groupThousands(text)
     }
 
     /** "3500.5" → "3 500.5": the integer part grouped by three, the rest as typed. */

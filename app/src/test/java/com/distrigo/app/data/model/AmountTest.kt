@@ -29,12 +29,7 @@ class AmountTest {
     }
 
     @Test
-    fun formatGroupsThousandsAndShowsCentsOnlyWhenThereAreSome() {
-        assertEquals("3 500", Amount.format(3500.0))
-        assertEquals("1 250.50", Amount.format(1250.5))
-        assertEquals("999", Amount.format(999.0))
-        assertEquals("1 000 000", Amount.format(1_000_000.0))
-        assertEquals("0.05", Amount.format(0.05))
+    fun groupThousandsGroupsTheIntegerPartAsTyped() {
         assertEquals("3 500.5", Amount.groupThousands("3500.5"))
         assertEquals("12", Amount.groupThousands("12"))
     }
