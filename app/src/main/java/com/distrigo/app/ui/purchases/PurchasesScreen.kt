@@ -53,6 +53,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -748,6 +749,7 @@ private fun paymentStatusOf(order: PurchaseOrder): String {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     val isReceived = order.status == "received"
     val (ribbonLabel, ribbonColor) =
         if (isReceived) "REÇU" to DsColors.Success else "EN ATTENTE" to DsColors.Warning
@@ -810,7 +812,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                 modifier            = Modifier.padding(end = 28.dp)
             ) {
                 Text(
-                    "${"%.2f".format(order.total)} DA",
+                    money.da(order.total),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
                     color      = DsColors.Primary

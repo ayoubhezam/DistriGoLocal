@@ -75,6 +75,7 @@ import com.distrigo.app.ui.purchases.matches
 import com.distrigo.app.ui.purchases.matchesSearch
 import java.time.LocalDate
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** Height shared by the three chips of Step 02's count / Filtres / Nouveau produit row. */
 private val Step2ChipHeight = 32.dp
@@ -499,6 +500,7 @@ fun NavGraphBuilder.purchaseFormGraph(
         }
 
         composable(Screen.PurchaseFormProducts.route) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
@@ -610,9 +612,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                 val priceMax = filters.priceMax.toDoubleOrNull()
                 if (priceMin != null || priceMax != null) {
                     val range = when {
-                        priceMin != null && priceMax != null -> "${formatQty(priceMin)}–${formatQty(priceMax)} DA"
-                        priceMin != null                     -> "≥ ${formatQty(priceMin)} DA"
-                        else                                 -> "≤ ${formatQty(priceMax!!)} DA"
+                        priceMin != null && priceMax != null -> "${money.amount(priceMin)}–${money.da(priceMax)}"
+                        priceMin != null                     -> "≥ ${money.da(priceMin)}"
+                        else                                 -> "≤ ${money.da(priceMax!!)}"
                     }
                     add("Prix d'achat : $range" to filters.copy(priceMin = "", priceMax = ""))
                 }
@@ -802,7 +804,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             maxLines   = 1
                                         )
                                         Text(
-                                            "${product.category_name ?: "—"} · ${"%.2f".format(product.purchase_price)} DA",
+                                            "${product.category_name ?: "—"} · ${money.da(product.purchase_price)}",
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
@@ -888,7 +890,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
-                                "${"%.2f".format(total)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                money.da(total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) DsColors.Success else DsColors.TextSecondary
                             )
                         }
@@ -898,6 +900,7 @@ fun NavGraphBuilder.purchaseFormGraph(
         }
 
         composable(Screen.PurchaseFormCart.route) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
@@ -974,7 +977,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             val metaLine = if (item.product.unit_type == "pièce")
                                 "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
                             else
-                                "${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.unitCost)} DA"
+                                "${formatQty(item.quantity)} ${item.product.unit_type} × ${money.da(item.unitCost)}"
 
                             // A restored draft can name a product that has since been deleted. The
                             // line stays visible, under the name the draft stored, because dropping
@@ -986,7 +989,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 avatarIcon      = Icons.Default.ShoppingCart,
                                 title           = item.product.name,
                                 metaLine        = metaLine,
-                                totalPriceLabel = "${"%.2f".format(item.quantity * item.unitCost)} DA",
+                                totalPriceLabel = money.da(item.quantity * item.unitCost),
                                 isExpanded      = isExpanded,
                                 onToggleExpand  = { expandedCartItemId = if (isExpanded) null else item.product.id },
                                 statusLine      = {
@@ -1164,7 +1167,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                             }
                         }
                     }

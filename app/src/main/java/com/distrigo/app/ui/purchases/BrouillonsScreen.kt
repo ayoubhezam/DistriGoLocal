@@ -36,7 +36,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import com.distrigo.app.ui.suppliers.formatDZD
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** What a draft reports to the filter. */
 private fun PurchaseDraft.filterFacts() = DraftFilterFacts(
@@ -71,6 +71,7 @@ fun BrouillonsScreen(
     onBack   : () -> Unit,
     onResume : (PurchaseDraft) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val drafts by viewModel.drafts.collectAsState()
 
     var pendingDelete by remember { mutableStateOf<PurchaseDraft?>(null) }
@@ -172,7 +173,7 @@ fun BrouillonsScreen(
                                                    else            selected + draft.id
                                     } else onResume(draft)
                                 },
-                                totalText = if (draft.total > 0) "${formatDZD(draft.total)} DA" else null,
+                                totalText = if (draft.total > 0) money.da(draft.total) else null,
                                 selected  = if (selecting) isSelected else null,
                                 trailing  = if (selecting) ({}) else ({
                                     IconButton(onClick = { pendingDelete = draft }) {

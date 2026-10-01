@@ -34,6 +34,7 @@ import com.distrigo.app.ui.components.toReceiptData
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.unit.sp
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
@@ -44,6 +45,7 @@ fun PurchaseOrderDetailScreen(
     productViewModel: ProductViewModel = hiltViewModel(),
     businessViewModel: com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel = hiltViewModel()
 ) {
+    val money = LocalMoneyFormatter.current
     val context = LocalContext.current
     val selectedOrder by viewModel.selectedOrder.collectAsState()
     // Id-guarded: `selectedOrder` is shared across the whole Achats graph and refreshed
@@ -312,13 +314,13 @@ fun PurchaseOrderDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                         Text(
-                                            "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_cost)} DA",
+                                            "${formatQty(item.quantity)} ${item.unit_type} × ${money.da(item.unit_cost)}",
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
                                     }
                                     Text(
-                                        "${"%.2f".format(item.total_cost)} DA",
+                                        money.da(item.total_cost),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.Bold,
                                         color      = DsColors.TextPrimary
@@ -341,7 +343,7 @@ fun PurchaseOrderDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
-                            Text("${"%.2f".format(displayOrder.total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary)
+                            Text(money.da(displayOrder.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary)
                         }
 
                         Spacer(Modifier.height(DsSpacing.md))
@@ -356,7 +358,7 @@ fun PurchaseOrderDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
-                            Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text(money.da(montantPaye), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
 
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -368,7 +370,7 @@ fun PurchaseOrderDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                                Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text(money.da(reste), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             }
                         } else {
                             Row(

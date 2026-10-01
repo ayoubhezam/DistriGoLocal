@@ -32,10 +32,10 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
-import com.distrigo.app.ui.suppliers.formatDZD
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 data class CartItem(
     val product       : Product,
@@ -62,6 +62,7 @@ internal fun Step1Fournisseur(
     onChooseSupplier : () -> Unit,
     onNext           : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -180,7 +181,7 @@ internal fun Step1Fournisseur(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(selectedSupplier.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                                 Text(
-                                    "Solde : ${formatDZD(selectedSupplier.balance)} DA",
+                                    "Solde : ${money.da(selectedSupplier.balance)}",
                                     fontSize = DsTextSize.bodySmall,
                                     color    = if (selectedSupplier.balance > 0) DsColors.Danger else DsColors.TextSecondary
                                 )
@@ -248,6 +249,7 @@ internal fun Step3Validation(
     onFixMissing            : () -> Unit = onBack,
     onConfirm               : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     Column(modifier = Modifier.fillMaxSize()) {
         DsTopAppBar(
             title   = "Validation",
@@ -279,7 +281,7 @@ internal fun Step3Validation(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(selectedSupplier?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
-                                "Solde du fournisseur : ${formatDZD(selectedSupplier?.balance ?: 0.0)} DA",
+                                "Solde du fournisseur : ${money.da(selectedSupplier?.balance ?: 0.0)}",
                                 fontSize = DsTextSize.bodySmall,
                                 color    = if ((selectedSupplier?.balance ?: 0.0) > 0) DsColors.Danger else DsColors.TextSecondary
                             )
@@ -330,11 +332,11 @@ internal fun Step3Validation(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                             Text(quantityLine, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                            Text("${"%.2f".format(item.unitCost)} DA/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("${money.da(item.unitCost)}/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
                         Spacer(Modifier.width(DsSpacing.sm))
                         Text(
-                            "${"%.2f".format(item.quantity * item.unitCost)} DA",
+                            money.da(item.quantity * item.unitCost),
                             fontSize   = DsTextSize.body,
                             fontWeight = FontWeight.Bold,
                             color      = DsColors.Primary
@@ -355,7 +357,7 @@ internal fun Step3Validation(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                 }
             }
 
@@ -410,7 +412,7 @@ internal fun Step3Validation(
                         ) {
                             Text("Reste", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                             Text(
-                                "${"%.2f".format(reste)} DA",
+                                money.da(reste),
                                 fontSize   = DsTextSize.body,
                                 fontWeight = FontWeight.Bold,
                                 color      = DsColors.Danger
@@ -494,8 +496,8 @@ internal fun Step3Validation(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
-                    if (isEdit) "Enregistrer · ${"%.2f".format(total)} DA"
-                    else        "Confirmer la commande · ${"%.2f".format(total)} DA",
+                    if (isEdit) "Enregistrer · ${money.da(total)}"
+                    else        "Confirmer la commande · ${money.da(total)}",
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }
