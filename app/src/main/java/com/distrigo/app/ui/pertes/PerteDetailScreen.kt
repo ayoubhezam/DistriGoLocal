@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.Perte
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.EntityImage
@@ -32,6 +31,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.core.format.MoneyFormatter
 
 /**
  * A perte, read-only — the same flow as an expense's details (ChargeDetailScreen). Tapping one in its
@@ -49,6 +50,7 @@ fun PerteDetailScreen(
     onDeleted : (typeId: Int) -> Unit,
     viewModel : PerteDetailViewModel = hiltViewModel()
 ) {
+    val money = LocalMoneyFormatter.current
     val vm = viewModel
     var confirmEdit by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -100,7 +102,7 @@ fun PerteDetailScreen(
                     color      = DsColors.TextPrimary
                 )
                 Text(
-                    "${Amount.format(perte.valeur_totale)} DA",
+                    money.da(perte.valeur_totale),
                     fontSize   = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color      = DsColors.Danger
@@ -133,7 +135,7 @@ fun PerteDetailScreen(
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                 DetailRow(Icons.Default.Event, "Date", at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
                 DetailRow(Icons.Default.Warehouse, "Source du stock", if (perte.source == "camion") "Camion" else "Dépôt")
-                DetailRow(Icons.Default.Sell, "Prix d'achat unitaire", "${Amount.format(perte.purchase_price_snapshot)} DA")
+                DetailRow(Icons.Default.Sell, "Prix d'achat unitaire", money.da(perte.purchase_price_snapshot))
                 perte.motif?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Notes, "Motif", it) }
                 runCatching { Instant.parse(perte.created_at).atZone(ZoneId.systemDefault()) }.getOrNull()?.let { created ->
                     DetailRow(Icons.Default.History, "Enregistrée le", "${created.format(DAY)} à ${created.format(TIME)}")
@@ -204,7 +206,7 @@ fun PerteDetailScreen(
             onDismissRequest = { confirmDelete = false },
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
             title            = { Text("Supprimer la perte") },
-            text             = { Text(deletePerteQuestion(perte)) },
+            text             = { Text(deletePerteQuestion(perte, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
                     Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
@@ -217,12 +219,12 @@ fun PerteDetailScreen(
 }
 
 /**
- * "Êtes-vous sûr de vouloir supprimer cette perte de 2 carton (1 200 DA) ? La quantité sera restaurée
+ * "Êtes-vous sûr de vouloir supprimer cette perte de 2 carton (1 200,00 DA) ? La quantité sera restaurée
  * au stock." — the list's long press asks the same.
  */
-internal fun deletePerteQuestion(perte: Perte): String =
+internal fun deletePerteQuestion(perte: Perte, money: MoneyFormatter): String =
     "Êtes-vous sûr de vouloir supprimer cette perte de ${formatQty(perte.quantity)} ${ProductUnit.plural(perte.unit, perte.quantity)} " +
-        "(${Amount.format(perte.valeur_totale)} DA) ? La quantité sera restaurée au stock."
+        "(${money.da(perte.valeur_totale)}) ? La quantité sera restaurée au stock."
 
 private fun linkedSource(perte: Perte): String =
     if (perte.source_type == "retour_client") "retour client" else "retour fournisseur"

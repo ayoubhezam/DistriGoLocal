@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.pertes
 
 import com.distrigo.app.data.model.ProductUnit
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -38,6 +37,9 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Link
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.FitText
+import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PerteListScreen(
@@ -48,6 +50,7 @@ fun PerteListScreen(
     /** The perte's read-only details: a tap only looks, it never opens the form. */
     onOpenPerte: (Perte) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val pertes     by viewModel.pertes.collectAsState()
     val perteTypes by viewModel.perteTypes.collectAsState()
     val type = perteTypes.find { it.id == typeId }
@@ -95,16 +98,16 @@ fun PerteListScreen(
                 Text("Résumé ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                 Spacer(Modifier.height(DsSpacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
-                    Column {
-                        Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Column(Modifier.weight(MONEY_STAT_WEIGHT)) {
+                        FitText(money.da(totalValue), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
-                    Column {
-                        Text(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Column(Modifier.weight(1f)) {
+                        FitText(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Text("Qté totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
-                    Column {
-                        Text("${pertes.size}", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Column(Modifier.weight(1f)) {
+                        FitText("${pertes.size}", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Text("Nombre de pertes", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }
                 }
@@ -176,7 +179,7 @@ fun PerteListScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title            = { Text("Supprimer la perte") },
-            text             = { Text(deletePerteQuestion(longPressPerte!!)) },
+            text             = { Text(deletePerteQuestion(longPressPerte!!, money)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deletePerte(
@@ -199,6 +202,7 @@ fun PerteListScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape    = DsShapes.medium,
@@ -241,7 +245,7 @@ private fun PerteRow(perte: Perte, isLinked: Boolean, onClick: () -> Unit, onLon
             Spacer(Modifier.width(DsSpacing.sm))
 
             Column(horizontalAlignment = Alignment.End) {
-                Text("${Amount.format(perte.valeur_totale)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                Text(money.da(perte.valeur_totale), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                 Text("${formatQty(perte.quantity)} ${ProductUnit.plural(perte.unit, perte.quantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }

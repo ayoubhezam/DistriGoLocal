@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.pertes
 
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.formatQty
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -31,6 +30,9 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.FitText
+import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 
 @Composable
 fun PertesScreen(
@@ -38,6 +40,7 @@ fun PertesScreen(
     onBack      : (() -> Unit)? = null,
     onTypeClick : (Int) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val perteTypes by viewModel.perteTypes.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()
 
@@ -89,16 +92,16 @@ fun PertesScreen(
                     Text("Résumé ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                     Spacer(Modifier.height(DsSpacing.sm))
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
-                        Column {
-                            Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Column(Modifier.weight(MONEY_STAT_WEIGHT)) {
+                            FitText(money.da(totalValue), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Text("Valeur totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
-                        Column {
-                            Text(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Column(Modifier.weight(1f)) {
+                            FitText(formatQty(totalQty), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Text("Qté totale", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
-                        Column {
-                            Text("$totalCount", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Column(Modifier.weight(1f)) {
+                            FitText("$totalCount", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Text("Nombre de pertes", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                         }
                     }
@@ -198,6 +201,7 @@ fun PertesScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PerteTypeRow(type: PerteType, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(
             onClick     = onClick,
@@ -225,7 +229,7 @@ private fun PerteTypeRow(type: PerteType, onClick: () -> Unit, onLongClick: () -
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("${Amount.format(type.total_value)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = PerteIconMapper.colorFor(type.color_hex))
+                Text(money.da(type.total_value), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = PerteIconMapper.colorFor(type.color_hex))
                 Text(formatQty(type.total_qty), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
         }

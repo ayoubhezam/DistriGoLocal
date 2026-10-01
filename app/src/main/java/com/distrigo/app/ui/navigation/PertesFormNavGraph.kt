@@ -48,6 +48,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 // Mirrors venteFormGraph/purchaseFormGraph/retourClientFormGraph: form state (product/quantity/
 // source/date/motif/photo) lives on the PertesGraph-scoped PerteViewModel instance —
@@ -364,7 +365,7 @@ fun NavGraphBuilder.pertesFormGraph(
                     SummaryRow("Produit", formProduct?.name ?: "")
                     SummaryRow("Quantité", "${formatQty(formQuantity)} ${formProduct?.unit_type?.let { ProductUnit.plural(it, formQuantity) } ?: ""}")
                     SummaryRow("Source", if (formSource == "camion") "Camion" else "Dépôt")
-                    SummaryRow("Valeur totale", "${"%,.0f".format(valeurEstimee)} DA", highlight = true)
+                    SummaryRow("Valeur totale", LocalMoneyFormatter.current.da(valeurEstimee), highlight = true)
                     SummaryRow("Date", formatOrderDate(isoDateTime))
                     SummaryRow("Motif", formMotif.ifBlank { "Aucun" })
                     if (formSaveError.isNotEmpty()) {
