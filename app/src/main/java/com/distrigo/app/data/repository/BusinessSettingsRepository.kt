@@ -147,5 +147,6 @@ class BusinessSettingsRepository(
         phone    = this?.business_phone?.takeIf { it.isNotBlank() },
         logoRef  = this?.logo_ref,
         logoPath = this?.logo_ref?.let { ImageStore.fileFor(context, it) }?.takeIf { it.isFile }?.absolutePath,
+        moneyFormat = MoneyFormat.fromKey(this?.money_format),
     )
 }

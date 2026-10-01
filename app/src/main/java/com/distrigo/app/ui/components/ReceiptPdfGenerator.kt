@@ -25,8 +25,6 @@ object ReceiptPdfGenerator {
     // printer uses. See decodeLogo.
     private const val LOGO_TARGET_PX = 256
 
-    private fun formatAmount(value: Double): String = "%.2f".format(value)
-
     private fun badgeLabel(documentTitle: String) =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
 
@@ -156,8 +154,8 @@ object ReceiptPdfGenerator {
             canvas.drawText(item.name, colNom, y, cellTxt)
             canvas.drawText(nbColisText(item), colNbCol, y, cellMuted)
             canvas.drawText(unitePerColisText(item), colUnite, y, cellMuted)
-            canvas.drawText(formatAmount(item.unitPrice), colPU, y, cellMutedR)
-            canvas.drawText(formatAmount(item.totalPrice), colTotal, y, cellBoldR)
+            canvas.drawText(receipt.money.amount(item.unitPrice), colPU, y, cellMutedR)
+            canvas.drawText(receipt.money.amount(item.totalPrice), colTotal, y, cellBoldR)
 
             val dividerY = y + 8f
             y += 24f
@@ -171,14 +169,14 @@ object ReceiptPdfGenerator {
         y += 26f
 
         // ── TOTAL — محاذاة يمين، متقاربة ──
-        canvas.drawText("${formatAmount(receipt.total)} DA", right, y, totalValR)
-        val totalValWidth = totalValR.measureText("${formatAmount(receipt.total)} DA")
+        canvas.drawText(receipt.money.da(receipt.total), right, y, totalValR)
+        val totalValWidth = totalValR.measureText(receipt.money.da(receipt.total))
         canvas.drawText("TOTAL", right - totalValWidth - 12f, y, totalLR)
         y += 22f
 
         if (receipt.paid > 0 || receipt.balance != receipt.total) {
-            drawInfoLineRight("Payé", "${formatAmount(receipt.paid)} DA")
-            if (receipt.balance > 0) drawInfoLineRight("Reste", "${formatAmount(receipt.balance)} DA")
+            drawInfoLineRight("Payé", receipt.money.da(receipt.paid))
+            if (receipt.balance > 0) drawInfoLineRight("Reste", receipt.money.da(receipt.balance))
             else drawInfoLineRight("Statut", "Réglé")
         }
 

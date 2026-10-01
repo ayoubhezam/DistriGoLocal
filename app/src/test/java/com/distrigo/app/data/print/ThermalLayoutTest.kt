@@ -1,5 +1,6 @@
 package com.distrigo.app.data.print
 
+import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.data.print.lang.Cell
 import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.data.print.lang.ReceiptRow
@@ -10,6 +11,7 @@ import com.distrigo.app.ui.components.ReceiptLineItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 /**
  * What goes on the receipt, and in what order.
@@ -77,7 +79,7 @@ class ThermalLayoutTest {
         )
         assertTrue(
             "the item is not on one row",
-            cellRows(wide).any { row -> row.cells.map(Cell::text).let { "Café" in it && "680.00" in it } },
+            cellRows(wide).any { row -> row.cells.map(Cell::text).let { "Café" in it && "680,00" in it } },
         )
 
         // 48 mm leaves about 21 mm for a name once the figures have taken theirs — four characters at
@@ -90,7 +92,7 @@ class ThermalLayoutTest {
         assertTrue("name not on its own row", "Café" in lines(narrow))
         assertTrue(
             "total not pinned to the far edge",
-            narrow.filterIsInstance<ReceiptRow.Columns>().any { it.right == "680.00" },
+            narrow.filterIsInstance<ReceiptRow.Columns>().any { it.right == "680,00" },
         )
     }
 
@@ -169,14 +171,57 @@ class ThermalLayoutTest {
         assertEquals(120, blanks.single().dots)
     }
 
+    private fun columns(rows: List<ReceiptRow>, left: String) =
+        rows.filterIsInstance<ReceiptRow.Columns>().single { it.left == left }.right
+
+    private val nb = '\u00A0'
+
     @Test
     fun `money always keeps its centimes`() {
         // The character-grid renderer used to drop decimals when a number outgrew its column. A cell
         // that measures its own contents has no such cliff, and money that quietly loses precision to
         // fit is worse than money that wraps.
-        assertEquals("15230.00", ThermalLayout.money(15230.0))
-        assertEquals("2109521.08", ThermalLayout.money(2109521.08))
-        assertEquals("0.50", ThermalLayout.money(0.5))
+        val data = receipt(
+            items = listOf(line("Huile Elio 5L", 3.0, "carton", 703173.36, 2109520.08), line("Sel", 1.0, "pièce", 1.0, 1.0)),
+            total = 2109521.08, paid = 0.5,
+        )
+        assertEquals("2${nb}109${nb}521,08${nb}DA", columns(ThermalLayout.layout(data, PaperProfile.MM58), "TOTAL"))
+        assertEquals("0,50${nb}DA", columns(ThermalLayout.layout(data, PaperProfile.MM58), "Payé"))
+        val cells = cellRows(ThermalLayout.layout(data, PaperProfile.MM80)).map { row -> row.cells.map { it.text } }
+        assertTrue(cells.toString(), listOf("Sel", "1 pièce", "1,00", "1,00") in cells)
+    }
+
+    @Test
+    fun `amounts are written in the business's format`() {
+        val data = receipt(total = 15230.0, paid = 100.0).copy(moneyFormat = MoneyFormat.COMMAS)
+        assertEquals("15,230.00${nb}DA", columns(ThermalLayout.layout(data, PaperProfile.MM58), "TOTAL"))
+        val dots = data.copy(moneyFormat = MoneyFormat.DOTS)
+        assertEquals("15.130,00${nb}DA", columns(ThermalLayout.layout(dots, PaperProfile.MM58), "Reste"))
+        // The narrow roll's item line too: quantity, then the unit price in the same format.
+        val narrow = ThermalLayout.layout(dots, PaperProfile.MM58).filterIsInstance<ReceiptRow.Columns>()
+        assertTrue(narrow.toString(), narrow.any { it.left.endsWith("× 95,00") && it.right == "1.140,00" })
+    }
+
+    /** A grouped amount must not be cut at its spaces: the renderer's StaticLayout keeps a no-break space whole. */
+    @Test
+    fun `grouped amounts are held together`() {
+        val data = receipt(total = 1236790.5, paid = 0.0)
+        val total = columns(ThermalLayout.layout(data, PaperProfile.MM58), "TOTAL")
+        assertTrue(total, ' ' !in total)
+    }
+
+    @Test
+    fun `the QR code holds the plain number whatever the format and the phone's language`() {
+        val saved = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.FRANCE)
+            for (format in MoneyFormat.entries) {
+                val data = receipt(total = 1236790.5).copy(moneyFormat = format)
+                assertTrue(data.qrContent, data.qrContent.endsWith("| 1236790.50 DA"))
+            }
+        } finally {
+            Locale.setDefault(saved)
+        }
     }
 
     @Test

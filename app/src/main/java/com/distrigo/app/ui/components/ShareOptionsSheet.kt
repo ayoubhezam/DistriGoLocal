@@ -140,6 +140,7 @@ private fun WhatsAppIcon(tint: Color) {
 // ── منطق المشاركة الفعلي ──
 
 private fun receiptAsPlainText(receipt: ReceiptData): String {
+    val money = receipt.money
     val sb = StringBuilder()
     sb.appendLine("*DISTRIGO*")
     sb.appendLine(receipt.documentTitle)
@@ -148,12 +149,12 @@ private fun receiptAsPlainText(receipt: ReceiptData): String {
     sb.appendLine("—".repeat(20))
     receipt.items.forEach { item ->
         sb.appendLine("${item.name}")
-        sb.appendLine("  ${formatQty(item.quantity)} ${item.unitLabel} × ${"%.2f".format(item.unitPrice)} DA = ${"%.2f".format(item.totalPrice)} DA")
+        sb.appendLine("  ${formatQty(item.quantity)} ${item.unitLabel} × ${money.da(item.unitPrice)} = ${money.da(item.totalPrice)}")
     }
     sb.appendLine("—".repeat(20))
-    sb.appendLine("TOTAL: ${"%.2f".format(receipt.total)} DA")
-    sb.appendLine("Payé: ${"%.2f".format(receipt.paid)} DA")
-    if (receipt.balance > 0) sb.appendLine("Reste: ${"%.2f".format(receipt.balance)} DA")
+    sb.appendLine("TOTAL: ${money.da(receipt.total)}")
+    sb.appendLine("Payé: ${money.da(receipt.paid)}")
+    if (receipt.balance > 0) sb.appendLine("Reste: ${money.da(receipt.balance)}")
     else sb.appendLine("Statut: Réglé")
     receipt.note?.takeIf { it.isNotBlank() }?.let { sb.appendLine("Note: $it") }
     return sb.toString()

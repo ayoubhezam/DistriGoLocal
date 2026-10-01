@@ -5,6 +5,7 @@ import com.distrigo.app.ui.components.ReceiptData
 import com.distrigo.app.ui.components.ReceiptLineItem
 import com.distrigo.app.data.model.Quantity
 import java.util.Locale
+import com.distrigo.app.core.format.MoneyFormatter
 
 /**
  * Lays a [ReceiptData] out for thermal paper, once, for everybody.
@@ -57,6 +58,7 @@ object ThermalLayout {
         paper  : PaperProfile,
         logo   : MonoRaster? = null,
     ): List<ReceiptRow> = buildList {
+        val money = receipt.money
 
         // ── Header ──
         logo?.let { add(ReceiptRow.Raster(it)) }
@@ -87,15 +89,15 @@ object ThermalLayout {
         add(ReceiptRow.Rule())
 
         // ── Items ──
-        if (paper.printableMm >= MIN_MM_FOR_TABLE) addAll(itemTable(receipt.items))
-        else                                       addAll(itemPairs(receipt.items))
+        if (paper.printableMm >= MIN_MM_FOR_TABLE) addAll(itemTable(receipt.items, money))
+        else                                       addAll(itemPairs(receipt.items, money))
         add(ReceiptRow.Rule(RuleThickness.Thick))
 
         // ── Money ──
-        add(ReceiptRow.Columns("TOTAL", money(receipt.total) + " DA", RowWeight.Bold, RowScale.Large))
+        add(ReceiptRow.Columns("TOTAL", money.da(receipt.total), RowWeight.Bold, RowScale.Large))
         if (receipt.paid > 0 || receipt.balance != receipt.total) {
-            add(ReceiptRow.Columns("Payé", money(receipt.paid) + " DA"))
-            if (receipt.balance > 0) add(ReceiptRow.Columns("Reste", money(receipt.balance) + " DA", RowWeight.Bold))
+            add(ReceiptRow.Columns("Payé", money.da(receipt.paid)))
+            if (receipt.balance > 0) add(ReceiptRow.Columns("Reste", money.da(receipt.balance), RowWeight.Bold))
             else                     add(ReceiptRow.Columns("Statut", "Réglé"))
         }
         add(ReceiptRow.Rule())
@@ -137,8 +139,11 @@ object ThermalLayout {
      * unit price and a five-figure total have to fit on one line — money broken across two lines is
      * money misread — while a long product name wrapping is ordinary and costs a row nobody minds.
      * So the numeric columns are sized for their worst realistic value and the name absorbs the rest.
+     * Grouped in the business's format ("99 999,99") an amount is a character or two longer, and its
+     * no-break spaces stop StaticLayout from wrapping it at a group: ReceiptAmountsFitTest draws these
+     * worst cases in every format on both rolls and checks each stays on one line.
      */
-    private fun itemTable(items: List<ReceiptLineItem>): List<ReceiptRow> = buildList {
+    private fun itemTable(items: List<ReceiptLineItem>, money: MoneyFormatter): List<ReceiptRow> = buildList {
         add(ReceiptRow.Cells(
             listOf(
                 Cell("Article", NAME_SHARE, RowAlign.Left),
@@ -155,8 +160,8 @@ object ThermalLayout {
                 // entries starting at the right would leave no edge to read down. See RowAlign.Left.
                 Cell(item.name, NAME_SHARE, RowAlign.Left),
                 Cell("${Quantity.format(item.quantity)} ${item.unitLabel}", QTY_SHARE),
-                Cell(money(item.unitPrice), PRICE_SHARE, RowAlign.End),
-                Cell(money(item.totalPrice), TOTAL_SHARE, RowAlign.End),
+                Cell(money.amount(item.unitPrice), PRICE_SHARE, RowAlign.End),
+                Cell(money.amount(item.totalPrice), TOTAL_SHARE, RowAlign.End),
             )))
         }
     }
@@ -174,24 +179,15 @@ object ThermalLayout {
      * Nothing separates one item from the next. The un-indented name already reads as the start of an
      * item, and a blank row per item is a row of paper per item.
      */
-    private fun itemPairs(items: List<ReceiptLineItem>): List<ReceiptRow> = buildList {
+    private fun itemPairs(items: List<ReceiptLineItem>, money: MoneyFormatter): List<ReceiptRow> = buildList {
         items.forEach { item ->
             add(ReceiptRow.Line(item.name, RowAlign.Left))
             add(ReceiptRow.Columns(
-                left  = "   ${Quantity.format(item.quantity)} ${item.unitLabel} × ${money(item.unitPrice)}",
-                right = money(item.totalPrice),
+                left  = "   ${Quantity.format(item.quantity)} ${item.unitLabel} × ${money.amount(item.unitPrice)}",
+                right = money.amount(item.totalPrice),
             ))
         }
     }
-
-    /**
-     * An amount, always to the centime.
-     *
-     * The character-grid renderer used to drop decimals when a number outgrew its column. A cell that
-     * measures its own contents has no such cliff, and money that quietly loses precision to fit is
-     * worse than money that wraps.
-     */
-    internal fun money(value: Double): String = String.format(Locale.ROOT, "%.2f", value)
 
     private fun badgeLabel(documentTitle: String): String =
         if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"

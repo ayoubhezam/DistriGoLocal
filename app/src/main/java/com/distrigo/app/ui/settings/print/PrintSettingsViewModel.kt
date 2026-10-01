@@ -96,6 +96,7 @@ class PrintSettingsViewModel @Inject constructor(
             businessName     = business.name,
             businessPhone    = business.phone,
             businessLogoPath = business.logoPath,
+            moneyFormat      = business.moneyFormat,
         )
         // The very bitmaps the printer would receive, not a second drawing of them.
         return PreviewState(paper = paper, rows = ReceiptRasterizer.rasters(receipt, paper).toPreviewRows())

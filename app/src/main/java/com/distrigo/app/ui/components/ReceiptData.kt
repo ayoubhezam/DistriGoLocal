@@ -12,6 +12,10 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.distrigo.app.core.format.MoneyFormat
+import com.distrigo.app.core.format.MoneyFormatter
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 data class ReceiptLineItem(
     val name       : String,
@@ -48,11 +52,26 @@ data class ReceiptData(
     val businessLogoPath : String? = null,
     /** Already French ("Détail" / "Gros" / "Société"); null for a supplier document. */
     val clientType    : String? = null,
-    val clientSecteur : String? = null
+    val clientSecteur : String? = null,
+    /**
+     * How the business writes amounts, from its settings like its name. Part of the receipt rather
+     * than read where it is drawn, so a drawing kept for reuse is redrawn when the format changes:
+     * ReceiptRasterizer reuses one only for an equal receipt.
+     */
+    val moneyFormat   : MoneyFormat = MoneyFormat.DEFAULT,
 ) {
     val balance: Double get() = total - paid
     val amountInWords: String get() = numberToFrenchWords(total)
-    val qrContent: String get() = "$documentTitle | $dateLabel $timeLabel | ${"%.2f".format(total)} DA"
+
+    /** What every amount on this receipt — printed, in the PDF, shared as text — is written with. */
+    val money: MoneyFormatter get() = MoneyFormatter.of(moneyFormat)
+
+    /**
+     * What the QR code holds. Data for whatever scans it, so its total is the plain number —
+     * `1236790.50`, never grouped and never in the phone's locale — whatever the business's format.
+     */
+    val qrContent: String get() =
+        "$documentTitle | $dateLabel $timeLabel | ${BigDecimal.valueOf(total).setScale(2, RoundingMode.HALF_UP).toPlainString()} DA"
 
     /** What the header prints where a value is missing, so a row never renders blank. */
     fun orDash(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "-"
@@ -151,7 +170,8 @@ fun Vente.toReceiptData(
     businessPhone    = business.phone,
     businessLogoPath = business.logoPath,
     clientType    = customerTypeLabel(client?.customer_type),
-    clientSecteur = client?.secteur_name
+    clientSecteur = client?.secteur_name,
+    moneyFormat   = business.moneyFormat,
 )
 
 fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = ReceiptData(
@@ -174,6 +194,7 @@ fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = Recei
     note  = note,
     businessName     = business.name,
     businessPhone    = business.phone,
-    businessLogoPath = business.logoPath
+    businessLogoPath = business.logoPath,
+    moneyFormat      = business.moneyFormat,
     // clientType / clientSecteur stay null: a purchase order records no customer, and the header omits those rows rather than printing empty ones.
 )
