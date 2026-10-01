@@ -44,6 +44,10 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import java.util.Locale
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.searchProducts
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.FitText
+import androidx.compose.ui.text.style.TextAlign
+import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -129,9 +133,9 @@ fun ColumnScope.InventoryScanStep(
                 }
                 Spacer(Modifier.height(DsSpacing.sm))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    InventoryStatChip(Icons.Default.QrCodeScanner, "$sessionItemsCount", "Produits scannés", DsColors.Primary)
-                    InventoryStatChip(Icons.Default.Warning, "$ecartsCount", "Écarts détectés", Color(0xFFF79009))
-                    InventoryStatChip(Icons.Default.Receipt, "${"%,.0f".format(totalValueEcarts)} DA", "Valeur des écarts", DsColors.Danger)
+                    InventoryStatChip(Icons.Default.QrCodeScanner, "$sessionItemsCount", "Produits scannés", DsColors.Primary, Modifier.weight(1f))
+                    InventoryStatChip(Icons.Default.Warning, "$ecartsCount", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
+                    InventoryStatChip(Icons.Default.Receipt, LocalMoneyFormatter.current.da(totalValueEcarts), "Valeur des écarts", DsColors.Danger, Modifier.weight(MONEY_STAT_WEIGHT))
                 }
             }
         }
@@ -141,14 +145,14 @@ fun ColumnScope.InventoryScanStep(
 }
 
 @Composable
-private fun InventoryStatChip(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun InventoryStatChip(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(36.dp).clip(DsShapes.pill).background(color.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.height(DsSpacing.xs))
-        Text(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+        FitText(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextTertiary, textAlign = TextAlign.Center)
     }
 }
 
@@ -527,7 +531,7 @@ fun ColumnScope.InventorySummaryStep(
             InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
         }
         InventorySummaryStatCard(
-            Icons.Default.Receipt, "${"%,.0f".format(summary.total_value_ecarts)} DA",
+            Icons.Default.Receipt, LocalMoneyFormatter.current.da(summary.total_value_ecarts),
             "Valeur totale des écarts", DsColors.Danger, Modifier.fillMaxWidth()
         )
 

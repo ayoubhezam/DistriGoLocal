@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.PendingActions
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 
 fun InventoryHistoryScreen(
@@ -168,7 +169,7 @@ private fun InventoryHistoryRow(entry: InventorySessionHistory, onClick: () -> U
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    "${"%,.0f".format(entry.summary.total_value_ecarts)} DA",
+                    LocalMoneyFormatter.current.da(entry.summary.total_value_ecarts),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = statusColor
                 )
                 Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(12.dp))
