@@ -29,6 +29,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Shared "pick a client via search" screen body: header + search field + filtered client list,
@@ -44,6 +45,7 @@ fun ClientSearchPicker(
     onAddNewClient   : (() -> Unit)? = null,
     showBalance      : Boolean = true
 ) {
+    val money = LocalMoneyFormatter.current
     var clientSearch by remember { mutableStateOf("") }
 
     // Recomputed only when the list or the search changes; see filterClients.
@@ -103,7 +105,7 @@ fun ClientSearchPicker(
                         Spacer(Modifier.width(8.dp))
                         Column(horizontalAlignment = Alignment.End) {
                             if (client.balance > 0) {
-                                Text("${"%.2f".format(client.balance)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text(money.da(client.balance), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             } else {
                                 Text("✓ Soldé", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                             }

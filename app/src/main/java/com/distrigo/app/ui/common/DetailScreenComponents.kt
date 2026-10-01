@@ -30,6 +30,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Shared between ClientDetailScreen and SupplierDetailScreen so the two
@@ -95,8 +96,9 @@ fun QuickActionButton(
 
 @Composable
 fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("${"%.2f".format(value)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(money.da(value), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color)
         Spacer(Modifier.height(2.dp))
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
     }
@@ -109,6 +111,7 @@ fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Mo
  */
 @Composable
 fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
     val owed = balance >= 0.005
     val advance = balance <= -0.005
     val color = when {
@@ -118,7 +121,7 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
     }
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "${"%.2f".format(kotlin.math.abs(balance))} DA" + if (advance) " (AVANCÉ)" else "",
+            money.da(kotlin.math.abs(balance)) + if (advance) " (AVANCÉ)" else "",
             fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(2.dp))
@@ -144,9 +147,10 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
  */
 @Composable
 fun BalanceAdjustments(returns: Double, initialBalance: Double = 0.0, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
     val parts = buildList {
-        if (kotlin.math.abs(initialBalance) >= 0.005) add("Solde initial ${signedAmount(initialBalance)}")
-        if (kotlin.math.abs(returns) >= 0.005) add("Retours ${signedAmount(-returns)}")
+        if (kotlin.math.abs(initialBalance) >= 0.005) add("Solde initial ${money.signedDa(initialBalance)}")
+        if (kotlin.math.abs(returns) >= 0.005) add("Retours ${money.signedDa(-returns)}")
     }
     if (parts.isEmpty()) return
     Text(
@@ -157,7 +161,3 @@ fun BalanceAdjustments(returns: Double, initialBalance: Double = 0.0, modifier: 
         textAlign = TextAlign.Center
     )
 }
-
-/** "+500.00 DA" / "-240.00 DA", signed the way the payment rows already sign "+1.00 DA". */
-private fun signedAmount(value: Double): String =
-    (if (value < 0) "-" else "+") + "%.2f".format(kotlin.math.abs(value)) + " DA"

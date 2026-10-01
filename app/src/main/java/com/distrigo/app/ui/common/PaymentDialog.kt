@@ -17,6 +17,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Records a payment against what a client owes, or against what is owed to a supplier.
@@ -31,6 +32,7 @@ fun PaymentDialog(
     onSubmit  : (amount: Double, note: String?, onError: (String) -> Unit, onSuccess: () -> Unit) -> Unit,
     onDismiss : () -> Unit,
 ) {
+    val money = LocalMoneyFormatter.current
     var amount by remember { mutableStateOf("") }
     var note   by remember { mutableStateOf("") }
     var error  by remember { mutableStateOf("") }
@@ -59,7 +61,7 @@ fun PaymentDialog(
                     ) {
                         Text("Solde restant", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                         Text(
-                            "${"%.2f".format(balance)} DA",
+                            money.da(balance),
                             fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger
                         )
                     }

@@ -84,6 +84,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 /**
  * Shared "Ma sélection" cart-item card, used identically by Achat, Vente (Dépôt)
  * and Vente (Tournée). See docs/design/distrigo_ma_selection_unifiee.html for the
@@ -476,6 +477,7 @@ fun PriceFieldWithHistory(
     priceHistory: List<Double> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val money = LocalMoneyFormatter.current
     // Locale.ROOT: this seeds an editable field whose onValueChange keeps only digits and '.',
     // and whose value is parsed back with toDoubleOrNull(). A French-locale "120,00" would lose
     // its separator on the first keystroke and become 12000.
@@ -541,7 +543,7 @@ fun PriceFieldWithHistory(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        "${"%.2f".format(p)} DA",
+                                        money.da(p),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color      = DsColors.TextPrimary
@@ -655,6 +657,7 @@ private fun formatPreviewQty(v: Double): String =
 @Preview(showBackground = true, widthDp = 380, name = "Ma sélection — cartes unifiées")
 @Composable
 private fun SelectionCartCardsPreview() {
+    val money = LocalMoneyFormatter.current
     var achatExpanded by remember { mutableStateOf(true) }
     var venteExpanded  by remember { mutableStateOf(true) }
     var achatQty   by remember { mutableStateOf(2.0) }
@@ -673,8 +676,8 @@ private fun SelectionCartCardsPreview() {
         SelectionCartCard(
             avatarIcon      = Icons.Default.Inventory2,
             title           = "COCCA 2L",
-            metaLine        = "${formatPreviewQty(achatQty)} carton × ${"%.2f".format(achatPrice)} DA",
-            totalPriceLabel = "${"%.2f".format(achatQty * achatPrice)} DA",
+            metaLine        = "${formatPreviewQty(achatQty)} carton × ${money.da(achatPrice)}",
+            totalPriceLabel = money.da(achatQty * achatPrice),
             isExpanded      = achatExpanded,
             onToggleExpand  = { achatExpanded = !achatExpanded },
             statusLine = {
@@ -704,8 +707,8 @@ private fun SelectionCartCardsPreview() {
         SelectionCartCard(
             avatarIcon      = Icons.Default.ShoppingCart,
             title           = "biscuit soummam",
-            metaLine        = "${formatPreviewQty(venteQty)} pièce × ${"%.2f".format(ventePrice)} DA",
-            totalPriceLabel = "${"%.2f".format(venteQty * ventePrice)} DA",
+            metaLine        = "${formatPreviewQty(venteQty)} pièce × ${money.da(ventePrice)}",
+            totalPriceLabel = money.da(venteQty * ventePrice),
             isExpanded      = venteExpanded,
             onToggleExpand  = { venteExpanded = !venteExpanded },
             isDanger        = true,
