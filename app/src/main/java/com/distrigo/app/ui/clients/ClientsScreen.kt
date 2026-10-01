@@ -40,6 +40,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.clientsInDebt
 import com.distrigo.app.ui.common.filterClients
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -50,6 +51,7 @@ fun ClientsScreen(
     onEditClient  : (Int) -> Unit = {},
     onClientClick : (Int) -> Unit = {}
 ){
+    val money = LocalMoneyFormatter.current
     val clients   by viewModel.clients.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -198,7 +200,7 @@ fun ClientsScreen(
                                     color      = DsColors.Danger
                                 )
                                 Text(
-                                    "${"%.2f".format(totalDebt)} DA",
+                                    money.da(totalDebt),
                                     fontSize   = DsTextSize.headline,
                                     fontWeight = FontWeight.ExtraBold,
                                     color      = DsColors.Danger
@@ -286,6 +288,7 @@ private fun ClientCard(
     onClick     : () -> Unit,
     onLongClick : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val typeColors = when (client.customer_type) {
         "wholesale" -> DsColors.TagWholesale
         "business"  -> DsColors.TagBusiness
@@ -347,7 +350,7 @@ private fun ClientCard(
         Column(horizontalAlignment = Alignment.End) {
             if (client.balance > 0) {
                 Text(
-                    "%.2f".format(client.balance),
+                    money.amount(client.balance),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
                     color      = DsColors.Danger

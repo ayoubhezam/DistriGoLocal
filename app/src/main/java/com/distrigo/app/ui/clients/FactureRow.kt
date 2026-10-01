@@ -23,6 +23,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderTime
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Single row rendering for one client ledger entry (vente or paiement), shared
@@ -35,6 +36,7 @@ fun FactureRow(
     transaction: ClientTransaction,
     onLongPressPaiement: (ClientTransaction) -> Unit = {}
 ) {
+    val money = LocalMoneyFormatter.current
     when (transaction.type) {
         "vente" -> {
             val montantPaye = transaction.montant_paye ?: 0.0
@@ -76,11 +78,11 @@ fun FactureRow(
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
                     if (statut == "Partiel") {
-                        Text("Payé: ${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.caption, color = DsColors.Warning)
+                        Text("Payé: ${money.da(montantPaye)}", fontSize = DsTextSize.caption, color = DsColors.Warning)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
                     Spacer(Modifier.height(4.dp))
                     Box(
                         modifier = Modifier.clip(DsShapes.pill).background(statusColorLight).padding(horizontal = 8.dp, vertical = 2.dp)
@@ -121,7 +123,7 @@ fun FactureRow(
                     }
                 }
                 Text(
-                    "+${"%.2f".format(transaction.amount ?: 0.0)} DA",
+                    "+${money.da(transaction.amount ?: 0.0)}",
                     fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Success
                 )
             }
