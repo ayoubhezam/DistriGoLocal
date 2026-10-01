@@ -182,8 +182,11 @@ object ThermalLayout {
     private fun itemPairs(items: List<ReceiptLineItem>, money: MoneyFormatter): List<ReceiptRow> = buildList {
         items.forEach { item ->
             add(ReceiptRow.Line(item.name, RowAlign.Left))
+            // One space of indent, not three: grouped, a 9 999,99 unit price beside a 99 999,99 line
+            // total overflowed the 48 mm line by a few dots and pushed the price onto a row of its own.
+            // ReceiptAmountsFitTest holds that worst case to one line in every format.
             add(ReceiptRow.Columns(
-                left  = "   ${Quantity.format(item.quantity)} ${item.unitLabel} × ${money.amount(item.unitPrice)}",
+                left  = " ${Quantity.format(item.quantity)} ${item.unitLabel} × ${money.amount(item.unitPrice)}",
                 right = money.amount(item.totalPrice),
             ))
         }
