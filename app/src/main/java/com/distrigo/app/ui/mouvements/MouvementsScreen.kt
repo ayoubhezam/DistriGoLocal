@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 
 @Composable
@@ -279,6 +280,7 @@ fun MovementDetailView(
     viewModel  : StockMovementViewModel,
     onBack     : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
     val movement by viewModel.selectedMovement.collectAsState()
     val sourceNumber by viewModel.selectedSourceNumber.collectAsState()
@@ -363,9 +365,9 @@ fun MovementDetailView(
                 DetailInfoRow("Source", currentMovement.source_label)
                 DetailInfoRow("N° de source", sourceNumber ?: "#${currentMovement.source_id}")
                 currentMovement.unit_price?.let {
-                    DetailInfoRow("Prix unitaire", "${"%.2f".format(it)} DA")
+                    DetailInfoRow("Prix unitaire", money.da(it))
                 }
-                DetailInfoRow("Valeur totale", "${"%.2f".format(currentMovement.total_value)} DA")
+                DetailInfoRow("Valeur totale", money.da(currentMovement.total_value))
                 DetailInfoRow("Notes", currentMovement.note ?: "—")
             }
         }
