@@ -41,6 +41,7 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.clientsInDebt
 import com.distrigo.app.ui.common.filterClients
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.refusalMessage
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -81,7 +82,7 @@ fun ClientsScreen(
                     viewModel.deleteClient(
                         id        = client.id,
                         onSuccess = { showDeleteDialog = null },
-                        onError   = { deleteError = it }
+                        onError   = { deleteError = refusalMessage(it, money) }
                     )
                 }) { Text("Supprimer", color = DsColors.Danger) }
             },

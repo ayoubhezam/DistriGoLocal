@@ -38,6 +38,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
+import com.distrigo.app.ui.common.refusalMessage
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @Composable
 fun ClientsNavHost(
@@ -101,6 +103,7 @@ fun ClientsNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
+            val money = LocalMoneyFormatter.current
             val clients by viewModel.clients.collectAsState()
             val isLoading by viewModel.isLoading.collectAsState()
             val client = clients.find { it.id == clientId }
@@ -142,7 +145,7 @@ fun ClientsNavHost(
                                     viewModel.deleteClient(
                                         id        = clientId,
                                         onSuccess = { showDeleteConfirm = false; leave() },
-                                        onError   = { deleteError = it }
+                                        onError   = { deleteError = refusalMessage(it, money) }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },

@@ -9,6 +9,7 @@ import com.distrigo.app.data.local.database.withChangeTracking
 import com.distrigo.app.data.local.database.withDeviceIdentity
 import com.distrigo.app.data.local.entity.ClientEntity
 import com.distrigo.app.data.local.entity.SupplierEntity
+import com.distrigo.app.data.model.UnsettledBalanceException
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -69,6 +70,14 @@ class DocumentRulesTest {
         } catch (e: IllegalStateException) {
             assertTrue(e.message ?: "", (e.message ?: "").contains(contains))
         }
+    }
+
+    private fun unsettledBalance(block: () -> Unit): Double = try {
+        block()
+        fail("should be refused")
+        0.0
+    } catch (e: UnsettledBalanceException) {
+        e.balance
     }
 
     private fun stockOf(id: Int) = runBlocking { db.productDao().getProductByIdIncludingBin(id)!! }
@@ -166,6 +175,8 @@ class DocumentRulesTest {
         sale(listOf(line(soda, 2.0)))
         refused("le solde n'est pas nul") { runBlocking { repo.deleteClient(clientId) } }
         assertTrue(runBlocking { db.clientDao().getClientById(clientId) } != null)
+        // The amount travels as a number; the screen writes it in the business's format.
+        assertEquals(200.0, unsettledBalance { runBlocking { repo.deleteClient(clientId) } }, 0.001)
 
         runBlocking { repo.addClientPayment(clientId, 200.0, null) }
         runBlocking { repo.deleteClient(clientId) }
@@ -177,6 +188,7 @@ class DocumentRulesTest {
         val soda = product("Selecto")
         runBlocking { repo.createPurchaseOrder(mapOf("supplier_id" to supplierId, "items" to listOf(mapOf("product_id" to soda, "quantity" to 1.0, "unit_cost" to 80.0)))) }
         refused("le solde n'est pas nul") { runBlocking { repo.deleteSupplier(supplierId) } }
+        assertEquals(80.0, unsettledBalance { runBlocking { repo.deleteSupplier(supplierId) } }, 0.001)
         runBlocking { repo.addSupplierPayment(supplierId, 80.0, null) }
         runBlocking { repo.deleteSupplier(supplierId) }
         assertTrue(runBlocking { db.supplierDao().getSupplierById(supplierId) } == null)

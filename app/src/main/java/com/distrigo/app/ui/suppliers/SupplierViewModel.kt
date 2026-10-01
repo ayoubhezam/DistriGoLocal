@@ -78,17 +78,18 @@ class SupplierViewModel @Inject constructor(
         }
     }
 
+    /** [onError] gets the refusal itself: the screen words it, amounts in the business's format (refusalMessage). */
     fun deleteSupplier(
         id        : Int,
         onSuccess : () -> Unit,
-        onError   : (String) -> Unit
+        onError   : (Throwable) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 repository.deleteSupplier(id)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(e)
             }
         }
     }

@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.distrigo.app.data.model.UnsettledBalanceException
 class ProductRepository(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
@@ -836,9 +837,7 @@ class ProductRepository(
     }
 
     private fun requireSettled(balance: Double) {
-        if (kotlin.math.abs(balance) >= 0.005) {
-            throw IllegalStateException("Impossible de supprimer : le solde n'est pas nul (${"%.2f".format(balance)} DA).")
-        }
+        if (kotlin.math.abs(balance) >= 0.005) throw UnsettledBalanceException(balance)
     }
 
 

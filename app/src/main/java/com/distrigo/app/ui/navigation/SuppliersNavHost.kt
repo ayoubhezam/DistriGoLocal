@@ -36,6 +36,8 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import com.distrigo.app.ui.suppliers.*
+import com.distrigo.app.ui.common.refusalMessage
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @Composable
 fun SuppliersNavHost(
@@ -92,6 +94,7 @@ fun SuppliersNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
+            val money = LocalMoneyFormatter.current
             val suppliers by viewModel.suppliers.collectAsState()
             val isLoading by viewModel.isLoading.collectAsState()
             val supplier = suppliers.find { it.id == supplierId }
@@ -134,7 +137,7 @@ fun SuppliersNavHost(
                                     viewModel.deleteSupplier(
                                         id        = supplierId,
                                         onSuccess = { showDeleteConfirm = false; leave() },
-                                        onError   = { deleteError = it }
+                                        onError   = { deleteError = refusalMessage(it, money) }
                                     )
                                 }) { Text("Supprimer", color = DsColors.Danger) }
                             },
