@@ -47,6 +47,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.format.AmountVisualTransformation
 
 /**
  * The expense form: one screen, the amount first.
@@ -272,7 +273,7 @@ private fun AmountHero(
                 value                = amount,
                 onValueChange        = onChange,
                 singleLine           = true,
-                visualTransformation = AmountVisualTransformation,
+                visualTransformation = AmountVisualTransformation(money.format),
                 keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 cursorBrush          = SolidColor(DsColors.Primary),
                 textStyle            = TextStyle(

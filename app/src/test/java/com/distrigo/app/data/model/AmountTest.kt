@@ -27,10 +27,4 @@ class AmountTest {
         assertEquals("", Amount.sanitizeInput(""))
         assertEquals("", Amount.sanitizeInput("abc"))
     }
-
-    @Test
-    fun groupThousandsGroupsTheIntegerPartAsTyped() {
-        assertEquals("3 500.5", Amount.groupThousands("3500.5"))
-        assertEquals("12", Amount.groupThousands("12"))
-    }
 }

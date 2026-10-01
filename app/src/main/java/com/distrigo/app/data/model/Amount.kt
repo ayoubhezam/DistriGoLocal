@@ -36,14 +36,4 @@ object Amount {
         if (cleaned.isEmpty() || cleaned.count { it == '.' } > 1 || !cleaned.all { it.isDigit() || it == '.' }) return null
         return cleaned.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::normalize)
     }
-
-    /** "3500.5" → "3 500.5": the integer part grouped by three, the rest as typed. */
-    fun groupThousands(text: String): String {
-        val negative = text.startsWith('-')
-        val body = if (negative) text.substring(1) else text
-        val dot = body.indexOf('.').let { if (it < 0) body.length else it }
-        val integer = body.substring(0, dot)
-        val grouped = integer.reversed().chunked(3).joinToString(" ").reversed()
-        return (if (negative) "-" else "") + grouped + body.substring(dot)
-    }
 }
