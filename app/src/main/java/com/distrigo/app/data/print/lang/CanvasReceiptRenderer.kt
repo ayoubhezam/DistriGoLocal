@@ -75,11 +75,18 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
      * The right-hand run is measured first and given exactly what it needs; the left takes the rest.
      * That is what keeps a column of amounts flush while the labels beside them vary in length — a
      * proportional split would let "TOTAL" and "Payé" pull their figures out of line.
+     *
+     * The gap between them gives way before the label does: a large total on 58 mm left "TOTAL" one
+     * dot short of its own width, and it printed as "TOTA" / "L". So the gap narrows, down to
+     * [MIN_GUTTER], as far as the label needs to stay on one line — and is the usual [GUTTER] whenever
+     * there is room, which is nearly always.
      */
     private fun columns(row: ReceiptRow.Columns): MonoRaster {
         val paint = paintFor(row.weight, row.scale)
         val rightWidth = ceil(paint.measureText(row.right)).toInt().coerceAtMost(width)
-        val leftWidth = (width - rightWidth - GUTTER).coerceAtLeast(1)
+        val leftNeeded = ceil(paint.measureText(row.left)).toInt()
+        val gutter = (width - rightWidth - leftNeeded).coerceIn(MIN_GUTTER, GUTTER)
+        val leftWidth = (width - rightWidth - gutter).coerceAtLeast(1)
 
         val left = layoutOf(row.left, paint, leftWidth, RowAlign.Start)
         val right = layoutOf(row.right, paint, rightWidth, RowAlign.End)
@@ -245,6 +252,12 @@ class CanvasReceiptRenderer(private val paper: PaperProfile) {
          * between two left-aligned columns.
          */
         const val GUTTER = 12
+
+        /**
+         * The narrowest a label-and-value row's gap may become to keep its label on one line, in
+         * dots: under a millimetre, still a visible gap between "TOTAL" and its figure.
+         */
+        const val MIN_GUTTER = 6
 
         /** How much larger [RowScale.Large] draws. */
         const val LARGE_SCALE = 1.35f
