@@ -34,9 +34,9 @@ class ImportNumberTest {
         assertReads(1236790.5, "1 236 790.50")
         assertReads(1236790.0, "1 236 790")
         // No-break, narrow no-break (what French Excel and Android write) and thin spaces.
-        assertReads(1236790.5, "1 236 790,50")
-        assertReads(1236790.5, "1 236 790,50")
-        assertReads(1236790.5, "1 236 790,50")
+        assertReads(1236790.5, "1\u00A0236\u00A0790,50")
+        assertReads(1236790.5, "1\u202F236\u202F790,50")
+        assertReads(1236790.5, "1\u2009236\u2009790,50")
         assertReads(-3450.0, "-3 450,00")
     }
 

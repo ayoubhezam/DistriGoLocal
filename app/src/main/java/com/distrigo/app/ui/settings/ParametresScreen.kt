@@ -199,7 +199,7 @@ private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewMo
         Column(modifier = Modifier.weight(1f)) {
             Text("Format des montants", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
-                current?.let { MoneyFormatter.screen(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
+                current?.let { MoneyFormatter.of(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
@@ -236,7 +236,7 @@ private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewMo
                             RadioButton(selected = format == selected, onClick = null)
                             Spacer(Modifier.width(DsSpacing.sm))
                             Text(
-                                MoneyFormatter.screen(format).da(MONEY_FORMAT_SAMPLE),
+                                MoneyFormatter.of(format).da(MONEY_FORMAT_SAMPLE),
                                 fontSize   = DsTextSize.body,
                                 fontWeight = if (format == selected) FontWeight.SemiBold else FontWeight.Normal,
                                 color      = DsColors.TextPrimary

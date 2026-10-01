@@ -8,11 +8,14 @@ import java.math.RoundingMode
  *
  * Built by hand rather than with `DecimalFormat` or a `Locale`, for two reasons. The result must not
  * depend on the phone's language — two reps' phones must print the same receipt. And Android's French
- * locale groups with a narrow no-break space (U+202F), which a thermal printer's code page cannot hold.
+ * locale groups with a narrow no-break space (U+202F), which a printer's code page cannot hold.
  *
  * Two flavours, differing only in the spaces they write:
- * - [screen]: no-break spaces, so `1 236 790,50 DA` never breaks across two lines of a Compose `Text`;
- * - [printer]: plain ASCII spaces, which every printer code page holds.
+ * - [of]: no-break spaces, so `1 236 790,50 DA` is never split across two lines — not by a Compose
+ *   `Text`, not by the `StaticLayout` that draws a receipt, not by a chat app showing a shared one.
+ *   What everything uses: screens, receipts (drawn on a Canvas and sent as an image), the PDF.
+ * - [plain]: ASCII spaces, for text sent to a printer in its own code page, where U+00A0 may not
+ *   exist. Only the ESC/POS text mode does that, and it prints no amounts today.
  *
  * Instances are shared per format and flavour, so a changed setting is a changed reference and an
  * unchanged one is not.
@@ -54,7 +57,7 @@ class MoneyFormatter private constructor(val format: MoneyFormat, private val sp
         return grouped + format.decimal + cents
     }
 
-    override fun toString() = "MoneyFormatter($format, ${if (space == NO_BREAK_SPACE) "screen" else "printer"})"
+    override fun toString() = "MoneyFormatter($format, ${if (space == NO_BREAK_SPACE) "no-break" else "plain"})"
 
     companion object {
         const val DECIMALS = 2
@@ -63,15 +66,15 @@ class MoneyFormatter private constructor(val format: MoneyFormat, private val sp
         /** What a value that is not a number shows: never "NaN" on a receipt. */
         const val NOT_A_NUMBER = "—"
 
-        const val NO_BREAK_SPACE = ' '
+        const val NO_BREAK_SPACE = '\u00A0'
 
-        private val screens = MoneyFormat.entries.associateWith { MoneyFormatter(it, NO_BREAK_SPACE) }
-        private val printers = MoneyFormat.entries.associateWith { MoneyFormatter(it, ' ') }
+        private val unbroken = MoneyFormat.entries.associateWith { MoneyFormatter(it, NO_BREAK_SPACE) }
+        private val plains = MoneyFormat.entries.associateWith { MoneyFormatter(it, ' ') }
 
-        /** For the screens: no-break spaces. */
-        fun screen(format: MoneyFormat): MoneyFormatter = screens.getValue(format)
+        /** The formatter for [format]: no-break spaces. What screens, receipts and the PDF use. */
+        fun of(format: MoneyFormat): MoneyFormatter = unbroken.getValue(format)
 
-        /** For printers and plain text: ASCII spaces only. */
-        fun printer(format: MoneyFormat): MoneyFormatter = printers.getValue(format)
+        /** ASCII spaces only, for a printer's code page. */
+        fun plain(format: MoneyFormat): MoneyFormatter = plains.getValue(format)
     }
 }

@@ -12,8 +12,8 @@ import java.util.Locale
 
 class MoneyFormatterTest {
 
-    /** The printer flavour, whose spaces are plain and so readable in an assertion. */
-    private fun fmt(format: MoneyFormat) = MoneyFormatter.printer(format)
+    /** The plain flavour, whose spaces are ASCII and so readable in an assertion. */
+    private fun fmt(format: MoneyFormat) = MoneyFormatter.plain(format)
 
     @Test
     fun theThreeFormats() {
@@ -104,15 +104,15 @@ class MoneyFormatterTest {
     }
 
     @Test
-    fun theScreenUsesNoBreakSpacesThePrinterPlainOnes() {
-        val nb = ' '
-        assertEquals("1${nb}236${nb}790,50${nb}DA", MoneyFormatter.screen(SPACES).da(1236790.5))
-        assertEquals("1,236,790.50${nb}DA", MoneyFormatter.screen(COMMAS).da(1236790.5))
-        val printed = MoneyFormatter.printer(SPACES).da(1236790.5)
-        assertTrue("printer output must be ASCII: $printed", printed.all { it.code < 128 })
+    fun ofUsesNoBreakSpacesPlainUsesAscii() {
+        val nb = '\u00A0'
+        assertEquals("1${nb}236${nb}790,50${nb}DA", MoneyFormatter.of(SPACES).da(1236790.5))
+        assertEquals("1,236,790.50${nb}DA", MoneyFormatter.of(COMMAS).da(1236790.5))
+        val printed = MoneyFormatter.plain(SPACES).da(1236790.5)
+        assertTrue("plain output must be ASCII: $printed", printed.all { it.code < 128 })
         for (format in MoneyFormat.entries) {
-            val text = MoneyFormatter.printer(format).signedDa(-1236790.5)
-            assertTrue("$format printer output must be ASCII: $text", text.all { it.code < 128 })
+            val text = MoneyFormatter.plain(format).signedDa(-1236790.5)
+            assertTrue("$format plain output must be ASCII: $text", text.all { it.code < 128 })
         }
     }
 
@@ -122,7 +122,7 @@ class MoneyFormatterTest {
         try {
             val outputs = listOf(Locale.FRANCE, Locale.US, Locale.GERMANY, Locale("ar", "DZ")).map { locale ->
                 Locale.setDefault(locale)
-                MoneyFormat.entries.map { MoneyFormatter.screen(it).da(-1236790.5) }
+                MoneyFormat.entries.map { MoneyFormatter.of(it).da(-1236790.5) }
             }
             assertEquals(1, outputs.distinct().size)
         } finally {
@@ -132,10 +132,10 @@ class MoneyFormatterTest {
 
     @Test
     fun oneInstancePerFormatAndFlavour() {
-        assertSame(MoneyFormatter.screen(DOTS), MoneyFormatter.screen(DOTS))
-        assertSame(MoneyFormatter.printer(DOTS), MoneyFormatter.printer(DOTS))
-        assertNotSame(MoneyFormatter.screen(DOTS), MoneyFormatter.printer(DOTS))
-        assertNotSame(MoneyFormatter.screen(DOTS), MoneyFormatter.screen(COMMAS))
+        assertSame(MoneyFormatter.of(DOTS), MoneyFormatter.of(DOTS))
+        assertSame(MoneyFormatter.plain(DOTS), MoneyFormatter.plain(DOTS))
+        assertNotSame(MoneyFormatter.of(DOTS), MoneyFormatter.plain(DOTS))
+        assertNotSame(MoneyFormatter.of(DOTS), MoneyFormatter.of(COMMAS))
     }
 
     @Test

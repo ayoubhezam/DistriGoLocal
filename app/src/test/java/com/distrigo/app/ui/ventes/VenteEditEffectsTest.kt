@@ -10,7 +10,7 @@ import org.junit.Test
 /** What the edit confirmation says saving an edited sale changes. */
 class VenteEditEffectsTest {
 
-    private val money = MoneyFormatter.printer(MoneyFormat.SPACES)
+    private val money = MoneyFormatter.plain(MoneyFormat.SPACES)
 
     private fun item(id: Int, productId: Int, name: String, qty: Double, unit: String = "carton") =
         VenteItem(id, productId, name, unit, qty, 100.0, qty * 100.0)
@@ -58,7 +58,7 @@ class VenteEditEffectsTest {
         "Total : 1.800,00 DA → 1.600,00 DA.",
         venteEditEffects(
             original.copy(total = 1800.0), listOf(line(10, "Lait", 3.0), line(20, "Huile", 5.0)), 1600.0, 500.0,
-            MoneyFormatter.printer(MoneyFormat.DOTS)
+            MoneyFormatter.plain(MoneyFormat.DOTS)
         )[0]
     )
 }

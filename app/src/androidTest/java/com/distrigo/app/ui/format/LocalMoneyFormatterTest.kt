@@ -20,7 +20,7 @@ class LocalMoneyFormatterTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val nb = ' '
+    private val nb = '\u00A0'
 
     @Test
     fun withoutAProviderItIsTheDefault() {

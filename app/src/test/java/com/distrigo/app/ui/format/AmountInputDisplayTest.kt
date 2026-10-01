@@ -11,7 +11,7 @@ import org.junit.Test
 /** What an amount field shows while it is typed in, and where its cursor goes. */
 class AmountInputDisplayTest {
 
-    private val nb = ' '
+    private val nb = '\u00A0'
 
     private fun shown(raw: String, format: MoneyFormat) = AmountInputDisplay.of(raw, format).text
 

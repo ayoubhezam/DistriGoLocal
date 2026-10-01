@@ -26,7 +26,7 @@ internal object ImportNumber {
     }
 
     /** The spaces a thousands separator is typed or pasted with: plain, no-break, narrow no-break, thin. */
-    private val SPACES = setOf(' ', ' ', ' ', ' ')
+    private val SPACES = setOf(' ', '\u00A0', '\u202F', '\u2009')
 
     fun read(typed: String): Reading {
         var body = typed.trim { it.isWhitespace() || it in SPACES }

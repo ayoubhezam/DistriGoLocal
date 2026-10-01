@@ -9,7 +9,7 @@ import org.junit.Test
 /** What the delete confirmation says a sale's delete takes back — stock, solde, payment. */
 class VenteDeleteEffectsTest {
 
-    private val money = MoneyFormatter.printer(MoneyFormat.SPACES)
+    private val money = MoneyFormatter.plain(MoneyFormat.SPACES)
 
     private fun vente(source: String = "camion", total: Double = 1000.0, paid: Double? = 0.0, items: Int? = 3) = Vente(
         id = 7, client_id = 1, client_name = "Ahmed", tournee_id = 2, source = source, total = total,
@@ -52,6 +52,6 @@ class VenteDeleteEffectsTest {
     /** The amounts follow the business's format. */
     @Test fun inTheChosenFormat() = assertEquals(
         "Paiement : les 1,599.50 DA encaissés avec cette vente seront effacés avec elle.",
-        venteDeleteEffects(vente(total = 2000.0, paid = 1599.5), MoneyFormatter.printer(MoneyFormat.COMMAS))[2]
+        venteDeleteEffects(vente(total = 2000.0, paid = 1599.5), MoneyFormatter.plain(MoneyFormat.COMMAS))[2]
     )
 }

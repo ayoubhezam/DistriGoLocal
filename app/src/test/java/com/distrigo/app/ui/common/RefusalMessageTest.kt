@@ -13,11 +13,11 @@ class RefusalMessageTest {
         val error = UnsettledBalanceException(1236790.5)
         assertEquals(
             "Impossible de supprimer : le solde n'est pas nul (1 236 790,50 DA).",
-            refusalMessage(error, MoneyFormatter.printer(MoneyFormat.SPACES))
+            refusalMessage(error, MoneyFormatter.plain(MoneyFormat.SPACES))
         )
         assertEquals(
             "Impossible de supprimer : le solde n'est pas nul (1,236,790.50 DA).",
-            refusalMessage(error, MoneyFormatter.printer(MoneyFormat.COMMAS))
+            refusalMessage(error, MoneyFormatter.plain(MoneyFormat.COMMAS))
         )
     }
 
@@ -25,13 +25,13 @@ class RefusalMessageTest {
     fun anAdvanceKeepsItsSign() {
         assertEquals(
             "Impossible de supprimer : le solde n'est pas nul (-80,00 DA).",
-            refusalMessage(UnsettledBalanceException(-80.0), MoneyFormatter.printer(MoneyFormat.SPACES))
+            refusalMessage(UnsettledBalanceException(-80.0), MoneyFormatter.plain(MoneyFormat.SPACES))
         )
     }
 
     @Test
     fun anyOtherErrorSaysItsOwnMessage() {
-        val money = MoneyFormatter.printer(MoneyFormat.SPACES)
+        val money = MoneyFormatter.plain(MoneyFormat.SPACES)
         assertEquals("Stock insuffisant", refusalMessage(IllegalStateException("Stock insuffisant"), money))
         assertEquals("Erreur inconnue", refusalMessage(RuntimeException(), money))
     }
