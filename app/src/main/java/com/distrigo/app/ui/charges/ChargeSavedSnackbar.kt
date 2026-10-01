@@ -10,7 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.distrigo.app.data.model.Amount
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * "Dépense de 3 500 DA enregistrée — Annuler", on the screen the expense form returns to.
@@ -20,13 +20,14 @@ import com.distrigo.app.data.model.Amount
  */
 @Composable
 fun ChargeSavedSnackbar(viewModel: ChargeViewModel, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
     val saved by viewModel.lastSaved.collectAsState()
     val host = remember { SnackbarHostState() }
 
     LaunchedEffect(saved) {
         val charge = saved ?: return@LaunchedEffect
         val result = host.showSnackbar(
-            message     = "Dépense de ${Amount.format(charge.montant)} DA enregistrée",
+            message     = "Dépense de ${money.da(charge.montant)} enregistrée",
             actionLabel = "Annuler",
             duration    = SnackbarDuration.Long
         )

@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.Charge
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -29,6 +28,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.core.format.MoneyFormatter
 
 /**
  * An expense, read-only. Tapping one in its list used to open the edit form straight away, where a
@@ -42,6 +43,7 @@ fun ChargeDetailScreen(
     onDeleted : (SavedCharge) -> Unit,
     viewModel : ChargeDetailViewModel = hiltViewModel()
 ) {
+    val money = LocalMoneyFormatter.current
     val vm = viewModel
     var confirmEdit by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -83,7 +85,7 @@ fun ChargeDetailScreen(
                 }
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(
-                    "${Amount.format(charge.montant)} DA",
+                    money.da(charge.montant),
                     fontSize   = 36.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color      = DsColors.TextPrimary
@@ -168,7 +170,7 @@ fun ChargeDetailScreen(
             onDismissRequest = { confirmDelete = false },
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
             title            = { Text("Supprimer la dépense") },
-            text             = { Text(deleteQuestion(charge)) },
+            text             = { Text(deleteQuestion(charge, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
                     Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
@@ -180,9 +182,9 @@ fun ChargeDetailScreen(
     }
 }
 
-/** "Êtes-vous sûr de vouloir supprimer cette dépense de 3 500.50 DA ?" — the list's long press asks the same. */
-internal fun deleteQuestion(charge: Charge): String =
-    "Êtes-vous sûr de vouloir supprimer cette dépense de ${Amount.format(charge.montant)} DA ?"
+/** "Êtes-vous sûr de vouloir supprimer cette dépense de 3 500,50 DA ?" — the list's long press asks the same. */
+internal fun deleteQuestion(charge: Charge, money: MoneyFormatter): String =
+    "Êtes-vous sûr de vouloir supprimer cette dépense de ${money.da(charge.montant)} ?"
 
 @Composable
 private fun DetailRow(icon: ImageVector, label: String, value: String) {

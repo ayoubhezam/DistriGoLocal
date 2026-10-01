@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.charges
 
-import com.distrigo.app.data.model.Amount
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +29,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.Text
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 fun ChargesScreen(
     viewModel   : ChargeViewModel = hiltViewModel(),
@@ -38,6 +38,7 @@ fun ChargesScreen(
     /** The quick entry: the expense form with its category picked on the form itself. */
     onAddCharge : () -> Unit = {}
 ) {
+    val money = LocalMoneyFormatter.current
     val chargeTypes by viewModel.chargeTypes.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
 
@@ -86,7 +87,7 @@ fun ChargesScreen(
                     Column(Modifier.padding(DsSpacing.lg)) {
                         Text("Total des charges ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                         Spacer(Modifier.height(DsSpacing.sm))
-                        Text("${Amount.format(totalValue)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text(money.da(totalValue), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Spacer(Modifier.height(DsSpacing.xs))
                         Text("${chargeTypes.size} types de charges actifs", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.75f))
                     }

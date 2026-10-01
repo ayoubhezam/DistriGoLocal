@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.charges
 
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +32,7 @@ import com.distrigo.app.ui.purchases.formatOrderTime
 import androidx.compose.material.icons.filled.Schedule
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -45,6 +45,7 @@ fun ChargeListScreen(
     /** The expense's read-only details: a tap only looks, it never opens the form. */
     onOpenCharge : (Charge) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val charges  by viewModel.charges.collectAsState()
     val subTypes by viewModel.subTypes.collectAsState()
     val subType = subTypes.find { it.id == subtypeId }
@@ -90,7 +91,7 @@ fun ChargeListScreen(
             ) {
                 Column(Modifier.padding(DsSpacing.lg)) {
                     Text("Total ce mois", fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.8f))
-                    Text("${Amount.format(monthTotal)} DA", fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Text(money.da(monthTotal), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = Color.White)
                     Spacer(Modifier.height(DsSpacing.md))
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xxl)) {
                         Column {
@@ -98,7 +99,7 @@ fun ChargeListScreen(
                             Text("Nombre de dépenses", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
                         }
                         Column {
-                            Text("${Amount.format(avgPerCharge)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(money.da(avgPerCharge), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
                             Text("Moyenne par dépense", fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.7f))
                         }
                     }
@@ -162,7 +163,7 @@ fun ChargeListScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title            = { Text("Supprimer la dépense ?") },
-            text             = { Text(deleteQuestion(longPressCharge!!)) },
+            text             = { Text(deleteQuestion(longPressCharge!!, money)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteCharge(
@@ -185,6 +186,7 @@ fun ChargeListScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChargeRow(charge: Charge, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape    = DsShapes.medium,
@@ -212,7 +214,7 @@ private fun ChargeRow(charge: Charge, onClick: () -> Unit, onLongClick: () -> Un
                     }
                 }
             }
-            Text("${Amount.format(charge.montant)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+            Text(money.da(charge.montant), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
         }
     }
 }

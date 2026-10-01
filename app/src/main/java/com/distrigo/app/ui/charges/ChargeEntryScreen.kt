@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.ChargeSubType
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -47,6 +46,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * The expense form: one screen, the amount first.
@@ -68,6 +68,7 @@ fun ChargeEntryScreen(
     onSaved   : (SavedCharge) -> Unit,
     viewModel : ChargeEntryViewModel = hiltViewModel()
 ) {
+    val money = LocalMoneyFormatter.current
     val vm = viewModel
     var confirmLeave by remember { mutableStateOf(false) }
     var showWhen by remember { mutableStateOf(false) }
@@ -168,7 +169,7 @@ fun ChargeEntryScreen(
                 Text(
                     when {
                         vm.isEdit     -> "Enregistrer les modifications"
-                        value != null -> "Enregistrer · ${Amount.format(value)} DA"
+                        value != null -> "Enregistrer · ${money.da(value)}"
                         else          -> "Enregistrer"
                     },
                     fontSize   = DsTextSize.bodyLarge,
@@ -254,6 +255,7 @@ private fun AmountHero(
     recent    : List<Double>,
     onRecent  : (Double) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(autoFocus) {
@@ -299,7 +301,7 @@ private fun AmountHero(
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 recent.forEach { value ->
                     Text(
-                        "${Amount.format(value)} DA",
+                        money.da(value),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color      = DsColors.Primary,

@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.charges
 
-import com.distrigo.app.data.model.Amount
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +28,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,6 +188,7 @@ fun ChargeSubTypesScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChargeSubTypeRow(sub: ChargeSubType, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(
             onClick     = onClick,
@@ -213,7 +214,7 @@ private fun ChargeSubTypeRow(sub: ChargeSubType, onClick: () -> Unit, onLongClic
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${Amount.format(sub.total_this_month)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text(money.da(sub.total_this_month), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Primary)
                     Text("Total ce mois", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
                 }
                 Spacer(Modifier.width(DsSpacing.sm))
