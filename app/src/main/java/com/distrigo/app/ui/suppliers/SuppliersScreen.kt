@@ -32,6 +32,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.filterSuppliers
 import com.distrigo.app.ui.common.supplierDebtTotal
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -41,6 +42,7 @@ fun SuppliersScreen(
     onAddSupplier   : () -> Unit = {},
     onSupplierClick : (Int) -> Unit = {}
 ) {
+    val money = LocalMoneyFormatter.current
     val suppliers by viewModel.suppliers.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error     by viewModel.error.collectAsState()
@@ -99,7 +101,7 @@ fun SuppliersScreen(
                                 Text("Total des dettes", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                             }
                             Text(
-                                "${formatDZD(totalDebt)} DA",
+                                money.da(totalDebt),
                                 fontSize   = DsTextSize.bodyLarge,
                                 color      = DsColors.Danger,
                                 fontWeight = FontWeight.Bold
@@ -152,6 +154,7 @@ fun SuppliersScreen(
 
 @Composable
 fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
         val isDebt = supplier.balance > 0
         val colors = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
         val color = Color(colors[supplier.name[0].code % colors.size])
@@ -187,7 +190,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
                 if (isDebt) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Doit", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.Medium)
-                        Text("${formatDZD(supplier.balance)} DA", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Bold)
+                        Text(money.da(supplier.balance), fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     Box(
