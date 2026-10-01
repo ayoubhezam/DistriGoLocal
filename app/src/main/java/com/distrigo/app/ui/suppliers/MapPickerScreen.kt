@@ -292,7 +292,7 @@ fun MapPickerScreen(
             colors = CardDefaults.cardColors(containerColor = DsColors.Surface.copy(alpha = 0.9f))
         ) {
             Text(
-                text     = "${"%.6f".format(selectedLat)}, ${"%.6f".format(selectedLng)}",
+                text     = "${"%.6f".format(java.util.Locale.ROOT, selectedLat)}, ${"%.6f".format(java.util.Locale.ROOT, selectedLng)}",
                 fontSize = 12.sp,
                 color    = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

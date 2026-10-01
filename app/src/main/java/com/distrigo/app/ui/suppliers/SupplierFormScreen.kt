@@ -262,7 +262,7 @@ fun SupplierFormScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (latitude != null && longitude != null)
-                        "${"%.4f".format(latitude)}, ${"%.4f".format(longitude)}"
+                        "${"%.4f".format(java.util.Locale.ROOT, latitude)}, ${"%.4f".format(java.util.Locale.ROOT, longitude)}"
                     else
                         "Choisir sur la carte",
                     fontSize = DsTextSize.body
