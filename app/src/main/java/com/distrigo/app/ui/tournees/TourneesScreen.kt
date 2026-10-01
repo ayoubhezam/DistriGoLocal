@@ -51,6 +51,7 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsFilterChip
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalContext
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -1344,6 +1345,7 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
 
 @Composable
 private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     val isOpen = tournee.status == "ouverte"
     val accentColor = if (isOpen) DsColors.Success else DsColors.TextTertiary
     val badgeColor = if (isOpen) DsColors.Success else DsColors.TextSecondary
@@ -1464,7 +1466,7 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                     color = DsColors.TextSecondary
                 )
                 Text(
-                    "${"%.2f".format(tournee.total_ventes ?: 0.0)} DA",
+                    money.da(tournee.total_ventes ?: 0.0),
                     fontSize = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = DsColors.Primary
@@ -1666,6 +1668,7 @@ private fun TourneeVenteRow(
     onClick      : () -> Unit,
     onLongClick  : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val total       = vente.total
     val montantPaye = vente.montant_paye ?: 0.0
     val statut = when {
@@ -1744,7 +1747,7 @@ private fun TourneeVenteRow(
             horizontalAlignment = Alignment.End,
             modifier            = Modifier.padding(end = 28.dp)
         ) {
-            Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+            Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
             Spacer(Modifier.height(4.dp))
             Box(
                 modifier = Modifier

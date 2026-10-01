@@ -35,6 +35,10 @@ import com.distrigo.app.ui.navigation.navPopEnterTransition
 import com.distrigo.app.ui.navigation.navPopExitTransition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.FitText
+import androidx.compose.ui.text.style.TextAlign
+import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 @Composable
 fun TourneesHubScreen(
     tourneeViewModel   : TourneeViewModel = hiltViewModel(),
@@ -128,17 +132,20 @@ fun TourneesHubScreen(
                         HubStatColumn(
                             icon  = Icons.Default.LocalShipping,
                             value = "$activeTournees",
-                            label = "Tournées actives"
+                            label = "Tournées actives",
+                            modifier = Modifier.weight(1f)
                         )
                         HubStatColumn(
                             icon  = Icons.Default.CheckCircle,
                             value = "$closedTournees",
-                            label = "Tournées fermées"
+                            label = "Tournées fermées",
+                            modifier = Modifier.weight(1f)
                         )
                         HubStatColumn(
                             icon  = Icons.Default.TrendingUp,
-                            value = "${"%.0f".format(totalRevenue)} DA",
-                            label = "Chiffre d'affaires"
+                            value = LocalMoneyFormatter.current.da(totalRevenue),
+                            label = "Chiffre d'affaires",
+                            modifier = Modifier.weight(MONEY_STAT_WEIGHT)
                         )
                     }
 
@@ -183,13 +190,13 @@ fun TourneesHubScreen(
 }
 
 @Composable
-private fun HubStatColumn(icon: ImageVector, value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun HubStatColumn(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
         Spacer(Modifier.height(6.dp))
-        Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+        FitText(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
         Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.8f))
+        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
     }
 }
 

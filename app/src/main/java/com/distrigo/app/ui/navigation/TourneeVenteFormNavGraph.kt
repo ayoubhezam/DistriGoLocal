@@ -53,6 +53,7 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -183,6 +184,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
         }
 
         composable(productsRoute) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
@@ -326,7 +328,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                 maxLines   = 1
                                             )
                                             Text(
-                                                "${product.category_name ?: "—"} · ${"%.2f".format(product.selling_price)} DA",
+                                                "${product.category_name ?: "—"} · ${money.da(product.selling_price)}",
                                                 fontSize = DsTextSize.caption,
                                                 color    = DsColors.TextSecondary
                                             )
@@ -401,7 +403,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
-                                "${"%.2f".format(total)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                money.da(total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
                             )
                         }
@@ -411,6 +413,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
         }
 
         composable(cartRoute) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
@@ -523,7 +526,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                             }
                         }
                     }

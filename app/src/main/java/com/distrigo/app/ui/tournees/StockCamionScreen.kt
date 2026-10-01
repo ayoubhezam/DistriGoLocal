@@ -41,6 +41,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -286,6 +287,7 @@ fun StockCamionScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -330,7 +332,7 @@ private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                "${"%.2f".format(product.camion_stock * product.selling_price)} DA",
+                money.da(product.camion_stock * product.selling_price),
                 fontSize   = DsTextSize.bodyLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color      = DsColors.Primary

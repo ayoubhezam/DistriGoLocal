@@ -35,7 +35,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import com.distrigo.app.ui.suppliers.formatDZD
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * What a draft reports to the filter.
@@ -78,6 +78,7 @@ fun TourneeVenteBrouillonsScreen(
     onBack     : () -> Unit,
     onResume   : (TourneeVenteDraft) -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     LaunchedEffect(tourneeId) { viewModel.observeVenteDrafts(tourneeId) }
     val drafts by viewModel.venteDrafts.collectAsState()
 
@@ -175,7 +176,7 @@ fun TourneeVenteBrouillonsScreen(
                                                    else            selected + draft.id
                                     } else onResume(draft)
                                 },
-                                totalText = if (draft.total > 0) "${formatDZD(draft.total)} DA" else null,
+                                totalText = if (draft.total > 0) money.da(draft.total) else null,
                                 selected  = if (selecting) isSelected else null,
                                 trailing  = if (selecting) ({}) else ({
                                     IconButton(onClick = { pendingDelete = draft }) {
