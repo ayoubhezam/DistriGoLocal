@@ -35,12 +35,12 @@ import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.model.PriceMovement
 import com.distrigo.app.data.model.PriceMovementKind
 import com.distrigo.app.ui.designsystem.*
-import com.distrigo.app.ui.suppliers.formatDZD
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Every price a product changed hands at: what was paid for it and what it sold for, side by side.
@@ -344,6 +344,7 @@ private fun PeriodChips(selected: PricePeriod, onSelect: (PricePeriod) -> Unit) 
 
 @Composable
 private fun SummaryBlock(kind: PriceMovementKind, stats: PriceStats?, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
     val colour = kind.chartColor()
     Column(
         modifier.clip(DsShapes.large)
@@ -366,15 +367,15 @@ private fun SummaryBlock(kind: PriceMovementKind, stats: PriceStats?, modifier: 
         }
         Text("Dernier prix", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(top = DsSpacing.sm))
         Text(
-            stats?.let { "${formatDZD(it.last)} DA" } ?: "—",
+            stats?.let { money.da(it.last) } ?: "—",
             fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = colour
         )
         if (stats == null) {
             Text("Aucune donnée", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         } else {
-            SummaryLine("Moyen", "${formatDZD(stats.average)} DA")
-            SummaryLine("Min", "${formatDZD(stats.min)} DA")
-            SummaryLine("Max", "${formatDZD(stats.max)} DA")
+            SummaryLine("Moyen", money.da(stats.average))
+            SummaryLine("Min", money.da(stats.min))
+            SummaryLine("Max", money.da(stats.max))
         }
     }
 }
@@ -389,6 +390,7 @@ private fun SummaryLine(label: String, value: String) {
 
 @Composable
 private fun MarginRow(gap: Double) {
+    val money = LocalMoneyFormatter.current
     Row(
         Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.medium).padding(horizontal = DsSpacing.md, vertical = 10.dp),
@@ -397,7 +399,7 @@ private fun MarginRow(gap: Double) {
     ) {
         Text("Écart vente − achat", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         Text(
-            (if (gap > 0) "+" else if (gap < 0) "−" else "") + "${formatDZD(abs(gap))} DA",
+            (if (gap > 0) "+" else if (gap < 0) "−" else "") + money.da(abs(gap)),
             fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
             color = if (gap < 0) DsColors.Danger else DsColors.TextPrimary
         )
@@ -413,6 +415,7 @@ private fun MarginRow(gap: Double) {
  */
 @Composable
 private fun MovementRow(movement: PriceMovement) {
+    val money = LocalMoneyFormatter.current
     val achat  = movement.kind == PriceMovementKind.ACHAT
     val colour = movement.kind.chartColor()
     Row(
@@ -447,7 +450,7 @@ private fun MovementRow(movement: PriceMovement) {
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${formatDZD(movement.unitPrice)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             DeltaPill(movement)
         }
     }
@@ -459,13 +462,14 @@ private fun MovementRow(movement: PriceMovement) {
  */
 @Composable
 private fun DeltaPill(movement: PriceMovement) {
+    val money = LocalMoneyFormatter.current
     val delta = movement.delta
     val good  = delta != null && (if (movement.kind == PriceMovementKind.ACHAT) delta < 0 else delta > 0)
     val label = when {
         delta == null        -> if (movement.kind == PriceMovementKind.ACHAT) "Premier achat" else "Première vente"
         abs(delta) < 0.005   -> "Stable"
-        delta > 0            -> "+${formatDZD(delta)} DA"
-        else                 -> "−${formatDZD(-delta)} DA"
+        delta > 0            -> "+${money.da(delta)}"
+        else                 -> "−${money.da(-delta)}"
     }
     val neutral = delta == null || abs(delta) < 0.005
     Text(

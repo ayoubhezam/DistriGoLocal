@@ -56,6 +56,7 @@ import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),
@@ -953,7 +954,7 @@ fun ProductCard(
 
                 // ── السطر 3 : Prix ──
                 Text(
-                    "${product.selling_price} DA",
+                    LocalMoneyFormatter.current.da(product.selling_price),
                     fontWeight = FontWeight.Bold,
                     fontSize   = DsTextSize.body,
                     color      = DsColors.Primary
@@ -1034,7 +1035,7 @@ fun ProductGridCard(
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, maxLines = 2)
                 Spacer(Modifier.height(4.dp))
-                Text("${product.selling_price} DA", fontWeight = FontWeight.Bold, fontSize = DsTextSize.body, color = DsColors.Primary)
+                Text(LocalMoneyFormatter.current.da(product.selling_price), fontWeight = FontWeight.Bold, fontSize = DsTextSize.body, color = DsColors.Primary)
                 Spacer(Modifier.height(4.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),

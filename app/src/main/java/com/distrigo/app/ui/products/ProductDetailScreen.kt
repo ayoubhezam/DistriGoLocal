@@ -46,11 +46,11 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.mouvements.movementTypeDisplay
-import com.distrigo.app.ui.suppliers.formatDZD
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** The margin's colour: neither the purchase price's green nor the selling price's blue. */
 private val MarginColor = Color(0xFF7C3AED)
@@ -493,6 +493,7 @@ private fun InfoValue(text: String?) {
 
 @Composable
 private fun ProductInfoCard(product: Product) {
+    val money = LocalMoneyFormatter.current
     // Margin on the selling price, as the app has always shown it.
     val marginAmount  = product.selling_price - product.purchase_price
     val marginPercent = if (product.selling_price > 0) marginAmount / product.selling_price * 100 else 0.0
@@ -545,11 +546,11 @@ private fun ProductInfoCard(product: Product) {
                 .background(DsColors.PrimaryLight.copy(alpha = 0.6f))
                 .padding(horizontal = DsSpacing.md, vertical = DsSpacing.xs)
         ) {
-            PriceLine(Icons.Default.ShoppingCart, "Prix d'achat", "${formatDZD(product.purchase_price)} DA", DsColors.Success)
-            PriceLine(Icons.Default.LocalOffer, "Prix de vente", "${formatDZD(product.selling_price)} DA", DsColors.Primary)
+            PriceLine(Icons.Default.ShoppingCart, "Prix d'achat", money.da(product.purchase_price), DsColors.Success)
+            PriceLine(Icons.Default.LocalOffer, "Prix de vente", money.da(product.selling_price), DsColors.Primary)
             PriceLine(
                 Icons.Default.Percent, "Marge",
-                "${formatDZD(marginAmount)} DA (${String.format(java.util.Locale.FRANCE, "%.1f", marginPercent)} %)",
+                "${money.da(marginAmount)} (${String.format(java.util.Locale.FRANCE, "%.1f", marginPercent)} %)",
                 if (marginAmount < 0) DsColors.Danger else MarginColor
             )
         }
@@ -590,6 +591,7 @@ private fun PriceHistoryCard(movements: List<PriceMovement>, onSeeAll: () -> Uni
 
 @Composable
 private fun PriceHistoryRow(movement: PriceMovement) {
+    val money = LocalMoneyFormatter.current
     val achat = movement.kind == PriceMovementKind.ACHAT
     val delta = movement.delta
     // What the change means for the business: buying cheaper is good, selling dearer is good.
@@ -602,7 +604,7 @@ private fun PriceHistoryRow(movement: PriceMovement) {
             if (good) DsColors.Success else DsColors.Danger,
             if (good) DsColors.SuccessLight else DsColors.DangerLight,
             if (delta > 0) Icons.Default.NorthEast else Icons.Default.SouthEast,
-            (if (delta > 0) "+" else "−") + "${formatDZD(abs(delta))} DA"
+            (if (delta > 0) "+" else "−") + money.da(abs(delta))
         )
     }
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
@@ -623,7 +625,7 @@ private fun PriceHistoryRow(movement: PriceMovement) {
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${formatDZD(movement.unitPrice)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
                 label,
                 fontSize   = DsTextSize.caption,

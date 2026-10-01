@@ -36,9 +36,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.suppliers.formatDZD
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** The colour each side of the trade is drawn in, matching the summary blocks. */
 internal fun PriceMovementKind.chartColor(): Color =
@@ -74,6 +74,7 @@ fun PriceChart(
     slots    : List<PriceSlot>,
     modifier : Modifier = Modifier,
 ) {
+    val money = LocalMoneyFormatter.current
     if (series.isEmpty() || slots.isEmpty()) return
 
     val prices = series.flatMap { s -> s.points.map { it.price } }
@@ -95,7 +96,7 @@ fun PriceChart(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     Box(Modifier.size(10.dp).clip(DsShapes.pill).background(line.kind.chartColor()))
                     Text(
-                        "${formatDZD(point.price)} DA",
+                        money.da(point.price),
                         fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
                     )
                     Text(pointCaption(line.kind, point), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
@@ -113,8 +114,8 @@ fun PriceChart(
                 .fillMaxWidth()
                 .height(150.dp)
                 .semantics {
-                    contentDescription = "Évolution des prix sur ${period.label}, de ${formatDZD(prices.min())} " +
-                        "à ${formatDZD(prices.max())} DA. La liste ci-dessous donne le détail."
+                    contentDescription = "Évolution des prix sur ${period.label}, de ${money.amount(prices.min())} " +
+                        "à ${money.da(prices.max())}. La liste ci-dessous donne le détail."
                 }
                 .pointerInput(series, slots) {
                     val plot = plotArea(size.toSize(), density.density)

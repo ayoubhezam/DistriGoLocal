@@ -56,6 +56,8 @@ import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.rememberPhotoPicker
+import com.distrigo.app.data.model.Amount
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -80,6 +82,7 @@ fun ProductFormScreen(
     var scanForExtra      by remember { mutableStateOf(false) }
     var sellingPrice  by remember { mutableStateOf(if (isEdit) product!!.selling_price.toString() else "") }
     var purchasePrice by remember { mutableStateOf(if (isEdit) product!!.purchase_price.toString() else "") }
+    val money = LocalMoneyFormatter.current
     var packages      by remember { mutableStateOf(if (isEdit) product!!.packages.toString() else "") }
     var packSize      by remember { mutableStateOf(if (isEdit) product!!.pack_size.toString() else "") }
     var minStock      by remember { mutableStateOf(if (isEdit) formatQty(product!!.min_stock) else "0") }
@@ -383,8 +386,8 @@ fun ProductFormScreen(
             title = { Text("Prix d'achat ≥ Prix de vente") },
             text  = {
                 Column {
-                    Text("Prix de vente : $sellingPrice DA")
-                    Text("Prix d'achat  : $purchasePrice DA", color = DsColors.Danger)
+                    Text("Prix de vente : ${Amount.parse(sellingPrice)?.let(money::da) ?: "$sellingPrice DA"}")
+                    Text("Prix d'achat  : ${Amount.parse(purchasePrice)?.let(money::da) ?: "$purchasePrice DA"}", color = DsColors.Danger)
                     Spacer(Modifier.height(8.dp))
                     Text("Voulez-vous continuer malgré la perte ?", fontSize = DsTextSize.bodySmall)
                 }
