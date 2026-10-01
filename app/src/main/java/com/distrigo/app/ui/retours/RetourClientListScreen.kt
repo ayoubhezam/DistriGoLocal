@@ -197,6 +197,7 @@ fun RetourRow(retour: RetourClient, onClick: (() -> Unit)? = null) {
                     fontSize = DsTextSize.caption, color = DsColors.TextTertiary
                 )
             }
+            Spacer(Modifier.width(DsSpacing.sm))
             Text(money.da(retour.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
         }
     }

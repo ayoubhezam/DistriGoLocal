@@ -94,11 +94,16 @@ fun QuickActionButton(
     }
 }
 
+/**
+ * One of the figures across a party's card. A third of the card wide, a full amount to the centime
+ * ("11 781 712,80 DA") does not fit at body size, and its no-break spaces leave nowhere to wrap but
+ * mid-word ("D" / "A"): so it shrinks to fit on its line instead.
+ */
 @Composable
 fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Modifier) {
     val money = LocalMoneyFormatter.current
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(money.da(value), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color)
+        FitText(money.da(value), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center)
         Spacer(Modifier.height(2.dp))
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
     }
@@ -120,10 +125,13 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
         else -> DsColors.TextSecondary
     }
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            money.da(kotlin.math.abs(balance)) + if (advance) " (AVANCÉ)" else "",
+        // The amount shrinks to fit like StatCell's; "(AVANCÉ)" gets its own line rather than share
+        // one that may shrink or be cut — it is the word that says which way the solde goes.
+        FitText(
+            money.da(kotlin.math.abs(balance)),
             fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center
         )
+        if (advance) Text("(AVANCÉ)", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color, textAlign = TextAlign.Center)
         Spacer(Modifier.height(2.dp))
         Text("Solde", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
     }
