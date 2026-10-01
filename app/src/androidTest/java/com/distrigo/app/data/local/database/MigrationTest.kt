@@ -705,6 +705,28 @@ class MigrationTest {
         }
     }
 
+    /** 58 -> 59 adds the money format, spaces on the existing row: an update changes no receipt's look. */
+    @Test
+    fun migration58To59GivesTheExistingRowTheDefaultMoneyFormat() {
+        helper.createDatabase(TEST_DB, 58).apply {
+            execSQL(
+                "INSERT INTO business_settings (id, business_name, business_phone, logo_ref, uuid, created_at, updated_at, version, allow_negative_stock) " +
+                    "VALUES (1, 'Distri Sétif', NULL, NULL, 'u-settings', '2026-09-01T10:00:00Z', 1000, 3, 0)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 59, true, MIGRATION_58_59)
+        try {
+            assertEquals(
+                1,
+                sql.count("business_settings", "money_format = 'spaces' AND allow_negative_stock = 0 AND business_name = 'Distri Sétif' AND version = 3"),
+            )
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

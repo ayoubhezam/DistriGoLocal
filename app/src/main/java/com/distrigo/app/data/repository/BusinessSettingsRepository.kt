@@ -2,6 +2,7 @@ package com.distrigo.app.data.repository
 
 import android.content.Context
 import android.net.Uri
+import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.BusinessSettingsEntity
@@ -68,6 +69,27 @@ class BusinessSettingsRepository(
     suspend fun setAllowNegativeStock(allow: Boolean) {
         importLegacyIfNeeded()
         dao.updateAllowNegativeStock(allow)
+    }
+
+    /**
+     * How amounts are written, and every change to it. Its own stream, like [observeAllowNegativeStock],
+     * so a new logo does not redraw every amount on screen. A stored key this version does not know —
+     * from a newer phone, through a restore — reads as the default.
+     */
+    fun observeMoneyFormat(): Flow<MoneyFormat> = flow {
+        importLegacyIfNeeded()
+        emitAll(dao.observeMoneyFormat().map { MoneyFormat.fromKey(it) }.distinctUntilChanged())
+    }
+
+    /** The format right now, for what is written outside a screen: a receipt, a PDF, a shared text. */
+    suspend fun moneyFormat(): MoneyFormat {
+        importLegacyIfNeeded()
+        return MoneyFormat.fromKey(dao.moneyFormat())
+    }
+
+    suspend fun setMoneyFormat(format: MoneyFormat) {
+        importLegacyIfNeeded()
+        dao.updateMoneyFormat(format.key)
     }
 
     /**

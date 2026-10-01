@@ -1119,6 +1119,22 @@ val MIGRATION_57_58 = object : Migration(57, 58) {
 }
 
 /**
+ * 58 → 59: `business_settings.money_format`, how amounts are written (see MoneyFormat).
+ *
+ * `'spaces'` on the existing row — `1 236 790,50 DA`, the default. Appended last, like
+ * allow_negative_stock, so a migrated database lists its columns in a new one's order.
+ *
+ * The column definition is copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/59.json`). **Do not hand-edit it** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_58_59 = object : Migration(58, 59) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `business_settings` ADD COLUMN `money_format` TEXT NOT NULL DEFAULT 'spaces'")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1132,7 +1148,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
-    MIGRATION_56_57, MIGRATION_57_58,
+    MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59,
 )
 
 /**

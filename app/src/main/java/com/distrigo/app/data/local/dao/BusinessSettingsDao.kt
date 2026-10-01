@@ -35,4 +35,14 @@ interface BusinessSettingsDao {
 
     @Query("SELECT allow_negative_stock FROM business_settings WHERE id = 1")
     fun observeAllowNegativeStock(): Flow<Boolean?>
+
+    @Query("UPDATE business_settings SET money_format = :key WHERE id = 1")
+    suspend fun updateMoneyFormat(key: String)
+
+    /** Null when the row does not exist yet, which means the default format. */
+    @Query("SELECT money_format FROM business_settings WHERE id = 1")
+    suspend fun moneyFormat(): String?
+
+    @Query("SELECT money_format FROM business_settings WHERE id = 1")
+    fun observeMoneyFormat(): Flow<String?>
 }

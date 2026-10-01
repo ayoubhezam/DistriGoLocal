@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
@@ -23,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.BuildConfig
+import com.distrigo.app.core.format.MoneyFormat
+import com.distrigo.app.core.format.MoneyFormatter
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -57,6 +60,7 @@ fun ParametresScreen(
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
             NegativeStockCard()
+            MoneyFormatCard()
             SettingsNavCard(
                 icon     = Icons.Default.Receipt,
                 iconBg   = DsColors.SuccessLight,
@@ -157,6 +161,91 @@ private fun NegativeStockCard(viewModel: StockSettingsViewModel = hiltViewModel(
             },
             confirmButton = { TextButton(onClick = { viewModel.confirmStrict() }) { Text("Désactiver") } },
             dismissButton = { TextButton(onClick = { viewModel.cancelStrict() }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+}
+
+/** The amount every format is shown with, so the three can be told apart at a glance. */
+private const val MONEY_FORMAT_SAMPLE = 1_236_790.5
+
+/**
+ * "Format des montants": spaces, commas or dots between the thousands. The card shows the current
+ * format on a sample amount; the dialog shows each choice the same way, and applies it on tap.
+ */
+@Composable
+private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewModel()) {
+    val current by viewModel.format.collectAsState()
+    var choosing by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.SurfaceMuted)
+            .clickable(enabled = current != null) { choosing = true }
+            .padding(DsSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Payments, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(DsSpacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Format des montants", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(
+                current?.let { MoneyFormatter.screen(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
+                fontSize = DsTextSize.caption,
+                color    = DsColors.TextSecondary
+            )
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
+    }
+
+    val selected = current
+    if (choosing && selected != null) {
+        AlertDialog(
+            onDismissRequest = { choosing = false },
+            title = { Text("Format des montants") },
+            text  = {
+                Column {
+                    Text(
+                        "Sur les écrans, les reçus et les PDF, pour tous les téléphones de l'entreprise. " +
+                            "Les exports Excel et CSV ne changent pas.",
+                        fontSize = DsTextSize.caption,
+                        color    = DsColors.TextSecondary
+                    )
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    MoneyFormat.entries.forEach { format ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .clickable {
+                                    viewModel.choose(format)
+                                    choosing = false
+                                }
+                                .padding(vertical = DsSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = format == selected, onClick = null)
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text(
+                                MoneyFormatter.screen(format).da(MONEY_FORMAT_SAMPLE),
+                                fontSize   = DsTextSize.body,
+                                fontWeight = if (format == selected) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = DsColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosing = false }) { Text("Fermer") } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary

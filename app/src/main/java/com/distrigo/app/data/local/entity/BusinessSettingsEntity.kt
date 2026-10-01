@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.data.model.defaultTypeUuid
 
 /**
@@ -48,6 +49,14 @@ data class BusinessSettingsEntity(
     // refused as damaged.
     @ColumnInfo(defaultValue = "1")
     val allow_negative_stock: Boolean = true,
+    /**
+     * How amounts are written on screens, receipts and PDFs: a [MoneyFormat.key]. A business setting so
+     * every rep's receipts read the same; never read by exports, which keep their own fixed shape.
+     */
+    //
+    // Last, after allow_negative_stock, for the same reason: MIGRATION_58_59 appends it.
+    @ColumnInfo(defaultValue = "'spaces'")
+    val money_format: String = MoneyFormat.DEFAULT.key,
 ) {
     companion object {
         const val ROW_ID = 1

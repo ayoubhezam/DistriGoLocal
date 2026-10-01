@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.local.entity.BUSINESS_SETTINGS_UUID
 import com.distrigo.app.data.model.BusinessSettings
@@ -144,6 +145,43 @@ class BusinessSettingsTest {
         repository.saveIdentity("Épicerie Centrale", "")
         val changed = withTimeout(5_000) { repository.observe().first { it.name == "Épicerie Centrale" } }
         assertNull(changed.phone)
+    }
+
+    @Test
+    fun theMoneyFormatIsSpacesUntilChosen() = runBlocking {
+        assertEquals(MoneyFormat.SPACES, repository.moneyFormat())
+        assertEquals(MoneyFormat.SPACES, repository.observeMoneyFormat().first())
+        assertEquals("spaces", sql.text("SELECT money_format FROM business_settings"))
+    }
+
+    /** Choosing a format is an edit of the business row, so it travels with backups and, later, sync. */
+    @Test
+    fun choosingAMoneyFormatIsATrackedEditStoredByKey() = runBlocking {
+        repository.get()
+        val version = sql.long("SELECT version FROM business_settings")
+
+        repository.setMoneyFormat(MoneyFormat.DOTS)
+
+        assertEquals(MoneyFormat.DOTS, repository.moneyFormat())
+        assertEquals("dots", sql.text("SELECT money_format FROM business_settings"))
+        assertEquals(version + 1, sql.long("SELECT version FROM business_settings"))
+    }
+
+    @Test
+    fun moneyFormatObserversSeeEachChange() = runBlocking {
+        assertEquals(MoneyFormat.SPACES, repository.observeMoneyFormat().first())
+        repository.setMoneyFormat(MoneyFormat.COMMAS)
+        withTimeout(5_000) { repository.observeMoneyFormat().first { it == MoneyFormat.COMMAS } }
+        Unit
+    }
+
+    /** A key written by a newer version, reaching this phone through a restore, reads as the default. */
+    @Test
+    fun anUnknownStoredFormatReadsAsTheDefault() = runBlocking {
+        repository.get()
+        sql.execSQL("UPDATE business_settings SET money_format = 'apostrophes'")
+        assertEquals(MoneyFormat.SPACES, repository.moneyFormat())
+        assertEquals(MoneyFormat.SPACES, repository.observeMoneyFormat().first())
     }
 
     private fun SupportSQLiteDatabase.long(query: String): Long =
