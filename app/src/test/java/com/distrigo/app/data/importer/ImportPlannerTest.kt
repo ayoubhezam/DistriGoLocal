@@ -244,6 +244,21 @@ class ImportPlannerTest {
     }
 
     @Test
+    fun aPriceTypedWithAnotherCountrysSeparatorsIsReadOrRefusedNeverShrunk() {
+        val plan = planner().plan(XlsxWorkbook(listOf(sheet(
+            "produits", listOf("Produit", "PV"),
+            listOf("Sucre vrac", "1,236.50"),
+            listOf("Lait Candia 1L", "1.236,50"),
+            listOf("Selecto 1L", "1,500"),
+        ))))
+        val rows = plan.sheets.single().rows
+        assertEquals(listOf(Change("Prix de vente", "150,00", "1236,50")), (rows[0].outcome as RowOutcome.UpdateProduct).changes)
+        assertEquals(listOf(Change("Prix de vente", "120,00", "1236,50")), (rows[1].outcome as RowOutcome.UpdateProduct).changes)
+        // Read as 1.5 before: now refused, with what to do about it.
+        assertTrue(refusal(rows[2]).startsWith("« 1,500 » peut se lire de deux façons"))
+    }
+
+    @Test
     fun aSheetWithoutANameColumnIsRefusedAsAWhole() {
         val plan = planner().plan(XlsxWorkbook(listOf(sheet("Produits", listOf("Code", "Prix"), listOf("123", 10.0)))))
         assertEquals("La première ligne doit être l'en-tête, avec au moins une colonne « Nom ».", refusal(plan.rows.single()))

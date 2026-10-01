@@ -288,9 +288,15 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             null -> null
             is XlsxValue.Number -> v.value
             is XlsxValue.Text -> v.value.trim().takeIf { it.isNotEmpty() }?.let { typed ->
-                // `3 450,00` as French Excel shows it, `3450.00` as it is typed elsewhere.
-                typed.replace(" ", "").replace(" ", "").replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
-                    ?: throw Invalid("« $typed » n'est pas un nombre.")
+                // `3 450,00` as French Excel shows it, `3,450.00` as an English one does — see ImportNumber.
+                when (val reading = ImportNumber.read(typed)) {
+                    is ImportNumber.Reading.Value -> reading.value
+                    ImportNumber.Reading.Ambiguous -> throw Invalid(
+                        "« $typed » peut se lire de deux façons (décimales ou milliers) : " +
+                            "donnez à la cellule le format Nombre, ou écrivez-le sans séparateur de milliers."
+                    )
+                    ImportNumber.Reading.NotANumber -> throw Invalid("« $typed » n'est pas un nombre.")
+                }
             }
             is XlsxValue.Date -> throw Invalid("Une date se trouve là où un nombre est attendu.")
             is XlsxValue.Bool -> throw Invalid("Oui/Non se trouve là où un nombre est attendu.")
