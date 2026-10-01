@@ -79,6 +79,14 @@ import com.distrigo.app.ui.products.ProductsScreen
 import com.distrigo.app.ui.purchases.PurchasesScreen
 import com.distrigo.app.ui.suppliers.SuppliersScreen
 import com.distrigo.app.ui.theme.DistriGoTheme
+import com.distrigo.app.core.format.MoneyFormat
+import com.distrigo.app.data.repository.BusinessSettingsRepository
+import com.distrigo.app.ui.format.ProvideMoneyFormat
+import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import com.distrigo.app.ui.tournees.TourneesHubScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
@@ -95,6 +103,15 @@ class MainActivity : ComponentActivity() {
     // injection blocked before the code that decides to show it.
     @javax.inject.Inject
     lateinit var database: dagger.Lazy<com.distrigo.app.data.local.database.AppDatabase>
+
+    // Lazy for the same reason, and opened on IO: the repository needs that database.
+    @javax.inject.Inject
+    lateinit var businessSettings: dagger.Lazy<BusinessSettingsRepository>
+
+    /** The business's money format, read off the main thread. */
+    private val moneyFormats: Flow<MoneyFormat> by lazy {
+        flow { emitAll(businessSettings.get().observeMoneyFormat()) }.flowOn(Dispatchers.IO)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,7 +138,13 @@ class MainActivity : ComponentActivity() {
     /** Builds the app's UI, and starts what runs beside it. Only once the database may be opened. */
     private fun showApp() {
         setContent {
-            DistriGoTheme {
+            // Every amount on every screen follows the business's "Format des montants" (see
+            // LocalMoneyFormatter). Saveable, so a rotation or a recreated activity keeps the format
+            // it had instead of showing the default until the row is read again; only a cold start
+            // waits for that read, which comes before any screen's own data.
+            var moneyFormat by rememberSaveable { mutableStateOf(MoneyFormat.DEFAULT) }
+            LaunchedEffect(Unit) { moneyFormats.collect { moneyFormat = it } }
+            DistriGoTheme { ProvideMoneyFormat(moneyFormat) {
                 // imePadding here is what lifts every form in the app: the root shrinks by the
                 // keyboard's height, so each scroll container inside shrinks with it, and Compose's
                 // own bring-into-view can finally scroll the focused field up. Padding a screen
@@ -381,7 +404,7 @@ class MainActivity : ComponentActivity() {
 
                     } // closes Scaffold-wrapping gesture Box
             }
-        }
+        } }
     }
 
         // Gesture-nav devices reserve roughly this same band on the left screen edge for the
