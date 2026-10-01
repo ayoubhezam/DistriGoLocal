@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 data class VenteCartItem(
     val product   : Product,
@@ -63,6 +64,7 @@ internal fun Step1Client(
     onChooseClient : () -> Unit,
     onNext         : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -180,7 +182,7 @@ internal fun Step1Client(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(selectedClient.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
-                                "Solde : ${"%.2f".format(selectedClient.balance)} DA",
+                                "Solde : ${money.da(selectedClient.balance)}",
                                 fontSize = DsTextSize.bodySmall,
                                 color    = if (selectedClient.balance > 0) DsColors.Danger else DsColors.TextSecondary
                             )
@@ -243,6 +245,7 @@ internal fun Step3Validation(
     onFixMissing        : () -> Unit = onBack,
     onConfirm           : () -> Unit
 )    {
+    val money = LocalMoneyFormatter.current
     Column(modifier = Modifier.fillMaxSize()) {
         DsTopAppBar(
             title   = "Validation",
@@ -275,7 +278,7 @@ internal fun Step3Validation(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(selectedClient?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                         Text(
-                            "Solde du client : ${"%.2f".format(selectedClient?.balance ?: 0.0)} DA",
+                            "Solde du client : ${money.da(selectedClient?.balance ?: 0.0)}",
                             fontSize = DsTextSize.bodySmall,
                             color    = if ((selectedClient?.balance ?: 0.0) > 0) DsColors.Danger else DsColors.TextSecondary
                         )
@@ -320,11 +323,11 @@ internal fun Step3Validation(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                        Text("${formatQty(item.quantity)} × ${"%.2f".format(item.unitPrice)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text("${formatQty(item.quantity)} × ${money.da(item.unitPrice)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
-                        "${"%.2f".format(item.quantity * item.unitPrice)} DA",
+                        money.da(item.quantity * item.unitPrice),
                         fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.Bold,
                         color      = DsColors.Primary
@@ -344,7 +347,7 @@ internal fun Step3Validation(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                 }
             }
 
@@ -394,7 +397,7 @@ internal fun Step3Validation(
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
                             Text("Reste", fontSize = DsTextSize.caption, color = DsColors.Danger)
-                            Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                            Text(money.da(reste), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                         }
                     } else if (paye >= total && total > 0) {
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -475,7 +478,7 @@ internal fun Step3Validation(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
-                    "Confirmer la vente · ${"%.2f".format(total)} DA",
+                    "Confirmer la vente · ${money.da(total)}",
                     fontSize   = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -501,6 +504,7 @@ internal fun VenteCartRow(
     onPriceChange    : (Double) -> Unit,
     onRemove         : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val context = LocalContext.current
 
     val availableStock = item.product.stock - item.product.camion_stock   // dépôt uniquement (stock = total)
@@ -548,8 +552,8 @@ internal fun VenteCartRow(
     SelectionCartCard(
         avatarIcon      = Icons.Default.ShoppingCart,
         title           = item.product.name,
-        metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${"%.2f".format(item.unitPrice)} DA",
-        totalPriceLabel = "${"%.2f".format(item.quantity * item.unitPrice)} DA",
+        metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${money.da(item.unitPrice)}",
+        totalPriceLabel = money.da(item.quantity * item.unitPrice),
         isExpanded      = isExpanded,
         onToggleExpand  = onToggleExpand,
         isDanger        = isDanger,

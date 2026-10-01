@@ -54,6 +54,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
 import com.distrigo.app.ui.common.searchProducts
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * Resolves the session that owns this pass through the form, and enters it.
@@ -214,6 +215,7 @@ fun NavGraphBuilder.venteFormGraph(
         }
 
         composable(productsRoute) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, productsRoute)
             val productViewModel = productViewModel()
@@ -349,7 +351,7 @@ fun NavGraphBuilder.venteFormGraph(
                                                 maxLines   = 1
                                             )
                                             Text(
-                                                "${product.category_name ?: "—"} · ${"%.2f".format(product.selling_price)} DA",
+                                                "${product.category_name ?: "—"} · ${money.da(product.selling_price)}",
                                                 fontSize = DsTextSize.caption,
                                                 color    = DsColors.TextSecondary
                                             )
@@ -435,7 +437,7 @@ fun NavGraphBuilder.venteFormGraph(
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
-                                "${"%.2f".format(total)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                money.da(total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
                             )
                         }
@@ -445,6 +447,7 @@ fun NavGraphBuilder.venteFormGraph(
         }
 
         composable(cartRoute) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, cartRoute)
             val productViewModel = productViewModel()
@@ -582,7 +585,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                Text("${"%.2f".format(total)} DA", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
                             }
                         }
                     }
@@ -618,6 +621,7 @@ fun NavGraphBuilder.venteFormGraph(
         }
 
         composable(validationRoute) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val session = venteFormSession(navController, graphRoute, validationRoute)
@@ -697,7 +701,8 @@ fun NavGraphBuilder.venteFormGraph(
                             com.distrigo.app.ui.ventes.EditedLine(it.product.id, it.product.name, it.product.unit_type, it.quantity)
                         },
                         newTotal = total,
-                        newPaid  = montantPaye.toDoubleOrNull() ?: 0.0
+                        newPaid  = montantPaye.toDoubleOrNull() ?: 0.0,
+                        money    = money
                     )
                     if (effects.isEmpty()) doSave() else editConfirm = saved to effects
                 }

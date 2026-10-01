@@ -15,12 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.core.format.MoneyFormatter
 
 /**
  * The one confirmation for deleting a sale — from the Dépôt Vente list, a tournée's list, or a
@@ -35,6 +36,7 @@ internal fun VenteDeleteDialog(
     onConfirm : () -> Unit,
     onDismiss : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     AlertDialog(
         onDismissRequest = { if (!deleting) onDismiss() },
         icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
@@ -42,11 +44,11 @@ internal fun VenteDeleteDialog(
         text             = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Text(
-                    "Êtes-vous sûr de vouloir supprimer la vente ${vente.numberLabel} de ${Amount.format(vente.total)} DA ?",
+                    "Êtes-vous sûr de vouloir supprimer la vente ${vente.numberLabel} de ${money.da(vente.total)} ?",
                     color = DsColors.TextPrimary
                 )
                 Text("La suppression annulera ses mouvements de stock et mettra à jour le solde :", color = DsColors.TextSecondary)
-                venteDeleteEffects(vente).forEach { effect ->
+                venteDeleteEffects(vente, money).forEach { effect ->
                     Row {
                         Text("•  ", color = DsColors.TextSecondary)
                         Text(effect, color = DsColors.TextSecondary)
@@ -74,7 +76,7 @@ internal fun VenteDeleteDialog(
  * they were sold from), and the client's solde loses the sale's total and what was paid with it
  * (ClientDao.recomputeBalance counts a sale as total − montant_paye).
  */
-internal fun venteDeleteEffects(vente: Vente): List<String> {
+internal fun venteDeleteEffects(vente: Vente, money: MoneyFormatter): List<String> {
     val place = if (vente.source == "camion") "le stock camion" else "le stock dépôt"
     val count = vente.items_count ?: vente.items?.size
     val paid  = vente.montant_paye ?: 0.0
@@ -87,10 +89,10 @@ internal fun venteDeleteEffects(vente: Vente): List<String> {
             else -> "Stock : les $count produits vendus seront remis dans $place."
         },
         when {
-            rest > 0.005  -> "Solde : ce que doit le client $client baissera de ${Amount.format(rest)} DA (le reste à payer de cette vente)."
-            rest < -0.005 -> "Solde : ce que doit le client $client augmentera de ${Amount.format(-rest)} DA (l'avance payée avec cette vente)."
+            rest > 0.005  -> "Solde : ce que doit le client $client baissera de ${money.da(rest)} (le reste à payer de cette vente)."
+            rest < -0.005 -> "Solde : ce que doit le client $client augmentera de ${money.da(-rest)} (l'avance payée avec cette vente)."
             else          -> "Solde : inchangé pour le client $client, la vente était entièrement payée."
         },
-        "Paiement : les ${Amount.format(paid)} DA encaissés avec cette vente seront effacés avec elle.".takeIf { paid > 0.005 }
+        "Paiement : les ${money.da(paid)} encaissés avec cette vente seront effacés avec elle.".takeIf { paid > 0.005 }
     )
 }

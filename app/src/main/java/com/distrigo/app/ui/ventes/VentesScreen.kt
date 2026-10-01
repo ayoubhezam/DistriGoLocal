@@ -57,6 +57,7 @@ import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -680,6 +681,7 @@ fun VenteDetailScreen(
     /** "Modifier" in the menu, as the list's long-press offers it. Null where a sale is not edited — a tournée's. */
     onEdit            : (() -> Unit)? = null
 ) {
+    val money = LocalMoneyFormatter.current
     BackHandler { onBack() }
 
     val fullVenteState by viewModel.selectedVente.collectAsState()
@@ -891,13 +893,13 @@ fun VenteDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                         Text(
-                                            "${formatQty(item.quantity)} ${item.unit_type} × ${"%.2f".format(item.unit_price)} DA",
+                                            "${formatQty(item.quantity)} ${item.unit_type} × ${money.da(item.unit_price)}",
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
                                     }
                                     Text(
-                                        "${"%.2f".format(item.total_price)} DA",
+                                        money.da(item.total_price),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.Bold,
                                         color      = DsColors.TextPrimary
@@ -927,7 +929,7 @@ fun VenteDetailScreen(
                                 letterSpacing = 1.sp
                             )
                             Text(
-                                "${"%.2f".format(displayVente.total)} DA",
+                                money.da(displayVente.total),
                                 fontSize   = DsTextSize.headline,
                                 fontWeight = FontWeight.ExtraBold,
                                 color      = if (isDelivered) DsColors.TextPrimary else DsColors.Primary
@@ -946,7 +948,7 @@ fun VenteDetailScreen(
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
                             Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
-                            Text("${"%.2f".format(montantPaye)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text(money.da(montantPaye), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
 
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -958,7 +960,7 @@ fun VenteDetailScreen(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                                Text("${"%.2f".format(reste)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text(money.da(reste), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             }
                         } else {
                             Row(
@@ -1117,6 +1119,7 @@ private fun paymentStatusOf(vente: Vente): String {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     val isDelivered = vente.status == "delivered"
     val (ribbonLabel, ribbonColor) =
         if (isDelivered) "LIVRÉ" to DsColors.Success else "EN ATTENTE" to DsColors.Warning
@@ -1179,7 +1182,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                 modifier            = Modifier.padding(end = 28.dp)
             ) {
                 Text(
-                    "${"%.2f".format(vente.total)} DA",
+                    money.da(vente.total),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
                     color      = DsColors.Primary

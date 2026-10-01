@@ -16,13 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.core.format.MoneyFormatter
 
 /** One line of the edited sale, as the form holds it. */
 internal data class EditedLine(val productId: Int, val name: String, val unit: String, val quantity: Double)
@@ -81,7 +81,8 @@ internal fun venteEditEffects(
     original : Vente,
     lines    : List<EditedLine>,
     newTotal : Double,
-    newPaid  : Double
+    newPaid  : Double,
+    money    : MoneyFormatter
 ): List<String> {
     val stockName = if (original.source == "camion") "stock camion" else "stock dépôt"
     val before = original.items.orEmpty().groupBy { it.product_id }
@@ -119,17 +120,17 @@ internal fun venteEditEffects(
             addAll(stock)
         }
         if (changed(original.total, newTotal)) {
-            add("Total : ${Amount.format(original.total)} DA → ${Amount.format(newTotal)} DA.")
+            add("Total : ${money.da(original.total)} → ${money.da(newTotal)}.")
         }
         if (changed(oldPaid, newPaid)) {
             add(
-                if (newPaid < oldPaid) "Paiement : ${Amount.format(oldPaid)} DA → ${Amount.format(newPaid)} DA — ${Amount.format(oldPaid - newPaid)} DA encaissés seront effacés."
-                else "Paiement : ${Amount.format(oldPaid)} DA → ${Amount.format(newPaid)} DA encaissés."
+                if (newPaid < oldPaid) "Paiement : ${money.da(oldPaid)} → ${money.da(newPaid)} — ${money.da(oldPaid - newPaid)} encaissés seront effacés."
+                else "Paiement : ${money.da(oldPaid)} → ${money.da(newPaid)} encaissés."
             )
         }
         when {
-            restDelta > MONEY_EPSILON  -> add("Solde : ce que doit le client $client augmentera de ${Amount.format(restDelta)} DA.")
-            restDelta < -MONEY_EPSILON -> add("Solde : ce que doit le client $client baissera de ${Amount.format(-restDelta)} DA.")
+            restDelta > MONEY_EPSILON  -> add("Solde : ce que doit le client $client augmentera de ${money.da(restDelta)}.")
+            restDelta < -MONEY_EPSILON -> add("Solde : ce que doit le client $client baissera de ${money.da(-restDelta)}.")
             isNotEmpty()               -> add("Solde : inchangé pour le client $client.")
         }
     }
