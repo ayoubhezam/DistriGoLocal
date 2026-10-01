@@ -1,10 +1,10 @@
 package com.distrigo.app.ui.retours
 
 import androidx.compose.runtime.*
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.model.RetourFournisseurMotifs
 import com.distrigo.app.data.model.numberLabel
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /**
  * A supplier return, read-only (RetourDetailContent). Deleting it takes back what it did: the goods
@@ -18,6 +18,7 @@ fun RetourFournisseurDetailScreen(
     onBack        : () -> Unit,
     onDeleted     : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     val detail by viewModel.retourDetail.collectAsState()
     val loaded = detail?.takeIf { it.id == retourSummary.id }
     val retour = loaded ?: retourSummary
@@ -43,7 +44,7 @@ fun RetourFournisseurDetailScreen(
         deleteEffects = listOfNotNull(
             "Stock : les produits retournés seront remis dans le stock dépôt.",
             "Pertes : les pertes liées à ce retour seront supprimées.".takeIf { withPertes },
-            "Solde : ${Amount.format(retour.total)} DA seront rajoutés à ce que vous devez au fournisseur « ${retour.supplier_name} »."
+            "Solde : ${money.da(retour.total)} seront rajoutés à ce que vous devez au fournisseur « ${retour.supplier_name} »."
         ),
         deleting       = deleting,
         deleteError    = deleteError,

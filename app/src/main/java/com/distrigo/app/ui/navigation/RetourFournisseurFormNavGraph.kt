@@ -2,7 +2,6 @@ package com.distrigo.app.ui.navigation
 
 import com.distrigo.app.ui.retours.productCount
 import com.distrigo.app.data.model.ProductUnit
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.CompactQuantityStepper
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.model.barcodeContains
@@ -55,6 +54,7 @@ import java.time.ZoneOffset
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 // Mirrors retourClientFormGraph: form state (date/motif/cart) lives on the SuppliersGraph-scoped
 // RetourFournisseurViewModel instance — the same one SupplierDetailScreen/
@@ -301,6 +301,7 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
         }
 
         composable(Screen.SuppliersRetourFormCart.route) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val cartItems by viewModel.formCartItems.collectAsState()
@@ -330,7 +331,7 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(item.product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
-                                Text("${Amount.format(item.product.purchase_price)} DA / ${item.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text("${money.da(item.product.purchase_price)} / ${item.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 Text("Max : ${formatQty(item.maxQuantity)} ${ProductUnit.plural(item.product.unit_type, item.maxQuantity)}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
                             }
                             // Typed too: half a carton comes back as often as a whole one.
@@ -371,6 +372,7 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
         }
 
         composable(Screen.SuppliersRetourFormSummary.route) { entry ->
+            val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
             val supplierViewModel = supplierViewModel()
@@ -431,9 +433,9 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1)
-                                    Text("${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)} × ${Amount.format(item.product.purchase_price)} DA", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text("${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)} × ${money.da(item.product.purchase_price)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
-                                Text("${Amount.format(item.quantity * item.product.purchase_price)} DA", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                Text(money.da(item.quantity * item.product.purchase_price), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             }
                             HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
                         }
@@ -448,7 +450,7 @@ fun NavGraphBuilder.retourFournisseurFormGraph(
                                 RetourSummaryRow("Motif", formMotif ?: "—")
                                 RetourSummaryRow("Produits", "${cartItems.size}")
                                 RetourSummaryRow("Produits", productCount(cartItems.size))
-                                RetourSummaryRow("Valeur totale (DA)", "${Amount.format(totalValue)} DA", highlight = true)
+                                RetourSummaryRow("Valeur totale (DA)", money.da(totalValue), highlight = true)
                             }
                         }
                     }

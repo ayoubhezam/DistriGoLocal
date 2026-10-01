@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.retours
 
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -43,6 +42,10 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.FitText
+import androidx.compose.ui.text.style.TextAlign
+import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 
 @Composable
 fun RetourFournisseurListScreen(
@@ -52,6 +55,7 @@ fun RetourFournisseurListScreen(
     onBack       : () -> Unit,
     onAddRetour  : () -> Unit = {}
 ) {
+    val money = LocalMoneyFormatter.current
     val retours by viewModel.retours.collectAsState()
 
     var search   by remember { mutableStateOf("") }
@@ -116,9 +120,9 @@ fun RetourFournisseurListScreen(
                         .background(DsColors.Primary).padding(DsSpacing.lg),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    RetourStatColumn(value = "${retours.size}", label = "Retours")
-                    RetourStatColumn(value = "$totalProduits", label = "Produits")
-                    RetourStatColumn(value = "${Amount.format(retours.sumOf { it.total })} DA", label = "Valeur totale")
+                    RetourStatColumn(value = "${retours.size}", label = "Retours", modifier = Modifier.weight(1f))
+                    RetourStatColumn(value = "$totalProduits", label = "Produits", modifier = Modifier.weight(1f))
+                    RetourStatColumn(value = money.da(retours.sumOf { it.total }), label = "Valeur totale", modifier = Modifier.weight(MONEY_STAT_WEIGHT))
                 }
 
                 Spacer(Modifier.height(DsSpacing.md))
@@ -157,16 +161,17 @@ fun RetourFournisseurListScreen(
 }
 
 @Composable
-private fun RetourStatColumn(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
+private fun RetourStatColumn(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        FitText(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
         Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.8f))
+        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 fun RetourFournisseurRow(retour: RetourFournisseur, onClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape    = DsShapes.medium,
@@ -191,7 +196,7 @@ fun RetourFournisseurRow(retour: RetourFournisseur, onClick: () -> Unit) {
                     fontSize = DsTextSize.caption, color = DsColors.TextTertiary
                 )
             }
-            Text("${Amount.format(retour.total)} DA", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+            Text(money.da(retour.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Danger)
         }
     }
 }

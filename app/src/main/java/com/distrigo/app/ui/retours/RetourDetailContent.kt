@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.designsystem.DsColors
@@ -30,6 +29,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** One returned product, as the details list it. */
 internal data class RetourLine(
@@ -68,6 +68,7 @@ internal fun RetourDetailContent(
     onDismissError: () -> Unit,
     onBack        : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
     var confirmDelete by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -95,7 +96,7 @@ internal fun RetourDetailContent(
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(partyName, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                 Spacer(Modifier.height(DsSpacing.xs))
-                Text("${Amount.format(total)} DA", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+                Text(money.da(total), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
                 lines?.let {
                     Text(productCount(it.size), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                 }
@@ -156,7 +157,7 @@ internal fun RetourDetailContent(
             title            = { Text("Supprimer le retour") },
             text             = {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    Text("Êtes-vous sûr de vouloir supprimer ce retour de ${Amount.format(total)} DA ?", color = DsColors.TextPrimary)
+                    Text("Êtes-vous sûr de vouloir supprimer ce retour de ${money.da(total)} ?", color = DsColors.TextPrimary)
                     Text("La suppression annulera ses mouvements de stock et mettra à jour le solde :", color = DsColors.TextSecondary)
                     deleteEffects.forEach { effect ->
                         Row {
@@ -181,6 +182,7 @@ internal fun RetourDetailContent(
 
 @Composable
 private fun LineRow(line: RetourLine) {
+    val money = LocalMoneyFormatter.current
     Row(
         modifier          = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
@@ -188,13 +190,13 @@ private fun LineRow(line: RetourLine) {
         Column(Modifier.weight(1f)) {
             Text(line.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
             Text(
-                "${formatQty(line.quantity)} ${ProductUnit.plural(line.unit, line.quantity)} × ${Amount.format(line.unitPrice)} DA",
+                "${formatQty(line.quantity)} ${ProductUnit.plural(line.unit, line.quantity)} × ${money.da(line.unitPrice)}",
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
         }
         Spacer(Modifier.width(DsSpacing.sm))
-        Text("${Amount.format(line.total)} DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(money.da(line.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
     }
 }
 
