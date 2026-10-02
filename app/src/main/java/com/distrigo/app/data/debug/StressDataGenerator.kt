@@ -352,6 +352,7 @@ class StressDataGenerator(private val db: AppDatabase) {
                     vente_id = venteId, product_id = p.id, product_name = p.name, unit_type = p.unit_type,
                     quantity = sale.quantities[i], unit_price = p.selling_price,
                     total_price = sale.quantities[i] * p.selling_price, created_at = at.toString(),
+                    purchase_price_snapshot = p.purchase_price,
                 )
             })
             db.stockMovementDao().insertAll(sale.lines.mapIndexed { i, p ->

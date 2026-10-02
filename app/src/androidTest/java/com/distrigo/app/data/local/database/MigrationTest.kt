@@ -727,6 +727,51 @@ class MigrationTest {
         }
     }
 
+    /**
+     * 59 -> 60 gives every sale line a cost: the product's purchase price today, a binned product's too,
+     * 0 for a product gone for good, each marked as estimated. With the app's triggers in place, as on a
+     * phone, the backfill moves no line's and no vente's `updated_at` or `version`.
+     */
+    @Test
+    fun migration59To60EstimatesTheCostOfLinesAlreadySold() {
+        helper.createDatabase(TEST_DB, 59).apply {
+            fun product(id: Int, purchasePrice: Double, deletedAt: Long? = null) = execSQL(
+                "INSERT INTO products (id, name, barcode, selling_price, purchase_price, stock, min_stock, unit_type, packages, " +
+                    "pack_size, has_expiry, camion_stock, uuid, created_at, updated_at, version, deleted_at) VALUES ($id, 'P$id', " +
+                    "NULL, 110.0, $purchasePrice, 10.0, 0.0, 'carton', 0, 0, 0, 0.0, 'u-product-$id', '2026-09-01T10:00:00Z', " +
+                    "1000, 1, ${deletedAt ?: "NULL"})"
+            )
+            fun line(id: Int, productId: Int) = execSQL(
+                "INSERT INTO vente_items (id, vente_id, product_id, product_name, unit_type, quantity, unit_price, total_price, " +
+                    "uuid, created_at, updated_at) VALUES ($id, 1, $productId, 'P$productId', 'carton', 2.5, 110.0, 275.0, " +
+                    "'u-line-$id', '2026-09-02T10:00:00Z', 2000)"
+            )
+            product(1, 95.0)
+            product(2, 80.5, deletedAt = 5000)
+            execSQL(
+                "INSERT INTO ventes (id, client_id, tournee_id, source, total, montant_paye, status, note, created_at, uuid, updated_at, version) " +
+                    "VALUES (1, 1, NULL, 'depot', 825.0, 0, 'pending', NULL, '2026-09-02T10:00:00Z', 'u-vente-1', 3000, 4)"
+            )
+            line(1, 1)
+            line(2, 2)
+            line(3, 99)   // its product deleted for good
+            UpdatedAtTriggers.install(this)
+            DocumentTriggers.install(this)
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 60, true, MIGRATION_59_60)
+        try {
+            assertEquals(
+                listOf("1|95.0|1|2000", "2|80.5|1|2000", "3|0.0|1|2000"),
+                sql.texts("SELECT id || '|' || purchase_price_snapshot || '|' || cost_estimated || '|' || updated_at FROM vente_items ORDER BY id")
+            )
+            assertEquals(1, sql.count("ventes", "id = 1 AND updated_at = 3000 AND version = 4"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

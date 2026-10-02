@@ -26,5 +26,19 @@ data class VenteItemEntity(
     @ColumnInfo(defaultValue = "''")
     val created_at: String = java.time.Instant.now().toString(),
     @ColumnInfo(defaultValue = "0")
-    val updated_at: Long = System.currentTimeMillis()
+    val updated_at: Long = System.currentTimeMillis(),
+    /**
+     * The product's purchase price when the line was sold — its cost, so a margin stays what it was
+     * when the price changes later. The same snapshot a perte keeps (PerteEntity.purchase_price_snapshot).
+     *
+     * Last, with [cost_estimated], because MIGRATION_59_60 appends them.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val purchase_price_snapshot: Double = 0.0,
+    /**
+     * True on a line sold before the snapshot existed: MIGRATION_59_60 filled its cost from the
+     * product's purchase price on the day of the update, not the day of the sale.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val cost_estimated: Boolean = false
 )

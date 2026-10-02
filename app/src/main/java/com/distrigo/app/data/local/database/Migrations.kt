@@ -1135,6 +1135,33 @@ val MIGRATION_58_59 = object : Migration(58, 59) {
 }
 
 /**
+ * 59 → 60: a sale line keeps its cost — `vente_items.purchase_price_snapshot`, the product's purchase
+ * price when it was sold — so a margin no longer moves when the price changes afterwards.
+ *
+ * Lines already sold never recorded one. They get the product's purchase price as it is today (the
+ * product in the bin included: the line still names it), and `cost_estimated = 1` says so, so a report
+ * can tell a remembered cost from a guessed one. A line whose product is gone for good gets 0.
+ *
+ * The backfill stamps nothing: the change-tracking triggers stored at 59 compare only the columns
+ * that existed then, so writing the two new ones fires none of them. No vente's `updated_at` moves.
+ *
+ * Both columns are appended last, like money_format, so a migrated database lists its columns in a
+ * new one's order. The column definitions are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/60.json`). **Do not hand-edit them** -
+ * change the entity, rebuild, and re-copy.
+ */
+val MIGRATION_59_60 = object : Migration(59, 60) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vente_items` ADD COLUMN `purchase_price_snapshot` REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `vente_items` ADD COLUMN `cost_estimated` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            "UPDATE `vente_items` SET `cost_estimated` = 1, `purchase_price_snapshot` = " +
+                "COALESCE((SELECT `purchase_price` FROM `products` WHERE `products`.`id` = `vente_items`.`product_id`), 0)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1148,7 +1175,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
-    MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59,
+    MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60,
 )
 
 /**

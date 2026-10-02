@@ -1306,7 +1306,8 @@ class ProductRepository(
                 VenteItemEntity(
                     vente_id = venteId, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = quantity * unitPrice
+                    unit_price = unitPrice, total_price = quantity * unitPrice,
+                    purchase_price_snapshot = product.purchase_price
                 )
             }
             db.venteDao().insertItems(itemEntities)
@@ -1342,6 +1343,9 @@ class ProductRepository(
             db.stockMovementDao().deleteBySource("vente", id)
             // ── تحقق مسبق: فقط للبيع من الشاحنة (Tournée) ──
             if (existing.source == "camion") requireCamionStock(items)
+            // A product already on the sale keeps the cost it was sold at, estimated or not; only a
+            // product added by this edit takes today's purchase price.
+            val keptCosts = db.venteDao().getItemsForVente(id).associateBy { it.product_id }
             db.venteDao().deleteItemsForVente(id)
 
             val now = java.time.Instant.now().toString()
@@ -1376,10 +1380,13 @@ class ProductRepository(
                     created_at   = now
                 )
 
+                val kept = keptCosts[productId]
                 VenteItemEntity(
                     vente_id = id, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = quantity * unitPrice
+                    unit_price = unitPrice, total_price = quantity * unitPrice,
+                    purchase_price_snapshot = kept?.purchase_price_snapshot ?: product.purchase_price,
+                    cost_estimated = kept?.cost_estimated ?: false
                 )
             }
             db.venteDao().insertItems(itemEntities)
