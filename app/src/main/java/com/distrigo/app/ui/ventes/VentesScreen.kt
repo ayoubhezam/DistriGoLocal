@@ -428,7 +428,7 @@ fun VentesScreen(
             // system back already popped the hub, but nothing on screen said so. Null-safe
             // because the screen is still usable as a root, where None is right.
             DsTopAppBar(
-                title   = "Ventes",
+                title   = "Dépôt Vente",
                 leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
             )
