@@ -77,10 +77,18 @@ private fun expiresWithin(expiryDate: String?, today: LocalDate, days: Long): Bo
 }
 
 /**
- * Step 02's search and filters as the query its paged list runs: the Produits rules, with price read
- * from the purchase price, newest product first as the list has always been.
+ * Step 02's search and filters as the query its paged list runs: the Produits rules, newest product
+ * first as the list has always been.
+ *
+ * [priceColumn] is the price the list shows and its price range reads: the purchase price for a bon,
+ * the selling price for a sale. [inCamionOnly] keeps a tournée's list to what the camion carries.
  */
-fun ProductListFilters.toListQuery(search: String, today: LocalDate = LocalDate.now()): ProductListQuery =
+fun ProductListFilters.toListQuery(
+    search       : String,
+    today        : LocalDate = LocalDate.now(),
+    priceColumn  : PriceColumn = PriceColumn.PURCHASE,
+    inCamionOnly : Boolean = false,
+): ProductListQuery =
     ProductListQuery(
         search          = search,
         categoryId      = categoryId,
@@ -89,10 +97,11 @@ fun ProductListFilters.toListQuery(search: String, today: LocalDate = LocalDate.
         supplierId      = supplierId,
         unitType        = unitType,
         stockLevel      = stockLevel,
-        priceColumn     = PriceColumn.PURCHASE,
+        priceColumn     = priceColumn,
         priceMin        = priceMin.toDoubleOrNull(),
         priceMax        = priceMax.toDoubleOrNull(),
         expiringFrom    = if (expiringSoon) today.toString() else null,
         expiringTo      = if (expiringSoon) today.plusDays(30).toString() else null,
         sort            = ProductSort.NEWEST,
+        inCamionOnly    = inCamionOnly,
     )

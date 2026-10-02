@@ -77,62 +77,10 @@ import java.time.LocalDate
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.designsystem.DsTopBarAddButton
-
-/** Height shared by the three chips of Step 02's count / Filtres / Nouveau produit row. */
-private val Step2ChipHeight = 32.dp
-
-/**
- * One chip of Step 02's count / Filtres / Nouveau produit row.
- *
- * All three are drawn by this one function so they cannot drift apart: one height, one corner, one
- * padding, one icon size, one type size. What tells them apart is colour alone — the count is
- * information, Filtres is a control, Nouveau produit is the action.
- */
-@Composable
-private fun Step2Chip(
-    icon      : ImageVector,
-    label     : String,
-    container : Color,
-    content   : Color,
-    modifier  : Modifier = Modifier,
-    dot       : Boolean = false,
-    onClick   : (() -> Unit)? = null
-) {
-    Box(modifier = modifier) {
-    Row(
-        modifier = Modifier
-            .height(Step2ChipHeight)
-            .clip(DsShapes.medium)
-            .background(container)
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
-            .padding(horizontal = DsSpacing.sm),
-        verticalAlignment     = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
-    ) {
-        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
-        Text(
-            label,
-            fontSize   = DsTextSize.caption,
-            fontWeight = FontWeight.SemiBold,
-            color      = content,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis
-        )
-    }
-    // The same 6dp dot the Produits "Filtres" button shows while a filter is on. Overlaid in the
-    // corner rather than placed in the row, so switching it on does not widen the chip.
-    if (dot) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 5.dp, end = 5.dp)
-                .size(6.dp)
-                .clip(DsShapes.pill)
-                .background(DsColors.Primary)
-        )
-    }
-    }
-}
+import com.distrigo.app.ui.common.Step2Chip
+import com.distrigo.app.ui.common.productFilterChips
+import com.distrigo.app.ui.common.ActiveProductFilterChips
+import com.distrigo.app.ui.common.ProductCountAndFilters
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -578,43 +526,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                 if (supplierIdArg != null) onBack() else navController.popBackStack()
             }
 
-            // One removable chip per active criterion, each carrying the filters without it.
-            val activeFilterChips: List<Pair<String, ProductListFilters>> = buildList {
-                filters.categoryId?.let { id ->
-                    add("Catégorie : ${categories.find { it.id == id }?.name ?: "—"}" to filters.copy(categoryId = null, sousCategorieId = null))
-                }
-                filters.sousCategorieId?.let { id ->
-                    add("Sous-catégorie : ${sousCategories.find { it.id == id }?.name ?: "—"}" to filters.copy(sousCategorieId = null))
-                }
-                filters.marqueId?.let { id ->
-                    add("Marque : ${marques.find { it.id == id }?.name ?: "—"}" to filters.copy(marqueId = null))
-                }
-                filters.supplierId?.let { id ->
-                    add("Fournisseur : ${suppliers.find { it.id == id }?.name ?: "—"}" to filters.copy(supplierId = null))
-                }
-                filters.unitType?.let { unit ->
-                    add(ProductUnit.label(unit) to filters.copy(unitType = null))
-                }
-                filters.stockLevel?.let { level ->
-                    val label = when (level) {
-                        "in_stock"  -> "En stock"
-                        "low_stock" -> "Stock faible"
-                        else        -> "Rupture de stock"
-                    }
-                    add(label to filters.copy(stockLevel = null))
-                }
-                val priceMin = filters.priceMin.toDoubleOrNull()
-                val priceMax = filters.priceMax.toDoubleOrNull()
-                if (priceMin != null || priceMax != null) {
-                    val range = when {
-                        priceMin != null && priceMax != null -> "${money.amount(priceMin)}–${money.da(priceMax)}"
-                        priceMin != null                     -> "≥ ${money.da(priceMin)}"
-                        else                                 -> "≤ ${money.da(priceMax!!)}"
-                    }
-                    add("Prix d'achat : $range" to filters.copy(priceMin = "", priceMax = ""))
-                }
-                if (filters.expiringSoon) add("Bientôt périmé" to filters.copy(expiringSoon = false))
-            }
+            val activeFilterChips = productFilterChips(filters, categories, sousCategories, marques, suppliers, "Prix d'achat", money)
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
@@ -649,36 +561,13 @@ fun NavGraphBuilder.purchaseFormGraph(
                     }
 
                     // ── Count · Filtres · Nouveau produit ── one fixed row; it no longer collapses
-                    // on scroll. The count takes whatever width the two actions leave and is the one
-                    // that ellipsizes on a narrow screen, so neither action is ever clipped.
-                    Row(
-                        modifier          = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically
+                    // on scroll. The count is the one that ellipsizes on a narrow screen, so neither
+                    // action is ever clipped.
+                    ProductCountAndFilters(
+                        count         = productCount,
+                        filtersActive = filters.isActive,
+                        onOpenFilters = { showFilterSheet = true }
                     ) {
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                            Step2Chip(
-                                icon      = Icons.Default.Inventory2,
-                                label     = "${productCount?.toString() ?: "…"} produit(s)",
-                                container = DsColors.SurfaceSunken,
-                                content   = DsColors.TextSecondary
-                            )
-                        }
-                        Spacer(Modifier.width(DsSpacing.sm))
-                        Step2Chip(
-                            icon      = Icons.Default.FilterList,
-                            label     = "Filtres",
-                            // Blue with a dot once it narrows anything, as the Produits button is. Not
-                            // "Filtres · 2": a count in the label widens the chip the moment a filter
-                            // is set and squeezes the product count beside it into an ellipsis — the
-                            // one figure a user filters in order to read. The chips below already say
-                            // exactly what is applied.
-                            container = DsColors.SurfaceSunken,
-                            content   = if (filters.isActive) DsColors.Primary else DsColors.TextSecondary,
-                            dot       = filters.isActive,
-                            onClick   = { showFilterSheet = true }
-                        )
                         Spacer(Modifier.width(DsSpacing.sm))
                         Step2Chip(
                             icon      = Icons.Default.Add,
@@ -689,43 +578,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         )
                     }
 
-                    // What is narrowing the list, each removable on its own — the whole chip is the
-                    // target, not a 14dp cross.
-                    if (activeFilterChips.isNotEmpty()) {
-                        LazyRow(
-                            contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
-                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                            modifier              = Modifier.padding(bottom = DsSpacing.sm)
-                        ) {
-                            items(activeFilterChips, key = { it.first }) { (label, withoutIt) ->
-                                Row(
-                                    modifier = Modifier
-                                        .height(Step2ChipHeight)
-                                        .clip(DsShapes.pill)
-                                        .background(DsColors.PrimaryLight)
-                                        .clickable { session.productFilters = withoutIt }
-                                        .padding(horizontal = DsSpacing.md),
-                                    verticalAlignment     = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
-                                ) {
-                                    Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, maxLines = 1)
-                                    Icon(Icons.Default.Close, contentDescription = "Retirer", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
-                                }
-                            }
-                            item(key = "clear-all") {
-                                Box(
-                                    modifier = Modifier
-                                        .height(Step2ChipHeight)
-                                        .clip(DsShapes.pill)
-                                        .clickable { session.productFilters = ProductListFilters() }
-                                        .padding(horizontal = DsSpacing.md),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Tout effacer", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-                                }
-                            }
-                        }
-                    }
+                    ActiveProductFilterChips(activeFilterChips, onChange = { session.productFilters = it })
 
                     if (showFilterSheet) {
                         PurchaseProductFilterSheet(

@@ -30,6 +30,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.ui.purchases.ProductListFilters
+import com.distrigo.app.ui.purchases.toListQuery
+import com.distrigo.app.data.local.paging.PriceColumn
+import kotlinx.coroutines.flow.combine
+import androidx.compose.runtime.snapshotFlow
 
 /**
  * Owns one pass through the Tournée Vente form: the form's own state, whether this pass is new or
@@ -93,6 +98,9 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     /** Step 02's search, held beside the list it narrows so it survives a trip to the cart. */
     var productSearch by mutableStateOf("")
 
+    /** Step 02's filters, kept like the search — Achats' filters, read against the selling price. */
+    var productFilters by mutableStateOf(ProductListFilters())
+
     /**
      * Step 02's products: only what the camion carries, paged from the database, newest first as the
      * list always was — see [PagedProductList].
@@ -100,8 +108,9 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     val productList = PagedProductList(
         scope      = viewModelScope,
         repository = productRepository,
-        query      = debouncedSearch { productSearch }
-            .map { ProductListQuery(search = it, inCamionOnly = true, sort = ProductSort.NEWEST) },
+        query      = combine(snapshotFlow { productFilters }, debouncedSearch { productSearch }) { filters, search ->
+            filters.toListQuery(search, priceColumn = PriceColumn.SELLING, inCamionOnly = true)
+        },
     )
 
     init {

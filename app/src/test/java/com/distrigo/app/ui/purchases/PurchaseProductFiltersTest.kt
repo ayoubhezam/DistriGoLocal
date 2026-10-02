@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.data.local.paging.PriceColumn
 import com.distrigo.app.data.model.Product
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -125,5 +126,30 @@ class PurchaseProductFiltersTest {
         assertEquals(3, filters.activeCount)
         assertTrue(product().matches(filters, today))
         assertFalse(product(unitType = "carton").matches(filters, today))
+    }
+
+    // ── the query each step 02 runs ──────────────────────────────────────────
+
+    @Test
+    fun `a bon's list reads the purchase price, all products`() {
+        val query = ProductListFilters(priceMin = "100", priceMax = "150").toListQuery("thé", today)
+        assertEquals(PriceColumn.PURCHASE, query.priceColumn)
+        assertEquals(100.0, query.priceMin!!, 0.0)
+        assertEquals(150.0, query.priceMax!!, 0.0)
+        assertEquals("thé", query.search)
+        assertFalse(query.inCamionOnly)
+    }
+
+    @Test
+    fun `a sale's list reads the selling price, and a tournée's only what the camion carries`() {
+        val filters = ProductListFilters(categoryId = 1, priceMin = "200")
+        val depot = filters.toListQuery("", today, priceColumn = PriceColumn.SELLING)
+        assertEquals(PriceColumn.SELLING, depot.priceColumn)
+        assertEquals(1, depot.categoryId)
+        assertFalse(depot.inCamionOnly)
+        val tournee = filters.toListQuery("", today, priceColumn = PriceColumn.SELLING, inCamionOnly = true)
+        assertEquals(PriceColumn.SELLING, tournee.priceColumn)
+        assertTrue(tournee.inCamionOnly)
+        assertEquals(200.0, tournee.priceMin!!, 0.0)
     }
 }

@@ -54,6 +54,9 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.ProductCountAndFilters
+import com.distrigo.app.ui.common.ActiveProductFilterChips
+import com.distrigo.app.ui.common.productFilterChips
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -198,6 +201,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val search = session.productSearch
+            val filters = session.productFilters
+            var showFilterSheet by remember { mutableStateOf(false) }
+            val categories by productViewModel.categories.collectAsState()
+            val sousCategories by productViewModel.sousCategories.collectAsState()
+            val marques by productViewModel.marques.collectAsState()
+            val filterSuppliers by productViewModel.suppliers.collectAsState()
             var showScanner by remember { mutableStateOf(false) }
 
             if (skipClientStep) {
@@ -268,16 +277,31 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 )
                             }
 
-                            Spacer(Modifier.height(DsSpacing.sm))
-
-                            Text(
-                                "${productCount?.toString() ?: "…"} produit(s)",
-                                fontSize = DsTextSize.caption,
-                                color    = DsColors.TextSecondary,
-                                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                            // Achats' count / Filtres row and chips: one tool across the three step 02s.
+                            ProductCountAndFilters(
+                                count         = productCount,
+                                filtersActive = filters.isActive,
+                                onOpenFilters = { showFilterSheet = true }
                             )
-
-                            Spacer(Modifier.height(DsSpacing.sm))
+                            ActiveProductFilterChips(
+                                productFilterChips(filters, categories, sousCategories, marques, filterSuppliers, "Prix de vente", money),
+                                onChange = { session.productFilters = it }
+                            )
+                            if (showFilterSheet) {
+                                com.distrigo.app.ui.purchases.PurchaseProductFilterSheet(
+                                    filters        = filters,
+                                    categories     = categories,
+                                    sousCategories = sousCategories,
+                                    marques        = marques,
+                                    suppliers      = filterSuppliers,
+                                    resultCount    = productCount ?: 0,
+                                    onChange       = { session.productFilters = it },
+                                    onDismiss      = { showFilterSheet = false },
+                                    priceLabel     = "Prix de vente",
+                                    // The camion's list: dépôt stock bands would say nothing here.
+                                    showStockLevel = false,
+                                )
+                            }
 
                             LazyColumn(
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),

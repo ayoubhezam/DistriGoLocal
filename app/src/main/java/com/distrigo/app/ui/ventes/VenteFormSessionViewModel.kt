@@ -36,6 +36,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.ui.purchases.ProductListFilters
+import com.distrigo.app.ui.purchases.toListQuery
+import com.distrigo.app.data.local.paging.PriceColumn
+import kotlinx.coroutines.flow.combine
+import androidx.compose.runtime.snapshotFlow
 
 /**
  * Owns one pass through the Dépôt Vente form: the form's own state, whether this pass is new /
@@ -154,6 +159,9 @@ class VenteFormSessionViewModel @Inject constructor(
     /** Step 02's search. Held here, beside the list it narrows, so it survives a trip to the cart. */
     var productSearch by mutableStateOf("")
 
+    /** Step 02's filters, kept like the search — Achats' filters, read against the selling price. */
+    var productFilters by mutableStateOf(ProductListFilters())
+
     /**
      * Step 02's products, paged from the database, newest first as the list always was — see
      * [PagedProductList]. The step used to collect the whole catalogue and search it in the composable.
@@ -161,7 +169,9 @@ class VenteFormSessionViewModel @Inject constructor(
     val productList = PagedProductList(
         scope      = viewModelScope,
         repository = productRepository,
-        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
+        query      = combine(snapshotFlow { productFilters }, debouncedSearch { productSearch }) { filters, search ->
+            filters.toListQuery(search, priceColumn = PriceColumn.SELLING)
+        },
     )
 
     init {

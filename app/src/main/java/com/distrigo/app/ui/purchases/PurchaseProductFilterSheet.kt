@@ -30,7 +30,12 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 
 /**
- * Achats step 02's filter sheet, laid out like the Produits one so the two read as the same tool.
+ * Step 02's filter sheet — Achats, Dépôt Vente and Tournée Vente — laid out like the Produits one so
+ * they all read as the same tool.
+ *
+ * [priceLabel] names the price the list shows ("Prix d'achat" for a bon, "Prix de vente" for a sale).
+ * [showStockLevel] is off for a tournée: its list is the camion's, and the stock-level bands read
+ * the dépôt's stock, which says nothing about what the camion can sell.
  *
  * Changes apply as they are made, as in Produits: the list behind the sheet is already narrowed
  * when it closes, and "Appliquer" only closes it. "Réinitialiser" clears the criteria and leaves the
@@ -46,7 +51,9 @@ internal fun PurchaseProductFilterSheet(
     suppliers      : List<Supplier>,
     resultCount    : Int,
     onChange       : (ProductListFilters) -> Unit,
-    onDismiss      : () -> Unit
+    onDismiss      : () -> Unit,
+    priceLabel     : String = "Prix d'achat",
+    showStockLevel : Boolean = true,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -139,17 +146,19 @@ internal fun PurchaseProductFilterSheet(
             }
             Spacer(Modifier.height(DsSpacing.md))
 
-            FilterDropdown(
-                label    = "Niveau de stock",
-                allLabel = "Tous",
-                options  = listOf("in_stock" to "En stock", "low_stock" to "Stock faible", "out_of_stock" to "Rupture de stock"),
-                selected = filters.stockLevel,
-                keyOf    = { it.first },
-                nameOf   = { it.second },
-                onSelect = { value -> onChange(filters.copy(stockLevel = value)) }
-            )
+            if (showStockLevel) {
+                FilterDropdown(
+                    label    = "Niveau de stock",
+                    allLabel = "Tous",
+                    options  = listOf("in_stock" to "En stock", "low_stock" to "Stock faible", "out_of_stock" to "Rupture de stock"),
+                    selected = filters.stockLevel,
+                    keyOf    = { it.first },
+                    nameOf   = { it.second },
+                    onSelect = { value -> onChange(filters.copy(stockLevel = value)) }
+                )
+            }
 
-            Text("Prix d'achat (DA)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text("$priceLabel (DA)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 PriceBoundField(
                     value         = filters.priceMin,
