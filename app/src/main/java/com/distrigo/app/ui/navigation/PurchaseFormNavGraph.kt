@@ -76,6 +76,7 @@ import com.distrigo.app.ui.purchases.matchesSearch
 import java.time.LocalDate
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 
 /** Height shared by the three chips of Step 02's count / Filtres / Nouveau produit row. */
 private val Step2ChipHeight = 32.dp
@@ -420,17 +421,11 @@ fun NavGraphBuilder.purchaseFormGraph(
                     title   = "Choisir un fournisseur",
                     leading = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
-                    OutlinedButton(
-                        onClick = { showAddSupplierDialog = true },
-                        shape   = DsShapes.pill,
-                        border  = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
-                    }
-                    // OutlinedButton brings its own inset; this makes up the standard end margin.
-                    Spacer(Modifier.width(DsSpacing.xs))
+                    DsTopBarAddButton(
+                        contentDescription = "Nouveau fournisseur",
+                        onClick            = { showAddSupplierDialog = true },
+                        modifier           = Modifier.padding(end = DsSpacing.md)
+                    )
                 }
                 DsCompactSearchField(
                     value         = supplierSearch,

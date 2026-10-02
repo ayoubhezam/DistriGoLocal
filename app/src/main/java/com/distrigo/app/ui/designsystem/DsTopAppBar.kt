@@ -33,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
 
 /**
  * What occupies the bar's leading slot.
@@ -308,5 +310,31 @@ fun DsTopBarAvatar(
                 color      = DsColors.Primary
             )
         }
+    }
+}
+
+/**
+ * The bar's "add" action: a 40dp primary pill with a white "+", the one Tournées carries.
+ *
+ * Wherever a screen adds something — a tournée, a client while picking one, a supplier — it is this,
+ * at the bar's end, so the action is found in the same place every time.
+ *
+ * In a [DsTopBarSize.Regular] bar, pass `Modifier.padding(end = DsSpacing.md)`: the bar's end inset
+ * is sized for 48dp icon buttons that bring their own margin, and a 40dp pill brings none.
+ */
+@Composable
+fun DsTopBarAddButton(
+    contentDescription : String,
+    onClick            : () -> Unit,
+    modifier           : Modifier = Modifier,
+) {
+    FloatingActionButton(
+        onClick        = onClick,
+        containerColor = DsColors.Primary,
+        contentColor   = Color.White,
+        modifier       = modifier.size(DsTopBarActionSize),
+        shape          = DsShapes.pill
+    ) {
+        Icon(Icons.Default.Add, contentDescription = contentDescription)
     }
 }

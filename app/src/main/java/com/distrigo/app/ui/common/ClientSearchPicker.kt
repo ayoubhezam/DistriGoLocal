@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +29,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 
 /**
  * Shared "pick a client via search" screen body: header + search field + filtered client list,
@@ -55,7 +55,15 @@ fun ClientSearchPicker(
         DsTopAppBar(
             title   = stringResource(R.string.client_picker_title),
             leading = DsTopBarLeading.Back(onBack)
-        )
+        ) {
+            if (onAddNewClient != null) {
+                DsTopBarAddButton(
+                    contentDescription = stringResource(R.string.client_picker_add_new),
+                    onClick            = onAddNewClient,
+                    modifier           = Modifier.padding(end = DsSpacing.md)
+                )
+            }
+        }
 
         DsCompactSearchField(
             value         = clientSearch,
@@ -119,20 +127,5 @@ fun ClientSearchPicker(
             }
         }
 
-        if (onAddNewClient != null) {
-            Button(
-                onClick  = onAddNewClient,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
-                    .height(52.dp),
-                shape  = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(DsSpacing.sm))
-                Text(stringResource(R.string.client_picker_add_new), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
-            }
-        }
     }
 }
