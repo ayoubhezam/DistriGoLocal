@@ -13,6 +13,9 @@ enum class ProductSort(val column: String, val ascending: Boolean) {
     STOCK_DESC("p.stock",            false),
     PRICE_ASC ("p.selling_price",    true),
     PRICE_DESC("p.selling_price",    false),
+    /** The camion's stock, for Stock Camion: its "Stock" sort reads what the camion carries. */
+    CAMION_STOCK_ASC ("p.camion_stock", true),
+    CAMION_STOCK_DESC("p.camion_stock", false),
 }
 
 /** Which stock a stock filter reads: the dépôt's, or the camion's for the tournée pickers. */

@@ -113,3 +113,10 @@ fun SortOption.toProductSort(): ProductSort = when (this) {
     SortOption.PRICE_ASC  -> ProductSort.PRICE_ASC
     SortOption.PRICE_DESC -> ProductSort.PRICE_DESC
 }
+
+/** The same choice on Stock Camion, where "Stock" means what the camion carries. */
+fun SortOption.toCamionSort(): ProductSort = when (this) {
+    SortOption.STOCK_ASC  -> ProductSort.CAMION_STOCK_ASC
+    SortOption.STOCK_DESC -> ProductSort.CAMION_STOCK_DESC
+    else                  -> toProductSort()
+}

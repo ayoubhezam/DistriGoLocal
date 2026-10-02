@@ -42,6 +42,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import com.distrigo.app.ui.common.DsCompactSearchAction
+import com.distrigo.app.ui.common.ActiveProductFilterChips
+import com.distrigo.app.ui.common.productFilterChips
+import com.distrigo.app.ui.products.ProductCard
+import com.distrigo.app.ui.products.ProductGridCard
+import com.distrigo.app.ui.products.ProductListControls
+import com.distrigo.app.ui.products.ProductSortSheet
+import com.distrigo.app.ui.products.SortOption
+import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
+import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -50,9 +62,20 @@ fun StockCamionScreen(
     productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
         hiltViewModel()
 ) {
-    // What the camion carries, paged and searched in the database (ProductViewModel.camionProducts).
+    // What the camion carries, paged, searched, filtered and sorted in the database
+    // (ProductViewModel.camionProducts) — the Produits controls, on the camion's list.
+    val money = LocalMoneyFormatter.current
     val camionProducts = productViewModel.camionProducts.items.collectAsLazyPagingItems()
-    val search = productViewModel.camionSearch
+    val camionCount by productViewModel.camionProducts.count.collectAsState()
+    val search  = productViewModel.camionSearch
+    val filters = productViewModel.camionFilters
+    val categories     by productViewModel.categories.collectAsState()
+    val sousCategories by productViewModel.sousCategories.collectAsState()
+    val marques        by productViewModel.marques.collectAsState()
+    val suppliers      by productViewModel.suppliers.collectAsState()
+    var showScanner     by remember { mutableStateOf(false) }
+    var showSortSheet   by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     var showNewChargement by remember { mutableStateOf(false) }
     var editingProduct    by remember { mutableStateOf<Product?>(null) }
@@ -121,6 +144,20 @@ fun StockCamionScreen(
         return
     }
 
+    // ── Barcode: what it reads goes in the search, which matches barcodes as well as names ──
+    if (showScanner) {
+        onFullScreenChange(true)
+        BarcodeScannerScreen(
+            onBarcodeScanned = { code ->
+                productViewModel.camionSearch = code
+                showScanner = false
+                onFullScreenChange(false)
+            },
+            onClose = { showScanner = false; onFullScreenChange(false) }
+        )
+        return
+    }
+
     // ── Long Press Dialog ──
     longPressProduct?.let { product ->
         AlertDialog(
@@ -169,13 +206,20 @@ fun StockCamionScreen(
             )
             Spacer(Modifier.height(DsSpacing.md))
 
-            // ── Search ──
+            // ── Search: a name, or a barcode typed or scanned ──
             DsCompactSearchField(
                 value         = search,
                 onValueChange = { productViewModel.camionSearch = it },
                 placeholder   = "Rechercher un produit",
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-            )
+            ) {
+                DsCompactSearchAction(
+                    icon               = Icons.Default.QrCodeScanner,
+                    contentDescription = "Scanner un code-barres",
+                    tint               = DsColors.Primary,
+                    onClick            = { showScanner = true }
+                )
+            }
 
             // Brouillons live beside the list they belong to, as they do on the other three
             // screens. Absent when there are none, so the row costs nothing in the ordinary case.
@@ -207,6 +251,22 @@ fun StockCamionScreen(
 
             Spacer(Modifier.height(DsSpacing.sm))
 
+            // ── Count · list/grid · Trier · Filtres: the Produits row ──
+            ProductListControls(
+                count         = camionCount,
+                isGrid        = productViewModel.camionGridView,
+                onGridChange  = { productViewModel.camionGridView = it },
+                sortActive    = productViewModel.camionSort != SortOption.NAME_ASC,
+                onSort        = { showSortSheet = true },
+                filtersActive = filters.isActive,
+                onFilters     = { showFilterSheet = true }
+            )
+            Spacer(Modifier.height(DsSpacing.sm))
+            ActiveProductFilterChips(
+                productFilterChips(filters, categories, sousCategories, marques, suppliers, "Prix de vente", money),
+                onChange = { productViewModel.camionFilters = it }
+            )
+
             when {
                 camionProducts.itemCount == 0 && camionProducts.loadState.refresh is LoadState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -223,27 +283,81 @@ fun StockCamionScreen(
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(Modifier.height(DsSpacing.sm))
-                            Text("Aucun produit dans le camion", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                            Text(
+                                // An empty camion and a search that found nothing in it are two answers.
+                                if (search.isBlank() && !filters.isActive) "Aucun produit dans le camion" else "Aucun produit trouvé",
+                                color = DsColors.TextSecondary, fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
                 else -> {
-                    LazyColumn(
-                        contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-                        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        items(count = camionProducts.itemCount, key = camionProducts.itemKey { it.id }) { index ->
-                            val product = camionProducts[index] ?: return@items
-                            StockCamionProductRow(
-                                product     = product,
-                                onLongClick = { longPressProduct = product }
-                            )
+                    val productKey = camionProducts.itemKey { it.id }
+                    // Lets the last row scroll clear of the raised FAB (clearance + 56dp FAB).
+                    val bottom = DsSpacing.fabBottomClearance + 56.dp
+                    // Produits' cards, showing what the camion carries. No "low" warning: a minimum
+                    // stock is the dépôt's threshold, not the camion's. A tap opens the same
+                    // "Modifier" a long press does — the card's chevron promises something.
+                    if (!productViewModel.camionGridView) {
+                        LazyColumn(
+                            contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = bottom),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                        ) {
+                            items(count = camionProducts.itemCount, key = productKey) { index ->
+                                val product = camionProducts[index] ?: return@items
+                                ProductCard(
+                                    product     = product,
+                                    onClick     = { longPressProduct = product },
+                                    onLongClick = { longPressProduct = product },
+                                    stock       = product.camion_stock,
+                                    lowStock    = false
+                                )
+                            }
                         }
-                        // Lets the last row scroll clear of the raised FAB (clearance + 56dp FAB)
-                        item { Spacer(Modifier.height(DsSpacing.fabBottomClearance + 56.dp)) }
+                    } else {
+                        LazyVerticalGrid(
+                            columns               = GridCells.Fixed(2),
+                            contentPadding        = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = bottom),
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                            verticalArrangement   = Arrangement.spacedBy(DsSpacing.sm)
+                        ) {
+                            items(count = camionProducts.itemCount, key = productKey) { index ->
+                                val product = camionProducts[index] ?: return@items
+                                ProductGridCard(
+                                    product     = product,
+                                    onClick     = { longPressProduct = product },
+                                    onLongClick = { longPressProduct = product },
+                                    stock       = product.camion_stock,
+                                    lowStock    = false
+                                )
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        if (showSortSheet) {
+            ProductSortSheet(
+                selected  = productViewModel.camionSort,
+                onSelect  = { productViewModel.camionSort = it },
+                onDismiss = { showSortSheet = false }
+            )
+        }
+        if (showFilterSheet) {
+            PurchaseProductFilterSheet(
+                filters        = filters,
+                categories     = categories,
+                sousCategories = sousCategories,
+                marques        = marques,
+                suppliers      = suppliers,
+                resultCount    = camionCount ?: 0,
+                onChange       = { productViewModel.camionFilters = it },
+                onDismiss      = { showFilterSheet = false },
+                priceLabel     = "Prix de vente",
+                // The camion's list: dépôt stock bands would say nothing here.
+                showStockLevel = false
+            )
         }
 
         // ── FAB: ajouter plusieurs produits ──
@@ -281,71 +395,5 @@ fun StockCamionScreen(
                 onDismiss  = { showDraftsSheet = false }
             )
         }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun StockCamionProductRow(product: Product, onLongClick: () -> Unit) {
-    val money = LocalMoneyFormatter.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .combinedClickable(
-                onClick     = {},
-                onLongClick = onLongClick
-            )
-            .padding(DsSpacing.md),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier         = Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.SurfaceMuted),
-            contentAlignment = Alignment.Center
-        ) {
-            // ── بعد ──
-            EntityImage(
-                ref                = product.image_uri,
-                contentDescription = null,
-                modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
-            ) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
-            }
-        }
-
-        Spacer(Modifier.width(DsSpacing.md))
-
-        Text(
-            product.name,
-            fontSize   = DsTextSize.body,
-            fontWeight = FontWeight.SemiBold,
-            color      = DsColors.TextPrimary,
-            maxLines   = 1,
-            modifier   = Modifier
-                .weight(1f)
-                .basicMarquee()
-        )
-
-        Spacer(Modifier.width(DsSpacing.sm))
-
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                money.da(product.camion_stock * product.selling_price),
-                fontSize   = DsTextSize.bodyLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color      = DsColors.Primary
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                "${formatQty(product.camion_stock)} ${product.unit_type}",
-                fontSize = DsTextSize.caption,
-                color    = Color.Black
-            )
-        }
-
-        Spacer(Modifier.width(DsSpacing.lg))
-
     }
 }

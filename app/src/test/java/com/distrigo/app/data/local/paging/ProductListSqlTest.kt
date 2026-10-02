@@ -1,5 +1,7 @@
 package com.distrigo.app.data.local.paging
 
+import com.distrigo.app.ui.products.SortOption
+import com.distrigo.app.ui.products.toCamionSort
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -77,6 +79,18 @@ class ProductListSqlTest {
         val sql = ProductListSql.page(ProductListQuery(sort = ProductSort.PRICE_DESC), ProductCursor(120.0, 50), 20).sql
         assertTrue(sql, sql.contains("(p.selling_price < ? OR (p.selling_price = ? AND p.id < ?))"))
         assertTrue(sql, sql.endsWith("ORDER BY p.selling_price DESC, p.id DESC LIMIT ?"))
+    }
+
+    @Test
+    fun `Stock Camion sorts by what the camion carries, and pages on it`() {
+        val sql = ProductListSql.page(ProductListQuery(inCamionOnly = true, sort = ProductSort.CAMION_STOCK_DESC), ProductCursor(12.5, 50), 20).sql
+        assertTrue(sql, sql.contains("(p.camion_stock < ? OR (p.camion_stock = ? AND p.id < ?))"))
+        assertTrue(sql, sql.endsWith("ORDER BY p.camion_stock DESC, p.id DESC LIMIT ?"))
+        assertEquals(ProductSort.CAMION_STOCK_ASC, SortOption.STOCK_ASC.toCamionSort())
+        assertEquals(ProductSort.CAMION_STOCK_DESC, SortOption.STOCK_DESC.toCamionSort())
+        // Name and price sort the same on either list.
+        assertEquals(ProductSort.NAME_ASC, SortOption.NAME_ASC.toCamionSort())
+        assertEquals(ProductSort.PRICE_DESC, SortOption.PRICE_DESC.toCamionSort())
     }
 
     @Test

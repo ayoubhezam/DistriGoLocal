@@ -81,6 +81,7 @@ class ProductPagingSource(
             ProductSort.NAME_ASC, ProductSort.NAME_DESC   -> sort_name
             ProductSort.STOCK_ASC, ProductSort.STOCK_DESC -> product.stock
             ProductSort.PRICE_ASC, ProductSort.PRICE_DESC -> product.selling_price
+            ProductSort.CAMION_STOCK_ASC, ProductSort.CAMION_STOCK_DESC -> product.camion_stock
         },
         id = product.id,
     )

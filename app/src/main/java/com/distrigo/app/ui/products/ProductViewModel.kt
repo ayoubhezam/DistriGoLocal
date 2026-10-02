@@ -41,6 +41,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import com.distrigo.app.ui.purchases.toListQuery as toStep2Query
+import com.distrigo.app.data.local.paging.PriceColumn
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
@@ -414,16 +416,29 @@ class ProductViewModel @Inject constructor(
 
     // -- The camion, for Stock Camion and the tournée --
 
-    /** Stock Camion's search. */
+    /** Stock Camion's search — a name, or a barcode typed or scanned. */
     var camionSearch by mutableStateOf("")
 
-    /** What the camion carries, paged, newest first as Stock Camion always listed it. */
+    /** Stock Camion's sort, as Produits sorts — by name first. "Stock" sorts what the camion carries. */
+    var camionSort by mutableStateOf(SortOption.NAME_ASC)
+
+    /**
+     * Stock Camion's filters: step 02's, read against the selling price the list shows. The stock
+     * level is left out — its bands read dépôt stock (see PurchaseProductFilterSheet).
+     */
+    var camionFilters by mutableStateOf(com.distrigo.app.ui.purchases.ProductListFilters())
+
+    /** Stock Camion's list or grid, as Produits offers. */
+    var camionGridView by mutableStateOf(false)
+
+    /** What the camion carries, paged, with its search, filters and sort applied in the database. */
     val camionProducts: PagedProductList by lazy {
         PagedProductList(
             scope      = viewModelScope,
             repository = repository,
-            query      = debouncedSearch { camionSearch }
-                .map { ProductListQuery(search = it, inCamionOnly = true, sort = ProductSort.NEWEST) },
+            query      = combine(snapshotFlow { camionFilters to camionSort }, debouncedSearch { camionSearch }) { (filters, sort), search ->
+                filters.toStep2Query(search, priceColumn = PriceColumn.SELLING, inCamionOnly = true).copy(sort = sort.toCamionSort())
+            },
         )
     }
 

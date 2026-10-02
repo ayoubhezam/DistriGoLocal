@@ -113,7 +113,6 @@ fun ProductsScreen(
     var showDeleteDialog by remember { mutableStateOf<Product?>(null) }
     var showScanner      by remember { mutableStateOf(false) }
     var showSortSheet    by remember { mutableStateOf(false) }
-    val sheetState        = rememberModalBottomSheetState()
 
     // ── Filter sheet, local UI state only — the filters themselves live in the ViewModel ──
     var showFilterSheet       by remember { mutableStateOf(false) }
@@ -245,38 +244,11 @@ fun ProductsScreen(
     }
 
     if (showSortSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSortSheet = false },
-            sheetState       = sheetState,
-            containerColor   = DsColors.Surface
-        ) {
-            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-                Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
-                Spacer(Modifier.height(DsSpacing.md))
-                SortOption.entries.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.medium)
-                            .background(if (viewModel.sortOption == option) DsColors.PrimaryLight else Color.Transparent)
-                            .clickable { viewModel.sortOption = option; showSortSheet = false }
-                            .padding(horizontal = 12.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text       = option.label,
-                            fontSize   = DsTextSize.body,
-                            color      = if (viewModel.sortOption == option) DsColors.Primary else DsColors.TextPrimary,
-                            fontWeight = if (viewModel.sortOption == option) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                        if (viewModel.sortOption == option) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-        }
+        ProductSortSheet(
+            selected  = viewModel.sortOption,
+            onSelect  = { viewModel.sortOption = it },
+            onDismiss = { showSortSheet = false }
+        )
     }
 
     if (showFilterSheet) {
@@ -614,112 +586,15 @@ fun ProductsScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("${productCount?.toString() ?: "…"} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                    Row(
-                        modifier = Modifier
-                            .clip(DsShapes.medium)
-                            .background(DsColors.SurfaceSunken)
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(DsShapes.small)
-                                .background(if (!viewModel.isGridView) DsColors.Primary else Color.Transparent)
-                                .clickable { viewModel.isGridView = false }
-                                .padding(6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.ViewList,
-                                contentDescription = "Liste",
-                                tint = if (!viewModel.isGridView) Color.White else DsColors.TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(DsShapes.small)
-                                .background(if (viewModel.isGridView) DsColors.Primary else Color.Transparent)
-                                .clickable { viewModel.isGridView = true }
-                                .padding(6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.GridView,
-                                contentDescription = "Grille",
-                                tint = if (viewModel.isGridView) Color.White else DsColors.TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(DsShapes.medium)
-                            .background(DsColors.SurfaceSunken)
-                            .clickable { showSortSheet = true }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Sort,
-                                contentDescription = "Trier",
-                                tint = if (viewModel.sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Trier",
-                                fontSize = DsTextSize.caption,
-                                color = if (viewModel.sortOption != SortOption.NAME_ASC) DsColors.Primary else DsColors.TextSecondary
-                            )
-                        }
-                    }
-
-                    Box {
-                        Box(
-                            modifier = Modifier
-                                .clip(DsShapes.medium)
-                                .background(DsColors.SurfaceSunken)
-                                .clickable { showFilterSheet = true }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.FilterList,
-                                    contentDescription = "Filtres",
-                                    tint = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    "Filtres",
-                                    fontSize = DsTextSize.caption,
-                                    color = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
-                                )
-                            }
-                        }
-                        if (hasActiveFilters) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(DsColors.Primary)
-                            )
-                        }
-                    }
-                }
-            }
+            ProductListControls(
+                count         = productCount,
+                isGrid        = viewModel.isGridView,
+                onGridChange  = { viewModel.isGridView = it },
+                sortActive    = viewModel.sortOption != SortOption.NAME_ASC,
+                onSort        = { showSortSheet = true },
+                filtersActive = hasActiveFilters,
+                onFilters     = { showFilterSheet = true }
+            )
 
             if (hasActiveFilters) {
                 LazyRow(
@@ -871,9 +746,11 @@ fun ProductCard(
     product: Product,
     onClick: () -> Unit,
     onImageClick: () -> Unit = onClick,
-    onLongClick : () -> Unit = {}
+    onLongClick : () -> Unit = {},
+    stock       : Double  = product.stock,
+    lowStock    : Boolean = product.stock < product.min_stock,
 ) {
-    val isLow = product.stock < product.min_stock
+    val isLow = lowStock
 
     Card(
         modifier  = Modifier.fillMaxWidth().combinedClickable(
@@ -965,7 +842,7 @@ fun ProductCard(
 
             // ── Stock : عمود منفصل على اليمين ──
             Text(
-                "${formatQty(product.stock)} ${product.unit_type}",
+                "${formatQty(stock)} ${product.unit_type}",
                 fontSize   = DsTextSize.caption,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                 color      = if (isLow) DsColors.Danger else DsColors.TextSecondary,
@@ -985,9 +862,11 @@ fun ProductGridCard(
     product: Product,
     onClick: () -> Unit,
     onImageClick: () -> Unit = onClick,
-    onLongClick : () -> Unit = {}
+    onLongClick : () -> Unit = {},
+    stock       : Double  = product.stock,
+    lowStock    : Boolean = product.stock < product.min_stock,
 ) {
-    val isLow = product.stock < product.min_stock
+    val isLow = lowStock
 
     Card(
         modifier  = Modifier.fillMaxWidth().clickable { onClick() },
@@ -1043,7 +922,7 @@ fun ProductGridCard(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text(
-                        text       = "${formatQty(product.stock)} ${product.unit_type}",
+                        text       = "${formatQty(stock)} ${product.unit_type}",
                         fontSize   = DsTextSize.caption,
                         fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Normal,
                         color      = if (isLow) DsColors.Danger else DsColors.TextSecondary
@@ -1054,6 +933,171 @@ fun ProductGridCard(
                         color    = DsColors.TextSecondary,
                         maxLines = 1
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The count, the list/grid toggle, "Trier" and "Filtres" — Produits' controls row, shared with
+ * Stock Camion so the two lists are driven the same way. Sort and filters turn blue while they
+ * change anything; the filters also carry a dot.
+ */
+@Composable
+internal fun ProductListControls(
+    count         : Int?,
+    isGrid        : Boolean,
+    onGridChange  : (Boolean) -> Unit,
+    sortActive    : Boolean,
+    onSort        : () -> Unit,
+    filtersActive : Boolean,
+    onFilters     : () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("${count?.toString() ?: "…"} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .clip(DsShapes.medium)
+                    .background(DsColors.SurfaceSunken)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(DsShapes.small)
+                        .background(if (!isGrid) DsColors.Primary else Color.Transparent)
+                        .clickable { onGridChange(false) }
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.ViewList,
+                        contentDescription = "Liste",
+                        tint = if (!isGrid) Color.White else DsColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(DsShapes.small)
+                        .background(if (isGrid) DsColors.Primary else Color.Transparent)
+                        .clickable { onGridChange(true) }
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.GridView,
+                        contentDescription = "Grille",
+                        tint = if (isGrid) Color.White else DsColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(DsShapes.medium)
+                    .background(DsColors.SurfaceSunken)
+                    .clickable { onSort() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Sort,
+                        contentDescription = "Trier",
+                        tint = if (sortActive) DsColors.Primary else DsColors.TextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Trier",
+                        fontSize = DsTextSize.caption,
+                        color = if (sortActive) DsColors.Primary else DsColors.TextSecondary
+                    )
+                }
+            }
+
+            Box {
+                Box(
+                    modifier = Modifier
+                        .clip(DsShapes.medium)
+                        .background(DsColors.SurfaceSunken)
+                        .clickable { onFilters() }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Filtres",
+                            tint = if (filtersActive) DsColors.Primary else DsColors.TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Filtres",
+                            fontSize = DsTextSize.caption,
+                            color = if (filtersActive) DsColors.Primary else DsColors.TextSecondary
+                        )
+                    }
+                }
+                if (filtersActive) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(DsColors.Primary)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** "Trier par": the sort options, the current one ticked. Choosing one applies it and closes. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ProductSortSheet(
+    selected  : SortOption,
+    onSelect  : (SortOption) -> Unit,
+    onDismiss : () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(),
+        containerColor   = DsColors.Surface
+    ) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
+            Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+            Spacer(Modifier.height(DsSpacing.md))
+            SortOption.entries.forEach { option ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.medium)
+                        .background(if (selected == option) DsColors.PrimaryLight else Color.Transparent)
+                        .clickable { onSelect(option); onDismiss() }
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text       = option.label,
+                        fontSize   = DsTextSize.body,
+                        color      = if (selected == option) DsColors.Primary else DsColors.TextPrimary,
+                        fontWeight = if (selected == option) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                    if (selected == option) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
