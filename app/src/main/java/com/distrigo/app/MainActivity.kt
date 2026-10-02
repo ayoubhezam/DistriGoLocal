@@ -26,7 +26,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
@@ -61,7 +60,6 @@ import androidx.navigation.navArgument
 import androidx.core.view.WindowCompat
 import com.distrigo.app.R
 import com.distrigo.app.ui.clients.ClientsScreen
-import com.distrigo.app.ui.common.PlaceholderScreen
 import com.distrigo.app.ui.dashboard.DashboardScreen
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsElevation
@@ -331,9 +329,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Screen.PlusRapports.route) {
-                                PlaceholderScreen(
-                                    title  = "Rapports",
-                                    icon   = Icons.Default.BarChart,
+                                com.distrigo.app.ui.navigation.RapportsNavHost(
                                     onBack = { navController.popBackStack() }
                                 )
                             }
