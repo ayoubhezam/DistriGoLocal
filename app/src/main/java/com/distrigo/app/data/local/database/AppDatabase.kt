@@ -138,6 +138,9 @@ abstract class AppDatabase : RoomDatabase() {
     /** Used once, to move base64 payloads out to files — see ImageBackfill. */
     abstract fun imageBackfillDao(): ImageBackfillDao
 
+    /** The Rapports screens' aggregates — see ReportRepository. */
+    abstract fun reportDao(): ReportDao
+
     /** The business identity receipts print — see BusinessSettingsEntity. */
     abstract fun businessSettingsDao(): BusinessSettingsDao
 

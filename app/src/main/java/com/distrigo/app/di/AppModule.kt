@@ -30,6 +30,7 @@ import com.distrigo.app.data.repository.TourneeVenteDraftRepository
 import com.distrigo.app.data.repository.VenteDraftRepository
 import com.distrigo.app.data.repository.RetourClientRepository
 import com.distrigo.app.data.repository.RetourFournisseurRepository
+import com.distrigo.app.data.repository.ReportRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -169,4 +170,9 @@ object AppModule {
     @Singleton
     fun provideRetourFournisseurRepository(db: AppDatabase): RetourFournisseurRepository =
         RetourFournisseurRepository(db = db)
+
+    @Provides
+    @Singleton
+    fun provideReportRepository(db: AppDatabase): ReportRepository =
+        ReportRepository(dao = db.reportDao())
 }
