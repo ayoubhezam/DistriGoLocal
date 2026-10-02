@@ -218,7 +218,7 @@ internal fun PurchaseProductFilterSheet(
 /** A read-only dropdown with an "all" entry first, as every select in the Produits sheet has. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T, K> FilterDropdown(
+internal fun <T, K> FilterDropdown(
     label    : String,
     allLabel : String,
     options  : List<T>,

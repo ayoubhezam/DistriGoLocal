@@ -15,11 +15,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.ui.common.SupplierListFilters
 
 @HiltViewModel
 class SupplierViewModel @Inject constructor(
     private val repository: ProductRepository
 ) : ViewModel() {
+
+    /** The Fournisseurs list's filter sheet. Here, not in the screen, so opening a supplier and coming back keeps it. */
+    var listFilters by mutableStateOf(SupplierListFilters())
 
     private val _supplierProducts = MutableStateFlow<List<SupplierProduct>>(emptyList())
     val supplierProducts: StateFlow<List<SupplierProduct>> = _supplierProducts

@@ -16,11 +16,18 @@ import com.distrigo.app.data.model.Secteur
 import com.distrigo.app.ui.common.extractErrorMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.distrigo.app.ui.common.ClientListFilters
 
 @HiltViewModel
 class ClientViewModel @Inject constructor(
     private val repository: ProductRepository
 ) : ViewModel() {
+
+    /** The Clients list's filter sheet. Here, not in the screen, so opening a client and coming back keeps it. */
+    var listFilters by mutableStateOf(ClientListFilters())
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading

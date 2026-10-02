@@ -40,6 +40,8 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.ProductListFilters
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 
 // Step 02's filtering controls, shared by Achats, Dépôt Vente and Tournée Vente so the three read as
 // one tool: the count / Filtres row, and a removable chip per criterion applied.
@@ -195,7 +197,12 @@ internal fun ActiveProductFilterChips(
     onChange : (ProductListFilters) -> Unit,
 ) {
     if (chips.isEmpty()) return
+    // A chip added before the first one shown would otherwise leave the row anchored on the old
+    // first chip, cutting the new one off at the left edge: every change starts the row over.
+    val rowState = rememberLazyListState()
+    LaunchedEffect(chips.map { it.first }) { rowState.scrollToItem(0) }
     LazyRow(
+        state                 = rowState,
         contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
         modifier              = Modifier.padding(bottom = DsSpacing.sm)

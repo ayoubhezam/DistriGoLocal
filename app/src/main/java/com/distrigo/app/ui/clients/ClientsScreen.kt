@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.clients
 
-import com.distrigo.app.ui.common.DsFilterChip
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
@@ -42,6 +41,11 @@ import com.distrigo.app.ui.common.clientsInDebt
 import com.distrigo.app.ui.common.filterClients
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.common.refusalMessage
+import com.distrigo.app.ui.common.PartyFilterSheet
+import com.distrigo.app.ui.common.CountAndFiltersRow
+import com.distrigo.app.ui.common.RemovableFilterChips
+import com.distrigo.app.ui.common.ClientListFilters
+import com.distrigo.app.ui.common.placesOf
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -57,8 +61,8 @@ fun ClientsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     var search           by remember { mutableStateOf("") }
-    var typeFilter       by remember { mutableStateOf("all") }
-    var debtOnly         by remember { mutableStateOf(false) }
+    var showFilterSheet  by remember { mutableStateOf(false) }
+    val filters          = viewModel.listFilters
     var showDeleteDialog by remember { mutableStateOf<Client?>(null) }
     var longPressClient  by remember { mutableStateOf<Client?>(null) }
 
@@ -147,8 +151,46 @@ fun ClientsScreen(
 
     // Recomputed only when the list or a filter changes, not on every recomposition. The search
     // regex used to be compiled inside the predicate: once per client, per keystroke.
-    val filtered = remember(clients, search, typeFilter, debtOnly) {
-        filterClients(clients, search, typeFilter, debtOnly)
+    val filtered = remember(clients, search, filters) {
+        filterClients(clients, search, filters)
+    }
+
+    // The sheet offers only places the clients actually have, so no choice can empty the list.
+    val wilayas  = remember(clients) { placesOf(clients.map { it.wilaya_name }) }
+    val secteurs = remember(clients) { placesOf(clients.map { it.secteur_name }) }
+    val communes = remember(clients, filters.wilaya) {
+        placesOf(clients.filter { it.wilaya_name?.trim().equals(filters.wilaya, ignoreCase = true) }.map { it.commune_name })
+    }
+    val typeNames = listOf("retail" to "Détail", "wholesale" to "Gros", "business" to "Société")
+    val filterChips: List<Pair<String, () -> Unit>> = buildList {
+        filters.type?.let { t -> add((typeNames.toMap()[t] ?: t) to { viewModel.listFilters = filters.copy(type = null) }) }
+        filters.balance?.let { b -> add(b.label to { viewModel.listFilters = filters.copy(balance = null) }) }
+        filters.wilaya?.let { w -> add("Wilaya : $w" to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
+        filters.commune?.let { c -> add("Commune : $c" to { viewModel.listFilters = filters.copy(commune = null) }) }
+        filters.secteur?.let { s -> add("Secteur : $s" to { viewModel.listFilters = filters.copy(secteur = null) }) }
+    }
+
+    if (showFilterSheet) {
+        PartyFilterSheet(
+            resultCount = filtered.size,
+            wilayas     = wilayas,
+            wilaya      = filters.wilaya,
+            // A commune belongs to one wilaya: another wilaya drops it.
+            onWilaya    = { viewModel.listFilters = filters.copy(wilaya = it, commune = null) },
+            communes    = communes,
+            commune     = filters.commune,
+            onCommune   = { viewModel.listFilters = filters.copy(commune = it) },
+            balance     = filters.balance,
+            onBalance   = { viewModel.listFilters = filters.copy(balance = it) },
+            onReset     = { viewModel.listFilters = ClientListFilters() },
+            onDismiss   = { showFilterSheet = false },
+            types       = typeNames,
+            type        = filters.type,
+            onType      = { viewModel.listFilters = filters.copy(type = it) },
+            secteurs    = secteurs,
+            secteur     = filters.secteur,
+            onSecteur   = { viewModel.listFilters = filters.copy(secteur = it) }
+        )
     }
 
     val debtClients = remember(clients) { clientsInDebt(clients) }
@@ -235,36 +277,14 @@ fun ClientsScreen(
 
                     Spacer(Modifier.height(DsSpacing.sm))
 
-                    // ── Filter chips ──
-                    LazyRow(
-                        contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        item {
-                            DsFilterChip(label = "Avec dettes", active = debtOnly, activeBg = DsColors.DangerLight, activeBorder = DsColors.Danger, activeText = DsColors.Danger, onClick = { debtOnly = !debtOnly })
-                        }
-                        item {
-                            DsFilterChip(label = "Tous", active = typeFilter == "all", activeBg = DsColors.PrimaryLight, activeBorder = DsColors.Primary, activeText = DsColors.Primary, onClick = { typeFilter = "all" })
-                        }
-                        item {
-                            DsFilterChip(label = "Détail", active = typeFilter == "retail", activeBg = DsColors.TagRetail.second, activeBorder = DsColors.TagRetail.first, activeText = DsColors.TagRetail.first, onClick = { typeFilter = "retail" })
-                        }
-                        item {
-                            DsFilterChip(label = "Gros", active = typeFilter == "wholesale", activeBg = DsColors.TagWholesale.second, activeBorder = DsColors.TagWholesale.first, activeText = DsColors.TagWholesale.first, onClick = { typeFilter = "wholesale" })
-                        }
-                        item {
-                            DsFilterChip(label = "Société", active = typeFilter == "business", activeBg = DsColors.TagBusiness.second, activeBorder = DsColors.TagBusiness.first, activeText = DsColors.TagBusiness.first, onClick = { typeFilter = "business" })
-                        }
-                    }
-
-                    Spacer(Modifier.height(DsSpacing.sm))
-
-                    Text(
-                        "${filtered.size} client(s)",
-                        fontSize = DsTextSize.caption,
-                        color    = DsColors.TextSecondary,
-                        modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                    // ── Count · Filtres ── the type and debt chips that used to sit here are in the
+                    // sheet now, with the client's place beside them; what is applied shows below.
+                    CountAndFiltersRow(
+                        label         = "${filtered.size} client(s)",
+                        filtersActive = filters.isActive,
+                        onOpenFilters = { showFilterSheet = true }
                     )
+                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters() })
 
                     Spacer(Modifier.height(DsSpacing.xs))
                 }

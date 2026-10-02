@@ -69,6 +69,70 @@ fun filterClients(
     }
 }
 
+/**
+ * Where a party's account stands, as the solde cell reads it: owing from half a centime up, in
+ * advance from half a centime down, settled between.
+ */
+enum class BalanceFilter(val label: String) {
+    OWING("Avec dettes"), SETTLED("Soldés"), ADVANCE("En avance");
+
+    fun matches(balance: Double): Boolean = when (this) {
+        OWING   -> balance >= 0.005
+        ADVANCE -> balance <= -0.005
+        SETTLED -> balance > -0.005 && balance < 0.005
+    }
+}
+
+/**
+ * What the Clients list's filter sheet narrows by — the type the old chips offered, the debt they
+ * offered, and where the client is. Null means "any"; places compare without case or edge spaces.
+ */
+data class ClientListFilters(
+    val type    : String?        = null,   // customer_type: "retail" | "wholesale" | "business"
+    val wilaya  : String?        = null,
+    val commune : String?        = null,
+    val secteur : String?        = null,
+    val balance : BalanceFilter? = null,
+) {
+    val isActive: Boolean get() = type != null || wilaya != null || commune != null || secteur != null || balance != null
+}
+
+/** [filterClients]' search, then the sheet's criteria. */
+fun filterClients(clients: List<Client>, query: String, filters: ClientListFilters): List<Client> =
+    filterClients(clients, query).filter { c ->
+        (filters.type == null || c.customer_type == filters.type) &&
+            samePlace(filters.wilaya, c.wilaya_name) &&
+            samePlace(filters.commune, c.commune_name) &&
+            samePlace(filters.secteur, c.secteur_name) &&
+            (filters.balance?.matches(c.balance) ?: true)
+    }
+
+/** What the Fournisseurs list's filter sheet narrows by: where the supplier is, and its solde. */
+data class SupplierListFilters(
+    val wilaya  : String?        = null,
+    val commune : String?        = null,
+    val balance : BalanceFilter? = null,
+) {
+    val isActive: Boolean get() = wilaya != null || commune != null || balance != null
+}
+
+/** [filterSuppliers]' search, then the sheet's criteria. */
+fun filterSuppliers(suppliers: List<Supplier>, query: String, filters: SupplierListFilters): List<Supplier> =
+    filterSuppliers(suppliers, query).filter { s ->
+        samePlace(filters.wilaya, s.wilaya_name) &&
+            samePlace(filters.commune, s.commune_name) &&
+            (filters.balance?.matches(s.balance) ?: true)
+    }
+
+/** The distinct, non-blank places a list holds, sorted — the sheet offers only what exists. */
+fun placesOf(values: List<String?>): List<String> =
+    values.mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+        .distinctBy { it.lowercase() }
+        .sortedBy { it.lowercase() }
+
+private fun samePlace(wanted: String?, actual: String?): Boolean =
+    wanted == null || actual?.trim().equals(wanted.trim(), ignoreCase = true)
+
 /** The clients who currently owe something. */
 fun clientsInDebt(clients: List<Client>): List<Client> = clients.filter { it.balance > 0 }
 

@@ -33,6 +33,11 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.filterSuppliers
 import com.distrigo.app.ui.common.supplierDebtTotal
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.common.PartyFilterSheet
+import com.distrigo.app.ui.common.CountAndFiltersRow
+import com.distrigo.app.ui.common.RemovableFilterChips
+import com.distrigo.app.ui.common.SupplierListFilters
+import com.distrigo.app.ui.common.placesOf
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -48,10 +53,39 @@ fun SuppliersScreen(
     val error     by viewModel.error.collectAsState()
 
     var search by remember { mutableStateOf("") }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val filters = viewModel.listFilters
 
     // Recomputed only when the list or the search changes, not on every recomposition. The
     // search regex used to be compiled inside the predicate: once per supplier, per keystroke.
-    val filtered  = remember(suppliers, search) { filterSuppliers(suppliers, search) }
+    val filtered  = remember(suppliers, search, filters) { filterSuppliers(suppliers, search, filters) }
+
+    // The sheet offers only places the suppliers actually have, so no choice can empty the list.
+    val wilayas  = remember(suppliers) { placesOf(suppliers.map { it.wilaya_name }) }
+    val communes = remember(suppliers, filters.wilaya) {
+        placesOf(suppliers.filter { it.wilaya_name?.trim().equals(filters.wilaya, ignoreCase = true) }.map { it.commune_name })
+    }
+    val filterChips: List<Pair<String, () -> Unit>> = buildList {
+        filters.balance?.let { b -> add(b.label to { viewModel.listFilters = filters.copy(balance = null) }) }
+        filters.wilaya?.let { w -> add("Wilaya : $w" to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
+        filters.commune?.let { c -> add("Commune : $c" to { viewModel.listFilters = filters.copy(commune = null) }) }
+    }
+
+    if (showFilterSheet) {
+        PartyFilterSheet(
+            resultCount = filtered.size,
+            wilayas     = wilayas,
+            wilaya      = filters.wilaya,
+            onWilaya    = { viewModel.listFilters = filters.copy(wilaya = it, commune = null) },
+            communes    = communes,
+            commune     = filters.commune,
+            onCommune   = { viewModel.listFilters = filters.copy(commune = it) },
+            balance     = filters.balance,
+            onBalance   = { viewModel.listFilters = filters.copy(balance = it) },
+            onReset     = { viewModel.listFilters = SupplierListFilters() },
+            onDismiss   = { showFilterSheet = false }
+        )
+    }
 
     val totalDebt = remember(suppliers) { supplierDebtTotal(suppliers) }
 
@@ -128,12 +162,13 @@ fun SuppliersScreen(
 
                     Spacer(Modifier.height(DsSpacing.sm))
 
-                    Text(
-                        "${filtered.size} fournisseur(s)",
-                        fontSize = DsTextSize.caption,
-                        color    = DsColors.TextSecondary,
-                        modifier = Modifier.padding(horizontal = DsSpacing.lg)
+                    // ── Count · Filtres ── where the supplier is, and its solde.
+                    CountAndFiltersRow(
+                        label         = "${filtered.size} fournisseur(s)",
+                        filtersActive = filters.isActive,
+                        onOpenFilters = { showFilterSheet = true }
                     )
+                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = SupplierListFilters() })
 
                     Spacer(Modifier.height(DsSpacing.xs))
                 }
