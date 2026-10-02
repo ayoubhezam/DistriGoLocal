@@ -386,10 +386,6 @@ class TourneeViewModel @Inject constructor(
     // Held here, not in the screen, so the vente list comes back filtered the way it was left
     // after opening a bon or leaving the tab — this ViewModel is scoped to the Tournées graph,
     // while the screen's own `remember`s die with its composition.
-    //
-    // The list's status chip: null for "Toutes", else "ouverte" or "fermée". Kept here, like the
-    // ventes filters below, so coming back from a tournée finds the list filtered as it was left.
-    var listStatusFilter         by mutableStateOf<String?>(null)
 
     // Scoped to one tournée, like the drafts above: these read against a single round's ventes,
     // and the client axis is built from them, so a filter set on one tournée would be a puzzle

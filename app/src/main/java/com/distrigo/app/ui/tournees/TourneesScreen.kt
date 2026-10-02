@@ -67,10 +67,6 @@ fun TourneesScreen(
     val error        by viewModel.error.collectAsState()
     val openTournee  by viewModel.openTournee.collectAsState()
     val context      = LocalContext.current
-    val statusFilter = viewModel.listStatusFilter
-    val shown        = remember(tournees, statusFilter) {
-        if (statusFilter == null) tournees else tournees.filter { it.status == statusFilter }
-    }
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
 
@@ -130,17 +126,20 @@ fun TourneesScreen(
             }
         }
 
-        // ── Status chips ──
+        // ── How many ──
+        //
+        // The list used to open on Toutes / En cours / Clôturées chips. Only one tournée is open at a
+        // time and the banner above already pins it, every card carries its own status badge, and
+        // "Clôturées" was the list minus that one — so the chips filtered nothing a glance didn't
+        // already show. The count replaces them. A filter worth having here would narrow by period
+        // or secteur, which is a feature of its own rather than a cleanup.
         if (!isLoading && error == null && tournees.isNotEmpty()) {
-            LazyRow(
-                contentPadding        = PaddingValues(horizontal = DsSpacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                modifier              = Modifier.padding(bottom = DsSpacing.sm)
-            ) {
-                item { DsFilterChip(label = "Toutes", active = statusFilter == null, onClick = { viewModel.listStatusFilter = null }) }
-                item { DsFilterChip(label = "En cours", active = statusFilter == "ouverte", onClick = { viewModel.listStatusFilter = "ouverte" }) }
-                item { DsFilterChip(label = "Clôturées", active = statusFilter == "fermée", onClick = { viewModel.listStatusFilter = "fermée" }) }
-            }
+            Text(
+                "${tournees.size} tournée(s)",
+                fontSize = DsTextSize.caption,
+                color    = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.sm)
+            )
         }
 
         when {
@@ -168,21 +167,12 @@ fun TourneesScreen(
                     }
                 }
             }
-            shown.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        if (statusFilter == "ouverte") "Aucune tournée en cours" else "Aucune tournée clôturée",
-                        color      = DsColors.TextSecondary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
             else -> {
                 LazyColumn(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    items(shown, key = { it.id }) { tournee ->
+                    items(tournees, key = { it.id }) { tournee ->
                         TourneeCard(
                             tournee = tournee,
                             onClick = { onTourneeClick(tournee.id) }
