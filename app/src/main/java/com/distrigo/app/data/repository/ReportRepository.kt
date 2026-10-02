@@ -11,7 +11,6 @@ import java.time.ZoneId
 /** Sales from one place, or from both: counted, totalled, and split into paid at the sale and left on credit. */
 data class SalesFigures(val count: Int, val total: Double, val paid: Double) {
     val credit: Double get() = total - paid
-    val averageBasket: Double get() = if (count > 0) total / count else 0.0
 
     operator fun plus(other: SalesFigures) =
         SalesFigures(count + other.count, total + other.total, paid + other.paid)

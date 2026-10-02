@@ -124,28 +124,30 @@ private fun SummaryCard(report: SalesReport) {
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Primary)
-            .padding(DsSpacing.lg)
+            .padding(DsSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Chiffre d'affaires", fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
-        FitText(money.da(report.all.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white)
-        Spacer(Modifier.height(DsSpacing.xs))
-        Text(
-            "${plural(report.all.count, "vente", "ventes")} · panier moyen ${money.da(report.all.averageBasket)}",
-            fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f),
+        Text("Chiffre d'affaires", fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
+        FitText(
+            money.da(report.all.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
+            color = white, textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(DsSpacing.xs))
+        Text(plural(report.all.count, "vente", "ventes"), fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
         val returns = report.returns
         if (returns != null && returns.count > 0) {
             Spacer(Modifier.height(DsSpacing.md))
             HorizontalDivider(color = white.copy(alpha = 0.25f))
             Spacer(Modifier.height(DsSpacing.md))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Retours clients (${returns.count})", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f))
-                    FitText("− ${money.da(returns.total)}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = white)
+            // Each half keeps its side of the card, its title centred over its amount.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Retours clients (${returns.count})", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
+                    FitText("− ${money.da(returns.total)}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = white, textAlign = TextAlign.Center)
                 }
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                    Text("Ventes nettes", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f))
-                    FitText(money.da(report.netTotal ?: report.all.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = white)
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Ventes nettes", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
+                    FitText(money.da(report.netTotal ?: report.all.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = white, textAlign = TextAlign.Center)
                 }
             }
         }

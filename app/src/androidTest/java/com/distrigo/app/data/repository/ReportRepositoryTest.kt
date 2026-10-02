@@ -81,7 +81,6 @@ class ReportRepositoryTest {
         assertEquals(SalesFigures(2, 1800.0, 1800.0), report.depot)
         assertEquals(SalesFigures(1, 600.0, 200.0), report.camion)
         assertEquals(400.0, report.all.credit, 0.0)
-        assertEquals(800.0, report.all.averageBasket, 0.0)
         assertEquals(2, report.clientsServed)
         assertEquals(700.0 + 450.0 + 400.0, report.cost, 0.0)
         assertEquals(450.0, report.estimatedCost, 0.0)
