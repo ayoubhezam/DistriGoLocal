@@ -35,13 +35,8 @@ import com.distrigo.app.ui.navigation.navPopEnterTransition
 import com.distrigo.app.ui.navigation.navPopExitTransition
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.distrigo.app.ui.format.LocalMoneyFormatter
-import com.distrigo.app.ui.common.FitText
-import androidx.compose.ui.text.style.TextAlign
-import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 @Composable
 fun TourneesHubScreen(
-    tourneeViewModel   : TourneeViewModel = hiltViewModel(),
     onFullScreenChange : (Boolean) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
@@ -49,8 +44,6 @@ fun TourneesHubScreen(
 ) {
     val navController = rememberTrackedNavController()
 
-    LaunchedEffect(Unit) { tourneeViewModel.loadTournees() }
-    val tournees by tourneeViewModel.tournees.collectAsState()
 
     NavHost(
         navController      = navController,
@@ -84,10 +77,6 @@ fun TourneesHubScreen(
         }
 
         composable(Screen.VentesHubMenu.route) {
-            val activeTournees = tournees.count { it.status == "ouverte" }
-            val closedTournees = tournees.count { it.status == "fermée" }
-            val totalRevenue   = tournees.sumOf { it.total_ventes ?: 0.0 }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -120,41 +109,12 @@ fun TourneesHubScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(DsSpacing.lg)
                 ) {
-                    // ── Stats banner ──
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(DsShapes.large)
-                            .background(DsColors.Primary)
-                            .padding(DsSpacing.lg),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        HubStatColumn(
-                            icon  = Icons.Default.LocalShipping,
-                            value = "$activeTournees",
-                            label = "Tournées actives",
-                            modifier = Modifier.weight(1f)
-                        )
-                        HubStatColumn(
-                            icon  = Icons.Default.CheckCircle,
-                            value = "$closedTournees",
-                            label = "Tournées fermées",
-                            modifier = Modifier.weight(1f)
-                        )
-                        HubStatColumn(
-                            icon  = Icons.Default.TrendingUp,
-                            value = LocalMoneyFormatter.current.da(totalRevenue),
-                            label = "Chiffre d'affaires",
-                            modifier = Modifier.weight(MONEY_STAT_WEIGHT)
-                        )
-                    }
-
                     Text(
                         "Gestion",
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary,
-                        modifier   = Modifier.padding(top = DsSpacing.lg, bottom = DsSpacing.sm)
+                        modifier   = Modifier.padding(bottom = DsSpacing.sm)
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -186,17 +146,6 @@ fun TourneesHubScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun HubStatColumn(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.height(6.dp))
-        FitText(value, fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = Color.White)
-        Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = DsTextSize.caption, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
     }
 }
 
