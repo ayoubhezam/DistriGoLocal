@@ -35,8 +35,6 @@ fun ChargesScreen(
     viewModel   : ChargeViewModel = hiltViewModel(),
     onBack      : (() -> Unit)? = null,
     onTypeClick : (Int) -> Unit,
-    /** The quick entry: the expense form with its category picked on the form itself. */
-    onAddCharge : () -> Unit = {}
 ) {
     val money = LocalMoneyFormatter.current
     val chargeTypes by viewModel.chargeTypes.collectAsState()
@@ -115,21 +113,11 @@ fun ChargesScreen(
                     item { Spacer(Modifier.height(DsSpacing.xl)) }
                 }
             }
-    
-            // The quick entry: an expense from here, without going through a type and a subtype first.
-            Button(
-                onClick  = onAddCharge,
-                modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-                Spacer(Modifier.width(DsSpacing.xs))
-                Text("Ajouter une dépense", color = Color.White, fontWeight = FontWeight.SemiBold)
             }
-        }
-        // Above the bottom button: "Annuler" right after the form saved an expense.
-        ChargeSavedSnackbar(viewModel, Modifier.align(Alignment.BottomCenter).padding(bottom = 84.dp))
+        // An expense is added from inside its sous-type, where its category is already known; the
+        // bottom "Ajouter une dépense" that skipped that choice is gone. "Annuler" right after the
+        // form saved one still shows here, at the bottom edge now that nothing sits there.
+        ChargeSavedSnackbar(viewModel, Modifier.align(Alignment.BottomCenter).padding(bottom = DsSpacing.lg))
     }
 
     if (showAddTypeDialog) {

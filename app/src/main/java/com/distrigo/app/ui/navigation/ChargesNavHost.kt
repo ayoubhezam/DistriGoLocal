@@ -35,8 +35,7 @@ fun ChargesNavHost(
             ChargesScreen(
                 viewModel   = viewModel,
                 onBack      = onBack,
-                onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) },
-                onAddCharge = { navController.navigate(Screen.ChargesForm.createRoute()) }
+                onTypeClick = { typeId -> navController.navigate(Screen.ChargesSubTypes.createRoute(typeId)) }
             )
         }
 
