@@ -62,6 +62,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import kotlinx.coroutines.delay
 import java.time.Instant
+import com.distrigo.app.data.backup.RestoreStockRule
 
 /**
  * Paramètres → Données et sauvegarde: save all the data to a file, and replace it with a file saved before.
@@ -117,6 +118,7 @@ fun DataBackupScreen(
         when (state) {
             is DataBackupState.Working, DataBackupState.RestartNeeded -> Unit
             is DataBackupState.Previewing -> viewModel.dismiss()
+            is DataBackupState.ConfirmingStockRule -> viewModel.cancelStockRule()
             else -> onBack()
         }
     }
@@ -196,6 +198,11 @@ fun DataBackupScreen(
             is DataBackupState.BackupSaved -> BackupSavedDialog(current.backup, onDismiss = viewModel::dismiss)
             is DataBackupState.AutoBackupSaved -> AutoBackupSavedDialog(current.outcome, onDismiss = viewModel::dismiss)
             is DataBackupState.Failed -> FailedDialog(current.message, onDismiss = viewModel::dismiss)
+            is DataBackupState.ConfirmingStockRule -> StockRuleDialog(
+                rule = current.rule,
+                onCancel = viewModel::cancelStockRule,
+                onConfirm = { viewModel.confirmStockRule(current) },
+            )
             else -> Unit
         }
     }
@@ -725,6 +732,29 @@ private fun AutoBackupSavedDialog(outcome: AutoBackupOutcome.Saved, onDismiss: (
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        containerColor = DsColors.Surface,
+        titleContentColor = DsColors.TextPrimary,
+        textContentColor = DsColors.TextSecondary
+    )
+}
+
+/**
+ * Before a restore changes the stock rule: the backup's rule against the phone's, products already below
+ * zero under a strict one (in the switch's words), and a backup too old to have the rule. Asked after the
+ * backup is unpacked and checked, before anything changes; "Annuler" leaves the phone as it was.
+ */
+@Composable
+private fun StockRuleDialog(rule: RestoreStockRule, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Règle de stock de la sauvegarde") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                rule.lines().forEach { Text(it, fontSize = DsTextSize.bodySmall) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Restaurer", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        dismissButton = { TextButton(onClick = onCancel) { Text("Annuler") } },
         containerColor = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor = DsColors.TextSecondary

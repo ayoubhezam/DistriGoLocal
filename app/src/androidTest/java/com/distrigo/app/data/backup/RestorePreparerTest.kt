@@ -84,6 +84,15 @@ class RestorePreparerTest {
         arrayOf(name, image, UUID.randomUUID().toString())
     )
 
+    /** A dépôt sale of [quantity] of [name], as a ledger movement. */
+    private fun sold(name: String, quantity: Double) = sql.execSQL(
+        "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, emplacement, source_label, source_type, " +
+            "source_id, unit_price, total_value, created_at, uuid) " +
+            "VALUES ((SELECT id FROM products WHERE name = ?), ?, 'vente', 'sortie', ?, 'depot', 'Vente #1', 'vente', 1, 100, 100, " +
+            "'2026-09-17T10:00:00Z', ?)",
+        arrayOf(name, name, quantity, UUID.randomUUID().toString())
+    )
+
     private fun photo(seed: Int): String {
         val bytes = ByteArray(5_000) { (it * seed % 251).toByte() }
         val hash = BackupFormat.sha256(bytes.inputStream())
@@ -207,6 +216,38 @@ class RestorePreparerTest {
         assertEquals("Épicerie El Amel", query(restore.database, "SELECT name FROM clients") { it.getString(0) })
         assertEquals("old-database", query(restore.database, "SELECT value FROM app_meta WHERE key = 'database_id'") { it.getString(0) })
         assertEquals(RESTORING_DEVICE, query(restore.database, "SELECT value FROM app_meta WHERE key = 'device_id'") { it.getString(0) })
+
+        // Older than "Autoriser le stock négatif": upgrading gave it the default, and a strict phone is told.
+        val rule = RestoreStockRule.read(restore, currentAllowsNegative = false)
+        assertTrue(rule.backupAllowsNegative)
+        assertTrue(rule.resetByUpgrade)
+        assertTrue(rule.worthTelling)
+    }
+
+    /** A strict backup with products already below zero: its rule and their number, read once it is unpacked. */
+    @Test
+    fun aStrictBackupsRuleAndItsNegativeProductsAreReadBeforeRestoring() {
+        product("Lait Candia 1L")
+        product("Yaourt Soummam")
+        product("Huile Elio 5L")
+        // Stock is the ledger's sum (StockLedger), so it goes below zero the way it does in use: sold without
+        // having been bought. A product in the bin does not count.
+        sold("Lait Candia 1L", 3.0)
+        sold("Yaourt Soummam", 1.0)
+        sold("Huile Elio 5L", 2.0)
+        sql.execSQL("UPDATE products SET deleted_at = 1000 WHERE name = 'Huile Elio 5L'")
+        assertEquals(-3.0, sql.query("SELECT stock FROM products WHERE name = 'Lait Candia 1L'").use { it.moveToFirst(); it.getDouble(0) }, 0.0)
+        sql.execSQL("INSERT OR REPLACE INTO business_settings (id, allow_negative_stock) VALUES (1, 0)")
+        val restore = ready(backup())
+
+        val onAllowingPhone = RestoreStockRule.read(restore, currentAllowsNegative = true)
+        assertFalse(onAllowingPhone.backupAllowsNegative)
+        assertEquals(2, onAllowingPhone.negativeProducts)
+        assertFalse(onAllowingPhone.resetByUpgrade)
+        assertTrue(onAllowingPhone.worthTelling)
+
+        // Same rule on the phone, but the products below zero are still worth a word.
+        assertTrue(RestoreStockRule.read(restore, currentAllowsNegative = false).worthTelling)
     }
 
     @Test

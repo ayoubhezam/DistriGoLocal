@@ -40,6 +40,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import javax.inject.Inject
+import com.distrigo.app.data.backup.PreparedRestore
+import com.distrigo.app.data.backup.RestorePreparation
+import com.distrigo.app.data.backup.RestoreStockRule
 
 /** The last backup made of this data, from `app_meta`. */
 data class LastBackup(val at: Instant, val size: Long?, val fileName: String)
@@ -69,6 +72,8 @@ sealed class DataBackupState {
     data class BackupSaved(val backup: CreatedBackup) : DataBackupState()
     data class AutoBackupSaved(val outcome: AutoBackupOutcome.Saved) : DataBackupState()
     data class Previewing(val preview: BackupPreview, val isSafetyBackup: Boolean) : DataBackupState()
+    /** The backup is unpacked and checked; restoring it changes the stock rule, and the user decides. Nothing has changed yet. */
+    data class ConfirmingStockRule(val restore: PreparedRestore, val preview: BackupPreview, val rule: RestoreStockRule) : DataBackupState()
     /** A restore is scheduled: the app must restart now. */
     data object RestartNeeded : DataBackupState()
     data class Failed(val message: String) : DataBackupState()
@@ -218,17 +223,48 @@ class DataBackupViewModel @Inject constructor(
 
     fun inspectSafetyBackup(backup: SafetyBackup) = inspect(Uri.fromFile(backup.file), isSafetyBackup = true)
 
+    /**
+     * Unpacks and checks [preview]'s backup, then restores it — unless restoring it changes the stock rule,
+     * in which case the screen asks first ([DataBackupState.ConfirmingStockRule]).
+     */
     fun restore(preview: BackupPreview) = run("Vérification de la sauvegarde…") {
-        val outcome = coordinator.restore(preview.uri, preview.manifest, preview.fileName, preview.fileSize) { step ->
-            _state.value = DataBackupState.Working(
-                when (step) {
-                    RestoreCoordinator.Step.CHECKING_BACKUP -> "Vérification de la sauvegarde…"
-                    RestoreCoordinator.Step.SAVING_CURRENT_DATA -> "Copie de sécurité de vos données actuelles…"
-                    RestoreCoordinator.Step.SCHEDULING -> "Préparation du redémarrage…"
-                }
-            )
+        val current = db.businessSettingsDao().allowNegativeStock() ?: true
+        when (val preparation = coordinator.prepare(preview.uri, preview.manifest, current, ::showStep)) {
+            is RestorePreparation.NotRestorable -> DataBackupState.Failed(BackupMessages.of(preparation.problem))
+            is RestorePreparation.Ready ->
+                if (preparation.stockRule.worthTelling) DataBackupState.ConfirmingStockRule(preparation.restore, preview, preparation.stockRule)
+                else commit(preparation.restore, preview)
         }
-        when (outcome) {
+    }
+
+    /** The user read what the restore does to the stock rule, and goes ahead. */
+    fun confirmStockRule(confirming: DataBackupState.ConfirmingStockRule) {
+        if (_state.value != confirming) return
+        _state.value = DataBackupState.Idle
+        run("Copie de sécurité de vos données actuelles…") { commit(confirming.restore, confirming.preview) }
+    }
+
+    /** The user turned the restore down at the stock rule: the unpacked backup goes, and nothing changed. */
+    fun cancelStockRule() {
+        val confirming = _state.value as? DataBackupState.ConfirmingStockRule ?: return
+        _state.value = DataBackupState.Idle
+        viewModelScope.launch(Dispatchers.IO) { coordinator.discard(confirming.restore) }
+        refresh()
+    }
+
+    private fun showStep(step: RestoreCoordinator.Step) {
+        _state.value = DataBackupState.Working(
+            when (step) {
+                RestoreCoordinator.Step.CHECKING_BACKUP -> "Vérification de la sauvegarde…"
+                RestoreCoordinator.Step.SAVING_CURRENT_DATA -> "Copie de sécurité de vos données actuelles…"
+                RestoreCoordinator.Step.SCHEDULING -> "Préparation du redémarrage…"
+            }
+        )
+    }
+
+    private fun commit(restore: PreparedRestore, preview: BackupPreview): DataBackupState {
+        val outcome = coordinator.commit(restore, preview.fileName, preview.fileSize, ::showStep)
+        return when (outcome) {
             is RestoreOutcome.Scheduled -> DataBackupState.RestartNeeded
             is RestoreOutcome.NotRestorable -> DataBackupState.Failed(BackupMessages.of(outcome.problem))
             is RestoreOutcome.SafetyBackupFailed -> DataBackupState.Failed(BackupMessages.safetyBackupFailed(outcome.reason))
@@ -237,6 +273,7 @@ class DataBackupViewModel @Inject constructor(
 
     /** Back to the screen after a result, an error or a preview the user did not confirm. */
     fun dismiss() {
+        if (_state.value is DataBackupState.ConfirmingStockRule) return cancelStockRule()
         if (_state.value !is DataBackupState.Working && _state.value != DataBackupState.RestartNeeded) {
             _state.value = DataBackupState.Idle
             refresh()

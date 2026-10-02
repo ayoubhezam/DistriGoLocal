@@ -18,8 +18,18 @@ sealed class RestoreOutcome {
     data class SafetyBackupFailed(val reason: BackupFailedException.Reason) : RestoreOutcome()
 }
 
+/** A backup unpacked and checked, and what restoring it does to the stock rule; or why it cannot be restored. */
+sealed class RestorePreparation {
+    data class Ready(val restore: PreparedRestore, val stockRule: RestoreStockRule) : RestorePreparation()
+    data class NotRestorable(val problem: BackupProblem) : RestorePreparation()
+}
+
 /**
  * A restore from start to scheduled: prepare the backup, save the current data, then schedule the install.
+ *
+ * [prepare] and [commit] are the two halves, so the screen can stop between them — after the backup is
+ * unpacked and its stock rule read, before anything on the phone changes — and [discard] a prepared
+ * restore the user turned down. [restore] runs both without stopping.
  *
  * The safety backup comes after the preparation, so a file that turns out not to be restorable costs no
  * copy, and before scheduling, so no restore is ever installed without one. It is a normal `.distrigo`
@@ -45,13 +55,50 @@ class RestoreCoordinator(
         fileName: String? = null,
         fileSize: Long? = null,
         onStep: (Step) -> Unit = {},
-    ): RestoreOutcome {
+    ): RestoreOutcome = when (val preparation = prepare(uri, expected, currentAllowsNegative = true, onStep = onStep)) {
+        is RestorePreparation.NotRestorable -> RestoreOutcome.NotRestorable(preparation.problem)
+        is RestorePreparation.Ready -> commit(preparation.restore, fileName, fileSize, onStep)
+    }
+
+    /**
+     * The first half: unpacks and checks the backup, and reads what it would do to the stock rule against
+     * [currentAllowsNegative]. Nothing on the phone changes. Blocks: call it off the main thread.
+     */
+    fun prepare(
+        uri: Uri,
+        expected: BackupManifest?,
+        currentAllowsNegative: Boolean,
+        onStep: (Step) -> Unit = {},
+    ): RestorePreparation {
         onStep(Step.CHECKING_BACKUP)
         val restore = when (val preparation = preparer.prepare(uri, expected)) {
-            is Preparation.Failed -> return RestoreOutcome.NotRestorable(preparation.problem)
+            is Preparation.Failed -> return RestorePreparation.NotRestorable(preparation.problem)
             is Preparation.Ready -> preparation.restore
         }
+        val rule = try {
+            RestoreStockRule.read(restore, currentAllowsNegative)
+        } catch (e: RuntimeException) {
+            restore.dir.deleteRecursively()
+            throw e
+        }
+        return RestorePreparation.Ready(restore, rule)
+    }
 
+    /** A prepared restore the user turned down: its staging folder goes, and nothing else changed. */
+    fun discard(restore: PreparedRestore) {
+        restore.dir.deleteRecursively()
+    }
+
+    /**
+     * The second half: saves the current data, then schedules [restore]'s install. [fileName] and [fileSize]
+     * describe the picked file. Blocks: call it off the main thread.
+     */
+    fun commit(
+        restore: PreparedRestore,
+        fileName: String? = null,
+        fileSize: Long? = null,
+        onStep: (Step) -> Unit = {},
+    ): RestoreOutcome {
         onStep(Step.SAVING_CURRENT_DATA)
         val safety = File(installer.safetyDir, safetyName(SAFETY_PREFIX, Instant.now()))
         try {
