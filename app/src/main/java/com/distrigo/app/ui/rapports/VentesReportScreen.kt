@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.report.ReportSource
@@ -166,7 +167,7 @@ private fun KpiGrid(report: SalesReport) {
                 if (report.grossMargin < 0) DsColors.Danger else DsColors.Primary, Modifier.weight(1f),
                 report.marginRate?.let { approx + percent(it) + " du CA" },
             )
-            KpiTile("Clients servis", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null)
+            KpiTile("Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null)
         }
         if (report.isMarginEstimated) {
             // Costs are sums of products, so "all of it" is read with a tolerance, not ==.
@@ -247,8 +248,9 @@ private fun SourceLine(label: String, color: Color, figures: SalesFigures, total
 // ── Graphique ──
 
 /**
- * A bar per bucket, dépôt below and camion stacked on it when the report shows both. A tap picks a
- * bar and the line above reads its figures; until then it reads the best one.
+ * A bar per bucket — a dépôt bar and a camion bar side by side when the report shows both, so the two
+ * compare at a glance. A tap picks a bucket and the header and legend read its figures; until then
+ * they read the best one.
  */
 @Composable
 private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
@@ -256,7 +258,11 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
     var selected by remember(buckets) { mutableStateOf<Int?>(null) }
     val best = buckets.indices.maxByOrNull { buckets[it].all.total }
     val shown = selected ?: best
-    val top = max(buckets.maxOfOrNull { it.all.total } ?: 0.0, 1.0)
+    // Side by side, each bar is measured against the tallest single bar, not the tallest pair.
+    val top = max(
+        buckets.maxOfOrNull { if (splitBySource) max(it.depot.total, it.camion.total) else it.all.total } ?: 0.0,
+        1.0,
+    )
     val primary = DsColors.Primary
     val sunken = DsColors.SurfaceSunken
 
@@ -266,20 +272,20 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
-            .padding(DsSpacing.md)
+            .padding(DsSpacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (shown != null) {
             val b = buckets[shown]
             Text(
                 (if (selected == null) "Meilleur · " else "") + b.title,
-                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
             )
-            Text(money.da(b.all.total), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            Text(
-                plural(b.all.count, "vente", "ventes") +
-                    (if (splitBySource) " · dépôt ${money.da(b.depot.total)} · camion ${money.da(b.camion.total)}" else ""),
-                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+            FitText(
+                money.da(b.all.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
+                color = DsColors.TextPrimary, textAlign = TextAlign.Center,
             )
+            Text(plural(b.all.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         Spacer(Modifier.height(DsSpacing.md))
 
@@ -295,25 +301,28 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
                 }
         ) {
             val slot = size.width / buckets.size
-            val barWidth = (slot * 0.7f).coerceAtLeast(1f)
+            // A day's two bars touch and the days stand apart, so each pair reads as one day.
+            val group = (slot * 0.7f).coerceAtLeast(1f)
+            val gap = 0f
+            val barWidth = if (splitBySource) (group / 2).coerceAtLeast(1f) else group
             val radius = CornerRadius(minOf(barWidth / 2, 6.dp.toPx()))
+            fun bar(color: Color, x: Float, value: Double, alpha: Float) {
+                val h = (value / top * size.height).toFloat()
+                if (h > 0f) drawRoundRect(color.copy(alpha = alpha), Offset(x, size.height - h), Size(barWidth, h), radius)
+            }
             buckets.forEachIndexed { i, b ->
-                val x = i * slot + (slot - barWidth) / 2
-                val dim = shown != null && selected != null && i != selected
-                val alpha = if (dim) 0.35f else 1f
+                val x = i * slot + (slot - group) / 2
+                val alpha = if (selected != null && i != selected) 0.35f else 1f
                 // A faint stub marks a day with no sale, so the days still read as days.
                 if (b.all.total <= 0) {
-                    drawRoundRect(sunken, Offset(x, size.height - 2.dp.toPx()), Size(barWidth, 2.dp.toPx()), radius)
+                    drawRoundRect(sunken, Offset(x, size.height - 2.dp.toPx()), Size(group, 2.dp.toPx()), CornerRadius(1.dp.toPx()))
                     return@forEachIndexed
                 }
-                val depotH = (b.depot.total / top * size.height).toFloat()
-                val camionH = (b.camion.total / top * size.height).toFloat()
                 if (splitBySource) {
-                    if (camionH > 0) drawRoundRect(CamionColor.copy(alpha = alpha), Offset(x, size.height - depotH - camionH), Size(barWidth, camionH + if (depotH > 0) radius.x else 0f), radius)
-                    if (depotH > 0) drawRoundRect(primary.copy(alpha = alpha), Offset(x, size.height - depotH), Size(barWidth, depotH), radius)
+                    bar(primary, x, b.depot.total, alpha)
+                    bar(CamionColor, x + barWidth + gap, b.camion.total, alpha)
                 } else {
-                    val color = if (b.camion.total > 0) CamionColor else primary
-                    drawRoundRect(color.copy(alpha = alpha), Offset(x, size.height - depotH - camionH), Size(barWidth, depotH + camionH), radius)
+                    bar(if (b.camion.total > 0) CamionColor else primary, x, b.all.total, alpha)
                 }
             }
         }
@@ -323,22 +332,27 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             val labels = listOf(buckets.first(), buckets[buckets.size / 2], buckets.last()).distinct()
             labels.forEach { Text(it.label, fontSize = DsTextSize.caption, color = DsColors.TextTertiary) }
         }
-        if (splitBySource) {
-            Spacer(Modifier.height(DsSpacing.sm))
-            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.lg)) {
-                Legend("Dépôt", DsColors.Primary)
-                Legend("Camion", CamionColor)
+        if (splitBySource && shown != null) {
+            val b = buckets[shown]
+            Spacer(Modifier.height(DsSpacing.md))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                Legend("Dépôt", DsColors.Primary, money.da(b.depot.total), Modifier.weight(1f))
+                Legend("Camion", CamionColor, money.da(b.camion.total), Modifier.weight(1f))
             }
         }
     }
 }
 
+/** A colour dot and its name, and under them the amount of the bucket on show. */
 @Composable
-private fun Legend(label: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(color))
-        Spacer(Modifier.width(DsSpacing.xs))
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+private fun Legend(label: String, color: Color, amount: String, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(color))
+            Spacer(Modifier.width(DsSpacing.xs))
+            Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        }
+        FitText(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, textAlign = TextAlign.Center)
     }
 }
 
