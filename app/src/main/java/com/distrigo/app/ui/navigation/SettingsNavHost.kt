@@ -7,7 +7,6 @@ import androidx.navigation.compose.composable
 import com.distrigo.app.ui.settings.ParametresScreen
 import com.distrigo.app.ui.settings.data.DataBackupScreen
 import com.distrigo.app.ui.settings.data.export.ExportScreen
-import com.distrigo.app.ui.settings.data.importer.ImportScreen
 import com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen
 import com.distrigo.app.ui.settings.print.PrinterSelectionScreen
 import com.distrigo.app.ui.settings.print.ReceiptAndPrintSettingsScreen
@@ -56,15 +55,11 @@ fun SettingsNavHost(onBack: () -> Unit) {
         composable(Screen.SettingsData.route) {
             DataBackupScreen(
                 onBack   = { navController.popBackStack() },
-                onExport = { navController.navigate(Screen.SettingsExport.route) },
-                onImport = { navController.navigate(Screen.SettingsImport.route) }
+                onExport = { navController.navigate(Screen.SettingsExport.route) }
             )
         }
         composable(Screen.SettingsExport.route) {
             ExportScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.SettingsImport.route) {
-            ImportScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.SettingsTrash.route) {
             TrashScreen(onBack = { navController.popBackStack() })

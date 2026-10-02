@@ -41,10 +41,17 @@ fun ProduitsNavHost(
         popEnterTransition = navPopEnterTransition,
         popExitTransition  = navPopExitTransition
     ) {
+        // Bulk onboarding from a workbook — products and clients. Here, beside the lists it fills, rather
+        // than beside Backup and Restore, where it was taken for a way to restore data.
+        composable(Screen.ProduitsImport.route) {
+            com.distrigo.app.ui.settings.data.importer.ImportScreen(onBack = { navController.popBackStack() })
+        }
+
         composable(Screen.ProduitsHome.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             ProductsScreen(
+                onImport             = { navController.navigate(Screen.ProduitsImport.route) },
                 viewModel      = viewModel,
                 onOpenMenu           = onOpenMenu,
                 onNotificationsClick = onNotificationsClick,

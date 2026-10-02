@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -74,7 +73,6 @@ import java.time.Instant
 fun DataBackupScreen(
     onBack: () -> Unit,
     onExport: () -> Unit,
-    onImport: () -> Unit,
     viewModel: DataBackupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -180,13 +178,14 @@ fun DataBackupScreen(
                     },
                 )
 
-                ExportSection(onOpen = onExport, onImport = onImport)
-
                 RestoreSection(onPick = { openLauncher.launch(arrayOf("*/*")) })
 
                 if (safetyBackups.isNotEmpty()) {
                     SafetyBackupsSection(safetyBackups, onRestore = viewModel::inspectSafetyBackup)
                 }
+
+                // Last and apart: files for reading and for the accountant, never a way back to the data.
+                AccountingExportSection(onOpen = onExport)
 
                 Spacer(Modifier.height(DsSpacing.lg))
             }
@@ -250,7 +249,7 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
         ) {
             Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Créer une sauvegarde", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text("Créer une sauvegarde complète", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
         Text(
             "Le fichier contient toutes vos données et vos photos. Gardez-le hors du téléphone (Google Drive, ordinateur) pour le retrouver si le téléphone est perdu ou remplacé.",
@@ -391,8 +390,8 @@ private fun StatusLine(label: String, value: String) {
 }
 
 @Composable
-private fun ExportSection(onOpen: () -> Unit, onImport: () -> Unit) {
-    SectionTitle("Export et import")
+private fun AccountingExportSection(onOpen: () -> Unit) {
+    SectionTitle("Export pour la comptabilité")
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -413,22 +412,12 @@ private fun ExportSection(onOpen: () -> Unit, onImport: () -> Unit) {
         ) {
             Icon(Icons.Default.TableChart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Exporter les données", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text("Exporter (Excel / CSV)", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
         Text(
-            "Ajoutez ou mettez à jour des produits et des clients depuis un fichier Excel : le fichier exporté sert de modèle.",
-            fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
+            "Ces fichiers servent à consulter et à transmettre vos données : ils ne peuvent pas être restaurés. Pour une copie complète, créez une sauvegarde.",
+            fontSize = DsTextSize.caption, color = DsColors.TextTertiary
         )
-        OutlinedButton(
-            onClick = onImport,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = DsShapes.medium,
-            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-        ) {
-            Icon(Icons.Default.FileUpload, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text("Importer depuis Excel", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-        }
     }
 }
 
@@ -455,7 +444,7 @@ private fun RestoreSection(onPick: () -> Unit) {
         ) {
             Icon(Icons.Default.RestorePage, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Restaurer une sauvegarde", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text("Restaurer une sauvegarde (.distrigo)", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }

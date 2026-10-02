@@ -57,6 +57,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),
@@ -84,7 +85,9 @@ fun ProductsScreen(
     onFullScreenChange   : (Boolean) -> Unit = {},
     onAddProduct   : () -> Unit = {},
     onEditProduct  : (Int) -> Unit = {},
-    onProductClick : (Int) -> Unit = {}
+    onProductClick : (Int) -> Unit = {},
+    /** "⋮ → Importer depuis Excel": products and clients from a workbook. */
+    onImport       : () -> Unit = {}
 ) {
     // Paged: a screenful at a time, from a query that applies the search, the sheet and the sort.
     val pagedProducts = viewModel.pagedProducts.collectAsLazyPagingItems()
@@ -568,6 +571,7 @@ fun ProductsScreen(
                     onNotificationsClick = onNotificationsClick,
                     onProfileClick       = onProfileClick
                 )
+                DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
             }
 
             DsCompactSearchField(

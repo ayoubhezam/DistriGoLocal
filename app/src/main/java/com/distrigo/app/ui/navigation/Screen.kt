@@ -29,7 +29,6 @@ sealed class Screen(val route: String) {
     data object SettingsCommission : Screen("settings_commission")
     data object SettingsData       : Screen("settings_data")
     data object SettingsExport     : Screen("settings_data_export")
-    data object SettingsImport     : Screen("settings_data_import")
     data object SettingsTrash      : Screen("settings_trash")
     data object SettingsDiagnostics : Screen("settings_diagnostics")
 
@@ -86,6 +85,7 @@ sealed class Screen(val route: String) {
     // ── Produits ──
     data object ProduitsGraph     : Screen("produits_graph")
     data object ProduitsHome      : Screen("produits_home")
+    data object ProduitsImport     : Screen("produits_import")
     data object ProduitsForm      : Screen("produits_form?productId={productId}") {
         fun createRoute(productId: Int? = null) =
             "produits_form" + if (productId != null) "?productId=$productId" else ""
@@ -124,6 +124,7 @@ sealed class Screen(val route: String) {
     // ── Clients ──
     data object ClientsGraph          : Screen("clients_graph")
     data object ClientsHome           : Screen("clients_home")
+    data object ClientsImport      : Screen("clients_import")
     data object ClientsForm           : Screen("clients_form?clientId={clientId}") {
         fun createRoute(clientId: Int? = null) =
             "clients_form" + if (clientId != null) "?clientId=$clientId" else ""

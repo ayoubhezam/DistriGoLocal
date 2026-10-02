@@ -46,6 +46,7 @@ import com.distrigo.app.ui.common.CountAndFiltersRow
 import com.distrigo.app.ui.common.RemovableFilterChips
 import com.distrigo.app.ui.common.ClientListFilters
 import com.distrigo.app.ui.common.placesOf
+import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -54,7 +55,9 @@ fun ClientsScreen(
     onBack        : (() -> Unit)? = null,
     onAddClient   : () -> Unit = {},
     onEditClient  : (Int) -> Unit = {},
-    onClientClick : (Int) -> Unit = {}
+    onClientClick : (Int) -> Unit = {},
+    /** "⋮ → Importer depuis Excel": products and clients from a workbook. */
+    onImport      : () -> Unit = {}
 ){
     val money = LocalMoneyFormatter.current
     val clients   by viewModel.clients.collectAsState()
@@ -217,6 +220,7 @@ fun ClientsScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Ajouter")
             }
+            DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
         }
 
         // The header used to be the list's first item and scrolled away with it. It is a pinned

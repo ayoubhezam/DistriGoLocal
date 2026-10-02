@@ -35,6 +35,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 /**
  * What occupies the bar's leading slot.
@@ -336,5 +343,27 @@ fun DsTopBarAddButton(
         shape          = DsShapes.pill
     ) {
         Icon(Icons.Default.Add, contentDescription = contentDescription)
+    }
+}
+
+/**
+ * The bar's "⋮": a menu of the screen's less frequent actions, each a label and what it does. The
+ * actions a screen uses every day stay on the bar itself; this is for the rest.
+ */
+@Composable
+fun DsTopBarOverflowMenu(vararg items: Pair<String, () -> Unit>) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = DsColors.Surface) {
+            items.forEach { (label, action) ->
+                DropdownMenuItem(
+                    text    = { Text(label, color = DsColors.TextPrimary) },
+                    onClick = { open = false; action() }
+                )
+            }
+        }
     }
 }
