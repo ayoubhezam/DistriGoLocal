@@ -41,12 +41,18 @@ private fun editOrderAction(
     }
 }
 
+/**
+ * The Achats section. [openOrderId] opens it on that bon instead of the list — a drill-down
+ * (DrillTarget.Bon): Back from the bon then leaves through [onBack].
+ */
 @Composable
 fun AchatsNavHost(
+    openOrderId          : Int? = null,
     onFullScreenChange   : (Boolean) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
-    onProfileClick       : () -> Unit = {}
+    onProfileClick       : () -> Unit = {},
+    onBack               : () -> Unit = {}
 ) {
     val navController = rememberTrackedNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -56,7 +62,7 @@ fun AchatsNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.AchatsHome.route,
+        startDestination   = if (openOrderId != null) Screen.AchatsDetail.route else Screen.AchatsHome.route,
         route              = Screen.AchatsGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -116,7 +122,8 @@ fun AchatsNavHost(
 
         composable(
             route     = Screen.AchatsDetail.route,
-            arguments = listOf(navArgument("orderId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("orderId") { type = NavType.IntType; openOrderId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.AchatsGraph.route) }
             val viewModel: PurchaseViewModel = hiltViewModel(parentEntry)
@@ -143,12 +150,12 @@ fun AchatsNavHost(
                 PurchaseOrderDetailScreen(
                     order      = found.order,
                     viewModel  = viewModel,
-                    onBack     = { navController.popBackStack() },
+                    onBack     = { navController.popOr(onBack) },
                     onEdit     = { editOrder(orderId) },
-                    onReceived = { navController.popBackStack() }
+                    onReceived = { navController.popOr(onBack) }
                 )
             } else if (lookup == OrderLookup.Gone) {
-                LeaveWhenGone(navController, entry)
+                LeaveWhenGone(navController, entry, exit = onBack)
             }
         }
     }

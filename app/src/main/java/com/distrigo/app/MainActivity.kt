@@ -57,6 +57,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.distrigo.app.ui.navigation.DRILL_ID
+import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.LocalDrillDown
+import com.distrigo.app.ui.navigation.drillDown
 import androidx.core.view.WindowCompat
 import com.distrigo.app.R
 import com.distrigo.app.ui.clients.ClientsScreen
@@ -239,6 +243,10 @@ class MainActivity : ComponentActivity() {
                         containerColor = DsColors.Surface
                     ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
+                    // Drill-down: any screen, in any section, opens a record through the root — the
+                    // only NavHost that knows every section (see DrillDown).
+                    val drill: (DrillTarget) -> Unit = remember(navController) { { target -> drillDown(navController, target) } }
+                    CompositionLocalProvider(LocalDrillDown provides drill) {
                         NavHost(
                             navController      = navController,
                             startDestination   = Screen.TabDashboard.route,
@@ -288,13 +296,8 @@ class MainActivity : ComponentActivity() {
                             }
 
                             // ── Plus menu items: real destinations, reached from the drawer overlay below ──
-                            composable(
-                                route     = Screen.PlusClients.route,
-                                arguments = listOf(navArgument("clientId") { type = NavType.IntType; defaultValue = -1 })
-                            ) { entry ->
-                                val clientId = entry.arguments!!.getInt("clientId").takeIf { it != -1 }
+                            composable(Screen.PlusClients.route) {
                                 com.distrigo.app.ui.navigation.ClientsNavHost(
-                                    preSelectedClientId = clientId,
                                     onFullScreenChange  = { hideBottomBar = it },
                                     onBack              = { navController.popBackStack() }
                                 )
@@ -303,6 +306,7 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.PlusFournisseurs.route) {
                                 com.distrigo.app.ui.navigation.SuppliersNavHost(
                                     onFullScreenChange = { hideBottomBar = it },
+                                    onNavigateToOrder  = { orderId -> drill(DrillTarget.Bon(orderId)) },
                                     onBack             = { navController.popBackStack() }
                                 )
                             }
@@ -339,7 +343,32 @@ class MainActivity : ComponentActivity() {
                                     onBack = { navController.popBackStack() }
                                 )
                             }
+
+                            // ── Drill-down: a record opened from anywhere, its section started on it. Back
+                            // from it returns to the screen that opened it. Not tab routes, so the bottom
+                            // bar stays hidden, and the hosted section is not asked about it. ──
+                            val drillId = listOf(navArgument(DRILL_ID) { type = NavType.IntType })
+                            composable(Screen.DrillClient.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.ClientsNavHost(
+                                    openClientId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack       = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillSupplier.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.SuppliersNavHost(
+                                    openSupplierId    = entry.arguments!!.getInt(DRILL_ID),
+                                    onNavigateToOrder = { orderId -> drill(DrillTarget.Bon(orderId)) },
+                                    onBack            = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillBon.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.AchatsNavHost(
+                                    openOrderId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack      = { navController.popBackStack() }
+                                )
+                            }
                         }
+                    }
                     }
                 }
 

@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.FlowPreview
 import javax.inject.Inject
 
 /** The Créances et dettes report as the screen shows it; [report] stays while the next one loads. */
@@ -28,7 +30,7 @@ data class DebtReportState(
     val error: String? = null,
 )
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class DebtReportViewModel @Inject constructor(
     private val repository: ReportRepository,
@@ -37,10 +39,12 @@ class DebtReportViewModel @Inject constructor(
 
     // The side is this screen's own choice; the period is the one all reports share.
     private val side = MutableStateFlow(DebtSide.CLIENTS)
-    private val refreshes = MutableStateFlow(0)
+    // A reload when the report's tables are written — a payment, a sale — and only then: a burst of
+    // writes settles into one reload. The first load does not wait.
+    private val changes = repository.debtChanges().debounce(400).onStart { emit(Unit) }
     private var last = DebtReportState()
 
-    val state: StateFlow<DebtReportState> = combine(filterStore.filter, side, refreshes) { filter, side, _ -> filter to side }
+    val state: StateFlow<DebtReportState> = combine(filterStore.filter, side, changes) { filter, side, _ -> filter to side }
         .flatMapLatest { (filter, side) ->
             flow {
                 // A report of the other side is not shown under this one's switch while it loads.
@@ -54,9 +58,9 @@ class DebtReportViewModel @Inject constructor(
                 emit(next)
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DebtReportState())
-
-    fun refresh() = refreshes.update { it + 1 }
+        // Kept running while the ViewModel lives — under a client opened from the report too — so coming
+        // back finds the report loaded, instead of restarting it and querying again.
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DebtReportState())
 
     fun setFilter(filter: ReportFilter) = filterStore.update { filter }
 

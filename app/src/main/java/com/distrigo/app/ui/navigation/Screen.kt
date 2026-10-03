@@ -10,10 +10,18 @@ sealed class Screen(val route: String) {
     data object TabVentes    : Screen("tab_ventes")
     data object TabProduits  : Screen("tab_produits")
     data object TabAchats    : Screen("tab_achats")
-    data object PlusClients : Screen("plus_clients?clientId={clientId}") {
-        fun createRoute(clientId: Int? = null) =
-            "plus_clients" + if (clientId != null) "?clientId=$clientId" else ""
+    data object PlusClients : Screen("plus_clients") {
+        fun createRoute() = route
     }
+
+    // ── Drill-down: a record opened from anywhere, on top of the screen that asked (see DrillDown) ──
+    sealed class Drill(kind: String) : Screen("drill/$kind/{$DRILL_ID}") {
+        private val prefix = "drill/$kind/"
+        fun createRoute(id: Int) = "$prefix$id"
+    }
+    data object DrillClient   : Drill("client")
+    data object DrillSupplier : Drill("supplier")
+    data object DrillBon      : Drill("bon")
     data object PlusFournisseurs : Screen("plus_fournisseurs")
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")

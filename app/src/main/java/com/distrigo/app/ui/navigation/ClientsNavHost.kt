@@ -41,23 +41,22 @@ import com.distrigo.app.ui.retours.RetourClientViewModel
 import com.distrigo.app.ui.common.refusalMessage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
+/**
+ * The Clients section. [openClientId] opens it on that client's page instead of the list — a
+ * drill-down (DrillTarget.Client): Back from that page then leaves the section through [onBack],
+ * returning to whatever opened it.
+ */
 @Composable
 fun ClientsNavHost(
-    preSelectedClientId : Int? = null,
+    openClientId        : Int? = null,
     onFullScreenChange  : (Boolean) -> Unit = {},
     onBack              : () -> Unit = {}
 ) {
     val navController = rememberTrackedNavController()
 
-    LaunchedEffect(preSelectedClientId) {
-        if (preSelectedClientId != null) {
-            navController.navigate(Screen.ClientsDetail.createRoute(preSelectedClientId))
-        }
-    }
-
     NavHost(
         navController      = navController,
-        startDestination   = Screen.ClientsHome.route,
+        startDestination   = if (openClientId != null) Screen.ClientsDetail.route else Screen.ClientsHome.route,
         route              = Screen.ClientsGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -103,7 +102,8 @@ fun ClientsNavHost(
 
         composable(
             route     = Screen.ClientsDetail.route,
-            arguments = listOf(navArgument("clientId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("clientId") { type = NavType.IntType; openClientId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
@@ -117,7 +117,7 @@ fun ClientsNavHost(
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
             // only the first may pop, or the second takes the list and the graph with it.
-            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(onBack) }
 
             when {
                 client != null -> {
@@ -125,7 +125,7 @@ fun ClientsNavHost(
                         client           = client,
                         viewModel        = viewModel,
                         retourViewModel  = retourViewModel,
-                        onBack           = { navController.popBackStack() },
+                        onBack           = { navController.popOr(onBack) },
                         onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                         onDelete         = { showDeleteConfirm = true },
                         onNewVente       = { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId)) },

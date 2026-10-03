@@ -4,6 +4,9 @@ import com.distrigo.app.data.local.dao.ReportDao
 import com.distrigo.app.data.local.dao.SalesHour
 import com.distrigo.app.data.model.report.ReportFilter
 import com.distrigo.app.data.model.report.ReportRange
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -55,8 +58,23 @@ data class SalesReport(
 
 data class ReturnFigures(val count: Int, val total: Double)
 
-/** Reads the Rapports figures: SQL aggregates from ReportDao, put together for one ReportFilter. */
-class ReportRepository(private val dao: ReportDao) {
+/**
+ * Reads the Rapports figures: SQL aggregates from ReportDao, put together for one ReportFilter.
+ *
+ * [writes] tells which of the given tables were written — Room's invalidation tracker in the app. A
+ * report reloads when its own tables change, not each time its screen reappears: coming back from a
+ * client opened from a report runs no query unless something was recorded meanwhile.
+ */
+class ReportRepository(
+    private val dao: ReportDao,
+    private val writes: (Array<String>) -> Flow<Set<String>> = { emptyFlow() },
+) {
+
+    /** A signal each time the Ventes report's tables are written. */
+    fun salesChanges(): Flow<Unit> = writes(SALES_TABLES).map { }
+
+    /** A signal each time the Créances et dettes report's tables are written. */
+    fun debtChanges(): Flow<Unit> = writes(DEBT_TABLES).map { }
 
     suspend fun salesReport(
         filter: ReportFilter,
@@ -110,3 +128,12 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
         .map { SalesDay(it, depot[it] ?: SalesFigures.ZERO, camion[it] ?: SalesFigures.ZERO) }
         .toList()
 }
+
+/** The tables the Ventes report reads. */
+private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Créances et dettes report reads. */
+private val DEBT_TABLES = arrayOf(
+    "clients", "suppliers", "ventes", "purchase_orders",
+    "client_payments", "supplier_payments", "retour_client", "retour_fournisseur",
+)

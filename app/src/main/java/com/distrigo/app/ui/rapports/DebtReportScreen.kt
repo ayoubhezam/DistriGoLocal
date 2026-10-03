@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.rapports
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,13 +22,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
 
 /** Each age band's colour: green while recent, to red past 90 days. */
@@ -101,8 +104,8 @@ private fun wordsFor(side: DebtSide) = when (side) {
 @Composable
 fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtReportViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
-    LaunchedEffect(Unit) { viewModel.refresh() }
     val words = wordsFor(state.side)
+    val open = openDebtor(state.side)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Créances et dettes", subtitle = "Ce qui reste à encaisser et à payer", leading = DsTopBarLeading.Back(onBack))
@@ -143,7 +146,7 @@ fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtRe
                         item { AgeCard(report) }
                         // The biggest few; the rest are a tap away, on a screen of their own.
                         item { SectionTitle("${words.listTitle} (${report.debtors.size})", "Voir tout", onSeeAll) }
-                        items(report.debtors.take(TOP_DEBTORS), key = { it.id }) { DebtorRow(it, words) }
+                        items(report.debtors.take(TOP_DEBTORS), key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
                     }
                 }
             }
@@ -238,9 +241,19 @@ private fun AgeCard(report: DebtReport) {
     }
 }
 
-/** One party that owes or is owed: its name and last payment, its balance and how old its oldest debt is. */
+/** Opens a debtor's own page — the client's, or the supplier's — through the app's drill-down. */
 @Composable
-private fun DebtorRow(line: DebtorLine, words: SideWords) {
+private fun openDebtor(side: DebtSide): (Int) -> Unit {
+    val drill = LocalDrillDown.current
+    return { id -> drill(if (side == DebtSide.CLIENTS) DrillTarget.Client(id) else DrillTarget.Supplier(id)) }
+}
+
+/**
+ * One party that owes or is owed: its name and last payment, its balance and how old its oldest debt
+ * is. A tap opens its page, where a payment is recorded; the report updates when it is.
+ */
+@Composable
+private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val color = AgeColors.getValue(line.oldest)
     Row(
@@ -249,6 +262,7 @@ private fun DebtorRow(line: DebtorLine, words: SideWords) {
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -285,6 +299,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
     val money = LocalMoneyFormatter.current
     val words = wordsFor(state.side)
     val report = state.report
+    val open = openDebtor(state.side)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -302,7 +317,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
             ) {
-                items(report.debtors, key = { it.id }) { DebtorRow(it, words) }
+                items(report.debtors, key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
             }
         }
     }

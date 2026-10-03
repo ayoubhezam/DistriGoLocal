@@ -39,17 +39,24 @@ import com.distrigo.app.ui.suppliers.*
 import com.distrigo.app.ui.common.refusalMessage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
+/**
+ * The Fournisseurs section. [openSupplierId] opens it on that supplier's page instead of the list — a
+ * drill-down (DrillTarget.Supplier): Back from that page leaves through [onBack]. [onNavigateToOrder]
+ * opens a bon, which lives in Achats.
+ */
 @Composable
 fun SuppliersNavHost(
+    openSupplierId     : Int? = null,
     onFullScreenChange : (Boolean) -> Unit = {},
     onNavigateToOrder  : (Int) -> Unit = {},
     onBack             : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    val exit = { onBack?.invoke(); Unit }
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.SuppliersHome.route,
+        startDestination   = if (openSupplierId != null) Screen.SuppliersDetail.route else Screen.SuppliersHome.route,
         route              = Screen.SuppliersGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -87,7 +94,8 @@ fun SuppliersNavHost(
 
         composable(
             route     = Screen.SuppliersDetail.route,
-            arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("supplierId") { type = NavType.IntType; openSupplierId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
@@ -101,7 +109,7 @@ fun SuppliersNavHost(
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
             // only the first may pop, or the second takes the list and the graph with it.
-            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val leave = { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(exit) }
 
             when {
                 supplier != null -> {
@@ -109,7 +117,7 @@ fun SuppliersNavHost(
                         supplier          = supplier,
                         viewModel         = viewModel,
                         retourViewModel   = retourViewModel,
-                        onBack            = { navController.popBackStack() },
+                        onBack            = { navController.popOr(exit) },
                         onEdit            = { navController.navigate(Screen.SuppliersForm.createRoute(supplierId)) },
                         onDelete          = { showDeleteConfirm = true },
                         onNewAchat        = { navController.navigate(Screen.PurchaseFormGraph.createRoute(supplierId = supplierId)) },

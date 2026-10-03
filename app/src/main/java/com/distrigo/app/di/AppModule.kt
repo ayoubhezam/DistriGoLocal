@@ -174,5 +174,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideReportRepository(db: AppDatabase): ReportRepository =
-        ReportRepository(dao = db.reportDao())
+        ReportRepository(
+            dao    = db.reportDao(),
+            writes = { tables -> db.invalidationTracker.createFlow(*tables, emitInitialState = false) }
+        )
 }

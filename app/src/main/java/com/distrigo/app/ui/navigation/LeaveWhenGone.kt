@@ -11,8 +11,9 @@ import androidx.navigation.NavController
  * the list and the graph with it: "No destination with route … is on the NavController's back stack".
  */
 @Composable
-fun LeaveWhenGone(navController: NavController, entry: NavBackStackEntry) {
+fun LeaveWhenGone(navController: NavController, entry: NavBackStackEntry, exit: () -> Unit = {}) {
     LaunchedEffect(Unit) {
-        if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack()
+        // A screen a drill-down started on has nothing under it: it leaves the section through [exit].
+        if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(exit)
     }
 }
