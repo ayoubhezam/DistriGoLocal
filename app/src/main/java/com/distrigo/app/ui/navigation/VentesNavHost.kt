@@ -50,10 +50,12 @@ private fun editVenteAction(
 
 @Composable
 fun VentesNavHost(
+    openVenteId       : Int? = null,
     onFullScreenChange: (Boolean) -> Unit = {},
     onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    val exit = { onBack?.invoke(); Unit }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
         onFullScreenChange(currentRoute != null && currentRoute != Screen.VentesHome.route)
@@ -61,7 +63,7 @@ fun VentesNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.VentesHome.route,
+        startDestination   = if (openVenteId != null) Screen.VentesDetail.route else Screen.VentesHome.route,
         route              = Screen.VentesGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -132,7 +134,8 @@ fun VentesNavHost(
 
         composable(
             route     = Screen.VentesDetail.route,
-            arguments = listOf(navArgument("venteId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("venteId") { type = NavType.IntType; openVenteId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.VentesGraph.route) }
             val viewModel: VenteViewModel = hiltViewModel(parentEntry)
@@ -158,13 +161,15 @@ fun VentesNavHost(
                 VenteDetailScreen(
                     vente       = fallbackVente,
                     viewModel   = viewModel,
-                    onBack      = { navController.popBackStack() },
-                    onDelivered = { navController.popBackStack() },
-                    onDeleted   = { navController.popBackStack() },
-                    onEdit      = { editVente(venteId) }
+                    onBack      = { navController.popOr(exit) },
+                    onDelivered = { navController.popOr(exit) },
+                    onDeleted   = { navController.popOr(exit) },
+                    // A tournée's sale is opened here too, from its client: it is not edited through the
+                    // dépôt form, as on its tournée, where "Modifier" is not offered either.
+                    onEdit      = if (fallbackVente.source == "depot") ({ editVente(venteId) }) else null
                 )
             } else if (lookup == VenteLookup.Gone) {
-                LeaveWhenGone(navController, entry)
+                LeaveWhenGone(navController, entry, exit = exit)
             }
         }
     }

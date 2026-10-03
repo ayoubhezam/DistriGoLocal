@@ -231,6 +231,7 @@ fun ClientsNavHost(
             // ── FactureHistoryViewModel: محصورة بهذه الوجهة فقط، غير مشتركة مع الرسم البياني ──
             val historyViewModel: FactureHistoryViewModel = hiltViewModel()
             val clientId = entry.arguments!!.getInt("clientId")
+            val drill = LocalDrillDown.current
             LaunchedEffect(Unit) { historyViewModel.bind(clientId) }
             val controller = historyViewModel.bind(clientId)
             val historyQuery by controller.query.collectAsState()
@@ -278,7 +279,11 @@ fun ClientsNavHost(
                     )
                 }
             ) { transaction ->
-                com.distrigo.app.ui.clients.FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
+                com.distrigo.app.ui.clients.FactureRow(
+                    transaction,
+                    onLongPressPaiement = { longPressPayment = it },
+                    onOpenVente = { drill(DrillTarget.Vente(it)) }
+                )
             }
 
             if (showPaymentDialog) {

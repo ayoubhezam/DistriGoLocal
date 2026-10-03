@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.LocalDrillDown
 import com.distrigo.app.data.time.BusinessDates
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -87,6 +89,7 @@ fun ClientDetailScreen(
 ) {
     val currentClient = viewModel.clients.collectAsState().value
         .find { it.id == client.id } ?: client
+    val drill = LocalDrillDown.current
 
     val balanceStatus = when {
         currentClient.balance > 0 -> "due"
@@ -772,7 +775,11 @@ fun ClientDetailScreen(
                                     // Flat and short: three rows, no date headings. The grouped, paged
                                     // history is a screen of its own behind « Voir tout ».
                                     ledger.latest.take(FACTURE_PREVIEW).forEach { transaction ->
-                                        FactureRow(transaction, onLongPressPaiement = { longPressPayment = it })
+                                        FactureRow(
+                                            transaction,
+                                            onLongPressPaiement = { longPressPayment = it },
+                                            onOpenVente = { drill(DrillTarget.Vente(it)) }
+                                        )
                                     }
                                 }
                             }

@@ -18,6 +18,8 @@ sealed interface DrillTarget {
     data class Supplier(override val id: Int) : DrillTarget
     /** A purchase order — a bon d'achat. */
     data class Bon(override val id: Int) : DrillTarget
+    /** A sale, from the dépôt or a tournée's camion. */
+    data class Vente(override val id: Int) : DrillTarget
 }
 
 /** The root destination that opens this kind of record. */
@@ -25,6 +27,7 @@ private fun DrillTarget.screen(): Screen.Drill = when (this) {
     is DrillTarget.Client -> Screen.DrillClient
     is DrillTarget.Supplier -> Screen.DrillSupplier
     is DrillTarget.Bon -> Screen.DrillBon
+    is DrillTarget.Vente -> Screen.DrillVente
 }
 
 /**

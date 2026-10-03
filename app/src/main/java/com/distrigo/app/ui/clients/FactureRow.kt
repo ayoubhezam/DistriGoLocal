@@ -4,6 +4,8 @@ import com.distrigo.app.data.model.numberLabel
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -34,7 +36,9 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 fun FactureRow(
     transaction: ClientTransaction,
-    onLongPressPaiement: (ClientTransaction) -> Unit = {}
+    onLongPressPaiement: (ClientTransaction) -> Unit = {},
+    /** A tap on a sale's row, with the sale's id — its detail opens. Null leaves the row inert. */
+    onOpenVente: ((Int) -> Unit)? = null
 ) {
     val money = LocalMoneyFormatter.current
     when (transaction.type) {
@@ -62,6 +66,7 @@ fun FactureRow(
                     .clip(DsShapes.large)
                     .background(DsColors.Surface)
                     .border(1.dp, DsColors.Border, DsShapes.large)
+                    .then(onOpenVente?.let { open -> Modifier.clickable(role = Role.Button) { open(transaction.id) } } ?: Modifier)
                     .padding(DsSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
