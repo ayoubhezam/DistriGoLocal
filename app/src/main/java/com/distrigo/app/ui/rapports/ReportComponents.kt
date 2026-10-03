@@ -1,5 +1,13 @@
 package com.distrigo.app.ui.rapports
 
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -98,6 +106,45 @@ fun KpiTile(label: String, value: String, valueColor: Color, modifier: Modifier,
                     .background(valueColor.copy(alpha = 0.12f))
                     .padding(horizontal = DsSpacing.sm, vertical = 3.dp),
             )
+        }
+    }
+}
+
+/**
+ * A ring of shares — each slice its amount and colour, in order from twelve o'clock, clockwise — with
+ * [total] in its centre and [caption] under it. An empty total draws a grey ring.
+ *
+ * The amount shrinks to fit the ring; "DA" stays a unit under it, never larger than the figure.
+ */
+@Composable
+fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
+    val empty = DsColors.SurfaceSunken
+    Box(modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = 14.dp.toPx()
+            val at = Offset(stroke / 2, stroke / 2)
+            val arc = Size(size.width - stroke, size.height - stroke)
+            if (total <= 0) {
+                drawArc(empty, 0f, 360f, false, at, arc, style = Stroke(stroke))
+            } else {
+                var start = -90f
+                slices.forEach { (amount, color) ->
+                    val sweep = (360.0 * amount / total).toFloat()
+                    if (sweep > 0f) drawArc(color, start, sweep, false, at, arc, style = Stroke(stroke))
+                    start += sweep
+                }
+            }
+        }
+        // Inside the stroke (14 dp) with room to spare, so a ten-digit total never touches the ring; each
+        // line shrinks to stay on one line rather than wrap and push the others off centre.
+        Column(Modifier.fillMaxWidth().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            FitText(
+                money.amount(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
+                color = DsColors.TextPrimary, textAlign = TextAlign.Center, minScale = 0.35f,
+            )
+            Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            FitText(caption, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, minScale = 0.7f)
         }
     }
 }

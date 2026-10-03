@@ -215,7 +215,10 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     }
 }
 
-/** How old today's balance is: a bar of the four bands, then each band's amount and share. */
+/**
+ * How old today's balance is: a ring of the four bands with the total inside, and beside it each
+ * band's share and amount.
+ */
 @Composable
 private fun AgeCard(report: DebtReport) {
     val money = LocalMoneyFormatter.current
@@ -231,23 +234,34 @@ private fun AgeCard(report: DebtReport) {
         Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         Spacer(Modifier.height(2.dp))
         Text("Depuis combien de temps l'argent est dû", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        Spacer(Modifier.height(DsSpacing.md))
-        Row(Modifier.fillMaxWidth().height(10.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)) {
-            AgeBand.entries.forEach { band ->
-                val share = if (total > 0) (report.ages[band.ordinal] / total).toFloat() else 0f
-                if (share > 0f) Box(Modifier.weight(share).fillMaxHeight().background(AgeColors.getValue(band)))
-            }
-        }
-        Spacer(Modifier.height(DsSpacing.md))
-        AgeBand.entries.forEach { band ->
-            val amount = report.ages[band.ordinal]
-            Row(Modifier.fillMaxWidth().padding(vertical = DsSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(12.dp).clip(DsShapes.pill).background(AgeColors.getValue(band)))
-                Spacer(Modifier.width(DsSpacing.sm))
-                Text(band.label, fontSize = DsTextSize.body, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(money.da(amount), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-                    Text(percentOf(amount, total) ?: percent(0.0), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Spacer(Modifier.height(DsSpacing.lg))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            ShareRing(
+                slices = AgeBand.entries.map { report.ages[it.ordinal] to AgeColors.getValue(it) },
+                total = total,
+                caption = if (report.side == DebtSide.CLIENTS) "Total des créances" else "Total à payer",
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(DsSpacing.lg))
+            Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                AgeBand.entries.forEach { band ->
+                    val amount = report.ages[band.ordinal]
+                    Row(verticalAlignment = Alignment.Top) {
+                        Box(Modifier.padding(top = 4.dp).size(12.dp).clip(DsShapes.pill).background(AgeColors.getValue(band)))
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // One line: "Plus de 90 jours" shrinks a little rather than wrap under its share.
+                                FitText(band.label, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, modifier = Modifier.weight(1f), minScale = 0.8f)
+                                Spacer(Modifier.width(DsSpacing.xs))
+                                Text(
+                                    percentOf(amount, total) ?: percent(0.0),
+                                    fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+                                )
+                            }
+                            FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        }
+                    }
                 }
             }
         }

@@ -166,9 +166,6 @@ private fun KpiGrid(report: SalesReport) {
 private fun SourceSplit(report: SalesReport) {
     val money = LocalMoneyFormatter.current
     val total = report.all.total
-    val depotShare = if (total > 0) (report.depot.total / total).toFloat() else 0f
-    val primary = DsColors.Primary
-    val empty = DsColors.SurfaceSunken
 
     Column(
         Modifier
@@ -181,34 +178,10 @@ private fun SourceSplit(report: SalesReport) {
         Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val stroke = 14.dp.toPx()
-                    val inset = stroke / 2
-                    val arc = Size(size.width - stroke, size.height - stroke)
-                    val at = Offset(inset, inset)
-                    if (total <= 0) {
-                        drawArc(empty, 0f, 360f, false, at, arc, style = Stroke(stroke))
-                    } else {
-                        // Dépôt from twelve o'clock, clockwise; the camion takes the rest of the ring.
-                        val depotSweep = 360f * depotShare
-                        if (depotSweep < 360f) drawArc(CamionColor, -90f + depotSweep, 360f - depotSweep, false, at, arc, style = Stroke(stroke))
-                        if (depotSweep > 0f) drawArc(primary, -90f, depotSweep, false, at, arc, style = Stroke(stroke))
-                    }
-                }
-                // The amount shrinks to fit the ring; "DA" stays a unit under it, never larger than the figure.
-                Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    FitText(
-                        money.amount(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
-                        color = DsColors.TextPrimary, textAlign = TextAlign.Center, minScale = 0.45f,
-                    )
-                    Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                    Text("Total", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                }
-            }
+            ShareRing(
+                slices = listOf(report.depot.total to DsColors.Primary, report.camion.total to CamionColor),
+                total = total, caption = "Total", modifier = Modifier.weight(1f),
+            )
             Spacer(Modifier.width(DsSpacing.lg))
             Box(Modifier.fillMaxHeight(0.8f).width(1.dp).background(DsColors.Border))
             Spacer(Modifier.width(DsSpacing.lg))
