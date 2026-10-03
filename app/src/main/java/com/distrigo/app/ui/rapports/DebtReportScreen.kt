@@ -56,6 +56,9 @@ private val AgeColors = mapOf(
 
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
+/** How many debtors the report itself lists, the biggest first. */
+private const val TOP_DEBTORS = 5
+
 /** The words that change with the side, so the layout is written once. */
 private class SideWords(
     val owed: String, val debtors: (Int) -> String, val credit: String,
@@ -96,7 +99,7 @@ private fun wordsFor(side: DebtSide) = when (side) {
  * payments, returns.
  */
 @Composable
-fun DebtReportScreen(onBack: () -> Unit, viewModel: DebtReportViewModel = hiltViewModel()) {
+fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtReportViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     LaunchedEffect(Unit) { viewModel.refresh() }
     val words = wordsFor(state.side)
@@ -138,8 +141,9 @@ fun DebtReportScreen(onBack: () -> Unit, viewModel: DebtReportViewModel = hiltVi
                         item { ReportMessage(words.noDebt) }
                     } else {
                         item { AgeCard(report) }
-                        item { SectionTitle("${words.listTitle} (${report.debtors.size})") }
-                        items(report.debtors, key = { it.id }) { DebtorRow(it, words) }
+                        // The biggest few; the rest are a tap away, on a screen of their own.
+                        item { SectionTitle("${words.listTitle} (${report.debtors.size})", "Voir tout", onSeeAll) }
+                        items(report.debtors.take(TOP_DEBTORS), key = { it.id }) { DebtorRow(it, words) }
                     }
                 }
             }
@@ -266,6 +270,40 @@ private fun DebtorRow(line: DebtorLine, words: SideWords) {
                 line.oldest.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color,
                 modifier = Modifier.clip(DsShapes.pill).background(color.copy(alpha = 0.12f)).padding(horizontal = DsSpacing.sm, vertical = 2.dp),
             )
+        }
+    }
+}
+
+/**
+ * Rapports › Créances et dettes › Voir tout: every client who owes (or supplier to pay), the biggest
+ * first. It reads the report already loaded — [viewModel] is the report screen's — so it opens at once
+ * and shows the same side and the same day.
+ */
+@Composable
+fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
+    val state by viewModel.state.collectAsState()
+    val money = LocalMoneyFormatter.current
+    val words = wordsFor(state.side)
+    val report = state.report
+
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
+        DsTopAppBar(
+            title = words.listTitle,
+            subtitle = report?.let { "${words.debtors(it.debtors.size)} · ${money.da(it.outstanding)}" },
+            leading = DsTopBarLeading.Back(onBack),
+        )
+        when {
+            report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = DsColors.Primary)
+            }
+            report.debtors.isEmpty() -> ReportMessage(words.noDebt)
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+            ) {
+                items(report.debtors, key = { it.id }) { DebtorRow(it, words) }
+            }
         }
     }
 }

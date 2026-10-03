@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.rapports
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -107,6 +109,27 @@ fun SectionTitle(text: String) {
         text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
         modifier = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm),
     )
+}
+
+/** A section heading with an [action] on its right, such as "Voir tout". */
+@Composable
+fun SectionTitle(text: String, action: String, onAction: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            action, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary,
+            modifier = Modifier
+                .clip(DsShapes.pill)
+                .clickable(role = Role.Button, onClick = onAction)
+                .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs),
+        )
+    }
 }
 
 /** A line of grey text where a report has nothing to show, or failed to load. */

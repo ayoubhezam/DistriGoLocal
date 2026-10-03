@@ -67,6 +67,7 @@ sealed class Screen(val route: String) {
     data object RapportsHome   : Screen("rapports_home")
     data object RapportsVentes : Screen("rapports_ventes")
     data object RapportsDettes : Screen("rapports_dettes")
+    data object RapportsDebiteurs : Screen("rapports_debiteurs")
 
     // ── Charges ──
     data object ChargesGraph    : Screen("charges_graph")
