@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import com.distrigo.app.ui.common.ListSortChip
+import com.distrigo.app.ui.common.SortOptionsSheet
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.distrigo.app.data.model.Category
@@ -1004,29 +1006,7 @@ internal fun ProductListControls(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(DsShapes.medium)
-                    .background(DsColors.SurfaceSunken)
-                    .clickable { onSort() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Sort,
-                        contentDescription = "Trier",
-                        tint = if (sortActive) DsColors.Primary else DsColors.TextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "Trier",
-                        fontSize = DsTextSize.caption,
-                        color = if (sortActive) DsColors.Primary else DsColors.TextSecondary
-                    )
-                }
-            }
+            ListSortChip(active = sortActive, onClick = onSort)
 
             Box {
                 Box(
@@ -1066,44 +1046,10 @@ internal fun ProductListControls(
     }
 }
 
-/** "Trier par": the sort options, the current one ticked. Choosing one applies it and closes. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** "Trier par" for products — see SortOptionsSheet. */
 @Composable
 internal fun ProductSortSheet(
     selected  : SortOption,
     onSelect  : (SortOption) -> Unit,
     onDismiss : () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(),
-        containerColor   = DsColors.Surface
-    ) {
-        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-            Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
-            Spacer(Modifier.height(DsSpacing.md))
-            SortOption.entries.forEach { option ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.medium)
-                        .background(if (selected == option) DsColors.PrimaryLight else Color.Transparent)
-                        .clickable { onSelect(option); onDismiss() }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text       = option.label,
-                        fontSize   = DsTextSize.body,
-                        color      = if (selected == option) DsColors.Primary else DsColors.TextPrimary,
-                        fontWeight = if (selected == option) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                    if (selected == option) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-                    }
-                }
-            }
-        }
-    }
-}
+) = SortOptionsSheet(SortOption.entries, selected, { it.label }, onSelect, onDismiss)

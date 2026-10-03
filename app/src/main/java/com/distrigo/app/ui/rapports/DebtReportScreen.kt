@@ -23,7 +23,15 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.ListSortChip
+import com.distrigo.app.ui.common.SortOptionsSheet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +75,7 @@ private class SideWords(
     val owed: String, val debtors: (Int) -> String, val credit: String,
     val payments: String, val paymentUnit: Pair<String, String>, val returns: String, val listTitle: String,
     val noPayment: String, val lastPayment: String, val noDebt: String,
+    val searchHint: String, val count: (Int) -> String,
 )
 
 private fun wordsFor(side: DebtSide) = when (side) {
@@ -81,6 +90,8 @@ private fun wordsFor(side: DebtSide) = when (side) {
         noPayment = "Aucun versement",
         lastPayment = "Dernier versement le",
         noDebt = "Aucun client ne vous doit d'argent.",
+        searchHint = "Rechercher un client",
+        count = { "$it client(s)" },
     )
     DebtSide.FOURNISSEURS -> SideWords(
         owed = "Reste à payer",
@@ -93,6 +104,8 @@ private fun wordsFor(side: DebtSide) = when (side) {
         noPayment = "Aucun versement",
         lastPayment = "Dernier versement le",
         noDebt = "Vous ne devez rien à vos fournisseurs.",
+        searchHint = "Rechercher un fournisseur",
+        count = { "$it fournisseur(s)" },
     )
 }
 
@@ -289,17 +302,31 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
 }
 
 /**
- * Rapports › Créances et dettes › Voir tout: every client who owes (or supplier to pay), the biggest
- * first. It reads the report already loaded — [viewModel] is the report screen's — so it opens at once
- * and shows the same side and the same day.
+ * Rapports › Créances et dettes › Voir tout: every client who owes (or supplier to pay), searchable by
+ * name and sorted — the biggest debt first unless chosen otherwise. It reads the report already loaded
+ * — [viewModel] is the report screen's — so it opens at once and shows the same side and the same day.
+ *
+ * The search bar, the count and "Trier" are Produits' own, so a list is searched and sorted the same
+ * way everywhere.
  */
 @Composable
 fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
     val state by viewModel.state.collectAsState()
+    val query by viewModel.debtorQuery.collectAsState()
+    val sort by viewModel.debtorSort.collectAsState()
     val money = LocalMoneyFormatter.current
     val words = wordsFor(state.side)
     val report = state.report
     val open = openDebtor(state.side)
+    var sortSheet by remember { mutableStateOf(false) }
+
+    // Recomputed only when the debtors, the words searched or the order change.
+    val shown = remember(report?.debtors, query, sort) {
+        report?.let { debtorsMatching(it.debtors, query, sort) }.orEmpty()
+    }
+    // A new search or a new order starts at the top of what it found.
+    val listState = rememberLazyListState()
+    LaunchedEffect(query, sort) { listState.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -312,13 +339,52 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                 CircularProgressIndicator(color = DsColors.Primary)
             }
             report.debtors.isEmpty() -> ReportMessage(words.noDebt)
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-            ) {
-                items(report.debtors, key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
+            else -> {
+                // On white, as in Produits: the sunken search pill reads against white, not against the
+                // list's grey. The grey starts under it, behind the white rows.
+                Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+                    DsCompactSearchField(
+                        value         = query,
+                        onValueChange = viewModel::setDebtorQuery,
+                        placeholder   = words.searchHint,
+                        modifier      = Modifier.padding(horizontal = DsSpacing.lg)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (query.isBlank()) words.count(shown.size) else "${shown.size} sur ${report.debtors.size}",
+                            fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                        )
+                        ListSortChip(active = sort != DebtorSort.DETTE_DESC, onClick = { sortSheet = true })
+                    }
+                }
+                if (shown.isEmpty()) {
+                    ReportMessage("Aucun résultat pour « ${query.trim()} »")
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
+                        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+                    ) {
+                        items(shown, key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
+                    }
+                }
             }
         }
+    }
+
+    if (sortSheet) {
+        SortOptionsSheet(
+            options   = DebtorSort.entries,
+            selected  = sort,
+            label     = { it.label },
+            onSelect  = viewModel::setDebtorSort,
+            onDismiss = { sortSheet = false },
+        )
     }
 }

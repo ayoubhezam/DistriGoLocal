@@ -64,5 +64,21 @@ class DebtReportViewModel @Inject constructor(
 
     fun setFilter(filter: ReportFilter) = filterStore.update { filter }
 
-    fun setSide(value: DebtSide) { side.value = value }
+    fun setSide(value: DebtSide) {
+        if (side.value != value) {
+            // A search typed among clients means nothing among suppliers.
+            debtorQuery.value = ""
+            debtorSort.value = DebtorSort.DETTE_DESC
+        }
+        side.value = value
+    }
+
+    // ── The full list ("Voir tout"): its search and its order, kept while the report lives ──
+
+    val debtorQuery = MutableStateFlow("")
+    val debtorSort = MutableStateFlow(DebtorSort.DETTE_DESC)
+
+    fun setDebtorQuery(value: String) { debtorQuery.value = value }
+
+    fun setDebtorSort(value: DebtorSort) { debtorSort.value = value }
 }
