@@ -3,16 +3,18 @@ package com.distrigo.app.ui.products
 import com.distrigo.app.data.model.PriceMovement
 import com.distrigo.app.data.model.PriceMovementKind
 import com.distrigo.app.data.model.withDeltas
+import com.distrigo.app.data.model.report.ReportFilter
+import com.distrigo.app.data.model.report.ReportPeriod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
-/** The rules behind the price history screen: what each entry's change means, what the filters keep, what the chart plots. */
+/** The rules behind the price history screen: what each entry's change means and what the filters keep. */
 class PriceHistoryModelTest {
 
-    /** A Sunday, so the week runs Mon 14 → Sun 20 September. */
+    /** A Sunday: « 7 derniers jours » runs from Mon 14 to Sun 20 September. */
     private val today = LocalDate.of(2026, 9, 20)
 
     private var nextId = 1
@@ -40,7 +42,7 @@ class PriceHistoryModelTest {
         achat("2026-08-20", 78.0),
     ).sortedByDescending { it.date }.withDeltas()
 
-    private val year = PriceHistoryFilters(period = PricePeriod.YEAR)
+    private val year = PriceHistoryFilters(period = ReportFilter(ReportPeriod.CETTE_ANNEE))
 
     // ── Deltas ──
 
@@ -71,13 +73,19 @@ class PriceHistoryModelTest {
     }
 
     @Test
-    fun `the period counts back from today, today included`() {
-        val week = history.narrow(PriceHistoryFilters(period = PricePeriod.WEEK), today)
-        assertEquals(listOf("2026-09-18", "2026-09-16", "2026-09-15"), week.map { it.date.take(10) })
-        // 30 days reaches back to 22 August, leaving the purchase of the 20th out.
-        val month = history.narrow(PriceHistoryFilters(period = PricePeriod.MONTH), today)
-        assertEquals(6, month.size)
+    fun `the period is the Rapports period, today included`() {
+        fun on(period: ReportFilter) = history.narrow(PriceHistoryFilters(period = period), today)
+        assertEquals(listOf("2026-09-18", "2026-09-16", "2026-09-15"), on(ReportFilter(ReportPeriod.SEPT_JOURS)).map { it.date.take(10) })
+        // This month starts on the 1st, leaving the purchase of 20 August out.
+        assertEquals(6, on(ReportFilter(ReportPeriod.CE_MOIS)).size)
+        assertEquals(listOf("2026-08-20"), on(ReportFilter(ReportPeriod.MOIS_DERNIER)).map { it.date.take(10) })
         assertEquals(7, history.narrow(year, today).size)
+    }
+
+    @Test
+    fun `a custom period keeps both of its days`() {
+        val custom = ReportFilter(ReportPeriod.PERSONNALISE, customFrom = LocalDate.of(2026, 8, 20), customTo = LocalDate.of(2026, 9, 2))
+        assertEquals(listOf("2026-09-02", "2026-08-20"), history.narrow(PriceHistoryFilters(period = custom), today).map { it.date.take(10) })
     }
 
     @Test
@@ -108,7 +116,7 @@ class PriceHistoryModelTest {
 
     @Test
     fun `counting a kind ignores the segment but not the other filters`() {
-        val filters = PriceHistoryFilters(kind = PriceMovementKind.VENTE, period = PricePeriod.WEEK)
+        val filters = PriceHistoryFilters(kind = PriceMovementKind.VENTE, period = ReportFilter(ReportPeriod.SEPT_JOURS))
         val counted = history.narrow(filters, today, includeKind = false)
         assertEquals(3, counted.size)
         assertEquals(2, counted.count { it.kind == PriceMovementKind.ACHAT })
@@ -124,77 +132,5 @@ class PriceHistoryModelTest {
         assertEquals(78.0, achats.min, 0.0)
         assertEquals(85.0, achats.max, 0.0)
         assertNull(emptyList<PriceMovement>().statsOf(PriceMovementKind.VENTE))
-    }
-
-    // ── The axis ──
-
-    @Test
-    fun `a week is seven days, named`() {
-        val slots = PricePeriod.WEEK.slotsOn(today)
-        assertEquals(7, slots.size)
-        assertEquals(LocalDate.of(2026, 9, 14), slots.first().from)
-        assertEquals(LocalDate.of(2026, 9, 21), slots.last().until)
-        assertEquals(listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"), slots.map { it.label })
-    }
-
-    @Test
-    fun `thirty days are four weeks, the spare days going to the oldest`() {
-        val slots = PricePeriod.MONTH.slotsOn(today)
-        assertEquals(listOf("S1", "S2", "S3", "S4"), slots.map { it.label })
-        assertEquals(LocalDate.of(2026, 8, 22), slots.first().from)
-        assertEquals(LocalDate.of(2026, 9, 21), slots.last().until)
-        // Nine days in the first slot, seven in each of the rest: thirty in all.
-        assertEquals(listOf(9L, 7L, 7L, 7L), slots.map { java.time.temporal.ChronoUnit.DAYS.between(it.from, it.until) })
-    }
-
-    @Test
-    fun `twelve months are calendar months, named`() {
-        val slots = PricePeriod.YEAR.slotsOn(today)
-        assertEquals(12, slots.size)
-        assertEquals(LocalDate.of(2025, 10, 1), slots.first().from)
-        assertEquals(LocalDate.of(2026, 10, 1), slots.last().until)
-        assertEquals("Oct", slots.first().label)
-        assertEquals("Sept", slots.last().label)
-    }
-
-    // ── The chart ──
-
-    @Test
-    fun `a slot holds the quantity-weighted average of what changed hands in it`() {
-        // Two cartons at 80 and ten at 90 in the same week: 88.33 per unit, not 85.
-        val movements = listOf(
-            achat("2026-09-15", 80.0, quantity = 2.0),
-            achat("2026-09-15", 90.0, quantity = 10.0),
-        ).withDeltas()
-        val point = movements.chartSeries(PricePeriod.MONTH, today).single().points.single { !it.carried }
-        assertEquals(88.333, point.price, 0.001)
-        assertEquals(2, point.count)
-    }
-
-    @Test
-    fun `a slot without a movement carries the last price forward, and is marked as carried`() {
-        val movements = listOf(achat("2026-09-15", 80.0)).withDeltas()
-        val points = movements.chartSeries(PricePeriod.WEEK, today).single().points
-        // Nothing before the 15th: a price in force cannot precede the first deal.
-        assertEquals(listOf("Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"), points.map { it.slot.label })
-        assertEquals(listOf(false, true, true, true, true, true), points.map { it.carried })
-        assertTrue(points.all { it.price == 80.0 })
-        assertEquals(listOf(1, 0, 0, 0, 0, 0), points.map { it.count })
-    }
-
-    @Test
-    fun `both kinds are plotted on the same slots`() {
-        val series = history.chartSeries(PricePeriod.WEEK, today)
-        assertEquals(listOf(PriceMovementKind.ACHAT, PriceMovementKind.VENTE), series.map { it.kind })
-        // The purchase of the 15th and the sale of the 16th land on their own days.
-        assertEquals("Mar", series.first().points.first { !it.carried }.slot.label)
-        assertEquals("Mer", series.last().points.first { !it.carried }.slot.label)
-    }
-
-    @Test
-    fun `a kind with nothing in the period is not plotted`() {
-        val achatsOnly = listOf(achat("2026-09-18", 85.0)).withDeltas()
-        assertEquals(listOf(PriceMovementKind.ACHAT), achatsOnly.chartSeries(PricePeriod.WEEK, today).map { it.kind })
-        assertEquals(emptyList<PriceSeries>(), emptyList<PriceMovement>().chartSeries(PricePeriod.YEAR, today))
     }
 }

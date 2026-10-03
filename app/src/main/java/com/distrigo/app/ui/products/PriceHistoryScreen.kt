@@ -41,15 +41,13 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.rapports.ReportFilterBar
 
 /**
  * Every price a product changed hands at: what was paid for it and what it sold for, side by side.
  *
- * One period governs the whole screen — the summaries, the chart and the list agree by construction,
- * which is why the period chips above the chart and the sheet's own « Période » are the same state.
- * The period also lays the chart's axis out: seven days, four weeks or twelve months; see
- * [PricePeriod.slotsOn]. The screen looks back a year at most, which is as far as a price is worth
- * comparing against and keeps every read bounded.
+ * One period governs the whole screen — the summaries and the list agree by construction. It is picked
+ * with the Rapports period bar, at the top, so a period is chosen the same way everywhere.
  */
 @Composable
 fun PriceHistoryScreen(
@@ -129,6 +127,13 @@ fun PriceHistoryScreen(
             )
         }
 
+        ReportFilterBar(
+            filter     = filters.period,
+            onChange   = { onFilters(filters.copy(period = it)) },
+            showSource = false,
+            modifier   = Modifier.padding(top = DsSpacing.sm, bottom = DsSpacing.xs),
+        )
+
         KindSegments(
             filters = filters,
             counts  = mapOf(
@@ -151,9 +156,6 @@ fun PriceHistoryScreen(
         }
 
         val kinds = PriceMovementKind.entries.filter { filters.kind == null || filters.kind == it }
-        val today  = remember { LocalDate.now() }
-        val slots  = remember(filters.period, today) { filters.period.slotsOn(today) }
-        val series = remember(shown, filters.period, today) { shown.chartSeries(filters.period, today) }
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),
@@ -172,25 +174,6 @@ fun PriceHistoryScreen(
                 val vente = shown.statsOf(PriceMovementKind.VENTE)
                 if (achat != null && vente != null) {
                     item { MarginRow(vente.last - achat.last) }
-                }
-            }
-            item {
-                Column(
-                    Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.md)
-                ) {
-                    PeriodChips(filters.period) { onFilters(filters.copy(period = it)) }
-                    Spacer(Modifier.height(DsSpacing.sm))
-                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                        kinds.filter { kind -> shown.any { it.kind == kind } }.forEach { kind ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(8.dp).clip(DsShapes.pill).background(kind.chartColor()))
-                                Spacer(Modifier.width(5.dp))
-                                Text(kind.label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                            }
-                        }
-                    }
-                    PriceChart(series, filters.period, slots, Modifier.padding(top = DsSpacing.xs))
                 }
             }
             item {
@@ -237,6 +220,10 @@ fun PriceHistoryScreen(
         )
     }
 }
+
+/** The colour each side of the trade is shown in: purchases green, sales blue. */
+private fun PriceMovementKind.kindColor(): Color =
+    if (this == PriceMovementKind.ACHAT) DsColors.Success else DsColors.Primary
 
 // ── Pieces ───────────────────────────────────────────────────────────────────
 
@@ -300,7 +287,6 @@ private fun KindSegments(
 @Composable
 private fun ActiveChips(filters: PriceHistoryFilters, onFilters: (PriceHistoryFilters) -> Unit) {
     val chips = buildList {
-        if (filters.period != PriceHistoryFilters().period) add(filters.period.label to filters.copy(period = PriceHistoryFilters().period))
         if (filters.variation != PriceVariation.ALL) add(filters.variation.label to filters.copy(variation = PriceVariation.ALL))
         if (filters.sort != PriceSort.RECENT) add(filters.sort.label to filters.copy(sort = PriceSort.RECENT))
         if (filters.query.isNotBlank()) add("« ${filters.query.trim()} »" to filters.copy(query = ""))
@@ -324,28 +310,9 @@ private fun ActiveChips(filters: PriceHistoryFilters, onFilters: (PriceHistoryFi
 }
 
 @Composable
-private fun PeriodChips(selected: PricePeriod, onSelect: (PricePeriod) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
-        PricePeriod.entries.forEach { period ->
-            val on = period == selected
-            Text(
-                period.label,
-                fontSize   = DsTextSize.caption,
-                fontWeight = FontWeight.SemiBold,
-                color      = if (on) DsColors.Surface else DsColors.TextSecondary,
-                modifier   = Modifier.clip(DsShapes.pill)
-                    .background(if (on) DsColors.Primary else DsColors.SurfaceSunken)
-                    .clickable { onSelect(period) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
-        }
-    }
-}
-
-@Composable
 private fun SummaryBlock(kind: PriceMovementKind, stats: PriceStats?, modifier: Modifier = Modifier) {
     val money = LocalMoneyFormatter.current
-    val colour = kind.chartColor()
+    val colour = kind.kindColor()
     Column(
         modifier.clip(DsShapes.large)
             .background(if (kind == PriceMovementKind.ACHAT) DsColors.SuccessLight else DsColors.PrimaryLight)
@@ -417,7 +384,7 @@ private fun MarginRow(gap: Double) {
 private fun MovementRow(movement: PriceMovement) {
     val money = LocalMoneyFormatter.current
     val achat  = movement.kind == PriceMovementKind.ACHAT
-    val colour = movement.kind.chartColor()
+    val colour = movement.kind.kindColor()
     Row(
         Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large)
@@ -521,9 +488,6 @@ private fun FilterSheet(
                 TextButton(onClick = { draft = PriceHistoryFilters(kind = draft.kind, query = draft.query) }) {
                     Text("Réinitialiser", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
-            }
-            SheetGroup("Période") {
-                PricePeriod.entries.forEach { SheetChip(it.label, draft.period == it) { draft = draft.copy(period = it) } }
             }
             SheetGroup("Variation") {
                 PriceVariation.entries.forEach { SheetChip(it.label, draft.variation == it) { draft = draft.copy(variation = it) } }
