@@ -314,7 +314,6 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
     val state by viewModel.state.collectAsState()
     val query by viewModel.debtorQuery.collectAsState()
     val sort by viewModel.debtorSort.collectAsState()
-    val money = LocalMoneyFormatter.current
     val words = wordsFor(state.side)
     val report = state.report
     val open = openDebtor(state.side)
@@ -329,11 +328,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
     LaunchedEffect(query, sort) { listState.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(
-            title = words.listTitle,
-            subtitle = report?.let { "${words.debtors(it.debtors.size)} · ${money.da(it.outstanding)}" },
-            leading = DsTopBarLeading.Back(onBack),
-        )
+        DsTopAppBar(title = words.listTitle, leading = DsTopBarLeading.Back(onBack))
         when {
             report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = DsColors.Primary)
