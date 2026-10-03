@@ -113,18 +113,26 @@ fun ReportFilterBar(
 
 /** Tout · Dépôt · Camion, as one segmented control. */
 @Composable
-private fun SourceSelector(selected: ReportSource, onSelect: (ReportSource) -> Unit) {
+private fun SourceSelector(selected: ReportSource, onSelect: (ReportSource) -> Unit) =
+    ReportSegmented(ReportSource.entries, selected, { it.label }, onSelect)
+
+/**
+ * A row of mutually exclusive choices in a grey pill, the chosen one raised in white — the control a
+ * report uses to switch what it looks at (Tout · Dépôt · Camion, Clients · Fournisseurs).
+ */
+@Composable
+fun <T> ReportSegmented(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(DsShapes.pill)
             .background(DsColors.SurfaceSunken)
             .padding(3.dp),
     ) {
-        ReportSource.entries.forEach { source ->
-            val on = source == selected
+        options.forEach { option ->
+            val on = option == selected
             Text(
-                source.label,
+                label(option),
                 fontSize = DsTextSize.bodySmall,
                 fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (on) DsColors.Primary else DsColors.TextSecondary,
@@ -133,7 +141,7 @@ private fun SourceSelector(selected: ReportSource, onSelect: (ReportSource) -> U
                     .weight(1f)
                     .clip(DsShapes.pill)
                     .background(if (on) DsColors.Surface else DsColors.SurfaceSunken)
-                    .clickable(role = Role.Tab) { onSelect(source) }
+                    .clickable(role = Role.Tab) { onSelect(option) }
                     .padding(vertical = DsSpacing.sm),
             )
         }

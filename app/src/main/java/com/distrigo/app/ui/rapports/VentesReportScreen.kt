@@ -89,7 +89,7 @@ fun VentesReportScreen(onBack: () -> Unit, viewModel: VentesReportViewModel = hi
 
             val report = state.report
             when {
-                report == null && state.error != null -> item { Message(state.error!!) }
+                report == null && state.error != null -> item { ReportMessage(state.error!!) }
                 report == null -> item {
                     Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = DsColors.Primary)
@@ -100,7 +100,7 @@ fun VentesReportScreen(onBack: () -> Unit, viewModel: VentesReportViewModel = hi
                     // A period without a sale shows its summary — returns may still be there — and says so,
                     // instead of a page of zeros.
                     if (report.all.count == 0) {
-                        item { Message("Aucune vente sur cette période.") }
+                        item { ReportMessage("Aucune vente sur cette période.") }
                     } else {
                         item { KpiGrid(report) }
                         if (state.filter.source == ReportSource.TOUT) item { SourceSplit(report) }
@@ -121,41 +121,16 @@ fun VentesReportScreen(onBack: () -> Unit, viewModel: VentesReportViewModel = hi
 @Composable
 private fun SummaryCard(report: SalesReport) {
     val money = LocalMoneyFormatter.current
-    val white = Color.White
-    Column(
-        Modifier
-            .padding(horizontal = DsSpacing.lg)
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Primary)
-            .padding(DsSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Chiffre d'affaires", fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
-        FitText(
-            money.da(report.all.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
-            color = white, textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(DsSpacing.xs))
-        Text(plural(report.all.count, "vente", "ventes"), fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
-        val returns = report.returns
-        if (returns != null && returns.count > 0) {
-            Spacer(Modifier.height(DsSpacing.md))
-            HorizontalDivider(color = white.copy(alpha = 0.25f))
-            Spacer(Modifier.height(DsSpacing.md))
-            // Each half keeps its side of the card, its title centred over its amount.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Retours clients (${returns.count})", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
-                    FitText("− ${money.da(returns.total)}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = white, textAlign = TextAlign.Center)
-                }
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Ventes nettes", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
-                    FitText(money.da(report.netTotal ?: report.all.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = white, textAlign = TextAlign.Center)
-                }
-            }
-        }
-    }
+    val returns = report.returns
+    ReportHeroCard(
+        title = "Chiffre d'affaires",
+        amount = money.da(report.all.total),
+        caption = plural(report.all.count, "vente", "ventes"),
+        halves = if (returns != null && returns.count > 0) listOf(
+            HeroHalf("Retours clients (${returns.count})", "− ${money.da(returns.total)}"),
+            HeroHalf("Ventes nettes", money.da(report.netTotal ?: report.all.total), bold = true),
+        ) else emptyList(),
+    )
 }
 
 @Composable
@@ -181,33 +156,6 @@ private fun KpiGrid(report: SalesReport) {
                 report.marginRate?.let { "Taux de marge ${percent(it)}" },
             )
             KpiTile("Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null)
-        }
-    }
-}
-
-/** A figure with its title above and, if given, a [badge] in the figure's colour under it. */
-@Composable
-private fun KpiTile(label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?) {
-    Column(
-        modifier
-            .fillMaxHeight()
-            .clip(DsShapes.medium)
-            .background(DsColors.Surface)
-            .padding(DsSpacing.md)
-    ) {
-        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-        Spacer(Modifier.height(DsSpacing.xs))
-        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = valueColor)
-        if (badge != null) {
-            Spacer(Modifier.height(DsSpacing.sm))
-            Text(
-                badge, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = valueColor,
-                maxLines = 1,
-                modifier = Modifier
-                    .clip(DsShapes.pill)
-                    .background(valueColor.copy(alpha = 0.12f))
-                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp),
-            )
         }
     }
 }
@@ -409,14 +357,6 @@ private fun Legend(label: String, color: Color, amount: String, modifier: Modifi
 // ── Détail ──
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
-        modifier = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm),
-    )
-}
-
-@Composable
 private fun BucketRow(bucket: SalesBucket) {
     val money = LocalMoneyFormatter.current
     val all = bucket.all
@@ -439,17 +379,3 @@ private fun BucketRow(bucket: SalesBucket) {
         }
     }
 }
-
-@Composable
-private fun Message(text: String) {
-    Text(
-        text, fontSize = DsTextSize.body, color = DsColors.TextSecondary,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xl),
-    )
-}
-
-private fun plural(count: Int, one: String, many: String) = "$count ${if (count <= 1) one else many}"
-
-private fun percent(rate: Double) = String.format(Locale.FRENCH, "%.1f %%", rate * 100)
-
-private fun percentOf(part: Double, whole: Double): String? = if (whole > 0) percent(part / whole) else null

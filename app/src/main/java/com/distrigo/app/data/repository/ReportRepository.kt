@@ -82,6 +82,14 @@ class ReportRepository(private val dao: ReportDao) {
             days = foldIntoDays(dao.salesByHour(range.start, range.end, range.source), range, zone),
         )
     }
+
+    /** The Créances et dettes report for one [side] — see DebtReport. */
+    suspend fun debtReport(
+        side: DebtSide,
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): DebtReport = dao.debtReport(side, filter, today, zone)
 }
 
 /**

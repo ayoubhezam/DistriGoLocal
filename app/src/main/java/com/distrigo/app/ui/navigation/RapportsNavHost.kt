@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.distrigo.app.diagnostics.rememberTrackedNavController
+import com.distrigo.app.ui.rapports.DebtReportScreen
 import com.distrigo.app.ui.rapports.RapportsHomeScreen
 import com.distrigo.app.ui.rapports.VentesReportScreen
 
@@ -24,11 +25,15 @@ fun RapportsNavHost(onBack: () -> Unit) {
         composable(Screen.RapportsHome.route) {
             RapportsHomeScreen(
                 onBack       = onBack,
-                onOpenVentes = { navController.navigate(Screen.RapportsVentes.route) }
+                onOpenVentes = { navController.navigate(Screen.RapportsVentes.route) },
+                onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) }
             )
         }
         composable(Screen.RapportsVentes.route) {
             VentesReportScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.RapportsDettes.route) {
+            DebtReportScreen(onBack = { navController.popBackStack() })
         }
     }
 }

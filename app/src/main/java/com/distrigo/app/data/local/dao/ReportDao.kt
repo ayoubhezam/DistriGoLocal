@@ -27,6 +27,23 @@ data class SalesHour(val hour: String, val source: String, val count: Int, val t
 /** A period's client returns, counted and summed at their selling prices. */
 data class ReturnTotals(val count: Int, val total: Double)
 
+// ── Créances et dettes ──
+
+/** What a side is owed, or owes, today: how many parties carry a balance above zero, and its sum. */
+data class DebtTotals(val count: Int, val total: Double)
+
+/** Payments over a period, counted and summed. */
+data class PeriodPayments(val count: Int, val total: Double)
+
+/**
+ * The credit one party's unpaid documents left, in one age band: 0 within 30 days, 1 from 31 to 60,
+ * 2 from 61 to 90, 3 beyond. The repository spends a party's balance on these newest first.
+ */
+data class DebtAge(val party: Int, val band: Int, val credit: Double)
+
+/** A party with a balance above zero, and when it last paid — an instant for a client or a supplier. */
+data class Debtor(val id: Int, val name: String, val balance: Double, val last_payment: String?)
+
 @Dao
 interface ReportDao {
 
@@ -80,4 +97,80 @@ interface ReportDao {
         """
     )
     suspend fun clientReturns(firstDay: String, lastDay: String): ReturnTotals
+
+    // ── Créances et dettes ──
+    // Balances are the stored caches ClientDao and SupplierDao.recomputeBalance keep; a balance above
+    // half a centime is owed. Parties in the bin are left out: one with a balance cannot be put there.
+
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(balance), 0) AS total FROM clients WHERE deleted_at IS NULL AND balance > 0.005")
+    suspend fun clientDebts(): DebtTotals
+
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(balance), 0) AS total FROM suppliers WHERE deleted_at IS NULL AND balance > 0.005")
+    suspend fun supplierDebts(): DebtTotals
+
+    /** The credit left by the period's sales: what each was not paid at the moment it was made. */
+    @Query("SELECT COALESCE(SUM(MAX(total - montant_paye, 0)), 0) FROM ventes WHERE created_at >= :start AND created_at < :end")
+    suspend fun creditGiven(start: String, end: String): Double
+
+    /** The credit left by the period's purchases, by the bon's date — a calendar day, both ends included. */
+    @Query("SELECT COALESCE(SUM(MAX(total - montant_paye, 0)), 0) FROM purchase_orders WHERE date >= :firstDay AND date <= :lastDay")
+    suspend fun creditTaken(firstDay: String, lastDay: String): Double
+
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS total FROM client_payments WHERE created_at >= :start AND created_at < :end")
+    suspend fun clientPayments(start: String, end: String): PeriodPayments
+
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS total FROM supplier_payments WHERE created_at >= :start AND created_at < :end")
+    suspend fun supplierPayments(start: String, end: String): PeriodPayments
+
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(total), 0) AS total FROM retour_fournisseur WHERE date >= :firstDay AND date <= :lastDay")
+    suspend fun supplierReturns(firstDay: String, lastDay: String): ReturnTotals
+
+    /**
+     * Each debtor client's unpaid sale credit, by age band. [b30], [b60] and [b90] are the instants
+     * 30, 60 and 90 local days before today began (BusinessDates.dayStart).
+     */
+    @Query(
+        """
+        SELECT v.client_id AS party,
+               CASE WHEN v.created_at >= :b30 THEN 0 WHEN v.created_at >= :b60 THEN 1 WHEN v.created_at >= :b90 THEN 2 ELSE 3 END AS band,
+               SUM(v.total - v.montant_paye) AS credit
+        FROM ventes v JOIN clients c ON c.id = v.client_id
+        WHERE c.deleted_at IS NULL AND c.balance > 0.005 AND v.total > v.montant_paye
+        GROUP BY party, band
+        """
+    )
+    suspend fun clientDebtAges(b30: String, b60: String, b90: String): List<DebtAge>
+
+    /** The same for suppliers, by the bon's calendar date: [d30], [d60] and [d90] are `yyyy-MM-dd`. */
+    @Query(
+        """
+        SELECT p.supplier_id AS party,
+               CASE WHEN p.date >= :d30 THEN 0 WHEN p.date >= :d60 THEN 1 WHEN p.date >= :d90 THEN 2 ELSE 3 END AS band,
+               SUM(p.total - p.montant_paye) AS credit
+        FROM purchase_orders p JOIN suppliers s ON s.id = p.supplier_id
+        WHERE s.deleted_at IS NULL AND s.balance > 0.005 AND p.total > p.montant_paye
+        GROUP BY party, band
+        """
+    )
+    suspend fun supplierDebtAges(d30: String, d60: String, d90: String): List<DebtAge>
+
+    @Query(
+        """
+        SELECT c.id, c.name, c.balance,
+               (SELECT MAX(p.created_at) FROM client_payments p WHERE p.client_id = c.id) AS last_payment
+        FROM clients c WHERE c.deleted_at IS NULL AND c.balance > 0.005
+        ORDER BY c.balance DESC
+        """
+    )
+    suspend fun clientDebtors(): List<Debtor>
+
+    @Query(
+        """
+        SELECT s.id, s.name, s.balance,
+               (SELECT MAX(p.created_at) FROM supplier_payments p WHERE p.supplier_id = s.id) AS last_payment
+        FROM suppliers s WHERE s.deleted_at IS NULL AND s.balance > 0.005
+        ORDER BY s.balance DESC
+        """
+    )
+    suspend fun supplierDebtors(): List<Debtor>
 }
