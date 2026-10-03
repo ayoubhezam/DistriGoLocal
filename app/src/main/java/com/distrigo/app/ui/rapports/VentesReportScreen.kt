@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -202,47 +206,85 @@ private fun KpiTile(label: String, value: String, valueColor: Color, modifier: M
     }
 }
 
-/** Dépôt against camion: a bar of their shares, then each one's figures. */
+/**
+ * Dépôt against camion over the whole period: a ring of their shares with the total inside, and each
+ * one's share, amount and number of sales beside it.
+ */
 @Composable
 private fun SourceSplit(report: SalesReport) {
+    val money = LocalMoneyFormatter.current
     val total = report.all.total
+    val depotShare = if (total > 0) (report.depot.total / total).toFloat() else 0f
+    val primary = DsColors.Primary
+    val empty = DsColors.SurfaceSunken
+
     Column(
         Modifier
             .padding(horizontal = DsSpacing.lg)
             .fillMaxWidth()
-            .clip(DsShapes.medium)
+            .clip(DsShapes.large)
             .background(DsColors.Surface)
-            .padding(DsSpacing.md)
+            .padding(DsSpacing.lg)
     ) {
-        Text("Dépôt et camion", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-        Spacer(Modifier.height(DsSpacing.sm))
-        val depotShare = if (total > 0) (report.depot.total / total).toFloat() else 0f
-        Row(Modifier.fillMaxWidth().height(8.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)) {
-            if (depotShare > 0f) Box(Modifier.weight(depotShare).fillMaxSize().background(DsColors.Primary))
-            if (depotShare < 1f && total > 0) Box(Modifier.weight(1f - depotShare).fillMaxSize().background(CamionColor))
+        Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Spacer(Modifier.height(DsSpacing.lg))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val stroke = 14.dp.toPx()
+                    val inset = stroke / 2
+                    val arc = Size(size.width - stroke, size.height - stroke)
+                    val at = Offset(inset, inset)
+                    if (total <= 0) {
+                        drawArc(empty, 0f, 360f, false, at, arc, style = Stroke(stroke))
+                    } else {
+                        // Dépôt from twelve o'clock, clockwise; the camion takes the rest of the ring.
+                        val depotSweep = 360f * depotShare
+                        if (depotSweep < 360f) drawArc(CamionColor, -90f + depotSweep, 360f - depotSweep, false, at, arc, style = Stroke(stroke))
+                        if (depotSweep > 0f) drawArc(primary, -90f, depotSweep, false, at, arc, style = Stroke(stroke))
+                    }
+                }
+                // The amount shrinks to fit the ring; "DA" stays a unit under it, never larger than the figure.
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    FitText(
+                        money.amount(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
+                        color = DsColors.TextPrimary, textAlign = TextAlign.Center, minScale = 0.45f,
+                    )
+                    Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                    Text("Total", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                }
+            }
+            Spacer(Modifier.width(DsSpacing.lg))
+            Box(Modifier.fillMaxHeight(0.8f).width(1.dp).background(DsColors.Border))
+            Spacer(Modifier.width(DsSpacing.lg))
+            Column(Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.xl)) {
+                SourceLine("Dépôt", DsColors.Primary, report.depot, total)
+                SourceLine("Camion", CamionColor, report.camion, total)
+            }
         }
-        Spacer(Modifier.height(DsSpacing.sm))
-        SourceLine("Dépôt", DsColors.Primary, report.depot, total)
-        SourceLine("Camion", CamionColor, report.camion, total)
     }
 }
 
+/** One side of the split: its dot, name and share, then its amount and number of sales. */
 @Composable
 private fun SourceLine(label: String, color: Color, figures: SalesFigures, total: Double) {
     val money = LocalMoneyFormatter.current
-    Row(Modifier.fillMaxWidth().padding(vertical = DsSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).clip(DsShapes.pill).background(color))
+    Row(verticalAlignment = Alignment.Top) {
+        Box(Modifier.padding(top = 3.dp).size(14.dp).clip(DsShapes.pill).background(color))
         Spacer(Modifier.width(DsSpacing.sm))
         Column(Modifier.weight(1f)) {
-            Text(label, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-            Text(plural(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            if (figures.credit > 0) {
-                Text("crédit ${money.da(figures.credit)}", fontSize = DsTextSize.caption, color = DsColors.Warning)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                Text(
+                    percentOf(figures.total, total) ?: percent(0.0),
+                    fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary,
+                )
             }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(money.da(figures.total), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            percentOf(figures.total, total)?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
+            FitText(money.da(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text(plural(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
 }
