@@ -161,48 +161,54 @@ private fun SummaryCard(report: SalesReport) {
 @Composable
 private fun KpiGrid(report: SalesReport) {
     val money = LocalMoneyFormatter.current
-    val approx = if (report.isMarginEstimated) "≈ " else ""
+    val marginColor = if (report.grossMargin < 0) DsColors.Danger else DsColors.Primary
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Payé à la vente", money.da(report.all.paid), DsColors.Success, Modifier.weight(1f), percentOf(report.all.paid, report.all.total))
-            KpiTile("À crédit", money.da(report.all.credit), DsColors.Warning, Modifier.weight(1f), percentOf(report.all.credit, report.all.total))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+        // Each row as tall as its taller tile, so the pairs line up.
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Marge brute", approx + money.da(report.grossMargin),
-                if (report.grossMargin < 0) DsColors.Danger else DsColors.Primary, Modifier.weight(1f),
-                report.marginRate?.let { approx + percent(it) + " du CA" },
+                "Payé à la vente", money.da(report.all.paid), DsColors.Success, Modifier.weight(1f),
+                percentOf(report.all.paid, report.all.total)?.let { "$it des ventes" },
+            )
+            KpiTile(
+                "À crédit", money.da(report.all.credit), DsColors.Warning, Modifier.weight(1f),
+                percentOf(report.all.credit, report.all.total)?.let { "$it des ventes" },
+            )
+        }
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            // The rate said as what it means: of every 100 DA sold, this much is margin.
+            KpiTile(
+                "Marge brute", money.da(report.grossMargin), marginColor, Modifier.weight(1f),
+                report.marginRate?.let { "Taux de marge ${percent(it)}" },
             )
             KpiTile("Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null)
-        }
-        if (report.isMarginEstimated) {
-            // Costs are sums of products, so "all of it" is read with a tolerance, not ==.
-            val allEstimated = report.estimatedCost >= report.cost - 0.005
-            Text(
-                if (allEstimated) {
-                    "≈ Ces ventes datent d'avant l'enregistrement du coût : la marge est estimée au prix d'achat actuel."
-                } else {
-                    "≈ Certaines ventes datent d'avant l'enregistrement du coût : ${money.da(report.estimatedCost)} " +
-                        "du coût sur ${money.da(report.cost)} est estimé au prix d'achat actuel."
-                },
-                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
-            )
         }
     }
 }
 
+/** A figure with its title above and, if given, a [badge] in the figure's colour under it. */
 @Composable
-private fun KpiTile(label: String, value: String, valueColor: Color, modifier: Modifier, caption: String?) {
+private fun KpiTile(label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?) {
     Column(
         modifier
+            .fillMaxHeight()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
             .padding(DsSpacing.md)
     ) {
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+        Spacer(Modifier.height(DsSpacing.xs))
         FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = valueColor)
-        if (caption != null) Text(caption, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+        if (badge != null) {
+            Spacer(Modifier.height(DsSpacing.sm))
+            Text(
+                badge, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = valueColor,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(DsShapes.pill)
+                    .background(valueColor.copy(alpha = 0.12f))
+                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp),
+            )
+        }
     }
 }
 
