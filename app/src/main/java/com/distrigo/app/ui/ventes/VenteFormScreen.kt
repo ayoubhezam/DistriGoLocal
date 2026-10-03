@@ -28,6 +28,7 @@ import com.distrigo.app.ui.common.CartBlockingBanner
 import com.distrigo.app.ui.common.CartStatusLine
 import com.distrigo.app.ui.common.CartStatusTone
 import com.distrigo.app.ui.common.PriceFieldWithHistory
+import com.distrigo.app.ui.common.isBelowCost
 import com.distrigo.app.ui.common.QuantityStepper
 import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.designsystem.DsTopAppBar
@@ -535,17 +536,21 @@ internal fun VenteCartRow(
     // something the catalogue no longer holds — advice that cannot be followed. The missing
     // state takes precedence, in the wording Achats already uses for it.
     val isDanger = isMissingProduct || overCap || (isNegative && !isStrict)
+    // Selling below the purchase price is said on the folded line too, where the "qty × price" line
+    // is cut short; a stock problem, which must be dealt with first, keeps the line.
+    val belowCost = !isDanger && isBelowCost(item.unitPrice, item.product.purchase_price)
     val tone = when {
-        isDanger         -> CartStatusTone.DANGER
-        atCap || isLow   -> CartStatusTone.WARNING
-        else             -> CartStatusTone.OK
+        isDanger                   -> CartStatusTone.DANGER
+        belowCost || atCap || isLow -> CartStatusTone.WARNING
+        else                       -> CartStatusTone.OK
     }
     val unit = item.product.unit_type
     val statusText = when {
         isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
         overCap          -> "Stock insuffisant — disponible ${formatQty(depotCap!!)} $unit, réduisez la quantité"
-        atCap            -> "Maximum atteint — ${formatQty(depotCap!!)} $unit en dépôt"
         isNegative       -> "Rupture — dépassement de ${formatQty(kotlin.math.abs(remainingAfter))} $unit"
+        belowCost        -> "Vendu à perte · prix d'achat ${money.da(item.product.purchase_price)}"
+        atCap            -> "Maximum atteint — ${formatQty(depotCap!!)} $unit en dépôt"
         else             -> "Reste ${formatQty(remainingAfter)} $unit"
     }
 
@@ -559,11 +564,11 @@ internal fun VenteCartRow(
         isDanger        = isDanger,
         statusLine = {
             CartStatusLine(
-                icon             = if (isDanger) Icons.Default.Warning else Icons.Default.Inventory2,
+                icon             = if (isDanger || belowCost) Icons.Default.Warning else Icons.Default.Inventory2,
                 text             = statusText,
                 tone             = tone,
-                // No stock bar for a product with no stock to report on.
-                progressFraction = if (isMissingProduct) null else progressFraction,
+                // No stock bar for a product with no stock to report on, nor under a price warning.
+                progressFraction = if (isMissingProduct || belowCost) null else progressFraction,
                 maxLines         = if (isMissingProduct || overCap) 2 else 1
             )
         },
@@ -589,7 +594,8 @@ internal fun VenteCartRow(
 
             PriceFieldWithHistory(
                 price         = item.unitPrice,
-                onPriceChange = onPriceChange
+                onPriceChange = onPriceChange,
+                floorPrice    = item.product.purchase_price
             )
 
             Spacer(Modifier.height(DsSpacing.xs))

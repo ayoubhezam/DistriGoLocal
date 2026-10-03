@@ -28,6 +28,7 @@ import com.distrigo.app.ui.common.CartBlockingBanner
 import com.distrigo.app.ui.common.CartStatusLine
 import com.distrigo.app.ui.common.CartStatusTone
 import com.distrigo.app.ui.common.PriceFieldWithHistory
+import com.distrigo.app.ui.common.isBelowCost
 import com.distrigo.app.ui.common.QuantityStepper
 import com.distrigo.app.ui.common.SelectionCartCard
 import com.distrigo.app.ui.designsystem.DsTopAppBar
@@ -482,6 +483,9 @@ fun TourneeVenteCartRow(
     // ask for more than the van holds — so if the cart is over it, the stock moved after the draft
     // was written, and the sale is blocked until the quantity comes down.
     val overStock = item.quantity > availableStock
+    // Selling below the purchase price is said on the folded line, where the "qty × price" line is
+    // cut short; a blocking problem keeps the line.
+    val belowCost = !isMissingProduct && !overStock && isBelowCost(item.unitPrice, item.product.purchase_price)
 
     SelectionCartCard(
         avatarIcon      = Icons.Default.ShoppingCart,
@@ -493,16 +497,20 @@ fun TourneeVenteCartRow(
         isDanger   = isMissingProduct || overStock,
         statusLine = {
             CartStatusLine(
-                icon = if (isMissingProduct || overStock) Icons.Default.Warning
+                icon = if (isMissingProduct || overStock || belowCost) Icons.Default.Warning
                        else Icons.Default.LocalShipping,
                 text = when {
                     isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
                     overStock        -> "Stock camion insuffisant — disponible : " +
                                         "${formatQty(availableStock)} ${item.product.unit_type}"
+                    belowCost        -> "Vendu à perte · prix d'achat ${money.da(item.product.purchase_price)}"
                     else             -> "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}"
                 },
-                tone = if (isMissingProduct || overStock) CartStatusTone.DANGER
-                       else CartStatusTone.NEUTRAL,
+                tone = when {
+                    isMissingProduct || overStock -> CartStatusTone.DANGER
+                    belowCost                     -> CartStatusTone.WARNING
+                    else                          -> CartStatusTone.NEUTRAL
+                },
                 // Both blocking lines are instructions, and an instruction cut in half is worse
                 // than none — the readings they replace fit on one line and still do.
                 maxLines = if (isMissingProduct || overStock) 2 else 1
@@ -526,7 +534,8 @@ fun TourneeVenteCartRow(
 
             PriceFieldWithHistory(
                 price         = item.unitPrice,
-                onPriceChange = onPriceChange
+                onPriceChange = onPriceChange,
+                floorPrice    = item.product.purchase_price
             )
 
             Spacer(Modifier.height(DsSpacing.xs))

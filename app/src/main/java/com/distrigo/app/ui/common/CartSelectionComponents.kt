@@ -470,12 +470,24 @@ fun CompactQuantityStepper(
     }
 }
 
+/**
+ * True when a sale's [price] is below the product's [cost] — its purchase price, the cost the sale will
+ * record. A cost of zero is a product with no purchase price entered: nothing to compare with.
+ */
+fun isBelowCost(price: Double, cost: Double): Boolean = cost > 0 && price < cost - 0.005
+
+/**
+ * [floorPrice] is the product's purchase price on a sale's line: a price below it is still accepted —
+ * clearing stock, a promotion — but said, in the line itself, so a typing slip such as 1 000 for
+ * 1 735,20 is seen before the sale is saved, not later in the margin. Null on a purchase.
+ */
 @Composable
 fun PriceFieldWithHistory(
     price: Double,
     onPriceChange: (Double) -> Unit,
     priceHistory: List<Double> = emptyList(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    floorPrice: Double? = null
 ) {
     val money = LocalMoneyFormatter.current
     // Locale.ROOT: this seeds an editable field whose onValueChange keeps only digits and '.',
@@ -483,6 +495,7 @@ fun PriceFieldWithHistory(
     // its separator on the first keystroke and become 12000.
     var priceStr    by remember(price) { mutableStateOf(String.format(Locale.ROOT, "%.2f", price)) }
     var showHistory by remember { mutableStateOf(false) }
+    val belowCost = floorPrice != null && isBelowCost(price, floorPrice)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text("Prix unitaire (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
@@ -509,8 +522,8 @@ fun PriceFieldWithHistory(
                 shape           = DsShapes.medium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 colors          = dsTextFieldColors(
-                    unfocusedBorderColor = DsColors.Border,
-                    focusedBorderColor   = DsColors.Primary
+                    unfocusedBorderColor = if (belowCost) DsColors.Warning else DsColors.Border,
+                    focusedBorderColor   = if (belowCost) DsColors.Warning else DsColors.Primary
                 )
             )
 
@@ -558,6 +571,17 @@ fun PriceFieldWithHistory(
                         }
                     }
                 }
+            }
+        }
+        if (belowCost) {
+            Spacer(Modifier.height(DsSpacing.xs))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(DsSpacing.xs))
+                Text(
+                    "Prix inférieur au prix d'achat (${money.da(floorPrice!!)}) : vente à perte",
+                    fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Warning
+                )
             }
         }
     }
