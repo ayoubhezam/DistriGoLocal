@@ -156,23 +156,7 @@ class VenteFormSessionViewModel @Inject constructor(
 
     // ── Step 02: the product list, and the cart kept current ────────────────
 
-    /** Step 02's search. Held here, beside the list it narrows, so it survives a trip to the cart. */
-    var productSearch by mutableStateOf("")
-
-    /** Step 02's filters, kept like the search — Achats' filters, read against the selling price. */
-    var productFilters by mutableStateOf(ProductListFilters())
-
-    /**
-     * Step 02's products, paged from the database, newest first as the list always was — see
-     * [PagedProductList]. The step used to collect the whole catalogue and search it in the composable.
-     */
-    val productList = PagedProductList(
-        scope      = viewModelScope,
-        repository = productRepository,
-        query      = combine(snapshotFlow { productFilters }, debouncedSearch { productSearch }) { filters, search ->
-            filters.toListQuery(search, priceColumn = PriceColumn.SELLING)
-        },
-    )
+    // Step 02's list, its search and its filters are the section's — see VenteViewModel.saleProducts.
 
     init {
         // Each cart line carries a snapshot of its product; stock moves elsewhere while a sale is being
@@ -343,7 +327,7 @@ class VenteFormSessionViewModel @Inject constructor(
         _editSource.value      = vente.source
         _formNote.value        = vente.note.orEmpty()
         _formMontantPaye.value = VenteDraftRepository.montantPayeText(vente.montant_paye ?: 0.0)
-        _formClient.value      = productRepository.getClients().find { it.id == vente.client_id }
+        _formClient.value      = productRepository.getClientById(vente.client_id)
 
         val products = productRepository.getLiveProductsByIds(vente.items.orEmpty().map { it.product_id }).associateBy { it.id }
         _formCartItems.value = vente.items.orEmpty().map { item ->
@@ -398,7 +382,7 @@ class VenteFormSessionViewModel @Inject constructor(
     }
 
     private suspend fun preselectClient(clientId: Int) {
-        _formClient.value = productRepository.getClients().find { it.id == clientId }
+        _formClient.value = productRepository.getClientById(clientId)
     }
 
     // ── Hydration ────────────────────────────────────────────────────────────
@@ -423,7 +407,7 @@ class VenteFormSessionViewModel @Inject constructor(
         // whichever step the user was on, and a Cart or Validation step with a null client would
         // refuse to save. Ids in, live objects out — the same rule the cart lines follow.
         _formClient.value = draft.clientId?.let { id ->
-            productRepository.getClients().find { it.id == id }
+            productRepository.getClientById(id)
         }
 
         val committed = draft.sourceVenteId

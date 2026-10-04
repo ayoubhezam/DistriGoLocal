@@ -1546,6 +1546,9 @@ class ProductRepository(
     /** The wilaya to prefill when adding a client — see [ClientDao.getMostCommonWilaya]. */
     suspend fun getMostCommonClientWilaya(): String? = clientDao.getMostCommonWilaya()
 
+    /** One client by id — what a sale opened on a known client needs, rather than the whole list. */
+    suspend fun getClientById(id: Int): Client? = clientDao.getClientById(id)?.toClient()
+
     suspend fun getClients(): List<Client> {
         return clientDao.getAllClients().map { it.toClient() }
     }

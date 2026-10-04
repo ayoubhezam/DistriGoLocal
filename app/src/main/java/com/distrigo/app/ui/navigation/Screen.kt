@@ -248,13 +248,18 @@ sealed class Screen(val route: String) {
             return "vente_form_graph" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }
     }
-    data object VenteFormGraphDirect : Screen("vente_form_graph_direct?venteId={venteId}&clientId={clientId}&draftId={draftId}") {
-        /** See [VenteFormGraph.createRoute] — same arguments, entered straight at Products. */
-        fun createRoute(venteId: Int? = null, clientId: Int? = null, draftId: Int? = null): String {
+    data object VenteFormGraphDirect : Screen("vente_form_graph_direct?venteId={venteId}&clientId={clientId}&draftId={draftId}&clientName={clientName}") {
+        /**
+         * See [VenteFormGraph.createRoute] — same arguments, entered straight at Products. [clientName],
+         * when the caller has it, is what step 02's subtitle shows on its first frame, before the
+         * client itself is read.
+         */
+        fun createRoute(venteId: Int? = null, clientId: Int? = null, draftId: Int? = null, clientName: String? = null): String {
             val params = buildList {
                 if (venteId != null) add("venteId=$venteId")
                 if (clientId != null) add("clientId=$clientId")
                 if (draftId != null) add("draftId=$draftId")
+                if (clientName != null) add("clientName=${android.net.Uri.encode(clientName)}")
             }
             return "vente_form_graph_direct" + if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
         }
@@ -288,9 +293,14 @@ sealed class Screen(val route: String) {
     data object TourneeVenteBrouillons : Screen("tournee_vente_brouillons/{tourneeId}") {
         fun createRoute(tourneeId: Int) = "tournee_vente_brouillons/$tourneeId"
     }
-    data object TourneeVenteFormGraphDirect : Screen("tournee_vente_form_graph_direct/{tourneeId}?clientId={clientId}") {
-        fun createRoute(tourneeId: Int, clientId: Int? = null) =
-            "tournee_vente_form_graph_direct/$tourneeId" + if (clientId != null) "?clientId=$clientId" else ""
+    data object TourneeVenteFormGraphDirect : Screen("tournee_vente_form_graph_direct/{tourneeId}?clientId={clientId}&clientName={clientName}") {
+        /** [clientName] is what step 02's subtitle shows on its first frame, before the client is read. */
+        fun createRoute(tourneeId: Int, clientId: Int? = null, clientName: String? = null) =
+            "tournee_vente_form_graph_direct/$tourneeId" +
+                listOfNotNull(
+                    clientId?.let { "clientId=$it" },
+                    clientName?.let { "clientName=${android.net.Uri.encode(it)}" }
+                ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
     }
     data object TourneesVenteDetail : Screen("tournees_vente_detail/{tourneeId}/{venteId}") {
         fun createRoute(tourneeId: Int, venteId: Int) = "tournees_vente_detail/$tourneeId/$venteId"

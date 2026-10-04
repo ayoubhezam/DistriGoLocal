@@ -195,7 +195,8 @@ fun TourneeDetailScreen(
     onBack                  : () -> Unit = {},
     onEditTournee           : (Tournee) -> Unit = {},
     onAddClients            : () -> Unit = {},
-    onCreateVente           : (Int?) -> Unit = {},
+    /** A sale for a client of the round — its id and, for step 02's first frame, its name. */
+    onCreateVente           : (Int?, String?) -> Unit = { _, _ -> },
     onOpenVente             : (Vente) -> Unit = {},
     onOpenBrouillons        : () -> Unit = {},
     onNavigateToChargement  : () -> Unit = {}
@@ -331,8 +332,9 @@ fun TourneeDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val cid = info.client.id
+                    val name = info.client.name
                     confirmReopenSaleClient = null
-                    onCreateVente(cid)
+                    onCreateVente(cid, name)
                 }) {
                     Text(if (isClosed) "Continuer" else "Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
@@ -618,7 +620,7 @@ fun TourneeDetailScreen(
                     // the tournée, which is not a function of what is typed in the search box.
                     tourneeVentes       = ventes,
                     isOpen              = current.status == "ouverte",
-                    onCreateSale        = { cid -> onCreateVente(cid) },
+                    onCreateSale        = { cid -> onCreateVente(cid, tourneeClients.find { it.client.id == cid }?.client?.name) },
                     onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
                     onAddClient         = { onAddClients() },
                     onRemoveClient      = { cid ->

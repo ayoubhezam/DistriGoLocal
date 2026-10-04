@@ -128,7 +128,7 @@ fun ClientsNavHost(
                         onBack           = { navController.popOr(onBack) },
                         onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
                         onDelete         = { showDeleteConfirm = true },
-                        onNewVente       = { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId)) },
+                        onNewVente       = { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId, clientName = client.name)) },
                         onRetourForm     = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) },
                         onRetourHistory  = { navController.navigate(Screen.ClientsRetourHistory.createRoute(clientId)) },
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }

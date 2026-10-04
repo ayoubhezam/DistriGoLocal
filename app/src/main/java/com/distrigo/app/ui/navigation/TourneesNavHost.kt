@@ -61,9 +61,9 @@ fun TourneesNavHost(
                 onBack                 = { navController.popBackStack() },
                 onEditTournee          = { tournee -> navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) },
                 onAddClients           = { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
-                onCreateVente          = { clientId ->
+                onCreateVente          = { clientId, clientName ->
                     if (clientId != null) {
-                        navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId))
+                        navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
                     } else {
                         navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
                     }

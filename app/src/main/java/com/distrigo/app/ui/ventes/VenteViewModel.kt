@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.data.local.paging.PriceColumn
+import com.distrigo.app.ui.purchases.toListQuery
+import com.distrigo.app.ui.common.ProductPicker
 import com.distrigo.app.data.model.DraftBaseState
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.VenteDraft
@@ -40,6 +43,14 @@ class VenteViewModel @Inject constructor(
     private val repository: ProductRepository,
     private val draftRepository: VenteDraftRepository
 ) : ViewModel() {
+
+    /**
+     * Step 02 of a dépôt sale: the products, searched and filtered. Held here, for the section the
+     * form opens from, so its cached pages are there on a sale's first frame — see ProductPicker.
+     */
+    val saleProducts = ProductPicker(viewModelScope, repository) { filters, search ->
+        filters.toListQuery(search, priceColumn = PriceColumn.SELLING)
+    }
 
     // ── Brouillons ──
     // Room-observed, so the "Brouillons (N)" chip and the list stay live while a draft is being

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.productRowSkeletons
+import androidx.paging.LoadState
 import com.distrigo.app.data.model.Quantity
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -122,7 +124,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
         arguments = listOf(
             navArgument("tourneeId") { type = NavType.IntType },
             navArgument("clientId")  { type = NavType.IntType; defaultValue = -1 },
-            navArgument("draftId")   { type = NavType.IntType; defaultValue = -1 }
+            navArgument("draftId")   { type = NavType.IntType; defaultValue = -1 },
+            navArgument("clientName") { type = NavType.StringType; nullable = true; defaultValue = null }
         )
     ) {
         if (!skipClientStep) {
@@ -191,17 +194,19 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
-            val clientViewModel = clientViewModel()
             val productViewModel = productViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
-            val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            // Only what the camion carries, paged from the database and cached on the session.
-            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
-            val productCount by session.productList.count.collectAsState()
+            val clientNameArg = parentEntry.arguments?.getString("clientName")
+            // Only what the camion carries, held by the Tournées section so its pages are cached
+            // from one sale to the next; cleared for each new sale.
+            val picker = viewModel.camionProducts
+            remember(parentEntry.id) { picker.startSale(parentEntry.id); true }
+            val pagedProducts = picker.list.items.collectAsLazyPagingItems()
+            val productCount by picker.list.count.collectAsState()
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
-            val search = session.productSearch
-            val filters = session.productFilters
+            val search = picker.search
+            val filters = picker.filters
             var showFilterSheet by remember { mutableStateOf(false) }
             val categories by productViewModel.categories.collectAsState()
             val sousCategories by productViewModel.sousCategories.collectAsState()
@@ -209,40 +214,20 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val filterSuppliers by productViewModel.suppliers.collectAsState()
             var showScanner by remember { mutableStateOf(false) }
 
-            if (skipClientStep) {
-                // This step is the graph's entry point in this mode (client already known at
-                // navigation time) — run the same one-time init + client-resolution that the
-                // client step normally does, since that step is never entered here.
-                val clients by clientViewModel.clients.collectAsState()
-
-                var initialized by rememberSaveable { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    if (!initialized) {
-                        viewModel.resetTourneeVenteForm()
-                        initialized = true
-                    }
-                }
-                LaunchedEffect(clientIdArg, clients) {
-                    if (clientIdArg != null && formClient == null) {
-                        session.setFormClient(clients.find { it.id == clientIdArg })
-                    }
-                }
-            }
-
             // Each cart line's camion stock is kept current by the session now (resyncCart), watching
             // the cart's own products rather than the whole catalogue.
 
             if (showScanner) {
                 BackHandler { showScanner = false }
                 BarcodeScannerScreen(
-                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
+                    onBarcodeScanned = { code -> picker.search = code; showScanner = false },
                     onClose = { showScanner = false }
                 )
                 return@composable
             }
 
             BackHandler {
-                if (skipClientStep) onBack() else navController.popBackStack()
+                if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack()
             }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -250,10 +235,11 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
                     title         = "Vente — Tournée #$tourneeId",
-                    subtitle      = formClient?.name ?: "Choisir un client",
+                    // The name passed with the route until the client itself is read: right on frame 1.
+                    subtitle      = formClient?.name ?: clientNameArg ?: "Choisir un client",
                     // Blue once a client is chosen, grey while the step is still open.
-                    subtitleColor = if (formClient != null) DsColors.Primary else DsColors.TextSecondary,
-                    leading       = DsTopBarLeading.Back({ if (skipClientStep) onBack() else navController.popBackStack() })
+                    subtitleColor = if (formClient != null || clientNameArg != null) DsColors.Primary else DsColors.TextSecondary,
+                    leading       = DsTopBarLeading.Back({ if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack() })
                 ) {
                     DsStepBadge("Produits", 2, 3)
                     Spacer(Modifier.width(DsSpacing.xs))
@@ -265,7 +251,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         Column(modifier = Modifier.fillMaxSize()) {
                             DsCompactSearchField(
                                 value         = search,
-                                onValueChange = { session.productSearch = it },
+                                onValueChange = { picker.search = it },
                                 placeholder   = "Rechercher un produit",
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
@@ -285,7 +271,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             )
                             ActiveProductFilterChips(
                                 productFilterChips(filters, categories, sousCategories, marques, filterSuppliers, "Prix de vente", money),
-                                onChange = { session.productFilters = it }
+                                onChange = { picker.filters = it }
                             )
                             if (showFilterSheet) {
                                 com.distrigo.app.ui.purchases.PurchaseProductFilterSheet(
@@ -295,7 +281,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                     marques        = marques,
                                     suppliers      = filterSuppliers,
                                     resultCount    = productCount ?: 0,
-                                    onChange       = { session.productFilters = it },
+                                    onChange       = { picker.filters = it },
                                     onDismiss      = { showFilterSheet = false },
                                     priceLabel     = "Prix de vente",
                                     // The camion's list: dépôt stock bands would say nothing here.
@@ -307,6 +293,10 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),
                                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
+                                // Nothing yet and the first page on its way: rows in place of a blank list.
+                                if (pagedProducts.itemCount == 0 && pagedProducts.loadState.refresh is LoadState.Loading) {
+                                    productRowSkeletons()
+                                }
                                 items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
                                     val product = pagedProducts[index] ?: return@items
                                     val isInCart = cartItems.any { it.product.id == product.id }
@@ -653,6 +643,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         } else {
                             viewModel.loadTourneeClients(tourneeId)
                         }
+                        viewModel.camionProducts.reset()
                         onSaved()
                     },
                     onError = { isSaving = false }

@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.data.local.paging.PriceColumn
+import com.distrigo.app.ui.purchases.toListQuery
+import com.distrigo.app.ui.common.ProductPicker
 import com.distrigo.app.data.model.Tournee
 import com.distrigo.app.data.model.TourneeVenteDraft
 import com.distrigo.app.data.repository.ProductRepository
@@ -27,6 +30,14 @@ class TourneeViewModel @Inject constructor(
     private val repository     : ProductRepository,
     private val draftRepository: TourneeVenteDraftRepository
 ) : ViewModel() {
+
+    /**
+     * Step 02 of a van sale: what the camion carries, searched and filtered. Held here, for the whole
+     * Tournées section, so its cached pages are there on a sale's first frame — see ProductPicker.
+     */
+    val camionProducts = ProductPicker(viewModelScope, repository) { filters, search ->
+        filters.toListQuery(search, priceColumn = PriceColumn.SELLING, inCamionOnly = true)
+    }
 
     private val _tournees = MutableStateFlow<List<Tournee>>(emptyList())
     val tournees: StateFlow<List<Tournee>> = _tournees

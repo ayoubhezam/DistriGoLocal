@@ -95,23 +95,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
 
     // ── Step 02: the product list, and the cart kept current ────────────────
 
-    /** Step 02's search, held beside the list it narrows so it survives a trip to the cart. */
-    var productSearch by mutableStateOf("")
-
-    /** Step 02's filters, kept like the search — Achats' filters, read against the selling price. */
-    var productFilters by mutableStateOf(ProductListFilters())
-
-    /**
-     * Step 02's products: only what the camion carries, paged from the database, newest first as the
-     * list always was — see [PagedProductList].
-     */
-    val productList = PagedProductList(
-        scope      = viewModelScope,
-        repository = productRepository,
-        query      = combine(snapshotFlow { productFilters }, debouncedSearch { productSearch }) { filters, search ->
-            filters.toListQuery(search, priceColumn = PriceColumn.SELLING, inCamionOnly = true)
-        },
-    )
+    // Step 02's list, its search and its filters are the Tournées section's — see TourneeViewModel.camionProducts.
 
     init {
         // A cart line's camion stock can move elsewhere (a chargement, a perte) while a sale is being
@@ -340,7 +324,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
     }
 
     private suspend fun preselectClient(clientId: Int) {
-        _formClient.value = productRepository.getClients().find { it.id == clientId }
+        _formClient.value = productRepository.getClientById(clientId)
     }
 
     // ── Hydration ────────────────────────────────────────────────────────────
@@ -359,7 +343,7 @@ class TourneeVenteFormSessionViewModel @Inject constructor(
         val overStock = mutableSetOf<Int>()
 
         _formClient.value = draft.clientId?.let { id ->
-            productRepository.getClients().find { it.id == id }
+            productRepository.getClientById(id)
         }
 
         _formCartItems.value = draft.lines.map { line ->

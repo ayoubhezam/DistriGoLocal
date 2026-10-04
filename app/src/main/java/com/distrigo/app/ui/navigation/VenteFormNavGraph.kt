@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.productRowSkeletons
+import androidx.paging.LoadState
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -151,7 +153,8 @@ fun NavGraphBuilder.venteFormGraph(
         arguments = listOf(
             navArgument("venteId")  { type = NavType.IntType; defaultValue = -1 },
             navArgument("clientId") { type = NavType.IntType; defaultValue = -1 },
-            navArgument("draftId")  { type = NavType.IntType; defaultValue = -1 }
+            navArgument("draftId")  { type = NavType.IntType; defaultValue = -1 },
+            navArgument("clientName") { type = NavType.StringType; nullable = true; defaultValue = null }
         )
     ) {
         if (!skipClientStep) {
@@ -221,17 +224,22 @@ fun NavGraphBuilder.venteFormGraph(
             val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, productsRoute)
+            val viewModel = viewModel()
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
+            val clientNameArg = parentEntry.arguments?.getString("clientName")
             val editSource by session.editSource.collectAsState()
-            // Paged from the database, cached on the session — see PagedProductList.
-            val pagedProducts = session.productList.items.collectAsLazyPagingItems()
-            val productCount by session.productList.count.collectAsState()
+            // Held by the section the form opens from, so its pages are cached from one sale to the
+            // next — see ProductPicker; cleared for each new sale.
+            val picker = viewModel.saleProducts
+            remember(parentEntry.id) { picker.startSale(parentEntry.id); true }
+            val pagedProducts = picker.list.items.collectAsLazyPagingItems()
+            val productCount by picker.list.count.collectAsState()
             val formClient by session.formClient.collectAsState()
             val cartItems by session.formCartItems.collectAsState()
             val stockPolicy by session.stockPolicy.collectAsState()
-            val search = session.productSearch
-            val filters = session.productFilters
+            val search = picker.search
+            val filters = picker.filters
             var showFilterSheet by remember { mutableStateOf(false) }
             val categories by productViewModel.categories.collectAsState()
             val sousCategories by productViewModel.sousCategories.collectAsState()
@@ -254,14 +262,14 @@ fun NavGraphBuilder.venteFormGraph(
             if (showScanner) {
                 BackHandler { showScanner = false }
                 BarcodeScannerScreen(
-                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
+                    onBarcodeScanned = { code -> picker.search = code; showScanner = false },
                     onClose = { showScanner = false }
                 )
                 return@composable
             }
 
             BackHandler {
-                if (skipClientStep) onBack() else navController.popBackStack()
+                if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack()
             }
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
@@ -269,10 +277,11 @@ fun NavGraphBuilder.venteFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
                 DsTopAppBar(
                     title         = if (venteId != null) listOfNotNull("Modifier la vente", documentLabel("vente", venteId, session::documentLabel)).joinToString(" ") else "Vente dépôt",
-                    subtitle      = formClient?.name ?: "Choisir un client",
+                    // The name passed with the route until the client itself is read: right on frame 1.
+                    subtitle      = formClient?.name ?: clientNameArg ?: "Choisir un client",
                     // Blue once a client is chosen, grey while the step is still open.
-                    subtitleColor = if (formClient != null) DsColors.Primary else DsColors.TextSecondary,
-                    leading       = DsTopBarLeading.Back({ if (skipClientStep) onBack() else navController.popBackStack() })
+                    subtitleColor = if (formClient != null || clientNameArg != null) DsColors.Primary else DsColors.TextSecondary,
+                    leading       = DsTopBarLeading.Back({ if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack() })
                 ) {
                     DsStepBadge("Produits", 2, 3)
                     Spacer(Modifier.width(DsSpacing.xs))
@@ -284,7 +293,7 @@ fun NavGraphBuilder.venteFormGraph(
                         Column(modifier = Modifier.fillMaxSize()) {
                             DsCompactSearchField(
                                 value         = search,
-                                onValueChange = { session.productSearch = it },
+                                onValueChange = { picker.search = it },
                                 placeholder   = "Rechercher un produit",
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
@@ -304,7 +313,7 @@ fun NavGraphBuilder.venteFormGraph(
                             )
                             ActiveProductFilterChips(
                                 productFilterChips(filters, categories, sousCategories, marques, filterSuppliers, "Prix de vente", money),
-                                onChange = { session.productFilters = it }
+                                onChange = { picker.filters = it }
                             )
                             if (showFilterSheet) {
                                 com.distrigo.app.ui.purchases.PurchaseProductFilterSheet(
@@ -314,7 +323,7 @@ fun NavGraphBuilder.venteFormGraph(
                                     marques        = marques,
                                     suppliers      = filterSuppliers,
                                     resultCount    = productCount ?: 0,
-                                    onChange       = { session.productFilters = it },
+                                    onChange       = { picker.filters = it },
                                     onDismiss      = { showFilterSheet = false },
                                     priceLabel     = "Prix de vente",
                                 )
@@ -324,6 +333,10 @@ fun NavGraphBuilder.venteFormGraph(
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),
                                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
+                                // Nothing yet and the first page on its way: rows in place of a blank list.
+                                if (pagedProducts.itemCount == 0 && pagedProducts.loadState.refresh is LoadState.Loading) {
+                                    productRowSkeletons()
+                                }
                                 items(count = pagedProducts.itemCount, key = pagedProducts.itemKey { it.id }) { index ->
                                     val product = pagedProducts[index] ?: return@items
                                     val isInCart = cartItems.any { it.product.id == product.id }
@@ -687,6 +700,7 @@ fun NavGraphBuilder.venteFormGraph(
                         onSuccess = {
                             session.onCommitted()
                             clientViewModel.loadTransactions(formClient!!.id)
+                            viewModel.saleProducts.reset()
                             onSaved()
                         },
                         onError = { error -> isSaving = false; saveError = error }
@@ -699,6 +713,7 @@ fun NavGraphBuilder.venteFormGraph(
                         onSuccess = {
                             session.onCommitted()
                             clientViewModel.loadTransactions(formClient!!.id)
+                            viewModel.saleProducts.reset()
                             onSaved()
                         },
                         onError = { error -> isSaving = false; saveError = error }
