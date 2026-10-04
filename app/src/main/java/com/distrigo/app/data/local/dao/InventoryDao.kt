@@ -59,6 +59,20 @@ interface InventoryDao {
     @Insert
     suspend fun insertItem(item: InventoryItemEntity): Long
 
+    /** Several lines at once, their ids in the same order. */
+    @Insert
+    suspend fun insertItems(items: List<InventoryItemEntity>): List<Long>
+
+    /**
+     * The live products this session has not counted that still hold stock at the dépôt — what "Mettre à
+     * zéro" empties. The dépôt's share is the total less the camion's (StockLedger.kt).
+     */
+    @Query(
+        "SELECT * FROM products p WHERE p.deleted_at IS NULL AND p.stock - p.camion_stock > 0.0005 " +
+            "AND NOT EXISTS (SELECT 1 FROM inventory_items i WHERE i.session_id = :sessionId AND i.product_id = p.id)"
+    )
+    suspend fun uncountedWithDepotStock(sessionId: Int): List<com.distrigo.app.data.local.entity.ProductEntity>
+
     @Query("SELECT * FROM inventory_items WHERE id = :id")
     suspend fun getItemById(id: Int): InventoryItemEntity?
 

@@ -25,6 +25,8 @@ import androidx.navigation.navArgument
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.inventory.*
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import com.distrigo.app.data.model.Product
+import com.distrigo.app.ui.products.ProductViewModel
 
 @Composable
 fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit = {}) {
@@ -74,32 +76,44 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             startDestination = Screen.InventaireSessionScan.route,
             route            = Screen.InventaireSessionGraph.route
         ) {
+            // The count: the products still to count, a centred dialog to count one, and the selection.
             composable(Screen.InventaireSessionScan.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
+                val productViewModel: ProductViewModel = hiltViewModel()
 
                 LaunchedEffect(Unit) { viewModel.startOrResumeSession() }
 
                 val activeSession by viewModel.activeSession.collectAsState()
-                val counts   by viewModel.counts.collectAsState()
-                val scanScope = rememberCoroutineScope()
+                val counts by viewModel.counts.collectAsState()
+                val products = viewModel.productList.items.collectAsLazyPagingItems()
+                val remaining by viewModel.productList.count.collectAsState()
+                val categories by productViewModel.categories.collectAsState()
+                val sousCategories by productViewModel.sousCategories.collectAsState()
+                val marques by productViewModel.marques.collectAsState()
+                val suppliers by productViewModel.suppliers.collectAsState()
+                val scope = rememberCoroutineScope()
 
-                var showScanner       by remember { mutableStateOf(false) }
-                var showSearchDialog  by remember { mutableStateOf(false) }
-                var scanError         by remember { mutableStateOf("") }
+                var showScanner by remember { mutableStateOf(false) }
+                var counting    by remember { mutableStateOf<Product?>(null) }
+                var isSaving    by remember { mutableStateOf(false) }
+                var saveError   by remember { mutableStateOf("") }
+                var message     by remember { mutableStateOf("") }
 
                 fun exitSession() {
                     viewModel.loadHistory()
                     navController.popBackStack(Screen.InventaireSessionGraph.route, inclusive = true)
                 }
 
-                suspend fun openProduct(product: com.distrigo.app.data.model.Product) {
-                    if (viewModel.isProductAlreadyScanned(product.id)) {
-                        scanError = "\"${product.name}\" a déjà été scanné dans cette session"
-                        return
+                // Straight to the count dialog — from a row, or from a scan, which skips the list altogether.
+                fun count(product: Product) {
+                    scope.launch {
+                        if (viewModel.isProductAlreadyScanned(product.id)) {
+                            message = "« ${product.name} » est déjà inventorié : corrigez-le dans Ma sélection."
+                        } else {
+                            message = ""; saveError = ""; counting = product
+                        }
                     }
-                    scanError = ""
-                    navController.navigate(Screen.InventaireSessionQuantity.createRoute(product.id))
                 }
 
                 if (showScanner) {
@@ -107,171 +121,85 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                     BarcodeScannerScreen(
                         onBarcodeScanned = { code ->
                             showScanner = false
-                            scanScope.launch {
+                            scope.launch {
                                 val product = viewModel.productByBarcode(code)
-                                if (product == null) scanError = "Aucun produit trouvé pour ce code-barres"
-                                else openProduct(product)
+                                if (product == null) message = "Aucun produit trouvé pour ce code-barres" else count(product)
                             }
                         },
                         onClose = { showScanner = false }
                     )
                 } else {
                     BackHandler { exitSession() }
-                    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                        InventoryScanStep(
-                            numero            = activeSession?.let { inventoryNumero(it.id) } ?: "",
-                            sessionItemsCount = counts.total_products,
-                            ecartsCount       = counts.total_ecarts,
-                            totalValueEcarts  = counts.total_value_ecarts,
-                            scanError         = scanError,
-                            canFinish         = counts.total_products > 0,
-                            isSaving          = false,
-                            onBack            = { exitSession() },
-                            onScan            = { showScanner = true },
-                            onSearch          = { showSearchDialog = true },
-                            onReview          = { navController.navigate(Screen.InventaireSessionReview.route) },
-                            onFinish          = { navController.navigate(Screen.InventaireSessionReadyToFinish.route) }
-                        )
-                    }
-                    if (showSearchDialog) {
-                        InventoryProductSearchDialog(
-                            products       = viewModel.productList.items.collectAsLazyPagingItems(),
-                            search         = viewModel.productSearch,
-                            onSearchChange = { viewModel.productSearch = it },
-                            onSelect       = { product -> showSearchDialog = false; scanScope.launch { openProduct(product) } },
-                            onDismiss = { showSearchDialog = false }
-                        )
-                    }
-                }
-            }
-
-            composable(
-                route     = Screen.InventaireSessionQuantity.route,
-                arguments = listOf(navArgument("productId") { type = NavType.IntType })
-            ) { entry ->
-                val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val productId = entry.arguments!!.getInt("productId")
-                val lookup by remember(productId) { viewModel.observeProduct(productId) }
-                    .collectAsState(initial = ProductLookup.Loading)
-                val product = (lookup as? ProductLookup.Found)?.product
-
-                var qtePhysiqueText by remember { mutableStateOf("") }
-                var saveError       by remember { mutableStateOf("") }
-                var isSaving        by remember { mutableStateOf(false) }
-
-                if (product != null) {
-                    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                        InventoryQuantityStep(
-                            product          = product,
-                            qtePhysiqueText  = qtePhysiqueText,
-                            // ',' or '.': the French keyboard's decimal key types ',', which used to be
-                            // dropped and turned "2,5" into 25. Whole units only for a pièce product.
-                            onQuantityChange = { raw ->
-                                qtePhysiqueText = Quantity.sanitizeInput(raw, Quantity.allowsFractions(product.unit_type))
-                            },
-                            saveError = saveError,
+                    InventoryCountScreen(
+                        numero          = activeSession?.let { inventoryNumero(it.id) } ?: "",
+                        products        = products,
+                        remaining       = remaining,
+                        search          = viewModel.productSearch,
+                        onSearchChange  = { viewModel.productSearch = it },
+                        filters         = viewModel.productFilters,
+                        onFiltersChange = { viewModel.productFilters = it },
+                        categories      = categories,
+                        sousCategories  = sousCategories,
+                        marques         = marques,
+                        suppliers       = suppliers,
+                        countedCount    = counts.total_products,
+                        ecartsValue     = counts.total_value_ecarts,
+                        message         = message,
+                        onBack          = { exitSession() },
+                        onScan          = { showScanner = true },
+                        onProductClick  = { count(it) },
+                        onOpenSelection = { navController.navigate(Screen.InventaireSessionReview.route) },
+                    )
+                    counting?.let { product ->
+                        InventoryCountDialog(
+                            product   = product,
                             isSaving  = isSaving,
-                            onCancel  = { navController.popBackStack() },
-                            onSave    = {
-                                // A second tap before the button greys out would save the line twice;
-                                // the database would refuse it, but the worker would see an error.
-                                if (isSaving) return@InventoryQuantityStep
-                                val qte = Quantity.parse(qtePhysiqueText)
-                                if (qte == null || qte < 0) { saveError = "Quantité invalide"; return@InventoryQuantityStep }
+                            error     = saveError,
+                            onSave    = { qte ->
                                 isSaving = true
                                 viewModel.recordScan(
                                     productId = product.id, qtePhysique = qte,
-                                    onSuccess = { _, _, _ ->
-                                        isSaving = false; saveError = ""
-                                        navController.navigate(Screen.InventaireSessionConfirmed.route) {
-                                            popUpTo(Screen.InventaireSessionQuantity.route) { inclusive = true }
-                                        }
-                                    },
-                                    onError = { msg -> isSaving = false; saveError = msg }
+                                    onSuccess = { _, _, _ -> isSaving = false; saveError = ""; counting = null },
+                                    onError   = { msg -> isSaving = false; saveError = msg }
                                 )
-                            }
+                            },
+                            onDismiss = { counting = null }
                         )
                     }
-                } else if (lookup == ProductLookup.Gone) {
-                    LeaveWhenGone(navController, entry)
                 }
             }
 
-            composable(Screen.InventaireSessionConfirmed.route) { entry ->
-                val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val lastResult by viewModel.lastScanResult.collectAsState()
-                val currentResult = lastResult
-                val lookup by remember(currentResult?.productId) {
-                    currentResult?.let { viewModel.observeProduct(it.productId) } ?: flowOf(ProductLookup.Gone)
-                }.collectAsState(initial = ProductLookup.Loading)
-                val product = (lookup as? ProductLookup.Found)?.product
-
-                if (currentResult != null && product != null) {
-                    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                        InventoryConfirmedStep(
-                            product     = product,
-                            qteSysteme  = currentResult.qteSysteme,
-                            qtePhysique = currentResult.qtePhysique,
-                            ecart       = currentResult.ecart,
-                            onScanNext  = {
-                                navController.popBackStack(Screen.InventaireSessionScan.route, inclusive = false)
-                            }
-                        )
-                    }
-                } else if (currentResult == null || lookup == ProductLookup.Gone) {
-                    LeaveWhenGone(navController, entry)
-                }
-            }
-
+            // Ma sélection: the products counted, to correct or remove, then on to the summary.
             composable(Screen.InventaireSessionReview.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                // Paged and live while listed: collected here only, so the scans themselves never reload it.
+                // Paged and live while listed: collected here only, so the counts themselves never reload it.
                 val items = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems()
                 val counts by viewModel.counts.collectAsState()
-                var scanError by remember { mutableStateOf("") }
+                var error by remember { mutableStateOf("") }
 
-                Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                    InventoryReviewStep(
-                        items    = items,
-                        count    = counts.total_products,
-                        isSaving = false,
-                        onBack   = { navController.popBackStack() },
-                        onEdit   = { item, newQte ->
-                            viewModel.updateScan(item.id, newQte, onSuccess = {}, onError = { scanError = it })
-                        },
-                        onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = {}, onError = { scanError = it }) },
-                        onFinish = { navController.navigate(Screen.InventaireSessionReadyToFinish.route) }
-                    )
-                }
-            }
-
-            composable(Screen.InventaireSessionReadyToFinish.route) { entry ->
-                val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
-                val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val counts by viewModel.counts.collectAsState()
-
-                Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
-                    InventoryReadyToFinishStep(
-                        itemsCount    = counts.total_products,
-                        onBack        = { navController.popBackStack() },
-                        onShowSummary = { navController.navigate(Screen.InventaireSessionSummary.route) }
-                    )
-                }
+                InventoryCartScreen(
+                    items    = items,
+                    count    = counts.total_products,
+                    error    = error,
+                    onEdit   = { item, qte -> viewModel.updateScan(item.id, qte, onSuccess = { error = "" }, onError = { error = it }) },
+                    onDelete = { item -> viewModel.deleteScan(item.id, onSuccess = { error = "" }, onError = { error = it }) },
+                    onBack   = { navController.popBackStack() },
+                    onNext   = { navController.navigate(Screen.InventaireSessionSummary.route) }
+                )
             }
 
             composable(Screen.InventaireSessionSummary.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 val summaryPreview by viewModel.counts.collectAsState()
+                val uncounted by viewModel.uncountedCount.collectAsState()
 
-                var isConfirmed      by remember { mutableStateOf(false) }
-                var isConfirming     by remember { mutableStateOf(false) }
-                var confirmError     by remember { mutableStateOf("") }
-                var showDetailDialog by remember { mutableStateOf(false) }
-
+                var choice       by remember { mutableStateOf<UncountedChoice?>(null) }
+                var isConfirmed  by remember { mutableStateOf(false) }
+                var isConfirming by remember { mutableStateOf(false) }
+                var zeroed       by remember { mutableStateOf(0) }
+                var confirmError by remember { mutableStateOf("") }
 
                 fun exitToHistory() {
                     viewModel.loadHistory()
@@ -283,25 +211,23 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
                     InventorySummaryStep(
                         summary         = summaryPreview,
+                        uncounted       = uncounted,
+                        choice          = choice,
+                        onChoice        = { choice = it },
                         isConfirmed     = isConfirmed,
                         isConfirming    = isConfirming,
+                        zeroed          = zeroed,
                         confirmError    = confirmError,
                         onBack          = { navController.popBackStack() },
                         onConfirm       = {
                             isConfirming = true
                             viewModel.finishSession(
-                                onSuccess = { isConfirming = false; isConfirmed = true; confirmError = "" },
+                                zeroUncounted = choice == UncountedChoice.ZERO,
+                                onSuccess = { n -> isConfirming = false; isConfirmed = true; zeroed = n; confirmError = "" },
                                 onError   = { msg -> isConfirming = false; confirmError = msg }
                             )
                         },
-                        onViewDetail    = { showDetailDialog = true },
                         onReturnHistory = { exitToHistory() }
-                    )
-                }
-                if (showDetailDialog) {
-                    InventoryDetailDialog(
-                        items     = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems(),
-                        onDismiss = { showDetailDialog = false }
                     )
                 }
             }

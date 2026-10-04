@@ -47,13 +47,56 @@ class InventoryRepository(
         return InventorySession(id = id.toInt(), status = "draft", started_at = now, completed_at = null)
     }
 
-    suspend fun finishSession(sessionId: Int): Map<String, Any> {
-        val session = inventoryDao.getSessionById(sessionId) ?: return mapOf("error" to "Session introuvable")
-        inventoryDao.updateSession(
-            session.copy(status = "completed", completed_at = java.time.Instant.now().toString())
-        )
-        return mapOf("message" to "Inventaire terminé avec succès")
-    }
+    /**
+     * Closes the count. With [zeroUncounted], every product it did not count that still holds stock at
+     * the dépôt is found empty there: a line is written for it — counted at what the camions still hold,
+     * since a dépôt count does not see them — with the adjustment that takes the dépôt to zero. Without
+     * it, the products not counted keep their stock and get no line. One transaction: all or nothing.
+     */
+    suspend fun finishSession(sessionId: Int, zeroUncounted: Boolean, userName: String? = null): Map<String, Any> =
+        db.withTransaction {
+            val session = inventoryDao.getSessionById(sessionId) ?: return@withTransaction mapOf("error" to "Session introuvable")
+            var zeroed = 0
+            if (zeroUncounted) {
+                val now = java.time.Instant.now().toString()
+                val products = inventoryDao.uncountedWithDepotStock(sessionId)
+                val lines = products.map { p ->
+                    val counted = Quantity.normalize(p.camion_stock)
+                    val ecart = Quantity.normalize(counted - p.stock)
+                    InventoryItemEntity(
+                        session_id = sessionId, product_id = p.id, product_name = p.name,
+                        product_image_uri = p.image_uri,
+                        qte_systeme = p.stock, qte_physique = counted, ecart = ecart,
+                        purchase_price_snapshot = p.purchase_price, valeur_ecart = ecart * p.purchase_price,
+                        created_at = now
+                    )
+                }
+                val ids = inventoryDao.insertItems(lines)
+                db.stockMovementDao().insertAll(lines.zip(ids).map { (line, id) ->
+                    StockMovementEntity(
+                        product_id   = line.product_id,
+                        product_name = line.product_name,
+                        type         = "ajustement",
+                        direction    = "sortie",
+                        quantity     = abs(line.ecart),
+                        emplacement  = "depot",
+                        source_label = "Inventaire session #$sessionId",
+                        source_type  = "inventory_item",
+                        source_id    = id.toInt(),
+                        unit_price   = line.purchase_price_snapshot,
+                        total_value  = abs(line.valeur_ecart),
+                        user_name    = userName,
+                        note         = "Non inventorié, mis à zéro",
+                        created_at   = now
+                    )
+                })
+                zeroed = lines.size
+            }
+            inventoryDao.updateSession(
+                session.copy(status = "completed", completed_at = java.time.Instant.now().toString())
+            )
+            mapOf("message" to "Inventaire terminé avec succès", "zeroed" to zeroed)
+        }
 
     // ── Items ──
     suspend fun isProductAlreadyScanned(sessionId: Int, productId: Int): Boolean {

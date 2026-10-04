@@ -13,6 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.distrigo.app.data.local.paging.ProductListQuery
+import com.distrigo.app.data.local.paging.PriceColumn
+import com.distrigo.app.ui.purchases.ProductListFilters
+import com.distrigo.app.ui.purchases.toListQuery
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import com.distrigo.app.data.local.paging.ProductSort
 import com.distrigo.app.ui.common.PagedProductList
 import com.distrigo.app.ui.common.debouncedSearch
@@ -84,20 +90,33 @@ class InventoryViewModel @Inject constructor(
             if (session == null) flowOf(PagingData.empty()) else repository.pageSessionItems(session.id, live = true)
         }
 
-    // ── Produits (pour "Rechercher un produit") — observés depuis Room, mise à jour automatique ──
-    // -- Finding a product to count --
+    // -- What is left to count --
     //
-    // By scan or by search, from the database: the session used to hold the whole catalogue for both.
+    // The products in stock this session has not counted yet, by name, searched and filtered as the
+    // Ventes and Achats product steps are. Counting one takes it off the list (ProductListQuery's
+    // notCountedInSession); removing its line from the count puts it back.
 
-    /** The search dialog's text. */
+    /** The list's search text. */
     var productSearch by mutableStateOf("")
 
-    /** The search dialog's products, paged, newest first as the dialog always listed them. */
-    val productList = PagedProductList(
-        scope      = viewModelScope,
-        repository = productRepository,
-        query      = debouncedSearch { productSearch }.map { ProductListQuery(search = it, sort = ProductSort.NEWEST) },
-    )
+    /** The list's filter sheet — the Ventes and Achats product steps' own. */
+    var productFilters by mutableStateOf(ProductListFilters())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val toCountQuery: Flow<ProductListQuery> =
+        combine(debouncedSearch { productSearch }, snapshotFlow { productFilters }, _activeSession.filterNotNull()) { search, filters, session ->
+            filters.toListQuery(search, priceColumn = PriceColumn.SELLING)
+                .copy(inStockOnly = true, notCountedInSession = session.id, sort = ProductSort.NAME_ASC)
+        }
+
+    /** The products still to count, a page at a time, and how many match the search and filters. */
+    val productList = PagedProductList(scope = viewModelScope, repository = productRepository, query = toCountQuery)
+
+    /** Every product in stock this session has not counted, whatever the search: "Produits non inventoriés". */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uncountedCount: StateFlow<Int?> = _activeSession.filterNotNull()
+        .flatMapLatest { productRepository.observeProductCount(ProductListQuery(inStockOnly = true, notCountedInSession = it.id)) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The product a scanned code belongs to, or null. */
     suspend fun productByBarcode(code: String): Product? = productRepository.findLiveProductByBarcode(code)
@@ -201,12 +220,6 @@ class InventoryViewModel @Inject constructor(
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                _lastScanResult.value = LastScanResult(
-                    productId   = productId,
-                    qtePhysique = qtePhysique,
-                    qteSysteme  = result["qte_systeme"] as Double,
-                    ecart       = result["ecart"] as Double
-                )
                 onSuccess(
                     result["qte_systeme"] as Double,
                     result["ecart"] as Double,
@@ -216,21 +229,25 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Closes the count — with [zeroUncounted], the products it did not count are found empty at the
+     * dépôt (see InventoryRepository.finishSession). [onSuccess] gets how many were zeroed.
+     */
     fun finishSession(
-        onSuccess : (InventorySessionSummary) -> Unit,
-        onError   : (String) -> Unit
+        zeroUncounted : Boolean,
+        userName      : String? = null,
+        onSuccess     : (zeroed: Int) -> Unit,
+        onError       : (String) -> Unit
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            // The final figures from the lines themselves, after any write still under way.
-            val summary = countLock.withLock { repository.getSessionSummary(sessionId) }
-            val result  = repository.finishSession(sessionId)
+            val result = countLock.withLock { repository.finishSession(sessionId, zeroUncounted, userName) }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
-                _summary.value = summary
+                _summary.value = repository.getSessionSummary(sessionId)
                 _activeSession.value = null
-                onSuccess(summary)
+                onSuccess(result["zeroed"] as Int)
             }
         }
     }
@@ -281,17 +298,6 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    // ── Nom de l'utilisateur (partagé entre les étapes Scan/Quantity/Review) ──
-
-    // ── Dernier scan confirmé (pour l'écran Confirmed) ──
-    data class LastScanResult(
-        val productId   : Int,
-        val qtePhysique : Double,
-        val qteSysteme  : Double,
-        val ecart       : Double
-    )
-    private val _lastScanResult = MutableStateFlow<LastScanResult?>(null)
-    val lastScanResult: StateFlow<LastScanResult?> = _lastScanResult
 }
 
 /** A row of the inventory history: a day's header, or a session. */

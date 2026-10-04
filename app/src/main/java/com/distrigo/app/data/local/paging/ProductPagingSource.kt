@@ -38,7 +38,12 @@ class ProductPagingSource(
         data class Top(val count: Int) : Key
     }
 
-    private val observer = object : InvalidationTracker.Observer(arrayOf("products", "product_barcodes")) {
+    // An inventory's list also leaves out what was just counted, which may write no product at all — a
+    // count equal to the stock moves nothing — so it watches the count's lines too.
+    private val observer = object : InvalidationTracker.Observer(
+        if (query.notCountedInSession != null) arrayOf("products", "product_barcodes", "inventory_items")
+        else arrayOf("products", "product_barcodes")
+    ) {
         override fun onInvalidated(tables: Set<String>) = invalidate()
     }
     private val observing = AtomicBoolean(false)

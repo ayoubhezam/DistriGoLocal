@@ -132,12 +132,7 @@ sealed class Screen(val route: String) {
     }
     data object InventaireSessionGraph         : Screen("inventaire_session_graph")
     data object InventaireSessionScan          : Screen("inventaire_session_scan")
-    data object InventaireSessionQuantity      : Screen("inventaire_session_quantity/{productId}") {
-        fun createRoute(productId: Int) = "inventaire_session_quantity/$productId"
-    }
-    data object InventaireSessionConfirmed     : Screen("inventaire_session_confirmed")
     data object InventaireSessionReview        : Screen("inventaire_session_review")
-    data object InventaireSessionReadyToFinish : Screen("inventaire_session_ready")
     data object InventaireSessionSummary       : Screen("inventaire_session_summary")
 
     // ── Clients ──

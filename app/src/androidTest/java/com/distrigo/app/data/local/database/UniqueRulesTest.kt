@@ -99,7 +99,7 @@ class UniqueRulesTest {
         val product = product()
         val first = inventory.getOrCreateActiveSession().id
         inventory.recordScan(first, product, 38.0)
-        inventory.finishSession(first)
+        inventory.finishSession(first, zeroUncounted = false)
         val second = inventory.getOrCreateActiveSession().id
 
         assertEquals(null, inventory.recordScan(second, product, 36.0)["error"])

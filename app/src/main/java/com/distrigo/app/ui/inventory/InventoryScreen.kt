@@ -1,23 +1,13 @@
 package com.distrigo.app.ui.inventory
 
-import com.distrigo.app.data.model.Quantity
-import com.distrigo.app.ui.common.formatQty
-import androidx.paging.LoadState
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.itemKey
-
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,488 +15,52 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.InventorySessionSummary
-import com.distrigo.app.data.model.Product
-import com.distrigo.app.ui.designsystem.DsTopAppBar
-import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.common.FitText
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import com.distrigo.app.ui.purchases.formatOrderDate
-import com.distrigo.app.ui.scanner.BarcodeScannerScreen
-import java.util.Locale
-import com.distrigo.app.ui.common.DsCompactSearchField
-import com.distrigo.app.ui.common.searchProducts
+import com.distrigo.app.ui.designsystem.DsTopAppBar
+import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
-import com.distrigo.app.ui.common.FitText
-import androidx.compose.ui.text.style.TextAlign
-import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
+import com.distrigo.app.ui.purchases.formatOrderDate
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
-private sealed class InvStep {
-    data object Scan : InvStep()
-    data class Quantity(val product: Product) : InvStep()
-    data class Confirmed(val product: Product, val qteSysteme: Double, val qtePhysique: Double, val ecart: Double, val valeurEcart: Double) : InvStep()
-    data object Review : InvStep()
-    data object ReadyToFinish : InvStep()
-    data object Summary : InvStep()
-}
+// The count itself is InventoryCountScreen (the list and its dialog) and InventoryCartScreen (its
+// selection); this file holds the step that closes it.
 
-// ══════════════════════════════════════════════
-// ── Point d'entrée : Historique (accueil) ──
+/** What to do with the products in stock the count did not reach. */
+enum class UncountedChoice { ZERO, KEEP }
 
-
-// ══════════════════════════════════════════════
-// ── Flux de création d'un inventaire ──
-// ══════════════════════════════════════════════
-
-// ── Étape 1 : Scan ──
-@Composable
-fun ColumnScope.InventoryScanStep(
-    numero            : String,
-    sessionItemsCount : Int,
-    ecartsCount       : Int,
-    totalValueEcarts  : Double,
-    scanError         : String,
-    canFinish         : Boolean,
-    isSaving          : Boolean,
-    onBack            : () -> Unit,
-    onScan            : () -> Unit,
-    onSearch          : () -> Unit,
-    onReview          : () -> Unit,
-    onFinish          : () -> Unit
-) {
-    DsTopAppBar(
-        title    = "Inventaire",
-        subtitle = numero.ifEmpty { null },
-        leading  = DsTopBarLeading.Back(onBack)
-    )
-
-    Column(
-        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.height(DsSpacing.xl))
-        Box(
-            modifier = Modifier.size(140.dp).clip(DsShapes.pill).background(DsColors.PrimaryLight).clickable { onScan() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(56.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.lg))
-        Text("Scanner un code-barres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        Text("Approchez le produit du scanner", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        Spacer(Modifier.height(DsSpacing.md))
-        Text("ou", fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary)
-        Spacer(Modifier.height(DsSpacing.md))
-        OutlinedButton(onClick = onSearch, shape = DsShapes.medium) {
-            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Rechercher un produit")
-        }
-
-        if (scanError.isNotEmpty()) {
-            Spacer(Modifier.height(DsSpacing.md))
-            Text(scanError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
-        }
-
-        Spacer(Modifier.height(DsSpacing.xl))
-
-        Surface(
-            shape = DsShapes.large, color = DsColors.SurfaceMuted,
-            modifier = Modifier.fillMaxWidth().clickable(enabled = sessionItemsCount > 0) { onReview() }
-        ) {
-            Column(Modifier.padding(DsSpacing.md)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Progression", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                    if (sessionItemsCount > 0) {
-                        Icon(Icons.Default.ArrowForwardIos, contentDescription = "Voir la liste", tint = DsColors.TextTertiary, modifier = Modifier.size(12.dp))
-                    }
-                }
-                Spacer(Modifier.height(DsSpacing.sm))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    InventoryStatChip(Icons.Default.QrCodeScanner, "$sessionItemsCount", "Produits scannés", DsColors.Primary, Modifier.weight(1f))
-                    InventoryStatChip(Icons.Default.Warning, "$ecartsCount", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
-                    InventoryStatChip(Icons.Default.Receipt, LocalMoneyFormatter.current.da(totalValueEcarts), "Valeur des écarts", DsColors.Danger, Modifier.weight(MONEY_STAT_WEIGHT))
-                }
-            }
-        }
-    }
-
-
-}
-
-@Composable
-private fun InventoryStatChip(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(36.dp).clip(DsShapes.pill).background(color.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.xs))
-        FitText(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextTertiary, textAlign = TextAlign.Center)
-    }
-}
-
-// ── Étape 2 : Saisie de la quantité ──
-@Composable
-fun ColumnScope.InventoryQuantityStep(
-    product           : Product,
-    qtePhysiqueText   : String,
-    onQuantityChange  : (String) -> Unit,
-    saveError         : String,
-    isSaving          : Boolean,
-    onCancel          : () -> Unit,
-    onSave            : () -> Unit
-) {
-    val qtePhysique = Quantity.parse(qtePhysiqueText)
-    val ecart = qtePhysique?.let { it - product.stock }
-
-    DsTopAppBar(
-        title   = "Inventaire",
-        leading = DsTopBarLeading.Back(onCancel)
-    ) {
-        IconButton(onClick = onCancel) {
-            Icon(Icons.Default.Delete, contentDescription = "Annuler", tint = DsColors.TextTertiary)
-        }
-    }
-
-    Column(
-        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.width(DsSpacing.md))
-            Column {
-                Text(product.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Text("Code-barres", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
-                Text(product.barcode ?: "—", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-            }
-        }
-
-        Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(DsSpacing.md)) {
-                Text("Qté système", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-                Text(formatQty(product.stock), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-                Text(product.unit_type, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
-            }
-        }
-
-        Column {
-            Text("Qté physique *", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-            OutlinedTextField(
-                value = qtePhysiqueText, onValueChange = onQuantityChange,
-                placeholder = { Text("0") }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(), shape = DsShapes.medium,
-                trailingIcon = { Text(product.unit_type, fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary, modifier = Modifier.padding(end = DsSpacing.sm)) }
-            )
-        }
-
-        if (qtePhysiqueText.isNotEmpty() && ecart != null) {
-            val ecartColor = when {
-                ecart < 0 -> DsColors.Danger
-                ecart > 0 -> Color(0xFF12B76A)
-                else      -> DsColors.TextSecondary
-            }
-            Surface(shape = DsShapes.medium, color = ecartColor.copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(DsSpacing.md)) {
-                    Text("Écart", fontSize = DsTextSize.bodySmall, color = ecartColor)
-                    Text(
-                        (if (ecart > 0) "+" else "") + formatQty(ecart),
-                        fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = ecartColor
-                    )
-                    Text(product.unit_type, fontSize = DsTextSize.caption, color = ecartColor.copy(alpha = 0.7f))
-                }
-            }
-        }
-
-        if (saveError.isNotEmpty()) {
-            Text(saveError, color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
-        }
-        Spacer(Modifier.height(DsSpacing.sm))
-    }
-
-    Button(
-        onClick  = onSave,
-        enabled  = qtePhysiqueText.isNotEmpty() && !isSaving,
-        modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
-        shape    = DsShapes.medium,
-        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-    ) {
-        if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-        else {
-            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Enregistrer", color = Color.White, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-// ── Étape 3 : Confirmation d'un scan individuel ──
-@Composable
-fun ColumnScope.InventoryConfirmedStep(
-    product     : Product,
-    qteSysteme  : Double,
-    qtePhysique : Double,
-    ecart       : Double,
-    onScanNext  : () -> Unit
-) {
-    val ecartColor = when {
-        ecart < 0 -> DsColors.Danger
-        ecart > 0 -> Color(0xFF12B76A)
-        else      -> DsColors.TextSecondary
-    }
-
-    Column(
-        modifier = Modifier.weight(1f).fillMaxWidth().padding(DsSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(Modifier.size(88.dp).clip(DsShapes.pill).background(Color(0xFF12B76A).copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF12B76A), modifier = Modifier.size(48.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.md))
-        Text("Enregistré !", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-        Text(product.name, fontSize = DsTextSize.bodyLarge, color = DsColors.TextSecondary)
-
-        Spacer(Modifier.height(DsSpacing.lg))
-
-        Surface(shape = DsShapes.large, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(DsSpacing.lg)) {
-                InventorySummaryRow("Qté système", formatQty(qteSysteme))
-                InventorySummaryRow("Qté physique", formatQty(qtePhysique))
-                InventorySummaryRow("Écart", (if (ecart > 0) "+" else "") + formatQty(ecart), ecartColor)
-            }
-        }
-
-        Spacer(Modifier.height(DsSpacing.lg))
-
-        Surface(shape = DsShapes.medium, color = Color(0xFF12B76A).copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF12B76A), modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(DsSpacing.sm))
-                Column {
-                    Text("Prêt pour le prochain scan", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF12B76A))
-                    Text("Scannez un autre produit", fontSize = DsTextSize.caption, color = Color(0xFF12B76A).copy(alpha = 0.8f))
-                }
-            }
-        }
-    }
-
-    Button(
-        onClick  = onScanNext,
-        modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
-        shape    = DsShapes.medium,
-        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-    ) {
-        Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(DsSpacing.xs))
-        Text("Scanner un autre produit", color = Color.White, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun InventorySummaryRow(label: String, value: String, valueColor: Color = DsColors.TextPrimary) {
-    Row(Modifier.fillMaxWidth().padding(vertical = DsSpacing.xs), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        Text(value, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = valueColor)
-    }
-}
-
-// ── Étape : Liste des produits scannés (type panier, modifiable) ──
-@Composable
-fun ColumnScope.InventoryReviewStep(
-    items      : LazyPagingItems<com.distrigo.app.data.model.InventoryItem>,
-    count      : Int,
-    isSaving   : Boolean,
-    onBack     : () -> Unit,
-    onEdit     : (com.distrigo.app.data.model.InventoryItem, Double) -> Unit,
-    onDelete   : (com.distrigo.app.data.model.InventoryItem) -> Unit,
-    onFinish   : () -> Unit
-) {
-    var editingItem  by remember { mutableStateOf<com.distrigo.app.data.model.InventoryItem?>(null) }
-    var editQtyText  by remember { mutableStateOf("") }
-    var deletingItem by remember { mutableStateOf<com.distrigo.app.data.model.InventoryItem?>(null) }
-
-    DsTopAppBar(
-        title   = "Produits scannés ($count)",
-        leading = DsTopBarLeading.Back(onBack)
-    )
-
-    // A page at a time: a full count lists the whole catalogue.
-    if (items.itemCount == 0 && items.loadState.refresh is LoadState.Loading) {
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = DsColors.Primary)
-        }
-    } else if (items.itemCount == 0) {
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Aucun produit scanné", color = DsColors.TextSecondary)
-        }
-    } else {
-        LazyColumn(
-            modifier            = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-        ) {
-            items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
-                val item = items[index] ?: return@items
-                val ecartColor = when {
-                    item.ecart < 0 -> DsColors.Danger
-                    item.ecart > 0 -> Color(0xFF12B76A)
-                    else           -> DsColors.TextSecondary
-                }
-                Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                            Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                        }
-                        Text(
-                            (if (item.ecart > 0) "+" else "") + formatQty(item.ecart),
-                            fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor,
-                            modifier = Modifier.padding(end = DsSpacing.sm)
-                        )
-                        IconButton(onClick = { editingItem = item; editQtyText = formatQty(item.qte_physique) }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
-                        }
-                        IconButton(onClick = { deletingItem = item }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Button(
-        onClick  = onFinish,
-        enabled  = count > 0 && !isSaving,
-        modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
-        shape    = DsShapes.medium,
-        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
-    ) {
-        if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-        else {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Ok", color = Color.White, fontWeight = FontWeight.SemiBold)
-        }
-    }
-
-    editingItem?.let { item ->
-        AlertDialog(
-            onDismissRequest = { editingItem = null },
-            title = { Text(item.product_name) },
-            text = {
-                OutlinedTextField(
-                    value = editQtyText,
-                    // ',' or '.', as when the line was scanned.
-                    onValueChange = { raw -> editQtyText = Quantity.sanitizeInput(raw) },
-                    label = { Text("Qté physique") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = DsShapes.medium
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    Quantity.parse(editQtyText)?.let { onEdit(item, it) }
-                    editingItem = null
-                }) { Text("Enregistrer") }
-            },
-            dismissButton = { TextButton(onClick = { editingItem = null }) { Text("Annuler") } },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
-        )
-    }
-
-    deletingItem?.let { item ->
-        AlertDialog(
-            onDismissRequest = { deletingItem = null },
-            title = { Text("Supprimer \"${item.product_name}\" ?") },
-            text  = { Text("Le stock sera restauré à ${formatQty(item.qte_systeme)}.") },
-            confirmButton = {
-                TextButton(onClick = { onDelete(item); deletingItem = null }) {
-                    Text("Supprimer", color = DsColors.Danger)
-                }
-            },
-            dismissButton = { TextButton(onClick = { deletingItem = null }) { Text("Annuler") } },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
-        )
-    }
-}
-
-// ── Étape : Scan terminé, avant le résumé ──
-@Composable
-fun ColumnScope.InventoryReadyToFinishStep(
-    itemsCount    : Int,
-    onBack        : () -> Unit,
-    onShowSummary : () -> Unit
-) {
-    DsTopAppBar(
-        title   = "Inventaire",
-        leading = DsTopBarLeading.Back(onBack)
-    )
-
-    Column(
-        modifier = Modifier.weight(1f).fillMaxSize().padding(DsSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(Modifier.size(88.dp).clip(DsShapes.pill).background(Color(0xFF12B76A).copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF12B76A), modifier = Modifier.size(48.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.md))
-        Text("Scan terminé !", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
-        Text("$itemsCount produit(s) scanné(s)", fontSize = DsTextSize.bodyLarge, color = DsColors.TextSecondary)
-
-        Spacer(Modifier.height(DsSpacing.xl))
-
-        Surface(
-            shape = DsShapes.medium, color = DsColors.Primary,
-            modifier = Modifier.fillMaxWidth().clickable { onShowSummary() }
-        ) {
-            Row(
-                Modifier.padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Assignment, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Afficher le résumé de l'inventaire", color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-            }
-        }
-    }
-}
-
-// ── Étape : Résumé + Confirmation finale ──
+/**
+ * Résumé de l'inventaire: the count's figures, and — while products in stock were not counted — the
+ * decision about them, which must be made before the count can be confirmed: put their dépôt stock to
+ * zero, or keep it as it is.
+ */
 @Composable
 fun ColumnScope.InventorySummaryStep(
     summary         : InventorySessionSummary,
+    uncounted       : Int?,
+    choice          : UncountedChoice?,
+    onChoice        : (UncountedChoice) -> Unit,
     isConfirmed     : Boolean,
     isConfirming    : Boolean,
+    zeroed          : Int,
     confirmError    : String,
     onBack          : () -> Unit,
     onConfirm       : () -> Unit,
-    onViewDetail    : () -> Unit,
     onReturnHistory : () -> Unit
 ) {
+    val money = LocalMoneyFormatter.current
+    // Nothing left uncounted, nothing to decide.
+    val needsChoice = !isConfirmed && (uncounted ?: 0) > 0
+
     DsTopAppBar(
         title   = "Résumé de l'inventaire",
         // Back greys out and stops responding once the session is confirmed — a state
@@ -526,14 +80,40 @@ fun ColumnScope.InventorySummaryStep(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", "Total produits", DsColors.Primary, Modifier.weight(1f))
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", "Total produits scannés", DsColors.Primary, Modifier.weight(1f))
             InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
         }
-        InventorySummaryStatCard(
-            Icons.Default.Receipt, LocalMoneyFormatter.current.da(summary.total_value_ecarts),
-            "Valeur totale des écarts", DsColors.Danger, Modifier.fillMaxWidth()
-        )
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            InventorySummaryStatCard(Icons.Default.Receipt, money.da(summary.total_value_ecarts), "Valeur des écarts", DsColors.Danger, Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.HourglassEmpty, uncounted?.toString() ?: "…", "Produits non inventoriés", DsColors.TextSecondary, Modifier.weight(1f))
+        }
+
+        if (needsChoice) {
+            Column(
+                Modifier.fillMaxWidth().clip(DsShapes.medium).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)
+            ) {
+                Text("Produits non inventoriés", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(
+                    "${uncounted} produit(s) en stock n'ont pas été comptés. Que faire de leur stock ?",
+                    fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
+                )
+                Spacer(Modifier.height(DsSpacing.xs))
+                ChoiceRow(
+                    selected = choice == UncountedChoice.ZERO,
+                    title    = "Mettre à zéro",
+                    detail   = "Leur stock au dépôt passe à 0. Le stock des camions n'est pas touché.",
+                    onClick  = { onChoice(UncountedChoice.ZERO) }
+                )
+                ChoiceRow(
+                    selected = choice == UncountedChoice.KEEP,
+                    title    = "Conserver le stock actuel",
+                    detail   = "Leur stock ne change pas.",
+                    onClick  = { onChoice(UncountedChoice.KEEP) }
+                )
+            }
+        }
 
         if (isConfirmed) {
             Surface(shape = DsShapes.medium, color = Color(0xFF12B76A).copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
@@ -542,7 +122,10 @@ fun ColumnScope.InventorySummaryStep(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column {
                         Text("Inventaire complété avec succès", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF12B76A))
-                        Text("Le stock a été mis à jour", fontSize = DsTextSize.caption, color = Color(0xFF12B76A).copy(alpha = 0.8f))
+                        Text(
+                            if (zeroed > 0) "Le stock a été mis à jour · $zeroed produit(s) mis à zéro" else "Le stock a été mis à jour",
+                            fontSize = DsTextSize.caption, color = Color(0xFF12B76A).copy(alpha = 0.8f)
+                        )
                     }
                 }
             }
@@ -556,12 +139,6 @@ fun ColumnScope.InventorySummaryStep(
                 InventorySummaryRow("Emplacement", "Entrepôt principal")
                 InventorySummaryRow("Méthode", "Scan / Recherche")
             }
-        }
-
-        OutlinedButton(onClick = onViewDetail, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium) {
-            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Voir le détail des écarts")
         }
 
         if (confirmError.isNotEmpty()) {
@@ -581,7 +158,8 @@ fun ColumnScope.InventorySummaryStep(
     } else {
         Button(
             onClick  = onConfirm,
-            enabled  = !isConfirming,
+            // The decision about the uncounted products is required before anything is written.
+            enabled  = !isConfirming && (!needsChoice || choice != null),
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,
             colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
@@ -596,95 +174,43 @@ fun ColumnScope.InventorySummaryStep(
     }
 }
 
+/** One answer of the uncounted products' question: a radio button, its title and what it does. */
 @Composable
-private fun InventorySummaryStatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
-    Surface(shape = DsShapes.medium, color = color.copy(alpha = 0.08f), modifier = modifier) {
+private fun ChoiceRow(selected: Boolean, title: String, detail: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .background(if (selected) DsColors.PrimaryLight else Color.Transparent)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(vertical = DsSpacing.sm, horizontal = DsSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = null, colors = RadioButtonDefaults.colors(selectedColor = DsColors.Primary))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = if (selected) DsColors.Primary else DsColors.TextPrimary)
+            Text(detail, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        }
+    }
+}
+
+@Composable
+private fun InventorySummaryRow(label: String, value: String, valueColor: Color = DsColors.TextPrimary) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+        Text(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = valueColor)
+    }
+}
+
+@Composable
+private fun InventorySummaryStatCard(icon: ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(shape = DsShapes.medium, color = color.copy(alpha = 0.08f), modifier = modifier.fillMaxHeight()) {
         Column(Modifier.padding(DsSpacing.md)) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
             Spacer(Modifier.height(DsSpacing.xs))
-            Text(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = color)
+            FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = color)
             Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        }
-    }
-}
-
-// ── Dialog : Recherche de produit ──
-@Composable
-fun InventoryProductSearchDialog(
-    products      : LazyPagingItems<Product>,
-    search        : String,
-    onSearchChange: (String) -> Unit,
-    onSelect      : (Product) -> Unit,
-    onDismiss     : () -> Unit,
-) {
-    // Paged and searched in the database (InventoryViewModel.productList), not in a held catalogue.
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
-            Column(Modifier.fillMaxSize()) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Fermer", tint = DsColors.TextPrimary)
-                    }
-                    Text("Rechercher un produit", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
-                DsCompactSearchField(
-                    value         = search,
-                    onValueChange = onSearchChange,
-                    placeholder   = "Rechercher un produit",
-                    modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-                )
-                Spacer(Modifier.height(DsSpacing.sm))
-                LazyColumn(contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    items(count = products.itemCount, key = products.itemKey { it.id }) { index ->
-                        val product = products[index] ?: return@items
-                        Surface(modifier = Modifier.fillMaxWidth().clickable { onSelect(product) }, shape = DsShapes.medium, color = DsColors.SurfaceMuted) {
-                            Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(product.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("Stock: ${formatQty(product.stock)} ${product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ── Dialog : Détail des écarts ──
-@Composable
-fun InventoryDetailDialog(items: LazyPagingItems<com.distrigo.app.data.model.InventoryItem>, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = DsColors.Surface) {
-            Column(Modifier.fillMaxSize()) {
-                Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Fermer", tint = DsColors.TextPrimary)
-                    }
-                    Text("Détail des écarts", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                }
-                LazyColumn(contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
-                        val item = items[index] ?: return@items
-                        val ecartColor = when {
-                            item.ecart < 0 -> DsColors.Danger
-                            item.ecart > 0 -> Color(0xFF12B76A)
-                            else           -> DsColors.TextSecondary
-                        }
-                        Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-                            Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                }
-                                Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

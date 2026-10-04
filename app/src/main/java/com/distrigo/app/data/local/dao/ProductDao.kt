@@ -63,7 +63,8 @@ interface ProductDao {
     suspend fun maxLiveId(): Int?
 
     /** How many products a `ProductListSql.count` query matches, re-counted when a product or barcode changes. */
-    @RawQuery(observedEntities = [ProductEntity::class, ProductBarcodeEntity::class])
+    // The inventory's "still to do" count moves when a line is counted, which may write no product.
+    @RawQuery(observedEntities = [ProductEntity::class, ProductBarcodeEntity::class, com.distrigo.app.data.local.entity.InventoryItemEntity::class])
     fun observeProductCount(query: SupportSQLiteQuery): Flow<Int>
 
     // 1. جلب جميع المنتجات (رتبناها تنازلياً حسب الـ ID لتظهر الأحدث أولاً، ويمكن تعديلها لاحقاً)

@@ -47,6 +47,10 @@ data class ProductListQuery(
     val expiringTo      : String?      = null,
     /** Only products the camion carries: what a tournée can sell and a return to the dépôt can take. */
     val inCamionOnly    : Boolean      = false,
+    /** Only products with stock above zero: what an inventory expects to find on the shelves. */
+    val inStockOnly     : Boolean      = false,
+    /** Leaves out the products already counted in this inventory session: the count's "still to do". */
+    val notCountedInSession: Int?      = null,
     val sort            : ProductSort  = ProductSort.NAME_ASC,
 )
 
@@ -128,6 +132,11 @@ internal object ProductListSql {
             args.addAll(listOf(query.expiringFrom, query.expiringTo))
         }
         if (query.inCamionOnly) clauses += "p.camion_stock > 0"
+        if (query.inStockOnly) clauses += "p.stock > 0"
+        query.notCountedInSession?.let {
+            clauses += "NOT EXISTS (SELECT 1 FROM inventory_items i WHERE i.session_id = ? AND i.product_id = p.id)"
+            args += it
+        }
         extra?.let { (clause, values) -> clauses += clause; args.addAll(values) }
 
         return " WHERE " + clauses.joinToString(" AND ") to args

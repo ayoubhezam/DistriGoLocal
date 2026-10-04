@@ -113,6 +113,8 @@ internal fun ProductCountAndFilters(
     filtersActive : Boolean,
     onOpenFilters : () -> Unit,
     modifier      : Modifier = Modifier,
+    /** What the count is of — "produit(s)", or the inventory's "à inventorier". */
+    countLabel    : String = "produit(s)",
     trailing      : @Composable () -> Unit = {},
 ) {
     Row(
@@ -122,7 +124,7 @@ internal fun ProductCountAndFilters(
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             Step2Chip(
                 icon      = Icons.Default.Inventory2,
-                label     = "${count?.toString() ?: "…"} produit(s)",
+                label     = "${count?.toString() ?: "…"} $countLabel",
                 container = DsColors.SurfaceSunken,
                 content   = DsColors.TextSecondary
             )
