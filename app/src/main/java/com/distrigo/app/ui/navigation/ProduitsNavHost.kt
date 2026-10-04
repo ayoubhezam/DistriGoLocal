@@ -161,6 +161,32 @@ fun ProduitsNavHost(
                     filters     = viewModel.priceFilters,
                     onFilters   = { viewModel.priceFilters = it },
                     onRetry     = { viewModel.loadPriceMovements(productId) },
+                    onBack      = { navController.popBackStack() },
+                    onSeeAll    = { navController.navigate(Screen.ProduitsPriceMovements.createRoute(productId)) }
+                )
+            } else if (lookup == ProductLookup.Gone) {
+                LeaveWhenGone(navController, entry)
+            }
+        }
+
+        // Historique des prix › Voir tout: the same movements, period and side, every one of them.
+        composable(
+            route     = Screen.ProduitsPriceMovements.route,
+            arguments = listOf(navArgument("productId") { type = NavType.IntType })
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
+            val viewModel: ProductViewModel = hiltViewModel(parentEntry)
+            val productId = entry.arguments!!.getInt("productId")
+            val lookup by remember(productId) { viewModel.observeProduct(productId) }
+                .collectAsState(initial = ProductLookup.Loading)
+            val product = (lookup as? ProductLookup.Found)?.product
+            val movements by viewModel.priceMovements.collectAsState()
+
+            if (product != null) {
+                PriceMovementsScreen(
+                    productName = product.name,
+                    movements   = movements,
+                    filters     = viewModel.priceFilters,
                     onBack      = { navController.popBackStack() }
                 )
             } else if (lookup == ProductLookup.Gone) {

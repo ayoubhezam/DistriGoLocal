@@ -89,29 +89,11 @@ class PriceHistoryModelTest {
     }
 
     @Test
-    fun `variation keeps only rises or only falls`() {
-        val up = history.narrow(year.copy(variation = PriceVariation.UP), today)
-        assertEquals(listOf(5.0, 3.0, 4.0), up.map { it.delta })
-        val down = history.narrow(year.copy(variation = PriceVariation.DOWN), today)
-        assertEquals(listOf(-2.0), down.map { it.delta })
-    }
-
-    @Test
     fun `the search reads the party, the kind and the document`() {
         assertEquals(1, history.narrow(year.copy(query = "benali"), today).size)
         assertEquals(3, history.narrow(year.copy(query = "vente"), today).size)
         // Every word must appear, as elsewhere in the app.
         assertEquals(0, history.narrow(year.copy(query = "benali vente"), today).size)
-    }
-
-    @Test
-    fun `sorting by price keeps the newest first within a price`() {
-        val cheapest = history.narrow(year.copy(sort = PriceSort.CHEAPEST), today)
-        assertEquals(listOf(78.0, 80.0, 82.0, 85.0, 92.0, 95.0, 95.0), cheapest.map { it.unitPrice })
-        // The two sales at 95 keep the newest of them first, so the oldest is last of all.
-        assertEquals("2026-09-12", cheapest.last().date.take(10))
-        val oldest = history.narrow(year.copy(sort = PriceSort.OLDEST), today)
-        assertEquals("2026-08-20", oldest.first().date.take(10))
     }
 
     @Test

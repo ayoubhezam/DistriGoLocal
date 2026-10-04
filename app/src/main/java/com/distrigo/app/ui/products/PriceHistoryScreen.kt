@@ -42,6 +42,9 @@ import java.util.Locale
 import kotlin.math.abs
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.rapports.ReportFilterBar
+import com.distrigo.app.ui.common.DsCompactSearchField
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Every price a product changed hands at: what was paid for it and what it sold for, side by side.
@@ -59,13 +62,8 @@ fun PriceHistoryScreen(
     onFilters   : (PriceHistoryFilters) -> Unit,
     onRetry     : () -> Unit,
     onBack      : () -> Unit,
+    onSeeAll    : () -> Unit,
 ) {
-    var searchOpen by rememberSaveable { mutableStateOf(false) }
-    var sheetOpen  by remember { mutableStateOf(false) }
-    val focus = remember { FocusRequester() }
-
-    BackHandler(enabled = searchOpen) { searchOpen = false; onFilters(filters.copy(query = "")) }
-
     // Counted with every filter but the segment itself, so the counts beside each segment say what
     // that segment would show.
     val overall = remember(movements, filters) { movements.narrow(filters, includeKind = false) }
@@ -76,17 +74,7 @@ fun PriceHistoryScreen(
             title    = "Historique des prix",
             subtitle = productName,
             leading  = DsTopBarLeading.Back(onBack)
-        ) {
-            BarAction(Icons.Default.Search, "Rechercher", active = searchOpen) {
-                searchOpen = !searchOpen
-                if (!searchOpen) onFilters(filters.copy(query = ""))
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            BarAction(Icons.Default.Tune, "Filtrer", active = filters.activeCount > 0, badge = filters.activeCount) {
-                sheetOpen = true
-            }
-            Spacer(Modifier.width(DsSpacing.md))
-        }
+        )
 
         if (error != null) {
             EmptyState(Icons.Default.ErrorOutline, "Chargement impossible", error, "Réessayer", onRetry)
@@ -102,29 +90,6 @@ fun PriceHistoryScreen(
                 "Les prix d'achat et de vente apparaîtront ici après les premières opérations."
             )
             return@Column
-        }
-
-        if (searchOpen) {
-            LaunchedEffect(Unit) { focus.requestFocus() }
-            OutlinedTextField(
-                value         = filters.query,
-                onValueChange = { onFilters(filters.copy(query = it)) },
-                placeholder   = { Text("Rechercher un fournisseur ou un client", fontSize = DsTextSize.body) },
-                singleLine    = true,
-                leadingIcon   = { Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextSecondary) },
-                trailingIcon  = {
-                    if (filters.query.isNotEmpty()) {
-                        IconButton(onClick = { onFilters(filters.copy(query = "")) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Effacer", tint = DsColors.TextSecondary)
-                        }
-                    }
-                },
-                modifier        = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.md, vertical = DsSpacing.xs).focusRequester(focus),
-                shape           = DsShapes.medium,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { searchOpen = true }),
-                colors          = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary)
-            )
         }
 
         ReportFilterBar(
@@ -144,14 +109,8 @@ fun PriceHistoryScreen(
             onKind  = { onFilters(filters.copy(kind = it)) }
         )
 
-        ActiveChips(filters, onFilters)
-
         if (shown.isEmpty()) {
-            EmptyState(
-                Icons.Default.FilterAltOff, "Aucun résultat",
-                "Aucun mouvement sur cette période, ou aucun ne correspond à ces filtres.",
-                "Réinitialiser les filtres"
-            ) { onFilters(PriceHistoryFilters(kind = filters.kind)) }
+            EmptyState(Icons.Default.FilterAltOff, "Aucun mouvement", "Aucun mouvement de prix sur cette période.")
             return@Column
         }
 
@@ -176,6 +135,7 @@ fun PriceHistoryScreen(
                     item { MarginRow(vente.last - achat.last) }
                 }
             }
+            // The latest few; every one, searchable, is a screen of its own behind « Voir tout ».
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = DsSpacing.sm)) {
                     Text("Mouvements", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
@@ -185,16 +145,79 @@ fun PriceHistoryScreen(
                         fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary,
                         modifier = Modifier.clip(DsShapes.pill).background(DsColors.SurfaceSunken).padding(horizontal = 8.dp, vertical = 2.dp)
                     )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        "Voir tout", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary,
+                        modifier = Modifier
+                            .clip(DsShapes.pill)
+                            .clickable(role = Role.Button, onClick = onSeeAll)
+                            .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
+                    )
                 }
             }
+            items(shown.take(LATEST_MOVEMENTS), key = { "${it.kind}-${it.documentId}-${it.unitPrice}" }) { MovementRow(it) }
+        }
+    }
+}
 
-            // Grouped by month only when the list runs in date order; by price, a month heading
-            // would break the very order the user asked for.
-            val grouped = filters.sort == PriceSort.RECENT || filters.sort == PriceSort.OLDEST
+/** How many movements Historique des prix shows before « Voir tout ». */
+private const val LATEST_MOVEMENTS = 3
+
+/**
+ * Historique des prix › Voir tout: every price movement of the period and the side chosen there —
+ * newest first, grouped by month — with a search on the client or supplier, the kind and the document,
+ * in the search bar Produits uses.
+ */
+@Composable
+fun PriceMovementsScreen(
+    productName : String,
+    movements   : List<PriceMovement>,
+    filters     : PriceHistoryFilters,
+    onBack      : () -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val all   = remember(movements, filters) { movements.narrow(filters.copy(query = "")) }
+    val shown = remember(movements, filters, query) { movements.narrow(filters.copy(query = query)) }
+    // A new search starts at the top of what it found.
+    val listState = rememberLazyListState()
+    LaunchedEffect(query) { listState.scrollToItem(0) }
+    // What the list covers, as chosen on Historique des prix: "Cette année · Vente".
+    val scope = listOfNotNull(filters.period.period.label, filters.kind?.label).joinToString(" · ")
+
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
+        DsTopAppBar(title = "Mouvements des prix", subtitle = productName, leading = DsTopBarLeading.Back(onBack))
+        // On white, as in Produits: the sunken search pill reads against white, the list's grey under it.
+        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+            DsCompactSearchField(
+                value         = query,
+                onValueChange = { query = it },
+                placeholder   = "Rechercher un client ou un fournisseur",
+                modifier      = Modifier.padding(horizontal = DsSpacing.lg)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                (if (query.isBlank()) "${all.size} mouvement(s)" else "${shown.size} sur ${all.size}") + " · " + scope,
+                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)
+            )
+        }
+        if (shown.isEmpty()) {
+            EmptyState(
+                Icons.Default.FilterAltOff, "Aucun résultat",
+                if (query.isBlank()) "Aucun mouvement de prix sur cette période." else "Aucun mouvement ne correspond à « ${query.trim()} »."
+            )
+            return@Column
+        }
+        LazyColumn(
+            state               = listState,
+            modifier            = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding      = PaddingValues(DsSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+        ) {
             var currentMonth: String? = null
             shown.forEach { movement ->
                 val month = movement.day().monthLabel()
-                if (grouped && month != currentMonth) {
+                if (month != currentMonth) {
                     currentMonth = month
                     item(key = "month-$month") {
                         Text(
@@ -210,15 +233,6 @@ fun PriceHistoryScreen(
             }
         }
     }
-
-    if (sheetOpen) {
-        FilterSheet(
-            filters   = filters,
-            resultsOf = { candidate -> movements.narrow(candidate).size },
-            onApply   = { onFilters(it); sheetOpen = false },
-            onDismiss = { sheetOpen = false }
-        )
-    }
 }
 
 /** The colour each side of the trade is shown in: purchases green, sales blue. */
@@ -226,26 +240,6 @@ private fun PriceMovementKind.kindColor(): Color =
     if (this == PriceMovementKind.ACHAT) DsColors.Success else DsColors.Primary
 
 // ── Pieces ───────────────────────────────────────────────────────────────────
-
-@Composable
-private fun BarAction(icon: ImageVector, description: String, active: Boolean, badge: Int = 0, onClick: () -> Unit) {
-    Box {
-        IconButton(
-            onClick  = onClick,
-            modifier = Modifier.clip(DsShapes.medium).background(if (active) DsColors.Primary else DsColors.PrimaryLight)
-        ) {
-            Icon(icon, contentDescription = description, tint = if (active) DsColors.Surface else DsColors.Primary)
-        }
-        if (badge > 0) {
-            Text(
-                badge.toString(),
-                fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DsColors.Surface,
-                modifier = Modifier.align(Alignment.TopEnd).clip(DsShapes.pill).background(DsColors.Danger)
-                    .padding(horizontal = 5.dp)
-            )
-        }
-    }
-}
 
 @Composable
 private fun KindSegments(
@@ -279,31 +273,6 @@ private fun KindSegments(
                     fontSize = DsTextSize.caption,
                     color = if (selected) DsColors.Surface.copy(alpha = 0.85f) else DsColors.TextTertiary
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActiveChips(filters: PriceHistoryFilters, onFilters: (PriceHistoryFilters) -> Unit) {
-    val chips = buildList {
-        if (filters.variation != PriceVariation.ALL) add(filters.variation.label to filters.copy(variation = PriceVariation.ALL))
-        if (filters.sort != PriceSort.RECENT) add(filters.sort.label to filters.copy(sort = PriceSort.RECENT))
-        if (filters.query.isNotBlank()) add("« ${filters.query.trim()} »" to filters.copy(query = ""))
-    }
-    if (chips.isEmpty()) return
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = DsSpacing.md, vertical = DsSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
-    ) {
-        chips.forEach { (label, without) ->
-            Row(
-                modifier = Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight)
-                    .clickable { onFilters(without) }.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Icon(Icons.Default.Close, contentDescription = "Retirer le filtre", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
             }
         }
     }
@@ -454,87 +423,6 @@ private fun DeltaPill(movement: PriceMovement) {
                 else    -> DsColors.DangerLight
             }
         ).padding(horizontal = 7.dp, vertical = 1.dp)
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun FilterSheet(
-    filters   : PriceHistoryFilters,
-    resultsOf : (PriceHistoryFilters) -> Int,
-    onApply   : (PriceHistoryFilters) -> Unit,
-    onDismiss : () -> Unit,
-) {
-    // Edited in the sheet and applied on confirmation, so a half-made choice never moves the list.
-    var draft by remember { mutableStateOf(filters) }
-    // Fully expanded, with no half-way stop, as the Mouvements sheet is: a filter sheet that
-    // re-settles while being used moves the control out from under the finger.
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor   = DsColors.Surface
-    ) {
-        // The wrapped « Trier par » chips make the sheet tall enough to reach the navigation bar,
-        // so the content clears it and scrolls rather than pushing its own button off the screen.
-        Column(
-            Modifier
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-                .padding(horizontal = DsSpacing.lg)
-                .padding(bottom = DsSpacing.lg)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
-                TextButton(onClick = { draft = PriceHistoryFilters(kind = draft.kind, query = draft.query) }) {
-                    Text("Réinitialiser", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
-                }
-            }
-            SheetGroup("Variation") {
-                PriceVariation.entries.forEach { SheetChip(it.label, draft.variation == it) { draft = draft.copy(variation = it) } }
-            }
-            SheetGroup("Trier par") {
-                PriceSort.entries.forEach { SheetChip(it.label, draft.sort == it) { draft = draft.copy(sort = it) } }
-            }
-            val results = resultsOf(draft)
-            Button(
-                onClick  = { onApply(draft) },
-                enabled  = results > 0,
-                modifier = Modifier.fillMaxWidth().padding(top = DsSpacing.lg).height(48.dp),
-                shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary, contentColor = DsColors.Surface)
-            ) {
-                Text(
-                    if (results == 0) "Aucun résultat" else "Afficher $results résultat" + if (results > 1) "s" else "",
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SheetGroup(title: String, content: @Composable () -> Unit) {
-    Text(title, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, modifier = Modifier.padding(top = DsSpacing.md, bottom = DsSpacing.xs))
-    // Wrapping, not a single row: « Trier par » holds four labels as long as « Prix décroissant »,
-    // which a row fits by squeezing the last chip out of shape instead of moving it down a line.
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs),
-        verticalArrangement   = Arrangement.spacedBy(DsSpacing.xs)
-    ) { content() }
-}
-
-@Composable
-private fun SheetChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        label,
-        fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
-        color = if (selected) DsColors.Primary else DsColors.TextSecondary,
-        modifier = Modifier.clip(DsShapes.pill)
-            .background(if (selected) DsColors.PrimaryLight else DsColors.Surface)
-            .border(1.dp, if (selected) DsColors.Primary else DsColors.Border, DsShapes.pill)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
     )
 }
 
