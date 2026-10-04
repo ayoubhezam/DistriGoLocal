@@ -210,6 +210,33 @@ class MainActivity : ComponentActivity() {
                         scope.launch { drawerOffset.animateTo(0f, tween(PlusDrawerAnimationDurationMs)) }
                     }
 
+                    // ── Leaving the app: Back on the home tab asks first. Every other tab already
+                    // returns to the home tab (navigateToTab pops to it), so this is the only Back that
+                    // would otherwise close the app. An open Plus drawer closes on Back instead. ──
+                    val drawerOpen = drawerOffset.value > 0f
+                    var confirmExit by remember { mutableStateOf(false) }
+                    androidx.activity.compose.BackHandler(enabled = drawerOpen) { closeDrawer() }
+                    androidx.activity.compose.BackHandler(
+                        enabled = !drawerOpen && currentRoute == Screen.TabDashboard.route
+                    ) { confirmExit = true }
+                    if (confirmExit) {
+                        AlertDialog(
+                            onDismissRequest = { confirmExit = false },
+                            text = { Text("Voulez-vous quitter l'application DistriGo ?", fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary) },
+                            confirmButton = {
+                                TextButton(onClick = { confirmExit = false; finish() }) {
+                                    Text("Oui", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmExit = false }) {
+                                    Text("Non", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                                }
+                            },
+                            containerColor = DsColors.Surface
+                        )
+                    }
+
                     // ── Bottom-tab switch: standard "multiple back stacks" pattern —
                     // pop to the graph's start destination (saving each tab's state) before
                     // navigating, then restore the target tab's saved state if it has any. ──
