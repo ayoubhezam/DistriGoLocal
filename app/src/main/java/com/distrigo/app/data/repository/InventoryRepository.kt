@@ -52,13 +52,21 @@ class InventoryRepository(
      * the dépôt is found empty there: a line is written for it — counted at what the camions still hold,
      * since a dépôt count does not see them — with the adjustment that takes the dépôt to zero. Without
      * it, the products not counted keep their stock and get no line. One transaction: all or nothing.
+     *
+     * [at] is the inventory's date — the day it is closed under in the history, chosen on the summary —
+     * and the date of the adjustments that zero. The lines counted before keep the moment they were.
      */
-    suspend fun finishSession(sessionId: Int, zeroUncounted: Boolean, userName: String? = null): Map<String, Any> =
+    suspend fun finishSession(
+        sessionId: Int,
+        zeroUncounted: Boolean,
+        userName: String? = null,
+        at: String = java.time.Instant.now().toString(),
+    ): Map<String, Any> =
         db.withTransaction {
             val session = inventoryDao.getSessionById(sessionId) ?: return@withTransaction mapOf("error" to "Session introuvable")
             var zeroed = 0
             if (zeroUncounted) {
-                val now = java.time.Instant.now().toString()
+                val now = at
                 val products = inventoryDao.uncountedWithDepotStock(sessionId)
                 val lines = products.map { p ->
                     val counted = Quantity.normalize(p.camion_stock)
@@ -93,7 +101,7 @@ class InventoryRepository(
                 zeroed = lines.size
             }
             inventoryDao.updateSession(
-                session.copy(status = "completed", completed_at = java.time.Instant.now().toString())
+                session.copy(status = "completed", completed_at = at)
             )
             mapOf("message" to "Inventaire terminé avec succès", "zeroed" to zeroed)
         }

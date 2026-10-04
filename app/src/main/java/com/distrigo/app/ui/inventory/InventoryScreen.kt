@@ -28,7 +28,11 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
-import com.distrigo.app.ui.purchases.formatOrderDate
+import androidx.compose.foundation.clickable
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -45,6 +49,8 @@ enum class UncountedChoice { ZERO, KEEP }
  */
 @Composable
 fun ColumnScope.InventorySummaryStep(
+    date            : LocalDate,
+    onDateChange    : (LocalDate) -> Unit,
     summary         : InventorySessionSummary,
     uncounted       : Int?,
     choice          : UncountedChoice?,
@@ -80,6 +86,8 @@ fun ColumnScope.InventorySummaryStep(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
+        InventoryDateField(date = date, enabled = !isConfirmed, onDateChange = onDateChange)
+
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", "Total produits scannés", DsColors.Primary, Modifier.weight(1f))
             InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
@@ -128,16 +136,6 @@ fun ColumnScope.InventorySummaryStep(
                         )
                     }
                 }
-            }
-        }
-
-        Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(DsSpacing.md)) {
-                Text("Informations", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                Spacer(Modifier.height(DsSpacing.sm))
-                InventorySummaryRow("Date", formatOrderDate(java.time.LocalDate.now().toString()))
-                InventorySummaryRow("Emplacement", "Entrepôt principal")
-                InventorySummaryRow("Méthode", "Scan / Recherche")
             }
         }
 
@@ -195,11 +193,55 @@ private fun ChoiceRow(selected: Boolean, title: String, detail: String, onClick:
     }
 }
 
+/**
+ * The inventory's date: "Aujourd'hui" until another day is picked, in the Material date picker, which
+ * offers no day after today. Fixed once the inventory is confirmed.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InventorySummaryRow(label: String, value: String, valueColor: Color = DsColors.TextPrimary) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        Text(value, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = valueColor)
+private fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange: (LocalDate) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
+    val today = LocalDate.now()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Changer la date") { picking = true }
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text("Date", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(
+            if (date == today) "Aujourd'hui" else date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+            fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
+        )
+        if (enabled) Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
+    }
+
+    if (picking) {
+        // The Material picker works in UTC milliseconds; the day tapped is read back in UTC (timestamps.md rule 5).
+        val todayMillis = today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= todayMillis
+                override fun isSelectableYear(year: Int) = year <= today.year
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { picking = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { onDateChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                    picking = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { picking = false }) { Text("Annuler") } }
+        ) { DatePicker(state = state) }
     }
 }
 

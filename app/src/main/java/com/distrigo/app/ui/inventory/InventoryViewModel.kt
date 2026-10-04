@@ -235,13 +235,16 @@ class InventoryViewModel @Inject constructor(
      */
     fun finishSession(
         zeroUncounted : Boolean,
+        /** The inventory's date, picked on the summary; recorded at the present time of that day. */
+        date          : java.time.LocalDate = java.time.LocalDate.now(),
         userName      : String? = null,
         onSuccess     : (zeroed: Int) -> Unit,
         onError       : (String) -> Unit
     ) {
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
-            val result = countLock.withLock { repository.finishSession(sessionId, zeroUncounted, userName) }
+            val at = date.atTime(java.time.LocalTime.now()).atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
+            val result = countLock.withLock { repository.finishSession(sessionId, zeroUncounted, userName, at) }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {

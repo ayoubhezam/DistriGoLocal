@@ -79,9 +79,11 @@ class InventoryFinishTest {
         val session = repository.getOrCreateActiveSession()
         repository.recordScan(session.id, 2, 4.0)
 
-        val result = repository.finishSession(session.id, zeroUncounted = false)
+        // Dated as picked on the summary, not as confirmed.
+        val result = repository.finishSession(session.id, zeroUncounted = false, at = "2026-09-30T10:00:00Z")
 
         assertEquals(0, result["zeroed"])
+        assertEquals("2026-09-30T10:00:00Z", db.inventoryDao().getSessionById(session.id)!!.completed_at)
         assertEquals(10.0 to 3.0, stockOf(1))
         assertNull(db.inventoryDao().getItemForSessionAndProduct(session.id, 1))
         assertEquals("completed", db.inventoryDao().getSessionById(session.id)!!.status)

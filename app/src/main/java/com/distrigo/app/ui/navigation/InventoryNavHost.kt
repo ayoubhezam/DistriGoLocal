@@ -195,6 +195,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                 val summaryPreview by viewModel.counts.collectAsState()
                 val uncounted by viewModel.uncountedCount.collectAsState()
 
+                var date         by remember { mutableStateOf(java.time.LocalDate.now()) }
                 var choice       by remember { mutableStateOf<UncountedChoice?>(null) }
                 var isConfirmed  by remember { mutableStateOf(false) }
                 var isConfirming by remember { mutableStateOf(false) }
@@ -210,6 +211,8 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
                 Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
                     InventorySummaryStep(
+                        date            = date,
+                        onDateChange    = { date = it },
                         summary         = summaryPreview,
                         uncounted       = uncounted,
                         choice          = choice,
@@ -223,6 +226,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
                             isConfirming = true
                             viewModel.finishSession(
                                 zeroUncounted = choice == UncountedChoice.ZERO,
+                                date          = date,
                                 onSuccess = { n -> isConfirming = false; isConfirmed = true; zeroed = n; confirmError = "" },
                                 onError   = { msg -> isConfirming = false; confirmError = msg }
                             )
