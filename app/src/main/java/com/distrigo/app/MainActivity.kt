@@ -388,6 +388,31 @@ class MainActivity : ComponentActivity() {
                                     onBack            = { navController.popBackStack() }
                                 )
                             }
+                            composable(Screen.DrillPerte.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.PertesNavHost(
+                                    openPerteId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack      = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillInventaire.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.InventoryNavHost(
+                                    openSessionId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack        = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillRetoursClient.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.ClientsNavHost(
+                                    openRetoursOfClientId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack                = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillRetoursFournisseur.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.SuppliersNavHost(
+                                    openRetoursOfSupplierId = entry.arguments!!.getInt(DRILL_ID),
+                                    onNavigateToOrder       = { orderId -> drill(DrillTarget.Bon(orderId)) },
+                                    onBack                  = { navController.popBackStack() }
+                                )
+                            }
                             composable(Screen.DrillVente.route, arguments = drillId) { entry ->
                                 com.distrigo.app.ui.navigation.VentesNavHost(
                                     openVenteId = entry.arguments!!.getInt(DRILL_ID),

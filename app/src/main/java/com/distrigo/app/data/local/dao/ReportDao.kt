@@ -24,6 +24,12 @@ data class SalesCost(val cost: Double, val estimated: Double)
  */
 data class SalesHour(val hour: String, val source: String, val count: Int, val total: Double, val paid: Double)
 
+/** One sale of a day, as the day's list shows it. */
+data class DaySale(
+    val id: Int, val numero: String?, val client_name: String?, val source: String,
+    val total: Double, val montant_paye: Double, val created_at: String,
+)
+
 /** A period's client returns, counted and summed at their selling prices. */
 data class ReturnTotals(val count: Int, val total: Double)
 
@@ -97,6 +103,16 @@ interface ReportDao {
         """
     )
     suspend fun clientReturns(firstDay: String, lastDay: String): ReturnTotals
+
+    /** The sales between [start] and [end], newest first — one local day, from the Ventes report. */
+    @Query(
+        """
+        SELECT id, numero, client_name, source, total, montant_paye, created_at FROM ventes
+        WHERE created_at >= :start AND created_at < :end AND (:source IS NULL OR source = :source)
+        ORDER BY created_at DESC, id DESC
+        """
+    )
+    suspend fun salesBetween(start: String, end: String, source: String?): List<DaySale>
 
     // ── Créances et dettes ──
     // Balances are the stored caches ClientDao and SupplierDao.recomputeBalance keep; a balance above

@@ -101,6 +101,14 @@ class ReportRepository(
         )
     }
 
+    /** The sales of one local [day], from [source] or both, newest first. */
+    suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
+        dao.salesBetween(
+            com.distrigo.app.data.time.BusinessDates.dayStart(day, zone),
+            com.distrigo.app.data.time.BusinessDates.dayStart(day.plusDays(1), zone),
+            source,
+        )
+
     /** The Créances et dettes report for one [side] — see DebtReport. */
     suspend fun debtReport(
         side: DebtSide,

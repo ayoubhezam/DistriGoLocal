@@ -29,12 +29,17 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
 
 @Composable
-fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit = {}) {
+fun InventoryNavHost(
+    onBack: () -> Unit,
+    onFullScreenChange: (Boolean) -> Unit = {},
+    /** Opens the section on that session's detail instead of the history — a drill-down: Back then leaves. */
+    openSessionId: Int? = null,
+) {
     val navController = rememberTrackedNavController()
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.InventaireHome.route,
+        startDestination   = if (openSessionId != null) Screen.InventaireDetail.route else Screen.InventaireHome.route,
         route              = Screen.InventaireGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -60,7 +65,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
 
         composable(
             route     = Screen.InventaireDetail.route,
-            arguments = listOf(navArgument("sessionId") { type = NavType.IntType })
+            arguments = listOf(navArgument("sessionId") { type = NavType.IntType; openSessionId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
             val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
@@ -68,7 +73,7 @@ fun InventoryNavHost(onBack: () -> Unit, onFullScreenChange: (Boolean) -> Unit =
             InventorySessionDetailScreen(
                 sessionId = sessionId,
                 viewModel = viewModel,
-                onBack    = { navController.popBackStack() }
+                onBack    = { navController.popOr(onBack) }
             )
         }
 

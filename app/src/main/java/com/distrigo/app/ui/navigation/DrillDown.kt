@@ -20,6 +20,14 @@ sealed interface DrillTarget {
     data class Bon(override val id: Int) : DrillTarget
     /** A sale, from the dépôt or a tournée's camion. */
     data class Vente(override val id: Int) : DrillTarget
+    /** A perte, a loss recorded on its own or by a return. */
+    data class Perte(override val id: Int) : DrillTarget
+    /** An inventory session — a count, its lines and their écarts. */
+    data class Inventaire(override val id: Int) : DrillTarget
+    /** A client's returns: a return has no page of its own, its client's list of returns is it. */
+    data class RetoursClient(override val id: Int) : DrillTarget
+    /** A supplier's returns, as for a client's. */
+    data class RetoursFournisseur(override val id: Int) : DrillTarget
 }
 
 /** The root destination that opens this kind of record. */
@@ -28,6 +36,10 @@ private fun DrillTarget.screen(): Screen.Drill = when (this) {
     is DrillTarget.Supplier -> Screen.DrillSupplier
     is DrillTarget.Bon -> Screen.DrillBon
     is DrillTarget.Vente -> Screen.DrillVente
+    is DrillTarget.Perte -> Screen.DrillPerte
+    is DrillTarget.Inventaire -> Screen.DrillInventaire
+    is DrillTarget.RetoursClient -> Screen.DrillRetoursClient
+    is DrillTarget.RetoursFournisseur -> Screen.DrillRetoursFournisseur
 }
 
 /**

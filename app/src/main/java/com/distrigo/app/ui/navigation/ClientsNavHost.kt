@@ -49,6 +49,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 fun ClientsNavHost(
     openClientId        : Int? = null,
+    /** Opens the section on that client's returns — a drill-down from a return's movement. */
+    openRetoursOfClientId : Int? = null,
     onFullScreenChange  : (Boolean) -> Unit = {},
     onBack              : () -> Unit = {}
 ) {
@@ -56,7 +58,11 @@ fun ClientsNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = if (openClientId != null) Screen.ClientsDetail.route else Screen.ClientsHome.route,
+        startDestination   = when {
+            openRetoursOfClientId != null -> Screen.ClientsRetourHistory.route
+            openClientId != null          -> Screen.ClientsDetail.route
+            else                          -> Screen.ClientsHome.route
+        },
         route              = Screen.ClientsGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -202,7 +208,7 @@ fun ClientsNavHost(
 
         composable(
             route     = Screen.ClientsRetourHistory.route,
-            arguments = listOf(navArgument("clientId") { type = NavType.IntType })
+            arguments = listOf(navArgument("clientId") { type = NavType.IntType; openRetoursOfClientId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
@@ -210,17 +216,20 @@ fun ClientsNavHost(
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
             val clients by viewModel.clients.collectAsState()
+            val isLoading by viewModel.isLoading.collectAsState()
             val client = clients.find { it.id == clientId }
 
             if (client != null) {
                 RetourClientListScreen(
                     client      = client,
                     viewModel   = retourViewModel,
-                    onBack      = { navController.popBackStack() },
+                    onBack      = { navController.popOr(onBack) },
                     onAddRetour = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) }
                 )
-            } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+            } else if (!isLoading) {
+                // Gone — not merely not loaded yet: opened first, from a drill-down, the list is empty
+                // on the first frame, and leaving then would pop the only screen to a blank page.
+                LaunchedEffect(Unit) { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(onBack) }
             }
         }
 

@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.rapports
 
+import com.distrigo.app.data.model.report.ReportPeriod
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -66,7 +69,12 @@ private val CamionColor = Color(0xFF0E9384)
  * a bar a day (a month, over a long period), and the days one by one.
  */
 @Composable
-fun VentesReportScreen(onBack: () -> Unit, viewModel: VentesReportViewModel = hiltViewModel()) {
+fun VentesReportScreen(
+    onBack: () -> Unit,
+    /** A day of "Détail par jour", opened: that day's sales. */
+    onOpenDay: (java.time.LocalDate) -> Unit = {},
+    viewModel: VentesReportViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsState()
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
@@ -104,8 +112,18 @@ fun VentesReportScreen(onBack: () -> Unit, viewModel: VentesReportViewModel = hi
                         if (state.filter.source == ReportSource.TOUT) item { SourceSplit(report) }
                         item { ChartCard(state.buckets, splitBySource = state.filter.source == ReportSource.TOUT) }
                         item { SectionTitle(if (state.buckets.size == report.days.size) "Détail par jour" else "Détail par mois") }
+                        // A day opens its sales; a month — over a long period — narrows the report to it.
+                        val byDay = state.buckets.size == report.days.size
                         items(state.buckets.filter { it.all.count > 0 }.asReversed(), key = { it.start.toString() }) { bucket ->
-                            BucketRow(bucket)
+                            BucketRow(bucket) {
+                                if (byDay) onOpenDay(bucket.start) else viewModel.setFilter(
+                                    state.filter.copy(
+                                        period = ReportPeriod.PERSONNALISE,
+                                        customFrom = bucket.start,
+                                        customTo = minOf(bucket.start.plusMonths(1).minusDays(1), java.time.LocalDate.now()),
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -328,7 +346,7 @@ private fun Legend(label: String, color: Color, amount: String, modifier: Modifi
 // ── Détail ──
 
 @Composable
-private fun BucketRow(bucket: SalesBucket) {
+private fun BucketRow(bucket: SalesBucket, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val all = bucket.all
     Row(
@@ -337,6 +355,7 @@ private fun BucketRow(bucket: SalesBucket) {
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

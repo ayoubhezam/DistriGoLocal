@@ -256,6 +256,22 @@ class ProductRepository(
      * [sourceType] is the name stock movements use (`vente`, `purchase_order`, `retour_client`,
      * `retour_fournisseur`); anything else has no printed number and keeps "#id".
      */
+    /**
+     * The record a stock movement came from, as a kind and an id: the sale, the bon, the perte, the
+     * inventory session (an inventory movement names its line), or — a return having no page of its
+     * own — the client or supplier whose returns list it. Null when there is none to open: an initial
+     * stock, or a record since deleted.
+     */
+    suspend fun movementDocument(sourceType: String, sourceId: Int): Pair<String, Int>? = when (sourceType) {
+        "vente"              -> db.venteDao().getVenteById(sourceId)?.let { "vente" to it.id }
+        "purchase_order"     -> db.purchaseDao().getOrderById(sourceId)?.let { "bon" to it.id }
+        "perte"              -> db.perteDao().getPerteById(sourceId)?.let { "perte" to it.id }
+        "inventory_item"     -> db.inventoryDao().getItemById(sourceId)?.let { "inventaire" to it.session_id }
+        "retour_client"      -> db.retourClientDao().getRetourById(sourceId)?.let { "retours_client" to it.client_id }
+        "retour_fournisseur" -> db.retourFournisseurDao().getRetourById(sourceId)?.let { "retours_fournisseur" to it.supplier_id }
+        else                 -> null
+    }
+
     suspend fun documentLabel(sourceType: String, id: Int): String {
         val numero = when (sourceType) {
             "vente"              -> db.venteDao().getNumero(id)

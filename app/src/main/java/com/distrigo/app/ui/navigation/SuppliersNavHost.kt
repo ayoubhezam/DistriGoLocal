@@ -47,6 +47,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 @Composable
 fun SuppliersNavHost(
     openSupplierId     : Int? = null,
+    /** Opens the section on that supplier's returns — a drill-down from a return's movement. */
+    openRetoursOfSupplierId : Int? = null,
     onFullScreenChange : (Boolean) -> Unit = {},
     onNavigateToOrder  : (Int) -> Unit = {},
     onBack             : (() -> Unit)? = null
@@ -56,7 +58,11 @@ fun SuppliersNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = if (openSupplierId != null) Screen.SuppliersDetail.route else Screen.SuppliersHome.route,
+        startDestination   = when {
+            openRetoursOfSupplierId != null -> Screen.SuppliersRetourHistory.route
+            openSupplierId != null          -> Screen.SuppliersDetail.route
+            else                            -> Screen.SuppliersHome.route
+        },
         route              = Screen.SuppliersGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -196,7 +202,7 @@ fun SuppliersNavHost(
 
         composable(
             route     = Screen.SuppliersRetourHistory.route,
-            arguments = listOf(navArgument("supplierId") { type = NavType.IntType })
+            arguments = listOf(navArgument("supplierId") { type = NavType.IntType; openRetoursOfSupplierId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
@@ -204,6 +210,7 @@ fun SuppliersNavHost(
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
             val suppliers by viewModel.suppliers.collectAsState()
+            val isLoading by viewModel.isLoading.collectAsState()
             val supplier = suppliers.find { it.id == supplierId }
 
             if (supplier != null) {
@@ -211,11 +218,12 @@ fun SuppliersNavHost(
                     supplierId   = supplier.id,
                     supplierName = supplier.name,
                     viewModel    = retourViewModel,
-                    onBack       = { navController.popBackStack() },
+                    onBack       = { navController.popOr(exit) },
                     onAddRetour  = { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) }
                 )
-            } else {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+            } else if (!isLoading) {
+                // Gone — not merely not loaded yet: see the client's returns, above.
+                LaunchedEffect(Unit) { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(exit) }
             }
         }
 

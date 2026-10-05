@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.mouvements
 
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.filled.Description
+import com.distrigo.app.ui.navigation.LocalDrillDown
+import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -284,6 +288,8 @@ fun MovementDetailView(
     LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
     val movement by viewModel.selectedMovement.collectAsState()
     val sourceNumber by viewModel.selectedSourceNumber.collectAsState()
+    val document by viewModel.selectedDocument.collectAsState()
+    val drill = LocalDrillDown.current
     val currentMovement = movement
 
     if (currentMovement == null) {
@@ -369,6 +375,27 @@ fun MovementDetailView(
                 }
                 DetailInfoRow("Valeur totale", money.da(currentMovement.total_value))
                 DetailInfoRow("Notes", currentMovement.note ?: "—")
+            }
+
+            // The record behind the movement: why the stock moved, one tap away.
+            document?.let { (kind, id) ->
+                val (label, target) = when (kind) {
+                    "vente"               -> "Voir la vente" to DrillTarget.Vente(id)
+                    "bon"                 -> "Voir le bon d'achat" to DrillTarget.Bon(id)
+                    "perte"               -> "Voir la perte" to DrillTarget.Perte(id)
+                    "inventaire"          -> "Voir l'inventaire" to DrillTarget.Inventaire(id)
+                    "retours_client"      -> "Voir les retours du client" to DrillTarget.RetoursClient(id)
+                    else                  -> "Voir les retours du fournisseur" to DrillTarget.RetoursFournisseur(id)
+                }
+                OutlinedButton(
+                    onClick  = { drill(target) },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape    = DsShapes.medium
+                ) {
+                    Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text(label, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

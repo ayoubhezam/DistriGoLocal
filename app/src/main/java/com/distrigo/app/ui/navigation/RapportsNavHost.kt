@@ -34,7 +34,16 @@ fun RapportsNavHost(onBack: () -> Unit) {
             )
         }
         composable(Screen.RapportsVentes.route) {
-            VentesReportScreen(onBack = { navController.popBackStack() })
+            VentesReportScreen(
+                onBack    = { navController.popBackStack() },
+                onOpenDay = { day -> navController.navigate(Screen.RapportsVentesJour.createRoute(day)) }
+            )
+        }
+        composable(
+            route     = Screen.RapportsVentesJour.route,
+            arguments = listOf(androidx.navigation.navArgument("day") { type = androidx.navigation.NavType.StringType })
+        ) {
+            com.distrigo.app.ui.rapports.DaySalesScreen(onBack = { navController.popBackStack() })
         }
         // The report and its "Voir tout" share one ViewModel, held by the graph: the full list shows
         // the report already loaded, on the same side, without reading the database again.

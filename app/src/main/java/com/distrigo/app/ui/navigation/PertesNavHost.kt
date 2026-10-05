@@ -19,14 +19,17 @@ import com.distrigo.app.ui.pertes.PertesScreen
 
 @Composable
 fun PertesNavHost(
+    /** Opens the section on that perte instead of its types — a drill-down: Back then leaves. */
+    openPerteId       : Int? = null,
     onFullScreenChange: (Boolean) -> Unit = {},
     onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    val exit = { onBack?.invoke(); Unit }
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.PertesHome.route,
+        startDestination   = if (openPerteId != null) Screen.PertesDetail.route else Screen.PertesHome.route,
         route              = Screen.PertesGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -62,13 +65,14 @@ fun PertesNavHost(
         // Read-only: a perte is looked at here, and changed only through "Modifier", confirmed.
         composable(
             route     = Screen.PertesDetail.route,
-            arguments = listOf(navArgument(PerteDetailViewModel.ARG_PERTE) { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument(PerteDetailViewModel.ARG_PERTE) { type = NavType.IntType; openPerteId?.let { defaultValue = it } })
         ) {
             val shared: PerteViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) })
             PerteDetailScreen(
-                onBack    = { navController.popBackStack() },
+                onBack    = { navController.popOr(exit) },
                 onEdit    = { perte -> navController.navigate(Screen.PertesFormGraph.createRoute(perte.type_id, perte.id)) },
-                onDeleted = { typeId -> shared.refreshAfterChange(typeId); navController.popBackStack() }
+                onDeleted = { typeId -> shared.refreshAfterChange(typeId); navController.popOr(exit) }
             )
         }
 

@@ -106,10 +106,16 @@ class StockMovementViewModel @Inject constructor(
     suspend fun countFor(productId: Int?, filters: MovementFilters): Int =
         repository.countMovements(query(productId, filters))
 
+    private val _selectedDocument = MutableStateFlow<Pair<String, Int>?>(null)
+
+    /** The record the movement came from, to open — see ProductRepository.movementDocument. */
+    val selectedDocument: StateFlow<Pair<String, Int>?> = _selectedDocument
+
     fun loadMovementDetail(id: Int) {
         viewModelScope.launch {
             val movement = repository.getMovementById(id)
             _selectedSourceNumber.value = movement?.let { repository.documentLabel(it.source_type, it.source_id) }
+            _selectedDocument.value = movement?.let { repository.movementDocument(it.source_type, it.source_id) }
             _selectedMovement.value = movement
         }
     }

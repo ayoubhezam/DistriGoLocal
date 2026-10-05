@@ -23,6 +23,10 @@ sealed class Screen(val route: String) {
     data object DrillSupplier : Drill("supplier")
     data object DrillBon      : Drill("bon")
     data object DrillVente    : Drill("vente")
+    data object DrillPerte    : Drill("perte")
+    data object DrillInventaire : Drill("inventaire")
+    data object DrillRetoursClient : Drill("retours_client")
+    data object DrillRetoursFournisseur : Drill("retours_fournisseur")
     data object PlusFournisseurs : Screen("plus_fournisseurs")
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")
@@ -77,6 +81,10 @@ sealed class Screen(val route: String) {
     data object RapportsVentes : Screen("rapports_ventes")
     data object RapportsDettes : Screen("rapports_dettes")
     data object RapportsDebiteurs : Screen("rapports_debiteurs")
+    /** One local day's sales, from the Ventes report's "Détail par jour". */
+    data object RapportsVentesJour : Screen("rapports_ventes_jour/{day}") {
+        fun createRoute(day: java.time.LocalDate) = "rapports_ventes_jour/$day"
+    }
 
     // ── Charges ──
     data object ChargesGraph    : Screen("charges_graph")
