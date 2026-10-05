@@ -201,9 +201,7 @@ fun ClientsNavHost(
         retourClientFormGraph(
             navController = navController,
             graphRoute    = Screen.ClientsRetourFormGraph.route,
-            viewModel     = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.ClientsGraph.route) }) },
-            onBack  = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) },
-            onSaved = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) }
+            onDone        = { navController.popBackStack(Screen.ClientsRetourFormGraph.route, inclusive = true) }
         )
 
         composable(

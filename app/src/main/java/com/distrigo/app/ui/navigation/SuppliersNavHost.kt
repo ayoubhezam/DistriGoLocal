@@ -192,12 +192,9 @@ fun SuppliersNavHost(
         )
 
         retourFournisseurFormGraph(
-            navController     = navController,
-            graphRoute        = Screen.SuppliersRetourFormGraph.route,
-            viewModel         = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
-            supplierViewModel = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }) },
-            onBack  = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) },
-            onSaved = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) }
+            navController = navController,
+            graphRoute    = Screen.SuppliersRetourFormGraph.route,
+            onDone        = { navController.popBackStack(Screen.SuppliersRetourFormGraph.route, inclusive = true) }
         )
 
         composable(

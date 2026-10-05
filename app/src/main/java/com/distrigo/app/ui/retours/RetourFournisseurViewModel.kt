@@ -36,56 +36,12 @@ class RetourFournisseurViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    private val _returnableProducts = MutableStateFlow<List<ReturnableProduct>>(emptyList())
-    val returnableProducts: StateFlow<List<ReturnableProduct>> = _returnableProducts
-
     private val _retourDetail = MutableStateFlow<RetourFournisseur?>(null)
     val retourDetail: StateFlow<RetourFournisseur?> = _retourDetail
-
-    // ── Retour form (wizard) state — shared across RetourFournisseurFormNavGraph steps ──
-    private val _formDate = MutableStateFlow(java.time.LocalDate.now())
-    val formDate: StateFlow<java.time.LocalDate> = _formDate
-
-    private val _formMotif = MutableStateFlow<String?>(null)
-    val formMotif: StateFlow<String?> = _formMotif
-
-    private val _formCartItems = MutableStateFlow<List<RetourCartItem>>(emptyList())
-    val formCartItems: StateFlow<List<RetourCartItem>> = _formCartItems
-
-    fun setFormDate(date: java.time.LocalDate) { _formDate.value = date }
-    fun setFormMotif(motif: String?) { _formMotif.value = motif }
-    fun setFormCartItems(items: List<RetourCartItem>) { _formCartItems.value = items }
-
-    fun resetRetourForm() {
-        _formDate.value = java.time.LocalDate.now()
-        _formMotif.value = null
-        _formCartItems.value = emptyList()
-    }
 
     fun loadRetourDetail(id: Int) {
         viewModelScope.launch {
             _retourDetail.value = repository.getRetourDetail(id)
-        }
-    }
-
-    fun loadReturnableProducts(supplierId: Int) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val receivedStatus = "received"
-            val purchased = db.purchaseDao().getPurchasedQuantitiesForSupplier(supplierId, receivedStatus).associate { it.product_id to it.total_quantity }
-            val returned   = db.retourFournisseurDao().getReturnedQuantitiesForSupplier(supplierId).associate { it.product_id to it.total_quantity }
-            val byId       = productRepository.getLiveProductsByIds(purchased.keys).associateBy { it.id }
-            // Strict stock: a return goes back out of the dépôt, so it can take no more than the dépôt
-            // holds, whatever was bought. A product the dépôt has none of is not offered. The
-            // repository's guard refuses anything that gets past this.
-            val policy     = StockPolicy(businessSettings.observeAllowNegativeStock().first())
-            _returnableProducts.value = purchased.mapNotNull { (productId, purchasedQty) ->
-                val product   = byId[productId] ?: return@mapNotNull null
-                val returnable = purchasedQty - (returned[productId] ?: 0.0)
-                val remaining = policy.depotCap(product)?.let { minOf(returnable, it) } ?: returnable
-                if (remaining > 0) ReturnableProduct(product, remaining) else null
-            }
-            _isLoading.value = false
         }
     }
 
@@ -115,27 +71,6 @@ class RetourFournisseurViewModel @Inject constructor(
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message
-            }
-        }
-    }
-
-    fun createRetour(
-        supplierId : Int,
-        date       : String,
-        motif      : String?,
-        note       : String?,
-        items      : List<Map<String, Any?>>,
-        userName   : String? = null,
-        onSuccess  : () -> Unit,
-        onError    : (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            val result = repository.createRetour(supplierId, date, motif, note, items, userName)
-            if (result.containsKey("error")) {
-                onError(result["error"] as String)
-            } else {
-                loadRetours(supplierId)
-                onSuccess()
             }
         }
     }

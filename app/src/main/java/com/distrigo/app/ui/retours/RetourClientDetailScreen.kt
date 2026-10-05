@@ -28,7 +28,11 @@ fun RetourClientDetailScreen(
     LaunchedEffect(retourSummary.id) { viewModel.loadRetourDetail(retourSummary.id) }
 
     // "Produit défectueux" and "Produit périmé" come back and go straight out again as pertes.
-    val asPertes = RetourClientMotifs.resolve(retour.motif).perteType != null
+    // Each line's motif decides its own effect; a return from before v61 has one for all its lines.
+    val motifs = loaded?.items?.map { it.motif ?: retour.motif } ?: listOf(retour.motif)
+    val perteLines = motifs.count { RetourClientMotifs.resolve(it).perteType != null }
+    val asPertes = perteLines == motifs.size
+    val mixedEffects = perteLines in 1 until motifs.size
 
     RetourDetailContent(
         numberLabel   = retour.numberLabel,
@@ -38,11 +42,16 @@ fun RetourClientDetailScreen(
         date          = retour.date,
         createdAt     = retour.created_at,
         motif         = retour.motif,
-        stockEffect   = if (asPertes) "Enregistré en perte — le stock camion ne change pas" else "Remis dans le stock camion",
+        stockEffect   = when {
+            mixedEffects -> "Selon le produit : remis dans le stock camion, ou enregistré en perte"
+            asPertes     -> "Enregistré en perte — le stock camion ne change pas"
+            else         -> "Remis dans le stock camion"
+        },
         note          = retour.note,
-        lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price) },
+        lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price, it.motif ?: retour.motif) },
         deleteEffects = listOf(
-            if (asPertes) "Stock : les pertes liées à ce retour seront supprimées ; le stock camion ne change pas."
+            if (mixedEffects) "Stock : les produits remis en stock en seront retirés ; les pertes liées seront supprimées."
+            else if (asPertes) "Stock : les pertes liées à ce retour seront supprimées ; le stock camion ne change pas."
             else "Stock : les produits retournés seront retirés du stock camion.",
             "Solde : ${money.da(retour.total)} seront rajoutés au solde du client « ${retour.client_name} »."
         ),

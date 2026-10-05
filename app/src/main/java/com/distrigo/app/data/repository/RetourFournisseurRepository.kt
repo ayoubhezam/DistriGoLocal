@@ -24,7 +24,7 @@ class RetourFournisseurRepository(
     private fun RetourFournisseurItemEntity.toItem() = RetourFournisseurItem(
         id = this.id, product_id = this.product_id, product_name = this.product_name,
         unit_type = this.unit_type, quantity = this.quantity,
-        unit_price = this.unit_price, total_price = this.total_price
+        unit_price = this.unit_price, total_price = this.total_price, motif = this.motif
     )
 
     private suspend fun RetourFournisseurEntity.toRetour(items: List<RetourFournisseurItem>? = null): RetourFournisseur =
@@ -116,25 +116,29 @@ class RetourFournisseurRepository(
                 ?: throw IllegalStateException("Fournisseur introuvable: $supplierId")
             val now = java.time.Instant.now().toString()
 
-            val lines: List<Pair<ProductEntity, Double>> = items.map { map ->
+            // Each line with its own motif — what decides its stock effect and its linked perte — or,
+            // a caller giving none, the return's.
+            val lines: List<Triple<ProductEntity, Double, String?>> = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity  = map.lineQuantity()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
-                product to quantity
+                Triple(product, quantity, (map["motif"] as? String) ?: motif)
             }
-            val total = lines.sumOf { (product, quantity) -> quantity * product.purchase_price }
+            // The return's own motif: its lines' when they share one, none when they differ.
+            val documentMotif = lines.map { it.third }.distinct().singleOrNull()
+            val total = lines.sumOf { (product, quantity, _) -> quantity * product.purchase_price }
 
             val retourId = retourDao.insertRetour(
                 RetourFournisseurEntity(
-                    supplier_id = supplierId, date = date, motif = motif, note = note,
+                    supplier_id = supplierId, date = date, motif = documentMotif, note = note,
                     total = total, created_at = now
                 )
             ).toInt()
 
-            val definition = RetourFournisseurMotifs.resolve(motif)
             val movementEntities = mutableListOf<StockMovementEntity>()
-            val itemEntities = lines.map { (product, quantity) ->
+            val itemEntities = lines.map { (product, quantity, lineMotif) ->
+                val definition = RetourFournisseurMotifs.resolve(lineMotif)
                 val unitPrice  = product.purchase_price
                 val totalPrice = quantity * unitPrice
 
@@ -153,7 +157,7 @@ class RetourFournisseurRepository(
                     unit_price   = unitPrice,
                     total_value  = totalPrice,
                     user_name    = userName,
-                    note         = motif,
+                    note         = lineMotif,
                     created_at   = now
                 )
 
@@ -171,7 +175,7 @@ class RetourFournisseurRepository(
                 RetourFournisseurItemEntity(
                     retour_id = retourId, product_id = product.id, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = totalPrice
+                    unit_price = unitPrice, total_price = totalPrice, motif = lineMotif
                 )
             }
             retourDao.insertItems(itemEntities)

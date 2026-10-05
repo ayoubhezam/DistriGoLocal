@@ -1162,6 +1162,27 @@ val MIGRATION_59_60 = object : Migration(59, 60) {
 }
 
 /**
+ * 60 → 61: a return's motif moves onto each of its lines — `retour_client_items.motif` and
+ * `retour_fournisseur_items.motif` — so one return can take back a product périmé (a perte) beside one
+ * delivered by mistake (back in stock). Lines already returned take their return's motif. The tracked
+ * columns of the update triggers are those of version 60, so the backfill moves no `updated_at`.
+ */
+val MIGRATION_60_61 = object : Migration(60, 61) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `retour_client_items` ADD COLUMN `motif` TEXT")
+        db.execSQL("ALTER TABLE `retour_fournisseur_items` ADD COLUMN `motif` TEXT")
+        db.execSQL(
+            "UPDATE `retour_client_items` SET `motif` = " +
+                "(SELECT `motif` FROM `retour_client` WHERE `retour_client`.`id` = `retour_client_items`.`retour_id`)"
+        )
+        db.execSQL(
+            "UPDATE `retour_fournisseur_items` SET `motif` = " +
+                "(SELECT `motif` FROM `retour_fournisseur` WHERE `retour_fournisseur`.`id` = `retour_fournisseur_items`.`retour_id`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1175,7 +1196,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48,
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
-    MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60,
+    MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
 )
 
 /**

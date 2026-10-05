@@ -38,7 +38,9 @@ internal data class RetourLine(
     val unit      : String,
     val quantity  : Double,
     val unitPrice : Double,
-    val total     : Double
+    val total     : Double,
+    /** The line's motif, shown under it when the return's lines do not all share one. */
+    val motif     : String? = null
 )
 
 /**
@@ -106,7 +108,12 @@ internal fun RetourDetailContent(
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                 DetailRow(Icons.Default.Event, "Date", dayLabel(date, createdAt))
                 DetailRow(Icons.Default.Person, partyLabel, partyName)
-                DetailRow(Icons.Default.Label, "Motif", motif?.takeIf { it.isNotBlank() } ?: "—")
+                // A return's lines can each have their own motif: then it is "Selon le produit", and each line says its own.
+                val lineMotifs = lines?.mapNotNull { it.motif }?.distinct().orEmpty()
+                DetailRow(Icons.Default.Label, "Motif", when {
+                    lineMotifs.size > 1 -> "Selon le produit"
+                    else -> (motif ?: lineMotifs.firstOrNull())?.takeIf { it.isNotBlank() } ?: "—"
+                })
                 DetailRow(Icons.Default.Inventory2, "Effet sur le stock", stockEffect)
                 note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Notes, "Note", it) }
                 instant(createdAt)?.let { DetailRow(Icons.Default.History, "Enregistré le", "${it.format(DAY)} à ${it.format(TIME)}") }
@@ -125,7 +132,8 @@ internal fun RetourDetailContent(
                         CircularProgressIndicator(color = DsColors.Primary)
                     }
                 } else {
-                    lines.forEach { line -> LineRow(line) }
+                    val mixed = lines.mapNotNull { it.motif }.distinct().size > 1
+                    lines.forEach { line -> LineRow(line, showMotif = mixed) }
                 }
             }
             Spacer(Modifier.height(DsSpacing.sm))
@@ -181,7 +189,7 @@ internal fun RetourDetailContent(
 }
 
 @Composable
-private fun LineRow(line: RetourLine) {
+private fun LineRow(line: RetourLine, showMotif: Boolean) {
     val money = LocalMoneyFormatter.current
     Row(
         modifier          = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
@@ -194,6 +202,9 @@ private fun LineRow(line: RetourLine) {
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
+            if (showMotif) line.motif?.let {
+                Text(it, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = DsColors.Primary)
+            }
         }
         Spacer(Modifier.width(DsSpacing.sm))
         Text(money.da(line.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)

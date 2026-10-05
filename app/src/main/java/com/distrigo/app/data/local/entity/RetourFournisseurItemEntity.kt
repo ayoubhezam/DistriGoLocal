@@ -24,5 +24,7 @@ data class RetourFournisseurItemEntity(
     @ColumnInfo(defaultValue = "''")
     val created_at: String = java.time.Instant.now().toString(),
     @ColumnInfo(defaultValue = "0")
-    val updated_at: Long = System.currentTimeMillis()
+    val updated_at: Long = System.currentTimeMillis(),
+    /** Why this line came back — its own, since v61: it decides the line's stock effect and linked perte. */
+    val motif: String? = null
 )

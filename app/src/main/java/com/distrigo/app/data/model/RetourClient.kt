@@ -7,7 +7,9 @@ data class RetourClientItem(
     val unit_type    : String,
     val quantity     : Double,
     val unit_price   : Double,
-    val total_price  : Double
+    val total_price  : Double,
+    /** This line's motif; a line from before v61 has its return's. */
+    val motif        : String? = null
 )
 
 data class RetourClient(

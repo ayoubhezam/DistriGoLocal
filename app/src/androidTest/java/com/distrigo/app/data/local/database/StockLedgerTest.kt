@@ -284,9 +284,41 @@ class StockLedgerTest {
 
     // ── helpers ──
 
-    private suspend fun product(stock: Double): Int =
+    /**
+     * Each line of a return has its own motif and its own effect: in one client return, the line
+     * "Erreur de livraison" goes back into the camion, the line "Produit périmé" comes in and out again
+     * as a perte. The return itself keeps no motif when its lines differ; deleting it undoes both.
+     */
+    @Test
+    fun aReturnsLinesEachFollowTheirOwnMotif() = runBlocking {
+        val retours = RetourClientRepository(db)
+        val back = product(40.0)
+        val expired = product(30.0, name = "Yaourt Soummam")
+        val client = client()
+
+        retours.createRetour(
+            client, null, "2026-10-05", null, null,
+            listOf(line(back, 2.0) + ("motif" to "Erreur de livraison"), line(expired, 3.0) + ("motif" to "Produit périmé"))
+        )
+        assertStock(back, total = 42.0, camion = 2.0)
+        assertStock(expired, total = 30.0, camion = 0.0)
+        val retour = db.retourClientDao().getRetoursForClient(client).single()
+        assertEquals(null, retour.motif)
+        assertEquals(
+            mapOf(back to "Erreur de livraison", expired to "Produit périmé"),
+            db.retourClientDao().getItemsForRetour(retour.id).associate { it.product_id to it.motif }
+        )
+        assertEquals(listOf(expired), db.perteDao().getPertesBySource("retour_client", retour.id).map { it.product_id })
+
+        retours.deleteRetour(retour.id)
+        assertStock(back, total = 40.0, camion = 0.0)
+        assertStock(expired, total = 30.0, camion = 0.0)
+        assertLedgerHolds()
+    }
+
+    private suspend fun product(stock: Double, name: String = "Lait Candia 1L"): Int =
         repository.addProduct(
-            mapOf("name" to "Lait Candia 1L", "selling_price" to 110.0, "purchase_price" to 95.0, "stock" to stock)
+            mapOf("name" to name, "selling_price" to 110.0, "purchase_price" to 95.0, "stock" to stock)
         ).newId()
 
     private suspend fun client(): Int = repository.addClient(mapOf("name" to "Épicerie El Amel")).newId()

@@ -28,7 +28,11 @@ fun RetourFournisseurDetailScreen(
     LaunchedEffect(retourSummary.id) { viewModel.loadRetourDetail(retourSummary.id) }
 
     // "… refusé (perte)": the goods left the dépôt and were recorded as pertes as well.
-    val withPertes = RetourFournisseurMotifs.resolve(retour.motif).perteType != null
+    // Each line's motif decides its own effect; a return from before v61 has one for all its lines.
+    val motifs = loaded?.items?.map { it.motif ?: retour.motif } ?: listOf(retour.motif)
+    val perteLines = motifs.count { RetourFournisseurMotifs.resolve(it).perteType != null }
+    val withPertes = perteLines == motifs.size
+    val mixedEffects = perteLines in 1 until motifs.size
 
     RetourDetailContent(
         numberLabel   = retour.numberLabel,
@@ -38,12 +42,16 @@ fun RetourFournisseurDetailScreen(
         date          = retour.date,
         createdAt     = retour.created_at,
         motif         = retour.motif,
-        stockEffect   = if (withPertes) "Sorti du stock dépôt, enregistré en perte" else "Sorti du stock dépôt",
+        stockEffect   = when {
+            mixedEffects -> "Sorti du stock dépôt ; en perte selon le produit"
+            withPertes   -> "Sorti du stock dépôt, enregistré en perte"
+            else         -> "Sorti du stock dépôt"
+        },
         note          = retour.note,
-        lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price) },
+        lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price, it.motif ?: retour.motif) },
         deleteEffects = listOfNotNull(
             "Stock : les produits retournés seront remis dans le stock dépôt.",
-            "Pertes : les pertes liées à ce retour seront supprimées.".takeIf { withPertes },
+            "Pertes : les pertes liées à ce retour seront supprimées.".takeIf { withPertes || mixedEffects },
             "Solde : ${money.da(retour.total)} seront rajoutés à ce que vous devez au fournisseur « ${retour.supplier_name} »."
         ),
         deleting       = deleting,

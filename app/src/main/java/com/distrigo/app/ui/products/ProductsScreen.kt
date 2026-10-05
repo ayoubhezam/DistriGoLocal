@@ -755,6 +755,8 @@ fun ProductCard(
     onLongClick : () -> Unit = {},
     stock       : Double  = product.stock,
     lowStock    : Boolean = product.stock < product.min_stock,
+    /** Said before the quantity on the right — "max" when it is what may be returned, not a stock. */
+    stockPrefix : String? = null,
 ) {
     val isLow = lowStock
 
@@ -848,7 +850,7 @@ fun ProductCard(
 
             // ── Stock : عمود منفصل على اليمين ──
             Text(
-                "${formatQty(stock)} ${product.unit_type}",
+                listOfNotNull(stockPrefix, "${formatQty(stock)} ${product.unit_type}").joinToString(" "),
                 fontSize   = DsTextSize.caption,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                 color      = if (isLow) DsColors.Danger else DsColors.TextSecondary,

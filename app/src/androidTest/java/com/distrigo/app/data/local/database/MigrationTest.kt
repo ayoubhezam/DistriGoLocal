@@ -772,6 +772,41 @@ class MigrationTest {
         }
     }
 
+    /** 60 -> 61 gives each return line its return's motif, client and supplier, without moving any `updated_at`. */
+    @Test
+    fun migration60To61GivesEachReturnLineItsReturnsMotif() {
+        helper.createDatabase(TEST_DB, 60).apply {
+            execSQL(
+                "INSERT INTO retour_client (id, client_id, tournee_id, date, motif, note, total, created_at, uuid, updated_at, version) " +
+                    "VALUES (1, 1, NULL, '2026-09-20', 'Produit périmé', NULL, 220.0, '2026-09-20T10:00:00Z', 'u-rc-1', 3000, 2)"
+            )
+            execSQL(
+                "INSERT INTO retour_client_items (id, retour_id, product_id, product_name, unit_type, quantity, unit_price, total_price, uuid, created_at, updated_at) " +
+                    "VALUES (1, 1, 7, 'P7', 'pièce', 2.0, 110.0, 220.0, 'u-rci-1', '2026-09-20T10:00:00Z', 2000)"
+            )
+            execSQL(
+                "INSERT INTO retour_fournisseur (id, supplier_id, date, motif, note, total, created_at, uuid, updated_at, version) " +
+                    "VALUES (1, 1, '2026-09-21', 'Erreur de commande', NULL, 95.0, '2026-09-21T10:00:00Z', 'u-rf-1', 3000, 2)"
+            )
+            execSQL(
+                "INSERT INTO retour_fournisseur_items (id, retour_id, product_id, product_name, unit_type, quantity, unit_price, total_price, uuid, created_at, updated_at) " +
+                    "VALUES (1, 1, 7, 'P7', 'pièce', 1.0, 95.0, 95.0, 'u-rfi-1', '2026-09-21T10:00:00Z', 2000)"
+            )
+            UpdatedAtTriggers.install(this)
+            DocumentTriggers.install(this)
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 61, true, MIGRATION_60_61)
+        try {
+            assertEquals(listOf("Produit périmé|2000"), sql.texts("SELECT motif || '|' || updated_at FROM retour_client_items"))
+            assertEquals(listOf("Erreur de commande|2000"), sql.texts("SELECT motif || '|' || updated_at FROM retour_fournisseur_items"))
+            assertEquals(1, sql.count("retour_client", "id = 1 AND updated_at = 3000 AND version = 2"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

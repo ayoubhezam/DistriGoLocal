@@ -24,7 +24,7 @@ class RetourClientRepository(
     private fun RetourClientItemEntity.toItem() = RetourClientItem(
         id = this.id, product_id = this.product_id, product_name = this.product_name,
         unit_type = this.unit_type, quantity = this.quantity,
-        unit_price = this.unit_price, total_price = this.total_price
+        unit_price = this.unit_price, total_price = this.total_price, motif = this.motif
     )
 
     private suspend fun RetourClientEntity.toRetour(items: List<RetourClientItem>? = null): RetourClient =
@@ -117,24 +117,28 @@ class RetourClientRepository(
                 ?: throw IllegalStateException("Client introuvable: $clientId")
             val now = java.time.Instant.now().toString()
 
-            val lines: List<Pair<ProductEntity, Double>> = items.map { map ->
+            // Each line with its own motif — what decides its stock effect and its linked perte — or,
+            // a caller giving none, the return's.
+            val lines: List<Triple<ProductEntity, Double, String?>> = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity  = map.lineQuantity()
                 val product = productDao.getProductById(productId)
                     ?: throw IllegalStateException("Produit introuvable: $productId")
-                product to quantity
+                Triple(product, quantity, (map["motif"] as? String) ?: motif)
             }
-            val total = lines.sumOf { (product, quantity) -> quantity * product.selling_price }
+            // The return's own motif: its lines' when they share one, none when they differ.
+            val documentMotif = lines.map { it.third }.distinct().singleOrNull()
+            val total = lines.sumOf { (product, quantity, _) -> quantity * product.selling_price }
 
             val retourId = retourDao.insertRetour(
                 RetourClientEntity(
-                    client_id = clientId, tournee_id = tourneeId, date = date, motif = motif, note = note,
+                    client_id = clientId, tournee_id = tourneeId, date = date, motif = documentMotif, note = note,
                     total = total, created_at = now
                 )
             ).toInt()
 
-            val definition = RetourClientMotifs.resolve(motif)
-            val itemEntities = lines.map { (product, quantity) ->
+            val itemEntities = lines.map { (product, quantity, lineMotif) ->
+                val definition = RetourClientMotifs.resolve(lineMotif)
                 val unitPrice  = product.selling_price
                 val totalPrice = quantity * unitPrice
 
@@ -155,7 +159,7 @@ class RetourClientRepository(
                     unit_price   = unitPrice,
                     total_value  = totalPrice,
                     user_name    = userName,
-                    note         = motif,
+                    note         = lineMotif,
                     created_at   = now
                 ))
 
@@ -172,7 +176,7 @@ class RetourClientRepository(
                 RetourClientItemEntity(
                     retour_id = retourId, product_id = product.id, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = totalPrice
+                    unit_price = unitPrice, total_price = totalPrice, motif = lineMotif
                 )
             }
             retourDao.insertItems(itemEntities)
