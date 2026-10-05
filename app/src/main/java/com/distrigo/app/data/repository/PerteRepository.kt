@@ -116,7 +116,7 @@ class PerteRepository(
     suspend fun getPerteTypes(): List<PerteType> = perteDao.getAllPerteTypes().map { it.toPerteType() }
 
     /** One line of a new perte: a product lost, how much, and why. */
-    data class PerteLine(val productId: Int, val typeId: Int, val quantity: Double)
+    data class PerteLine(val productId: Int, val typeId: Int, val quantity: Double, val motif: String? = null)
 
     /**
      * Records every line of a new perte at the dépôt, dated [dateTime], in one transaction: all of
@@ -128,7 +128,7 @@ class PerteRepository(
                 lines.forEach { line ->
                     val result = addPerte(
                         typeId = line.typeId, productId = line.productId, quantity = line.quantity,
-                        source = "depot", dateTime = dateTime, motif = null, photoPath = null, userName = userName
+                        source = "depot", dateTime = dateTime, motif = line.motif?.trim()?.takeIf { it.isNotEmpty() }, photoPath = null, userName = userName
                     )
                     (result["error"] as? String)?.let { throw IllegalStateException(it) }
                 }

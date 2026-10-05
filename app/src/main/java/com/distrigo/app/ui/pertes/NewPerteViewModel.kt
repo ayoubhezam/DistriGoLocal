@@ -31,7 +31,7 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 /** One product in a new perte's selection: how much was lost, and why. */
-data class PerteCartLine(val product: Product, val typeId: Int, val typeName: String, val quantity: Double) {
+data class PerteCartLine(val product: Product, val typeId: Int, val typeName: String, val quantity: Double, val motif: String? = null) {
     val value: Double get() = quantity * product.purchase_price
 }
 
@@ -93,9 +93,9 @@ class NewPerteViewModel @Inject constructor(
     fun inCart(productId: Int): PerteCartLine? = _cart.value.find { it.product.id == productId }
 
     /** Adds [product] to the selection, or replaces its line. */
-    fun put(product: Product, typeId: Int, quantity: Double) {
+    fun put(product: Product, typeId: Int, quantity: Double, motif: String?) {
         val name = _types.value.find { it.id == typeId }?.name ?: ""
-        val line = PerteCartLine(product, typeId, name, quantity)
+        val line = PerteCartLine(product, typeId, name, quantity, motif)
         _cart.value = _cart.value.filter { it.product.id != product.id } + line
     }
 
@@ -107,7 +107,7 @@ class NewPerteViewModel @Inject constructor(
         if (lines.isEmpty()) return onError("Aucun produit")
         val at = date.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant().toString()
         viewModelScope.launch {
-            val result = repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity) }, at)
+            val result = repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif) }, at)
             val error = result["error"] as? String
             if (error != null) onError(error) else { _cart.value = emptyList(); onSuccess(lines.size) }
         }

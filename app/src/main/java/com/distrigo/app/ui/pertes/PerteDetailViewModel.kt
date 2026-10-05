@@ -55,13 +55,13 @@ class PerteDetailViewModel @Inject constructor(
     }
 
     /** Changes the perte's type and quantity — its product, place and date stay. */
-    fun update(typeId: Int, quantity: Double, onDone: () -> Unit) {
+    fun update(typeId: Int, quantity: Double, motif: String?, onDone: () -> Unit) {
         val current = perte ?: return
         saving = true; saveError = ""
         viewModelScope.launch {
             val result = repository.updatePerte(
                 id = current.id, productId = current.product_id, typeId = typeId, quantity = quantity,
-                source = current.source, dateTime = current.date_time, motif = current.motif, photoPath = current.photo_path
+                source = current.source, dateTime = current.date_time, motif = motif, photoPath = current.photo_path
             )
             saving = false
             val error = result["error"] as? String

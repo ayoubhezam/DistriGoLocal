@@ -76,13 +76,15 @@ fun PerteDialog(
     types       : List<PerteType>,
     initialType : Int?,
     initialQty  : Double?,
+    initialMotif: String? = null,
     isSaving    : Boolean = false,
     error       : String = "",
-    onSave      : (typeId: Int, quantity: Double) -> Unit,
+    onSave      : (typeId: Int, quantity: Double, motif: String?) -> Unit,
     onDismiss   : () -> Unit,
 ) {
     var typeId by remember { mutableStateOf(initialType ?: types.firstOrNull()?.id) }
     var text by remember { mutableStateOf(initialQty?.let { formatQty(it) } ?: "") }
+    var motif by remember { mutableStateOf(initialMotif ?: "") }
     var typeMenu by remember { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
@@ -163,6 +165,15 @@ fun PerteDialog(
                 colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)
             )
+            OutlinedTextField(
+                value = motif,
+                onValueChange = { motif = it },
+                label = { Text("Motif (optionnel)") },
+                singleLine = true,
+                shape = DsShapes.medium,
+                colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
+                modifier = Modifier.fillMaxWidth()
+            )
             val shown = problem ?: error
             if (shown.isNotEmpty()) Text(shown, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
 
@@ -171,7 +182,7 @@ fun PerteDialog(
                     Text("Annuler")
                 }
                 Button(
-                    onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity) },
+                    onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }) },
                     enabled = !isSaving && typeId != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)

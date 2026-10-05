@@ -206,9 +206,9 @@ fun PerteDetailScreen(
         PerteDialog(
             productName = perte.product_name, unit = perte.unit,
             stock = vm.stockBefore(), cap = vm.cap(),
-            types = vm.types, initialType = perte.type_id, initialQty = perte.quantity,
+            types = vm.types, initialType = perte.type_id, initialQty = perte.quantity, initialMotif = perte.motif,
             isSaving = vm.saving, error = vm.saveError,
-            onSave = { typeId, qty -> vm.update(typeId, qty) { editing = false } },
+            onSave = { typeId, qty, motif -> vm.update(typeId, qty, motif) { editing = false } },
             onDismiss = { editing = false }
         )
     }

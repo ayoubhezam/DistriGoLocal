@@ -174,10 +174,21 @@ fun PerteHistoryScreen(
             )
             else -> LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                contentPadding = PaddingValues(top = DsSpacing.xs, bottom = DsSpacing.xxxl),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)
             ) {
-                items(list, key = { it.id }) { perte ->
+                // A header before each local day's pertes, as Achats and Ventes date their lists.
+                list.groupBy { BusinessDates.localDay(it.date_time) }.forEach { (day, ofDay) ->
+                item(key = "date_$day", contentType = "header") {
+                    Text(
+                        text       = formatOrderDate(day),
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextSecondary,
+                        modifier   = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
+                    )
+                }
+                items(ofDay, key = { it.id }, contentType = { "perte" }) { perte ->
                     Row(
                         Modifier
                             .padding(horizontal = DsSpacing.lg)
@@ -192,7 +203,7 @@ fun PerteHistoryScreen(
                             Text(perte.product_name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                                 color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                "${perte.type_name} · ${formatOrderDate(BusinessDates.localDay(perte.date_time))} · ${if (perte.source == "camion") "Camion" else "Dépôt"}",
+                                listOfNotNull(perte.type_name, if (perte.source == "camion") "Camion" else "Dépôt", perte.motif?.takeIf { it.isNotBlank() }).joinToString(" · "),
                                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
                             )
                         }
@@ -202,6 +213,7 @@ fun PerteHistoryScreen(
                             Text(money.da(perte.valeur_totale), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
                     }
+                }
                 }
             }
         }

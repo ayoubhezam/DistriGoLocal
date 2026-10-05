@@ -198,8 +198,8 @@ fun NewPerteListScreen(
         PerteDialog(
             productName = product.name, unit = product.unit_type,
             stock = product.depotStock, cap = viewModel.capFor(product),
-            types = types, initialType = existing?.typeId, initialQty = existing?.quantity,
-            onSave = { typeId, qty -> viewModel.put(product, typeId, qty); editing = null },
+            types = types, initialType = existing?.typeId, initialQty = existing?.quantity, initialMotif = existing?.motif,
+            onSave = { typeId, qty, motif -> viewModel.put(product, typeId, qty, motif); editing = null },
             onDismiss = { editing = null }
         )
     }
@@ -244,7 +244,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                         SelectionCartCard(
                             avatarIcon      = Icons.Default.RemoveShoppingCart,
                             title           = line.product.name,
-                            metaLine        = "${formatQty(line.quantity)} ${line.product.unit_type} · ${line.typeName}",
+                            metaLine        = "${formatQty(line.quantity)} ${line.product.unit_type} · ${line.typeName}" + (line.motif?.let { " · $it" } ?: ""),
                             totalPriceLabel = money.da(line.value),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else line.product.id },
@@ -299,8 +299,8 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
         PerteDialog(
             productName = line.product.name, unit = line.product.unit_type,
             stock = line.product.depotStock, cap = viewModel.capFor(line.product),
-            types = types, initialType = line.typeId, initialQty = line.quantity,
-            onSave = { typeId, qty -> viewModel.put(line.product, typeId, qty); editing = null; expandedId = null },
+            types = types, initialType = line.typeId, initialQty = line.quantity, initialMotif = line.motif,
+            onSave = { typeId, qty, motif -> viewModel.put(line.product, typeId, qty, motif); editing = null; expandedId = null },
             onDismiss = { editing = null }
         )
     }
@@ -357,7 +357,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text("${line.typeName} · ${formatQty(line.quantity)} ${line.product.unit_type}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text("${line.typeName} · ${formatQty(line.quantity)} ${line.product.unit_type}" + (line.motif?.let { " · $it" } ?: ""), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Text(money.da(line.value), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
                 }
