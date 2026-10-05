@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.filled.RemoveShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -80,12 +82,18 @@ fun PerteDialog(
     isSaving    : Boolean = false,
     error       : String = "",
     onSave      : (typeId: Int, quantity: Double, motif: String?) -> Unit,
+    /** Creates a type named so; its callback gets the new type, or why not. */
+    onAddType   : (name: String, onDone: (PerteType?, String?) -> Unit) -> Unit,
     onDismiss   : () -> Unit,
 ) {
     var typeId by remember { mutableStateOf(initialType ?: types.firstOrNull()?.id) }
     var text by remember { mutableStateOf(initialQty?.let { formatQty(it) } ?: "") }
     var motif by remember { mutableStateOf(initialMotif ?: "") }
     var typeMenu by remember { mutableStateOf(false) }
+    // "+ Nouveau type": the type field turns into a name field until it is added or cancelled.
+    var newType by remember { mutableStateOf<String?>(null) }
+    var newTypeError by remember { mutableStateOf("") }
+    var addingType by remember { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     // A new line opens on the quantity, keyboard up. The dialog's window is not there on the first
@@ -116,8 +124,39 @@ fun PerteDialog(
                 Text(productName, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
-            // The type, as a dropdown.
-            Box {
+            // The type, as a dropdown — or, after "+ Nouveau type", the new type's name.
+            val typing = newType
+            if (typing != null) {
+                OutlinedTextField(
+                    value = typing,
+                    onValueChange = { newType = it; newTypeError = "" },
+                    label = { Text("Nouveau type de perte") },
+                    singleLine = true,
+                    isError = newTypeError.isNotEmpty(),
+                    supportingText = if (newTypeError.isNotEmpty()) ({ Text(newTypeError) }) else null,
+                    shape = DsShapes.medium,
+                    colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                    OutlinedButton(
+                        onClick = { newType = null; newTypeError = "" }, enabled = !addingType,
+                        modifier = Modifier.weight(1f), shape = DsShapes.medium
+                    ) { Text("Annuler") }
+                    Button(
+                        onClick = {
+                            addingType = true
+                            onAddType(typing) { created, failure ->
+                                addingType = false
+                                if (created != null) { typeId = created.id; newType = null } else newTypeError = failure ?: ""
+                            }
+                        },
+                        enabled = !addingType && typing.isNotBlank(),
+                        modifier = Modifier.weight(1f), shape = DsShapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    ) { Text("Ajouter le type", fontWeight = FontWeight.SemiBold) }
+                }
+            } else Box {
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -141,6 +180,12 @@ fun PerteDialog(
                             onClick = { typeId = t.id; typeMenu = false }
                         )
                     }
+                    HorizontalDivider(color = DsColors.Border)
+                    DropdownMenuItem(
+                        text = { Text("Nouveau type", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) },
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary) },
+                        onClick = { typeMenu = false; newType = ""; newTypeError = "" }
+                    )
                 }
             }
 
@@ -183,7 +228,7 @@ fun PerteDialog(
                 }
                 Button(
                     onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }) },
-                    enabled = !isSaving && typeId != null && text.isNotBlank() && problem == null,
+                    enabled = !isSaving && newType == null && typeId != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
                 ) {

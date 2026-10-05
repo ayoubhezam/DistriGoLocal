@@ -95,4 +95,17 @@ class PerteBatchTest {
         assertEquals(1, result["count"])
         assertEquals(-2.0, stock(2), 0.0)
     }
+
+    @Test
+    fun aNewTypeIsCreatedOnceByName(): Unit = runBlocking {
+        val before = repository.getPerteTypes().size
+        val (created, error) = repository.createPerteType("  Rongeurs  ")
+        assertEquals(null, error)
+        assertEquals("Rongeurs", created!!.name)
+        assertEquals(before + 1, repository.getPerteTypes().size)
+        assertEquals("Ce type existe déjà", repository.createPerteType("rongeurs").second)
+        assertEquals("Ce type existe déjà", repository.createPerteType("CASSE").second)
+        assertEquals("Saisissez un nom", repository.createPerteType("   ").second)
+        assertEquals(before + 1, repository.getPerteTypes().size)
+    }
 }

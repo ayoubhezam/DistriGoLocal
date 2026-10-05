@@ -84,6 +84,15 @@ class NewPerteViewModel @Inject constructor(
         }
     }
 
+    /** Creates a custom type from the dialog; [onDone] gets it, or why not. */
+    fun addType(name: String, onDone: (PerteType?, String?) -> Unit) {
+        viewModelScope.launch {
+            val (type, error) = repository.createPerteType(name)
+            if (type != null) _types.value = repository.getPerteTypes()
+            onDone(type, error)
+        }
+    }
+
     /** The product a scanned code belongs to, or null. */
     suspend fun productByBarcode(code: String): Product? = products.findLiveProductByBarcode(code)
 

@@ -18,15 +18,12 @@ import com.distrigo.app.ui.pertes.NewPerteListScreen
 import com.distrigo.app.ui.pertes.NewPerteSummaryScreen
 import com.distrigo.app.ui.pertes.NewPerteViewModel
 import com.distrigo.app.ui.pertes.PerteHistoryScreen
-import com.distrigo.app.ui.pertes.PerteListScreen
-import com.distrigo.app.ui.pertes.PerteViewModel
-import com.distrigo.app.ui.pertes.PertesScreen
 import com.distrigo.app.ui.products.ProductViewModel
 
 /**
  * Pertes: the history of losses, "+" for a new one — a list, a centred dialog per product, a
  * selection and a dated summary, as the Inventaire records its counts — and each perte's detail.
- * The types of perte, with their month's totals, are behind the history's ⋮ menu.
+ * New types are made in the dialog's "Type de perte" list.
  */
 @Composable
 fun PertesNavHost(
@@ -51,35 +48,7 @@ fun PertesNavHost(
             PerteHistoryScreen(
                 onBack  = onBack,
                 onNew   = { navController.navigate(Screen.PertesNewGraph.route) },
-                onOpen  = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) },
-                onTypes = { navController.navigate(Screen.PertesTypes.route) }
-            )
-        }
-
-        // The types and their month's totals, then one type's pertes.
-        composable(Screen.PertesTypes.route) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
-            val viewModel: PerteViewModel = hiltViewModel(parentEntry)
-            PertesScreen(
-                viewModel   = viewModel,
-                onBack      = { navController.popBackStack() },
-                onTypeClick = { typeId -> navController.navigate(Screen.PertesList.createRoute(typeId)) }
-            )
-        }
-
-        composable(
-            route     = Screen.PertesList.route,
-            arguments = listOf(navArgument("typeId") { type = NavType.IntType })
-        ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
-            val viewModel: PerteViewModel = hiltViewModel(parentEntry)
-            val typeId = entry.arguments!!.getInt("typeId")
-            PerteListScreen(
-                typeId      = typeId,
-                viewModel   = viewModel,
-                onBack      = { navController.popBackStack() },
-                onAddPerte  = { navController.navigate(Screen.PertesNewGraph.route) },
-                onOpenPerte = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) }
+                onOpen  = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) }
             )
         }
 
@@ -89,10 +58,10 @@ fun PertesNavHost(
             // Started on, it has no route to read its id from: the drill-down's id is the default.
             arguments = listOf(navArgument(PerteDetailViewModel.ARG_PERTE) { type = NavType.IntType; openPerteId?.let { defaultValue = it } })
         ) {
-            val shared: PerteViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) })
+            // The history is live: a perte deleted here is gone from it on the way back.
             PerteDetailScreen(
                 onBack    = { navController.popOr(exit) },
-                onDeleted = { typeId -> shared.refreshAfterChange(typeId); navController.popOr(exit) }
+                onDeleted = { navController.popOr(exit) }
             )
         }
 

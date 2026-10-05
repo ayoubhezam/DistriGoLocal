@@ -63,7 +63,6 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.purchases.formatOrderDate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -114,14 +113,13 @@ class PerteHistoryViewModel @Inject constructor(private val repository: PerteRep
 
 /**
  * Pertes: the history of every loss recorded — searchable, filtered by type and period — with "+"
- * for a new one. Each opens its detail. The types themselves are managed from the ⋮ menu.
+ * for a new one. Each opens its detail. A new type is made where one is chosen, in the perte dialog.
  */
 @Composable
 fun PerteHistoryScreen(
     onBack     : (() -> Unit)?,
     onNew      : () -> Unit,
     onOpen     : (Perte) -> Unit,
-    onTypes    : () -> Unit,
     viewModel  : PerteHistoryViewModel = hiltViewModel(),
 ) {
     val money = LocalMoneyFormatter.current
@@ -140,7 +138,6 @@ fun PerteHistoryScreen(
                 modifier = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable(role = Role.Button, onClick = onNew),
                 contentAlignment = Alignment.Center
             ) { Icon(Icons.Default.Add, contentDescription = "Nouvelle perte", tint = Color.White) }
-            DsTopBarOverflowMenu("Types de perte" to onTypes)
         }
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(

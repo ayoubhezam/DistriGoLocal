@@ -54,6 +54,15 @@ class PerteDetailViewModel @Inject constructor(
         return (if (perte?.source == "camion") p.camion_stock else p.stock - p.camion_stock) + own
     }
 
+    /** Creates a custom type from the dialog; [onDone] gets it, or why not. */
+    fun addType(name: String, onDone: (PerteType?, String?) -> Unit) {
+        viewModelScope.launch {
+            val (created, failure) = repository.createPerteType(name)
+            if (created != null) types = repository.getPerteTypes()
+            onDone(created, failure)
+        }
+    }
+
     /** Changes the perte's type and quantity — its product, place and date stay. */
     fun update(typeId: Int, quantity: Double, motif: String?, onDone: () -> Unit) {
         val current = perte ?: return

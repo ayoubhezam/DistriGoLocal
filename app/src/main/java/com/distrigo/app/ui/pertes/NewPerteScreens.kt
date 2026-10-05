@@ -200,6 +200,7 @@ fun NewPerteListScreen(
             stock = product.depotStock, cap = viewModel.capFor(product),
             types = types, initialType = existing?.typeId, initialQty = existing?.quantity, initialMotif = existing?.motif,
             onSave = { typeId, qty, motif -> viewModel.put(product, typeId, qty, motif); editing = null },
+            onAddType = viewModel::addType,
             onDismiss = { editing = null }
         )
     }
@@ -301,6 +302,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
             stock = line.product.depotStock, cap = viewModel.capFor(line.product),
             types = types, initialType = line.typeId, initialQty = line.quantity, initialMotif = line.motif,
             onSave = { typeId, qty, motif -> viewModel.put(line.product, typeId, qty, motif); editing = null; expandedId = null },
+            onAddType = viewModel::addType,
             onDismiss = { editing = null }
         )
     }

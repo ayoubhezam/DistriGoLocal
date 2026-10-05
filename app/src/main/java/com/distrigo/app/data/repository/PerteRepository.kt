@@ -91,6 +91,20 @@ class PerteRepository(
         }
     }
 
+    /**
+     * A custom type of perte named [name] — the dialog's "+ Nouveau type" — with the generic icon and
+     * colour; or why not: no name, or one a type already has (case aside). Returns the new type.
+     */
+    suspend fun createPerteType(name: String): Pair<PerteType?, String?> {
+        val clean = name.trim().replace(Regex("\\s+"), " ")
+        if (clean.isEmpty()) return null to "Saisissez un nom"
+        if (perteDao.getAllPerteTypes().any { it.name.equals(clean, ignoreCase = true) }) {
+            return null to "Ce type existe déjà"
+        }
+        val id = addPerteType(clean, icon = "category", colorHex = "#98A2B3").toInt()
+        return perteDao.getPerteTypeById(id)?.toPerteType() to null
+    }
+
     suspend fun addPerteType(name: String, icon: String, colorHex: String): Long {
         return perteDao.insertPerteType(
             PerteTypeEntity(name = name, icon = icon, color_hex = colorHex, is_default = false, created_at = java.time.Instant.now().toString())

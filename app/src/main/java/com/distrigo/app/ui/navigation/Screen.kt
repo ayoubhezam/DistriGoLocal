@@ -60,15 +60,11 @@ sealed class Screen(val route: String) {
     // ── Pertes ──
     data object PertesGraph : Screen("pertes_graph")
     data object PertesHome  : Screen("pertes_home")
-    data object PertesTypes : Screen("pertes_types")
     // ── A new perte: list, selection, summary ──
     data object PertesNewGraph   : Screen("pertes_new_graph")
     data object PertesNewList    : Screen("pertes_new_list")
     data object PertesNewCart    : Screen("pertes_new_cart")
     data object PertesNewSummary : Screen("pertes_new_summary")
-    data object PertesList  : Screen("pertes_list/{typeId}") {
-        fun createRoute(typeId: Int) = "pertes_list/$typeId"
-    }
     // ── Perte details (read-only) ──
     data object PertesDetail : Screen("pertes_detail/{perteId}") {
         fun createRoute(perteId: Int) = "pertes_detail/$perteId"
