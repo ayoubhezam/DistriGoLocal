@@ -105,6 +105,39 @@ class PerteRepository(
         perteDao.softDeletePerteTypeById(id)
     }
 
+    // ── The history ──
+
+    /** Every perte matching the filters, newest first, live. See PerteDao.observeHistory. */
+    fun observeHistory(typeId: Int?, start: String?, end: String?, search: String) =
+        perteDao.observeHistory(typeId, start, end, search.trim()).let { flow ->
+            kotlinx.coroutines.flow.flow { flow.collect { rows -> emit(rows.map { it.toPerte() }) } }
+        }
+
+    suspend fun getPerteTypes(): List<PerteType> = perteDao.getAllPerteTypes().map { it.toPerteType() }
+
+    /** One line of a new perte: a product lost, how much, and why. */
+    data class PerteLine(val productId: Int, val typeId: Int, val quantity: Double)
+
+    /**
+     * Records every line of a new perte at the dépôt, dated [dateTime], in one transaction: all of
+     * them, or — the first one refused (strict stock, a product gone) — none, with its reason.
+     */
+    suspend fun addPertes(lines: List<PerteLine>, dateTime: String, userName: String? = null): Map<String, Any> =
+        try {
+            db.withTransaction {
+                lines.forEach { line ->
+                    val result = addPerte(
+                        typeId = line.typeId, productId = line.productId, quantity = line.quantity,
+                        source = "depot", dateTime = dateTime, motif = null, photoPath = null, userName = userName
+                    )
+                    (result["error"] as? String)?.let { throw IllegalStateException(it) }
+                }
+            }
+            mapOf("message" to "${lines.size} perte(s) enregistrée(s)", "count" to lines.size)
+        } catch (e: IllegalStateException) {
+            mapOf("error" to (e.message ?: "Enregistrement impossible"))
+        }
+
     // ── One perte, for its read-only details ──
     suspend fun getPerte(id: Int): Perte? = perteDao.getPerteById(id)?.toPerte()
 
@@ -206,7 +239,9 @@ class PerteRepository(
         dateTime  : String,
         motif     : String?,
         photoPath : String?,
-        userName  : String? = null
+        userName  : String? = null,
+        /** The new type; null keeps the perte's own. */
+        typeId    : Int? = null
     ): Map<String, Any> {
         val existing = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
         val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
@@ -229,10 +264,11 @@ class PerteRepository(
                 }
 
                 val valeurTotale = product.purchase_price * qty
-                val type = perteDao.getPerteTypeById(existing.type_id)
+                val type = perteDao.getPerteTypeById(typeId ?: existing.type_id)
 
                 perteDao.updatePerte(
                     existing.copy(
+                        type_id = type?.id ?: existing.type_id, type_name = type?.name ?: existing.type_name,
                         product_id = product.id, product_name = product.name, product_image_uri = product.image_uri,
                         quantity = qty, unit = product.unit_type, source = source,
                         purchase_price_snapshot = product.purchase_price, valeur_totale = valeurTotale,

@@ -51,6 +51,8 @@ data class ProductListQuery(
     val inStockOnly     : Boolean      = false,
     /** Leaves out the products already counted in this inventory session: the count's "still to do". */
     val notCountedInSession: Int?      = null,
+    /** Products to leave out — the ones a form's selection already holds (a new perte's cart). */
+    val excludeIds      : List<Int>    = emptyList(),
     val sort            : ProductSort  = ProductSort.NAME_ASC,
 )
 
@@ -133,6 +135,10 @@ internal object ProductListSql {
         }
         if (query.inCamionOnly) clauses += "p.camion_stock > 0"
         if (query.inStockOnly) clauses += "p.stock > 0"
+        if (query.excludeIds.isNotEmpty()) {
+            clauses += "p.id NOT IN (${query.excludeIds.joinToString(",") { "?" }})"
+            args.addAll(query.excludeIds)
+        }
         query.notCountedInSession?.let {
             clauses += "NOT EXISTS (SELECT 1 FROM inventory_items i WHERE i.session_id = ? AND i.product_id = p.id)"
             args += it

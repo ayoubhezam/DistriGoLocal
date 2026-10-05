@@ -7,19 +7,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.distrigo.app.ui.pertes.NewPerteCartScreen
+import com.distrigo.app.ui.pertes.NewPerteListScreen
+import com.distrigo.app.ui.pertes.NewPerteSummaryScreen
+import com.distrigo.app.ui.pertes.NewPerteViewModel
+import com.distrigo.app.ui.pertes.PerteHistoryScreen
 import com.distrigo.app.ui.pertes.PerteListScreen
 import com.distrigo.app.ui.pertes.PerteViewModel
 import com.distrigo.app.ui.pertes.PertesScreen
+import com.distrigo.app.ui.products.ProductViewModel
 
+/**
+ * Pertes: the history of losses, "+" for a new one — a list, a centred dialog per product, a
+ * selection and a dated summary, as the Inventaire records its counts — and each perte's detail.
+ * The types of perte, with their month's totals, are behind the history's ⋮ menu.
+ */
 @Composable
 fun PertesNavHost(
-    /** Opens the section on that perte instead of its types — a drill-down: Back then leaves. */
+    /** Opens the section on that perte instead of the history — a drill-down: Back then leaves. */
     openPerteId       : Int? = null,
     onFullScreenChange: (Boolean) -> Unit = {},
     onBack            : (() -> Unit)? = null
@@ -36,12 +47,22 @@ fun PertesNavHost(
         popEnterTransition = navPopEnterTransition,
         popExitTransition  = navPopExitTransition
     ) {
-        composable(Screen.PertesHome.route) { entry ->
+        composable(Screen.PertesHome.route) {
+            PerteHistoryScreen(
+                onBack  = onBack,
+                onNew   = { navController.navigate(Screen.PertesNewGraph.route) },
+                onOpen  = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) },
+                onTypes = { navController.navigate(Screen.PertesTypes.route) }
+            )
+        }
+
+        // The types and their month's totals, then one type's pertes.
+        composable(Screen.PertesTypes.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.PertesGraph.route) }
             val viewModel: PerteViewModel = hiltViewModel(parentEntry)
             PertesScreen(
                 viewModel   = viewModel,
-                onBack      = onBack,
+                onBack      = { navController.popBackStack() },
                 onTypeClick = { typeId -> navController.navigate(Screen.PertesList.createRoute(typeId)) }
             )
         }
@@ -57,7 +78,7 @@ fun PertesNavHost(
                 typeId      = typeId,
                 viewModel   = viewModel,
                 onBack      = { navController.popBackStack() },
-                onAddPerte  = { navController.navigate(Screen.PertesFormGraph.createRoute(typeId)) },
+                onAddPerte  = { navController.navigate(Screen.PertesNewGraph.route) },
                 onOpenPerte = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) }
             )
         }
@@ -71,19 +92,43 @@ fun PertesNavHost(
             val shared: PerteViewModel = hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) })
             PerteDetailScreen(
                 onBack    = { navController.popOr(exit) },
-                onEdit    = { perte -> navController.navigate(Screen.PertesFormGraph.createRoute(perte.type_id, perte.id)) },
                 onDeleted = { typeId -> shared.refreshAfterChange(typeId); navController.popOr(exit) }
             )
         }
 
-        pertesFormGraph(
-            navController = navController,
-            graphRoute    = Screen.PertesFormGraph.route,
-            viewModel     = { hiltViewModel(remember(navController) { navController.getBackStackEntry(Screen.PertesGraph.route) }) },
-            onBack  = { navController.popBackStack(Screen.PertesFormGraph.route, inclusive = true) },
-            onSaved = {
-                navController.popBackStack(Screen.PertesFormGraph.route, inclusive = true)
+        // A new perte. Its ViewModel belongs to this graph: leaving it, the next one starts empty.
+        navigation(startDestination = Screen.PertesNewList.route, route = Screen.PertesNewGraph.route) {
+            composable(Screen.PertesNewList.route) { entry ->
+                val graph = remember(entry) { navController.getBackStackEntry(Screen.PertesNewGraph.route) }
+                val viewModel: NewPerteViewModel = hiltViewModel(graph)
+                val productViewModel: ProductViewModel = hiltViewModel()
+                val categories by productViewModel.categories.collectAsState()
+                val sousCategories by productViewModel.sousCategories.collectAsState()
+                val marques by productViewModel.marques.collectAsState()
+                val suppliers by productViewModel.suppliers.collectAsState()
+                NewPerteListScreen(
+                    viewModel = viewModel, categories = categories, sousCategories = sousCategories,
+                    marques = marques, suppliers = suppliers,
+                    onBack = { navController.popBackStack(Screen.PertesNewGraph.route, inclusive = true) },
+                    onOpenCart = { navController.navigate(Screen.PertesNewCart.route) }
+                )
             }
-        )
+            composable(Screen.PertesNewCart.route) { entry ->
+                val graph = remember(entry) { navController.getBackStackEntry(Screen.PertesNewGraph.route) }
+                NewPerteCartScreen(
+                    viewModel = hiltViewModel<NewPerteViewModel>(graph),
+                    onBack = { navController.popBackStack() },
+                    onNext = { navController.navigate(Screen.PertesNewSummary.route) }
+                )
+            }
+            composable(Screen.PertesNewSummary.route) { entry ->
+                val graph = remember(entry) { navController.getBackStackEntry(Screen.PertesNewGraph.route) }
+                NewPerteSummaryScreen(
+                    viewModel = hiltViewModel<NewPerteViewModel>(graph),
+                    onBack = { navController.popBackStack() },
+                    onDone = { navController.popBackStack(Screen.PertesNewGraph.route, inclusive = true) }
+                )
+            }
+        }
     }
 }

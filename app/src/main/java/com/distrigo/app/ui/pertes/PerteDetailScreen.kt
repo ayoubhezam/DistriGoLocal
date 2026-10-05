@@ -46,13 +46,13 @@ import com.distrigo.app.core.format.MoneyFormatter
 @Composable
 fun PerteDetailScreen(
     onBack    : () -> Unit,
-    onEdit    : (Perte) -> Unit,
     onDeleted : (typeId: Int) -> Unit,
     viewModel : PerteDetailViewModel = hiltViewModel()
 ) {
     val money = LocalMoneyFormatter.current
     val vm = viewModel
     var confirmEdit by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     // Each time the screen shows: back from the form, it shows what was saved.
@@ -196,9 +196,20 @@ fun PerteDetailScreen(
             onDismissRequest = { confirmEdit = false },
             title            = { Text("Modifier la perte") },
             text             = { Text("Voulez-vous modifier cette perte ?") },
-            confirmButton    = { TextButton(onClick = { confirmEdit = false; onEdit(perte) }) { Text("Modifier") } },
+            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text("Modifier") } },
             dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text("Annuler") } },
             containerColor   = DsColors.Surface
+        )
+    }
+    // "Modifier": the type and the quantity, in the dialog a new perte is entered with.
+    if (editing && perte != null) {
+        PerteDialog(
+            productName = perte.product_name, unit = perte.unit,
+            stock = vm.stockBefore(), cap = vm.cap(),
+            types = vm.types, initialType = perte.type_id, initialQty = perte.quantity,
+            isSaving = vm.saving, error = vm.saveError,
+            onSave = { typeId, qty -> vm.update(typeId, qty) { editing = false } },
+            onDismiss = { editing = false }
         )
     }
     if (confirmDelete && perte != null) {

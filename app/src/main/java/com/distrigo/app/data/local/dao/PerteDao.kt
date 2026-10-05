@@ -62,6 +62,20 @@ interface PerteDao {
     @Query("SELECT * FROM pertes WHERE id = :id")
     suspend fun getPerteById(id: Int): PerteEntity?
 
+    /**
+     * Every perte, newest first, live — the Historique des pertes. [typeId] null for all types;
+     * [start]/[end] the period as instant bounds, null for all time; [search] matches the product or
+     * the type ('' for none).
+     */
+    @Query("""
+        SELECT * FROM pertes
+        WHERE (:typeId IS NULL OR type_id = :typeId)
+          AND (:start IS NULL OR date_time >= :start) AND (:end IS NULL OR date_time < :end)
+          AND (:search = '' OR product_name LIKE '%' || :search || '%' OR type_name LIKE '%' || :search || '%')
+        ORDER BY date_time DESC, id DESC
+    """)
+    fun observeHistory(typeId: Int?, start: String?, end: String?, search: String): kotlinx.coroutines.flow.Flow<List<PerteEntity>>
+
     @Query("SELECT * FROM pertes WHERE source_type = :sourceType AND source_id = :sourceId")
     suspend fun getPertesBySource(sourceType: String, sourceId: Int): List<PerteEntity>
 

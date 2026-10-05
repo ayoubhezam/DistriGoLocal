@@ -199,7 +199,7 @@ private fun ChoiceRow(selected: Boolean, title: String, detail: String, onClick:
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange: (LocalDate) -> Unit) {
+internal fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange: (LocalDate) -> Unit) {
     var picking by remember { mutableStateOf(false) }
     val today = LocalDate.now()
     Row(
