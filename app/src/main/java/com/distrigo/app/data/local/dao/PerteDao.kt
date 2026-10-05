@@ -65,10 +65,15 @@ interface PerteDao {
     /**
      * Every perte, newest first, live — the Historique des pertes. [typeId] null for all types;
      * [start]/[end] the period as instant bounds, null for all time; [search] matches the product or
-     * the type ('' for none).
+     * the type ('' for none). Each with its product's image as Produits shows it today, else the one
+     * it was lost with.
      */
     @Query("""
-        SELECT * FROM pertes
+        SELECT pertes.id, type_id, type_name, product_id, product_name,
+               COALESCE((SELECT image_uri FROM products WHERE products.id = pertes.product_id), product_image_uri) AS product_image_uri,
+               quantity, unit, source, purchase_price_snapshot, valeur_totale, date_time, motif, photo_path,
+               pertes.created_at, source_type, source_id, pertes.uuid, pertes.updated_at, pertes.version, pertes.origin_device_id
+        FROM pertes
         WHERE (:typeId IS NULL OR type_id = :typeId)
           AND (:start IS NULL OR date_time >= :start) AND (:end IS NULL OR date_time < :end)
           AND (:search = '' OR product_name LIKE '%' || :search || '%' OR type_name LIKE '%' || :search || '%')

@@ -24,6 +24,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.ShoppingCart
+import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -135,7 +137,7 @@ fun PerteHistoryScreen(
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable(role = Role.Button, onClick = onNew),
+                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable(role = Role.Button, onClick = onNew),
                 contentAlignment = Alignment.Center
             ) { Icon(Icons.Default.Add, contentDescription = "Nouvelle perte", tint = Color.White) }
         }
@@ -196,18 +198,30 @@ fun PerteHistoryScreen(
                             .padding(DsSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // The product's picture, as Produits shows it: 36.dp, rounded, a cart without one.
+                        Box(
+                            Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EntityImage(ref = perte.product_image_uri, contentDescription = null, modifier = Modifier.fillMaxSize()) {
+                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(DsSpacing.md))
+                        // Only what was lost and why; the day is the header above.
                         Column(Modifier.weight(1f)) {
                             Text(perte.product_name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                                 color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                listOfNotNull(perte.type_name, if (perte.source == "camion") "Camion" else "Dépôt", perte.motif?.takeIf { it.isNotBlank() }).joinToString(" · "),
-                                fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
-                            )
+                            Text(perte.type_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Spacer(Modifier.width(DsSpacing.sm))
+                        // The amount in the Primary bold of the Ventes and Achats rows.
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("− ${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
-                            Text(money.da(perte.valeur_totale), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text("− ${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+                                color = DsColors.Danger, maxLines = 1, softWrap = false)
+                            Text(money.da(perte.valeur_totale), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                color = DsColors.Primary, maxLines = 1, softWrap = false)
                         }
                     }
                 }
