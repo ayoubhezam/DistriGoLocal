@@ -160,6 +160,28 @@ class ChargeRepository(
         }
     }
 
+    // ── The history ──
+
+    /** Every charge matching the filters, newest first, live. See ChargeDao.observeHistory. */
+    fun observeHistory(typeId: Int?, subtypeId: Int?, start: String?, end: String?, search: String) =
+        chargeDao.observeHistory(typeId, subtypeId, start, end, search.trim())
+
+    /**
+     * A custom sub-type named [name] under [typeId] — the dialog's "+ Nouveau sous-type" — with the
+     * generic icon; or why not: no name, no type, or a name a sub-type of that type already has (case
+     * aside). Returns the new sub-type.
+     */
+    suspend fun createSubType(typeId: Int, name: String, hasFournisseur: Boolean): Pair<ChargeSubType?, String?> {
+        val clean = name.trim().replace(Regex("\\s+"), " ")
+        if (clean.isEmpty()) return null to "Saisissez un nom"
+        chargeDao.getChargeTypeById(typeId) ?: return null to "Choisissez un type"
+        if (chargeDao.getSubTypesForType(typeId).any { it.name.equals(clean, ignoreCase = true) }) {
+            return null to "Ce sous-type existe déjà"
+        }
+        val id = addSubType(typeId, clean, icon = "category", hasFournisseur = hasFournisseur).toInt()
+        return chargeDao.getSubTypeById(id)?.toChargeSubType() to null
+    }
+
     suspend fun addSubType(typeId: Int, name: String, icon: String, hasFournisseur: Boolean): Long {
         return chargeDao.insertSubType(
             ChargeSubTypeEntity(
@@ -231,12 +253,21 @@ class ChargeRepository(
 
     suspend fun updateCharge(
         id: Int, montant: Double, dateTime: String,
-        fournisseur: String?, note: String?
+        fournisseur: String?, note: String?,
+        /** The new sub-type; null keeps the charge's own. */
+        subtypeId: Int? = null,
     ): Map<String, Any> {
         val existing = chargeDao.getChargeById(id)
             ?: throw IllegalStateException("Dépense introuvable: $id")
+        val subType = chargeDao.getSubTypeById(subtypeId ?: existing.subtype_id)
+        val type = subType?.let { chargeDao.getChargeTypeById(it.type_id) }
         chargeDao.updateCharge(
-            existing.copy(montant = montant, date_time = dateTime, fournisseur = fournisseur, note = note)
+            existing.copy(
+                type_id = type?.id ?: existing.type_id, type_name = type?.name ?: existing.type_name,
+                subtype_id = subType?.id ?: existing.subtype_id, subtype_name = subType?.name ?: existing.subtype_name,
+                montant = montant, date_time = dateTime,
+                fournisseur = if (subType?.has_fournisseur == false) null else fournisseur, note = note
+            )
         )
         return mapOf("message" to "Dépense mise à jour avec succès")
     }

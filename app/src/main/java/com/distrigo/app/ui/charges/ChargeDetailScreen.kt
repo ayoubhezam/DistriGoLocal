@@ -39,13 +39,13 @@ import com.distrigo.app.core.format.MoneyFormatter
 @Composable
 fun ChargeDetailScreen(
     onBack    : () -> Unit,
-    onEdit    : (Charge) -> Unit,
-    onDeleted : (SavedCharge) -> Unit,
+    onDeleted : () -> Unit,
     viewModel : ChargeDetailViewModel = hiltViewModel()
 ) {
     val money = LocalMoneyFormatter.current
     val vm = viewModel
     var confirmEdit by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     // Each time the screen shows: back from the form, it shows what was saved.
@@ -160,9 +160,19 @@ fun ChargeDetailScreen(
             onDismissRequest = { confirmEdit = false },
             title            = { Text("Modifier la dépense") },
             text             = { Text("Voulez-vous modifier cette dépense ?") },
-            confirmButton    = { TextButton(onClick = { confirmEdit = false; onEdit(charge) }) { Text("Modifier") } },
+            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text("Modifier") } },
             dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text("Annuler") } },
             containerColor   = DsColors.Surface
+        )
+    }
+    // "Modifier": the dialog a new charge is entered with, filled in.
+    if (editing && charge != null) {
+        ChargeDialog(
+            title = "Modifier la dépense", types = vm.types, subTypes = vm.subTypes, initial = vm.input(),
+            isSaving = vm.saving, error = vm.saveError,
+            onSave = { input -> vm.update(input) { editing = false } },
+            onAddSubType = vm::addSubType,
+            onDismiss = { editing = false }
         )
     }
     if (confirmDelete && charge != null) {

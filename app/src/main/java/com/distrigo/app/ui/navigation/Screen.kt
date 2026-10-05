@@ -84,22 +84,11 @@ sealed class Screen(val route: String) {
     // ── Charges ──
     data object ChargesGraph    : Screen("charges_graph")
     data object ChargesHome     : Screen("charges_home")
-    data object ChargesSubTypes : Screen("charges_subtypes/{typeId}") {
-        fun createRoute(typeId: Int) = "charges_subtypes/$typeId"
-    }
-    data object ChargesList     : Screen("charges_list/{subtypeId}") {
-        fun createRoute(subtypeId: Int) = "charges_list/$subtypeId"
-    }
     // ── Charge details (read-only) ──
     data object ChargesDetail : Screen("charges_detail/{chargeId}") {
         fun createRoute(chargeId: Int) = "charges_detail/$chargeId"
     }
-    // ── Charges Form (one screen) ──
     /** No subtype: the quick entry, which picks it on the form. A charge: editing it. */
-    data object ChargesForm : Screen("charges_form?subtypeId={subtypeId}&chargeId={chargeId}") {
-        fun createRoute(subtypeId: Int? = null, chargeId: Int? = null) =
-            "charges_form?subtypeId=${subtypeId ?: -1}&chargeId=${chargeId ?: -1}"
-    }
 
     // ── Produits ──
     data object ProduitsGraph     : Screen("produits_graph")

@@ -8,8 +8,34 @@ import com.distrigo.app.data.local.entity.ChargeEntity
 import com.distrigo.app.data.local.entity.ChargeSubTypeEntity
 import com.distrigo.app.data.local.entity.ChargeTypeEntity
 
+/** A charge as the history lists it: the record, with its sub-type's icon and its type's colour. */
+data class ChargeHistoryRow(
+    val id: Int, val type_id: Int, val type_name: String, val subtype_id: Int, val subtype_name: String,
+    val montant: Double, val date_time: String, val fournisseur: String?, val note: String?,
+    val icon: String?, val color_hex: String?,
+)
+
 @Dao
 interface ChargeDao {
+
+    /**
+     * Every charge, newest first, live — the Historique des charges. [typeId]/[subtypeId] null for
+     * all; [start]/[end] the period as instant bounds, null for all time; [search] matches the
+     * sub-type, the type, the supplier or the note ('' for none).
+     */
+    @Query("""
+        SELECT c.id, c.type_id, c.type_name, c.subtype_id, c.subtype_name, c.montant, c.date_time,
+               c.fournisseur, c.note, s.icon AS icon, t.color_hex AS color_hex
+        FROM charges c
+        LEFT JOIN charge_subtypes s ON s.id = c.subtype_id
+        LEFT JOIN charge_types t ON t.id = c.type_id
+        WHERE (:typeId IS NULL OR c.type_id = :typeId) AND (:subtypeId IS NULL OR c.subtype_id = :subtypeId)
+          AND (:start IS NULL OR c.date_time >= :start) AND (:end IS NULL OR c.date_time < :end)
+          AND (:search = '' OR c.subtype_name LIKE '%' || :search || '%' OR c.type_name LIKE '%' || :search || '%'
+               OR c.fournisseur LIKE '%' || :search || '%' OR c.note LIKE '%' || :search || '%')
+        ORDER BY c.date_time DESC, c.id DESC
+    """)
+    fun observeHistory(typeId: Int?, subtypeId: Int?, start: String?, end: String?, search: String): kotlinx.coroutines.flow.Flow<List<ChargeHistoryRow>>
 
     // ── Charge Types ──
     @Query("SELECT * FROM charge_types WHERE deleted_at IS NULL ORDER BY id ASC")

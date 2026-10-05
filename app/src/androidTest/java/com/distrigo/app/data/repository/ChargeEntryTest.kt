@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.database.withChangeTracking
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -77,5 +78,35 @@ class ChargeEntryTest {
 
         charges.deleteCharge(id)
         assertNull(charges.getCharge(id))
+    }
+
+    /** The dialog's "+ Nouveau sous-type": made once per type, case aside, with its supplier switch. */
+    @Test
+    fun aSubTypeIsCreatedOncePerType() = runBlocking {
+        val vehicule = charges.getChargeTypes().first().id
+        val (created, error) = charges.createSubType(vehicule, "  Lavage  ", hasFournisseur = true)
+        assertEquals(null, error)
+        assertEquals("Lavage", created!!.name)
+        assertEquals(true, created.has_fournisseur)
+        assertEquals("Ce sous-type existe déjà", charges.createSubType(vehicule, "lavage", false).second)
+        assertEquals("Ce sous-type existe déjà", charges.createSubType(vehicule, "CARBURANT", false).second)
+        assertEquals("Saisissez un nom", charges.createSubType(vehicule, " ", false).second)
+    }
+
+    /** "Modifier" can move a charge to another sub-type: its type follows, and a supplier it no longer takes is dropped. */
+    @Test
+    fun anEditCanMoveAChargeToAnotherSubType() = runBlocking {
+        val withSupplier = charges.getAllSubTypes().first { it.has_fournisseur }
+        val without = charges.getAllSubTypes().first { !it.has_fournisseur && it.type_id != withSupplier.type_id }
+        val id = charges.addCharge(withSupplier.id, 900.0, "2026-10-01T10:00:00Z", "Naftal", null)
+
+        charges.updateCharge(id, 1200.0, "2026-10-02T10:00:00Z", "Naftal", "note", subtypeId = without.id)
+
+        val moved = charges.getCharge(id)!!
+        assertEquals(without.id, moved.subtype_id)
+        assertEquals(without.type_id, moved.type_id)
+        assertEquals(null, moved.fournisseur)
+        assertEquals(1200.0, moved.montant, 0.0)
+        assertEquals(1, charges.observeHistory(without.type_id, null, null, null, "").first().size)
     }
 }
