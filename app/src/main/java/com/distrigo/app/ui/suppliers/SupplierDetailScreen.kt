@@ -290,6 +290,10 @@ fun SupplierDetailScreen(
     val pagerState = rememberPagerState(pageCount = { 3 })
     val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
 
+    // A return opened from "Retours récents" shows over the page, as it does over its list.
+    var openRetour by remember { mutableStateOf<com.distrigo.app.data.model.RetourFournisseur?>(null) }
+
+    Box(Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -759,7 +763,7 @@ fun SupplierDetailScreen(
                                     }
                                 } else {
                                     retourPreview.latest.take(3).forEach { retour ->
-                                        RetourFournisseurRow(retour = retour, onClick = {})
+                                        RetourFournisseurRow(retour = retour, onClick = { openRetour = retour })
                                     }
                                 }
                             }
@@ -768,6 +772,24 @@ fun SupplierDetailScreen(
                 }
             }
         }
+    }
+    openRetour?.let { retour ->
+        BackHandler { openRetour = null }
+        // A Surface, so a tap on the detail never reaches the page beneath it.
+        Surface(Modifier.fillMaxSize(), color = DsColors.Surface) {
+        com.distrigo.app.ui.retours.RetourFournisseurDetailScreen(
+            retourSummary = retour,
+            viewModel     = retourViewModel,
+            onBack        = { openRetour = null },
+            // A deleted return changes the balance and the preview: both reload.
+            onDeleted     = {
+                openRetour = null
+                viewModel.loadTransactions(currentSupplier.id)
+                retourViewModel.loadDetailPreview(currentSupplier.id)
+            }
+        )
+        }
+    }
     }
 }
 
