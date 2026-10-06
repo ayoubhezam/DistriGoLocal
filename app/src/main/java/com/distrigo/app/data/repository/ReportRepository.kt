@@ -105,6 +105,27 @@ class ReportRepository(
         )
     }
 
+    /** A signal each time the Produits report's tables are written. */
+    fun productChanges(): Flow<Unit> = writes(PRODUCT_TABLES).map { }
+
+    /** The Produits report: what each product sold, and the stocked ones that did not. */
+    suspend fun productReport(
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): ProductReport {
+        val range = filter.resolve(today, zone)
+        val lines = dao.productSales(range.start, range.end, range.source).map {
+            ProductSales(it.product_id, it.name, it.unit, it.image_uri, it.category, it.brand, it.supplier, it.quantity, it.total, it.cost)
+        }
+        val sold = lines.mapTo(HashSet()) { it.productId }
+        val dormant = dao.stockedProducts(range.source)
+            .filter { it.id !in sold }
+            .map { DormantProduct(it.id, it.name, it.unit, it.image_uri, it.stock, it.stock * it.purchase_price) }
+            .sortedByDescending { it.value }
+        return ProductReport(range, lines, dormant)
+    }
+
     /** The sales of one local [day], from [source] or both, newest first. */
     suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
         dao.salesBetween(
@@ -143,6 +164,9 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 
 /** The tables the Ventes report reads. */
 private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Produits report reads. */
+private val PRODUCT_TABLES = arrayOf("ventes", "vente_items", "products")
 
 /** The tables the Créances et dettes report reads. */
 private val DEBT_TABLES = arrayOf(

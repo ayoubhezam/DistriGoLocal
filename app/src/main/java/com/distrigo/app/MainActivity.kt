@@ -413,6 +413,12 @@ class MainActivity : ComponentActivity() {
                                     onBack                  = { navController.popBackStack() }
                                 )
                             }
+                            composable(Screen.DrillProduit.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.ProduitsNavHost(
+                                    openProductId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack        = { navController.popBackStack() }
+                                )
+                            }
                             composable(Screen.DrillVente.route, arguments = drillId) { entry ->
                                 com.distrigo.app.ui.navigation.VentesNavHost(
                                     openVenteId = entry.arguments!!.getInt(DRILL_ID),

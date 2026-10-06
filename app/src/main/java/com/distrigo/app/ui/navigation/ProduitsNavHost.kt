@@ -20,9 +20,13 @@ fun ProduitsNavHost(
     onFullScreenChange   : (Boolean) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
-    onProfileClick       : () -> Unit = {}
+    onProfileClick       : () -> Unit = {},
+    /** Opens the section on that product's page instead of the list — a drill-down: Back then leaves. */
+    openProductId        : Int? = null,
+    onBack               : (() -> Unit)? = null,
 ) {
     val navController = rememberTrackedNavController()
+    val exit = { onBack?.invoke(); Unit }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
     // Two things can want the bottom nav out of the way: being on any route other than the list,
@@ -34,7 +38,7 @@ fun ProduitsNavHost(
     }
     NavHost(
         navController      = navController,
-        startDestination   = Screen.ProduitsHome.route,
+        startDestination   = if (openProductId != null) Screen.ProduitsDetail.route else Screen.ProduitsHome.route,
         route              = Screen.ProduitsGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -96,7 +100,8 @@ fun ProduitsNavHost(
 
         composable(
             route     = Screen.ProduitsDetail.route,
-            arguments = listOf(navArgument("productId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("productId") { type = NavType.IntType; openProductId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
@@ -110,7 +115,7 @@ fun ProduitsNavHost(
                 ProductDetailScreen(
                     product         = product,
                     viewModel       = viewModel,
-                    onBack          = { navController.popBackStack() },
+                    onBack          = { navController.popOr(exit) },
                     // Deletes, and does not pop. The screen owns the confirmation, and the branch
                     // below already pops once the product is gone from the catalogue.
                     //

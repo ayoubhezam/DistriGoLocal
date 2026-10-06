@@ -28,6 +28,8 @@ sealed interface DrillTarget {
     data class RetoursClient(override val id: Int) : DrillTarget
     /** A supplier's returns, as for a client's. */
     data class RetoursFournisseur(override val id: Int) : DrillTarget
+    /** A product's page: its stock, prices and movements. */
+    data class Produit(override val id: Int) : DrillTarget
 }
 
 /** The root destination that opens this kind of record. */
@@ -40,6 +42,7 @@ private fun DrillTarget.screen(): Screen.Drill = when (this) {
     is DrillTarget.Inventaire -> Screen.DrillInventaire
     is DrillTarget.RetoursClient -> Screen.DrillRetoursClient
     is DrillTarget.RetoursFournisseur -> Screen.DrillRetoursFournisseur
+    is DrillTarget.Produit -> Screen.DrillProduit
 }
 
 /**

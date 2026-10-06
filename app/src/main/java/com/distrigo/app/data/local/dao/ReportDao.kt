@@ -50,8 +50,55 @@ data class DebtAge(val party: Int, val band: Int, val credit: Double)
 /** A party with a balance above zero, and when it last paid — an instant for a client or a supplier. */
 data class Debtor(val id: Int, val name: String, val balance: Double, val last_payment: String?)
 
+/** One product's sales over a period, as ProductReport reads them. */
+data class ProductSalesRow(
+    val product_id: Int, val name: String, val unit: String, val image_uri: String?,
+    val category: String?, val brand: String?, val supplier: String?,
+    val quantity: Double, val total: Double, val cost: Double,
+)
+
+/** A product in stock, with what one unit cost, for the report's "Sans vente". */
+data class StockedProductRow(val id: Int, val name: String, val unit: String, val image_uri: String?, val stock: Double, val purchase_price: Double)
+
 @Dao
 interface ReportDao {
+
+    /**
+     * Each product sold between [start] and [end], from [source] or both: its quantity, what its lines
+     * sold for and what they had cost — each at the purchase price it was sold at. Named, grouped and
+     * pictured as the product is today; a product gone for good keeps the name its lines carry.
+     */
+    @Query(
+        """
+        SELECT i.product_id AS product_id, COALESCE(p.name, MAX(i.product_name)) AS name,
+               COALESCE(p.unit_type, MAX(i.unit_type)) AS unit, p.image_uri AS image_uri,
+               p.category_name AS category, p.marque_name AS brand, p.supplier_name AS supplier,
+               SUM(i.quantity) AS quantity, COALESCE(SUM(i.total_price), 0) AS total,
+               COALESCE(SUM(i.quantity * i.purchase_price_snapshot), 0) AS cost
+        FROM vente_items i
+        JOIN ventes v ON v.id = i.vente_id
+        LEFT JOIN products p ON p.id = i.product_id
+        WHERE v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source)
+        GROUP BY i.product_id
+        """
+    )
+    suspend fun productSales(start: String, end: String, source: String?): List<ProductSalesRow>
+
+    /**
+     * The live products holding stock where [source] says — the dépôt's share, the camion's, or all of
+     * it when [source] is null — for the report to keep those that did not sell.
+     */
+    @Query(
+        """
+        SELECT id, name, unit_type AS unit, image_uri,
+               CASE :source WHEN 'depot' THEN stock - camion_stock WHEN 'camion' THEN camion_stock ELSE stock END AS stock,
+               purchase_price
+        FROM products
+        WHERE deleted_at IS NULL
+          AND (CASE :source WHEN 'depot' THEN stock - camion_stock WHEN 'camion' THEN camion_stock ELSE stock END) > 0.0005
+        """
+    )
+    suspend fun stockedProducts(source: String?): List<StockedProductRow>
 
     @Query(
         """

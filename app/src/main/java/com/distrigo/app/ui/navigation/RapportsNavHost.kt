@@ -30,7 +30,32 @@ fun RapportsNavHost(onBack: () -> Unit) {
             RapportsHomeScreen(
                 onBack       = onBack,
                 onOpenVentes = { navController.navigate(Screen.RapportsVentes.route) },
-                onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) }
+                onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) },
+                onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) }
+            )
+        }
+        // The report and its two lists share one ViewModel, held by the graph, as Créances et dettes'.
+        composable(Screen.RapportsProduits.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.ProduitsReportScreen(
+                onBack      = { navController.popBackStack() },
+                onSeeAll    = { navController.navigate(Screen.RapportsProduitsTous.route) },
+                onSansVente = { navController.navigate(Screen.RapportsSansVente.route) },
+                viewModel   = hiltViewModel<com.distrigo.app.ui.rapports.ProduitsReportViewModel>(parent)
+            )
+        }
+        composable(Screen.RapportsProduitsTous.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.ProductRankingScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.ProduitsReportViewModel>(parent)
+            )
+        }
+        composable(Screen.RapportsSansVente.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.DormantProductsScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.ProduitsReportViewModel>(parent)
             )
         }
         composable(Screen.RapportsVentes.route) {
