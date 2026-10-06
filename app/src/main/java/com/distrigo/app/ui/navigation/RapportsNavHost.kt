@@ -32,7 +32,31 @@ fun RapportsNavHost(onBack: () -> Unit) {
                 onOpenVentes = { navController.navigate(Screen.RapportsVentes.route) },
                 onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) },
                 onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) },
-                onOpenStock = { navController.navigate(Screen.RapportsStock.route) }
+                onOpenStock = { navController.navigate(Screen.RapportsStock.route) },
+                onOpenTiers = { navController.navigate(Screen.RapportsTiers.route) }
+            )
+        }
+        composable(Screen.RapportsTiers.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.PartyReportScreen(
+                onBack     = { navController.popBackStack() },
+                onSeeAll   = { navController.navigate(Screen.RapportsTiersTous.route) },
+                onInactive = { navController.navigate(Screen.RapportsInactifs.route) },
+                viewModel  = hiltViewModel<com.distrigo.app.ui.rapports.PartyReportViewModel>(parent)
+            )
+        }
+        composable(Screen.RapportsTiersTous.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.PartiesScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.PartyReportViewModel>(parent)
+            )
+        }
+        composable(Screen.RapportsInactifs.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.InactiveClientsScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.PartyReportViewModel>(parent)
             )
         }
         composable(Screen.RapportsStock.route) { entry ->

@@ -69,8 +69,70 @@ data class RestockRow(val id: Int, val name: String, val unit: String, val image
 data class LossTypeRow(val type: String, val count: Int, val value: Double)
 data class LossProductRow(val product_id: Int, val name: String, val unit: String, val image_uri: String?, val quantity: Double, val value: Double)
 
+/** A party's documents over a period: how many, and what they came to. */
+data class PartyRow(val id: Int, val name: String, val image_uri: String?, val count: Int, val total: Double)
+data class PartyCostRow(val id: Int, val cost: Double)
+data class InactiveRow(val id: Int, val name: String, val image_uri: String?, val last_sale: String, val total: Double)
+
 @Dao
 interface ReportDao {
+
+    /** Each client's sales between [start] and [end]: how many, and what they came to. */
+    @Query(
+        """
+        SELECT v.client_id AS id, COALESCE(c.name, MAX(v.client_name)) AS name, c.image_uri AS image_uri,
+               COUNT(*) AS count, COALESCE(SUM(v.total), 0) AS total
+        FROM ventes v LEFT JOIN clients c ON c.id = v.client_id
+        WHERE v.created_at >= :start AND v.created_at < :end
+        GROUP BY v.client_id
+        """
+    )
+    suspend fun clientSales(start: String, end: String): List<PartyRow>
+
+    /** What the goods each client bought between [start] and [end] had cost, each line at its own price. */
+    @Query(
+        """
+        SELECT v.client_id AS id, COALESCE(SUM(i.quantity * i.purchase_price_snapshot), 0) AS cost
+        FROM vente_items i JOIN ventes v ON v.id = i.vente_id
+        WHERE v.created_at >= :start AND v.created_at < :end
+        GROUP BY v.client_id
+        """
+    )
+    suspend fun clientCosts(start: String, end: String): List<PartyCostRow>
+
+    /** How many clients made their very first purchase between [start] and [end]. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM (SELECT client_id, MIN(created_at) AS first_sale FROM ventes GROUP BY client_id)
+        WHERE first_sale >= :start AND first_sale < :end
+        """
+    )
+    suspend fun newClients(start: String, end: String): Int
+
+    /** The live clients who bought before [start] and not since: their last sale and what they bought in all. */
+    @Query(
+        """
+        SELECT v.client_id AS id, c.name AS name, c.image_uri AS image_uri,
+               MAX(v.created_at) AS last_sale, COALESCE(SUM(v.total), 0) AS total
+        FROM ventes v JOIN clients c ON c.id = v.client_id AND c.deleted_at IS NULL
+        GROUP BY v.client_id
+        HAVING MAX(v.created_at) < :start
+        ORDER BY total DESC
+        """
+    )
+    suspend fun inactiveClients(start: String): List<InactiveRow>
+
+    /** Each supplier's bons dated between [firstDay] and [lastDay], both included: how many, and their total. */
+    @Query(
+        """
+        SELECT p.supplier_id AS id, COALESCE(s.name, MAX(p.supplier_name)) AS name, s.image_uri AS image_uri,
+               COUNT(*) AS count, COALESCE(SUM(p.total), 0) AS total
+        FROM purchase_orders p LEFT JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.date >= :firstDay AND p.date <= :lastDay
+        GROUP BY p.supplier_id
+        """
+    )
+    suspend fun supplierPurchases(firstDay: String, lastDay: String): List<PartyRow>
 
     /**
      * What the stock is worth today, at purchase price: the dépôt's share and the camion's, each only

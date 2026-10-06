@@ -58,11 +58,11 @@ private class ReportEntry(
  * see the plan of 2026-10-02. Each is one screen under the same period filter.
  */
 @Composable
-fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit) {
+fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit) {
     val entries = listOf(
         ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, crédit, marge, par jour", onOpenVentes),
         ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF9333EA), "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
-        ReportEntry(Icons.Default.People, Color(0xFF0E9384), "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", null),
+        ReportEntry(Icons.Default.People, Color(0xFF0E9384), "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
         ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),
         ReportEntry(Icons.Default.Inventory2, Color(0xFF667085), "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
         ReportEntry(Icons.Default.PieChart, DsColors.Success, "Résultat", "Marge, charges et pertes : le bénéfice", null),

@@ -148,6 +148,31 @@ class ReportRepository(
         )
     }
 
+    /** A signal each time the Clients et fournisseurs report's tables are written. */
+    fun partyChanges(): Flow<Unit> = writes(PARTY_TABLES).map { }
+
+    /** The Clients et fournisseurs report for one [side]. */
+    suspend fun partyReport(
+        side: DebtSide,
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): PartyReport {
+        val range = filter.resolve(today, zone)
+        if (side == DebtSide.FOURNISSEURS) {
+            val parties = dao.supplierPurchases(range.firstDay.toString(), range.lastDay.toString())
+                .map { PartyFigures(it.id, it.name, it.image_uri, it.count, it.total) }
+            return PartyReport(side, range, parties)
+        }
+        val costs = dao.clientCosts(range.start, range.end).associate { it.id to it.cost }
+        val parties = dao.clientSales(range.start, range.end)
+            .map { PartyFigures(it.id, it.name, it.image_uri, it.count, it.total, costs[it.id] ?: 0.0) }
+        val inactive = dao.inactiveClients(range.start).map {
+            InactiveClient(it.id, it.name, it.image_uri, java.time.Instant.parse(it.last_sale).atZone(zone).toLocalDate(), it.total)
+        }
+        return PartyReport(side, range, parties, dao.newClients(range.start, range.end), inactive)
+    }
+
     /** The sales of one local [day], from [source] or both, newest first. */
     suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
         dao.salesBetween(
@@ -186,6 +211,9 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 
 /** The tables the Ventes report reads. */
 private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Clients et fournisseurs report reads. */
+private val PARTY_TABLES = arrayOf("ventes", "vente_items", "clients", "purchase_orders", "suppliers")
 
 /** The tables the Stock et pertes report reads. */
 private val STOCK_TABLES = arrayOf("products", "stock_movements", "pertes", "ventes", "vente_items")
