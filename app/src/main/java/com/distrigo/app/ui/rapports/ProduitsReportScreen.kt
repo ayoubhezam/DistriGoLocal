@@ -198,7 +198,7 @@ private fun Tiles(report: ProductReport, onSansVente: () -> Unit) {
 
 /** A section heading with its ⓘ, and an action on its right if given. */
 @Composable
-private fun TitleWithInfo(text: String, info: ReportInfo, action: String? = null, onAction: () -> Unit = {}) {
+internal fun TitleWithInfo(text: String, info: ReportInfo, action: String? = null, onAction: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Text(text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
         InfoButton(info, tint = DsColors.TextTertiary)
@@ -213,7 +213,7 @@ private fun TitleWithInfo(text: String, info: ReportInfo, action: String? = null
 
 /** A product's picture as Produits shows it: 36.dp, rounded, a cart without one. */
 @Composable
-private fun Thumb(imageUri: String?) {
+internal fun Thumb(imageUri: String?) {
     Box(Modifier.size(36.dp).clip(DsShapes.small).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
         EntityImage(ref = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize()) {
             Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
@@ -261,14 +261,14 @@ fun ProductLine(rank: Int, p: ProductSales, by: ProductRanking, onClick: () -> U
 }
 
 @Composable
-private fun CardColumn(content: @Composable () -> Unit) {
+internal fun CardColumn(content: @Composable () -> Unit) {
     Column(
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).padding(DsSpacing.lg)
     ) { content() }
 }
 
 @Composable
-private fun CardTitle(text: String, info: ReportInfo) {
+internal fun CardTitle(text: String, info: ReportInfo) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(text, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         InfoButton(info, tint = DsColors.TextTertiary)

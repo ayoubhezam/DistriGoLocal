@@ -80,6 +80,8 @@ sealed class Screen(val route: String) {
     data object RapportsProduits : Screen("rapports_produits")
     data object RapportsProduitsTous : Screen("rapports_produits_tous")
     data object RapportsSansVente : Screen("rapports_sans_vente")
+    data object RapportsStock : Screen("rapports_stock")
+    data object RapportsReappro : Screen("rapports_reappro")
     /** One local day's sales, from the Ventes report's "Détail par jour". */
     data object RapportsVentesJour : Screen("rapports_ventes_jour/{day}") {
         fun createRoute(day: java.time.LocalDate) = "rapports_ventes_jour/$day"

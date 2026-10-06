@@ -126,6 +126,28 @@ class ReportRepository(
         return ProductReport(range, lines, dormant)
     }
 
+    /** A signal each time the Stock et pertes report's tables are written. */
+    fun stockChanges(): Flow<Unit> = writes(STOCK_TABLES).map { }
+
+    /** The Stock et pertes report: the stock as of today, the period's pertes. */
+    suspend fun stockReport(
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): StockReport {
+        val range = filter.resolve(today, zone)
+        val value = dao.stockValue(range.source)
+        return StockReport(
+            range = range,
+            stock = StockValue(value.depot, value.camion, value.products),
+            restock = dao.restock(range.source).map { RestockLine(it.id, it.name, it.unit, it.image_uri, it.stock, it.min_stock) },
+            losses = dao.lossesByType(range.start, range.end, range.source).map { LossByType(it.type, it.count, it.value) },
+            lostProducts = dao.lossesByProduct(range.start, range.end, range.source)
+                .map { LossByProduct(it.product_id, it.name, it.unit, it.image_uri, it.quantity, it.value) },
+            salesCost = dao.salesCost(range.start, range.end, range.source).cost,
+        )
+    }
+
     /** The sales of one local [day], from [source] or both, newest first. */
     suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
         dao.salesBetween(
@@ -164,6 +186,9 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 
 /** The tables the Ventes report reads. */
 private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Stock et pertes report reads. */
+private val STOCK_TABLES = arrayOf("products", "stock_movements", "pertes", "ventes", "vente_items")
 
 /** The tables the Produits report reads. */
 private val PRODUCT_TABLES = arrayOf("ventes", "vente_items", "products")

@@ -60,8 +60,73 @@ data class ProductSalesRow(
 /** A product in stock, with what one unit cost, for the report's "Sans vente". */
 data class StockedProductRow(val id: Int, val name: String, val unit: String, val image_uri: String?, val stock: Double, val purchase_price: Double)
 
+/** The stock's worth at the dépôt and in the camion, and how many products hold some where looked at. */
+data class StockValueRow(val depot: Double, val camion: Double, val products: Int)
+
+/** A product out of stock or under its minimum. */
+data class RestockRow(val id: Int, val name: String, val unit: String, val image_uri: String?, val stock: Double, val min_stock: Double)
+
+data class LossTypeRow(val type: String, val count: Int, val value: Double)
+data class LossProductRow(val product_id: Int, val name: String, val unit: String, val image_uri: String?, val quantity: Double, val value: Double)
+
 @Dao
 interface ReportDao {
+
+    /**
+     * What the stock is worth today, at purchase price: the dépôt's share and the camion's, each only
+     * where it is above zero — a stock sold below zero is owed goods, not worth — and how many
+     * products hold some where [source] says (both when null).
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(CASE WHEN :source IS NULL OR :source = 'depot' THEN MAX(stock - camion_stock, 0) * purchase_price ELSE 0 END), 0) AS depot,
+               COALESCE(SUM(CASE WHEN :source IS NULL OR :source = 'camion' THEN MAX(camion_stock, 0) * purchase_price ELSE 0 END), 0) AS camion,
+               COALESCE(SUM(CASE :source WHEN 'depot' THEN stock - camion_stock > 0.0005 WHEN 'camion' THEN camion_stock > 0.0005 ELSE stock > 0.0005 END), 0) AS products
+        FROM products WHERE deleted_at IS NULL
+        """
+    )
+    suspend fun stockValue(source: String?): StockValueRow
+
+    /**
+     * The products to restock where [source] says: out of stock — of those that have a minimum or were
+     * ever stocked — or under their minimum. Most urgent first: the emptiest, then furthest below.
+     */
+    @Query(
+        """
+        SELECT id, name, unit_type AS unit, image_uri,
+               CASE :source WHEN 'depot' THEN stock - camion_stock WHEN 'camion' THEN camion_stock ELSE stock END AS stock,
+               min_stock
+        FROM products
+        WHERE deleted_at IS NULL
+          AND (CASE :source WHEN 'depot' THEN stock - camion_stock WHEN 'camion' THEN camion_stock ELSE stock END) < MAX(min_stock, 0.0005)
+          AND (min_stock > 0 OR EXISTS (SELECT 1 FROM stock_movements m WHERE m.product_id = products.id))
+        ORDER BY stock ASC, min_stock DESC
+        """
+    )
+    suspend fun restock(source: String?): List<RestockRow>
+
+    /** The period's pertes by type, from [source] or both, costliest first. */
+    @Query(
+        """
+        SELECT type_name AS type, COUNT(*) AS count, COALESCE(SUM(valeur_totale), 0) AS value
+        FROM pertes
+        WHERE date_time >= :start AND date_time < :end AND (:source IS NULL OR source = :source)
+        GROUP BY type_name ORDER BY value DESC
+        """
+    )
+    suspend fun lossesByType(start: String, end: String, source: String?): List<LossTypeRow>
+
+    /** The period's pertes by product, costliest first: what each lost, in its unit, and what it cost. */
+    @Query(
+        """
+        SELECT l.product_id AS product_id, COALESCE(p.name, MAX(l.product_name)) AS name, MAX(l.unit) AS unit, p.image_uri AS image_uri,
+               SUM(l.quantity) AS quantity, COALESCE(SUM(l.valeur_totale), 0) AS value
+        FROM pertes l LEFT JOIN products p ON p.id = l.product_id
+        WHERE l.date_time >= :start AND l.date_time < :end AND (:source IS NULL OR l.source = :source)
+        GROUP BY l.product_id ORDER BY value DESC
+        """
+    )
+    suspend fun lossesByProduct(start: String, end: String, source: String?): List<LossProductRow>
 
     /**
      * Each product sold between [start] and [end], from [source] or both: its quantity, what its lines

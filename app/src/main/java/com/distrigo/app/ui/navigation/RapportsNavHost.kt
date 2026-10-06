@@ -31,7 +31,23 @@ fun RapportsNavHost(onBack: () -> Unit) {
                 onBack       = onBack,
                 onOpenVentes = { navController.navigate(Screen.RapportsVentes.route) },
                 onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) },
-                onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) }
+                onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) },
+                onOpenStock = { navController.navigate(Screen.RapportsStock.route) }
+            )
+        }
+        composable(Screen.RapportsStock.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.StockReportScreen(
+                onBack       = { navController.popBackStack() },
+                onSeeRestock = { navController.navigate(Screen.RapportsReappro.route) },
+                viewModel    = hiltViewModel<com.distrigo.app.ui.rapports.StockReportViewModel>(parent)
+            )
+        }
+        composable(Screen.RapportsReappro.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.RestockScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.StockReportViewModel>(parent)
             )
         }
         // The report and its two lists share one ViewModel, held by the graph, as Créances et dettes'.
