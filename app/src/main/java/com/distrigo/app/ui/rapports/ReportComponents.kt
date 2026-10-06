@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,7 +51,7 @@ class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
  * [halves] are given, a divider and the two halves side by side.
  */
 @Composable
-fun ReportHeroCard(title: String, amount: String, caption: String, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVector, halves: List<HeroHalf> = emptyList()) {
     val white = Color.White
     Column(
         Modifier
@@ -56,12 +60,19 @@ fun ReportHeroCard(title: String, amount: String, caption: String, halves: List<
             .clip(DsShapes.large)
             .background(DsColors.Primary)
             .padding(DsSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
-        FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(DsSpacing.xs))
-        Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
+        // The report's figure, read from the left: its icon, then what it is, how much, and of what.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(48.dp).clip(DsShapes.pill).background(white.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = white, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(DsSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2)
+                FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white)
+                Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
+            }
+        }
         if (halves.isNotEmpty()) {
             Spacer(Modifier.height(DsSpacing.md))
             HorizontalDivider(color = white.copy(alpha = 0.25f))
@@ -83,30 +94,47 @@ fun ReportHeroCard(title: String, amount: String, caption: String, halves: List<
     }
 }
 
-/** A figure with its title above and, if given, a [badge] in the figure's colour under it. */
+/**
+ * A figure: its [icon] in a soft circle of its colour and, across from it, a [badge] pill — a share,
+ * a count, a trend — then its title and the figure itself, and an optional [note] under it.
+ *
+ * Icon and pill share the first line, the title gets its own: a half-width card on a phone has no
+ * room for all three side by side.
+ */
 @Composable
-fun KpiTile(label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?) {
+fun KpiTile(
+    label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
+    icon: ImageVector, note: String? = null,
+) {
+    // Dark text keeps its own figure; the icon and the pill take the Primary then.
+    val accent = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor
     Column(
         modifier
             .fillMaxHeight()
-            .clip(DsShapes.medium)
+            .clip(DsShapes.large)
             .background(DsColors.Surface)
             .padding(DsSpacing.md)
     ) {
-        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-        Spacer(Modifier.height(DsSpacing.xs))
-        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = valueColor)
-        if (badge != null) {
-            Spacer(Modifier.height(DsSpacing.sm))
-            Text(
-                badge, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = valueColor,
-                maxLines = 1,
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(DsShapes.pill).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.weight(1f))
+            if (badge != null) Text(
+                badge, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = accent,
+                maxLines = 1, softWrap = false,
                 modifier = Modifier
+                    .padding(start = DsSpacing.xs)
                     .clip(DsShapes.pill)
-                    .background(valueColor.copy(alpha = 0.12f))
+                    .background(accent.copy(alpha = 0.12f))
                     .padding(horizontal = DsSpacing.sm, vertical = 3.dp),
             )
         }
+        Spacer(Modifier.height(DsSpacing.sm))
+        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+        Spacer(Modifier.height(DsSpacing.xs))
+        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
+        if (note != null) Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
     }
 }
 

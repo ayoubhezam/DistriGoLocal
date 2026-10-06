@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -175,6 +178,7 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
         title = "${words.owed} · au ${report.today.format(DAY)}",
         amount = money.da(report.outstanding),
         caption = words.debtors(report.debtors.size),
+        icon = Icons.Default.AccountBalance,
         halves = if (report.outstanding > 0) listOf(
             HeroHalf("Moins de 30 jours", money.da(report.ages[AgeBand.RECENT.ordinal])),
             HeroHalf("Plus de 90 jours", money.da(report.ages[AgeBand.OLD.ordinal]), bold = true),
@@ -190,16 +194,16 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     val change = report.change
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile(words.credit, money.da(report.credit), DsColors.Warning, Modifier.weight(1f), null)
+            KpiTile(words.credit, money.da(report.credit), DsColors.Warning, Modifier.weight(1f), null, Icons.Default.Schedule)
             KpiTile(
                 words.payments, money.da(report.payments.total), DsColors.Success, Modifier.weight(1f),
-                plural(report.payments.count, one, many),
+                plural(report.payments.count, one, many), Icons.Default.Payments,
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
                 words.returns, money.da(report.returns.total), DsColors.TextPrimary, Modifier.weight(1f),
-                plural(report.returns.count, "retour", "retours"),
+                plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn,
             )
             // More owed is bad news on either side: red when the balance grew, green when it shrank.
             val grew = change > 0.005
@@ -210,6 +214,7 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
                 when { grew -> DsColors.Danger; shrank -> DsColors.Success; else -> DsColors.TextPrimary },
                 Modifier.weight(1f),
                 when { grew -> "En hausse"; shrank -> "En baisse"; else -> "Stable" },
+                when { grew -> Icons.AutoMirrored.Filled.TrendingUp; shrank -> Icons.AutoMirrored.Filled.TrendingDown; else -> Icons.AutoMirrored.Filled.TrendingFlat },
             )
         }
     }

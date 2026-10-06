@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import com.distrigo.app.data.model.report.ReportPeriod
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
@@ -142,6 +145,7 @@ private fun SummaryCard(report: SalesReport) {
         title = "Chiffre d'affaires",
         amount = money.da(report.all.total),
         caption = plural(report.all.count, "vente", "ventes"),
+        icon = Icons.Default.BarChart,
         halves = if (returns != null && returns.count > 0) listOf(
             HeroHalf("Retours clients (${returns.count})", "− ${money.da(returns.total)}"),
             HeroHalf("Ventes nettes", money.da(report.netTotal ?: report.all.total), bold = true),
@@ -158,20 +162,25 @@ private fun KpiGrid(report: SalesReport) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
                 "Payé à la vente", money.da(report.all.paid), DsColors.Success, Modifier.weight(1f),
-                percentOf(report.all.paid, report.all.total)?.let { "$it des ventes" },
+                percentOf(report.all.paid, report.all.total), Icons.Default.AccountBalanceWallet,
             )
             KpiTile(
                 "À crédit", money.da(report.all.credit), DsColors.Warning, Modifier.weight(1f),
-                percentOf(report.all.credit, report.all.total)?.let { "$it des ventes" },
+                percentOf(report.all.credit, report.all.total), Icons.Default.Schedule,
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            // The rate said as what it means: of every 100 DA sold, this much is margin.
+            // The rate on the purchase price, as the Direction du Commerce counts it — and said so.
             KpiTile(
                 "Marge brute", money.da(report.grossMargin), marginColor, Modifier.weight(1f),
-                report.marginRate?.let { "Taux de marge ${percent(it)}" },
+                report.marginRate?.let { percent(it) },
+                if (report.grossMargin < 0) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                note = report.marginRate?.let { "sur le prix d'achat" },
             )
-            KpiTile("Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null)
+            KpiTile(
+                "Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+                Icons.Default.Person, note = plural(report.all.count, "vente", "ventes"),
+            )
         }
     }
 }
