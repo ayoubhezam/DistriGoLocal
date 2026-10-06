@@ -11,7 +11,8 @@ object ChargeIconMapper {
         "local_gas_station"  -> Icons.Default.LocalGasStation
         "trip_origin"        -> Icons.Default.TripOrigin
         "build"               -> Icons.Default.Build
-        "opacity"             -> Icons.Default.Opacity        // Vidange
+        "opacity"             -> Icons.Default.Opacity        // Vidange, as older code named it
+        "oil_barrel"          -> Icons.Default.OilBarrel      // Vidange: the key its seed is stored with
         "shield"              -> Icons.Default.Shield
         "people"              -> Icons.Default.People
         "payments"            -> Icons.Default.Payments
