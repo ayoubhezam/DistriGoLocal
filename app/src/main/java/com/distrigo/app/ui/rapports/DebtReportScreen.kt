@@ -214,9 +214,10 @@ fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtRe
 private fun OwedCard(report: DebtReport, words: SideWords) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
-        title = "${words.owed} · au ${report.today.format(DAY)}",
+        // The title stays one line beside its ⓘ; the day goes under the count, on a line of its own.
+        title = words.owed,
         amount = money.da(report.outstanding),
-        caption = words.debtors(report.debtors.size),
+        caption = "${words.debtors(report.debtors.size)}\nau ${report.today.format(DAY)}",
         icon = Icons.Default.AccountBalance,
         info = debtInfo(report.side, "owed"),
         halves = if (report.outstanding > 0) listOf(
@@ -278,7 +279,7 @@ private fun AgeCard(report: DebtReport) {
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             InfoButton(debtInfo(report.side, "ages"), tint = DsColors.TextTertiary)
         }
         Spacer(Modifier.height(2.dp))

@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.common.FitText
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -55,15 +56,15 @@ import java.util.Locale
 /** What a report figure is and how it is counted: the title and text its ⓘ opens. */
 class ReportInfo(val title: String, val text: String)
 
-/** A small ⓘ that opens [info] in a dialog; 32.dp of touch around an 18.dp icon. */
+/** A small ⓘ, set right after its title, that opens [info] in a dialog; [iconSize] of icon in a little touch around it. */
 @Composable
-fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier) {
+fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier, iconSize: androidx.compose.ui.unit.Dp = 14.dp) {
     var open by remember { mutableStateOf(false) }
     Box(
-        modifier.size(32.dp).clip(DsShapes.pill).clickable(role = Role.Button) { open = true },
+        modifier.size(iconSize + 10.dp).clip(DsShapes.pill).clickable(role = Role.Button) { open = true },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Outlined.Info, contentDescription = "Comment est calculé « ${info.title} »", tint = tint, modifier = Modifier.size(18.dp))
+        Icon(Icons.Outlined.Info, contentDescription = "Comment est calculé « ${info.title} »", tint = tint, modifier = Modifier.size(iconSize))
     }
     if (open) AlertDialog(
         onDismissRequest = { open = false },
@@ -99,8 +100,8 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2, modifier = Modifier.weight(1f))
-                    InfoButton(info, tint = white.copy(alpha = 0.85f))
+                    Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                    InfoButton(info, tint = white.copy(alpha = 0.75f))
                 }
                 FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white)
                 Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
@@ -128,16 +129,14 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
 }
 
 /**
- * A figure: its [icon] in a soft circle of its colour and, across from it, a [badge] pill — a share,
- * a count, a trend — then its title and the figure itself, and an optional [note] under it.
- *
- * Icon and pill share the first line, the title gets its own: a half-width card on a phone has no
- * room for all three side by side.
+ * A figure, the way a dashboard card reads at a glance: a small [icon] in its colour and, across from
+ * it, a small [badge] pill — a share, a count, a trend; then the title, small and grey, its ⓘ right
+ * after it; then the figure, large. Every card has the same four parts, so a row of them lines up.
  */
 @Composable
 fun KpiTile(
     label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
-    icon: ImageVector, info: ReportInfo, note: String? = null,
+    icon: ImageVector, info: ReportInfo,
 ) {
     // Dark text keeps its own figure; the icon and the pill take the Primary then.
     val accent = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor
@@ -146,33 +145,28 @@ fun KpiTile(
             .fillMaxHeight()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
-            .padding(DsSpacing.md)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(DsShapes.pill).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-            }
+        Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
             Spacer(Modifier.weight(1f))
             if (badge != null) Text(
-                badge, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = accent,
+                badge, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = accent,
                 maxLines = 1, softWrap = false,
                 modifier = Modifier
                     .padding(start = DsSpacing.xs)
-                    .clip(DsShapes.pill)
-                    .background(accent.copy(alpha = 0.12f))
-                    .padding(horizontal = DsSpacing.sm, vertical = 3.dp),
+                    .clip(DsShapes.small)
+                    .background(accent.copy(alpha = 0.10f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
-        Spacer(Modifier.height(DsSpacing.sm))
-        // The title, and the ⓘ that says what the figure is: the first line already holds icon and pill.
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            // Two lines at most: beside the ⓘ, "Évolution du solde" no longer fits one.
-            Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
-                maxLines = 2, lineHeight = DsTextSize.bodySmall * 1.2, modifier = Modifier.weight(1f))
-            InfoButton(info, tint = DsColors.TextTertiary, modifier = Modifier.padding(start = 2.dp))
+        Spacer(Modifier.height(DsSpacing.md))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = DsColors.TextSecondary,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(info, tint = DsColors.TextTertiary, modifier = Modifier.padding(start = 2.dp), iconSize = 13.dp)
         }
         FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
-        if (note != null) Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
     }
 }
 

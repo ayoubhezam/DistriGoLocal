@@ -179,11 +179,10 @@ private fun KpiGrid(report: SalesReport) {
                 report.marginRate?.let { percent(it) },
                 if (report.grossMargin < 0) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
                 info = ReportInfo("Marge brute", "Ventes de la période − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat du produit au moment de la vente.\n\nTaux de marge = marge brute ÷ coût d'achat × 100, la base de la Direction du Commerce.\n\nNi les charges ni les pertes n'en sont déduites."),
-                note = report.marginRate?.let { "sur le prix d'achat" },
             )
             KpiTile(
                 "Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
-                Icons.Default.Person, info = ReportInfo("Clients actifs", "Le nombre de clients différents qui ont acheté au moins une fois sur la période. En dessous, le nombre de ventes."), note = plural(report.all.count, "vente", "ventes"),
+                Icons.Default.Person, info = ReportInfo("Clients actifs", "Le nombre de clients différents qui ont acheté au moins une fois sur la période. En dessous, le nombre de ventes."),
             )
         }
     }
@@ -207,7 +206,7 @@ private fun SourceSplit(report: SalesReport) {
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             InfoButton(
                 ReportInfo(
                     "Dépôt et camion",
