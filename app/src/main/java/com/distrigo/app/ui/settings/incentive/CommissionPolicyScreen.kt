@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,6 +78,15 @@ fun CommissionPolicyScreen(
     var freeGoodProductId by remember { mutableStateOf<Int?>(null) }
     var freeGoodProductName by remember { mutableStateOf("") }
     var productSearchQuery by remember { mutableStateOf("") }
+    var showScanner by remember { mutableStateOf(false) }
+    if (showScanner) {
+        BackHandler { showScanner = false }
+        com.distrigo.app.ui.scanner.BarcodeScannerScreen(
+            onBarcodeScanned = { code -> productSearchQuery = code; showScanner = false },
+            onClose = { showScanner = false }
+        )
+        return
+    }
 
     // ── تعبئة النموذج من السياسة الحالية عند فتح الشاشة (إن وُجدت) ──
     LaunchedEffect(activePolicy) {
@@ -273,7 +283,13 @@ fun CommissionPolicyScreen(
                             onValueChange = { productSearchQuery = it },
                             placeholder   = "Rechercher un produit",
                             modifier      = Modifier
-                        )
+                        ) {
+                            com.distrigo.app.ui.common.DsCompactSearchAction(
+                                icon = androidx.compose.material.icons.Icons.Default.QrCodeScanner,
+                                contentDescription = "Scanner un code-barres",
+                                tint = DsColors.Primary, onClick = { showScanner = true }
+                            )
+                        }
 
                         // The first five matches, asked of the database as the query changes.
                         val filtered by produceState(emptyList<com.distrigo.app.data.model.Product>(), productSearchQuery) {

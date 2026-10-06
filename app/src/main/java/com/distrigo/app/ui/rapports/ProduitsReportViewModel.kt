@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** The Produits report as the screen shows it; [report] stays on screen while the next one loads. */
@@ -39,6 +40,7 @@ data class ProduitsReportState(
 class ProduitsReportViewModel @Inject constructor(
     private val repository: ReportRepository,
     private val filterStore: ReportFilterStore,
+    private val products: com.distrigo.app.data.repository.ProductRepository,
 ) : ViewModel() {
 
     // A sale, or a product's price or stock changing, reloads it — a burst of writes once.
@@ -65,4 +67,17 @@ class ProduitsReportViewModel @Inject constructor(
     val query = MutableStateFlow("")
 
     fun setFilter(filter: ReportFilter) = filterStore.update { filter }
+
+    /**
+     * A scanned code: the product it names, put in the search by its name — the report's rows know
+     * products by name — or why not.
+     */
+    fun scan(code: String, onDone: (String?) -> Unit) {
+        viewModelScope.launch {
+            val product = products.findLiveProductByBarcode(code)
+            if (product == null) onDone("Aucun produit trouvé pour ce code-barres")
+            else { query.value = product.name; onDone(null) }
+        }
+    }
+
 }

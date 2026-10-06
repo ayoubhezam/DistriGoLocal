@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import kotlinx.coroutines.flow.map
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -101,7 +102,11 @@ class PerteHistoryViewModel @Inject constructor(private val repository: PerteRep
     val pertes: StateFlow<List<Perte>?> = combine(search, filters) { s, f -> s to f }
         .flatMapLatest { (s, f) ->
             val range = f.period?.let { ReportFilter(it).resolve() }
-            repository.observeHistory(f.typeId, range?.start, range?.end, s)
+            val tokens = com.distrigo.app.ui.common.searchTokens(s)
+            // Every word, in any order, in the product, the type or the motif.
+            repository.observeHistory(f.typeId, range?.start, range?.end, "").map { all ->
+                all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.product_name, it.type_name, it.motif) }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

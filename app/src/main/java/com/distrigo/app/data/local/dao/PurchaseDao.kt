@@ -113,7 +113,9 @@ interface PurchaseDao {
         WHERE supplier_id = :supplierId
         AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
              OR (created_at = :cursorCreatedAt AND id < :cursorId))
-        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s1 || '%' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s2 || '%' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -123,20 +125,28 @@ interface PurchaseDao {
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
-    suspend fun pageOrdersForSupplier(
+    suspend fun pageOrdersForSupplierBySlots(
         supplierId: Int,
         cursorCreatedAt: String?,
         /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
         cursorId: Int?,
-        search: String,
+        s1: String, s2: String, s3: String,
         statusFilter: String,
         limit: Int
     ): List<PurchaseOrderEntity>
 
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun pageOrdersForSupplier(supplierId: Int, cursorCreatedAt: String?, cursorId: Int?, search: String, statusFilter: String, limit: Int): List<PurchaseOrderEntity> {
+        val slots = searchSlots(search)
+        return pageOrdersForSupplierBySlots(supplierId, cursorCreatedAt, cursorId, slots[0], slots[1], slots[2], statusFilter, limit)
+    }
+
     @Query("""
         SELECT COUNT(*) FROM purchase_orders
         WHERE supplier_id = :supplierId
-        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s1 || '%' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s2 || '%' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -144,7 +154,13 @@ interface PurchaseDao {
             OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
         )
     """)
-    suspend fun countOrdersForSupplier(supplierId: Int, search: String, statusFilter: String): Int
+    suspend fun countOrdersForSupplierBySlots(supplierId: Int, s1: String, s2: String, s3: String, statusFilter: String): Int
+
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun countOrdersForSupplier(supplierId: Int, search: String, statusFilter: String): Int {
+        val slots = searchSlots(search)
+        return countOrdersForSupplierBySlots(supplierId, slots[0], slots[1], slots[2], statusFilter)
+    }
 
     @Query("""
         SELECT poi.product_id AS product_id, SUM(poi.quantity) AS total_quantity

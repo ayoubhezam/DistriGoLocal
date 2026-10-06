@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import kotlinx.coroutines.flow.map
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -116,7 +117,11 @@ class ChargeHistoryViewModel @Inject constructor(private val repository: ChargeR
     val charges: StateFlow<List<ChargeHistoryRow>?> = combine(search, filters) { s, f -> s to f }
         .flatMapLatest { (s, f) ->
             val range = f.period?.let { ReportFilter(it).resolve() }
-            repository.observeHistory(f.typeId, f.subtypeId, range?.start, range?.end, s)
+            val tokens = com.distrigo.app.ui.common.searchTokens(s)
+            // Every word, in any order, in the sub-type, the type, the supplier or the note.
+            repository.observeHistory(f.typeId, f.subtypeId, range?.start, range?.end, "").map { all ->
+                all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.subtype_name, it.type_name, it.fournisseur, it.note) }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

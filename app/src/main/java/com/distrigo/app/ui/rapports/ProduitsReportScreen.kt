@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warehouse
@@ -34,6 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -367,16 +370,34 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
     // Each keeps its rank in the whole list, searched or not.
     val shown = remember(ranked, query) {
         val q = query.trim()
-        ranked.mapIndexed { i, p -> i + 1 to p }.filter { q.isEmpty() || it.second.name.contains(q, ignoreCase = true) }
+        val tokens = com.distrigo.app.ui.common.searchTokens(q)
+        ranked.mapIndexed { i, p -> i + 1 to p }.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.second.name) }
     }
     val listState = rememberLazyListState()
     LaunchedEffect(query, ranking) { listState.scrollToItem(0) }
+    var showScanner by remember { mutableStateOf(false) }
+    var scanError by remember { mutableStateOf("") }
+    if (showScanner) {
+        androidx.activity.compose.BackHandler { showScanner = false }
+        com.distrigo.app.ui.scanner.BarcodeScannerScreen(
+            onBarcodeScanned = { code -> showScanner = false; viewModel.scan(code) { scanError = it ?: "" } },
+            onClose = { showScanner = false }
+        )
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Produits vendus", leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = "Rechercher un produit",
-                modifier = Modifier.padding(horizontal = DsSpacing.lg))
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
+                com.distrigo.app.ui.common.DsCompactSearchAction(
+                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    tint = DsColors.Primary, onClick = { showScanner = true }
+                )
+            }
+            if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
             ReportSegmented(ProductRanking.entries, ranking, { it.label }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(6.dp))
@@ -406,13 +427,33 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
     val money = LocalMoneyFormatter.current
     val report = state.report
     val all = report?.dormant.orEmpty()
-    val shown = remember(all, query) { val q = query.trim(); all.filter { q.isEmpty() || it.name.contains(q, ignoreCase = true) } }
+    val shown = remember(all, query) {
+        val tokens = com.distrigo.app.ui.common.searchTokens(query)
+        all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.name) }
+    }
+    var showScanner by remember { mutableStateOf(false) }
+    var scanError by remember { mutableStateOf("") }
+    if (showScanner) {
+        androidx.activity.compose.BackHandler { showScanner = false }
+        com.distrigo.app.ui.scanner.BarcodeScannerScreen(
+            onBarcodeScanned = { code -> showScanner = false; viewModel.scan(code) { scanError = it ?: "" } },
+            onClose = { showScanner = false }
+        )
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Sans vente", subtitle = report?.let { "Stock immobilisé : ${money.da(it.dormantValue)}" }, leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = "Rechercher un produit",
-                modifier = Modifier.padding(horizontal = DsSpacing.lg))
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
+                com.distrigo.app.ui.common.DsCompactSearchAction(
+                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    tint = DsColors.Primary, onClick = { showScanner = true }
+                )
+            }
+            if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
             Text(if (query.isBlank()) plural(all.size, "produit", "produits") else "${shown.size} sur ${all.size}",
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))

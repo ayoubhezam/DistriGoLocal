@@ -31,6 +31,10 @@ private val WHITESPACE = "\\s+".toRegex()
 fun searchTokens(query: String): List<String> =
     query.trim().split(WHITESPACE).filter { it.isNotEmpty() }
 
+/** True when every token appears in at least one of [fields], ignoring case: the app's one way of searching. */
+fun matchesAllTokens(tokens: List<String>, vararg fields: String?): Boolean =
+    tokens.all { token -> fields.any { it?.contains(token, ignoreCase = true) == true } }
+
 // ── Products ──
 
 /** True when every token appears in the product's name or its barcode, ignoring case. */

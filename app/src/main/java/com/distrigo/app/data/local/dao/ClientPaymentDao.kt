@@ -33,23 +33,39 @@ interface ClientPaymentDao {
         WHERE client_id = :clientId
         AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
              OR (created_at = :cursorCreatedAt AND id < :cursorId))
-        AND (:search = '' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR note LIKE '%' || :s3 || '%')
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
-    suspend fun pagePaymentsForClient(
+    suspend fun pagePaymentsForClientBySlots(
         clientId: Int,
         cursorCreatedAt: String?,
         /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
         cursorId: Int?,
-        search: String,
+        s1: String, s2: String, s3: String,
         limit: Int
     ): List<ClientPaymentEntity>
+
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun pagePaymentsForClient(clientId: Int, cursorCreatedAt: String?, cursorId: Int?, search: String, limit: Int): List<ClientPaymentEntity> {
+        val slots = searchSlots(search)
+        return pagePaymentsForClientBySlots(clientId, cursorCreatedAt, cursorId, slots[0], slots[1], slots[2], limit)
+    }
 
     @Query("""
         SELECT COUNT(*) FROM client_payments
         WHERE client_id = :clientId
-        AND (:search = '' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR note LIKE '%' || :s3 || '%')
     """)
-    suspend fun countPaymentsForClient(clientId: Int, search: String): Int
+    suspend fun countPaymentsForClientBySlots(clientId: Int, s1: String, s2: String, s3: String): Int
+
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun countPaymentsForClient(clientId: Int, search: String): Int {
+        val slots = searchSlots(search)
+        return countPaymentsForClientBySlots(clientId, slots[0], slots[1], slots[2])
+    }
 }

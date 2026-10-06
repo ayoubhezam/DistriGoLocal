@@ -167,4 +167,18 @@ class LiveLedgerTest {
     private companion object {
         const val SAME_INSTANT = "2026-09-28T08:00:00.123Z"
     }
+
+    /** The ledger's search matches every word of it, in any order — as the app's other searches do. */
+    @Test
+    fun theLedgerSearchMatchesEveryWordInAnyOrder() = runBlocking {
+        val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
+        repository.addClientPayment(client, 500.0, "versement espèces mars")
+        repository.addClientPayment(client, 700.0, "chèque avril")
+        val dao = db.clientPaymentDao()
+        assertEquals(1, dao.countPaymentsForClient(client, "mars espèces"))
+        assertEquals(1, dao.countPaymentsForClient(client, "  ESP  vers "))
+        assertEquals(0, dao.countPaymentsForClient(client, "mars chèque"))
+        assertEquals(2, dao.countPaymentsForClient(client, ""))
+        assertEquals(listOf(500.0), dao.pagePaymentsForClient(client, null, null, "vers mars", 10).map { it.amount })
+    }
 }

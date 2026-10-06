@@ -80,6 +80,16 @@ fun ChargementNavHost(
             val pagedProducts = session.productList.items.collectAsLazyPagingItems()
             val cartItems by session.formCartItems.collectAsState()
             val search = session.productSearch
+            // The scanner, as in the sale forms: what it reads goes in the search, which matches barcodes.
+            var showScanner by remember { mutableStateOf(false) }
+            if (showScanner) {
+                BackHandler { showScanner = false }
+                com.distrigo.app.ui.scanner.BarcodeScannerScreen(
+                    onBarcodeScanned = { code -> session.productSearch = code; showScanner = false },
+                    onClose = { showScanner = false }
+                )
+                return@composable
+            }
 
             // preSelectedProduct: jump straight to the cart/review screen with that one product
             // pre-added — matches the original's `showCart = preSelectedProduct != null` initial
@@ -115,7 +125,12 @@ fun ChargementNavHost(
                     onValueChange = { session.productSearch = it },
                     placeholder   = "Rechercher un produit",
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-                )
+                ) {
+                    com.distrigo.app.ui.common.DsCompactSearchAction(
+                        icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                        tint = DsColors.Primary, onClick = { showScanner = true }
+                    )
+                }
 
                 Spacer(Modifier.height(DsSpacing.sm))
 

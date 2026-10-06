@@ -157,7 +157,9 @@ interface VenteDao {
         WHERE client_id = :clientId
         AND (:cursorCreatedAt IS NULL OR created_at < :cursorCreatedAt
              OR (created_at = :cursorCreatedAt AND id < :cursorId))
-        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s1 || '%' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s2 || '%' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -167,20 +169,28 @@ interface VenteDao {
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
-    suspend fun pageVentesForClient(
+    suspend fun pageVentesForClientBySlots(
         clientId: Int,
         cursorCreatedAt: String?,
         /** The id of the row [cursorCreatedAt] came from: rows sharing its instant are told apart by it. */
         cursorId: Int?,
-        search: String,
+        s1: String, s2: String, s3: String,
         statusFilter: String,
         limit: Int
     ): List<VenteEntity>
 
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun pageVentesForClient(clientId: Int, cursorCreatedAt: String?, cursorId: Int?, search: String, statusFilter: String, limit: Int): List<VenteEntity> {
+        val slots = searchSlots(search)
+        return pageVentesForClientBySlots(clientId, cursorCreatedAt, cursorId, slots[0], slots[1], slots[2], statusFilter, limit)
+    }
+
     @Query("""
         SELECT COUNT(*) FROM ventes
         WHERE client_id = :clientId
-        AND (:search = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :search || '%' OR note LIKE '%' || :search || '%')
+        AND (:s1 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s1 || '%' OR note LIKE '%' || :s1 || '%')
+        AND (:s2 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s2 || '%' OR note LIKE '%' || :s2 || '%')
+        AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
             OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
@@ -188,7 +198,13 @@ interface VenteDao {
             OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
         )
     """)
-    suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int
+    suspend fun countVentesForClientBySlots(clientId: Int, s1: String, s2: String, s3: String, statusFilter: String): Int
+
+    /** [search] split into words, every one of which a row must contain — see searchSlots. */
+    suspend fun countVentesForClient(clientId: Int, search: String, statusFilter: String): Int {
+        val slots = searchSlots(search)
+        return countVentesForClientBySlots(clientId, slots[0], slots[1], slots[2], statusFilter)
+    }
 
     /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
     @Query("SELECT numero FROM ventes WHERE id = :id")

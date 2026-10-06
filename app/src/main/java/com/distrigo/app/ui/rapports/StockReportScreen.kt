@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.RemoveShoppingCart
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Warning
@@ -28,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -269,7 +272,20 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
     val drill = LocalDrillDown.current
     val report = state.report
     val all = report?.restock.orEmpty()
-    val shown = remember(all, query) { val q = query.trim(); all.filter { q.isEmpty() || it.name.contains(q, ignoreCase = true) } }
+    val shown = remember(all, query) {
+        val tokens = com.distrigo.app.ui.common.searchTokens(query)
+        all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.name) }
+    }
+    var showScanner by remember { mutableStateOf(false) }
+    var scanError by remember { mutableStateOf("") }
+    if (showScanner) {
+        androidx.activity.compose.BackHandler { showScanner = false }
+        com.distrigo.app.ui.scanner.BarcodeScannerScreen(
+            onBarcodeScanned = { code -> showScanner = false; viewModel.scan(code) { scanError = it ?: "" } },
+            onClose = { showScanner = false }
+        )
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -278,8 +294,15 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
             leading = DsTopBarLeading.Back(onBack),
         )
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = "Rechercher un produit",
-                modifier = Modifier.padding(horizontal = DsSpacing.lg))
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+                modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
+                com.distrigo.app.ui.common.DsCompactSearchAction(
+                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    tint = DsColors.Primary, onClick = { showScanner = true }
+                )
+            }
+            if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
             Text(if (query.isBlank()) plural(all.size, "produit", "produits") else "${shown.size} sur ${all.size}",
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))

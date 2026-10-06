@@ -86,11 +86,11 @@ abstract class NewRetourViewModel(
     /** The list on screen: eligible, not already selected, matching the search by name or code. */
     fun visible(all: List<ReturnableProduct>, cart: List<RetourCartLine>, query: String): List<ReturnableProduct> {
         val taken = cart.map { it.product.id }.toSet()
-        val q = query.trim()
-        return all.filter { it.product.id !in taken }.filter { r ->
-            q.isEmpty() || r.product.name.contains(q, ignoreCase = true) ||
-                r.product.barcodes.any { it.contains(q) }
-        }.sortedBy { it.product.name.lowercase() }
+        // Every word, in the name or a barcode — "har bl 25" — as the product lists search.
+        val tokens = com.distrigo.app.ui.common.searchTokens(query)
+        return all.filter { it.product.id !in taken }
+            .filter { r -> com.distrigo.app.ui.common.productMatchesTokens(r.product, tokens) }
+            .sortedBy { it.product.name.lowercase() }
     }
 
     /** The eligible product a scanned code names; or why not — unknown, or never sold/bought here. */

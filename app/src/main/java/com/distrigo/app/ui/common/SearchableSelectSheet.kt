@@ -32,8 +32,8 @@ fun <T> SearchableSelectSheet(
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, items) {
-        if (query.isBlank()) items
-        else items.filter { itemLabel(it).contains(query, ignoreCase = true) }
+        val tokens = searchTokens(query)
+        items.filter { matchesAllTokens(tokens, itemLabel(it)) }
     }
 
 

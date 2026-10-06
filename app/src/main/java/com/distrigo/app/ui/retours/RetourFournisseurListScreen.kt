@@ -65,10 +65,9 @@ fun RetourFournisseurListScreen(
 
     // Recomputed only when the list or the search changes, like the other filtered lists.
     val filteredRetours = remember(retours, search) {
+        val tokens = com.distrigo.app.ui.common.searchTokens(search)
         retours.filter { retour ->
-            search.isBlank() ||
-                (retour.motif?.contains(search, ignoreCase = true) == true) ||
-                "retour ${retour.numberLabel}".contains(search, ignoreCase = true)
+            com.distrigo.app.ui.common.matchesAllTokens(tokens, retour.motif, "retour ${retour.numberLabel}")
         }
     }
 

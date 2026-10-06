@@ -568,12 +568,11 @@ fun TourneeDetailScreen(
                 // Search and filters narrow the same list, in the order Achats and Dépôt Vente
                 // apply them: the text first, then each axis, all of them ANDed.
                 val shownVentes = remember(ventes, viewModel.venteQuery, viewModel.venteFilterStatus, viewModel.venteFilterPaymentStatus, viewModel.venteFilterClientId) {
-                    val q = viewModel.venteQuery.trim()
+                    val tokens = com.distrigo.app.ui.common.searchTokens(viewModel.venteQuery)
                     ventes.filter { v ->
-                        // Matched on the two things written on a row: who it is for, and its number.
-                        val matchSearch = q.isEmpty() ||
-                            v.client_name.contains(q, ignoreCase = true) || v.id.toString().contains(q) ||
-                                v.numberLabel.contains(q, ignoreCase = true)
+                        // Matched on the two things written on a row — who it is for, and its number —
+                        // every word somewhere in them.
+                        val matchSearch = com.distrigo.app.ui.common.matchesAllTokens(tokens, v.client_name, v.id.toString(), v.numberLabel)
                         val matchStatus = viewModel.venteFilterStatus == null || v.status == viewModel.venteFilterStatus
                         val paye = v.montant_paye ?: 0.0
                         val matchPayment = when (viewModel.venteFilterPaymentStatus) {
