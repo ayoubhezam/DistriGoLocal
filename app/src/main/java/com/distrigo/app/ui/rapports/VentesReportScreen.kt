@@ -206,7 +206,17 @@ private fun SourceSplit(report: SalesReport) {
             .background(DsColors.Surface)
             .padding(DsSpacing.lg)
     ) {
-        Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+            InfoButton(
+                ReportInfo(
+                    "Dépôt et camion",
+                    "Le chiffre d'affaires de la période, partagé selon d'où sont sorties les marchandises : le dépôt (ventes au dépôt) ou le camion (ventes des tournées).\n\n" +
+                        "Au centre, le total ; à côté, pour chacun, sa part du total, son montant et son nombre de ventes. Affiché seulement avec « Tout »."
+                ),
+                tint = DsColors.TextTertiary,
+            )
+        }
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
             ShareRing(

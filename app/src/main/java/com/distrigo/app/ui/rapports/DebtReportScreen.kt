@@ -95,6 +95,14 @@ private fun debtInfo(side: DebtSide, figure: String): ReportInfo {
             "La marchandise rendue par vos clients sur la période, au prix de vente, et le nombre de retours. Ils sont déduits de ce que les clients vous doivent.")
         else ReportInfo("Retours fournisseurs",
             "La marchandise que vous avez rendue à vos fournisseurs sur la période, au prix d'achat, et le nombre de retours. Ils sont déduits de ce que vous leur devez.")
+        "ages" -> if (clients) ReportInfo("Ancienneté",
+            "Ce que vos clients vous doivent aujourd'hui, réparti selon l'âge des ventes restées impayées : 0 – 30, 31 – 60, 61 – 90 et plus de 90 jours.\n\n" +
+                "Chaque versement est compté sur les ventes les plus récentes d'abord : ce qui reste dû est donc le plus ancien. " +
+                "Au centre, le total ; à côté, la part et le montant de chaque tranche. Plus la part de plus de 90 jours est grande, plus l'argent est difficile à récupérer.")
+        else ReportInfo("Ancienneté",
+            "Ce que vous devez aujourd'hui à vos fournisseurs, réparti selon l'âge des bons restés impayés : 0 – 30, 31 – 60, 61 – 90 et plus de 90 jours.\n\n" +
+                "Chaque versement est compté sur les bons les plus récents d'abord : ce qui reste dû est donc le plus ancien. " +
+                "Au centre, le total ; à côté, la part et le montant de chaque tranche.")
         else -> if (clients) ReportInfo("Évolution du solde",
             "Crédit accordé − versements reçus − retours clients, sur la période.\n\n" +
                 "En moins (vert, « En baisse ») : vos clients vous doivent moins qu'au début de la période. En plus (rouge, « En hausse ») : ils vous doivent davantage.")
@@ -269,7 +277,10 @@ private fun AgeCard(report: DebtReport) {
             .background(DsColors.Surface)
             .padding(DsSpacing.lg)
     ) {
-        Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+            InfoButton(debtInfo(report.side, "ages"), tint = DsColors.TextTertiary)
+        }
         Spacer(Modifier.height(2.dp))
         Text("Depuis combien de temps l'argent est dû", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Spacer(Modifier.height(DsSpacing.lg))

@@ -166,8 +166,9 @@ fun KpiTile(
         Spacer(Modifier.height(DsSpacing.sm))
         // The title, and the ⓘ that says what the figure is: the first line already holds icon and pill.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            // Two lines at most: beside the ⓘ, "Évolution du solde" no longer fits one.
             Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
-                maxLines = 1, modifier = Modifier.weight(1f))
+                maxLines = 2, lineHeight = DsTextSize.bodySmall * 1.2, modifier = Modifier.weight(1f))
             InfoButton(info, tint = DsColors.TextTertiary, modifier = Modifier.padding(start = 2.dp))
         }
         FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
