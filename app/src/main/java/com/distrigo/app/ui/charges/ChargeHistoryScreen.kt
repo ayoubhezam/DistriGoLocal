@@ -217,7 +217,7 @@ fun ChargeHistoryScreen(
             Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
                 val list = charges
                 Text(
-                    if (list == null) "…" else "${list.size} charge(s) · ${money.da(list.sumOf { it.montant })}",
+                    if (list == null) "…" else "${list.size} charge(s)",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
