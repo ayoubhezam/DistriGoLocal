@@ -73,6 +73,37 @@ private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 /** How many debtors the report itself lists, the biggest first. */
 private const val TOP_DEBTORS = 5
 
+/** What each figure of the report is and how it is counted, for its ⓘ — in each side's words. */
+private fun debtInfo(side: DebtSide, figure: String): ReportInfo {
+    val clients = side == DebtSide.CLIENTS
+    return when (figure) {
+        "owed" -> if (clients) ReportInfo("Reste à encaisser",
+            "Ce que vos clients vous doivent aujourd'hui : la somme de leurs soldes, quelle que soit la période choisie.\n\n" +
+                "« Moins de 30 jours » et « Plus de 90 jours » : l'âge de cette dette, d'après la date des ventes restées impayées, les plus récentes réglées en premier.")
+        else ReportInfo("Reste à payer",
+            "Ce que vous devez aujourd'hui à vos fournisseurs : la somme de leurs soldes, quelle que soit la période choisie.\n\n" +
+                "« Moins de 30 jours » et « Plus de 90 jours » : l'âge de cette dette, d'après la date des bons restés impayés, les plus récents réglés en premier.")
+        "credit" -> if (clients) ReportInfo("Crédit accordé",
+            "La part des ventes de la période qui n'a pas été payée au moment de la vente : total − payé à la vente. Cela augmente ce que les clients vous doivent.")
+        else ReportInfo("Achats à crédit",
+            "La part des bons d'achat de la période qui n'a pas été payée à leur réception : total − payé. Cela augmente ce que vous devez aux fournisseurs.")
+        "payments" -> if (clients) ReportInfo("Versements reçus",
+            "Les paiements que vos clients vous ont faits sur la période, après la vente, et leur nombre. Ils diminuent ce qu'ils vous doivent.")
+        else ReportInfo("Versements payés",
+            "Les paiements que vous avez faits à vos fournisseurs sur la période, et leur nombre. Ils diminuent ce que vous leur devez.")
+        "returns" -> if (clients) ReportInfo("Retours clients",
+            "La marchandise rendue par vos clients sur la période, au prix de vente, et le nombre de retours. Ils sont déduits de ce que les clients vous doivent.")
+        else ReportInfo("Retours fournisseurs",
+            "La marchandise que vous avez rendue à vos fournisseurs sur la période, au prix d'achat, et le nombre de retours. Ils sont déduits de ce que vous leur devez.")
+        else -> if (clients) ReportInfo("Évolution du solde",
+            "Crédit accordé − versements reçus − retours clients, sur la période.\n\n" +
+                "En moins (vert, « En baisse ») : vos clients vous doivent moins qu'au début de la période. En plus (rouge, « En hausse ») : ils vous doivent davantage.")
+        else ReportInfo("Évolution du solde",
+            "Achats à crédit − versements payés − retours fournisseurs, sur la période.\n\n" +
+                "En moins (vert, « En baisse ») : vous devez moins à vos fournisseurs qu'au début de la période. En plus (rouge, « En hausse ») : vous leur devez davantage.")
+    }
+}
+
 /** The words that change with the side, so the layout is written once. */
 private class SideWords(
     val owed: String, val debtors: (Int) -> String, val credit: String,
@@ -179,6 +210,7 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
         amount = money.da(report.outstanding),
         caption = words.debtors(report.debtors.size),
         icon = Icons.Default.AccountBalance,
+        info = debtInfo(report.side, "owed"),
         halves = if (report.outstanding > 0) listOf(
             HeroHalf("Moins de 30 jours", money.da(report.ages[AgeBand.RECENT.ordinal])),
             HeroHalf("Plus de 90 jours", money.da(report.ages[AgeBand.OLD.ordinal]), bold = true),
@@ -194,16 +226,16 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     val change = report.change
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile(words.credit, money.da(report.credit), DsColors.Warning, Modifier.weight(1f), null, Icons.Default.Schedule)
+            KpiTile(words.credit, money.da(report.credit), DsColors.Warning, Modifier.weight(1f), null, Icons.Default.Schedule, debtInfo(report.side, "credit"))
             KpiTile(
                 words.payments, money.da(report.payments.total), DsColors.Success, Modifier.weight(1f),
-                plural(report.payments.count, one, many), Icons.Default.Payments,
+                plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"),
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
                 words.returns, money.da(report.returns.total), DsColors.TextPrimary, Modifier.weight(1f),
-                plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn,
+                plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn, debtInfo(report.side, "returns"),
             )
             // More owed is bad news on either side: red when the balance grew, green when it shrank.
             val grew = change > 0.005
@@ -215,6 +247,7 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
                 Modifier.weight(1f),
                 when { grew -> "En hausse"; shrank -> "En baisse"; else -> "Stable" },
                 when { grew -> Icons.AutoMirrored.Filled.TrendingUp; shrank -> Icons.AutoMirrored.Filled.TrendingDown; else -> Icons.AutoMirrored.Filled.TrendingFlat },
+                debtInfo(report.side, "change"),
             )
         }
     }

@@ -20,6 +20,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,6 +52,28 @@ import java.util.Locale
 // figure tiles, the section titles, the empty message, and how counts and shares are written.
 
 /** One half of the summary card's bottom line: a title centred over its value. */
+/** What a report figure is and how it is counted: the title and text its ⓘ opens. */
+class ReportInfo(val title: String, val text: String)
+
+/** A small ⓘ that opens [info] in a dialog; 32.dp of touch around an 18.dp icon. */
+@Composable
+fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier) {
+    var open by remember { mutableStateOf(false) }
+    Box(
+        modifier.size(32.dp).clip(DsShapes.pill).clickable(role = Role.Button) { open = true },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = "Comment est calculé « ${info.title} »", tint = tint, modifier = Modifier.size(18.dp))
+    }
+    if (open) AlertDialog(
+        onDismissRequest = { open = false },
+        title = { Text(info.title, fontWeight = FontWeight.Bold) },
+        text = { Text(info.text, fontSize = DsTextSize.body, color = DsColors.TextSecondary) },
+        confirmButton = { TextButton(onClick = { open = false }) { Text("Compris") } },
+        containerColor = DsColors.Surface,
+    )
+}
+
 class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
 
 /**
@@ -51,7 +81,7 @@ class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
  * [halves] are given, a divider and the two halves side by side.
  */
 @Composable
-fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVector, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVector, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
     val white = Color.White
     Column(
         Modifier
@@ -68,7 +98,10 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2, modifier = Modifier.weight(1f))
+                    InfoButton(info, tint = white.copy(alpha = 0.85f))
+                }
                 FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white)
                 Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
             }
@@ -104,7 +137,7 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
 @Composable
 fun KpiTile(
     label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
-    icon: ImageVector, note: String? = null,
+    icon: ImageVector, info: ReportInfo, note: String? = null,
 ) {
     // Dark text keeps its own figure; the icon and the pill take the Primary then.
     val accent = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor
@@ -131,8 +164,12 @@ fun KpiTile(
             )
         }
         Spacer(Modifier.height(DsSpacing.sm))
-        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-        Spacer(Modifier.height(DsSpacing.xs))
+        // The title, and the ⓘ that says what the figure is: the first line already holds icon and pill.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+                maxLines = 1, modifier = Modifier.weight(1f))
+            InfoButton(info, tint = DsColors.TextTertiary, modifier = Modifier.padding(start = 2.dp))
+        }
         FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
         if (note != null) Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
     }

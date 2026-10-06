@@ -146,6 +146,7 @@ private fun SummaryCard(report: SalesReport) {
         amount = money.da(report.all.total),
         caption = plural(report.all.count, "vente", "ventes"),
         icon = Icons.Default.BarChart,
+        info = ReportInfo("Chiffre d'affaires", "Le total des ventes de la période, au prix de vente — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n\nLes retours clients n'en sont pas déduits : « Ventes nettes » = chiffre d'affaires − retours clients de la période. Ils ne s'affichent qu'avec « Tout », un retour ne disant pas d'où venait la marchandise."),
         halves = if (returns != null && returns.count > 0) listOf(
             HeroHalf("Retours clients (${returns.count})", "− ${money.da(returns.total)}"),
             HeroHalf("Ventes nettes", money.da(report.netTotal ?: report.all.total), bold = true),
@@ -163,10 +164,12 @@ private fun KpiGrid(report: SalesReport) {
             KpiTile(
                 "Payé à la vente", money.da(report.all.paid), DsColors.Success, Modifier.weight(1f),
                 percentOf(report.all.paid, report.all.total), Icons.Default.AccountBalanceWallet,
+                info = ReportInfo("Payé à la vente", "Ce qui a été encaissé au moment même des ventes de la période. Le pourcentage est sa part du chiffre d'affaires.\n\nUn versement fait plus tard par le client n'y figure pas : il se lit dans le rapport Créances et dettes."),
             )
             KpiTile(
                 "À crédit", money.da(report.all.credit), DsColors.Warning, Modifier.weight(1f),
                 percentOf(report.all.credit, report.all.total), Icons.Default.Schedule,
+                info = ReportInfo("À crédit", "La part des ventes de la période qui n'a pas été payée à la vente : chiffre d'affaires − payé à la vente. Le pourcentage est sa part du chiffre d'affaires.\n\nC'est le crédit accordé sur la période, pas ce que les clients doivent aujourd'hui (voir Créances et dettes)."),
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -175,11 +178,12 @@ private fun KpiGrid(report: SalesReport) {
                 "Marge brute", money.da(report.grossMargin), marginColor, Modifier.weight(1f),
                 report.marginRate?.let { percent(it) },
                 if (report.grossMargin < 0) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                info = ReportInfo("Marge brute", "Ventes de la période − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat du produit au moment de la vente.\n\nTaux de marge = marge brute ÷ coût d'achat × 100, la base de la Direction du Commerce.\n\nNi les charges ni les pertes n'en sont déduites."),
                 note = report.marginRate?.let { "sur le prix d'achat" },
             )
             KpiTile(
                 "Clients actifs", report.clientsServed.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
-                Icons.Default.Person, note = plural(report.all.count, "vente", "ventes"),
+                Icons.Default.Person, info = ReportInfo("Clients actifs", "Le nombre de clients différents qui ont acheté au moins une fois sur la période. En dessous, le nombre de ventes."), note = plural(report.all.count, "vente", "ventes"),
             )
         }
     }
