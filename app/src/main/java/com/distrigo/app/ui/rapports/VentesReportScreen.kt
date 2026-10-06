@@ -145,7 +145,6 @@ private fun SummaryCard(report: SalesReport) {
         title = "Chiffre d'affaires",
         amount = money.da(report.all.total),
         caption = plural(report.all.count, "vente", "ventes"),
-        icon = Icons.Default.BarChart,
         info = ReportInfo("Chiffre d'affaires", "Le total des ventes de la période, au prix de vente — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n\nLes retours clients n'en sont pas déduits : « Ventes nettes » = chiffre d'affaires − retours clients de la période. Ils ne s'affichent qu'avec « Tout », un retour ne disant pas d'où venait la marchandise."),
         halves = if (returns != null && returns.count > 0) listOf(
             HeroHalf("Retours clients (${returns.count})", "− ${money.da(returns.total)}"),

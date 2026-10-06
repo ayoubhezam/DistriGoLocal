@@ -218,7 +218,6 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
         title = words.owed,
         amount = money.da(report.outstanding),
         caption = "${words.debtors(report.debtors.size)}\nau ${report.today.format(DAY)}",
-        icon = Icons.Default.AccountBalance,
         info = debtInfo(report.side, "owed"),
         halves = if (report.outstanding > 0) listOf(
             HeroHalf("Moins de 30 jours", money.da(report.ages[AgeBand.RECENT.ordinal])),

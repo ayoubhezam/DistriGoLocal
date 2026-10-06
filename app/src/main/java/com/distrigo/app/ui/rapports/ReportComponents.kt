@@ -82,7 +82,7 @@ class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
  * [halves] are given, a divider and the two halves side by side.
  */
 @Composable
-fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVector, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(title: String, amount: String, caption: String, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
     val white = Color.White
     Column(
         Modifier
@@ -91,22 +91,18 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
             .clip(DsShapes.large)
             .background(DsColors.Primary)
             .padding(DsSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // The report's figure, read from the left: its icon, then what it is, how much, and of what.
+        // The report's figure, centred: what it is, how much, and of what.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(DsShapes.pill).background(white.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = white, modifier = Modifier.size(24.dp))
-            }
-            Spacer(Modifier.width(DsSpacing.md))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 2, modifier = Modifier.weight(1f, fill = false))
-                    InfoButton(info, tint = white.copy(alpha = 0.75f))
-                }
-                FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white)
-                Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f))
-            }
+            // As wide as the ⓘ on the other side, so the title itself sits in the middle.
+            Spacer(Modifier.width(24.dp))
+            Text(title, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), maxLines = 1,
+                textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(info, tint = white.copy(alpha = 0.75f))
         }
+        FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white, textAlign = TextAlign.Center)
+        Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
         if (halves.isNotEmpty()) {
             Spacer(Modifier.height(DsSpacing.md))
             HorizontalDivider(color = white.copy(alpha = 0.25f))
