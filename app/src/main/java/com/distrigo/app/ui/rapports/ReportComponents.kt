@@ -137,9 +137,9 @@ fun ReportHeroCard(title: String, amount: String, caption: String, icon: ImageVe
 fun KpiTile(
     label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
     icon: ImageVector, info: ReportInfo,
+    /** The card's own colour, for its icon and pill; the figure stays dark unless it is news. */
+    accent: Color = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
 ) {
-    // Dark text keeps its own figure; the icon and the pill take the Primary then.
-    val accent = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor
     Column(
         modifier
             .fillMaxHeight()

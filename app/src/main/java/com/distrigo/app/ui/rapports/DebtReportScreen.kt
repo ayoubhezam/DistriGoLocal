@@ -235,10 +235,12 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     val change = report.change
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile(words.credit, money.da(report.credit), DsColors.Warning, Modifier.weight(1f), null, Icons.Default.Schedule, debtInfo(report.side, "credit"))
+            // Dark figures; only the balance's trend is coloured, green or red: that is the news.
+            KpiTile(words.credit, money.da(report.credit), DsColors.TextPrimary, Modifier.weight(1f), null, Icons.Default.Schedule,
+                debtInfo(report.side, "credit"), accent = DsColors.Warning)
             KpiTile(
-                words.payments, money.da(report.payments.total), DsColors.Success, Modifier.weight(1f),
-                plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"),
+                words.payments, money.da(report.payments.total), DsColors.TextPrimary, Modifier.weight(1f),
+                plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"), accent = DsColors.Success
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {

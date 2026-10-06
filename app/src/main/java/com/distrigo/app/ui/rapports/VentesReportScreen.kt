@@ -157,19 +157,21 @@ private fun SummaryCard(report: SalesReport) {
 @Composable
 private fun KpiGrid(report: SalesReport) {
     val money = LocalMoneyFormatter.current
-    val marginColor = if (report.grossMargin < 0) DsColors.Danger else DsColors.Primary
+    // The figures are dark; colour is news: a margin is red only when it is a loss.
+    val loss = report.grossMargin < 0
+    val marginColor = if (loss) DsColors.Danger else DsColors.TextPrimary
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         // Each row as tall as its taller tile, so the pairs line up.
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Payé à la vente", money.da(report.all.paid), DsColors.Success, Modifier.weight(1f),
+                "Payé à la vente", money.da(report.all.paid), DsColors.TextPrimary, Modifier.weight(1f),
                 percentOf(report.all.paid, report.all.total), Icons.Default.AccountBalanceWallet,
-                info = ReportInfo("Payé à la vente", "Ce qui a été encaissé au moment même des ventes de la période. Le pourcentage est sa part du chiffre d'affaires.\n\nUn versement fait plus tard par le client n'y figure pas : il se lit dans le rapport Créances et dettes."),
+                info = ReportInfo("Payé à la vente", "Ce qui a été encaissé au moment même des ventes de la période. Le pourcentage est sa part du chiffre d'affaires.\n\nUn versement fait plus tard par le client n'y figure pas : il se lit dans le rapport Créances et dettes."), accent = DsColors.Success
             )
             KpiTile(
-                "À crédit", money.da(report.all.credit), DsColors.Warning, Modifier.weight(1f),
+                "À crédit", money.da(report.all.credit), DsColors.TextPrimary, Modifier.weight(1f),
                 percentOf(report.all.credit, report.all.total), Icons.Default.Schedule,
-                info = ReportInfo("À crédit", "La part des ventes de la période qui n'a pas été payée à la vente : chiffre d'affaires − payé à la vente. Le pourcentage est sa part du chiffre d'affaires.\n\nC'est le crédit accordé sur la période, pas ce que les clients doivent aujourd'hui (voir Créances et dettes)."),
+                info = ReportInfo("À crédit", "La part des ventes de la période qui n'a pas été payée à la vente : chiffre d'affaires − payé à la vente. Le pourcentage est sa part du chiffre d'affaires.\n\nC'est le crédit accordé sur la période, pas ce que les clients doivent aujourd'hui (voir Créances et dettes)."), accent = DsColors.Warning
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -177,7 +179,8 @@ private fun KpiGrid(report: SalesReport) {
             KpiTile(
                 "Marge brute", money.da(report.grossMargin), marginColor, Modifier.weight(1f),
                 report.marginRate?.let { percent(it) },
-                if (report.grossMargin < 0) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                accent = if (loss) DsColors.Danger else DsColors.Primary,
                 info = ReportInfo("Marge brute", "Ventes de la période − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat du produit au moment de la vente.\n\nTaux de marge = marge brute ÷ coût d'achat × 100, la base de la Direction du Commerce.\n\nNi les charges ni les pertes n'en sont déduites."),
             )
             KpiTile(
