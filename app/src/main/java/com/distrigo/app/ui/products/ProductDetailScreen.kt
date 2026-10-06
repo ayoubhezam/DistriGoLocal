@@ -494,9 +494,10 @@ private fun InfoValue(text: String?) {
 @Composable
 private fun ProductInfoCard(product: Product) {
     val money = LocalMoneyFormatter.current
-    // Margin on the selling price, as the app has always shown it.
+    // The margin on the purchase price — (vente − achat) ÷ achat — as the Direction du Commerce counts
+    // it; no percentage without a purchase price to measure it against.
     val marginAmount  = product.selling_price - product.purchase_price
-    val marginPercent = if (product.selling_price > 0) marginAmount / product.selling_price * 100 else 0.0
+    val marginPercent = if (product.purchase_price > 0) marginAmount / product.purchase_price * 100 else null
 
     DetailCard(icon = Icons.Default.Inventory2, title = "Informations du produit") {
         Spacer(Modifier.height(DsSpacing.xs))
@@ -550,7 +551,7 @@ private fun ProductInfoCard(product: Product) {
             PriceLine(Icons.Default.LocalOffer, "Prix de vente", money.da(product.selling_price), DsColors.Primary)
             PriceLine(
                 Icons.Default.Percent, "Marge",
-                "${money.da(marginAmount)} (${String.format(java.util.Locale.FRANCE, "%.1f", marginPercent)} %)",
+                money.da(marginAmount) + (marginPercent?.let { " (${String.format(java.util.Locale.FRANCE, "%.1f", it)} %)" } ?: ""),
                 if (marginAmount < 0) DsColors.Danger else MarginColor
             )
         }

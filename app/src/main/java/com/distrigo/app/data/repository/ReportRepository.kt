@@ -50,7 +50,11 @@ data class SalesReport(
 ) {
     val all: SalesFigures get() = depot + camion
     val grossMargin: Double get() = all.total - cost
-    val marginRate: Double? get() = if (all.total > 0) grossMargin / all.total else null
+    /**
+     * The margin as a share of what the goods cost — (ventes − coût) ÷ coût, the rate the Direction du
+     * Commerce reasons in — or null with no cost to measure it against.
+     */
+    val marginRate: Double? get() = if (cost > 0) grossMargin / cost else null
     val isMarginEstimated: Boolean get() = estimatedCost > 0
     /** Sales less the returns, or null when [returns] is. */
     val netTotal: Double? get() = returns?.let { all.total - it.total }
