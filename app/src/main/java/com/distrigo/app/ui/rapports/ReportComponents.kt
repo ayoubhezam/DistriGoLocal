@@ -82,7 +82,7 @@ class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
  * [halves] are given, a divider and the two halves side by side.
  */
 @Composable
-fun ReportHeroCard(title: String, amount: String, caption: String, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(title: String, amount: String, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
     val white = Color.White
     Column(
         Modifier
@@ -102,7 +102,8 @@ fun ReportHeroCard(title: String, amount: String, caption: String, info: ReportI
             InfoButton(info, tint = white.copy(alpha = 0.75f))
         }
         FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white, textAlign = TextAlign.Center)
-        Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
+        // A card can be its amount alone: the Ventes report counts its sales in a card of their own.
+        if (caption != null) Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
         if (halves.isNotEmpty()) {
             Spacer(Modifier.height(DsSpacing.md))
             HorizontalDivider(color = white.copy(alpha = 0.25f))
