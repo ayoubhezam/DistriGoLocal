@@ -148,13 +148,25 @@ class DistributionReportTest {
         assertEquals(listOf("Centre", "Cité"), souk.sectors.map { it.name })
         // The communes stay all of them, whichever is chosen.
         assertEquals(all.communes, souk.communes)
-        assertEquals(listOf("Sedrata", "Souk Ahras"), souk.communeNames)
+        assertEquals(listOf("Sedrata", "Souk Ahras", NO_COMMUNE), souk.communeChoices)
 
         val sedrata = repository.distribution(month, "Sedrata", today, algiers)
         assertEquals(1, sedrata.clients)
         assertEquals(1, sedrata.served)
         assertEquals(1, sedrata.unsectored)
         assertEquals(listOf("Vide"), sedrata.sectors.map { it.name })
+    }
+
+    @Test
+    fun theClientsWithoutACommuneCanBeChosen() = runBlocking {
+        val all = repository.distribution(month, null, today, algiers)
+        val none = repository.distribution(month, NO_COMMUNE, today, algiers)
+        // Hakim alone: no commune, no sector, no sale.
+        assertEquals(1, none.clients)
+        assertEquals(0, none.served)
+        assertEquals(1, none.unsectored)
+        assertEquals(emptyList<String>(), none.sectors.map { it.name })
+        assertEquals(all.communes, none.communes)
     }
 
     @Test

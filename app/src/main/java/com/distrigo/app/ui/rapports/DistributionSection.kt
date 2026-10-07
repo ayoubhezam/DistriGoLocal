@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.repository.CommuneStat
 import com.distrigo.app.data.repository.DistributionReport
+import com.distrigo.app.data.repository.NO_COMMUNE
 import com.distrigo.app.data.repository.SectorStat
 import com.distrigo.app.ui.common.EntityAvatar
 import com.distrigo.app.ui.common.FitText
@@ -77,6 +78,13 @@ private val UnservedColor = DsColors.Warning
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 private const val ALL_COMMUNES = "Toutes les communes"
 private const val SANS_COMMUNE = "Sans commune"
+
+/** A commune chosen, as the selector names it: null for all of them, [NO_COMMUNE] for the clients without one. */
+private fun communeLabel(commune: String?) = when (commune) {
+    null -> ALL_COMMUNES
+    NO_COMMUNE -> SANS_COMMUNE
+    else -> commune
+}
 
 private val INFO_DISTRIBUTION = ReportInfo(
     "Meilleure distribution",
@@ -111,7 +119,7 @@ fun LazyListScope.distributionItems(
     onSector: (SectorStat) -> Unit,
 ) {
     item(key = "distribution_title") { TitleWithInfo("Meilleure distribution", INFO_DISTRIBUTION) }
-    item(key = "distribution_commune") { CommuneSelector(commune, distribution.communeNames, onCommune) }
+    item(key = "distribution_commune") { CommuneSelector(commune, distribution.communeChoices, onCommune) }
     item(key = "distribution_kpis") { DistributionKpis(distribution) }
     item(key = "distribution_sectors") { TopSectorsCard(distribution, onSeeAll, onSector) }
     item(key = "distribution_communes") { TitleWithInfo("Répartition par commune", INFO_COMMUNES) }
@@ -120,7 +128,8 @@ fun LazyListScope.distributionItems(
 
 /**
  * The commune the figures and sectors are narrowed to, as the period is chosen at the top of the
- * report: the same outlined field, opening a list — "Toutes les communes", then each by name.
+ * report: the same outlined field, opening a list — "Toutes les communes", each by name, then "Sans
+ * commune" when some clients have none.
  */
 @Composable
 private fun CommuneSelector(selected: String?, names: List<String>, onSelect: (String?) -> Unit) {
@@ -130,7 +139,7 @@ private fun CommuneSelector(selected: String?, names: List<String>, onSelect: (S
     val options: List<String?> = listOf(null) + names + listOfNotNull(selected?.takeIf { it !in names })
     Box(Modifier.padding(horizontal = DsSpacing.lg)) {
         ReportSelectorField(
-            Icons.Default.LocationOn, selected ?: ALL_COMMUNES, null, "Changer de commune",
+            Icons.Default.LocationOn, communeLabel(selected), null, "Changer de commune",
             Modifier.onSizeChanged { width = it.width },
         ) { open = true }
         DropdownMenu(
@@ -144,7 +153,7 @@ private fun CommuneSelector(selected: String?, names: List<String>, onSelect: (S
                 val on = option == selected
                 DropdownMenuItem(
                     text = {
-                        Text(option ?: ALL_COMMUNES, fontSize = DsTextSize.body,
+                        Text(communeLabel(option), fontSize = DsTextSize.body,
                             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (on) DsColors.Primary else DsColors.TextPrimary)
                     },
@@ -404,7 +413,7 @@ fun SectorsScreen(onBack: () -> Unit, viewModel: VentesReportViewModel) {
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Secteurs",
-            subtitle = state.commune?.let { "Commune : $it" } ?: "Tous les secteurs",
+            subtitle = state.commune?.let { "Commune : ${communeLabel(it)}" } ?: "Tous les secteurs",
             leading = DsTopBarLeading.Back(onBack),
         )
         LazyColumn(

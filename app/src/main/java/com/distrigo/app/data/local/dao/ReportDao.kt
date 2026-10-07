@@ -98,7 +98,8 @@ interface ReportDao {
     // The distribution counts a client when it is not deleted and was there by the period's end: created
     // before it, or having bought before it — a client added after its first sales, as an import or the
     // test data do, is still there. A client is served when it has a sale between :start and :end, from
-    // :source or both. :commune narrows the figures and the sectors to one commune; the communes are
+    // :source or both. :commune narrows the figures and the sectors to one commune — '' to the clients
+    // without one, who have no sector either —; the communes are
     // always all of them.
     // Every ratio is 0 when there is no client: never a division by zero.
 
@@ -151,7 +152,7 @@ interface ReportDao {
             FROM clients c
             WHERE c.deleted_at IS NULL
               AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
-              AND (:commune IS NULL OR c.commune_name = :commune)
+              AND (:commune IS NULL OR COALESCE(c.commune_name, '') = :commune)
         )
         """
     )

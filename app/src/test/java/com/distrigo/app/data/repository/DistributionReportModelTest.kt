@@ -25,13 +25,16 @@ class DistributionReportModelTest {
     }
 
     @Test
-    fun `the selector offers the communes by name, without the clients without one`() {
+    fun `the selector offers the communes by name, then the clients without one`() {
         val r = report(emptyList()).copy(communes = listOf(
             CommuneStat("Souk Ahras", 9, 6, 3, 4, 2.0 / 3),
             CommuneStat("ain zana", 4, 1, 3, 1, 0.25),
             CommuneStat("Sedrata", 5, 5, 0, 2, 1.0),
             CommuneStat(null, 3, 1, 2, 0, 1.0 / 3),
         ))
-        assertEquals(listOf("ain zana", "Sedrata", "Souk Ahras"), r.communeNames)
+        assertEquals(listOf("ain zana", "Sedrata", "Souk Ahras", NO_COMMUNE), r.communeChoices)
+        // No client without a commune, no such choice.
+        val all = r.copy(communes = r.communes.filter { it.name != null })
+        assertEquals(listOf("ain zana", "Sedrata", "Souk Ahras"), all.communeChoices)
     }
 }

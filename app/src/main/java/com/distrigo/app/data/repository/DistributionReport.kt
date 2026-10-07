@@ -2,6 +2,9 @@ package com.distrigo.app.data.repository
 
 import java.time.LocalDate
 
+/** The commune chosen for the clients without one: they have no sector either. */
+const val NO_COMMUNE = ""
+
 /**
  * A sector over the period: its [clients], those [served] — at least one sale — those [withoutSale],
  * and [rate], served ÷ clients, 0 without a client.
@@ -53,8 +56,13 @@ data class DistributionReport(
     /** The sectors a bar is drawn for: the [TOP_SECTORS] with the most clients, none without a client. */
     val topSectors: List<SectorStat> get() = sectors.filter { it.clients > 0 }.take(TOP_SECTORS)
 
-    /** The communes a selector offers, by name: those with clients, without the clients without one. */
-    val communeNames: List<String> get() = communes.mapNotNull { it.name }.sortedWith(String.CASE_INSENSITIVE_ORDER)
+    /**
+     * What a selector offers after all the communes: those with clients by name, then [NO_COMMUNE] when
+     * some clients have none.
+     */
+    val communeChoices: List<String>
+        get() = communes.mapNotNull { it.name }.sortedWith(String.CASE_INSENSITIVE_ORDER) +
+            listOfNotNull(NO_COMMUNE.takeIf { communes.any { it.name == null } })
 
     companion object {
         const val TOP_SECTORS = 7

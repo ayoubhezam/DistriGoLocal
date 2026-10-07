@@ -100,7 +100,8 @@ class VentesReportViewModelTest {
         assertEquals(1850.0, all.report!!.all.total, 0.0)
         assertEquals(4, all.distribution!!.clients)
         assertEquals(3, all.distribution!!.served)
-        assertEquals(listOf("Sedrata", "Souk Ahras"), all.distribution!!.communeNames)
+        // Every client has a commune here: no "Sans commune" to offer.
+        assertEquals(listOf("Sedrata", "Souk Ahras"), all.distribution!!.communeChoices)
         val salesQueries = dao.salesQueries
         val distributionQueries = dao.distributionQueries
 
