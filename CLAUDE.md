@@ -48,7 +48,7 @@ A setting (`business_settings.allow_negative_stock`), not a fixed rule. Dépôt 
 `ui/navigation/DrillDown.kt`. A screen says *what* to open, never which route:
 `LocalDrillDown.current(DrillTarget.Client(id))`. `LocalDrillDown` is provided once at the root, so
 any section can open any record. Targets: Client, Supplier, Bon, Vente, Perte, Inventaire,
-RetoursClient, RetoursFournisseur.
+RetoursClient, RetoursFournisseur, Produit, Tournee.
 - `drillDown()` pops back to the record if it is already open on the stack (Back never loops) and
   ignores a double tap.
 - To add a target: a `DrillTarget` case, its `Screen.Drill` route, and its case in `screen()`.

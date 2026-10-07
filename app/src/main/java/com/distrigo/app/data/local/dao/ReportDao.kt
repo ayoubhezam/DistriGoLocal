@@ -78,8 +78,34 @@ data class InactiveRow(val id: Int, val name: String, val image_uri: String?, va
 data class ReturnsCostRow(val count: Int, val total: Double, val cost: Double)
 data class ChargeTypeRow(val type: String, val count: Int, val value: Double)
 
+/** One tournée and its figures, as TourReport reads them. */
+data class TourRow(
+    val id: Int, val name: String?, val status: String, val date_debut: String,
+    val planned: Int, val visited: Int, val sales: Int, val buyers: Int, val total: Double, val paid: Double,
+)
+
 @Dao
 interface ReportDao {
+
+    /**
+     * The tournées started between [start] and [end], newest first: their planned and visited clients,
+     * and their sales — how many, to how many clients, their total and what was paid at the sale.
+     */
+    @Query(
+        """
+        SELECT t.id AS id, t.nom AS name, t.status AS status, t.date_debut AS date_debut,
+               (SELECT COUNT(*) FROM tournee_clients tc WHERE tc.tournee_id = t.id) AS planned,
+               (SELECT COUNT(*) FROM tournee_clients tc WHERE tc.tournee_id = t.id AND tc.status = 'visite') AS visited,
+               (SELECT COUNT(*) FROM ventes v WHERE v.tournee_id = t.id) AS sales,
+               (SELECT COUNT(DISTINCT v.client_id) FROM ventes v WHERE v.tournee_id = t.id) AS buyers,
+               (SELECT COALESCE(SUM(v.total), 0) FROM ventes v WHERE v.tournee_id = t.id) AS total,
+               (SELECT COALESCE(SUM(MIN(v.montant_paye, v.total)), 0) FROM ventes v WHERE v.tournee_id = t.id) AS paid
+        FROM tournees t
+        WHERE t.date_debut >= :start AND t.date_debut < :end
+        ORDER BY t.date_debut DESC, t.id DESC
+        """
+    )
+    suspend fun tours(start: String, end: String): List<TourRow>
 
     /**
      * The client returns dated [firstDay] to [lastDay], both included: how many, their lines at the

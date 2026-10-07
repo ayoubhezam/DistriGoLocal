@@ -201,6 +201,29 @@ class ReportRepository(
         )
     }
 
+    /** A signal each time the Tournées report's tables are written. */
+    fun tourChanges(): Flow<Unit> = writes(TOUR_TABLES).map { }
+
+    /** The Tournées report: the tournées started over the period, newest first. */
+    suspend fun tourReport(
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): TourReport {
+        val range = filter.resolve(today, zone)
+        val tours = dao.tours(range.start, range.end).map {
+            TourFigures(
+                id = it.id,
+                name = it.name?.takeIf { n -> n.isNotBlank() } ?: "Tournée #${it.id}",
+                day = runCatching { Instant.parse(it.date_debut).atZone(zone).toLocalDate() }.getOrNull(),
+                open = it.status == "ouverte",
+                planned = it.planned, visited = it.visited, sales = it.sales, buyers = it.buyers,
+                total = it.total, paid = it.paid,
+            )
+        }
+        return TourReport(range, tours)
+    }
+
     /** The sales of one local [day], from [source] or both, newest first. */
     suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
         dao.salesBetween(
@@ -239,6 +262,9 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 
 /** The tables the Ventes report reads. */
 private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Tournées report reads. */
+private val TOUR_TABLES = arrayOf("tournees", "tournee_clients", "ventes")
 
 /** The tables the Résultat report reads. */
 private val PROFIT_TABLES = arrayOf("ventes", "vente_items", "retour_client", "retour_client_items", "charges", "pertes", "products")

@@ -58,7 +58,7 @@ private class ReportEntry(
  * see the plan of 2026-10-02. Each is one screen under the same period filter.
  */
 @Composable
-fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit) {
+fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit, onOpenTournees: () -> Unit) {
     val entries = listOf(
         ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, crédit, marge, par jour", onOpenVentes),
         ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF9333EA), "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
@@ -66,7 +66,7 @@ fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDette
         ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),
         ReportEntry(Icons.Default.Inventory2, Color(0xFF667085), "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
         ReportEntry(Icons.Default.PieChart, DsColors.Success, "Résultat", "Marge, charges et pertes : le bénéfice", onOpenResultat),
-        ReportEntry(Icons.Default.LocalShipping, Color(0xFFE91E63), "Tournées", "Ventes, encaissements et visites par tournée", null),
+        ReportEntry(Icons.Default.LocalShipping, Color(0xFFE91E63), "Tournées", "Ventes, encaissements et visites par tournée", onOpenTournees),
     )
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
