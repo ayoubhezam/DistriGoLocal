@@ -3,6 +3,7 @@ package com.distrigo.app.data.repository
 import com.distrigo.app.data.local.dao.ReportDao
 import com.distrigo.app.data.local.dao.SalesHour
 import com.distrigo.app.data.model.report.ReportFilter
+import com.distrigo.app.data.model.report.ReportPeriod
 import com.distrigo.app.data.model.report.ReportRange
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /** Sales from one place, or from both: counted, totalled, and split into paid at the sale and left on credit. */
 data class SalesFigures(val count: Int, val total: Double, val paid: Double) {
@@ -239,6 +241,51 @@ class ReportRepository(
             losses = dao.lossesByType(range.start, range.end, null).map { LossByType(it.type, it.count, it.value) },
         )
     }
+
+    /** The sales between [start] and [end] — any time of day, not whole days —, both places together. */
+    suspend fun salesWindow(start: Instant, end: Instant): SalesWindow {
+        val from = com.distrigo.app.data.time.BusinessDates.bound(start)
+        val to = com.distrigo.app.data.time.BusinessDates.bound(end)
+        val bySource = dao.salesBySource(from, to, null)
+        return SalesWindow(
+            count = bySource.sumOf { it.count },
+            total = bySource.sumOf { it.total },
+            paid = bySource.sumOf { it.paid },
+            cost = dao.salesCost(from, to, null).cost,
+            clients = dao.clientsServed(from, to, null),
+        )
+    }
+
+    /** The Dashboard's sales as of [now] — see DashboardSales. */
+    suspend fun dashboardSales(now: ZonedDateTime = ZonedDateTime.now()): DashboardSales {
+        val today = now.toLocalDate()
+        val dayStart = today.atStartOfDay(now.zone)
+        val monthStart = today.withDayOfMonth(1).atStartOfDay(now.zone)
+        return DashboardSales(
+            now = now,
+            today = salesWindow(dayStart.toInstant(), now.toInstant()),
+            lastWeek = salesWindow(dayStart.minusWeeks(1).toInstant(), now.minusWeeks(1).toInstant()),
+            month = salesWindow(monthStart.toInstant(), now.toInstant()),
+            // The month before, to the same date — the 31st meets the last day of a shorter month.
+            lastMonth = salesWindow(monthStart.minusMonths(1).toInstant(), now.minusMonths(1).toInstant()),
+            week = salesReport(ReportFilter(ReportPeriod.SEPT_JOURS), today, now.zone).days
+                .map { DayTotal(it.day, it.depot.total + it.camion.total) },
+        )
+    }
+
+    /** The Dashboard's alerts as of [today]. */
+    suspend fun dashboardAlerts(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): DashboardAlerts {
+        val stock = stockReport(ReportFilter(), today, zone)
+        val clients = debtReport(DebtSide.CLIENTS, ReportFilter(), today, zone)
+        return DashboardAlerts(stock.outOfStock, stock.lowStock, clients.ages[AgeBand.OLD.ordinal])
+    }
+
+    /** What the clients owe and what is owed to the suppliers, as of [today]. */
+    suspend fun dashboardBalances(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): DashboardBalances =
+        DashboardBalances(
+            clientsOwe = debtReport(DebtSide.CLIENTS, ReportFilter(), today, zone).outstanding,
+            owedToSuppliers = debtReport(DebtSide.FOURNISSEURS, ReportFilter(), today, zone).outstanding,
+        )
 
     /** The Créances et dettes report for one [side] — see DebtReport. */
     suspend fun debtReport(

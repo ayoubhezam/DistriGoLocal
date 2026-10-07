@@ -1,7 +1,9 @@
 package com.distrigo.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,14 +15,31 @@ import com.distrigo.app.ui.rapports.RapportsHomeScreen
 import com.distrigo.app.ui.rapports.VentesReportScreen
 import com.distrigo.app.ui.rapports.VentesReportViewModel
 
-/** Rapports: the list of reports, and each report under it. They share one filter (ReportFilterStore). */
+/** A report the Rapports section can be opened on, instead of its list. */
+enum class ReportEntry {
+    VENTES,
+    REAPPRO,
+    CREANCES_CLIENTS,
+    DETTES_FOURNISSEURS,
+}
+
+/**
+ * Rapports: the list of reports, and each report under it. They share one filter (ReportFilterStore).
+ * Opened on [open], it starts on that report, and Back from it leaves the section.
+ */
 @Composable
-fun RapportsNavHost(onBack: () -> Unit) {
+fun RapportsNavHost(onBack: () -> Unit, open: ReportEntry? = null) {
     val navController = rememberTrackedNavController()
+    val exit = { onBack(); Unit }
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.RapportsHome.route,
+        startDestination   = when (open) {
+            null -> Screen.RapportsHome.route
+            ReportEntry.VENTES -> Screen.RapportsVentes.route
+            ReportEntry.REAPPRO -> Screen.RapportsReappro.route
+            ReportEntry.CREANCES_CLIENTS, ReportEntry.DETTES_FOURNISSEURS -> Screen.RapportsDettes.route
+        },
         route              = Screen.RapportsGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -79,7 +98,7 @@ fun RapportsNavHost(onBack: () -> Unit) {
         composable(Screen.RapportsReappro.route) { entry ->
             val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
             com.distrigo.app.ui.rapports.RestockScreen(
-                onBack    = { navController.popBackStack() },
+                onBack    = { navController.popOr(exit) },
                 viewModel = hiltViewModel<com.distrigo.app.ui.rapports.StockReportViewModel>(parent)
             )
         }
@@ -112,7 +131,7 @@ fun RapportsNavHost(onBack: () -> Unit) {
         // commune is the report's own and starts afresh each time it opens.
         composable(Screen.RapportsVentes.route) {
             VentesReportScreen(
-                onBack       = { navController.popBackStack() },
+                onBack       = { navController.popOr(exit) },
                 onAllSectors = { navController.navigate(Screen.RapportsSecteurs.route) },
                 viewModel    = hiltViewModel<VentesReportViewModel>()
             )
@@ -128,10 +147,17 @@ fun RapportsNavHost(onBack: () -> Unit) {
         // the report already loaded, on the same side, without reading the database again.
         composable(Screen.RapportsDettes.route) { entry ->
             val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            val viewModel = hiltViewModel<DebtReportViewModel>(parent)
+            // Opened on the suppliers' debts: that side, once — a later switch is the user's own.
+            var sided by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+            if (!sided) {
+                sided = true
+                if (open == ReportEntry.DETTES_FOURNISSEURS) viewModel.setSide(com.distrigo.app.data.repository.DebtSide.FOURNISSEURS)
+            }
             DebtReportScreen(
-                onBack    = { navController.popBackStack() },
+                onBack    = { navController.popOr(exit) },
                 onSeeAll  = { navController.navigate(Screen.RapportsDebiteurs.route) },
-                viewModel = hiltViewModel<DebtReportViewModel>(parent)
+                viewModel = viewModel
             )
         }
         composable(Screen.RapportsDebiteurs.route) { entry ->

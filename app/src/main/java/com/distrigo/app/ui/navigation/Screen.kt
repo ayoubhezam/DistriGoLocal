@@ -33,6 +33,10 @@ sealed class Screen(val route: String) {
     data object PlusPertes       : Screen("plus_pertes")
     data object PlusInventaire   : Screen("plus_inventaire")
     data object PlusRapports     : Screen("plus_rapports")
+    /** A report opened straight from the Dashboard: Back returns there, not to the list. */
+    data object PlusRapport      : Screen("plus_rapport/{report}") {
+        fun createRoute(report: ReportEntry) = "plus_rapport/${report.name}"
+    }
     data object PlusParametres   : Screen("plus_parametres")
 
     // ── Paramètres (PlusParametres content): its own NavHost, one destination per settings screen ──

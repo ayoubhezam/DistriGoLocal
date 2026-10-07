@@ -89,7 +89,11 @@ fun ReportHeroCard(title: String, amount: String, caption: String?, info: Report
 
 /** The same card, its amount counting to a new value when it changes. */
 @Composable
-fun ReportHeroCard(title: String, amount: Figure, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(
+    title: String, amount: Figure, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList(),
+    /** What a tap on the card opens, if anything — the Dashboard's opens its report. */
+    onClick: (() -> Unit)? = null,
+) {
     val white = Color.White
     Column(
         Modifier
@@ -97,6 +101,7 @@ fun ReportHeroCard(title: String, amount: Figure, caption: String?, info: Report
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Primary)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(DsSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

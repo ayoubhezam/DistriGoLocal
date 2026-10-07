@@ -47,6 +47,9 @@ object BusinessDates {
     fun dayStart(day: LocalDate, zone: ZoneId = ZoneId.systemDefault()): String =
         BOUND.format(day.atStartOfDay(zone).toInstant())
 
+    /** Any [instant] — not only a day's start — written as [dayStart] writes one, to the second. */
+    fun bound(instant: Instant): String = BOUND.format(instant)
+
     /** A local month, `yyyy-MM`, as the half-open range of instants it covers: `[start, end)`. */
     fun monthBounds(month: String, zone: ZoneId = ZoneId.systemDefault()): Pair<String, String> {
         val first = YearMonth.parse(month).atDay(1)

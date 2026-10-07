@@ -8,6 +8,8 @@ import com.distrigo.app.ui.dashboard.DashboardScreen
 
 @Composable
 fun DashboardNavHost(
+    /** Opens a report straight from one of the Dashboard's cards. */
+    onOpenReport         : (ReportEntry) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {}
@@ -23,6 +25,7 @@ fun DashboardNavHost(
     ) {
         composable(Screen.Dashboard.route) {
             DashboardScreen(
+                onOpenReport         = onOpenReport,
                 onOpenMenu           = onOpenMenu,
                 onNotificationsClick = onNotificationsClick,
                 onProfileClick       = onProfileClick
