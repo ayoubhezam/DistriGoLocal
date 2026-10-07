@@ -56,6 +56,9 @@ class StressDataViewModel @Inject constructor(private val db: AppDatabase) : Vie
     /** Only the inventory history, over the products already there. */
     fun generateInventories() = run { generator, progress -> generator.generateInventories(progress) }
 
+    /** The test clients spread over test sectors and communes, for the Ventes report's distribution. */
+    fun spreadClientsOverSectors() = run { generator, progress -> generator.spreadClientsOverSectors(progress) }
+
     private fun run(block: suspend (StressDataGenerator, (StressDataGenerator.Progress) -> Unit) -> Unit) {
         if (_state.value is StressDataState.Running) return
         _state.value = StressDataState.Running("Démarrage…", 0f)
@@ -85,6 +88,7 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     var confirming by remember { mutableStateOf(false) }
     var confirmingInventories by remember { mutableStateOf(false) }
+    var confirmingSectors by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -125,6 +129,42 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
             "62 inventaires terminés sur cinq ans, sur les produits existants : un par mois de 500 à 3 000 produits, et deux du catalogue entier",
             fontSize = DsTextSize.caption,
             color = DsColors.TextSecondary,
+        )
+    }
+
+    Spacer(Modifier.height(DsSpacing.sm))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.DangerLight)
+            .clickable(enabled = state !is StressDataState.Running) { confirmingSectors = true }
+            .padding(DsSpacing.lg),
+    ) {
+        Text("DEBUG · Répartir les clients de test par secteur", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
+        Text(
+            "20 secteurs dans 4 communes de Souk Ahras ; les clients de test sans commune y sont répartis, quelques-uns gardés sans secteur ou sans commune",
+            fontSize = DsTextSize.caption,
+            color = DsColors.TextSecondary,
+        )
+    }
+
+    if (confirmingSectors) {
+        AlertDialog(
+            onDismissRequest = { confirmingSectors = false },
+            title = { Text("Répartir les clients de test ?") },
+            text = {
+                Text(
+                    "Crée 20 secteurs de test et range les clients de test sans commune dans ces secteurs. " +
+                        "Seuls les clients de test sont modifiés ; cela ne se fait qu'une fois."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmingSectors = false; viewModel.spreadClientsOverSectors() }) { Text("Répartir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingSectors = false }) { Text("Annuler") }
+            },
         )
     }
 

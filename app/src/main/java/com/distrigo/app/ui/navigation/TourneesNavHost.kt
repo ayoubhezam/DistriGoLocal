@@ -19,12 +19,9 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 fun TourneesNavHost(
     onFullScreenChange: (Boolean) -> Unit = {},
     onNavigateToChargement: () -> Unit = {},
-    onBack            : (() -> Unit)? = null,
-    /** Opens the section on that tournée instead of the list — a drill-down: Back then leaves. */
-    openTourneeId     : Int? = null,
+    onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
-    val exit = { onBack?.invoke(); Unit }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
         onFullScreenChange(currentRoute != null && currentRoute != Screen.TourneesHome.route)
@@ -32,7 +29,7 @@ fun TourneesNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = if (openTourneeId != null) Screen.TourneesDetail.route else Screen.TourneesHome.route,
+        startDestination   = Screen.TourneesHome.route,
         route              = Screen.TourneesGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -52,8 +49,7 @@ fun TourneesNavHost(
 
         composable(
             route     = Screen.TourneesDetail.route,
-            // Started on, it has no route to read its id from: the drill-down's id is the default.
-            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType; openTourneeId?.let { defaultValue = it } })
+            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
@@ -62,7 +58,7 @@ fun TourneesNavHost(
             TourneeDetailScreen(
                 tourneeId             = tourneeId,
                 viewModel              = viewModel,
-                onBack                 = { navController.popOr(exit) },
+                onBack                 = { navController.popBackStack() },
                 onEditTournee          = { tournee -> navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) },
                 onAddClients           = { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
                 onCreateVente          = { clientId, clientName ->

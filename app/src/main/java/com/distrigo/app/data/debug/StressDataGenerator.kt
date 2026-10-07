@@ -17,6 +17,7 @@ import com.distrigo.app.data.local.entity.RetourClientEntity
 import com.distrigo.app.data.local.entity.RetourClientItemEntity
 import com.distrigo.app.data.local.entity.RetourFournisseurEntity
 import com.distrigo.app.data.local.entity.RetourFournisseurItemEntity
+import com.distrigo.app.data.local.entity.SecteurEntity
 import com.distrigo.app.data.local.entity.SupplierEntity
 import com.distrigo.app.data.local.entity.TourneeClientEntity
 import com.distrigo.app.data.local.entity.TourneeEntity
@@ -121,6 +122,56 @@ class StressDataGenerator(private val db: AppDatabase) {
                           else products.shuffled(random).take(random.nextInt(MIN_INVENTORY_LINES, MAX_INVENTORY_LINES + 1))
             insertInventory(random, at, counted)
             onProgress(Progress("Inventaires : ${k + 1} / $sessions", (k + 1).toFloat() / sessions))
+        }
+        onProgress(Progress("Terminé", 1f))
+    }
+
+    /**
+     * Spreads the test clients still without a commune over [TEST_SECTORS] — twenty sectors in four
+     * communes of Souk Ahras, of very different sizes, and one left empty — so the Ventes report's
+     * distribution has something to show. About one client in twelve keeps no commune, and one in
+     * fifteen gets a commune but no sector: the report's "Sans commune" and "sans secteur".
+     *
+     * Only the test clients, and once: a second run finds the sectors there and stops.
+     */
+    suspend fun spreadClientsOverSectors(onProgress: (Progress) -> Unit) = withContext(Dispatchers.Default) {
+        val random = Random(SEED + 2)
+        val existing = db.secteurDao().getAllSecteurs()
+        require(existing.none { s -> TEST_SECTORS.any { it.commune == s.commune_name && it.name == s.nom } }) {
+            "Les secteurs de test sont déjà là"
+        }
+        val clients = db.clientDao().getAllClients().filter { it.note == TAG && it.commune_name == null && it.deleted_at == null }
+        require(clients.isNotEmpty()) { "Aucun client de test sans commune : générez d'abord les données de test" }
+        val now = Instant.now().toString()
+        val communes = TEST_SECTORS.map { it.commune }.distinct()
+        db.withTransaction {
+            val sectors = TEST_SECTORS.map { t ->
+                val entity = SecteurEntity(nom = t.name, commune_name = t.commune, wilaya_name = TEST_WILAYA, created_at = now)
+                entity.copy(id = db.secteurDao().insertSecteur(entity).toInt())
+            }
+            // A sector drawn in proportion to its weight: some crowded, some nearly empty, one empty.
+            val weights = TEST_SECTORS.map { it.weight }
+            fun pick(): SecteurEntity {
+                var roll = random.nextInt(weights.sum())
+                for ((i, w) in weights.withIndex()) {
+                    if (roll < w) return sectors[i]
+                    roll -= w
+                }
+                return sectors.first()
+            }
+            clients.forEachIndexed { i, c ->
+                val roll = random.nextInt(100)
+                when {
+                    roll < 8 -> Unit
+                    roll < 15 -> db.clientDao().updateClient(c.copy(wilaya_name = TEST_WILAYA, commune_name = communes[random.nextInt(communes.size)]))
+                    else -> pick().let { s ->
+                        db.clientDao().updateClient(
+                            c.copy(wilaya_name = TEST_WILAYA, commune_name = s.commune_name, secteur_id = s.id, secteur_name = s.nom)
+                        )
+                    }
+                }
+                if (i % 100 == 0) onProgress(Progress("Clients : ${i + 1} / ${clients.size}", (i + 1).toFloat() / clients.size))
+            }
         }
         onProgress(Progress("Terminé", 1f))
     }
@@ -537,6 +588,34 @@ class StressDataGenerator(private val db: AppDatabase) {
         const val AR_COMBINATIONS = 20 * 8 * 8
         const val TAG = "Données de test"
         const val USER = "Test"
+
+        const val TEST_WILAYA = "Souk Ahras"
+
+        /** A test sector, and how many clients it draws compared with the others. */
+        class TestSector(val commune: String, val name: String, val weight: Int)
+
+        val TEST_SECTORS = listOf(
+            TestSector("Souk Ahras", "Centre-ville", 14),
+            TestSector("Souk Ahras", "Cité 1000 logements", 12),
+            TestSector("Souk Ahras", "Cité Diar Zitoun", 10),
+            TestSector("Souk Ahras", "Cité El Hamma", 9),
+            TestSector("Souk Ahras", "Zone industrielle", 8),
+            TestSector("Souk Ahras", "Cité Djenane Tefah", 7),
+            TestSector("Souk Ahras", "Les Allemands", 6),
+            TestSector("Souk Ahras", "Cité Bouhafs", 5),
+            TestSector("Sedrata", "Centre Sedrata", 9),
+            TestSector("Sedrata", "Cité 300 logements", 7),
+            TestSector("Sedrata", "Cité El Wiam", 6),
+            TestSector("Sedrata", "Quartier Sud", 5),
+            TestSector("Sedrata", "Zone d'activités", 0),
+            TestSector("Taoura", "Centre Taoura", 6),
+            TestSector("Taoura", "Cité Ennasr", 5),
+            TestSector("Taoura", "Douar Ouled Moumen", 4),
+            TestSector("Taoura", "Cité 200 logements", 3),
+            TestSector("Hanencha", "Centre Hanencha", 4),
+            TestSector("Hanencha", "Cité 150 logements", 3),
+            TestSector("Hanencha", "El Kouif", 2),
+        )
 
         val SUPPLIERS = listOf(
             "Cevital Distribution", "Groupe Hamoud", "Soummam Lait", "Rouiba SPA", "Ifri Eaux",

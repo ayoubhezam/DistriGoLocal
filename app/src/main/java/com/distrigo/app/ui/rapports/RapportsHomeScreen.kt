@@ -20,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -58,15 +57,14 @@ private class ReportEntry(
  * see the plan of 2026-10-02. Each is one screen under the same period filter.
  */
 @Composable
-fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit, onOpenTournees: () -> Unit) {
+fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit) {
     val entries = listOf(
-        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, crédit, marge, par jour", onOpenVentes),
+        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, marge, clients par secteur", onOpenVentes),
         ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF9333EA), "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
         ReportEntry(Icons.Default.People, Color(0xFF0E9384), "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
         ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),
         ReportEntry(Icons.Default.Inventory2, Color(0xFF667085), "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
         ReportEntry(Icons.Default.PieChart, DsColors.Success, "Résultat", "Marge, charges et pertes : le bénéfice", onOpenResultat),
-        ReportEntry(Icons.Default.LocalShipping, Color(0xFFE91E63), "Tournées", "Ventes, encaissements et visites par tournée", onOpenTournees),
     )
 
     Column(Modifier.fillMaxSize().background(DsColors.Surface)) {

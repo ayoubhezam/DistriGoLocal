@@ -11,6 +11,7 @@ import com.distrigo.app.ui.rapports.DebtReportViewModel
 import com.distrigo.app.ui.rapports.DebtorsScreen
 import com.distrigo.app.ui.rapports.RapportsHomeScreen
 import com.distrigo.app.ui.rapports.VentesReportScreen
+import com.distrigo.app.ui.rapports.VentesReportViewModel
 
 /** Rapports: the list of reports, and each report under it. They share one filter (ReportFilterStore). */
 @Composable
@@ -34,15 +35,7 @@ fun RapportsNavHost(onBack: () -> Unit) {
                 onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) },
                 onOpenStock = { navController.navigate(Screen.RapportsStock.route) },
                 onOpenTiers = { navController.navigate(Screen.RapportsTiers.route) },
-                onOpenResultat = { navController.navigate(Screen.RapportsResultat.route) },
-                onOpenTournees = { navController.navigate(Screen.RapportsTournees.route) }
-            )
-        }
-        composable(Screen.RapportsTournees.route) { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
-            com.distrigo.app.ui.rapports.TourReportScreen(
-                onBack    = { navController.popBackStack() },
-                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.TourReportViewModel>(parent)
+                onOpenResultat = { navController.navigate(Screen.RapportsResultat.route) }
             )
         }
         composable(Screen.RapportsResultat.route) { entry ->
@@ -114,17 +107,22 @@ fun RapportsNavHost(onBack: () -> Unit) {
                 viewModel = hiltViewModel<com.distrigo.app.ui.rapports.ProduitsReportViewModel>(parent)
             )
         }
+        // The report holds its ViewModel, and its "Voir tout" of the sectors borrows it: the list shows
+        // the sectors already loaded, in the same commune. Held by the report, not the graph, the
+        // commune is the report's own and starts afresh each time it opens.
         composable(Screen.RapportsVentes.route) {
             VentesReportScreen(
-                onBack    = { navController.popBackStack() },
-                onOpenDay = { day -> navController.navigate(Screen.RapportsVentesJour.createRoute(day)) }
+                onBack       = { navController.popBackStack() },
+                onAllSectors = { navController.navigate(Screen.RapportsSecteurs.route) },
+                viewModel    = hiltViewModel<VentesReportViewModel>()
             )
         }
-        composable(
-            route     = Screen.RapportsVentesJour.route,
-            arguments = listOf(androidx.navigation.navArgument("day") { type = androidx.navigation.NavType.StringType })
-        ) {
-            com.distrigo.app.ui.rapports.DaySalesScreen(onBack = { navController.popBackStack() })
+        composable(Screen.RapportsSecteurs.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsVentes.route) }
+            com.distrigo.app.ui.rapports.SectorsScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<VentesReportViewModel>(parent)
+            )
         }
         // The report and its "Voir tout" share one ViewModel, held by the graph: the full list shows
         // the report already loaded, on the same side, without reading the database again.

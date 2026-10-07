@@ -84,25 +84,65 @@ class ReportRepository(
         filter: ReportFilter,
         today: LocalDate = LocalDate.now(),
         zone: ZoneId = ZoneId.systemDefault(),
+        /** Only the sales — and returns — of this commune's clients; all of them when null. */
+        commune: CommuneFilter? = null,
     ): SalesReport {
         val range = filter.resolve(today, zone)
-        val bySource = dao.salesBySource(range.start, range.end, range.source).associateBy { it.source }
+        val c = commune?.name
+        val bySource = dao.salesBySource(range.start, range.end, range.source, c).associateBy { it.source }
         fun figures(source: String) = bySource[source]?.let { SalesFigures(it.count, it.total, it.paid) } ?: SalesFigures.ZERO
-        val cost = dao.salesCost(range.start, range.end, range.source)
+        val cost = dao.salesCost(range.start, range.end, range.source, c)
         val returns = if (range.source == null) {
-            dao.clientReturns(range.firstDay.toString(), range.lastDay.toString()).let { ReturnFigures(it.count, it.total) }
+            dao.clientReturns(range.firstDay.toString(), range.lastDay.toString(), c).let { ReturnFigures(it.count, it.total) }
         } else null
 
         return SalesReport(
             range = range,
             depot = figures("depot"),
             camion = figures("camion"),
-            clientsServed = dao.clientsServed(range.start, range.end, range.source),
+            clientsServed = dao.clientsServed(range.start, range.end, range.source, c),
             cost = cost.cost,
             estimatedCost = cost.estimated,
             returns = returns,
-            days = foldIntoDays(dao.salesByHour(range.start, range.end, range.source), range, zone),
+            days = foldIntoDays(dao.salesByHour(range.start, range.end, range.source, c), range, zone),
         )
+    }
+
+    /** Where the clients are and which of them bought over the period, in [commune] or everywhere. */
+    suspend fun distribution(
+        filter: ReportFilter,
+        commune: CommuneFilter?,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): DistributionReport {
+        val range = filter.resolve(today, zone)
+        val c = commune?.name
+        val totals = dao.distributionTotals(range.start, range.end, range.source, c)
+        return DistributionReport(
+            clients = totals.clients,
+            served = totals.served,
+            rate = totals.rate,
+            unsectored = totals.unsectored,
+            sectors = dao.sectorDistribution(range.start, range.end, range.source, c).map {
+                SectorStat(it.id, it.name, it.commune, it.clients, it.served, it.without_sale, it.rate)
+            },
+            communes = dao.communeDistribution(range.start, range.end, range.source, c).map {
+                CommuneStat(it.commune.ifEmpty { null }, it.clients, it.served, it.without_sale, it.sectors, it.rate)
+            },
+        )
+    }
+
+    /** A sector's clients who bought nothing over the period, by name. */
+    suspend fun unservedClients(
+        filter: ReportFilter,
+        sectorId: Int,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): List<UnservedClient> {
+        val range = filter.resolve(today, zone)
+        return dao.unservedClients(sectorId, range.start, range.end, range.source).map {
+            UnservedClient(it.id, it.name, it.image_uri, it.last_sale?.let { at -> runCatching { Instant.parse(at).atZone(zone).toLocalDate() }.getOrNull() })
+        }
     }
 
     /** A signal each time the Produits report's tables are written. */
@@ -144,7 +184,7 @@ class ReportRepository(
             losses = dao.lossesByType(range.start, range.end, range.source).map { LossByType(it.type, it.count, it.value) },
             lostProducts = dao.lossesByProduct(range.start, range.end, range.source)
                 .map { LossByProduct(it.product_id, it.name, it.unit, it.image_uri, it.quantity, it.value) },
-            salesCost = dao.salesCost(range.start, range.end, range.source).cost,
+            salesCost = dao.salesCost(range.start, range.end, range.source, null).cost,
         )
     }
 
@@ -186,8 +226,8 @@ class ReportRepository(
         zone: ZoneId = ZoneId.systemDefault(),
     ): ProfitReport {
         val range = filter.resolve(today, zone)
-        val sales = dao.salesBySource(range.start, range.end, null).sumOf { it.total }
-        val cost = dao.salesCost(range.start, range.end, null).cost
+        val sales = dao.salesBySource(range.start, range.end, null, null).sumOf { it.total }
+        val cost = dao.salesCost(range.start, range.end, null, null).cost
         val returns = dao.returnsWithCost(range.firstDay.toString(), range.lastDay.toString())
         return ProfitReport(
             range = range,
@@ -200,37 +240,6 @@ class ReportRepository(
             losses = dao.lossesByType(range.start, range.end, null).map { LossByType(it.type, it.count, it.value) },
         )
     }
-
-    /** A signal each time the Tournées report's tables are written. */
-    fun tourChanges(): Flow<Unit> = writes(TOUR_TABLES).map { }
-
-    /** The Tournées report: the tournées started over the period, newest first. */
-    suspend fun tourReport(
-        filter: ReportFilter,
-        today: LocalDate = LocalDate.now(),
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): TourReport {
-        val range = filter.resolve(today, zone)
-        val tours = dao.tours(range.start, range.end).map {
-            TourFigures(
-                id = it.id,
-                name = it.name?.takeIf { n -> n.isNotBlank() } ?: "Tournée #${it.id}",
-                day = runCatching { Instant.parse(it.date_debut).atZone(zone).toLocalDate() }.getOrNull(),
-                open = it.status == "ouverte",
-                planned = it.planned, visited = it.visited, sales = it.sales, buyers = it.buyers,
-                total = it.total, paid = it.paid,
-            )
-        }
-        return TourReport(range, tours)
-    }
-
-    /** The sales of one local [day], from [source] or both, newest first. */
-    suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
-        dao.salesBetween(
-            com.distrigo.app.data.time.BusinessDates.dayStart(day, zone),
-            com.distrigo.app.data.time.BusinessDates.dayStart(day.plusDays(1), zone),
-            source,
-        )
 
     /** The Créances et dettes report for one [side] — see DebtReport. */
     suspend fun debtReport(
@@ -261,10 +270,8 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 }
 
 /** The tables the Ventes report reads. */
-private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
-
-/** The tables the Tournées report reads. */
-private val TOUR_TABLES = arrayOf("tournees", "tournee_clients", "ventes")
+// The clients and sectors too: the distribution counts them.
+private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client", "clients", "secteurs")
 
 /** The tables the Résultat report reads. */
 private val PROFIT_TABLES = arrayOf("ventes", "vente_items", "retour_client", "retour_client_items", "charges", "pertes", "products")

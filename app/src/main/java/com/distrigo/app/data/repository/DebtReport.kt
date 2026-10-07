@@ -97,7 +97,7 @@ suspend fun ReportDao.debtReport(
             ageRows = cut.map { BusinessDates.dayStart(it, zone) }.let { clientDebtAges(it[0], it[1], it[2]) }
             credit = creditGiven(range.start, range.end)
             payments = clientPayments(range.start, range.end).let { ReturnFigures(it.count, it.total) }
-            returns = clientReturns(first, last).let { ReturnFigures(it.count, it.total) }
+            returns = clientReturns(first, last, null).let { ReturnFigures(it.count, it.total) }
         }
         DebtSide.FOURNISSEURS -> {
             debtors = supplierDebtors()

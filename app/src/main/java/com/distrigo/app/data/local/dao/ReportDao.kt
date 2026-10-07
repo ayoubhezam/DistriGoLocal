@@ -25,11 +25,6 @@ data class SalesCost(val cost: Double, val estimated: Double)
 data class SalesHour(val hour: String, val source: String, val count: Int, val total: Double, val paid: Double)
 
 /** One sale of a day, as the day's list shows it. */
-data class DaySale(
-    val id: Int, val numero: String?, val client_name: String?, val source: String,
-    val total: Double, val montant_paye: Double, val created_at: String,
-)
-
 /** A period's client returns, counted and summed at their selling prices. */
 data class ReturnTotals(val count: Int, val total: Double)
 
@@ -78,34 +73,103 @@ data class InactiveRow(val id: Int, val name: String, val image_uri: String?, va
 data class ReturnsCostRow(val count: Int, val total: Double, val cost: Double)
 data class ChargeTypeRow(val type: String, val count: Int, val value: Double)
 
-/** One tournée and its figures, as TourReport reads them. */
-data class TourRow(
-    val id: Int, val name: String?, val status: String, val date_debut: String,
-    val planned: Int, val visited: Int, val sales: Int, val buyers: Int, val total: Double, val paid: Double,
+// ── Distribution (Ventes) ──
+
+/** A sector's clients over a period: how many, how many bought, and the share that did. */
+data class SectorRow(
+    val id: Int, val name: String, val commune: String,
+    val clients: Int, val served: Int, val without_sale: Int, val rate: Double,
 )
+
+/** A commune's clients over a period — [commune] empty for the clients without one — and its sectors. */
+data class CommuneRow(
+    val commune: String, val clients: Int, val served: Int, val without_sale: Int, val sectors: Int, val rate: Double,
+)
+
+/** All the clients a distribution counts, those who bought, and those without a sector. */
+data class DistributionTotalsRow(val clients: Int, val served: Int, val unsectored: Int, val rate: Double)
+
+/** A client of a sector who bought nothing over the period, and the moment of its last sale ever, if any. */
+data class UnservedClientRow(val id: Int, val name: String, val image_uri: String?, val last_sale: String?)
 
 @Dao
 interface ReportDao {
 
-    /**
-     * The tournées started between [start] and [end], newest first: their planned and visited clients,
-     * and their sales — how many, to how many clients, their total and what was paid at the sale.
-     */
+    // The distribution counts a client when it is not deleted and was there by the period's end: created
+    // before it, or having bought before it — a client added after its first sales, as an import or the
+    // test data do, is still there. A client is served when it has a sale between :start and :end, from
+    // :source or both. :commune narrows to one commune's clients, or with '' to those without one.
+    // Every ratio is 0 when there is no client: never a division by zero.
+
+    /** Every sector of the commune (all when null), its clients and those served, the largest first. */
     @Query(
         """
-        SELECT t.id AS id, t.nom AS name, t.status AS status, t.date_debut AS date_debut,
-               (SELECT COUNT(*) FROM tournee_clients tc WHERE tc.tournee_id = t.id) AS planned,
-               (SELECT COUNT(*) FROM tournee_clients tc WHERE tc.tournee_id = t.id AND tc.status = 'visite') AS visited,
-               (SELECT COUNT(*) FROM ventes v WHERE v.tournee_id = t.id) AS sales,
-               (SELECT COUNT(DISTINCT v.client_id) FROM ventes v WHERE v.tournee_id = t.id) AS buyers,
-               (SELECT COALESCE(SUM(v.total), 0) FROM ventes v WHERE v.tournee_id = t.id) AS total,
-               (SELECT COALESCE(SUM(MIN(v.montant_paye, v.total)), 0) FROM ventes v WHERE v.tournee_id = t.id) AS paid
-        FROM tournees t
-        WHERE t.date_debut >= :start AND t.date_debut < :end
-        ORDER BY t.date_debut DESC, t.id DESC
+        SELECT id, name, commune, clients, served, clients - served AS without_sale,
+               CASE WHEN clients = 0 THEN 0.0 ELSE 1.0 * served / clients END AS rate
+        FROM (
+            SELECT s.id AS id, s.nom AS name, s.commune_name AS commune, COUNT(c.id) AS clients,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served
+            FROM secteurs s
+            LEFT JOIN clients c ON c.secteur_id = s.id AND c.deleted_at IS NULL
+              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
+            WHERE :commune IS NULL OR s.commune_name = :commune
+            GROUP BY s.id
+        )
+        ORDER BY clients DESC, served DESC, name COLLATE NOCASE
         """
     )
-    suspend fun tours(start: String, end: String): List<TourRow>
+    suspend fun sectorDistribution(start: String, end: String, source: String?, commune: String?): List<SectorRow>
+
+    /** The clients by commune, the largest first, those without a commune last. */
+    @Query(
+        """
+        SELECT g.commune AS commune, g.clients AS clients, g.served AS served, g.clients - g.served AS without_sale,
+               (SELECT COUNT(*) FROM secteurs s WHERE s.commune_name = g.commune) AS sectors,
+               CASE WHEN g.clients = 0 THEN 0.0 ELSE 1.0 * g.served / g.clients END AS rate
+        FROM (
+            SELECT COALESCE(c.commune_name, '') AS commune, COUNT(*) AS clients,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served
+            FROM clients c
+            WHERE c.deleted_at IS NULL
+              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
+              AND (:commune IS NULL OR COALESCE(c.commune_name, '') = :commune)
+            GROUP BY COALESCE(c.commune_name, '')
+        ) g
+        ORDER BY g.commune = '', g.clients DESC, g.commune COLLATE NOCASE
+        """
+    )
+    suspend fun communeDistribution(start: String, end: String, source: String?, commune: String?): List<CommuneRow>
+
+    /** The distribution's totals: its clients, those served, and those without a sector. */
+    @Query(
+        """
+        SELECT clients, served, unsectored, CASE WHEN clients = 0 THEN 0.0 ELSE 1.0 * served / clients END AS rate
+        FROM (
+            SELECT COUNT(*) AS clients,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served,
+                   COALESCE(SUM(c.secteur_id IS NULL OR NOT EXISTS (SELECT 1 FROM secteurs s WHERE s.id = c.secteur_id)), 0) AS unsectored
+            FROM clients c
+            WHERE c.deleted_at IS NULL
+              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
+              AND (:commune IS NULL OR COALESCE(c.commune_name, '') = :commune)
+        )
+        """
+    )
+    suspend fun distributionTotals(start: String, end: String, source: String?, commune: String?): DistributionTotalsRow
+
+    /** A sector's clients who bought nothing over the period, by name, with their last sale ever. */
+    @Query(
+        """
+        SELECT c.id AS id, c.name AS name, c.image_uri AS image_uri,
+               (SELECT MAX(l.created_at) FROM ventes l WHERE l.client_id = c.id) AS last_sale
+        FROM clients c
+        WHERE c.secteur_id = :sectorId AND c.deleted_at IS NULL
+              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
+          AND NOT EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))
+        ORDER BY c.name COLLATE NOCASE
+        """
+    )
+    suspend fun unservedClients(sectorId: Int, start: String, end: String, source: String?): List<UnservedClientRow>
 
     /**
      * The client returns dated [firstDay] to [lastDay], both included: how many, their lines at the
@@ -288,10 +352,11 @@ interface ReportDao {
                COALESCE(SUM(MIN(montant_paye, total)), 0) AS paid
         FROM ventes
         WHERE created_at >= :start AND created_at < :end AND (:source IS NULL OR source = :source)
+          AND (:commune IS NULL OR client_id IN (SELECT id FROM clients WHERE COALESCE(commune_name, '') = :commune))
         GROUP BY source
         """
     )
-    suspend fun salesBySource(start: String, end: String, source: String?): List<SalesBySource>
+    suspend fun salesBySource(start: String, end: String, source: String?, commune: String?): List<SalesBySource>
 
     @Query(
         """
@@ -299,17 +364,19 @@ interface ReportDao {
                COALESCE(SUM(CASE WHEN i.cost_estimated THEN i.quantity * i.purchase_price_snapshot ELSE 0 END), 0) AS estimated
         FROM vente_items i JOIN ventes v ON v.id = i.vente_id
         WHERE v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source)
+          AND (:commune IS NULL OR v.client_id IN (SELECT cl.id FROM clients cl WHERE COALESCE(cl.commune_name, '') = :commune))
         """
     )
-    suspend fun salesCost(start: String, end: String, source: String?): SalesCost
+    suspend fun salesCost(start: String, end: String, source: String?, commune: String?): SalesCost
 
     @Query(
         """
         SELECT COUNT(DISTINCT client_id) FROM ventes
         WHERE created_at >= :start AND created_at < :end AND (:source IS NULL OR source = :source)
+          AND (:commune IS NULL OR client_id IN (SELECT id FROM clients WHERE COALESCE(commune_name, '') = :commune))
         """
     )
-    suspend fun clientsServed(start: String, end: String, source: String?): Int
+    suspend fun clientsServed(start: String, end: String, source: String?, commune: String?): Int
 
     // `substr(…, 1, 13)` reads the fixed-width `yyyy-MM-ddTHH` every stored instant begins with; only
     // the fractional digits after the seconds vary in width.
@@ -319,29 +386,21 @@ interface ReportDao {
                COALESCE(SUM(MIN(montant_paye, total)), 0) AS paid
         FROM ventes
         WHERE created_at >= :start AND created_at < :end AND (:source IS NULL OR source = :source)
+          AND (:commune IS NULL OR client_id IN (SELECT id FROM clients WHERE COALESCE(commune_name, '') = :commune))
         GROUP BY hour, source
         """
     )
-    suspend fun salesByHour(start: String, end: String, source: String?): List<SalesHour>
+    suspend fun salesByHour(start: String, end: String, source: String?, commune: String?): List<SalesHour>
 
     /** Returns carry a calendar date, local, so they are selected by day: [firstDay] to [lastDay], both included. */
     @Query(
         """
         SELECT COUNT(*) AS count, COALESCE(SUM(total), 0) AS total FROM retour_client
         WHERE date >= :firstDay AND date <= :lastDay
+          AND (:commune IS NULL OR client_id IN (SELECT id FROM clients WHERE COALESCE(commune_name, '') = :commune))
         """
     )
-    suspend fun clientReturns(firstDay: String, lastDay: String): ReturnTotals
-
-    /** The sales between [start] and [end], newest first — one local day, from the Ventes report. */
-    @Query(
-        """
-        SELECT id, numero, client_name, source, total, montant_paye, created_at FROM ventes
-        WHERE created_at >= :start AND created_at < :end AND (:source IS NULL OR source = :source)
-        ORDER BY created_at DESC, id DESC
-        """
-    )
-    suspend fun salesBetween(start: String, end: String, source: String?): List<DaySale>
+    suspend fun clientReturns(firstDay: String, lastDay: String, commune: String?): ReturnTotals
 
     // ── Créances et dettes ──
     // Balances are the stored caches ClientDao and SupplierDao.recomputeBalance keep; a balance above

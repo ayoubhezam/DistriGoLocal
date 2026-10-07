@@ -3,7 +3,6 @@ package com.distrigo.app.ui.rapports
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
-import com.distrigo.app.data.model.report.ReportPeriod
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
@@ -26,7 +25,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.distrigo.app.data.repository.CommuneFilter
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -69,16 +71,26 @@ private val CamionColor = Color(0xFF0E9384)
 
 /**
  * Rapports › Ventes: what was sold over a period, from the dépôt, the camion, or both — the figures,
- * a bar a day (a month, over a long period), and the days one by one.
+ * a bar a day (a month, over a long period), and where the clients are and which of them bought.
+ * A commune narrows all of it to that commune's clients.
  */
 @Composable
 fun VentesReportScreen(
     onBack: () -> Unit,
-    /** A day of "Détail par jour", opened: that day's sales. */
-    onOpenDay: (java.time.LocalDate) -> Unit = {},
+    /** "Voir tout" of the sectors: every sector, the most clients first. */
+    onAllSectors: () -> Unit,
     viewModel: VentesReportViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // A commune tapped at the bottom narrows the whole report: back to the top, where its chip and the
+    // narrowed figures are.
+    val onCommune = { filter: CommuneFilter ->
+        viewModel.setCommune(filter)
+        scope.launch { list.animateScrollToItem(0) }
+        Unit
+    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ventes", subtitle = "Rapport des ventes", leading = DsTopBarLeading.Back(onBack))
@@ -91,12 +103,15 @@ fun VentesReportScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = list,
             contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
             item { ReportFilterBar(state.filter, viewModel::setFilter) }
+            state.commune?.let { commune -> item(key = "filter_commune") { CommuneChip(commune) { viewModel.setCommune(null) } } }
 
             val report = state.report
+            val distribution = state.distribution
             when {
                 report == null && state.error != null -> item { ReportMessage(state.error!!) }
                 report == null -> item {
@@ -114,25 +129,16 @@ fun VentesReportScreen(
                         item { KpiGrid(report) }
                         if (state.filter.source == ReportSource.TOUT) item { SourceSplit(report) }
                         item { ChartCard(state.buckets, splitBySource = state.filter.source == ReportSource.TOUT) }
-                        item { SectionTitle(if (state.buckets.size == report.days.size) "Détail par jour" else "Détail par mois") }
-                        // A day opens its sales; a month — over a long period — narrows the report to it.
-                        val byDay = state.buckets.size == report.days.size
-                        items(state.buckets.filter { it.all.count > 0 }.asReversed(), key = { it.start.toString() }) { bucket ->
-                            BucketRow(bucket) {
-                                if (byDay) onOpenDay(bucket.start) else viewModel.setFilter(
-                                    state.filter.copy(
-                                        period = ReportPeriod.PERSONNALISE,
-                                        customFrom = bucket.start,
-                                        customTo = minOf(bucket.start.plusMonths(1).minusDays(1), java.time.LocalDate.now()),
-                                    )
-                                )
-                            }
-                        }
+                    }
+                    // Even without a sale: the clients are still there, none of them served.
+                    if (distribution != null) {
+                        distributionItems(distribution, state.commune, onAllSectors, viewModel::openSector, onCommune)
                     }
                 }
             }
         }
     }
+    SectorSheetHost(state.sheet, viewModel::closeSector)
 }
 
 // ── Résumé ──
@@ -368,32 +374,5 @@ private fun Legend(label: String, color: Color, amount: String, modifier: Modifi
             Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         FitText(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, textAlign = TextAlign.Center)
-    }
-}
-
-// ── Détail ──
-
-@Composable
-private fun BucketRow(bucket: SalesBucket, onClick: () -> Unit) {
-    val money = LocalMoneyFormatter.current
-    val all = bucket.all
-    Row(
-        Modifier
-            .padding(horizontal = DsSpacing.lg)
-            .fillMaxWidth()
-            .clip(DsShapes.medium)
-            .background(DsColors.Surface)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(bucket.title, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-            Text(plural(all.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(money.da(all.total), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            if (all.credit > 0) Text("crédit ${money.da(all.credit)}", fontSize = DsTextSize.caption, color = DsColors.Warning)
-        }
     }
 }
