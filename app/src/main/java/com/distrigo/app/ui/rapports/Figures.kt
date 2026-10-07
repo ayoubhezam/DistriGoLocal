@@ -126,18 +126,22 @@ fun AnimatedFigure(
 }
 
 /**
- * [target] angles that sweep together from the last ones when they change — so a ring of them stays
- * whole all the way —, not on their first showing. Read in a draw: only the drawing is done again each
- * frame. A list longer than the other meets it at zero.
+ * [target] values — a ring's angles, a chart's heights — that move together from the last ones when
+ * they change, so a ring stays whole all the way; not on their first showing. When [layout] changes
+ * — other days, another split — the old values mean nothing for the new: they start from zero, a chart
+ * rising from its baseline. Read in a draw: only the drawing is done again each frame. A list longer
+ * than the other meets it at zero.
  */
 @Composable
-internal fun glidingSweeps(target: List<Float>): () -> List<Float> {
+internal fun glidingValues(target: List<Float>, layout: Any? = null): () -> List<Float> {
     val progress = remember { Animatable(1f) }
     var from by remember { mutableStateOf(target) }
     var to by remember { mutableStateOf(target) }
-    LaunchedEffect(target) {
-        if (target == to) return@LaunchedEffect
-        from = between(from, to, progress.value)
+    var drawn by remember { mutableStateOf(layout) }
+    LaunchedEffect(target, layout) {
+        if (target == to && layout == drawn) return@LaunchedEffect
+        from = if (layout == drawn) between(from, to, progress.value) else emptyList()
+        drawn = layout
         to = target
         progress.snapTo(0f)
         progress.animateTo(1f, glide())

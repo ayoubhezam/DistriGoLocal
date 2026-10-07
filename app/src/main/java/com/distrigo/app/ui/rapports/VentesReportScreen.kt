@@ -230,7 +230,7 @@ private fun SourceSplit(report: SalesReport) {
     }
 }
 
-/** One side of the split: its dot, name and share, then its amount and number of sales. */
+/** One side of the split: its dot, name and share, then its amount and number of sales — each counting when it changes. */
 @Composable
 private fun SourceLine(label: String, color: Color, figures: SalesFigures, total: Double) {
     val money = LocalMoneyFormatter.current
@@ -240,13 +240,13 @@ private fun SourceLine(label: String, color: Color, figures: SalesFigures, total
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(label, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
-                Text(
-                    percentOf(figures.total, total) ?: percent(0.0),
+                AnimatedFigure(
+                    rateFigure(if (total > 0) figures.total / total else 0.0),
                     fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary,
                 )
             }
-            FitText(money.da(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            Text(plural(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            AnimatedFigure(money.figure(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            AnimatedFigure(countFigure(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
 }
@@ -257,6 +257,10 @@ private fun SourceLine(label: String, color: Color, figures: SalesFigures, total
  * A bar per bucket — a dépôt bar and a camion bar side by side when the report shows both, so the two
  * compare at a glance. A tap picks a bucket and the header and legend read its figures; until then
  * they read the best one.
+ *
+ * When the figures change, the bars move to their new heights — over the same days, each from its old
+ * height; over other days, all rising from the baseline. The header and legend do not count: they go
+ * from one day to another, and a tap must read at once.
  */
 @Composable
 private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
@@ -271,6 +275,11 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
     )
     val primary = DsColors.Primary
     val sunken = DsColors.SurfaceSunken
+    // Each bar as a share of the tallest: the dépôt's then the camion's of each bucket when split.
+    val heights = buckets.flatMap { b ->
+        if (splitBySource) listOf(b.depot.total, b.camion.total) else listOf(b.all.total)
+    }.map { (it / top).toFloat() }
+    val drawn = glidingValues(heights, layout = Triple(buckets.firstOrNull()?.start, buckets.size, splitBySource))
 
     Column(
         Modifier
@@ -312,8 +321,9 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             val gap = 0f
             val barWidth = if (splitBySource) (group / 2).coerceAtLeast(1f) else group
             val radius = CornerRadius(minOf(barWidth / 2, 6.dp.toPx()))
-            fun bar(color: Color, x: Float, value: Double, alpha: Float) {
-                val h = (value / top * size.height).toFloat()
+            val shares = drawn()
+            fun bar(color: Color, x: Float, share: Float, alpha: Float) {
+                val h = share * size.height
                 if (h > 0f) drawRoundRect(color.copy(alpha = alpha), Offset(x, size.height - h), Size(barWidth, h), radius)
             }
             buckets.forEachIndexed { i, b ->
@@ -325,10 +335,10 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
                     return@forEachIndexed
                 }
                 if (splitBySource) {
-                    bar(primary, x, b.depot.total, alpha)
-                    bar(CamionColor, x + barWidth + gap, b.camion.total, alpha)
+                    bar(primary, x, shares.getOrElse(2 * i) { 0f }, alpha)
+                    bar(CamionColor, x + barWidth + gap, shares.getOrElse(2 * i + 1) { 0f }, alpha)
                 } else {
-                    bar(if (b.camion.total > 0) CamionColor else primary, x, b.all.total, alpha)
+                    bar(if (b.camion.total > 0) CamionColor else primary, x, shares.getOrElse(i) { 0f }, alpha)
                 }
             }
         }

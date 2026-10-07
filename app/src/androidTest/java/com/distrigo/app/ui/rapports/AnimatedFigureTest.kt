@@ -66,6 +66,34 @@ class AnimatedFigureTest {
     }
 
     @Test
+    fun barsMoveFromTheirOldHeightsOrRiseFromZeroOverOtherDays() {
+        var heights by mutableStateOf(listOf(0.5f, 1f))
+        var days by mutableStateOf("semaine")
+        lateinit var drawn: () -> List<Float>
+        compose.setContent { drawn = glidingValues(heights, layout = days) }
+        compose.waitForIdle()
+        assertEquals(listOf(0.5f, 1f), drawn())
+
+        // The same days: each bar from its old height to its new one.
+        compose.mainClock.autoAdvance = false
+        heights = listOf(1f, 0.5f)
+        compose.mainClock.advanceTimeBy(GLIDE_MILLIS / 2L)
+        val moving = drawn()
+        assertTrue(moving.toString(), moving[0] > 0.5f && moving[0] < 1f && moving[1] > 0.5f && moving[1] < 1f)
+        compose.mainClock.advanceTimeBy(GLIDE_MILLIS * 2L)
+        assertEquals(listOf(1f, 0.5f), drawn())
+
+        // Other days: every bar rises from the baseline.
+        heights = listOf(0.8f, 0.8f, 0.8f)
+        days = "mois"
+        compose.mainClock.advanceTimeBy(GLIDE_MILLIS / 3L)
+        val rising = drawn()
+        assertTrue(rising.toString(), rising.size == 3 && rising.all { it > 0f && it < 0.8f })
+        compose.mainClock.advanceTimeBy(GLIDE_MILLIS * 2L)
+        assertEquals(listOf(0.8f, 0.8f, 0.8f), drawn())
+    }
+
+    @Test
     fun aTextBecomingANumberChangesAtOnce() {
         var figure by mutableStateOf(Figure.text("— DA"))
         compose.setContent { AnimatedFigure(figure, fontSize = 20.sp) }

@@ -195,7 +195,7 @@ fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String,
     val money = LocalMoneyFormatter.current
     val empty = DsColors.SurfaceSunken
     val sweeps = slices.map { (amount, _) -> if (total > 0) (360.0 * amount / total).toFloat() else 0f }
-    val shown = glidingSweeps(sweeps)
+    val shown = glidingValues(sweeps)
     Box(modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val stroke = 14.dp.toPx()
