@@ -173,6 +173,34 @@ class ReportRepository(
         return PartyReport(side, range, parties, dao.newClients(range.start, range.end), inactive)
     }
 
+    /** A signal each time the Résultat report's tables are written. */
+    fun profitChanges(): Flow<Unit> = writes(PROFIT_TABLES).map { }
+
+    /**
+     * The Résultat report. The whole business, dépôt and camion together: a charge belongs to neither,
+     * so the report is not split by source.
+     */
+    suspend fun profitReport(
+        filter: ReportFilter,
+        today: LocalDate = LocalDate.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): ProfitReport {
+        val range = filter.resolve(today, zone)
+        val sales = dao.salesBySource(range.start, range.end, null).sumOf { it.total }
+        val cost = dao.salesCost(range.start, range.end, null).cost
+        val returns = dao.returnsWithCost(range.firstDay.toString(), range.lastDay.toString())
+        return ProfitReport(
+            range = range,
+            sales = sales,
+            cost = cost,
+            returnsCount = returns.count,
+            returns = returns.total,
+            returnsCost = returns.cost,
+            charges = dao.chargesByType(range.start, range.end).map { ChargeByType(it.type, it.count, it.value) },
+            losses = dao.lossesByType(range.start, range.end, null).map { LossByType(it.type, it.count, it.value) },
+        )
+    }
+
     /** The sales of one local [day], from [source] or both, newest first. */
     suspend fun salesOfDay(day: LocalDate, source: String?, zone: ZoneId = ZoneId.systemDefault()) =
         dao.salesBetween(
@@ -211,6 +239,9 @@ internal fun foldIntoDays(hours: List<SalesHour>, range: ReportRange, zone: Zone
 
 /** The tables the Ventes report reads. */
 private val SALES_TABLES = arrayOf("ventes", "vente_items", "retour_client")
+
+/** The tables the Résultat report reads. */
+private val PROFIT_TABLES = arrayOf("ventes", "vente_items", "retour_client", "retour_client_items", "charges", "pertes", "products")
 
 /** The tables the Clients et fournisseurs report reads. */
 private val PARTY_TABLES = arrayOf("ventes", "vente_items", "clients", "purchase_orders", "suppliers")

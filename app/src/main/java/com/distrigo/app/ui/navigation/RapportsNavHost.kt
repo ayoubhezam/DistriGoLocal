@@ -33,7 +33,15 @@ fun RapportsNavHost(onBack: () -> Unit) {
                 onOpenDettes = { navController.navigate(Screen.RapportsDettes.route) },
                 onOpenProduits = { navController.navigate(Screen.RapportsProduits.route) },
                 onOpenStock = { navController.navigate(Screen.RapportsStock.route) },
-                onOpenTiers = { navController.navigate(Screen.RapportsTiers.route) }
+                onOpenTiers = { navController.navigate(Screen.RapportsTiers.route) },
+                onOpenResultat = { navController.navigate(Screen.RapportsResultat.route) }
+            )
+        }
+        composable(Screen.RapportsResultat.route) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsGraph.route) }
+            com.distrigo.app.ui.rapports.ProfitReportScreen(
+                onBack    = { navController.popBackStack() },
+                viewModel = hiltViewModel<com.distrigo.app.ui.rapports.ProfitReportViewModel>(parent)
             )
         }
         composable(Screen.RapportsTiers.route) { entry ->

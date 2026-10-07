@@ -74,8 +74,37 @@ data class PartyRow(val id: Int, val name: String, val image_uri: String?, val c
 data class PartyCostRow(val id: Int, val cost: Double)
 data class InactiveRow(val id: Int, val name: String, val image_uri: String?, val last_sale: String, val total: Double)
 
+/** The period's client returns: how many, what they were sold for, and what those goods cost today. */
+data class ReturnsCostRow(val count: Int, val total: Double, val cost: Double)
+data class ChargeTypeRow(val type: String, val count: Int, val value: Double)
+
 @Dao
 interface ReportDao {
+
+    /**
+     * The client returns dated [firstDay] to [lastDay], both included: how many, their lines at the
+     * price they were sold at, and those goods at today's purchase price — a return line keeps no cost.
+     */
+    @Query(
+        """
+        SELECT COUNT(DISTINCT r.id) AS count, COALESCE(SUM(i.total_price), 0) AS total,
+               COALESCE(SUM(i.quantity * COALESCE(p.purchase_price, 0)), 0) AS cost
+        FROM retour_client_items i JOIN retour_client r ON r.id = i.retour_id
+        LEFT JOIN products p ON p.id = i.product_id
+        WHERE r.date >= :firstDay AND r.date <= :lastDay
+        """
+    )
+    suspend fun returnsWithCost(firstDay: String, lastDay: String): ReturnsCostRow
+
+    /** The charges between [start] and [end] by type, costliest first. */
+    @Query(
+        """
+        SELECT type_name AS type, COUNT(*) AS count, COALESCE(SUM(montant), 0) AS value
+        FROM charges WHERE date_time >= :start AND date_time < :end
+        GROUP BY type_name ORDER BY value DESC
+        """
+    )
+    suspend fun chargesByType(start: String, end: String): List<ChargeTypeRow>
 
     /** Each client's sales between [start] and [end]: how many, and what they came to. */
     @Query(
