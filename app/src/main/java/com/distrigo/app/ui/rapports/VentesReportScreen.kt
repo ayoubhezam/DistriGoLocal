@@ -25,10 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.rememberCoroutineScope
-import com.distrigo.app.data.repository.CommuneFilter
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -71,8 +67,8 @@ private val CamionColor = Color(0xFF0E9384)
 
 /**
  * Rapports › Ventes: what was sold over a period, from the dépôt, the camion, or both — the figures,
- * a bar a day (a month, over a long period), and where the clients are and which of them bought.
- * A commune narrows all of it to that commune's clients.
+ * a bar a day (a month, over a long period), and where the clients are and which of them bought, in
+ * one commune or all of them.
  */
 @Composable
 fun VentesReportScreen(
@@ -82,15 +78,6 @@ fun VentesReportScreen(
     viewModel: VentesReportViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val list = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    // A commune tapped at the bottom narrows the whole report: back to the top, where its chip and the
-    // narrowed figures are.
-    val onCommune = { filter: CommuneFilter ->
-        viewModel.setCommune(filter)
-        scope.launch { list.animateScrollToItem(0) }
-        Unit
-    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ventes", subtitle = "Rapport des ventes", leading = DsTopBarLeading.Back(onBack))
@@ -103,12 +90,10 @@ fun VentesReportScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            state = list,
             contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
             item { ReportFilterBar(state.filter, viewModel::setFilter) }
-            state.commune?.let { commune -> item(key = "filter_commune") { CommuneChip(commune) { viewModel.setCommune(null) } } }
 
             val report = state.report
             val distribution = state.distribution
@@ -132,7 +117,7 @@ fun VentesReportScreen(
                     }
                     // Even without a sale: the clients are still there, none of them served.
                     if (distribution != null) {
-                        distributionItems(distribution, state.commune, onAllSectors, viewModel::openSector, onCommune)
+                        distributionItems(distribution, state.commune, viewModel::setCommune, onAllSectors, viewModel::openSector)
                     }
                 }
             }

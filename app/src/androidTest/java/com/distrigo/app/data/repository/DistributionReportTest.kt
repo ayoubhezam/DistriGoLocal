@@ -138,37 +138,33 @@ class DistributionReportTest {
     }
 
     @Test
-    fun aCommuneNarrowsEverything() = runBlocking {
-        val souk = CommuneFilter("Souk Ahras")
-        val d = repository.distribution(month, souk, today, algiers)
-        assertEquals(5, d.clients)
-        assertEquals(2, d.served)
-        assertEquals(0, d.unsectored)
-        assertEquals(listOf("Centre", "Cité"), d.sectors.map { it.name })
-        assertEquals(listOf("Souk Ahras"), d.communes.map { it.name })
+    fun aCommuneNarrowsTheFiguresAndTheSectorsNotTheCommunes() = runBlocking {
+        val all = repository.distribution(month, null, today, algiers)
+        val souk = repository.distribution(month, "Souk Ahras", today, algiers)
+        assertEquals(5, souk.clients)
+        assertEquals(2, souk.served)
+        assertEquals(0.4, souk.rate, 1e-9)
+        assertEquals(0, souk.unsectored)
+        assertEquals(listOf("Centre", "Cité"), souk.sectors.map { it.name })
+        // The communes stay all of them, whichever is chosen.
+        assertEquals(all.communes, souk.communes)
+        assertEquals(listOf("Sedrata", "Souk Ahras"), souk.communeNames)
 
-        // The sales and returns of Souk Ahras's clients only: 1, 2 and 4 this month, 9 falling after it.
-        // A deleted client is no longer counted among the clients, but its sales were made: they stay
-        // in the commune's chiffre d'affaires, so the communes still add up to the whole.
-        val sales = repository.salesReport(month, today, algiers, commune = souk)
-        assertEquals(2500.0, sales.all.total, 0.0)
-        assertEquals(3, sales.all.count)
-        assertEquals(3, sales.clientsServed)
-        assertEquals(100.0, sales.returns!!.total, 0.0)
-        val sedrata = repository.salesReport(month, today, algiers, commune = CommuneFilter("Sedrata"))
-        assertEquals(250.0, sedrata.all.total, 0.0)
-        assertEquals(50.0, sedrata.returns!!.total, 0.0)
+        val sedrata = repository.distribution(month, "Sedrata", today, algiers)
+        assertEquals(1, sedrata.clients)
+        assertEquals(1, sedrata.served)
+        assertEquals(1, sedrata.unsectored)
+        assertEquals(listOf("Vide"), sedrata.sectors.map { it.name })
     }
 
     @Test
-    fun theClientsWithoutACommuneAreACommuneToo() = runBlocking {
-        val none = CommuneFilter("")
-        val d = repository.distribution(month, none, today, algiers)
-        assertEquals(1, d.clients)
+    fun aCommuneWithoutAClientCountsNothing() = runBlocking {
+        val d = repository.distribution(month, "Taoura", today, algiers)
+        assertEquals(0, d.clients)
         assertEquals(0, d.served)
+        // No client: a rate of 0, never a division by zero.
+        assertEquals(0.0, d.rate, 0.0)
         assertEquals(emptyList<String>(), d.sectors.map { it.name })
-        assertEquals(listOf<String?>(null), d.communes.map { it.name })
-        assertEquals(0, repository.salesReport(month, today, algiers, commune = none).all.count)
     }
 
     @Test

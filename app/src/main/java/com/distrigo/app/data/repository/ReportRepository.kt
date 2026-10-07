@@ -84,49 +84,48 @@ class ReportRepository(
         filter: ReportFilter,
         today: LocalDate = LocalDate.now(),
         zone: ZoneId = ZoneId.systemDefault(),
-        /** Only the sales — and returns — of this commune's clients; all of them when null. */
-        commune: CommuneFilter? = null,
     ): SalesReport {
         val range = filter.resolve(today, zone)
-        val c = commune?.name
-        val bySource = dao.salesBySource(range.start, range.end, range.source, c).associateBy { it.source }
+        val bySource = dao.salesBySource(range.start, range.end, range.source).associateBy { it.source }
         fun figures(source: String) = bySource[source]?.let { SalesFigures(it.count, it.total, it.paid) } ?: SalesFigures.ZERO
-        val cost = dao.salesCost(range.start, range.end, range.source, c)
+        val cost = dao.salesCost(range.start, range.end, range.source)
         val returns = if (range.source == null) {
-            dao.clientReturns(range.firstDay.toString(), range.lastDay.toString(), c).let { ReturnFigures(it.count, it.total) }
+            dao.clientReturns(range.firstDay.toString(), range.lastDay.toString()).let { ReturnFigures(it.count, it.total) }
         } else null
 
         return SalesReport(
             range = range,
             depot = figures("depot"),
             camion = figures("camion"),
-            clientsServed = dao.clientsServed(range.start, range.end, range.source, c),
+            clientsServed = dao.clientsServed(range.start, range.end, range.source),
             cost = cost.cost,
             estimatedCost = cost.estimated,
             returns = returns,
-            days = foldIntoDays(dao.salesByHour(range.start, range.end, range.source, c), range, zone),
+            days = foldIntoDays(dao.salesByHour(range.start, range.end, range.source), range, zone),
         )
     }
 
-    /** Where the clients are and which of them bought over the period, in [commune] or everywhere. */
+    /**
+     * Where the clients are and which of them bought over the period: the figures and the sectors of
+     * [commune] — every commune when null —, and every commune whichever is chosen.
+     */
     suspend fun distribution(
         filter: ReportFilter,
-        commune: CommuneFilter?,
+        commune: String?,
         today: LocalDate = LocalDate.now(),
         zone: ZoneId = ZoneId.systemDefault(),
     ): DistributionReport {
         val range = filter.resolve(today, zone)
-        val c = commune?.name
-        val totals = dao.distributionTotals(range.start, range.end, range.source, c)
+        val totals = dao.distributionTotals(range.start, range.end, range.source, commune)
         return DistributionReport(
             clients = totals.clients,
             served = totals.served,
             rate = totals.rate,
             unsectored = totals.unsectored,
-            sectors = dao.sectorDistribution(range.start, range.end, range.source, c).map {
+            sectors = dao.sectorDistribution(range.start, range.end, range.source, commune).map {
                 SectorStat(it.id, it.name, it.commune, it.clients, it.served, it.without_sale, it.rate)
             },
-            communes = dao.communeDistribution(range.start, range.end, range.source, c).map {
+            communes = dao.communeDistribution(range.start, range.end, range.source).map {
                 CommuneStat(it.commune.ifEmpty { null }, it.clients, it.served, it.without_sale, it.sectors, it.rate)
             },
         )
@@ -184,7 +183,7 @@ class ReportRepository(
             losses = dao.lossesByType(range.start, range.end, range.source).map { LossByType(it.type, it.count, it.value) },
             lostProducts = dao.lossesByProduct(range.start, range.end, range.source)
                 .map { LossByProduct(it.product_id, it.name, it.unit, it.image_uri, it.quantity, it.value) },
-            salesCost = dao.salesCost(range.start, range.end, range.source, null).cost,
+            salesCost = dao.salesCost(range.start, range.end, range.source).cost,
         )
     }
 
@@ -226,8 +225,8 @@ class ReportRepository(
         zone: ZoneId = ZoneId.systemDefault(),
     ): ProfitReport {
         val range = filter.resolve(today, zone)
-        val sales = dao.salesBySource(range.start, range.end, null, null).sumOf { it.total }
-        val cost = dao.salesCost(range.start, range.end, null, null).cost
+        val sales = dao.salesBySource(range.start, range.end, null).sumOf { it.total }
+        val cost = dao.salesCost(range.start, range.end, null).cost
         val returns = dao.returnsWithCost(range.firstDay.toString(), range.lastDay.toString())
         return ProfitReport(
             range = range,

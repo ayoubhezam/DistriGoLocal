@@ -23,12 +23,14 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -38,9 +40,15 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -48,7 +56,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.data.repository.CommuneFilter
 import com.distrigo.app.data.repository.CommuneStat
 import com.distrigo.app.data.repository.DistributionReport
 import com.distrigo.app.data.repository.SectorStat
@@ -68,13 +75,16 @@ import java.time.format.DateTimeFormatter
 private val ServedColor = DsColors.Primary
 private val UnservedColor = DsColors.Warning
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private const val ALL_COMMUNES = "Toutes les communes"
+private const val SANS_COMMUNE = "Sans commune"
 
 private val INFO_DISTRIBUTION = ReportInfo(
     "Meilleure distribution",
     "Où sont vos clients, et lesquels ont acheté sur la période.\n\n" +
         "• Clients : ceux enregistrés à la fin de la période — sans les clients supprimés —, dans la commune choisie s'il y en a une.\n" +
         "• Clients servis : ceux qui ont au moins une vente sur la période — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n" +
-        "• Conversion : clients servis ÷ clients."
+        "• Conversion : clients servis ÷ clients.\n\n" +
+        "Le choix d'une commune ne change que ces trois chiffres et le Top 7 secteurs ; le chiffre d'affaires et le reste du rapport restent ceux de toute l'activité."
 )
 private val INFO_TOP_SECTORS = ReportInfo(
     "Top 7 secteurs",
@@ -85,28 +95,64 @@ private val INFO_TOP_SECTORS = ReportInfo(
 private val INFO_COMMUNES = ReportInfo(
     "Répartition par commune",
     "Chaque commune : ses clients servis sur ses clients, sa conversion, et le nombre de secteurs qu'elle compte. " +
-        "« ${CommuneFilter.SANS_COMMUNE} » : les clients dont la fiche n'a pas de commune.\n\n" +
-        "Touchez une commune pour limiter tout le rapport à ses clients ; la puce « Commune » en haut retire le filtre."
+        "« $SANS_COMMUNE » : les clients dont la fiche n'a pas de commune. Toutes les communes, quelle que soit celle choisie plus haut."
 )
 
 /**
- * The Ventes report's distribution, as items of its list: the three figures, the seven largest
- * sectors, and the communes — a commune narrows the whole report when [onCommune] is given.
+ * The Ventes report's distribution, as items of its list: the commune selector, the three figures,
+ * the seven largest sectors, and the communes. The commune chosen — null for all of them — narrows the
+ * figures and the sectors only.
  */
 fun LazyListScope.distributionItems(
     distribution: DistributionReport,
-    commune: CommuneFilter?,
+    commune: String?,
+    onCommune: (String?) -> Unit,
     onSeeAll: () -> Unit,
     onSector: (SectorStat) -> Unit,
-    onCommune: (CommuneFilter) -> Unit,
 ) {
     item(key = "distribution_title") { TitleWithInfo("Meilleure distribution", INFO_DISTRIBUTION) }
+    item(key = "distribution_commune") { CommuneSelector(commune, distribution.communeNames, onCommune) }
     item(key = "distribution_kpis") { DistributionKpis(distribution) }
     item(key = "distribution_sectors") { TopSectorsCard(distribution, onSeeAll, onSector) }
     item(key = "distribution_communes") { TitleWithInfo("Répartition par commune", INFO_COMMUNES) }
-    items(distribution.communes, key = { "commune_${it.name.orEmpty()}" }) { c ->
-        // The commune already chosen is the only one left: nothing more to narrow to.
-        CommuneCard(c, onClick = if (commune == null) ({ onCommune(c.filter) }) else null)
+    items(distribution.communes, key = { "commune_${it.name.orEmpty()}" }) { CommuneCard(it) }
+}
+
+/**
+ * The commune the figures and sectors are narrowed to, as the period is chosen at the top of the
+ * report: the same outlined field, opening a list — "Toutes les communes", then each by name.
+ */
+@Composable
+private fun CommuneSelector(selected: String?, names: List<String>, onSelect: (String?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    var width by remember { mutableIntStateOf(0) }
+    // The commune chosen stays offered when the period leaves it without a client.
+    val options: List<String?> = listOf(null) + names + listOfNotNull(selected?.takeIf { it !in names })
+    Box(Modifier.padding(horizontal = DsSpacing.lg)) {
+        ReportSelectorField(
+            Icons.Default.LocationOn, selected ?: ALL_COMMUNES, null, "Changer de commune",
+            Modifier.onSizeChanged { width = it.width },
+        ) { open = true }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.width(with(LocalDensity.current) { width.toDp() }),
+            shape = DsShapes.medium,
+            containerColor = DsColors.Surface,
+        ) {
+            options.forEach { option ->
+                val on = option == selected
+                DropdownMenuItem(
+                    text = {
+                        Text(option ?: ALL_COMMUNES, fontSize = DsTextSize.body,
+                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (on) DsColors.Primary else DsColors.TextPrimary)
+                    },
+                    trailingIcon = if (on) ({ Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary) }) else null,
+                    onClick = { open = false; if (!on) onSelect(option) },
+                )
+            }
+        }
     }
 }
 
@@ -243,14 +289,13 @@ private fun StackedBar(served: Int, unserved: Int, length: Float) {
 
 /** A commune: its name and conversion, the conversion as a bar, and its clients and sectors. */
 @Composable
-private fun CommuneCard(c: CommuneStat, onClick: (() -> Unit)?) {
+private fun CommuneCard(c: CommuneStat) {
     Column(
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(DsSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(c.name ?: CommuneFilter.SANS_COMMUNE, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
+            Text(c.name ?: SANS_COMMUNE, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
                 color = if (c.name == null) DsColors.TextSecondary else DsColors.TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.sm))
@@ -268,25 +313,6 @@ private fun CommuneCard(c: CommuneStat, onClick: (() -> Unit)?) {
         Spacer(Modifier.height(DsSpacing.sm))
         val sectors = if (c.name != null) " • ${plural(c.sectors, "secteur", "secteurs")}" else ""
         Text("${c.served} / ${c.clients} clients$sectors", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-    }
-}
-
-/** The commune the report is narrowed to; a tap takes the narrowing off. */
-@Composable
-fun CommuneChip(filter: CommuneFilter, onClear: () -> Unit) {
-    Row(Modifier.padding(horizontal = DsSpacing.lg)) {
-        Row(
-            Modifier.clip(DsShapes.pill).background(DsColors.PrimaryLight).clickable(role = Role.Button, onClick = onClear)
-                .padding(start = DsSpacing.md, end = DsSpacing.sm, top = 6.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Text("Commune : ${filter.label}", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Spacer(Modifier.width(DsSpacing.xs))
-            Icon(Icons.Default.Close, contentDescription = "Retirer le filtre commune", tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-        }
     }
 }
 
@@ -378,7 +404,7 @@ fun SectorsScreen(onBack: () -> Unit, viewModel: VentesReportViewModel) {
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Secteurs",
-            subtitle = state.commune?.let { "Commune : ${it.label}" } ?: "Tous les secteurs",
+            subtitle = state.commune?.let { "Commune : $it" } ?: "Tous les secteurs",
             leading = DsTopBarLeading.Back(onBack),
         )
         LazyColumn(

@@ -3,7 +3,7 @@ package com.distrigo.app.data.repository
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** What the distribution shows of what the query returned: the bars drawn, the commune filters. */
+/** What the distribution shows of what the query returned: the bars drawn, the communes offered. */
 class DistributionReportModelTest {
 
     private fun sector(id: Int, clients: Int) = SectorStat(id, "S$id", "Souk Ahras", clients, 0, clients, 0.0)
@@ -25,10 +25,13 @@ class DistributionReportModelTest {
     }
 
     @Test
-    fun `the clients without a commune are filtered as an empty commune`() {
-        val none = CommuneStat(null, 3, 1, 2, 0, 1.0 / 3)
-        assertEquals(CommuneFilter(""), none.filter)
-        assertEquals("Sans commune", none.filter.label)
-        assertEquals("Sedrata", CommuneStat("Sedrata", 1, 1, 0, 1, 1.0).filter.label)
+    fun `the selector offers the communes by name, without the clients without one`() {
+        val r = report(emptyList()).copy(communes = listOf(
+            CommuneStat("Souk Ahras", 9, 6, 3, 4, 2.0 / 3),
+            CommuneStat("ain zana", 4, 1, 3, 1, 0.25),
+            CommuneStat("Sedrata", 5, 5, 0, 2, 1.0),
+            CommuneStat(null, 3, 1, 2, 0, 1.0 / 3),
+        ))
+        assertEquals(listOf("ain zana", "Sedrata", "Souk Ahras"), r.communeNames)
     }
 }

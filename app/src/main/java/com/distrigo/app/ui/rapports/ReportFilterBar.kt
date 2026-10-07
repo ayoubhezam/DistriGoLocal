@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -80,22 +81,7 @@ fun ReportFilterBar(
     var sheet by remember { mutableStateOf(false) }
 
     Column(modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(DsShapes.medium)
-                .border(1.dp, DsColors.Border, DsShapes.medium)
-                .clickable(role = Role.Button, onClickLabel = "Changer la période") { sheet = true }
-                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(filter.period.label, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(filter.daysText(), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
-        }
+        ReportSelectorField(Icons.Default.CalendarMonth, filter.period.label, filter.daysText(), "Changer la période") { sheet = true }
 
         if (showSource) {
             SourceSelector(filter.source) { onChange(filter.copy(source = it)) }
@@ -108,6 +94,38 @@ fun ReportFilterBar(
             onApply = { onChange(it); sheet = false },
             onDismiss = { sheet = false },
         )
+    }
+}
+
+/**
+ * A report's selector, as the period's at the top of every report draws it: an outlined row with its
+ * [icon], the choice in bold, [detail] in grey when there is one, and a chevron. A tap opens whatever
+ * it chooses from.
+ */
+@Composable
+fun ReportSelectorField(
+    icon: ImageVector,
+    label: String,
+    detail: String?,
+    onClickLabel: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
+            .clickable(role = Role.Button, onClickLabel = onClickLabel, onClick = onClick)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(label, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(detail.orEmpty(), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, maxLines = 1, modifier = Modifier.weight(1f))
+        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
     }
 }
 

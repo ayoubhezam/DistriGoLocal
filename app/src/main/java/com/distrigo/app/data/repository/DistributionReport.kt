@@ -3,18 +3,6 @@ package com.distrigo.app.data.repository
 import java.time.LocalDate
 
 /**
- * The Ventes report's commune filter: one commune's clients, by name, or — [name] empty — the clients
- * without a commune. The wilaya is left out: a commune is told apart by its name alone.
- */
-data class CommuneFilter(val name: String) {
-    val label: String get() = name.ifEmpty { SANS_COMMUNE }
-
-    companion object {
-        const val SANS_COMMUNE = "Sans commune"
-    }
-}
-
-/**
  * A sector over the period: its [clients], those [served] — at least one sale — those [withoutSale],
  * and [rate], served ÷ clients, 0 without a client.
  */
@@ -36,23 +24,21 @@ data class CommuneStat(
     val withoutSale: Int,
     val sectors: Int,
     val rate: Double,
-) {
-    /** The filter this commune's card applies. */
-    val filter: CommuneFilter get() = CommuneFilter(name ?: "")
-}
+)
 
 /** A client of a sector who bought nothing over the period; [lastSale], its last sale ever, if any. */
 data class UnservedClient(val id: Int, val name: String, val imageUri: String?, val lastSale: LocalDate?)
 
 /**
- * Where the clients are, and which of them bought — the Ventes report's distribution.
+ * Where the clients are, and which of them bought — the Ventes report's distribution. A commune —
+ * chosen by its name; the wilaya is left out — narrows the figures and the sectors, not [communes].
  *
  * - [clients]: the clients there by the period's end, not deleted, in the commune when one is chosen;
  * - [served]: those of them with at least one sale over the period (dépôt, camion, or both);
  * - [rate]: served ÷ clients, 0 without a client;
  * - [unsectored]: the clients with no sector, which no sector bar shows;
- * - [sectors]: every sector, the most clients first; [communes]: the most clients first, those
- *   without a commune last.
+ * - [sectors]: every sector, the most clients first; [communes]: every commune, whichever is chosen,
+ *   the most clients first, those without a commune last.
  *
  * Counted, divided and sorted by ReportDao; nothing here adds up.
  */
@@ -66,6 +52,9 @@ data class DistributionReport(
 ) {
     /** The sectors a bar is drawn for: the [TOP_SECTORS] with the most clients, none without a client. */
     val topSectors: List<SectorStat> get() = sectors.filter { it.clients > 0 }.take(TOP_SECTORS)
+
+    /** The communes a selector offers, by name: those with clients, without the clients without one. */
+    val communeNames: List<String> get() = communes.mapNotNull { it.name }.sortedWith(String.CASE_INSENSITIVE_ORDER)
 
     companion object {
         const val TOP_SECTORS = 7
