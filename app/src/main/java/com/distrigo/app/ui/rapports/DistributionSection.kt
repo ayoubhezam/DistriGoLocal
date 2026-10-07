@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -173,22 +174,22 @@ private fun DistributionKpis(d: DistributionReport) {
         Modifier.padding(horizontal = DsSpacing.lg).height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
     ) {
-        MiniKpi(Icons.Default.Groups, "Clients", d.clients.toString(), "au total", DsColors.Primary, Modifier.weight(1f))
-        MiniKpi(Icons.Default.HowToReg, "Clients servis", d.served.toString(), "ont acheté", DsColors.Success, Modifier.weight(1f))
-        MiniKpi(Icons.Default.Percent, "Conversion", percent(d.rate), "servis / clients", DsColors.Warning, Modifier.weight(1f))
+        MiniKpi(Icons.Default.Groups, "Clients", countFigure(d.clients), "au total", DsColors.Primary, Modifier.weight(1f))
+        MiniKpi(Icons.Default.HowToReg, "Clients servis", countFigure(d.served), "ont acheté", DsColors.Success, Modifier.weight(1f))
+        MiniKpi(Icons.Default.Percent, "Conversion", rateFigure(d.rate), "servis / clients", DsColors.Warning, Modifier.weight(1f))
     }
 }
 
 /** A third of a row: the figure dark, as everywhere in the reports; the theme colour on its icon, label and border. */
 @Composable
-private fun MiniKpi(icon: ImageVector, label: String, value: String, caption: String, accent: Color, modifier: Modifier) {
+private fun MiniKpi(icon: ImageVector, label: String, value: Figure, caption: String, accent: Color, modifier: Modifier) {
     Column(
         modifier.fillMaxHeight().clip(DsShapes.large).background(DsColors.Surface)
             .border(1.dp, accent.copy(alpha = 0.35f), DsShapes.large).padding(DsSpacing.md),
     ) {
         Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(DsSpacing.sm))
-        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
         FitText(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = accent)
         FitText(caption, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
     }
@@ -281,14 +282,20 @@ private fun SectorBar(
     }
 }
 
-/** A track, and over it [served] then [unserved], together [length] of its width. */
+/**
+ * A track, and over it [served] then [unserved], together [length] of its width. When they change, the
+ * bar slides to its new length and its new split; not on its first showing.
+ */
 @Composable
 private fun StackedBar(served: Int, unserved: Int, length: Float) {
+    val clients = served + unserved
+    val bar by animateFloatAsState(if (clients > 0 && length > 0f) length.coerceIn(0.02f, 1f) else 0f, glide(), label = "bar")
+    val share by animateFloatAsState(if (clients > 0) served / clients.toFloat() else 0f, glide(), label = "share")
     Box(Modifier.fillMaxWidth().height(10.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)) {
-        if (served + unserved > 0 && length > 0f) {
-            Row(Modifier.fillMaxWidth(length.coerceIn(0.02f, 1f)).fillMaxHeight().clip(DsShapes.pill)) {
-                if (served > 0) Box(Modifier.weight(served.toFloat()).fillMaxHeight().background(ServedColor))
-                if (unserved > 0) Box(Modifier.weight(unserved.toFloat()).fillMaxHeight().background(UnservedColor))
+        if (bar > 0f) {
+            // The rest of the bar is the clients without a sale; the served part is drawn over it.
+            Box(Modifier.fillMaxWidth(bar).fillMaxHeight().clip(DsShapes.pill).background(UnservedColor)) {
+                if (share > 0f) Box(Modifier.fillMaxWidth(share).fillMaxHeight().background(ServedColor))
             }
         }
     }
@@ -308,11 +315,12 @@ private fun CommuneCard(c: CommuneStat) {
                 color = if (c.name == null) DsColors.TextSecondary else DsColors.TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text(percent(c.rate), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            AnimatedFigure(rateFigure(c.rate), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
         }
         Spacer(Modifier.height(DsSpacing.sm))
+        val rate by animateFloatAsState(c.rate.toFloat(), glide(), label = "rate")
         LinearProgressIndicator(
-            progress = { c.rate.toFloat() },
+            progress = { rate },
             modifier = Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill),
             color = DsColors.Success,
             trackColor = DsColors.SurfaceSunken,

@@ -168,7 +168,7 @@ private fun TotalCard(report: ProductReport) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
         title = "Ventes des produits",
-        amount = money.da(report.total),
+        amount = money.figure(report.total),
         caption = "Marge brute ${money.da(report.margin)}",
         info = INFO_TOTAL,
     )
@@ -181,18 +181,18 @@ private fun Tiles(report: ProductReport, onSansVente: () -> Unit) {
     val a = report.abc.first()
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Produits vendus", report.lines.size.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Produits vendus", countFigure(report.lines.size), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.ShoppingCart, INFO_SOLD, accent = ProduitsColor)
-            KpiTile("Taux de marge", report.marginRate?.let { percent(it) } ?: "—",
+            KpiTile("Taux de marge", rateFigure(report.marginRate),
                 if (loss) DsColors.Danger else DsColors.TextPrimary, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_RATE,
                 accent = if (loss) DsColors.Danger else DsColors.Primary)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Classe A", plural(a.products, "produit", "produits"), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Classe A", countFigure(a.products, "produit", "produits"), DsColors.TextPrimary, Modifier.weight(1f),
                 percentOf(a.products.toDouble(), report.lines.size.toDouble()), Icons.Default.Star, INFO_A, accent = AbcColors[0])
             // The stock that did not move, in money; the card opens the list.
-            KpiTile("Sans vente", money.da(report.dormantValue), DsColors.TextPrimary,
+            KpiTile("Sans vente", money.figure(report.dormantValue), DsColors.TextPrimary,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onSansVente),
                 plural(report.dormant.size, "produit", "produits"), Icons.Default.Warehouse, INFO_DORMANT, accent = DsColors.Warning)
         }

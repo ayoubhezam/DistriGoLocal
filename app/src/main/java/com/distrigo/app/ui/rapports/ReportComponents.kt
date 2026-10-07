@@ -75,14 +75,21 @@ fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier, ico
     )
 }
 
-class HeroHalf(val label: String, val value: String, val bold: Boolean = false)
+class HeroHalf(val label: String, val value: Figure, val bold: Boolean = false) {
+    constructor(label: String, value: String, bold: Boolean = false) : this(label, Figure.text(value), bold)
+}
 
 /**
  * The blue card at the top of a report: [title], the main [amount] and a [caption], centred; then, if
  * [halves] are given, a divider and the two halves side by side.
  */
 @Composable
-fun ReportHeroCard(title: String, amount: String, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
+fun ReportHeroCard(title: String, amount: String, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList()) =
+    ReportHeroCard(title, Figure.text(amount), caption, info, halves)
+
+/** The same card, its amount counting to a new value when it changes. */
+@Composable
+fun ReportHeroCard(title: String, amount: Figure, caption: String?, info: ReportInfo, halves: List<HeroHalf> = emptyList()) {
     val white = Color.White
     Column(
         Modifier
@@ -101,7 +108,7 @@ fun ReportHeroCard(title: String, amount: String, caption: String?, info: Report
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
             InfoButton(info, tint = white.copy(alpha = 0.75f))
         }
-        FitText(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white, textAlign = TextAlign.Center)
+        AnimatedFigure(amount, fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold, color = white, textAlign = TextAlign.Center)
         // A card can be its amount alone: the Ventes report counts its sales in a card of their own.
         if (caption != null) Text(caption, fontSize = DsTextSize.bodySmall, color = white.copy(alpha = 0.85f), textAlign = TextAlign.Center)
         if (halves.isNotEmpty()) {
@@ -113,7 +120,7 @@ fun ReportHeroCard(title: String, amount: String, caption: String?, info: Report
                 halves.forEach { half ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(half.label, fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
-                        FitText(
+                        AnimatedFigure(
                             half.value, fontSize = DsTextSize.body,
                             fontWeight = if (half.bold) FontWeight.Bold else FontWeight.SemiBold,
                             color = white, textAlign = TextAlign.Center,
@@ -133,6 +140,14 @@ fun ReportHeroCard(title: String, amount: String, caption: String?, info: Report
 @Composable
 fun KpiTile(
     label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
+    icon: ImageVector, info: ReportInfo,
+    accent: Color = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
+) = KpiTile(label, Figure.text(value), valueColor, modifier, badge, icon, info, accent)
+
+/** The same card, its figure counting to a new value when it changes. */
+@Composable
+fun KpiTile(
+    label: String, value: Figure, valueColor: Color, modifier: Modifier, badge: String?,
     icon: ImageVector, info: ReportInfo,
     /** The card's own colour, for its icon and pill; the figure stays dark unless it is news. */
     accent: Color = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
@@ -163,7 +178,7 @@ fun KpiTile(
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             InfoButton(info, tint = DsColors.TextTertiary, modifier = Modifier.padding(start = 2.dp), iconSize = 13.dp)
         }
-        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
+        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = valueColor)
     }
 }
 
@@ -172,22 +187,27 @@ fun KpiTile(
  * [total] in its centre and [caption] under it. An empty total draws a grey ring.
  *
  * The amount shrinks to fit the ring; "DA" stays a unit under it, never larger than the figure.
+ * When the shares change, each slice sweeps from its old angle to its new, together, so the ring stays
+ * whole all the way; the total counts.
  */
 @Composable
 fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String, modifier: Modifier = Modifier) {
     val money = LocalMoneyFormatter.current
     val empty = DsColors.SurfaceSunken
+    val sweeps = slices.map { (amount, _) -> if (total > 0) (360.0 * amount / total).toFloat() else 0f }
+    val shown = glidingSweeps(sweeps)
     Box(modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val stroke = 14.dp.toPx()
             val at = Offset(stroke / 2, stroke / 2)
             val arc = Size(size.width - stroke, size.height - stroke)
-            if (total <= 0) {
+            val angles = shown()
+            if (angles.sum() <= 0f) {
                 drawArc(empty, 0f, 360f, false, at, arc, style = Stroke(stroke))
             } else {
                 var start = -90f
-                slices.forEach { (amount, color) ->
-                    val sweep = (360.0 * amount / total).toFloat()
+                angles.forEachIndexed { i, sweep ->
+                    val color = slices.getOrNull(i)?.second ?: empty
                     if (sweep > 0f) drawArc(color, start, sweep, false, at, arc, style = Stroke(stroke))
                     start += sweep
                 }
@@ -196,8 +216,8 @@ fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String,
         // Inside the stroke (14 dp) with room to spare, so a ten-digit total never touches the ring; each
         // line shrinks to stay on one line rather than wrap and push the others off centre.
         Column(Modifier.fillMaxWidth().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            FitText(
-                money.amount(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
+            AnimatedFigure(
+                Figure(total) { money.amount(it) }, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
                 color = DsColors.TextPrimary, textAlign = TextAlign.Center, minScale = 0.35f,
             )
             Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)

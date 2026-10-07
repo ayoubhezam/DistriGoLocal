@@ -159,12 +159,12 @@ private fun ValueCard(report: StockReport, source: ReportSource) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
         title = "Valeur du stock",
-        amount = money.da(report.stock.total),
+        amount = money.figure(report.stock.total),
         caption = "${plural(report.stock.products, "produit en stock", "produits en stock")}\nau ${LocalDate.now().format(DAY)}",
         info = INFO_VALUE,
         halves = if (source == ReportSource.TOUT) listOf(
-            HeroHalf("Au dépôt", money.da(report.stock.depot)),
-            HeroHalf("Au camion", money.da(report.stock.camion)),
+            HeroHalf("Au dépôt", money.figure(report.stock.depot)),
+            HeroHalf("Au camion", money.figure(report.stock.camion)),
         ) else emptyList(),
     )
 }
@@ -175,15 +175,15 @@ private fun Tiles(report: StockReport) {
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             // Red only when there is something to see to.
-            KpiTile("Ruptures", report.outOfStock.toString(), if (report.outOfStock > 0) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Ruptures", countFigure(report.outOfStock), if (report.outOfStock > 0) DsColors.Danger else DsColors.TextPrimary,
                 Modifier.weight(1f), null, Icons.Default.RemoveShoppingCart, INFO_OUT, accent = DsColors.Danger)
-            KpiTile("Stock bas", report.lowStock.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Stock bas", countFigure(report.lowStock), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.Warning, INFO_LOW, accent = DsColors.Warning)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Pertes", money.da(report.lossValue), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Pertes", money.figure(report.lossValue), DsColors.TextPrimary, Modifier.weight(1f),
                 plural(report.lossCount, "perte", "pertes"), Icons.Default.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
-            KpiTile("Taux de perte", report.lossRate?.let { percent(it) } ?: "—", DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Taux de perte", rateFigure(report.lossRate), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.Percent, INFO_RATE, accent = DsColors.Primary)
         }
     }

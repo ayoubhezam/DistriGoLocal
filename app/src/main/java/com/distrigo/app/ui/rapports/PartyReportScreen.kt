@@ -186,7 +186,7 @@ private fun TotalCard(report: PartyReport, words: PartyWords) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
         title = words.total,
-        amount = money.da(report.total),
+        amount = money.figure(report.total),
         caption = "${words.people(report.parties.size)} · ${words.documents(report.documents)}",
         info = words.totalInfo,
     )
@@ -198,15 +198,15 @@ private fun Tiles(report: PartyReport, words: PartyWords, onInactive: () -> Unit
     val clients = report.side == DebtSide.CLIENTS
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile(words.active, report.parties.size.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile(words.active, countFigure(report.parties.size), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.Group, words.activeInfo, accent = DsColors.Primary)
-            KpiTile(words.average, report.average?.let { money.da(it) } ?: "—", DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile(words.average, report.average?.let { money.figure(it) } ?: Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
                 if (clients) Icons.Default.ShoppingBasket else Icons.Default.Receipt, words.averageInfo, accent = Color(0xFF0E9384))
         }
         if (clients) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Nouveaux clients", report.newCount.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Nouveaux clients", countFigure(report.newCount), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.PersonAdd, INFO_NEW, accent = DsColors.Success)
-            KpiTile("Clients inactifs", report.inactive.size.toString(), DsColors.TextPrimary,
+            KpiTile("Clients inactifs", countFigure(report.inactive.size), DsColors.TextPrimary,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onInactive), null,
                 Icons.Default.Bedtime, INFO_INACTIVE, accent = DsColors.Warning)
         }

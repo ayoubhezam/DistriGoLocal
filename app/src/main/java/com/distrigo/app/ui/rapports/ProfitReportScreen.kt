@@ -123,12 +123,12 @@ private fun NetCard(report: ProfitReport) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
         title = "Résultat net",
-        amount = money.da(report.net),
+        amount = money.figure(report.net),
         caption = if (report.net >= 0) "Bénéfice sur la période" else "Perte sur la période",
         info = INFO_NET,
         halves = listOf(
-            HeroHalf("Marge brute", money.da(report.grossMargin)),
-            HeroHalf("Retiré", "− ${money.da(report.returnsMargin + report.chargesTotal + report.lossesTotal)}"),
+            HeroHalf("Marge brute", money.figure(report.grossMargin)),
+            HeroHalf("Retiré", money.figure(report.returnsMargin + report.chargesTotal + report.lossesTotal, prefix = "− ")),
         ),
     )
 }
@@ -140,18 +140,18 @@ private fun Tiles(report: ProfitReport) {
     val netLoss = report.net < 0
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Marge brute", money.da(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Marge brute", money.figure(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.TextPrimary,
                 Modifier.weight(1f), null,
                 if (grossLoss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_GROSS,
                 accent = if (grossLoss) DsColors.Danger else DsColors.Primary)
-            KpiTile("Rentabilité", report.netShare?.let { percent(it) } ?: "—", if (netLoss) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Rentabilité", rateFigure(report.netShare), if (netLoss) DsColors.Danger else DsColors.TextPrimary,
                 Modifier.weight(1f), null, Icons.Default.Percent, INFO_SHARE,
                 accent = if (netLoss) DsColors.Danger else DsColors.Success)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Charges", money.da(report.chargesTotal), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Charges", money.figure(report.chargesTotal), DsColors.TextPrimary, Modifier.weight(1f),
                 plural(report.chargesCount, "charge", "charges"), Icons.Default.Payments, INFO_CHARGES, accent = DsColors.Warning)
-            KpiTile("Pertes", money.da(report.lossesTotal), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Pertes", money.figure(report.lossesTotal), DsColors.TextPrimary, Modifier.weight(1f),
                 plural(report.lossesCount, "perte", "pertes"), Icons.Default.RemoveShoppingCart, INFO_LOSSES, accent = DsColors.Danger)
         }
     }

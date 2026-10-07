@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +21,9 @@ import androidx.compose.ui.unit.TextUnit
  */
 const val MONEY_STAT_WEIGHT = 1.6f
 
+/** Digits all as wide as each other, so a figure that changes does not shift its neighbours. */
+const val TABULAR_FIGURES = "tnum"
+
 /**
  * One line of text that shrinks until it fits its width — for an amount in a row of stat columns.
  *
@@ -29,7 +33,8 @@ const val MONEY_STAT_WEIGHT = 1.6f
  * by steps of a tenth down to [minScale] of [fontSize], and ellipsizing only past that.
  *
  * Drawn only once its size is settled, so the overflowing first measure never flashes. Compose's own
- * auto-size text arrived after the version this app uses.
+ * auto-size text arrived after the version this app uses. [onFit] is told the scale it settled on;
+ * [tabular] writes its digits all as wide.
  */
 @Composable
 fun FitText(
@@ -40,6 +45,8 @@ fun FitText(
     fontWeight: FontWeight? = null,
     textAlign: TextAlign? = null,
     minScale: Float = 0.6f,
+    tabular: Boolean = false,
+    onFit: ((Float) -> Unit)? = null,
 ) {
     var scale by remember(text, fontSize) { mutableStateOf(1f) }
     var settled by remember(text, fontSize) { mutableStateOf(false) }
@@ -52,11 +59,15 @@ fun FitText(
         maxLines   = 1,
         softWrap   = false,
         overflow   = if (settled) TextOverflow.Ellipsis else TextOverflow.Clip,
+        style      = if (tabular) LocalTextStyle.current.copy(fontFeatureSettings = TABULAR_FIGURES) else LocalTextStyle.current,
         modifier   = modifier.drawWithContent { if (settled) drawContent() },
         onTextLayout = { layout ->
             if (settled) return@Text
             if (layout.didOverflowWidth && scale > minScale) scale = (scale - 0.1f).coerceAtLeast(minScale)
-            else settled = true
+            else {
+                settled = true
+                onFit?.invoke(scale)
+            }
         },
     )
 }

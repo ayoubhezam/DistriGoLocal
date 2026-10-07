@@ -134,12 +134,12 @@ private fun SummaryCard(report: SalesReport) {
     val returns = report.returns
     ReportHeroCard(
         title = "Chiffre d'affaires",
-        amount = money.da(report.all.total),
+        amount = money.figure(report.all.total),
         caption = null,
         info = ReportInfo("Chiffre d'affaires", "Le total des ventes de la période, au prix de vente — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n\nLes retours clients n'en sont pas déduits : « Ventes nettes » = chiffre d'affaires − retours clients de la période. Ils ne s'affichent qu'avec « Tout », un retour ne disant pas d'où venait la marchandise."),
         halves = if (returns != null && returns.count > 0) listOf(
-            HeroHalf("Retours clients (${returns.count})", "− ${money.da(returns.total)}"),
-            HeroHalf("Ventes nettes", money.da(report.netTotal ?: report.all.total), bold = true),
+            HeroHalf("Retours clients (${returns.count})", money.figure(returns.total, prefix = "− ")),
+            HeroHalf("Ventes nettes", money.figure(report.netTotal ?: report.all.total), bold = true),
         ) else emptyList(),
     )
 }
@@ -155,13 +155,13 @@ private fun KpiGrid(report: SalesReport) {
         // Each row as tall as its taller tile, so the pairs line up.
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Nombre de ventes", sales.toString(), DsColors.TextPrimary, Modifier.weight(1f), null,
+                "Nombre de ventes", countFigure(sales), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.Receipt,
                 info = ReportInfo("Nombre de ventes", "Le nombre de ventes de la période — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion."),
                 accent = DsColors.Primary,
             )
             KpiTile(
-                "Panier moyen", if (sales > 0) money.da(report.all.total / sales) else "—", DsColors.TextPrimary, Modifier.weight(1f), null,
+                "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.ShoppingBasket,
                 info = ReportInfo("Panier moyen", "Ce qu'une vente rapporte en moyenne sur la période : chiffre d'affaires ÷ nombre de ventes."),
                 accent = Color(0xFF0E9384),
@@ -169,14 +169,14 @@ private fun KpiGrid(report: SalesReport) {
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Marge brute", money.da(report.grossMargin), marginColor, Modifier.weight(1f), null,
+                "Marge brute", money.figure(report.grossMargin), marginColor, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
                 info = ReportInfo("Marge brute", "Ventes de la période − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat du produit au moment de la vente.\n\nNi les charges ni les pertes n'en sont déduites."),
                 accent = if (loss) DsColors.Danger else DsColors.Primary,
             )
             // The rate on the purchase price, as the Direction du Commerce counts it.
             KpiTile(
-                "Taux de marge", report.marginRate?.let { percent(it) } ?: "—", marginColor, Modifier.weight(1f), null,
+                "Taux de marge", rateFigure(report.marginRate), marginColor, Modifier.weight(1f), null,
                 Icons.Default.Percent,
                 info = ReportInfo("Taux de marge", "Marge brute ÷ ce que les produits vendus avaient coûté × 100 — sur le prix d'achat, comme le compte la Direction du Commerce."),
                 accent = if (loss) DsColors.Danger else DsColors.Success,

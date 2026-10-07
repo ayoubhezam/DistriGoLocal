@@ -216,12 +216,12 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
     ReportHeroCard(
         // The title stays one line beside its ⓘ; the day goes under the count, on a line of its own.
         title = words.owed,
-        amount = money.da(report.outstanding),
+        amount = money.figure(report.outstanding),
         caption = "${words.debtors(report.debtors.size)}\nau ${report.today.format(DAY)}",
         info = debtInfo(report.side, "owed"),
         halves = if (report.outstanding > 0) listOf(
-            HeroHalf("Moins de 30 jours", money.da(report.ages[AgeBand.RECENT.ordinal])),
-            HeroHalf("Plus de 90 jours", money.da(report.ages[AgeBand.OLD.ordinal]), bold = true),
+            HeroHalf("Moins de 30 jours", money.figure(report.ages[AgeBand.RECENT.ordinal])),
+            HeroHalf("Plus de 90 jours", money.figure(report.ages[AgeBand.OLD.ordinal]), bold = true),
         ) else emptyList(),
     )
 }
@@ -235,16 +235,16 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             // Dark figures; only the balance's trend is coloured, green or red: that is the news.
-            KpiTile(words.credit, money.da(report.credit), DsColors.TextPrimary, Modifier.weight(1f), null, Icons.Default.Schedule,
+            KpiTile(words.credit, money.figure(report.credit), DsColors.TextPrimary, Modifier.weight(1f), null, Icons.Default.Schedule,
                 debtInfo(report.side, "credit"), accent = DsColors.Warning)
             KpiTile(
-                words.payments, money.da(report.payments.total), DsColors.TextPrimary, Modifier.weight(1f),
+                words.payments, money.figure(report.payments.total), DsColors.TextPrimary, Modifier.weight(1f),
                 plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"), accent = DsColors.Success
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                words.returns, money.da(report.returns.total), DsColors.TextPrimary, Modifier.weight(1f),
+                words.returns, money.figure(report.returns.total), DsColors.TextPrimary, Modifier.weight(1f),
                 plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn, debtInfo(report.side, "returns"),
             )
             // More owed is bad news on either side: red when the balance grew, green when it shrank.
@@ -252,7 +252,8 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
             val shrank = change < -0.005
             KpiTile(
                 "Évolution du solde",
-                if (grew) "+ ${money.da(change)}" else if (shrank) "− ${money.da(-change)}" else money.da(0.0),
+                // Its sign follows the count: a balance that turns from growth to shrinkage crosses zero.
+                Figure(change) { v -> if (v > 0.005) "+ ${money.da(v)}" else if (v < -0.005) "− ${money.da(-v)}" else money.da(0.0) },
                 when { grew -> DsColors.Danger; shrank -> DsColors.Success; else -> DsColors.TextPrimary },
                 Modifier.weight(1f),
                 when { grew -> "En hausse"; shrank -> "En baisse"; else -> "Stable" },
