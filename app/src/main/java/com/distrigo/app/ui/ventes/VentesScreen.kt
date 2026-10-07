@@ -57,6 +57,8 @@ import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -216,7 +218,7 @@ fun VentesScreen(
             sheetState       = filterSheetState,
             containerColor   = DsColors.Surface
         ) {
-            var clientExpanded by remember { mutableStateOf(false) }
+            var clientPicker by remember { mutableStateOf(false) }
 
             Column(
                 modifier = Modifier
@@ -299,36 +301,27 @@ fun VentesScreen(
 
                 // ── العميل ──
                 Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                ExposedDropdownMenuBox(
-                    expanded         = clientExpanded,
-                    onExpandedChange = { clientExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value         = clients.find { it.first == viewModel.filterClientId }?.second ?: "Tous les clients",
-                        onValueChange = {},
-                        readOnly      = true,
-                        trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clientExpanded) },
-                        modifier      = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        shape         = DsShapes.medium,
-                        colors        = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor   = DsColors.Primary
-                        )
+                // A searchable sheet, not a dropdown: a dropdown builds every client with a sale the
+                // moment it opens — a 300 ms freeze for ~1,500 of them in a release build.
+                DsSelectorField(
+                    label       = null,
+                    value       = clients.find { it.first == viewModel.filterClientId }?.second.orEmpty(),
+                    placeholder = "Tous les clients",
+                    onClick     = { clientPicker = true }
+                )
+                if (clientPicker) {
+                    SearchableSelectSheet(
+                        title       = "Sélectionner un client",
+                        items       = clients,
+                        itemLabel   = { it.second },
+                        itemKey     = { it.first },
+                        isSelected  = { it.first == viewModel.filterClientId },
+                        allLabel    = "Tous les clients",
+                        allSelected = viewModel.filterClientId == null,
+                        onSelectAll = { viewModel.filterClientId = null },
+                        onSelect    = { viewModel.filterClientId = it.first },
+                        onDismiss   = { clientPicker = false }
                     )
-                    ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
-                        DropdownMenuItem(
-                            text    = { Text("Tous les clients", color = DsColors.TextSecondary) },
-                            onClick = { viewModel.filterClientId = null; clientExpanded = false }
-                        )
-                        clients.forEach { (id, name) ->
-                            DropdownMenuItem(
-                                text    = { Text(name) },
-                                onClick = { viewModel.filterClientId = id; clientExpanded = false }
-                            )
-                        }
-                    }
                 }
                 Spacer(Modifier.height(DsSpacing.md))
 

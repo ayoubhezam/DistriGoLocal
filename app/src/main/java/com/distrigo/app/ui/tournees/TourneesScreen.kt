@@ -48,6 +48,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.SearchableSelectSheet
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.format.LocalMoneyFormatter
@@ -1522,7 +1524,7 @@ private fun TourneeVenteFilterSheet(
     onReset             : () -> Unit,
     onDismiss           : () -> Unit
 ) {
-    var clientExpanded by remember { mutableStateOf(false) }
+    var clientPicker by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1563,36 +1565,26 @@ private fun TourneeVenteFilterSheet(
             Spacer(Modifier.height(DsSpacing.md))
 
             Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-            ExposedDropdownMenuBox(
-                expanded         = clientExpanded,
-                onExpandedChange = { clientExpanded = it }
-            ) {
-                OutlinedTextField(
-                    value         = clients.find { it.first == filterClientId }?.second ?: "Tous les clients",
-                    onValueChange = {},
-                    readOnly      = true,
-                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clientExpanded) },
-                    modifier      = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    shape         = DsShapes.medium,
-                    colors        = dsTextFieldColors(
-                        unfocusedBorderColor = DsColors.Border,
-                        focusedBorderColor   = DsColors.Primary
-                    )
+            // A searchable sheet, not a dropdown, as in Dépôt Vente's filters — see SearchableSelectSheet.
+            DsSelectorField(
+                label       = null,
+                value       = clients.find { it.first == filterClientId }?.second.orEmpty(),
+                placeholder = "Tous les clients",
+                onClick     = { clientPicker = true }
+            )
+            if (clientPicker) {
+                SearchableSelectSheet(
+                    title       = "Sélectionner un client",
+                    items       = clients,
+                    itemLabel   = { it.second },
+                    itemKey     = { it.first },
+                    isSelected  = { it.first == filterClientId },
+                    allLabel    = "Tous les clients",
+                    allSelected = filterClientId == null,
+                    onSelectAll = { onClient(null) },
+                    onSelect    = { onClient(it.first) },
+                    onDismiss   = { clientPicker = false }
                 )
-                ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
-                    DropdownMenuItem(
-                        text    = { Text("Tous les clients", color = DsColors.TextSecondary) },
-                        onClick = { onClient(null); clientExpanded = false }
-                    )
-                    clients.forEach { (id, name) ->
-                        DropdownMenuItem(
-                            text    = { Text(name) },
-                            onClick = { onClient(id); clientExpanded = false }
-                        )
-                    }
-                }
             }
             Spacer(Modifier.height(DsSpacing.lg))
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -57,7 +58,7 @@ fun MovementFiltersSheet(
     var draft by remember { mutableStateOf(filters) }
     var showFrom by remember { mutableStateOf(false) }
     var showTo   by remember { mutableStateOf(false) }
-    var partyMenu by remember { mutableStateOf(false) }
+    var partyPicker by remember { mutableStateOf(false) }
 
     // Counted in the database on every change of the draft; the list on screen holds the applied
     // filters, not this one.
@@ -150,30 +151,31 @@ fun MovementFiltersSheet(
                 val options = if (party == MovementParty.CLIENT) clients else suppliers
                 val chosen  = options.firstOrNull { it.id == draft.partyId }
                 val empty   = if (party == MovementParty.CLIENT) "Aucun client pour ce produit" else "Aucun fournisseur pour ce produit"
+                val all   = "Tous les ${party.label.lowercase()}s"
                 Box(Modifier.fillMaxWidth().padding(top = DsSpacing.xs)) {
                     FieldBox(
-                        text    = chosen?.name ?: if (options.isEmpty()) empty else "Tous les ${party.label.lowercase()}s",
+                        text    = chosen?.name ?: if (options.isEmpty()) empty else all,
                         muted   = chosen == null,
                         enabled = options.isNotEmpty(),
                         trailing = Icons.Default.KeyboardArrowDown,
-                        onClick = { partyMenu = true }
+                        onClick = { partyPicker = true }
                     )
-                    DropdownMenu(
-                        expanded         = partyMenu,
-                        onDismissRequest = { partyMenu = false },
-                        modifier         = Modifier.fillMaxWidth(0.85f)
-                    ) {
-                        DropdownMenuItem(
-                            text    = { Text("Tous les ${party.label.lowercase()}s") },
-                            onClick = { draft = draft.copy(partyId = null); partyMenu = false }
-                        )
-                        options.forEach { option ->
-                            DropdownMenuItem(
-                                text    = { Text(option.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                onClick = { draft = draft.copy(partyId = option.id); partyMenu = false }
-                            )
-                        }
-                    }
+                }
+                // A searchable sheet, not a dropdown: a best-seller has moved with hundreds of clients,
+                // and a dropdown builds them all the moment it opens — see SearchableSelectSheet.
+                if (partyPicker) {
+                    SearchableSelectSheet(
+                        title       = if (party == MovementParty.CLIENT) "Sélectionner un client" else "Sélectionner un fournisseur",
+                        items       = options,
+                        itemLabel   = { it.name },
+                        itemKey     = { it.id },
+                        isSelected  = { it.id == draft.partyId },
+                        allLabel    = all,
+                        allSelected = draft.partyId == null,
+                        onSelectAll = { draft = draft.copy(partyId = null) },
+                        onSelect    = { draft = draft.copy(partyId = it.id) },
+                        onDismiss   = { partyPicker = false }
+                    )
                 }
             }
 

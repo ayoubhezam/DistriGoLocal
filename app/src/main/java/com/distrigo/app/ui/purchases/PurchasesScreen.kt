@@ -53,6 +53,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.DsSelectorField
+import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -260,7 +262,7 @@ fun PurchasesScreen(
             sheetState       = filterSheetState,
             containerColor   = DsColors.Surface
         ) {
-            var supplierExpanded by remember { mutableStateOf(false) }
+            var supplierPicker by remember { mutableStateOf(false) }
 
             Column(
                 modifier = Modifier
@@ -343,36 +345,27 @@ fun PurchasesScreen(
 
                 // ── المورد ──
                 Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                ExposedDropdownMenuBox(
-                    expanded         = supplierExpanded,
-                    onExpandedChange = { supplierExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value         = suppliers.find { it.first == viewModel.filterSupplierId }?.second ?: "Tous les fournisseurs",
-                        onValueChange = {},
-                        readOnly      = true,
-                        trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
-                        modifier      = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        shape         = DsShapes.medium,
-                        colors        = dsTextFieldColors(
-                            unfocusedBorderColor = DsColors.Border,
-                            focusedBorderColor   = DsColors.Primary
-                        )
+                // A searchable sheet, not a dropdown, which would build every supplier the moment it
+                // opens — see SearchableSelectSheet.
+                DsSelectorField(
+                    label       = null,
+                    value       = suppliers.find { it.first == viewModel.filterSupplierId }?.second.orEmpty(),
+                    placeholder = "Tous les fournisseurs",
+                    onClick     = { supplierPicker = true }
+                )
+                if (supplierPicker) {
+                    SearchableSelectSheet(
+                        title       = "Sélectionner un fournisseur",
+                        items       = suppliers,
+                        itemLabel   = { it.second },
+                        itemKey     = { it.first },
+                        isSelected  = { it.first == viewModel.filterSupplierId },
+                        allLabel    = "Tous les fournisseurs",
+                        allSelected = viewModel.filterSupplierId == null,
+                        onSelectAll = { viewModel.filterSupplierId = null },
+                        onSelect    = { viewModel.filterSupplierId = it.first },
+                        onDismiss   = { supplierPicker = false }
                     )
-                    ExposedDropdownMenu(expanded = supplierExpanded, onDismissRequest = { supplierExpanded = false }) {
-                        DropdownMenuItem(
-                            text    = { Text("Tous les fournisseurs", color = DsColors.TextSecondary) },
-                            onClick = { viewModel.filterSupplierId = null; supplierExpanded = false }
-                        )
-                        suppliers.forEach { (id, name) ->
-                            DropdownMenuItem(
-                                text    = { Text(name) },
-                                onClick = { viewModel.filterSupplierId = id; supplierExpanded = false }
-                            )
-                        }
-                    }
                 }
                 Spacer(Modifier.height(DsSpacing.md))
 

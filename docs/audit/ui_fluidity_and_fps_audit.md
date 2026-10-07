@@ -146,6 +146,17 @@ Profile generated from a scripted walk.
 
 > **Measured:** opening the Dépôt Vente Client dropdown takes **1,400 ms** in one frame on the debug build and
 > **300 ms** on the benchmark build. Confirmed, and still the top code fix.
+>
+> **Fixed (Step 2, 2026-10-07):** the four dropdowns now open `SearchableSelectSheet`: a lazy list with a search, a
+> "Tous les …" row and a check on the current choice. Measured on the benchmark build, the worst frame when the picker
+> opens:
+> - Dépôt Vente → Client: **61 ms** (was 300 ms); janky 28 % → 8.6 %.
+> - Achats → Fournisseur: 65 ms.
+> - Tournée → Client: 73 ms.
+> - Mouvements → Avec → Client: 77 ms.
+>
+> No freeze is left. Each still has two frames over 50 ms, as the second sheet's window appears; showing the list inside
+> the filter sheet itself would remove them. Typing in the picker's search is 20 % janky, with no frame over 32 ms.
 
 `DropdownMenu` and `ExposedDropdownMenu` are not lazy. Their content is a scrolling `Column` in a popup, so opening one
 composes, measures and lays out **every** item before the first frame of the menu.
@@ -480,7 +491,7 @@ deadline. The benchmark flings above show a median of 10–11 ms with 0.3 % jank
 |---|---|---|---|---|---|
 | **0** ✅ | **Done 2026-10-07; results at the top.** **Measure on a build that represents users.** A `benchmark` build type (below). Run a fixed walk: cold start → Produits fling → Dépôt Vente fling → open a sale → back → client detail tab swipes → product form tab swipes → Ventes filter → Client dropdown → type in Clients search → open a report. Record `gfxinfo` per walk. Turn on Compose compiler reports. | `app/build.gradle.kts` | ½ day | Real numbers; shows how much was the debug build | The baseline table |
 | **1** | **R8 + Baseline Profile.** Minify and shrink resources; keep rules for the Gson-serialized classes (drafts' `items_json`, the wilaya file). Re-test backup, restore, import and print. `androidx.baselineprofile` plugin + a macrobenchmark module generating the profile from Step 0's walk. | build files, `proguard-rules.pro`, new `:baselineprofile` module | 1–2 days | The largest single gain, everywhere: first frames of slides, every new list row, cold start | Same walk, compare |
-| **2** | **The dropdown freezes** (C2) → `SearchableSelectSheet` | `VentesScreen`, `MovementFiltersSheet`, `PurchasesScreen`, `TourneesScreen` | ½ day | Removes the only multi-hundred-ms freezes | Longest frame on opening the filter |
+| **2** ✅ | **Done 2026-10-07; see C2.** **The dropdown freezes** (C2) → `SearchableSelectSheet` | `VentesScreen`, `MovementFiltersSheet`, `PurchasesScreen`, `TourneesScreen` | ½ day | Removes the only multi-hundred-ms freezes | Longest frame on opening the filter |
 | **3** | **Tab swipes** (C3): offset read in layout/draw; no animated shadow, no off-screen alpha | `ProductFormScreen`, `ProductDetailScreen`, `ElasticUnderlineTabRow` | ½–1 day | The swipe costs only the pager's own work per frame | Layout Inspector recomposition counts stay flat during a swipe |
 | **4** | **Pending-sale rows** (C4): band only while dragging, no coroutine per row, dates formatted once, `contentType` | `SwipeToConfirm`, `VentesScreen`, `PurchasesScreen`, `TourneesScreen`, paging row mapping | 1 day | Cheaper rows in the most-flung lists | Janky % on the Dépôt Vente / Achats fling |
 | **5** | **Pickers** (C5): remembered `itemKey`, one shared `PickerProductRow`, cart id set, `contentType` | `VenteFormNavGraph`, `TourneeVenteFormNavGraph`, `PurchaseFormNavGraph` | 1 day | Typing and adding products stop re-running every visible row | Recomposition counts while typing |
