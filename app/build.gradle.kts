@@ -37,6 +37,17 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // What a user would run, installable over the debug build: release code (not debuggable,
+        // so ART compiles it and the libraries' baseline profiles apply) signed with the debug key,
+        // which keeps the phone's data. Frame-rate measurements are taken on this build, never on
+        // debug — see docs/audit/ui_fluidity_and_fps_audit.md, Step 0. BuildConfig.DEBUG is false
+        // here, so StrictMode and the stress-data buttons are off.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -63,6 +74,15 @@ android {
 // into a Migration, and every future migration verifiable.
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+// Which composables skip and which parameters are unstable, written to build/compose_compiler.
+// Opt-in, so ordinary builds don't pay for it: ./gradlew assembleBenchmark -PcomposeReports=true
+if (providers.gradleProperty("composeReports").orNull == "true") {
+    composeCompiler {
+        reportsDestination = layout.buildDirectory.dir("compose_compiler")
+        metricsDestination = layout.buildDirectory.dir("compose_compiler")
+    }
 }
 
 dependencies {
