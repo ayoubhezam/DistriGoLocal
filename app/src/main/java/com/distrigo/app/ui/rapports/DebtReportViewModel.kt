@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import com.distrigo.app.data.repository.DebtorLine
 import javax.inject.Inject
 
 /** The Créances et dettes report as the screen shows it; [report] stays while the next one loads. */
@@ -81,4 +86,32 @@ class DebtReportViewModel @Inject constructor(
     fun setDebtorQuery(value: String) { debtorQuery.value = value }
 
     fun setDebtorSort(value: DebtorSort) { debtorSort.value = value }
+
+    /**
+     * The full list as its search and its order leave it, worked out off the main thread once typing
+     * pauses (as Produits' and Clients' searches do); a new order applies at once. Null until the report
+     * has loaded and the first list is ready.
+     *
+     * The screen used to filter and sort in composition on every key — by name, with a Collator, over
+     * every debtor (UI fluidity audit, Step 7). Now only its search box reads the keys.
+     */
+    val debtorList: StateFlow<DebtorList?> = combine(
+        state.map { it.report?.debtors }.distinctUntilChanged { a, b -> a === b },
+        debtorQuery.debounce { if (it.isEmpty()) 0L else SEARCH_PAUSE_MS },
+        debtorSort,
+    ) { debtors, query, sort ->
+        debtors?.let { DebtorList(query, sort, debtorsMatching(it, query, sort), total = it.size) }
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
+
+/**
+ * The full list as shown: [lines] of [total] debtors, with the [query] and [sort] they were worked out
+ * for, so the count, the "no result" line and the scroll to the top agree with what is on screen even
+ * while a newer search is still waiting for typing to pause.
+ */
+data class DebtorList(val query: String, val sort: DebtorSort, val lines: List<DebtorLine>, val total: Int)
+
+/** How long typing has to pause before the list follows, as everywhere else in the app. */
+private const val SEARCH_PAUSE_MS = 300L

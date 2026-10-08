@@ -576,19 +576,11 @@ fun ProductsScreen(
                 DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
             }
 
-            DsCompactSearchField(
-                value         = viewModel.searchQuery,
-                onValueChange = { viewModel.searchQuery = it },
-                placeholder   = "Rechercher un produit",
-                modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-            ) {
-                DsCompactSearchAction(
-                    icon               = Icons.Default.QrCodeScanner,
-                    contentDescription = "Scanner un code-barres",
-                    tint               = DsColors.Primary,
-                    onClick            = { showScanner = true }
-                )
-            }
+            ProductSearchField(
+                viewModel = viewModel,
+                onScan    = { showScanner = true },
+                modifier  = Modifier.padding(horizontal = DsSpacing.lg)
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -665,7 +657,9 @@ fun ProductsScreen(
                     }
                 }
             } else {
-                val productKey = pagedProducts.itemKey { it.id }
+                // Remembered: itemKey makes a new function each call, and a new key function rebuilds the
+                // list's items, sending every row on screen through composition again.
+                val productKey = remember(pagedProducts) { pagedProducts.itemKey { it.id } }
                 if (!viewModel.isGridView) {
                     val listState = rememberLazyListState()
                     LazyColumn(
@@ -743,6 +737,28 @@ fun ProductsScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * Produits' search box, and the scanner beside it. The one place that reads what is typed: the list
+ * follows the search through the ViewModel once typing pauses, so a key redraws this box and not the
+ * whole screen (UI fluidity audit, Step 7).
+ */
+@Composable
+private fun ProductSearchField(viewModel: ProductViewModel, onScan: () -> Unit, modifier: Modifier) {
+    DsCompactSearchField(
+        value         = viewModel.searchQuery,
+        onValueChange = { viewModel.searchQuery = it },
+        placeholder   = "Rechercher un produit",
+        modifier      = modifier
+    ) {
+        DsCompactSearchAction(
+            icon               = Icons.Default.QrCodeScanner,
+            contentDescription = "Scanner un code-barres",
+            tint               = DsColors.Primary,
+            onClick            = onScan
+        )
     }
 }
 

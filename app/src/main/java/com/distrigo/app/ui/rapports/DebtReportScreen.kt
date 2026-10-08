@@ -378,20 +378,18 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
 @Composable
 fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
     val state by viewModel.state.collectAsState()
-    val query by viewModel.debtorQuery.collectAsState()
+    // Searched and sorted off the main thread once typing pauses (DebtReportViewModel.debtorList); what
+    // is being typed is read by the search box alone, so a key redraws the box and nothing else.
+    val list by viewModel.debtorList.collectAsState()
     val sort by viewModel.debtorSort.collectAsState()
     val words = wordsFor(state.side)
     val report = state.report
     val open = openDebtor(state.side)
     var sortSheet by remember { mutableStateOf(false) }
 
-    // Recomputed only when the debtors, the words searched or the order change.
-    val shown = remember(report?.debtors, query, sort) {
-        report?.let { debtorsMatching(it.debtors, query, sort) }.orEmpty()
-    }
-    // A new search or a new order starts at the top of what it found.
+    // A new search or a new order starts at the top of what it found — once the list for it is here.
     val listState = rememberLazyListState()
-    LaunchedEffect(query, sort) { listState.scrollToItem(0) }
+    LaunchedEffect(list?.query, list?.sort) { listState.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = words.listTitle, leading = DsTopBarLeading.Back(onBack))
@@ -404,27 +402,29 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                 // On white, as in Produits: the sunken search pill reads against white, not against the
                 // list's grey. The grey starts under it, behind the white rows.
                 Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
-                    DsCompactSearchField(
-                        value         = query,
-                        onValueChange = viewModel::setDebtorQuery,
-                        placeholder   = words.searchHint,
-                        modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-                    )
+                    DebtorSearchField(viewModel, words.searchHint, Modifier.padding(horizontal = DsSpacing.lg))
                     Spacer(Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            if (query.isBlank()) words.count(shown.size) else "${shown.size} sur ${report.debtors.size}",
-                            fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
-                        )
+                        list?.let { l ->
+                            Text(
+                                if (l.query.isBlank()) words.count(l.lines.size) else "${l.lines.size} sur ${l.total}",
+                                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                            )
+                        } ?: Spacer(Modifier.width(1.dp))
                         ListSortChip(active = sort != DebtorSort.DETTE_DESC, onClick = { sortSheet = true })
                     }
                 }
-                if (shown.isEmpty()) {
-                    ReportMessage("Aucun résultat pour « ${query.trim()} »")
+                val shown = list
+                if (shown == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = DsColors.Primary)
+                    }
+                } else if (shown.lines.isEmpty()) {
+                    ReportMessage("Aucun résultat pour « ${shown.query.trim()} »")
                 } else {
                     LazyColumn(
                         state = listState,
@@ -432,7 +432,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                         contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                     ) {
-                        items(shown, key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
+                        items(shown.lines, key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
                     }
                 }
             }
@@ -448,4 +448,16 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
             onDismiss = { sortSheet = false },
         )
     }
+}
+
+/** The debtors' search box: the one place that reads each key typed, so a key redraws it alone. */
+@Composable
+private fun DebtorSearchField(viewModel: DebtReportViewModel, hint: String, modifier: Modifier) {
+    val query by viewModel.debtorQuery.collectAsState()
+    DsCompactSearchField(
+        value         = query,
+        onValueChange = viewModel::setDebtorQuery,
+        placeholder   = hint,
+        modifier      = modifier
+    )
 }

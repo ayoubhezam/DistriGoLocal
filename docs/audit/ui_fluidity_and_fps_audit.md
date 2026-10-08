@@ -406,8 +406,23 @@ are already extracted (`ProductCard`), so they skip and the cost is smaller.
 > come only now and then, with the keyboard's window on screen, miss by a few milliseconds whatever the app does. One
 > refresh (8 ms) late is not visible. For typing, read the frame times and the slow UI-thread count instead.
 >
-> Still to do from Step 7: the debtors list (`DebtorListQuery`, sorted with a `Collator` on Main) and the Produits
-> screen's search read (the products themselves are already paged and searched in SQL).
+> **Debtors and Produits fixed (Step 7, 2026-10-08):**
+> - **Debtors** ("Voir tout" under Créances et dettes): `DebtReportViewModel.debtorList` searches (debounced 300 ms)
+>   and sorts on `Dispatchers.Default`; a new order applies at once.
+>   - The name sort makes a `Collator` per call, since one shared across threads is unsafe, and compares collation
+>     keys, one per name.
+>   - The count, the "Aucun résultat" line and the scroll to the top follow the list shown.
+>   - Only `DebtorSearchField` reads the keys. `DebtorListQueryTest` still passes (French order, accents, case).
+> - **Produits:** only `ProductSearchField` reads the search text, and the list's key function is remembered.
+>   `itemKey` made a new one each recomposition, which rebuilt the list's items.
+>
+> On the phone, R8 + profile build:
+> - Debtors: 1,512 sorted by name; "12" gives "45 sur 1512", same-name debtors keep the biggest debt first, and
+>   erasing gives back 1,512. Typing, keyboard opening included: 5 slow UI-thread frames, 95th / slowest 19 / 28 ms.
+> - Produits: 15,159; "cevital" gives 720; erasing gives back 15,159. Typing seven keys, keyboard included: 3 slow
+>   UI-thread frames, 18 / 24 ms.
+>
+> No before-measurement was taken for these two screens.
 
 | Where | What runs per keystroke, on Main |
 |---|---|
@@ -567,7 +582,7 @@ deadline. The benchmark flings above show a median of 10–11 ms with 0.3 % jank
 | **4** | **Pending-sale rows** (C4): band only while dragging, no coroutine per row, dates formatted once, `contentType` | `SwipeToConfirm`, `VentesScreen`, `PurchasesScreen`, `TourneesScreen`, paging row mapping | 1 day | Cheaper rows in the most-flung lists | Janky % on the Dépôt Vente / Achats fling |
 | **5** | **Pickers** (C5): remembered `itemKey`, one shared `PickerProductRow`, cart id set, `contentType` | `VenteFormNavGraph`, `TourneeVenteFormNavGraph`, `PurchaseFormNavGraph` | 1 day | Typing and adding products stop re-running every visible row | Recomposition counts while typing |
 | **6** | **Images** (M1): no disk check in composition, size up front, remembered request, placeholder hidden in draw | `EntityImage.kt`, `EntityAvatar.kt` | ½ day | No blink, one composition per photo row | Slow-motion screen capture of a fling |
-| **7** 🟡 | **Clients done 2026-10-08 (see M2); debtors and Produits left.** **Search off Main** (M2): Clients and Debtors debounced and computed on Default; Produits search read isolated | `ClientsScreen`/VM, `DebtReportViewModel`, `DebtorListQuery`, `ProductsScreen` | 1 day | Smooth typing on 1,500 clients | Frame times while typing |
+| **7** ✅ | **Done 2026-10-08: Clients, debtors, Produits (see M2).** **Search off Main** (M2): Clients and Debtors debounced and computed on Default; Produits search read isolated | `ClientsScreen`/VM, `DebtReportViewModel`, `DebtorListQuery`, `ProductsScreen` | 1 day | Smooth typing on 1,500 clients | Frame times while typing |
 | **8** | **Client/supplier flows** (M3): `flowOn(Default)`, by-id observation in detail, form and sale detail | `ProductRepository`, `ClientsNavHost`, `SuppliersNavHost`, `VentesScreen` | ½ day | No full-table work on Main after a sale or payment | Main-thread time after a payment (Perfetto) |
 | **9** | **Shell** (M4, M5): drawer via `derivedStateOf` + `drawBehind` scrim; no root `BoxWithConstraints`; fade for tab ↔ tab | `MainActivity`, `NavTransitions` | ½ day | Smooth drawer, keyboard and tab switch | Janky % on drawer drag and tab switches |
 | **10** | **Animation polish** (M6, M7, M9): one-pass FitText, `AnimatedFigure`'s `widest` remembered, `StackedBar` in draw, chevron in `graphicsLayer`, history grouping in the VM | `FitText`, `Figures`, `DistributionSection`, `CartSelectionComponents`, Charges/Pertes VMs | 1 day | Reports open and change filters without a hitch | Report walk |
