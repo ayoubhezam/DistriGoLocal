@@ -70,6 +70,54 @@ The rest is polish.
 
 ---
 
+## Step 1: R8 + Baseline Profile (measured 2026-10-08)
+
+**What changed:**
+- **R8 in release (and benchmark):** shrinking and resource shrinking, no renaming (`-dontobfuscate`).
+  - The APK goes from 43.3 MB to 26.7 MB, in one dex.
+  - The six classes Gson reads by field name are kept whole (`proguard-rules.pro`): the four draft lines and the geo file.
+    The minified dex was checked field by field.
+  - On the phone: the wilayas and their communes list correctly, and nothing crashed.
+- **An app Baseline Profile** (`app/src/main/baselineProfiles/baseline-prof.txt`):
+  - Recorded on the phone by the new `:baselineprofile` module, on the non-minified build. The walk is read-only.
+  - The module is installed and run by hand, never through Gradle's connected tasks, which uninstall the app.
+  - It holds 31,875 rules, 6,045 of them the app's own. After R8's rewrite, 17,431 remain; the rest belonged to
+    methods R8 inlined into their callers.
+
+**Measured** with the same walk on the benchmark build, now R8 + profile, against Step 0's benchmark build (janky /
+worst frame):
+
+| Step | Step 0 benchmark | R8 + profile |
+|---|---|---|
+| Cold start | 0.37–0.40 s | **0.28–0.31 s** |
+| Produits fling | 0.4 % / 27 ms | 0.8 % / **19 ms** |
+| Dépôt Vente fling | 0.3 % / 27 ms | 0.5 % / **21 ms** |
+| Open Dépôt Vente | 5.1 % / 48 ms | 5.0 % / **40 ms** |
+| Open a sale and back (×3) | 5.8 % / 57 ms | **3.4 %** / 53 ms |
+| Filtres → Client | 28 % / 300 ms | **7.2 % / 69 ms** (Step 2's picker) |
+| Drawer → Clients | 6.7 % / 44 ms | 5.5 % / **34 ms** |
+| Open a client's detail | 7.1 % / 105 ms | 10.3 % / **48 ms** |
+| Client tab swipes | 2.4 % / 34 ms | 2.0 % / **18 ms** |
+| Product detail tab swipes | 1.4 % / 32 ms | 1.4 % / **18 ms** |
+| Product form tab swipes | 3.4 % / 61 ms | **2.2 % / 36 ms** |
+| Typing in the clients search | 29.6 % / 30 ms | 31.5 % / 30 ms |
+| Open the Ventes report | 7.7 % / 46 ms | not measured: the walk was stopped first by low memory on the PC |
+
+**What it changes:**
+- **Faster everywhere.** Cold start is a quarter faster, and the slowest frame of every screen opening and swipe
+  roughly halves. No step has a frame over 69 ms.
+- **The product form swipe is on target** (2.2 %, nothing over 50 ms) without touching its code. The Step 3 rewrite of
+  its pager reads is now a clean-up.
+- **Typing in the clients search is unchanged at 31 %.** It is main-thread filtering of ~1,500 clients, which no build
+  setting fixes: Step 7 is next.
+
+**Against the definition of done:**
+- Flings and swipes: on target.
+- Openings: on target except a sale's page (53 ms) and the client picker (69 ms, its second sheet).
+- No freezes left.
+
+---
+
 ## Executive summary
 
 ### Rating: **6 / 10**: good bones, five hotspots, and a test build that makes everything look worse
@@ -490,7 +538,7 @@ deadline. The benchmark flings above show a median of 10–11 ms with 0.3 % jank
 | Step | What | Files | Effort | Expected gain | Verify with |
 |---|---|---|---|---|---|
 | **0** ✅ | **Done 2026-10-07; results at the top.** **Measure on a build that represents users.** A `benchmark` build type (below). Run a fixed walk: cold start → Produits fling → Dépôt Vente fling → open a sale → back → client detail tab swipes → product form tab swipes → Ventes filter → Client dropdown → type in Clients search → open a report. Record `gfxinfo` per walk. Turn on Compose compiler reports. | `app/build.gradle.kts` | ½ day | Real numbers; shows how much was the debug build | The baseline table |
-| **1** | **R8 + Baseline Profile.** Minify and shrink resources; keep rules for the Gson-serialized classes (drafts' `items_json`, the wilaya file). Re-test backup, restore, import and print. `androidx.baselineprofile` plugin + a macrobenchmark module generating the profile from Step 0's walk. | build files, `proguard-rules.pro`, new `:baselineprofile` module | 1–2 days | The largest single gain, everywhere: first frames of slides, every new list row, cold start | Same walk, compare |
+| **1** ✅ | **Done 2026-10-08; results at the top.** **R8 + Baseline Profile.** Minify and shrink resources; keep rules for the Gson-serialized classes (drafts' `items_json`, the wilaya file). Re-test backup, restore, import and print. `androidx.baselineprofile` plugin + a macrobenchmark module generating the profile from Step 0's walk. | build files, `proguard-rules.pro`, new `:baselineprofile` module | 1–2 days | The largest single gain, everywhere: first frames of slides, every new list row, cold start | Same walk, compare |
 | **2** ✅ | **Done 2026-10-07; see C2.** **The dropdown freezes** (C2) → `SearchableSelectSheet` | `VentesScreen`, `MovementFiltersSheet`, `PurchasesScreen`, `TourneesScreen` | ½ day | Removes the only multi-hundred-ms freezes | Longest frame on opening the filter |
 | **3** | **Tab swipes** (C3): offset read in layout/draw; no animated shadow, no off-screen alpha | `ProductFormScreen`, `ProductDetailScreen`, `ElasticUnderlineTabRow` | ½–1 day | The swipe costs only the pager's own work per frame | Layout Inspector recomposition counts stay flat during a swipe |
 | **4** | **Pending-sale rows** (C4): band only while dragging, no coroutine per row, dates formatted once, `contentType` | `SwipeToConfirm`, `VentesScreen`, `PurchasesScreen`, `TourneesScreen`, paging row mapping | 1 day | Cheaper rows in the most-flung lists | Janky % on the Dépôt Vente / Achats fling |

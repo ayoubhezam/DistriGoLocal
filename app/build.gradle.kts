@@ -31,7 +31,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: unused code and resources removed, the rest optimized — not renamed (-dontobfuscate in
+            // proguard-rules.pro). Measured in the UI fluidity audit, Step 1.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -47,6 +50,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
             isDebuggable = false
+        }
+        // The build the Baseline Profile is recorded on: benchmark without R8. A profile names classes
+        // and methods as they are in the source; R8 rewrites it when it shrinks a minified build, so it
+        // has to be recorded before R8 has inlined or merged anything. Only :baselineprofile uses it.
+        create("nonMinifiedBenchmark") {
+            initWith(getByName("benchmark"))
+            matchingFallbacks += listOf("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     compileOptions {
@@ -98,6 +110,9 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
+    // Installs the Baseline Profile (src/main/baselineProfiles) on a sideloaded install, as the Play
+    // Store does from the cloud. It came in through Compose already; named here because it matters.
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

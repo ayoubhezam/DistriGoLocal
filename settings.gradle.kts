@@ -21,3 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "DistriGo"
 include(":app")
+// Generates app/src/main/baselineProfiles/baseline-prof.txt — see baselineprofile/build.gradle.kts.
+include(":baselineprofile")
