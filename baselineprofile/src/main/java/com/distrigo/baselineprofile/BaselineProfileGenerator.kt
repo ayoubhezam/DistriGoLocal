@@ -1,18 +1,15 @@
 package com.distrigo.baselineprofile
 
-import android.graphics.Rect
 import android.os.Build
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.regex.Pattern
 
 /**
  * Records the Baseline Profile: what a rep's day runs, so ART compiles it ahead of time.
@@ -159,108 +156,5 @@ class BaselineProfileGenerator {
         waitText("Créances et dettes")
         back()
         waitDesc("Menu")
-    }
-
-    // ── Moves ──
-
-    /** A bottom-bar tab: the lowest node so described, so a card with the same word is never hit. */
-    private fun MacrobenchmarkScope.tab(label: String) {
-        device.wait(Until.hasObject(By.desc(label)), TIMEOUT)
-        device.findObjects(By.desc(label)).maxByOrNull { it.visibleBounds.centerY() }?.click()
-            ?: error("no tab « $label »")
-        pause()
-    }
-
-    /** An entry of the Plus drawer, opened from the current tab root's menu button. */
-    private fun MacrobenchmarkScope.menu(entry: String) {
-        (device.wait(Until.findObject(By.desc("Menu")), TIMEOUT) ?: error("no menu button")).click()
-        pause()
-        waitText(entry).click()
-    }
-
-    /** n quick flings down the list on screen, then n back up, and the list left to come to rest. */
-    private fun MacrobenchmarkScope.fling(n: Int = 1) {
-        val x = device.displayWidth / 2
-        val low = (device.displayHeight * 0.80).toInt()
-        val high = (device.displayHeight * 0.30).toInt()
-        repeat(n) { device.swipe(x, low, x, high, 5); pause(800) }
-        repeat(n) { device.swipe(x, high, x, low, 5); pause(800) }
-        pause(1_500)
-    }
-
-    /**
-     * Taps [row] until [opened] says its page is up. A tap on a list still gliding after a fling only
-     * stops it, so the first tap may open nothing; a tap that did open something is never repeated.
-     */
-    private fun MacrobenchmarkScope.open(what: String, row: () -> UiObject2, opened: () -> Boolean) {
-        repeat(3) {
-            row().click()
-            if (opened()) return
-        }
-        error("$what did not open")
-    }
-
-    /** To the next tab and back, a deliberate thumb swipe across the pager at [y]. */
-    private fun MacrobenchmarkScope.swipeTabs(y: Int) {
-        val right = (device.displayWidth * 0.88).toInt()
-        val left = (device.displayWidth * 0.18).toInt()
-        device.swipe(right, y, left, y, 25)
-        pause(1_200)
-        device.swipe(left, y, right, y, 25)
-        pause(1_200)
-    }
-
-    /** Somewhere on the pager under the tab row [tabLabel], scrolled into reach first if it is low. */
-    private fun MacrobenchmarkScope.pagerY(tabLabel: String): Int {
-        var tabs = waitText(tabLabel).visibleBounds
-        if (tabs.centerY() > device.displayHeight * 0.65) {
-            val x = device.displayWidth / 2
-            device.swipe(x, (device.displayHeight * 0.75).toInt(), x, (device.displayHeight * 0.40).toInt(), 40)
-            pause()
-            tabs = waitText(tabLabel).visibleBounds
-        }
-        return minOf(tabs.bottom + 300, bottomLimit())
-    }
-
-    /** The first text on screen below [y]: the top row of a list. */
-    private fun MacrobenchmarkScope.firstRowBelow(y: Int): UiObject2 {
-        pause()
-        return device.findObjects(By.text(ANY_TEXT))
-            .filter { it.visibleBounds.let { b: Rect -> b.centerY() > y && b.centerY() < bottomLimit() } }
-            .minByOrNull { it.visibleBounds.centerY() }
-            ?: error("no row below y=$y")
-    }
-
-    private fun MacrobenchmarkScope.back() {
-        device.pressBack()
-        pause()
-    }
-
-    /** Closes the keyboard if it is up; a Back without it would leave the screen. */
-    private fun MacrobenchmarkScope.hideKeyboard() {
-        if ("mInputShown=true" in device.executeShellCommand("dumpsys input_method")) back()
-    }
-
-    private fun MacrobenchmarkScope.waitText(text: String): UiObject2 =
-        device.wait(Until.findObject(By.text(text)), TIMEOUT) ?: error("« $text » did not appear")
-
-    /** Waits for [text] to leave the screen: the page or sheet it belongs to has closed. */
-    private fun MacrobenchmarkScope.gone(text: String) {
-        check(device.wait(Until.gone(By.text(text)), TIMEOUT)) { "« $text » is still on screen" }
-    }
-
-    private fun MacrobenchmarkScope.waitDesc(desc: String): UiObject2 =
-        device.wait(Until.findObject(By.desc(desc)), TIMEOUT) ?: error("« $desc » did not appear")
-
-    /** Above the system navigation bar, where a tap would open Recents instead. */
-    private fun MacrobenchmarkScope.bottomLimit(): Int = (device.displayHeight * 0.85).toInt()
-
-    private fun pause(ms: Long = 700) = Thread.sleep(ms)
-
-    private companion object {
-        const val PACKAGE = "com.distrigo.app"
-        const val TIMEOUT = 15_000L
-        const val OPEN_TIMEOUT = 6_000L
-        val ANY_TEXT: Pattern = Pattern.compile(".+")
     }
 }

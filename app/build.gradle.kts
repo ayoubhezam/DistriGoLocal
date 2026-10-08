@@ -60,6 +60,14 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+        // The release build as a profiler sees it: profileable (src/tracing/AndroidManifest.xml), and with
+        // Compose's composition tracing, so a Perfetto trace names the composables in a slow frame. Only
+        // :baselineprofile's ScreenOpeningBenchmark uses it. Frame rates are measured on benchmark, which
+        // has neither: composition tracing slows composition while it records.
+        create("tracing") {
+            initWith(getByName("benchmark"))
+            matchingFallbacks += listOf("release")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -113,6 +121,9 @@ dependencies {
     // Installs the Baseline Profile (src/main/baselineProfiles) on a sideloaded install, as the Play
     // Store does from the cloud. It came in through Compose already; named here because it matters.
     implementation(libs.androidx.profileinstaller)
+    // Composable names in a Perfetto trace: the tracing build only. It brings Compose runtime 1.7.3 with
+    // it, which is one more reason to keep it out of the builds that are measured or shipped.
+    "tracingImplementation"(libs.androidx.compose.runtime.tracing)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

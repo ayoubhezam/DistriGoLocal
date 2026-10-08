@@ -118,6 +118,40 @@ worst frame):
 
 ---
 
+## Screen openings: traced (2026-10-08)
+
+**How it was traced.** `ScreenOpeningBenchmark` (`:baselineprofile`) opened each slow screen five times on the
+phone, recording a Perfetto trace per opening. It ran on the `tracing` build: release, R8, profileable, with Compose
+composition tracing.
+
+**Caveats.**
+- Tracing slows frames, so the share of late frames in these traces is not comparable to the walk. What the traces
+  show reliably is what the slowest frames are made of.
+- UiAutomator keeps accessibility on, which adds 2–6 ms of semantics work per opening that a normal user doesn't pay.
+
+**Composition is never the large part.** The screens' own composables cost about 1–3 ms in a slow frame, with
+tracing on. The time goes to window creation, measure/layout, recording the draw, text layout and the render thread.
+
+| Opening | Slowest main-thread frame (traced) | What fills it |
+|---|---|---|
+| **Client picker** (Dépôt Vente → Filtres → Client) | 64–82 ms | **A second window being created**: binder calls to the window manager 17–21 ms, window relayout 4–7 ms, the new window's first traversal 7–15 ms, its measure 4–6 ms. With three windows up, the render thread swaps three surfaces (`eglSwapBuffers` 57 ms per opening, against 21–27 elsewhere), and in two of five runs nearly every frame was late. |
+| **Client detail** | 28–45 ms (first frame) | Measure/layout 7–15 ms, recording the draw of the whole screen 6–10 ms, text layout 2–3 ms, applying changes 2 ms; `ClientDetailScreen`'s composition ~3 ms. The screen is one non-lazy scrolling column, so all of it is measured and recorded in frame 1, below the fold included. |
+| **Ventes report** | 22–40 ms (first frames) | Measure/layout 6–16 ms and **102 text layouts per opening** (2.5–4.3 ms per frame): `FitText` settling in passes, and `AnimatedFigure`'s hidden measuring copy (M6). Composition ~1 ms per card. |
+| **A sale's page** | 13–23 ms (first frame) | Measure 4–9 ms, draw 3–4 ms, four ViewModels created ~1 ms each. The other late frames are the render thread drawing both screens through the slide: 19 % of its frames were render-thread-bound, the most of the four. |
+
+**Across all four:**
+- The render thread spends 24–28 ms per opening filling full-screen rectangles (`FillRectOp`): backgrounds painted
+  over one another. It also draws text atlases and rounded corners.
+- The main thread waited on the render thread (`postAndWait`) for 45–120 ms per opening.
+
+**Proposed fixes, by certainty:**
+1. The client picker's list inside the filter sheet, not a second window.
+2. One-pass `FitText`, and `AnimatedFigure` without the hidden copy (M6).
+3. Overdraw: check with the overdraw debug view, then drop the duplicated full-screen backgrounds.
+4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3.
+
+---
+
 ## Executive summary
 
 ### Rating: **6 / 10**: good bones, five hotspots, and a test build that makes everything look worse

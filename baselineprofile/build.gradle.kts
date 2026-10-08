@@ -30,6 +30,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
+        // Matches the app's tracing build: ScreenOpeningBenchmark records its traces on it.
+        create("tracing") {
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     targetProjectPath = ":app"
@@ -52,7 +58,8 @@ dependencies {
     implementation(libs.androidx.benchmark.macro.junit4)
 }
 
-// Only the build type a profile is recorded on: the debug app is debuggable, and records nothing.
+// Only the build types this module drives: nonMinifiedBenchmark, where the profile is recorded, and
+// tracing, where screen openings are traced. The debug app is debuggable, and measures nothing.
 androidComponents {
-    beforeVariants(selector().all()) { it.enable = it.buildType == "nonMinifiedBenchmark" }
+    beforeVariants(selector().all()) { it.enable = it.buildType in setOf("nonMinifiedBenchmark", "tracing") }
 }

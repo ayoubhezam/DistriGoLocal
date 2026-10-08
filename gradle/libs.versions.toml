@@ -17,6 +17,7 @@ androidxHilt = "1.2.0"
 benchmark = "1.4.1"
 uiautomator = "2.3.0"
 profileinstaller = "1.4.1"
+runtimeTracing = "1.7.3"
 
 [libraries]
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -56,6 +57,7 @@ androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", vers
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
+androidx-compose-runtime-tracing = { group = "androidx.compose.runtime", name = "runtime-tracing", version.ref = "runtimeTracing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
