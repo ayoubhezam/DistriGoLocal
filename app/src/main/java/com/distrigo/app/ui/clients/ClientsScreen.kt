@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.clientsInDebt
-import com.distrigo.app.ui.common.filterClients
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.common.refusalMessage
 import com.distrigo.app.ui.common.PartyFilterSheet
@@ -63,7 +62,11 @@ fun ClientsScreen(
     val clients   by viewModel.clients.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var search           by remember { mutableStateOf("") }
+    // The list as the search and the filters narrow it, worked out off the main thread once typing
+    // pauses (see ClientViewModel.shownClients). Only the search box reads what is being typed.
+    val shown by viewModel.shownClients.collectAsState()
+    // Leaving the list clears the search, as it did when the box's text lived in this screen.
+    DisposableEffect(Unit) { onDispose { viewModel.listSearch = "" } }
     var showFilterSheet  by remember { mutableStateOf(false) }
     val filters          = viewModel.listFilters
     var showDeleteDialog by remember { mutableStateOf<Client?>(null) }
@@ -152,12 +155,6 @@ fun ClientsScreen(
         )
     }
 
-    // Recomputed only when the list or a filter changes, not on every recomposition. The search
-    // regex used to be compiled inside the predicate: once per client, per keystroke.
-    val filtered = remember(clients, search, filters) {
-        filterClients(clients, search, filters)
-    }
-
     // The sheet offers only places the clients actually have, so no choice can empty the list.
     val wilayas  = remember(clients) { placesOf(clients.map { it.wilaya_name }) }
     val secteurs = remember(clients) { placesOf(clients.map { it.secteur_name }) }
@@ -175,7 +172,7 @@ fun ClientsScreen(
 
     if (showFilterSheet) {
         PartyFilterSheet(
-            resultCount = filtered.size,
+            resultCount = shown.size,
             wilayas     = wilayas,
             wilaya      = filters.wilaya,
             // A commune belongs to one wilaya: another wilaya drops it.
@@ -273,8 +270,8 @@ fun ClientsScreen(
                 ) {
                     // ── Search ──
                     DsCompactSearchField(
-                        value         = search,
-                        onValueChange = { search = it },
+                        value         = viewModel.listSearch,
+                        onValueChange = { viewModel.listSearch = it },
                         placeholder   = "Rechercher un client",
                         modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                     )
@@ -284,7 +281,7 @@ fun ClientsScreen(
                     // ── Count · Filtres ── the type and debt chips that used to sit here are in the
                     // sheet now, with the client's place beside them; what is applied shows below.
                     CountAndFiltersRow(
-                        label         = "${filtered.size} client(s)",
+                        label         = "${shown.size} client(s)",
                         filtersActive = filters.isActive,
                         onOpenFilters = { showFilterSheet = true }
                     )
@@ -293,7 +290,7 @@ fun ClientsScreen(
                     Spacer(Modifier.height(DsSpacing.xs))
                 }
             }
-            items(filtered, key = { it.id }) { client ->
+            items(shown, key = { it.id }) { client ->
                 Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
                     ClientCard(
                         client      = client,

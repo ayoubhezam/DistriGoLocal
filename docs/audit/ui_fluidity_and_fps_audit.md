@@ -387,6 +387,27 @@ are already extracted (`ProductCard`), so they skip and the cost is smaller.
 > **Measured:** typing in the clients search is 59 % janky on the debug build and **30 %** on the benchmark build
 > (median 18 ms per frame). It is the only everyday interaction still janky in a release build, so it moves up
 > beside C2.
+>
+> **Clients search fixed (Step 7, 2026-10-08).** The search text and the filtered list moved to `ClientViewModel`
+> (`listSearch`, `shownClients`). The list is worked out on `Dispatchers.Default` once typing pauses (300 ms, as in
+> Produits). Only the search box reads the text, so a key no longer recomposes the whole screen. Leaving the list still
+> clears the search. Measured on the R8 + profile build, typing one key at a time:
+>
+> | | Before | After |
+> |---|---|---|
+> | "client" typed and erased: median / 95th / slowest frame | 11 / 21 / 25 ms | **10 / 15 / 21 ms** |
+> | "client": slow UI-thread frames | 12 | **3** |
+> | "1234" typed and erased (the rows change every key): 95th / slowest frame | 30 / 32 ms | **16 / 16 ms** |
+> | Keyboard sliding open: slowest frame | 28 ms | 22 ms |
+>
+> The share of late frames while typing stayed near 45 %, and it doesn't measure the search. With the keyboard up and
+> nothing typed, the blinking cursor's own frames miss their deadline too: 7 of 12 on Clients and **12 of 12 on
+> Produits**. Every one is a slow draw-command issue on the render thread, with the UI thread never slow. Frames that
+> come only now and then, with the keyboard's window on screen, miss by a few milliseconds whatever the app does. One
+> refresh (8 ms) late is not visible. For typing, read the frame times and the slow UI-thread count instead.
+>
+> Still to do from Step 7: the debtors list (`DebtorListQuery`, sorted with a `Collator` on Main) and the Produits
+> screen's search read (the products themselves are already paged and searched in SQL).
 
 | Where | What runs per keystroke, on Main |
 |---|---|
@@ -527,7 +548,9 @@ they waste CPU and battery. **Fix:** add `androidx.lifecycle:lifecycle-runtime-c
 ## Roadmap to 60 FPS (and 120)
 
 **Definition of done**, on the M34 in the `benchmark` build, for each step of the walk:
-- flings, swipes and typing: ≤ 2 % janky frames (Android's deadline-missed count in `dumpsys gfxinfo`);
+- flings and swipes: ≤ 2 % janky frames (Android's deadline-missed count in `dumpsys gfxinfo`);
+- typing: no slow UI-thread frame per key, and no frame over 2 refreshes (16.7 ms at 120 Hz). Not the janky count: with
+  the keyboard up it counts the cursor's blinks, late on every screen (see M2);
 - opening a screen: no frame over 50 ms;
 - no frame over 100 ms anywhere: no freezes.
 
@@ -544,7 +567,7 @@ deadline. The benchmark flings above show a median of 10–11 ms with 0.3 % jank
 | **4** | **Pending-sale rows** (C4): band only while dragging, no coroutine per row, dates formatted once, `contentType` | `SwipeToConfirm`, `VentesScreen`, `PurchasesScreen`, `TourneesScreen`, paging row mapping | 1 day | Cheaper rows in the most-flung lists | Janky % on the Dépôt Vente / Achats fling |
 | **5** | **Pickers** (C5): remembered `itemKey`, one shared `PickerProductRow`, cart id set, `contentType` | `VenteFormNavGraph`, `TourneeVenteFormNavGraph`, `PurchaseFormNavGraph` | 1 day | Typing and adding products stop re-running every visible row | Recomposition counts while typing |
 | **6** | **Images** (M1): no disk check in composition, size up front, remembered request, placeholder hidden in draw | `EntityImage.kt`, `EntityAvatar.kt` | ½ day | No blink, one composition per photo row | Slow-motion screen capture of a fling |
-| **7** | **Search off Main** (M2): Clients and Debtors debounced and computed on Default; Produits search read isolated | `ClientsScreen`/VM, `DebtReportViewModel`, `DebtorListQuery`, `ProductsScreen` | 1 day | Smooth typing on 1,500 clients | Frame times while typing |
+| **7** 🟡 | **Clients done 2026-10-08 (see M2); debtors and Produits left.** **Search off Main** (M2): Clients and Debtors debounced and computed on Default; Produits search read isolated | `ClientsScreen`/VM, `DebtReportViewModel`, `DebtorListQuery`, `ProductsScreen` | 1 day | Smooth typing on 1,500 clients | Frame times while typing |
 | **8** | **Client/supplier flows** (M3): `flowOn(Default)`, by-id observation in detail, form and sale detail | `ProductRepository`, `ClientsNavHost`, `SuppliersNavHost`, `VentesScreen` | ½ day | No full-table work on Main after a sale or payment | Main-thread time after a payment (Perfetto) |
 | **9** | **Shell** (M4, M5): drawer via `derivedStateOf` + `drawBehind` scrim; no root `BoxWithConstraints`; fade for tab ↔ tab | `MainActivity`, `NavTransitions` | ½ day | Smooth drawer, keyboard and tab switch | Janky % on drawer drag and tab switches |
 | **10** | **Animation polish** (M6, M7, M9): one-pass FitText, `AnimatedFigure`'s `widest` remembered, `StackedBar` in draw, chevron in `graphicsLayer`, history grouping in the VM | `FitText`, `Figures`, `DistributionSection`, `CartSelectionComponents`, Charges/Pertes VMs | 1 day | Reports open and change filters without a hitch | Report walk |

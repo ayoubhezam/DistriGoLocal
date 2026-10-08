@@ -20,6 +20,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.distrigo.app.ui.common.ClientListFilters
+import com.distrigo.app.ui.common.debouncedSearch
+import com.distrigo.app.ui.common.filterClients
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 
 @HiltViewModel
 class ClientViewModel @Inject constructor(
@@ -43,6 +49,26 @@ class ClientViewModel @Inject constructor(
     val clients: StateFlow<List<Client>> = repository.observeClients()
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = e.message; _isLoading.value = false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The Clients list's search box, as typed. */
+    var listSearch by mutableStateOf("")
+
+    /**
+     * The Clients list: [clients] narrowed by [listSearch] and [listFilters], worked out off the main
+     * thread once typing pauses, as Produits' search does.
+     *
+     * The screen used to filter in composition on every key. Filtering itself is quick; what cost
+     * frames was everything around it: each key recomposed the whole screen and put a new screenful
+     * of rows on it, half the frames late while typing (UI fluidity audit, Step 7). Now a key changes
+     * only the search box, and the list changes once per pause.
+     */
+    val shownClients: StateFlow<List<Client>> = combine(
+        clients,
+        snapshotFlow { listFilters },
+        debouncedSearch { listSearch },
+    ) { all, filters, search -> filterClients(all, search, filters) }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
