@@ -49,7 +49,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsSelectorField
-import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SearchableSelectList
+import com.distrigo.app.ui.common.FilterSheet
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.format.LocalMoneyFormatter
@@ -1525,16 +1526,33 @@ private fun TourneeVenteFilterSheet(
     onDismiss           : () -> Unit
 ) {
     var clientPicker by remember { mutableStateOf(false) }
+    val filtersScroll = rememberScrollState()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor   = DsColors.Surface
+    // Back goes from the client list to the filters, then closes the sheet: see FilterSheet.
+    FilterSheet(
+        onDismiss   = onDismiss,
+        listShown   = clientPicker,
+        onCloseList = { clientPicker = false }
     ) {
-        Column(
+        // The client list takes this sheet's place rather than opening a sheet of its own: a second sheet
+        // is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters' scroll
+        // is kept outside the switch, so coming back finds them where they were.
+        if (clientPicker) SearchableSelectList(
+            title       = "Sélectionner un client",
+            items       = clients,
+            itemLabel   = { it.second },
+            itemKey     = { it.first },
+            isSelected  = { it.first == filterClientId },
+            allLabel    = "Tous les clients",
+            allSelected = filterClientId == null,
+            onSelectAll = { onClient(null); clientPicker = false },
+            onSelect    = { onClient(it.first); clientPicker = false },
+            onBack      = { clientPicker = false },
+            modifier    = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg)
+        ) else Column(
             modifier = Modifier
                 .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxxl)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(filtersScroll)
         ) {
             Row(
                 modifier              = Modifier.fillMaxWidth(),
@@ -1565,27 +1583,13 @@ private fun TourneeVenteFilterSheet(
             Spacer(Modifier.height(DsSpacing.md))
 
             Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-            // A searchable sheet, not a dropdown, as in Dépôt Vente's filters — see SearchableSelectSheet.
+            // A searchable list, not a dropdown, as in Dépôt Vente's filters — see SearchableSelectList.
             DsSelectorField(
                 label       = null,
                 value       = clients.find { it.first == filterClientId }?.second.orEmpty(),
                 placeholder = "Tous les clients",
                 onClick     = { clientPicker = true }
             )
-            if (clientPicker) {
-                SearchableSelectSheet(
-                    title       = "Sélectionner un client",
-                    items       = clients,
-                    itemLabel   = { it.second },
-                    itemKey     = { it.first },
-                    isSelected  = { it.first == filterClientId },
-                    allLabel    = "Tous les clients",
-                    allSelected = filterClientId == null,
-                    onSelectAll = { onClient(null) },
-                    onSelect    = { onClient(it.first) },
-                    onDismiss   = { clientPicker = false }
-                )
-            }
             Spacer(Modifier.height(DsSpacing.lg))
 
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {

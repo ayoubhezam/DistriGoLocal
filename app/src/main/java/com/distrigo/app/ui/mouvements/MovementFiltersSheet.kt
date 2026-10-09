@@ -18,7 +18,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SearchableSelectList
+import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -59,6 +60,7 @@ fun MovementFiltersSheet(
     var showFrom by remember { mutableStateOf(false) }
     var showTo   by remember { mutableStateOf(false) }
     var partyPicker by remember { mutableStateOf(false) }
+    val filtersScroll = rememberScrollState()
 
     // Counted in the database on every change of the draft; the list on screen holds the applied
     // filters, not this one.
@@ -74,17 +76,37 @@ fun MovementFiltersSheet(
         DayPickerDialog(draft.dateTo, onPicked = { draft = draft.copy(dateTo = it); showTo = false }) { showTo = false }
     }
 
-    // Fully expanded, with no half-way stop. The party list appears under the chips when a kind is
-    // picked, and that change of height made the sheet re-settle — dropping back to the partial
-    // state under the very finger that had just opened the list.
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor   = DsColors.Surface
+    // Fully expanded, with no half-way stop (FilterSheet). The party list appears under the chips when
+    // a kind is picked, and that change of height made the sheet re-settle — dropping back to the
+    // partial state under the very finger that had just opened the list. Back goes from the party list
+    // to the filters, then closes the sheet.
+    FilterSheet(
+        onDismiss   = onDismiss,
+        listShown   = partyPicker,
+        onCloseList = { partyPicker = false }
     ) {
-        Column(
+        // The party list takes this sheet's place rather than opening a sheet of its own: a second sheet is
+        // a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters' scroll is
+        // kept outside the switch, so coming back finds them where they were.
+        val party = draft.party
+        if (partyPicker && party != null) {
+            val options = if (party == MovementParty.CLIENT) clients else suppliers
+            SearchableSelectList(
+                title       = if (party == MovementParty.CLIENT) "Sélectionner un client" else "Sélectionner un fournisseur",
+                items       = options,
+                itemLabel   = { it.name },
+                itemKey     = { it.id },
+                isSelected  = { it.id == draft.partyId },
+                allLabel    = "Tous les ${party.label.lowercase()}s",
+                allSelected = draft.partyId == null,
+                onSelectAll = { draft = draft.copy(partyId = null); partyPicker = false },
+                onSelect    = { draft = draft.copy(partyId = it.id); partyPicker = false },
+                onBack      = { partyPicker = false },
+                modifier    = Modifier.navigationBarsPadding().padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.lg)
+            )
+        } else Column(
             Modifier
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(filtersScroll)
                 .navigationBarsPadding()
                 .padding(horizontal = DsSpacing.lg)
                 .padding(bottom = DsSpacing.lg)
@@ -158,23 +180,9 @@ fun MovementFiltersSheet(
                         muted   = chosen == null,
                         enabled = options.isNotEmpty(),
                         trailing = Icons.Default.KeyboardArrowDown,
+                        // A searchable list, not a dropdown: a best-seller has moved with hundreds of clients,
+                        // and a dropdown builds them all the moment it opens — see SearchableSelectList.
                         onClick = { partyPicker = true }
-                    )
-                }
-                // A searchable sheet, not a dropdown: a best-seller has moved with hundreds of clients,
-                // and a dropdown builds them all the moment it opens — see SearchableSelectSheet.
-                if (partyPicker) {
-                    SearchableSelectSheet(
-                        title       = if (party == MovementParty.CLIENT) "Sélectionner un client" else "Sélectionner un fournisseur",
-                        items       = options,
-                        itemLabel   = { it.name },
-                        itemKey     = { it.id },
-                        isSelected  = { it.id == draft.partyId },
-                        allLabel    = all,
-                        allSelected = draft.partyId == null,
-                        onSelectAll = { draft = draft.copy(partyId = null) },
-                        onSelect    = { draft = draft.copy(partyId = it.id) },
-                        onDismiss   = { partyPicker = false }
                     )
                 }
             }

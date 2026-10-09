@@ -145,7 +145,15 @@ tracing on. The time goes to window creation, measure/layout, recording the draw
 - The main thread waited on the render thread (`postAndWait`) for 45–120 ms per opening.
 
 **Proposed fixes, by certainty:**
-1. The client picker's list inside the filter sheet, not a second window.
+1. The client picker's list inside the filter sheet, not a second window. **Done 2026-10-09:**
+   - `SearchableSelectList` replaces the filter sheet's content in Dépôt Vente, Achats, the tournée and Mouvements.
+   - `FilterSheet` owns Back: from the list back to the filters, then closed. Material's sheet takes Back first on
+     Android 13+ and would close it all, so its own Back is turned off. The cost: no predictive-back preview on
+     these four sheets.
+   - Measured on the R8 + profile build, the list now opens in 2 frames. Slowest frame: Dépôt Vente 30 ms (was
+     61), Achats 28 (65), tournée 30 (73), Mouvements 34 (77).
+   - On the phone: the back arrow and the system Back return to the filters, which stay scrolled where they were;
+     a chosen client fills the field; "Tous les clients" clears it.
 2. One-pass `FitText`, and `AnimatedFigure` without the hidden copy (M6).
 3. Overdraw: check with the overdraw debug view, then drop the duplicated full-screen backgrounds.
 4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3.

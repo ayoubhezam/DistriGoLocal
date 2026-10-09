@@ -58,7 +58,8 @@ import com.distrigo.app.ui.purchases.formatOrderDate
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsSelectorField
-import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SearchableSelectList
+import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -211,19 +212,35 @@ fun VentesScreen(
     }
 
     // ── Filter Sheet ──
-    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     if (showFilterSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showFilterSheet = false },
-            sheetState       = filterSheetState,
-            containerColor   = DsColors.Surface
+        var clientPicker by remember { mutableStateOf(false) }
+        // Back goes from the client list to the filters, then closes the sheet: see FilterSheet.
+        FilterSheet(
+            onDismiss   = { showFilterSheet = false },
+            listShown   = clientPicker,
+            onCloseList = { clientPicker = false }
         ) {
-            var clientPicker by remember { mutableStateOf(false) }
+            val filtersScroll = rememberScrollState()
 
-            Column(
+            // The client list takes this sheet's place rather than opening a sheet of its own: a second
+            // sheet is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters'
+            // scroll is kept outside the switch, so coming back finds them where they were.
+            if (clientPicker) SearchableSelectList(
+                title       = "Sélectionner un client",
+                items       = clients,
+                itemLabel   = { it.second },
+                itemKey     = { it.first },
+                isSelected  = { it.first == viewModel.filterClientId },
+                allLabel    = "Tous les clients",
+                allSelected = viewModel.filterClientId == null,
+                onSelectAll = { viewModel.filterClientId = null; clientPicker = false },
+                onSelect    = { viewModel.filterClientId = it.first; clientPicker = false },
+                onBack      = { clientPicker = false },
+                modifier    = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg)
+            ) else Column(
                 modifier = Modifier
                     .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxxl)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(filtersScroll)
             ) {
                 // ── عنوان ──
                 Row(
@@ -301,7 +318,7 @@ fun VentesScreen(
 
                 // ── العميل ──
                 Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                // A searchable sheet, not a dropdown: a dropdown builds every client with a sale the
+                // A searchable list, not a dropdown: a dropdown builds every client with a sale the
                 // moment it opens — a 300 ms freeze for ~1,500 of them in a release build.
                 DsSelectorField(
                     label       = null,
@@ -309,20 +326,6 @@ fun VentesScreen(
                     placeholder = "Tous les clients",
                     onClick     = { clientPicker = true }
                 )
-                if (clientPicker) {
-                    SearchableSelectSheet(
-                        title       = "Sélectionner un client",
-                        items       = clients,
-                        itemLabel   = { it.second },
-                        itemKey     = { it.first },
-                        isSelected  = { it.first == viewModel.filterClientId },
-                        allLabel    = "Tous les clients",
-                        allSelected = viewModel.filterClientId == null,
-                        onSelectAll = { viewModel.filterClientId = null },
-                        onSelect    = { viewModel.filterClientId = it.first },
-                        onDismiss   = { clientPicker = false }
-                    )
-                }
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── التاريخ ──

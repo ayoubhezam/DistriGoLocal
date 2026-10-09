@@ -54,7 +54,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsSelectorField
-import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.SearchableSelectList
+import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -255,19 +256,35 @@ fun PurchasesScreen(
     }
 
     // ── Filter Sheet ──
-    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     if (showFilterSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showFilterSheet = false },
-            sheetState       = filterSheetState,
-            containerColor   = DsColors.Surface
+        var supplierPicker by remember { mutableStateOf(false) }
+        // Back goes from the supplier list to the filters, then closes the sheet: see FilterSheet.
+        FilterSheet(
+            onDismiss   = { showFilterSheet = false },
+            listShown   = supplierPicker,
+            onCloseList = { supplierPicker = false }
         ) {
-            var supplierPicker by remember { mutableStateOf(false) }
+            val filtersScroll = rememberScrollState()
 
-            Column(
+            // The supplier list takes this sheet's place rather than opening a sheet of its own: a second
+            // sheet is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters'
+            // scroll is kept outside the switch, so coming back finds them where they were.
+            if (supplierPicker) SearchableSelectList(
+                title       = "Sélectionner un fournisseur",
+                items       = suppliers,
+                itemLabel   = { it.second },
+                itemKey     = { it.first },
+                isSelected  = { it.first == viewModel.filterSupplierId },
+                allLabel    = "Tous les fournisseurs",
+                allSelected = viewModel.filterSupplierId == null,
+                onSelectAll = { viewModel.filterSupplierId = null; supplierPicker = false },
+                onSelect    = { viewModel.filterSupplierId = it.first; supplierPicker = false },
+                onBack      = { supplierPicker = false },
+                modifier    = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg)
+            ) else Column(
                 modifier = Modifier
                     .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.xxxl)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(filtersScroll)
             ) {
                 // ── عنوان ──
                 Row(
@@ -345,28 +362,14 @@ fun PurchasesScreen(
 
                 // ── المورد ──
                 Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
-                // A searchable sheet, not a dropdown, which would build every supplier the moment it
-                // opens — see SearchableSelectSheet.
+                // A searchable list, not a dropdown, which would build every supplier the moment it
+                // opens — see SearchableSelectList.
                 DsSelectorField(
                     label       = null,
                     value       = suppliers.find { it.first == viewModel.filterSupplierId }?.second.orEmpty(),
                     placeholder = "Tous les fournisseurs",
                     onClick     = { supplierPicker = true }
                 )
-                if (supplierPicker) {
-                    SearchableSelectSheet(
-                        title       = "Sélectionner un fournisseur",
-                        items       = suppliers,
-                        itemLabel   = { it.second },
-                        itemKey     = { it.first },
-                        isSelected  = { it.first == viewModel.filterSupplierId },
-                        allLabel    = "Tous les fournisseurs",
-                        allSelected = viewModel.filterSupplierId == null,
-                        onSelectAll = { viewModel.filterSupplierId = null },
-                        onSelect    = { viewModel.filterSupplierId = it.first },
-                        onDismiss   = { supplierPicker = false }
-                    )
-                }
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── التاريخ ──
