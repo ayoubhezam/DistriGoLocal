@@ -154,7 +154,20 @@ tracing on. The time goes to window creation, measure/layout, recording the draw
      61), Achats 28 (65), tournée 30 (73), Mouvements 34 (77).
    - On the phone: the back arrow and the system Back return to the filters, which stay scrolled where they were;
      a chosen client fills the field; "Tous les clients" clears it.
-2. One-pass `FitText`, and `AnimatedFigure` without the hidden copy (M6).
+2. One-pass `FitText`, and `AnimatedFigure` without the hidden copy (M6). **Done 2026-10-09:**
+   - `FitText` settles in the layout pass that measures it (`rememberTextMeasurer`), then draws the line: no
+     recomposition, nothing hidden for a frame.
+   - `AnimatedFigure` is one line fitted to the widest value it passes through (measured, not counted in
+     characters), drawn with the value of the moment.
+   - Re-traced on the tracing build (same test, 5 openings each):
+     - Ventes report: text layouts **102 → 43** per opening (7.3 → 3.7 ms); measure/layout 29.3 → 23.8 ms;
+       `AnimatedFigure` compositions 28 → 14.
+     - Client's page: 37 → 33 layouts.
+   - The slowest frame of an opening did not measurably change: report 28 → 31 ms, client page 34 → 39 ms on
+     average, within the ±10 ms tracing noise. That first frame is the screen's measure/layout (8–15 ms) and
+     draw recording (4–6 ms), not its text.
+   - On the phone, amounts fit, shrink and count as before. Counting from "-6,7 %" to "20,0 %", the first
+     version showed "20,0…": the box was sized on the longer string, not the wider one. Fixed by measuring.
 3. Overdraw: check with the overdraw debug view, then drop the duplicated full-screen backgrounds.
 4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3.
 

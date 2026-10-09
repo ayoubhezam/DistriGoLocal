@@ -4,9 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,15 +12,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import com.distrigo.app.ui.common.FitText
-import com.distrigo.app.ui.common.TABULAR_FIGURES
+import com.distrigo.app.ui.common.FittedText
 import com.distrigo.app.core.format.MoneyFormatter
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -62,8 +55,10 @@ fun rateFigure(rate: Double?) = if (rate == null) Figure.text("—") else Figure
  * the old value to the new one in [GLIDE_MILLIS]. Not on its first showing: a report opened is read
  * at once, only a change is shown moving.
  *
- * - The size is settled once, on the widest the figure will be on its way, by an unseen FitText: a
- *   FitText fed a new text every frame would settle again every frame, hidden meanwhile — a blink.
+ * - The size is settled on the widest of the values the figure passes through ([FittedText]'s fitTo),
+ *   measured, so it holds still while the figure counts: one line, laid out at that size, drawn with the
+ *   value of the moment. It used to be settled by a second, hidden FitText laid out beside the one shown,
+ *   on the value with the most characters — "-6,7 %" for a count to "20,0 %", which is wider.
  * - It counts in Double, from a progress of 0 to 1: an amount of hundreds of millions has more digits
  *   than a Float animation keeps, and the last step writes the new value exactly.
  * - Its digits are all as wide (TABULAR_FIGURES), so a counting amount does not shake sideways.
@@ -83,7 +78,6 @@ fun AnimatedFigure(
     val progress = remember { Animatable(1f) }
     var from by remember { mutableDoubleStateOf(target) }
     var to by remember { mutableDoubleStateOf(target) }
-    var scale by remember { mutableStateOf<Float?>(null) }
 
     LaunchedEffect(target) {
         if (target.isNaN() || to.isNaN() || target == to) {
@@ -106,23 +100,16 @@ fun AnimatedFigure(
         p >= 1f -> to
         else -> from + (to - from) * p
     }
-    val widest = if (numbers) listOf(from, to, target).map(figure.write).maxBy { it.length } else figure.write(target)
-
-    Box(modifier) {
-        FitText(
-            widest, fontSize = fontSize, color = color, fontWeight = fontWeight, textAlign = textAlign,
-            minScale = minScale, tabular = true, onFit = { scale = it },
-            modifier = Modifier.drawWithContent { }.clearAndSetSemantics { },
-        )
-        scale?.let { s ->
-            Text(
-                figure.write(shown), fontSize = fontSize * s, color = color, fontWeight = fontWeight, textAlign = textAlign,
-                maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
-                style = LocalTextStyle.current.copy(fontFeatureSettings = TABULAR_FIGURES),
-                modifier = Modifier.matchParentSize(),
-            )
-        }
+    // The values it passes through, for the box to fit the widest of them: written once per change of
+    // value, not on every frame of the count.
+    val passing = remember(figure, from, to, numbers) {
+        if (numbers) listOf(from, to, target).map(figure.write).distinct() else listOf(figure.write(target))
     }
+
+    FittedText(
+        text = figure.write(shown), fitTo = passing, fontSize = fontSize, modifier = modifier, color = color,
+        fontWeight = fontWeight, textAlign = textAlign, minScale = minScale, tabular = true,
+    )
 }
 
 /**
