@@ -57,6 +57,11 @@ class LicenseManager internal constructor(
         publish(judge())
     }
 
+    /** The server's id for this phone, from its activation: what « Libérer cet appareil » names. */
+    fun deviceId(): String? = synchronized(lock) { store.readDeviceId() }
+
+    fun rememberDevice(id: String) = synchronized(lock) { store.writeDeviceId(id) }
+
     /** Forgets the license and the clock: a sign-out. An update never calls this. */
     fun clear(): LicenseState = synchronized(lock) {
         store.clear()
@@ -91,10 +96,9 @@ class LicenseManager internal constructor(
     private fun publish(state: LicenseState): LicenseState = state.also { _state.value = it }
 
     companion object {
-        fun forApp(context: Context): LicenseManager {
+        fun forApp(context: Context, deviceKey: DeviceKeys = DeviceKey()): LicenseManager {
             val app = context.applicationContext
             val store = LicenseStore.forApp(app)
-            val deviceKey = DeviceKey()
             return LicenseManager(
                 store = store,
                 verifier = LicenseVerifier(LicenseKeys.trusted()),

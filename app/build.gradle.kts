@@ -27,6 +27,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
+        // "Continuer avec Google": the Web client id of the Google Cloud project (not a secret). Empty hides the
+        // button. docs/license_architecture.md §6.6.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"" + localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "") + "\"")
     }
 
     // The release key, from local.properties (not in git): RELEASE_STORE_FILE (forward slashes),
@@ -151,12 +154,21 @@ dependencies {
     testImplementation(libs.junit)
     // Virtual time for the flows tested off the device: DraftAutosave's debounce is measured, not waited out.
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    // A local HTTP server for the tests of the accounts and license clients.
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Accounts and licenses (docs/license_architecture.md): HTTPS to Supabase, already in the app through Coil and
+    // named here because the license depends on it; Google sign-in through Credential Manager.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.maps.android:maps-compose:6.5.0")

@@ -215,6 +215,12 @@ fun DsStepBadge(
 
 
 /**
+ * The signed-in account's initials, provided once at the root (MainActivity), so every tab root's avatar shows
+ * them without each screen asking for the account. Null when nobody is signed in: the avatar draws its glyph.
+ */
+val LocalAccountInitials = androidx.compose.runtime.staticCompositionLocalOf<String?> { null }
+
+/**
  * The trailing pair every bottom-tab root carries: notifications, then the account.
  *
  * Account sits outermost because that is where people reach for it. Both are 40dp to match
@@ -227,7 +233,7 @@ fun RowScope.DsTopBarRootActions(
     onNotificationsClick : () -> Unit,
     onProfileClick       : () -> Unit,
     notificationCount    : Int = 0,
-    initials             : String? = null
+    initials             : String? = LocalAccountInitials.current
 ) {
     DsTopBarNotificationButton(count = notificationCount, onClick = onNotificationsClick)
     Spacer(Modifier.width(DsSpacing.sm))

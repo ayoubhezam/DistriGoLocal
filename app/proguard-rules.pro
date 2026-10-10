@@ -27,3 +27,8 @@
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 -dontwarn sun.misc.**
+
+# ── Credential Manager (Google sign-in) ──
+# The Play services provider is found by name at run time, so shrinking must not remove it.
+-if class androidx.credentials.CredentialManager
+-keep class androidx.credentials.playservices.** { *; }

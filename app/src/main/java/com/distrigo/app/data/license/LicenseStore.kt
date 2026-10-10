@@ -19,6 +19,7 @@ fun interface StateSeal {
  *  - `anchor.state`: the [AnchorState] as JSON on the first line, its seal (base64url) on the second. An
  *    edited or missing state reads as none, and only a check-in makes a new one.
  *  - `revoked`: present once the server has said this phone no longer holds the subscription.
+ *  - `device.id`: the server's id for this phone, which « Libérer cet appareil » names.
  *
  * Why `no_backup`, like DeviceIdentity: Auto Backup and a device-to-device transfer copy the database and
  * SharedPreferences, and must not carry a license or a clock onto another phone. Nothing here travels in a
@@ -29,6 +30,7 @@ class LicenseStore(private val dir: File, private val seal: StateSeal) : AnchorS
     private val tokenFile get() = File(dir, "license.jws")
     private val anchorFile get() = File(dir, "anchor.state")
     private val revokedFile get() = File(dir, "revoked")
+    private val deviceIdFile get() = File(dir, "device.id")
 
     fun readToken(): String? = synchronized(LOCK) {
         tokenFile.takeIf { it.isFile }?.readText()?.trim()?.takeIf { it.isNotEmpty() }
@@ -37,6 +39,10 @@ class LicenseStore(private val dir: File, private val seal: StateSeal) : AnchorS
     fun writeToken(token: String) = synchronized(LOCK) { write(tokenFile, token) }
 
     fun isRevoked(): Boolean = synchronized(LOCK) { revokedFile.isFile }
+
+    fun readDeviceId(): String? = synchronized(LOCK) { deviceIdFile.takeIf { it.isFile }?.readText()?.trim()?.takeIf { it.isNotEmpty() } }
+
+    fun writeDeviceId(id: String) = synchronized(LOCK) { write(deviceIdFile, id) }
 
     fun setRevoked(revoked: Boolean) {
         synchronized(LOCK) {
@@ -50,6 +56,7 @@ class LicenseStore(private val dir: File, private val seal: StateSeal) : AnchorS
             tokenFile.delete()
             anchorFile.delete()
             revokedFile.delete()
+            deviceIdFile.delete()
         }
     }
 

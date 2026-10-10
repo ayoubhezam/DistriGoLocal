@@ -12,7 +12,9 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.distrigo.app.data.backup.BackupMessages
 import com.distrigo.app.data.backup.RestoreInstaller
+import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.backup.auto.AutoBackupScheduler
+import com.distrigo.app.data.license.LicenseManager
 import dagger.hilt.android.HiltAndroidApp
 import com.distrigo.app.diagnostics.CrashReporter
 import com.distrigo.app.diagnostics.DebugStrictMode
@@ -29,6 +31,13 @@ class DistriGoApplication : Application(), Configuration.Provider {
     // Lazy: building it resolves its settings folder on disk, which injection would do on the main thread.
     @Inject
     lateinit var autoBackupScheduler: dagger.Lazy<AutoBackupScheduler>
+
+    // Lazy, and read on their own thread: the session and the license are files and Keystore keys.
+    @Inject
+    lateinit var authRepository: dagger.Lazy<AuthRepository>
+
+    @Inject
+    lateinit var licenseManager: dagger.Lazy<LicenseManager>
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
@@ -63,6 +72,16 @@ class DistriGoApplication : Application(), Configuration.Provider {
                 Log.w("DistriGoApplication", "could not schedule the daily backup", e)
             }
         }, "auto-backup-schedule").start()
+        // The signed-in account, and what the license allows (docs/license_architecture.md §2.4). Nothing is
+        // enforced yet (Phase L5): this only makes the Compte screen and the avatar right from the start.
+        Thread({
+            try {
+                authRepository.get().restore()
+                licenseManager.get().evaluate()
+            } catch (e: RuntimeException) {
+                Log.w("DistriGoApplication", "could not read the account or the license", e)
+            }
+        }, "account-restore").start()
     }
 
     /**

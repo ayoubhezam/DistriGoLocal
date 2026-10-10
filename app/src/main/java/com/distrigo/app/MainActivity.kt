@@ -110,6 +110,10 @@ class MainActivity : ComponentActivity() {
     @javax.inject.Inject
     lateinit var businessSettings: dagger.Lazy<BusinessSettingsRepository>
 
+    // Lazy and read on IO, like the database: the account's initials for every avatar (LocalAccountInitials).
+    @javax.inject.Inject
+    lateinit var authRepository: dagger.Lazy<com.distrigo.app.data.auth.AuthRepository>
+
     /** The business's money format, read off the main thread. */
     private val moneyFormats: Flow<MoneyFormat> by lazy {
         flow { emitAll(businessSettings.get().observeMoneyFormat()) }.flowOn(Dispatchers.IO)
@@ -146,7 +150,15 @@ class MainActivity : ComponentActivity() {
             // waits for that read, which comes before any screen's own data.
             var moneyFormat by rememberSaveable { mutableStateOf(MoneyFormat.DEFAULT) }
             LaunchedEffect(Unit) { moneyFormats.collect { moneyFormat = it } }
-            DistriGoTheme { ProvideMoneyFormat(moneyFormat) {
+            var accountInitials by rememberSaveable { mutableStateOf<String?>(null) }
+            LaunchedEffect(Unit) {
+                withContext(Dispatchers.IO) { authRepository.get() }.state.collect { account ->
+                    accountInitials = (account as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session?.initials
+                }
+            }
+            DistriGoTheme { ProvideMoneyFormat(moneyFormat) { androidx.compose.runtime.CompositionLocalProvider(
+                com.distrigo.app.ui.designsystem.LocalAccountInitials provides accountInitials
+            ) {
                 // imePadding here is what lifts every form in the app: the root shrinks by the
                 // keyboard's height, so each scroll container inside shrinks with it, and Compose's
                 // own bring-into-view can finally scroll the focused field up. Padding a screen
@@ -297,7 +309,7 @@ class MainActivity : ComponentActivity() {
                                     onOpenReport         = { report -> navController.navigate(Screen.PlusRapport.createRoute(report)) },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
-                                    onProfileClick       = { /* TODO: profile */ }
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 
@@ -306,7 +318,7 @@ class MainActivity : ComponentActivity() {
                                     onFullScreenChange = { hideBottomBar = it },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
-                                    onProfileClick       = { /* TODO: profile */ }
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 
@@ -315,7 +327,7 @@ class MainActivity : ComponentActivity() {
                                     onFullScreenChange   = { hideBottomBar = it },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
-                                    onProfileClick       = { /* TODO: profile */ }
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 
@@ -324,7 +336,7 @@ class MainActivity : ComponentActivity() {
                                     onFullScreenChange   = { hideBottomBar = it },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
-                                    onProfileClick       = { /* TODO: profile */ }
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 
@@ -378,6 +390,13 @@ class MainActivity : ComponentActivity() {
                                 com.distrigo.app.ui.navigation.RapportsNavHost(
                                     onBack = { navController.popBackStack() },
                                     open   = com.distrigo.app.ui.navigation.ReportEntry.valueOf(entry.arguments!!.getString("report")!!)
+                                )
+                            }
+
+                            // The account and this phone's subscription, from the avatar (docs/license_architecture.md §7).
+                            composable(Screen.Compte.route) {
+                                com.distrigo.app.ui.navigation.AccountNavHost(
+                                    onBack = { navController.popBackStack() }
                                 )
                             }
 
@@ -509,7 +528,7 @@ class MainActivity : ComponentActivity() {
 
                     } // closes Scaffold-wrapping gesture Box
             }
-        } }
+        } } }
     }
 
         // Gesture-nav devices reserve roughly this same band on the left screen edge for the

@@ -13,6 +13,13 @@ import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.SecretKey
 
+/** The device key, as the license flows use it: DeviceKey on the phone, a fake in the tests. */
+interface DeviceKeys {
+    fun publicKeyHash(): String?
+    fun create(challenge: ByteArray): CreatedKey
+    fun sign(data: ByteArray): ByteArray
+}
+
 /** A new device key, and what the server needs to judge it. */
 class CreatedKey(
     val publicKeyHash: String,
@@ -34,14 +41,14 @@ class CreatedKey(
  *
  * Every call is Keystore I/O: off the main thread.
  */
-class DeviceKey(private val alias: String = ALIAS) {
+class DeviceKey(private val alias: String = ALIAS) : DeviceKeys {
 
-    @Volatile
-    private var hash: String? = null
-
-    /** The hash licenses name this phone by, or null when there is no key: never activated, or the Keystore lost it. */
-    fun publicKeyHash(): String? =
-        hash ?: keyStore().getCertificate(alias)?.publicKey?.encoded?.let(LicenseCrypto::keyHash)?.also { hash = it }
+    /**
+     * The hash licenses name this phone by, or null when there is no key: never activated, or the Keystore lost it.
+     * Read from the Keystore every time, so another instance making a new key is never missed.
+     */
+    override fun publicKeyHash(): String? =
+        keyStore().getCertificate(alias)?.publicKey?.encoded?.let(LicenseCrypto::keyHash)
 
     /**
      * Makes a new key, replacing any, attested with the server's [challenge].
@@ -50,7 +57,7 @@ class DeviceKey(private val alias: String = ALIAS) {
      * still gets a key, without attestation: refusing it would strand a paying customer, and the server
      * decides what an unattested key is worth (§5.3).
      */
-    fun create(challenge: ByteArray): CreatedKey {
+    override fun create(challenge: ByteArray): CreatedKey {
         val attempts = buildList<Pair<Boolean, ByteArray?>> {
             if (Build.VERSION.SDK_INT >= 28) add(true to challenge)
             add(false to challenge)
@@ -69,7 +76,7 @@ class DeviceKey(private val alias: String = ALIAS) {
             val store = keyStore()
             val publicKey = store.getCertificate(alias).publicKey.encoded
             return CreatedKey(
-                publicKeyHash = LicenseCrypto.keyHash(publicKey).also { hash = it },
+                publicKeyHash = LicenseCrypto.keyHash(publicKey),
                 certificateChain = store.getCertificateChain(alias).map { it.encoded },
                 strongBox = strongBox,
                 attested = attestWith != null,
@@ -79,7 +86,7 @@ class DeviceKey(private val alias: String = ALIAS) {
     }
 
     /** An ECDSA (SHA-256) signature of [data], DER, as Java writes it. Throws if there is no key. */
-    fun sign(data: ByteArray): ByteArray {
+    override fun sign(data: ByteArray): ByteArray {
         val key = keyStore().getKey(alias, null) as? PrivateKey ?: throw IllegalStateException("no device key")
         return Signature.getInstance("SHA256withECDSA").run {
             initSign(key)
@@ -90,7 +97,6 @@ class DeviceKey(private val alias: String = ALIAS) {
 
     fun delete() {
         keyStore().deleteEntry(alias)
-        hash = null
     }
 
     private fun generate(strongBox: Boolean, challenge: ByteArray?) {

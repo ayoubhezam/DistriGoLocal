@@ -40,6 +40,13 @@ sealed class Screen(val route: String) {
     data object PlusParametres   : Screen("plus_parametres")
 
     // ── Paramètres (PlusParametres content): its own NavHost, one destination per settings screen ──
+    // ── The account (docs/license_architecture.md §7): opened from the avatar of every tab root ──
+    data object Compte        : Screen("compte")
+    data object AccountGraph  : Screen("account_graph")
+    data object AccountHome   : Screen("account_home")
+    data object AccountSignIn : Screen("account_sign_in")
+    data object AccountSignUp : Screen("account_sign_up")
+
     data object SettingsGraph      : Screen("settings_graph")
     data object SettingsHome       : Screen("settings_home")
     data object SettingsReceiptPrint : Screen("settings_receipt_print")

@@ -629,11 +629,27 @@ or `seat_taken` with the same nonce, key and attestation, within the nonce's 5 m
 
 ### 6.6 Google sign-in setup
 
-Use Credential Manager (`androidx.credentials` + `googleid`, `GetSignInWithGoogleOption`). The old
-`GoogleSignInClient` is deprecated. Pass the Web client id as `serverClientId`. Register an Android
-client with the SHA-1 of **every** signing key: debug, the **benchmark build (debug key)**, release,
-and Play App Signing if D5 = Play. Google sign-in needs Play services. E-mail/password is the
-fallback.
+The app uses Credential Manager (`GetSignInWithGoogleOption`, `ui/account/GoogleSignIn.kt`). Google
+signs the SHA-256 of a nonce into its ID token, and Supabase gets the nonce itself, so a token can't be
+replayed. Google sign-in needs Play services; e-mail and password is the fallback. The button stays
+hidden until `local.properties` names the Web client.
+
+Setup, once, in the Google Cloud console (console.cloud.google.com):
+
+1. Create a project "DistriGo". Then, in Google Auth Platform: app name "DistriGo", your support
+   e-mail, audience **External**.
+2. In **Audience**, publish the app ("In production"). With only the basic scopes (e-mail, profile)
+   no review is needed, and any Google account can sign in. In "Testing", only listed test users can.
+3. **Clients → Create client → Web application**, named "Supabase". Authorized redirect URI:
+   `https://<ref>.supabase.co/auth/v1/callback`. Keep its client ID and secret.
+4. **Clients → Create client → Android**, package `com.distrigo.app`, with the **release** SHA-1
+   `56:B5:FD:E5:97:89:4B:A9:C1:EE:6E:25:97:58:88:E5:FE:1B:45:A1`. Then a second Android client with
+   the **debug** SHA-1 `FE:88:95:B0:66:E6:90:DD:47:ED:89:3D:6F:CF:F1:37:B5:6C:41:A2`, which the
+   debug and benchmark builds share. The app never names these clients: Google recognises it by
+   package and certificate.
+5. **Supabase → Authentication → Sign In / Providers → Google**: enable it, paste the Web client's ID
+   and secret, and leave "Skip nonce check" off.
+6. **`local.properties`**: `GOOGLE_WEB_CLIENT_ID=<the Web client ID>` (not a secret), then rebuild.
 
 ---
 
@@ -768,15 +784,34 @@ before it.
   - **The debug digest** is accepted for the beta, so the benchmark build can be tested against the
     live server. Remove it from `LICENSE_APP_SIGNING_DIGESTS` before a public release.
 
-**L3 — Accounts and the Compte screen.**
-- Credential Manager Google sign-in. E-mail sign-up, verification and reset, in French. The encrypted
-  session.
-- The Compte screen, the four `onProfileClick` TODOs, avatar initials, account deletion.
+**L3 — Accounts, the Compte screen, and activation: built 2026-10-10.** Activation was moved here from
+L4, so that the phone can be activated as soon as an account exists.
+- **`data/auth/`:**
+  - `AuthApi`: Supabase Auth over the app's OkHttp. Sign-up, password, Google ID token, refresh,
+    sign-out. Each refusal gets a French message (`AuthError`).
+  - `AuthSession` and `SessionStore`: AES-GCM with a Keystore key, in `no_backup/auth`, kept by
+    updates (D8).
+  - `AuthRepository`: the signed-in state, and an access token renewed under a lock (a refresh token
+    serves once).
+  - E-mail confirmation is off for the beta: Supabase's built-in sender only reaches the project's
+    team. A forgotten password is reset by hand in Studio.
+- **`data/license/LicenseClient`:** the §6.4 protocol. Activation makes the key attested with the
+  server's nonce, asks for the business name or a transfer as needed, and installs the license. Also
+  check-in, release and account deletion. It refuses to activate a phone that holds a license, since a
+  new key would invalidate it. `DeviceKeys` is shared by the license and its client (`di/AccountModule`).
+- **`ui/account/`:** opened from the avatar of every tab root (the four `onProfileClick`). The
+  Compte screen holds the account, the subscription (status, plan, dates, « Activer cet appareil » /
+  « Vérifier maintenant »), sign-out (which frees the seat) and account deletion. Sign-in and sign-up
+  have « Continuer avec Google » (§6.6). The avatar shows the account's initials (`LocalAccountInitials`).
+- **Tests:** 19 JVM tests against a local HTTP server playing Supabase, for auth and session storage,
+  and for activation, transfer, check-in, revocation, token renewal, release and deletion with the
+  golden licenses. The unit suite has 509 tests, all green.
+- **Not yet enforced:** the license is read and shown, but nothing is blocked; that comes in L5. There
+  is no automatic check-in yet (L4).
 
-**L4 — Activation and check-in.**
-- First-run screen « Activer DistriGo » (data kept). Activation with attestation (+ Play Integrity
-  if D5). `LicenseRefreshWorker`, the foreground check-in, the transfer dialog, the
-  `app_meta.business_id` check (§4.7).
+**L4 — Automatic check-in.**
+- `LicenseRefreshWorker` and the foreground check-in, a first-run invitation to activate (data
+  kept), and the `app_meta.business_id` check (§4.7). Play Integrity comes later, with D5.
 - Done when a phone activates, survives airplane mode and a reboot, and picks up a change to `vt`
   made on the server at its next check-in.
 
