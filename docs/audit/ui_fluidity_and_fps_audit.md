@@ -140,8 +140,8 @@ tracing on. The time goes to window creation, measure/layout, recording the draw
 | **A sale's page** | 13–23 ms (first frame) | Measure 4–9 ms, draw 3–4 ms, four ViewModels created ~1 ms each. The other late frames are the render thread drawing both screens through the slide: 19 % of its frames were render-thread-bound, the most of the four. |
 
 **Across all four:**
-- The render thread spends 24–28 ms per opening filling full-screen rectangles (`FillRectOp`): backgrounds painted
-  over one another. It also draws text atlases and rounded corners.
+- The render thread spends 24–28 ms per opening filling rectangles (`FillRectOp`). It also draws text atlases and
+  rounded corners. Read at first as backgrounds painted over one another; fix 3 showed it is not (see 3 below).
 - The main thread waited on the render thread (`postAndWait`) for 45–120 ms per opening.
 
 **Proposed fixes, by certainty:**
@@ -168,8 +168,28 @@ tracing on. The time goes to window creation, measure/layout, recording the draw
      draw recording (4–6 ms), not its text.
    - On the phone, amounts fit, shrink and count as before. Counting from "-6,7 %" to "20,0 %", the first
      version showed "20,0…": the box was sized on the longer string, not the wider one. Fixed by measuring.
-3. Overdraw: check with the overdraw debug view, then drop the duplicated full-screen backgrounds.
-4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3.
+3. Overdraw: check with the overdraw debug view, then drop the duplicated full-screen backgrounds. **Done
+   2026-10-09, with no measurable gain in speed:**
+   - The overdraw view showed the body of every screen painted 3 times before any card: the window's background
+     (#FAFAFA), the root `Scaffold`'s white, then the screen's own background.
+   - The window's background is now white (`themes.xml`) and the root `Scaffold` paints nothing. One full-screen
+     layer less on every frame of every screen. The one visible change: the strip behind the status bar is
+     #FFFFFF, not #FAFAFA.
+   - Share of the screen painted 5 times or more: Produits 69 → 19 %, Dépôt Vente 21 → 12 %, Dashboard 20 → 9 %,
+     Ventes report 13 → 2 %, client's page 16 → 7 %.
+   - Speed did not change:
+     - GPU time per frame while lists fling (benchmark build, 6 flings per screen, median): Dashboard 4.61 →
+       4.58 ms, Produits 4.71 → 4.68, Dépôt Vente 5.27 → 5.24.
+     - Render-thread `FillRectOp` per opening (tracing build, 5 openings each): client's page 23.0 → 23.5 ms,
+       Ventes report 21.9 → 27.3, a sale's page 27.9 → 22.3. Noise either way.
+     - So this GPU discards the hidden layer cheaply, or clocks down to match the lighter load, and the fills on
+       the render thread are the cards, chips and dividers, not the backgrounds.
+   - Kept for the GPU work it saves (battery, and weaker phones than this one), not for frame time.
+   - Left as they are, for the same reason: the top bars' white over grey bodies, and the 1 dp shadow under each
+     Produits card (the rectangle the overdraw view shows behind it).
+4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3. After
+   3: their first frame is the main thread's measure/layout and draw recording; the render thread is not the
+   bottleneck.
 
 ---
 

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DistriGo" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DistriGo" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- DsColors.Surface, the colour the app's root used to paint over it. The window's background is
+             under every frame and shows behind the system bars; the root painting the same white on top
+             filled each pixel of each frame once more, beneath every screen's own background (UI fluidity
+             audit, fix 3). Now the root paints nothing and this white is the only bottom layer. -->
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
 </resources>

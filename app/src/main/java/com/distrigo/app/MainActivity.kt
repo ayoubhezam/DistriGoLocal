@@ -267,7 +267,12 @@ class MainActivity : ComponentActivity() {
                     ) {
                     Scaffold(
                         modifier       = Modifier.navigationBarsPadding(),
-                        containerColor = DsColors.Surface
+                        // Nothing painted: the window's own background is this white already
+                        // (themes.xml), and every screen paints its own on top. Painting it here too
+                        // filled every pixel of every frame a second time. The text colour stays
+                        // the one this white gave.
+                        containerColor = Color.Transparent,
+                        contentColor   = contentColorFor(DsColors.Surface)
                     ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                     // Drill-down: any screen, in any section, opens a record through the root — the
