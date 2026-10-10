@@ -514,38 +514,77 @@ stays the same.
 
 ### 6.2 Data model
 
-```sql
-businesses        (id uuid pk, name, owner_user_id → auth.users, created_at)
-memberships       (business_id, user_id, role)               -- 'owner' now; 'rep', 'manager' later
-subscriptions     (id, business_id, plan, status, valid_from, valid_to, grace_until,
-                   max_devices, offline_days, max_boots, updated_by, note, updated_at)
-devices           (id, business_id, user_id, installation_id unique, key_spki, key_hash,
-                   android_id_hint, model, os_version, app_version,
-                   attestation jsonb, last_integrity jsonb,
-                   status ('active','released','revoked'), activated_at, last_seen_at)
-device_transfers  (id, business_id, from_device, to_device, at)
-license_issuances (id, device_id, seq, iat, valid_to, offline_until, policy_tier, at)
-nonces            (value pk, user_id, purpose, expires_at, used_at)
+**Built for Solo, designed for Business.** The schema is
+`supabase/migrations/20261010120000_accounts_and_licenses.sql`. Its rules:
+
+- **The business is the tenant.** Every row that belongs to a business carries `business_id`, even
+  where a join would find it, so each row-level policy is one indexed check. Roles live in
+  `memberships`, never in user metadata, which users can write themselves.
+- **Business data is not here.** Clients, sales and stock stay on the phone, and each phone's database
+  belongs to one business (`app_meta.business_id`, §4.7). The rule above applies to sync tables when
+  Phase 4 comes.
+- **No business is created on sign-up.** `create_business` is called explicitly at onboarding. A
+  trigger would give every future agent a business and a trial of their own.
+- **Two schemas.** `public` holds what the app may read, under row-level security. `private` holds
+  the rest and the functions the Edge Functions call. The API doesn't expose `private`, and the app's
+  roles hold no privilege there. Postgres's default `EXECUTE` for everyone is revoked.
+
+```
+public.plans          trial, solo: devices, offline days, grace, reboots, transfers a month, trial days
+public.businesses     the tenant; name, time_zone (Africa/Algiers), created_by
+public.profiles       display name, readable by fellow members (auth.users is not)
+public.memberships    (business_id, user_id) → role owner | manager | agent, status active | removed
+public.subscriptions  one per business: plan, status, valid_from / valid_to as LOCAL DATES (inclusive),
+                      overrides of the plan (D7)
+public.devices        one per installation: key, attestation, tier, status, seq, offline-days override
+private.nonces · license_issuances · device_transfers · trial_claims · subscription_events · payments
 ```
 
-Row-level security: a member reads their business, its subscription and its devices. **No client
-writes at all.** Every change goes through an Edge Function with the service role, so the seat check
-and the transfer limit can't be bypassed from the client.
+- **Dates are local days.** In Studio, `valid_to = 2027-01-15` means "valid through the 15th":
+  `issue_license` turns it into 23:59:59 Algiers time.
+- **One trial per phone.** `trial_claims` is keyed by ANDROID_ID and survives account deletion, so
+  deleting the account and signing up again earns no second trial.
+- **Every subscription change is audited by a trigger**, an edit by hand in Studio included, in
+  `subscription_events`.
+- **Payments work with any gateway.** `(provider, external_ref)` is unique, so a retried webhook
+  extends once.
+- **What the app can read:**
+  - a member reads their business, its members' profiles, its subscription and its plan;
+  - owners and managers read every device of the business, an agent only their own;
+  - a device's key, attestation, installation id and hints are never readable (column grants);
+  - the app can rename the business (owner or manager) and its own profile, and **writes nothing
+    else**.
 
-### 6.3 Edge Functions
+### 6.3 Functions
 
-| Function | Does |
+The rules that must hold under concurrency live in SQL, in `private`. The Edge Functions do the
+cryptography: attestation, the device key's signature, signing the license. They compose the SQL calls
+in one transaction over a direct Postgres connection (`SUPABASE_DB_URL`).
+
+| SQL (`private.`) | Does |
 |---|---|
-| `license-nonce` | issues a single-use, 5-minute nonce |
-| `license-activate` | attestation + integrity + seat or transfer (one transaction) → license |
-| `license-refresh` | signature by K + device active + subscription + policy → license |
-| `device-release` | frees a seat |
-| `account-delete` | deletes the account. Play requires apps that create accounts to offer deletion in the app and on the web |
+| `create_business` | the business, its owner, a 30-day trial unless the phone already had one |
+| `create_nonce` / `consume_nonce` | a single-use 5-minute challenge; a replay gets false |
+| `activate_device` | a seat: reinstall recognised, `seat_taken` with the phones holding it, transfer (3 / 30 days, then `transfer_limit` with the next date), re-key keeps seat and seq. Locks the subscription row, so two phones can't both take the last seat |
+| `device_for_check_in` / `record_check_in` | the device of an installation for this user, or `revoked` / `not_member` / `unknown_device`; then the check-in's signals |
+| `issue_license` | the next license's claims (§4.1), recorded: end of local day, grace, offline window capped at grace, one day for a `reduced` phone |
+| `release_device` | by its user, or an owner or manager |
+| `delete_account_data` | a sole owner's businesses go with the account; with colleagues, `transfer_ownership_first` |
+| `extend_subscription` | a payment or days given by hand, from the end or from today, idempotent per reference |
+
+| Edge Function | Does |
+|---|---|
+| `license-nonce` | `create_nonce` for the signed-in user |
+| `license-activate` | checks the attestation (§5.1), `create_business` on first use, `activate_device`, `issue_license`, signs |
+| `license-refresh` | `consume_nonce`, `device_for_check_in`, checks the device key's signature, `record_check_in`, `issue_license`, signs |
+| `device-release` | `release_device` |
+| `account-delete` | `delete_account_data`, then deletes the auth user. Play requires apps that create accounts to offer deletion in the app and on the web |
 
 ### 6.4 Accounts → subscription
 
-- Sign-up creates the user. The first sign-in creates a `business` (name from Paramètres) with the
-  user as `owner` and a **trial** subscription (D7).
+- Sign-up creates the user, and a trigger gives the user a profile (and nothing else). At onboarding
+  the app names the business, and `create_business` makes it, with the user as `owner` and the
+  **trial** (D7). An agent invited later joins an existing business instead.
 - A Google sign-in and an e-mail sign-up with the same verified address are the same user
   (Supabase links identities by verified e-mail).
 - The subscription belongs to the **business**, so multi-role adds memberships and raises
@@ -638,11 +677,22 @@ before it.
   screen for it (L3).
 
 **L2 — Backend.**
-- Supabase project (Pro), §6.2 schema and RLS, keys `a` and `b`, the §6.3 functions, an admin
-  procedure to extend a subscription.
-- The server's own tests: seat race (two activations at once), transfer limit, a replayed nonce.
-- It exports golden tokens signed with the server code, and the L1 tests verify them. App and server
-  then provably agree on the format.
+- **L2a, schema: built 2026-10-10, not yet run on Supabase.** The §6.2 migration and the §6.3 SQL
+  functions.
+  - `supabase/tests/local/run.sh` runs them on a throwaway local PostgreSQL 17, with a stub of what
+    Supabase provides (`supabase_stub.sql`).
+  - 33 checks pass: trial and trial claims, the license's claims, seats and transfers and their
+    limit, reinstall, re-key, nonces, overrides, payments and the audit, agents, release, row-level
+    security for owner, agent, another business and anon, account deletion, and two phones racing
+    for the last seat in two real sessions.
+  - Removing the subscription lock makes the race test fail (both phones get the seat).
+- **L2b, Edge Functions:** the five functions over §6.3's SQL, ES256 signing with WebCrypto, and
+  key-attestation verification (§5.1). A real attestation chain from the Galaxy M34 serves as a test
+  fixture. The functions export golden tokens signed with the server code, and the L1 tests verify
+  them, so app and server provably agree on the format.
+- **L2c, the project:** the Supabase project (Pro), the migration applied, release keys `a` and `b`
+  generated by you (the private keys never pass through the chat or the repo), the secrets set, the
+  functions deployed.
 
 **L3 — Accounts and the Compte screen.**
 - Credential Manager Google sign-in. E-mail sign-up, verification and reset, in French. The encrypted
