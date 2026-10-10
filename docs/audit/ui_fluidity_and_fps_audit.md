@@ -189,7 +189,29 @@ tracing on. The time goes to window creation, measure/layout, recording the draw
      Produits card (the rectangle the overdraw view shows behind it).
 4. A lighter first frame for the client detail and the sale page. Lower certainty: trace again after 1–3. After
    3: their first frame is the main thread's measure/layout and draw recording; the render thread is not the
-   bottleneck.
+   bottleneck. **Done 2026-10-10. It found something bigger than these two pages, and less in them:**
+   - Sampling the main thread while a client's page opens (simpleperf, 4 kHz, with call stacks, on the profileable
+     tracing build) found 14 % of all its work in one call. Compose UI is 1.9.0 here: a dependency pulls it past
+     the BOM's 1.7, while foundation and animation stay 1.7.5. From Android 15, Compose UI 1.9 tells the window
+     "no preferred frame rate" twice in every frame it draws (`View.setRequestedFrameRate(NaN)`). Samsung's
+     Android 16 logs each call, with the caller's stack trace (`I/View: setRequestedFrameRate …`).
+   - `ComposeUiFlags.isAdaptiveRefreshRateEnabled = false`, first thing in `DistriGoApplication.onCreate`, turns
+     those calls off. The app asks for no frame rate of its own, so the system picks the refresh rate as it did
+     under Compose 1.7. Still 120 Hz in every trace.
+   - Main thread per frame while lists fling (benchmark build, median): drawing 0.69–0.75 → 0.26–0.30 ms, the
+     whole frame 0.81–1.16 → 0.38–0.69 ms. GPU and total frame times unchanged: flings were already
+     smooth, so this is CPU saved on every frame of every screen (battery, headroom), not fewer drops.
+   - Openings: drawing on the main thread 20–27 → 7–10 ms per opening. The main thread now waits on the render
+     thread for that time instead (`postAndWait`, `dequeueBuffer`: the app is ahead of the display). The only
+     frame the app itself misses is still the first one.
+   - That first frame, client's page: about 34 ms. Composition 11 ms, the page's own share 6–7 ms over about
+     twenty parts of 0.1–1.5 ms each (the photo 1.5, the top bar 1.1, icons, stat cells, tab row, pager).
+     Measure/layout 11–12 ms, drawing 6 ms. Sale page: about 21 ms, measure/layout 10 ms. Nothing in either is
+     worth cutting alone. Splitting the client's page (the tabs a frame later) would make them pop in under the
+     slide, for a few milliseconds. Left as it is.
+   - Pitfalls when reading these traces: "late" frames include SurfaceFlinger's own (`SurfaceFlinger Stuffing`);
+     count `App Deadline Missed` only. The accessibility work in the samples is the test's screen reads
+     (`AccessibilityInteractionController`); the phone runs no accessibility service.
 
 ---
 

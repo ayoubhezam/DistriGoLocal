@@ -6,6 +6,8 @@ import android.os.Handler
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.distrigo.app.data.backup.BackupMessages
@@ -28,12 +30,20 @@ class DistriGoApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var autoBackupScheduler: dagger.Lazy<AutoBackupScheduler>
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
         // First, so a crash in anything after is written up (every build), and StrictMode sees all of
         // startup (debug builds only). See the diagnostics package and Paramètres → Diagnostic.
         CrashReporter.install(this)
         DebugStrictMode.install(this)
         MainThreadWatchdog.install(this)
+        // Before any screen: Compose reads it once, when it builds a window's root view. On, Compose UI
+        // (1.9, pulled in by a dependency) tells Android "no preferred frame rate" twice on every frame it
+        // draws, from Android 15. Samsung's Android 16 logs each such call with the caller's stack trace,
+        // which cost the main thread about 0.5 ms a frame on the Galaxy M34 (UI fluidity audit, fix 4).
+        // The app asks for no frame rate of its own (no Modifier.preferredFrameRate), so off changes
+        // nothing else: the system chooses the refresh rate as it did under Compose 1.7.
+        ComposeUiFlags.isAdaptiveRefreshRateEnabled = false
         // Before Hilt and before anything can open the database or read a photo: a restore scheduled before the
         // restart is installed on its own thread, and the first database open waits for it (RestoreStartup).
         // Nothing starts when none is waiting.
