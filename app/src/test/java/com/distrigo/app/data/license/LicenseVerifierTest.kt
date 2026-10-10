@@ -124,4 +124,15 @@ class LicenseVerifierTest {
         }
         assertTrue(LicenseKeys.trusted(debug = false).keys.none { it in Golden.trustedKeys })
     }
+
+    @Test
+    fun `every build trusts the two release keys, and release builds nothing else`() {
+        val release = LicenseKeys.trusted(debug = false)
+        assertEquals(setOf("lic-2026-a", "lic-2026-b"), release.keys)
+        for ((kid, key) in release) {
+            val curve = (key as java.security.interfaces.ECPublicKey).params.curve.field.fieldSize
+            assertEquals("$kid is P-256", 256, curve)
+        }
+        assertTrue(LicenseKeys.trusted(debug = true).keys.containsAll(release.keys))
+    }
 }

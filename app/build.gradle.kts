@@ -29,8 +29,24 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
     }
 
+    // The release key, from local.properties (not in git): RELEASE_STORE_FILE (forward slashes),
+    // RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD. Its certificate's SHA-256 is one of the
+    // server's LICENSE_APP_SIGNING_DIGESTS: an APK signed with any other key is refused a license (docs/
+    // license_architecture.md §5.1). Without these entries the release build stays unsigned.
+    signingConfigs {
+        localProperties.getProperty("RELEASE_STORE_FILE")?.let { path ->
+            create("release") {
+                storeFile = file(path)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             // R8: unused code and resources removed, the rest optimized — not renamed (-dontobfuscate in
             // proguard-rules.pro). Measured in the UI fluidity audit, Step 1.
             isMinifyEnabled = true

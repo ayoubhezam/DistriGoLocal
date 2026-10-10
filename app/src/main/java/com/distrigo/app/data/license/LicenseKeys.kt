@@ -12,8 +12,15 @@ import java.security.PublicKey
  */
 internal object LicenseKeys {
 
-    /** SubjectPublicKeyInfo, base64. Empty until Phase L2 generates `lic-2026-a` and `lic-2026-b`. */
-    private val RELEASE: Map<String, String> = emptyMap()
+    /**
+     * SubjectPublicKeyInfo, base64, made by tools/license/make-release-keys.mjs on 2026-10-10. The server signs
+     * with lic-2026-a; lic-2026-b is the standby, kept offline. Their private halves are in Supabase's secrets
+     * and the owner's backups, never in this repository.
+     */
+    private val RELEASE: Map<String, String> = mapOf(
+        "lic-2026-a" to "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpGrfKZZswIf30J72OABdS8VMLlgvAL1xF3FoFiW8QDlODOyXcllV38KOppYePzDkqkgWA6imNPmpvFjjtDJ0/A==",
+        "lic-2026-b" to "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDl0N7wglend6eHAh7dOnc6mwQV0wYI4VyPlyYRUNwWAHcw/DUZ4mR4/bWXr8U7mggJCPX+4P+DEzBjhipMrZuQ==",
+    )
 
     /**
      * Test keys, trusted by debug builds only. Their private halves are in tools/license/test-keys.json and
