@@ -19,3 +19,6 @@ local.properties
 .kotlin/
 hs_err_pid*.log
 replay_pid*.log
+
+# The Node tests of the Supabase functions install their one dependency here.
+node_modules/

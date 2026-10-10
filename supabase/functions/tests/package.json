@@ -1,0 +1,9 @@
+{
+  "name": "distrigo-functions-tests",
+  "private": true,
+  "type": "module",
+  "description": "Node tests of the Edge Functions' code (Node 24 runs the TypeScript as is). Run by supabase/tests/local/run.sh.",
+  "devDependencies": {
+    "postgres": "3.4.5"
+  }
+}

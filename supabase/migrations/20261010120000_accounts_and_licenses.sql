@@ -490,12 +490,13 @@ begin
 end
 $$;
 
--- What the last check-in showed, for the tiers of §5.3 and the list of flagged devices.
+-- What the last check-in showed, for the tiers of §5.3 and the list of flagged devices. A null tier keeps the
+-- device's: a check-in without new evidence changes nothing, nor undoes a tier set by hand in Studio.
 create function private.record_check_in(p_device uuid, p_policy_tier text, p_integrity jsonb, p_app_version text)
 returns void
 language sql security definer set search_path = '' as $$
     update public.devices d
-    set policy_tier = p_policy_tier, last_integrity = p_integrity,
+    set policy_tier = coalesce(p_policy_tier, d.policy_tier), last_integrity = p_integrity,
         app_version = coalesce(p_app_version, d.app_version), last_seen_at = now()
     where d.id = p_device
 $$;

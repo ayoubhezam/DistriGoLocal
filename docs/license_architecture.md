@@ -136,7 +136,7 @@ It runs on its own, so the offline window is rarely approached:
 ```
  App                                                Server
   │ POST license-nonce                       ─────▶ N
-  │ sig = K.sign(N ‖ iid ‖ lastSeq)                 (proves the phone still holds K:
+  │ sig = K.sign("distrigo-refresh" N iid)          (proves the phone still holds K:
   │ POST license-refresh {iid, N, sig,       ─────▶  a copy of the app can't sign)
   │   integrity?, signals, clock report}            device active? subscription? integrity policy?
   │                              ◀──────────────────  new L (seq+1, iat = now), account summary
@@ -580,7 +580,35 @@ in one transaction over a direct Postgres connection (`SUPABASE_DB_URL`).
 | `device-release` | `release_device` |
 | `account-delete` | `delete_account_data`, then deletes the auth user. Play requires apps that create accounts to offer deletion in the app and on the web |
 
-### 6.4 Accounts → subscription
+The code: `supabase/functions/<name>/index.ts` is a thin shell. `_shared/http.ts` handles Deno, the
+auth check and the environment. `_shared/service.ts` holds the operations; `attestation.ts`,
+`policy.ts`, `jws.ts`, `x509.ts` and `der.ts` do the cryptography, with no third-party library, so the
+same files run on Supabase and in the Node tests.
+
+### 6.4 Protocol (what the app speaks in L4)
+
+Every call is `POST` with the session's `Authorization: Bearer <access token>`. Every reply is JSON
+with a `status` the app switches on: HTTP 200 for every expected outcome, 400 for a malformed request
+(`field` names it), 401 without a valid session. Bytes travel as base64, nonces as base64url.
+
+**What the device key signs:** UTF-8 of `distrigo-<purpose>\n<nonce, base64url>\n<installation id>`,
+with purpose `activate` or `refresh`, as SHA256withECDSA (DER, what `DeviceKey.sign` writes). The
+purpose stops an activation's signature from serving as a check-in's. Neither the seq nor the time is
+in it: a phone that missed a reply would sign the wrong seq and be locked out.
+
+| Function | Request | Replies |
+|---|---|---|
+| `license-nonce` | `purpose` | `ok` + `nonce` (32 bytes, 5 minutes, single use) |
+| `license-activate` | `nonce`, `installation_id`, `certificate_chain` (the key made with the nonce as attestation challenge), `signature`, `android_id`, `model`, `os_version`, `app_version`; then, as asked, `business_name`, `business_id`, `transfer`, `replace_device` | `activated` + `license`, `device_id`, `business_id`, `trial`, `tier`, `reasons` · `no_business` · `choose_business` · `seat_taken` + `devices` · `transfer_limit` + `next_at` · `refused` + `reason` · `bad_signature` · `bad_nonce` |
+| `license-refresh` | `nonce`, `installation_id`, `signature`, `app_version`, `signals` | `ok` + `license` · `revoked` · `not_member` · `unknown_device` · `subscription_inactive` · `bad_signature` · `bad_nonce` |
+| `device-release` | `device_id` | `released` · `not_allowed` · `unknown_device` |
+| `account-delete` | — | `deleted` · `transfer_ownership_first` |
+
+Every activation reply except `activated` is rolled back. The phone therefore answers `no_business`
+or `seat_taken` with the same nonce, key and attestation, within the nonce's 5 minutes. On `revoked`,
+`not_member`, `unknown_device` or `subscription_inactive`, the phone calls `LicenseManager.revoke()`.
+
+### 6.5 Accounts → subscription
 
 - Sign-up creates the user, and a trigger gives the user a profile (and nothing else). At onboarding
   the app names the business, and `create_business` makes it, with the user as `owner` and the
@@ -599,7 +627,7 @@ in one transaction over a direct Postgres connection (`SUPABASE_DB_URL`).
   the server. Clients, sales and stock stay on the phone. Say so in the privacy policy, and check
   what Algerian law 18-07 asks for (declaration, data hosted abroad).
 
-### 6.5 Google sign-in setup
+### 6.6 Google sign-in setup
 
 Use Credential Manager (`androidx.credentials` + `googleid`, `GetSignInWithGoogleOption`). The old
 `GoogleSignInClient` is deprecated. Pass the Web client id as `serverClientId`. Register an Android
@@ -686,10 +714,27 @@ before it.
     security for owner, agent, another business and anon, account deletion, and two phones racing
     for the last seat in two real sessions.
   - Removing the subscription lock makes the race test fail (both phones get the seat).
-- **L2b, Edge Functions:** the five functions over §6.3's SQL, ES256 signing with WebCrypto, and
-  key-attestation verification (§5.1). A real attestation chain from the Galaxy M34 serves as a test
-  fixture. The functions export golden tokens signed with the server code, and the L1 tests verify
-  them, so app and server provably agree on the format.
+- **L2b, Edge Functions: built 2026-10-10, not yet deployed.** The five functions of §6.3 and the §6.4
+  protocol.
+  - **Attestation:** chain to Google's 2 root keys, pinned from `android.googleapis.com/attestation/root`
+    (RSA-4096, and the ECDSA P-384 root of remote key provisioning). Google's revocation list, cached
+    a day. The KeyDescription: challenge, security level, root of trust, the app's package and
+    signing certificate.
+  - **Signing:** ES256 with WebCrypto.
+  - **Tests:** `supabase/tests/local/run.sh` runs 29 Node tests after the 33 SQL checks, on the real
+    Galaxy M34 attestation that `DeviceKeyTest` captured (`tests/fixtures/`: a chain of 5 ending at the
+    P-384 root, TEE, verified boot, locked).
+    - Our certificate reader agrees with Node's.
+    - Forged links, replayed attestations, another signer or package, an unknown root, revoked keys
+      and expired certificates each meet their verdict.
+    - The full flow runs against the database: activate, check in, replay, wrong signature, another
+      account, release, delete.
+    - The phone's key hash (Kotlin) equals the server's.
+  - **Cross-checks:** the same unit tests pass under Deno 2.9 (`npx deno test`), and `deno check`
+    passes on every function. The server's licenses (`app/src/test/resources/license/server-golden.json`)
+    verify in the app (`ServerTokensTest`), so app and server provably agree on the format.
+  - **Mutation checks:** removing the signer check fails the repackaging test; removing the seat lock
+    fails the race.
 - **L2c, the project:** the Supabase project (Pro), the migration applied, release keys `a` and `b`
   generated by you (the private keys never pass through the chat or the repo), the secrets set, the
   functions deployed.

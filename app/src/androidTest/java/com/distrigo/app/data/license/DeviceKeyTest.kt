@@ -114,6 +114,48 @@ class DeviceKeyTest {
         assertTrue(state is LicenseState.NoLicense)
     }
 
+    /**
+     * A real activation and check-in for the server's tests (supabase/functions/tests), only when asked:
+     * `-e attestationFixture <activation nonce, hex> -e refreshNonce <hex> -e installationId <uuid>`.
+     *
+     * The key is attested with the activation nonce, and signs the two messages of
+     * supabase/functions/_shared/protocol.ts, signedMessage. Written to cache/attestation-fixture.json.
+     */
+    @Test
+    fun write_an_attestation_fixture_when_asked() {
+        val arguments = InstrumentationRegistry.getArguments()
+        val activationHex = arguments.getString("attestationFixture")
+        assumeTrue("not asked for", activationHex != null)
+        val refreshHex = arguments.getString("refreshNonce")!!
+        val installationId = arguments.getString("installationId")!!
+        val bytesOf = { hex: String -> hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
+        val base64 = { bytes: ByteArray -> android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP) }
+        val base64Url = { bytes: ByteArray ->
+            android.util.Base64.encodeToString(
+                bytes, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP,
+            )
+        }
+        val message = { purpose: String, nonceHex: String ->
+            "distrigo-$purpose\n${base64Url(bytesOf(nonceHex))}\n$installationId".toByteArray()
+        }
+
+        val created = key.create(bytesOf(activationHex!!))
+        val fixture = org.json.JSONObject()
+            .put("model", android.os.Build.MODEL)
+            .put("sdk", android.os.Build.VERSION.SDK_INT)
+            .put("installation_id", installationId)
+            .put("activation_nonce_hex", activationHex)
+            .put("refresh_nonce_hex", refreshHex)
+            .put("strong_box", created.strongBox)
+            .put("attested", created.attested)
+            .put("key_hash", created.publicKeyHash)
+            .put("chain", org.json.JSONArray(created.certificateChain.map(base64)))
+            .put("activation_signature", base64(key.sign(message("activate", activationHex))))
+            .put("refresh_signature", base64(key.sign(message("refresh", refreshHex))))
+        File(context.cacheDir, "attestation-fixture.json").writeText(fixture.toString(2))
+        Log.i(TAG, "attestation fixture written: chain of ${created.certificateChain.size}")
+    }
+
     private fun indexOf(haystack: ByteArray, needle: ByteArray): Int =
         (0..haystack.size - needle.size).firstOrNull { start ->
             needle.indices.all { haystack[start + it] == needle[it] }

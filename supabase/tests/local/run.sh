@@ -64,5 +64,10 @@ if [[ "$first_status" != "activated" || "$second" != "seat_taken" || "$active" !
 fi
 echo "ok: two phones racing for the last seat: the first gets it, the second waits and is told it is taken"
 checks=$((checks + 1))
+echo "$checks SQL checks passed"
 
-echo "$checks checks passed"
+# ── The Edge Functions' code (Node 24 runs the TypeScript as is), against the same database ──
+tests="$supabase/functions/tests"
+[[ -d "$tests/node_modules" ]] || (cd "$tests" && npm ci --no-audit --no-fund >/dev/null)
+DISTRIGO_TEST_DB_URL="postgres://postgres@localhost:$port/postgres" \
+    node --test --test-reporter=spec "$tests"/*.test.ts
