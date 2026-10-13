@@ -61,6 +61,7 @@ fun CompteScreen(
     onBack: () -> Unit,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
+    onPreviewOnboarding: () -> Unit,
 ) {
     BackHandler { onBack() }
     val state by viewModel.state.collectAsState()
@@ -109,6 +110,10 @@ fun CompteScreen(
                         )
                     }
                 }
+            }
+            // Temporary: shows the new onboarding's first pages until the onboarding replaces it
+            TextButton(onClick = onPreviewOnboarding, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("Aperçu : écrans d'accueil", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
             }
         }
     }

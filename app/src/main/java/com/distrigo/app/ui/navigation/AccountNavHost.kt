@@ -10,9 +10,12 @@ import com.distrigo.app.ui.account.CompteScreen
 import com.distrigo.app.ui.account.SignInScreen
 import com.distrigo.app.ui.account.SignUpScreen
 
-/** Compte, and its sign-in and sign-up screens, sharing one AccountViewModel. */
+/**
+ * Compte, and its sign-in and sign-up screens, sharing one AccountViewModel. [onPreviewOnboarding] opens
+ * the onboarding's first pages, which the activity draws edge to edge above everything.
+ */
 @Composable
-fun AccountNavHost(onBack: () -> Unit) {
+fun AccountNavHost(onBack: () -> Unit, onPreviewOnboarding: () -> Unit) {
     val navController = rememberTrackedNavController()
     val viewModel: AccountViewModel = hiltViewModel()
     val backToCompte: () -> Unit = { navController.popBackStack(Screen.AccountHome.route, inclusive = false) }
@@ -32,6 +35,7 @@ fun AccountNavHost(onBack: () -> Unit) {
                 onBack    = onBack,
                 onSignIn  = { navController.navigate(Screen.AccountSignIn.route) { launchSingleTop = true } },
                 onSignUp  = { navController.navigate(Screen.AccountSignUp.route) { launchSingleTop = true } },
+                onPreviewOnboarding = onPreviewOnboarding,
             )
         }
         composable(Screen.AccountSignIn.route) {

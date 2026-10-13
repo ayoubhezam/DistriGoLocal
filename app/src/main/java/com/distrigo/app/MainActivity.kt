@@ -151,6 +151,7 @@ class MainActivity : ComponentActivity() {
             var moneyFormat by rememberSaveable { mutableStateOf(MoneyFormat.DEFAULT) }
             LaunchedEffect(Unit) { moneyFormats.collect { moneyFormat = it } }
             var accountInitials by rememberSaveable { mutableStateOf<String?>(null) }
+            var onboardingPreview by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 withContext(Dispatchers.IO) { authRepository.get() }.state.collect { account ->
                     accountInitials = (account as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session?.initials
@@ -396,7 +397,8 @@ class MainActivity : ComponentActivity() {
                             // The account and this phone's subscription, from the avatar (docs/license_architecture.md §7).
                             composable(Screen.Compte.route) {
                                 com.distrigo.app.ui.navigation.AccountNavHost(
-                                    onBack = { navController.popBackStack() }
+                                    onBack           = { navController.popBackStack() },
+                                    onPreviewOnboarding = { onboardingPreview = true }
                                 )
                             }
 
@@ -527,6 +529,12 @@ class MainActivity : ComponentActivity() {
                 }
 
                     } // closes Scaffold-wrapping gesture Box
+            }
+
+            // The onboarding's welcome and feature pages, previewed from Compte. A sibling of the root rather
+            // than inside it, so it escapes the status-bar padding and its photo runs edge to edge.
+            if (onboardingPreview) {
+                com.distrigo.app.ui.onboarding.OnboardingPreview(onClose = { onboardingPreview = false })
             }
         } } }
     }

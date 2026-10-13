@@ -3,9 +3,15 @@ package com.distrigo.app.ui.designsystem
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.distrigo.app.R
 
 // ═══════════════════════════════════════════════════════════
 // COLORS — Softer, Stripe/Linear-inspired palette
@@ -56,6 +62,46 @@ object DsColors {
     val TagRetail      = Color(0xFF5B6EF5) to Color(0xFFEEF0FE)
     val TagWholesale   = Color(0xFF9333EA) to Color(0xFFF5F0FF)
     val TagBusiness    = Color(0xFFF79009) to Color(0xFFFFFAEB)
+}
+
+// ═══════════════════════════════════════════════════════════
+// BRAND — the logo's colours and heading font, for the onboarding
+// screens (docs/design/onboarding_ui_review.md). The rest of the
+// app keeps DsColors until the brand colours are adopted app-wide.
+// ═══════════════════════════════════════════════════════════
+object DsBrand {
+    // The logo's darkest navy; the welcome photo's dusk fades into it
+    val Navy       = Color(0xFF0B1D40)
+    // The logo's "Go": light to deep orange
+    val Orange     = Color(0xFFFB9C30)
+    val OrangeDeep = Color(0xFFEE6A04)
+
+    // The light pages: the illustrations' navy and blue, so text and drawings match
+    val Ink        = Color(0xFF0F2D6B)
+    val Blue       = Color(0xFF1E6BE5)
+    // Secondary text on white, 5:1
+    val Slate      = Color(0xFF5A6F94)
+    val Mist       = Color(0xFFF6F8FC)
+    val CardBorder = Color(0xFFE3EAF5)
+
+    /**
+     * Plus Jakarta Sans, one variable font file for every weight (SIL Open Font License 1.1,
+     * docs/licenses/PlusJakartaSans-OFL.txt).
+     */
+    val Font = FontFamily(
+        jakarta(FontWeight.Medium),
+        jakarta(FontWeight.SemiBold),
+        jakarta(FontWeight.Bold),
+        jakarta(FontWeight.ExtraBold),
+    )
+
+    // Compose still marks variation settings experimental; they are how a variable font picks its weight
+    @OptIn(ExperimentalTextApi::class)
+    private fun jakarta(weight: FontWeight) = Font(
+        resId             = R.font.plus_jakarta_sans,
+        weight            = weight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+    )
 }
 
 // ═══════════════════════════════════════════════════════════
