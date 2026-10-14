@@ -370,3 +370,11 @@ class LicenseClient(
 /** Whether this state holds a license the phone verified: a check-in renews it, a new activation would break it. */
 val LicenseState.holdsLicense: Boolean
     get() = this is LicenseState.Judged || (this is LicenseState.CheckInRequired && license != null)
+
+/** The license this state was judged from, when there is one: its plan, its dates, its business. */
+val LicenseState.heldLicense: License?
+    get() = when (this) {
+        is LicenseState.Judged -> license
+        is LicenseState.CheckInRequired -> license
+        else -> null
+    }

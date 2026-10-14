@@ -60,6 +60,20 @@ class AuthRepository(
     suspend fun signInAnonymously(): AuthOutcome = keep(api.signInAnonymously())
 
     /**
+     * « Ajouter une adresse e-mail »: the account made by a code gets an e-mail and a password. Then a refresh, so
+     * the session (and the token the server reads) says it is an e-mail account.
+     */
+    suspend fun addEmail(email: String, password: String): EmailUpdate {
+        val token = when (val access = accessToken()) {
+            is AccessToken.Granted -> access.token
+            is AccessToken.Denied -> return EmailUpdate.Failed(access.error)
+        }
+        val update = api.updateUser(token, email.trim(), password)
+        if (update == EmailUpdate.Done) accessToken(forceRefresh = true)
+        return update
+    }
+
+    /**
      * An access token good for at least a minute: the stored one, or a fresh one. [forceRefresh] when the server
      * has just refused the stored one. A session the server no longer knows signs the phone out.
      */

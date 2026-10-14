@@ -1,6 +1,7 @@
 package com.distrigo.app.di
 
 import android.content.Context
+import com.distrigo.app.data.auth.ActivationCodeStore
 import com.distrigo.app.data.auth.AuthApi
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.Backend
@@ -35,6 +36,12 @@ object AccountModule {
     @Singleton
     fun provideAuthRepository(@ApplicationContext context: Context, http: OkHttpClient): AuthRepository =
         AuthRepository(AuthApi(http, Backend.DISTRIGO), SessionStore.forApp(context))
+
+    /** The business key an activation code gave this phone (docs/activation_codes.md): one copy for the app. */
+    @Provides
+    @Singleton
+    fun provideActivationCodeStore(@ApplicationContext context: Context): ActivationCodeStore =
+        ActivationCodeStore.forApp(context)
 
     /** One device key for the license and its server calls, so both always see the same key. */
     @Provides

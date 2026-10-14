@@ -3,24 +3,26 @@ package com.distrigo.app.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.auth.AccountState
+import com.distrigo.app.data.auth.ActivationCodeStore
 import com.distrigo.app.data.auth.AuthError
 import com.distrigo.app.data.auth.AuthOutcome
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.license.ActivationDetails
 import com.distrigo.app.data.license.ActivationRequest
 import com.distrigo.app.data.license.ActivationStep
-import com.distrigo.app.data.license.License
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
-import com.distrigo.app.data.license.LicenseState
 import com.distrigo.app.data.license.Renewal
+import com.distrigo.app.data.license.heldLicense
 import com.distrigo.app.data.license.holdsLicense
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -37,6 +39,7 @@ class OnboardingViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val license: LicenseManager,
     private val client: LicenseClient,
+    private val codes: ActivationCodeStore,
 ) : ViewModel() {
 
     private val _status = MutableStateFlow(OnboardingStatus())
@@ -46,9 +49,13 @@ class OnboardingViewModel @Inject constructor(
     private var pending: ActivationRequest? = null
     private var origin = ActivationOrigin.SIGN_IN
 
+    /** The code sent with the activation under way: kept as the business key if it creates or joins one. */
+    private var activationCode: String? = null
+
     /** A fresh start: the onboarding opens with no answer pending. */
     fun reset() {
         pending = null
+        activationCode = null
         _status.value = OnboardingStatus()
     }
 
@@ -112,6 +119,7 @@ class OnboardingViewModel @Inject constructor(
 
     private suspend fun activate(origin: ActivationOrigin, details: ActivationDetails = ActivationDetails()) {
         this.origin = origin
+        activationCode = details.activationCode
         follow(client.startActivation(details))
     }
 
@@ -123,10 +131,11 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    private fun follow(step: ActivationStep) {
+    private suspend fun follow(step: ActivationStep) {
         _status.value = when (step) {
             is ActivationStep.Activated -> {
                 pending = null
+                keepKey(step.code)
                 activated(step.code)
             }
             is ActivationStep.NeedsBusinessName -> {
@@ -153,7 +162,7 @@ class OnboardingViewModel @Inject constructor(
      * gets one that has already ended: a code pays for it, so the code screen comes next.
      */
     private fun activated(code: String?): OnboardingStatus {
-        val held = licenseOf(license.state.value)
+        val held = license.state.value.heldLicense
             ?: return OnboardingStatus(error = "La licence reçue n'a pas pu être lue. Réessayez.")
         if (code == null && held.validTo < System.currentTimeMillis()) return OnboardingStatus(codeRequired = true)
         return OnboardingStatus(
@@ -164,6 +173,18 @@ class OnboardingViewModel @Inject constructor(
                 validToMillis = held.validTo,
             ),
         )
+    }
+
+    /**
+     * A code that created or joined the business is its key: kept, encrypted, so Compte can show it again (the
+     * server holds only its fingerprint). A code that renewed is spent and kept nowhere.
+     */
+    private suspend fun keepKey(use: String?) {
+        val code = activationCode ?: return
+        val businessId = license.state.value.heldLicense?.businessId ?: return
+        if (use == "created" || use == "joined") {
+            withContext(Dispatchers.IO) { runCatching { codes.save(normalizeCode(code), businessId) } }
+        }
     }
 
     /** Leaves the needs-business step in place: the company form stays up with its error. */
@@ -194,11 +215,5 @@ class OnboardingViewModel @Inject constructor(
         fun transferLimit(nextAt: Instant?): String =
             "Ce compte a déjà changé 3 fois de téléphone en 30 jours." +
                 (nextAt?.let { " Réessayez à partir du ${DAY.format(it.atZone(ZoneId.systemDefault()))}." } ?: "")
-
-        fun licenseOf(state: LicenseState): License? = when (state) {
-            is LicenseState.Judged -> state.license
-            is LicenseState.CheckInRequired -> state.license
-            else -> null
-        }
     }
 }

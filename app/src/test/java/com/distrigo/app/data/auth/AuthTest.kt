@@ -196,4 +196,88 @@ class AuthTest {
         server.enqueue(jsonResponse(422, """{"code":422,"error_code":"anonymous_provider_disabled","msg":"Anonymous sign-ins are disabled"}"""))
         assertEquals(AuthOutcome.Failed(AuthError.ANONYMOUS_DISABLED), api.signInAnonymously())
     }
+
+    // ── « Ajouter une adresse e-mail » ──
+
+    @Test
+    fun `an e-mail and a password go together, as a PUT with the account's token`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"id":"u","email":"b@example.com","is_anonymous":false}"""))
+        assertEquals(EmailUpdate.Done, api.updateUser("access-0", "b@example.com", "s3cret-pass"))
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/auth/v1/user", request.path)
+        assertEquals("Bearer access-0", request.getHeader("Authorization"))
+        val body = request.json
+        assertEquals("b@example.com", body.get("email").asString)
+        assertEquals("s3cret-pass", body.get("password").asString)
+
+        // E-mail confirmation turned on: the address waits in new_email
+        server.enqueue(jsonResponse(200, """{"id":"u","email":"","new_email":"b@example.com","is_anonymous":true}"""))
+        assertEquals(EmailUpdate.ConfirmByLink("b@example.com"), api.updateUser("access-0", "b@example.com", "s3cret-pass"))
+
+        server.enqueue(jsonResponse(422, """{"code":422,"error_code":"email_exists","msg":"A user with this email address has already been registered"}"""))
+        assertEquals(EmailUpdate.Failed(AuthError.EMAIL_TAKEN), api.updateUser("access-0", "b@example.com", "s3cret-pass"))
+
+        server.enqueue(jsonResponse(422, """{"code":422,"error_code":"weak_password","msg":"Password should be at least 8 characters."}"""))
+        assertEquals(EmailUpdate.Failed(AuthError.WEAK_PASSWORD), api.updateUser("access-0", "b@example.com", "short"))
+    }
+
+    @Test
+    fun `a code account given an e-mail is refreshed into an e-mail account, same id`() = runBlocking {
+        val anonymous = session().copy(email = null, displayName = null, provider = AuthSession.ANONYMOUS)
+        val repository = repository(anonymous)
+        server.enqueue(jsonResponse(200, """{"id":"0b6f4c1e-5d2a-4f7e-9c3b-1a2d3e4f5a6b","email":"b@example.com","is_anonymous":false}"""))
+        // Supabase may keep "anonymous" as the provider the account began with
+        server.enqueue(jsonResponse(200, sessionJson(access = "access-2", refresh = "refresh-2", name = null, provider = AuthSession.ANONYMOUS)))
+
+        assertEquals(EmailUpdate.Done, repository.addEmail(" b@example.com ", "s3cret-pass"))
+        assertEquals("b@example.com", server.takeRequest().json.get("email").asString)
+        assertEquals("/auth/v1/token?grant_type=refresh_token", server.takeRequest().path)
+
+        val now = (repository.state.value as AccountState.SignedIn).session
+        assertFalse(now.isAnonymous)
+        assertEquals("email", now.provider)
+        assertEquals(anonymous.userId, now.userId)
+        assertEquals("access-2", now.accessToken)
+        assertEquals(now, SessionStore(folder.root, SoftwareSessionCipher()).load())
+    }
+
+    @Test
+    fun `a refused e-mail leaves the code account as it was`() = runBlocking {
+        val anonymous = session().copy(email = null, displayName = null, provider = AuthSession.ANONYMOUS)
+        val repository = repository(anonymous)
+        server.enqueue(jsonResponse(422, """{"code":422,"error_code":"email_exists","msg":"taken"}"""))
+        assertEquals(EmailUpdate.Failed(AuthError.EMAIL_TAKEN), repository.addEmail("b@example.com", "s3cret-pass"))
+        assertEquals(1, server.requestCount)
+        assertEquals(anonymous, (repository.state.value as AccountState.SignedIn).session)
+    }
+
+    // ── ActivationCodeStore ──
+
+    @Test
+    fun `the activation code is encrypted at rest, with its business, and forgotten when cleared`() {
+        val store = ActivationCodeStore(folder.root, SoftwareSessionCipher())
+        assertNull(store.load())
+        store.save("V1A9Y8XWJFC3", "business-1")
+        assertEquals(ActivationCodeStore.Saved("V1A9Y8XWJFC3", "business-1"), store.saved.value)
+        val bytes = File(folder.root, "activation_code.bin").readBytes()
+        assertFalse("the code is not in the clear", String(bytes, Charsets.ISO_8859_1).contains("V1A9"))
+        assertFalse("nor in a log line", store.saved.value.toString().contains("V1A9"))
+
+        val restarted = ActivationCodeStore(folder.root, SoftwareSessionCipher())
+        assertEquals(ActivationCodeStore.Saved("V1A9Y8XWJFC3", "business-1"), restarted.load())
+        assertNull("another key reads nothing", ActivationCodeStore(folder.root, SoftwareSessionCipher(seed = 2)).load())
+
+        restarted.clear()
+        assertNull(restarted.saved.value)
+        assertNull(ActivationCodeStore(folder.root, SoftwareSessionCipher()).load())
+    }
+
+    @Test
+    fun `the code and the session live side by side`() {
+        SessionStore(folder.root, SoftwareSessionCipher()).save(session())
+        ActivationCodeStore(folder.root, SoftwareSessionCipher()).save("V1A9Y8XWJFC3", "business-1")
+        SessionStore(folder.root, SoftwareSessionCipher()).clear()
+        assertEquals("V1A9Y8XWJFC3", ActivationCodeStore(folder.root, SoftwareSessionCipher()).load()?.code)
+    }
 }

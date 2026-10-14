@@ -1,5 +1,11 @@
 package com.distrigo.app.ui.account
 
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.os.PersistableBundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,32 +20,51 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.auth.AccountState
 import com.distrigo.app.data.auth.AuthSession
-import com.distrigo.app.data.license.License
+import com.distrigo.app.data.license.heldLicense
 import com.distrigo.app.data.license.LicenseState
 import com.distrigo.app.data.license.SeatHolder
 import com.distrigo.app.data.license.holdsLicense
@@ -50,7 +75,13 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.onboarding.CODE_LENGTH
+import com.distrigo.app.ui.onboarding.CodeDashes
+import com.distrigo.app.ui.onboarding.MIN_PASSWORD
 import com.distrigo.app.ui.onboarding.OnboardingStart
+import com.distrigo.app.ui.onboarding.formatCode
+import com.distrigo.app.ui.onboarding.normalizeCode
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -89,7 +120,12 @@ fun CompteScreen(
                         work     = state.work,
                         onActivate = viewModel::activate,
                         onCheckIn  = viewModel::checkIn,
+                        onEnterCode = { viewModel.ask(AccountDialog.EnterCode()) },
                     )
+                    state.activationCode?.let { CodeCard(it, withoutEmail = account.session.isAnonymous) }
+                    if (account.session.isAnonymous) {
+                        AddEmailCard(enabled = state.work == null, onAdd = { viewModel.ask(AccountDialog.AddEmail()) })
+                    }
                     OutlinedButton(
                         onClick  = { viewModel.ask(AccountDialog.ConfirmSignOut) },
                         enabled  = state.work == null,
@@ -118,7 +154,7 @@ fun CompteScreen(
         }
     }
 
-    state.dialog?.let { AccountDialogs(it, viewModel) }
+    state.dialog?.let { AccountDialogs(it, state, viewModel) }
 }
 
 @Composable
@@ -189,6 +225,7 @@ private fun SubscriptionCard(
     work: AccountWork?,
     onActivate: () -> Unit,
     onCheckIn: () -> Unit,
+    onEnterCode: () -> Unit,
 ) {
     val look = license.look()
     Card {
@@ -205,7 +242,7 @@ private fun SubscriptionCard(
         Spacer(Modifier.height(DsSpacing.sm))
         Text(look.explanation, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
 
-        licenseOf(license)?.let { held ->
+        license.heldLicense?.let { held ->
             Spacer(Modifier.height(DsSpacing.md))
             Detail("Formule", if (held.plan == "trial") "Essai gratuit" else "DistriGo Solo")
             Detail(if (license is LicenseState.Grace || license is LicenseState.Expired) "Terminé le" else "Valable jusqu'au", day(held.validTo))
@@ -216,6 +253,12 @@ private fun SubscriptionCard(
 
         Spacer(Modifier.height(DsSpacing.lg))
         if (license.holdsLicense) {
+            // A code pays for more time: the first thing to do once the subscription is ending
+            val ending = license is LicenseState.RenewSoon || license is LicenseState.Grace || license is LicenseState.Expired
+            if (ending) {
+                PrimaryButton("Saisir un code", busy = false, enabled = work == null, onClick = onEnterCode)
+                Spacer(Modifier.height(DsSpacing.sm))
+            }
             OutlinedButton(
                 onClick  = onCheckIn,
                 enabled  = work == null,
@@ -228,14 +271,127 @@ private fun SubscriptionCard(
                     Text("Vérifier maintenant", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
                 }
             }
+            if (!ending) {
+                TextButton(onClick = onEnterCode, enabled = work == null, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(DsSpacing.sm))
+                    Text("Saisir un code", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                }
+            }
         } else {
             PrimaryButton("Activer cet appareil", busy = work == AccountWork.ACTIVATING, enabled = work == null, onClick = onActivate)
         }
     }
 }
 
+/**
+ * « Votre code d'activation »: the business key, kept encrypted on this phone (ActivationCodeStore) because the
+ * server holds only its fingerprint. Hidden but for its first group until asked; copied as sensitive, so the
+ * keyboard's clipboard preview does not show it.
+ */
 @Composable
-private fun AccountDialogs(dialog: AccountDialog, viewModel: AccountViewModel) {
+private fun CodeCard(code: String, withoutEmail: Boolean) {
+    val context = LocalContext.current
+    var shown by rememberSaveable { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(2_000)
+            copied = false
+        }
+    }
+    val formatted = formatCode(code)
+    Card {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Badge(Icons.Default.Key, DsColors.PrimaryLight, DsColors.Primary)
+            Spacer(Modifier.width(DsSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("Votre code d'activation", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text("La clé de votre entreprise", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+            }
+        }
+        Spacer(Modifier.height(DsSpacing.md))
+        Row(
+            modifier          = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).padding(start = DsSpacing.lg),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CodeText(if (shown) formatted else formatted.take(4) + "-••••-••••", Modifier.weight(1f))
+            IconButton(onClick = { shown = !shown }) {
+                Icon(
+                    if (shown) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (shown) "Masquer le code" else "Afficher le code",
+                    tint               = DsColors.TextSecondary
+                )
+            }
+        }
+        Spacer(Modifier.height(DsSpacing.sm))
+        Text(
+            if (withoutEmail) "Gardez-le en lieu sûr : sans adresse e-mail, lui seul ouvre votre entreprise sur un nouveau téléphone."
+            else "Gardez-le en lieu sûr : il ouvre votre entreprise sur un nouveau téléphone.",
+            fontSize = DsTextSize.bodySmall,
+            color    = DsColors.TextSecondary
+        )
+        TextButton(
+            onClick  = {
+                copyCode(context, formatted)
+                copied = true
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Icon(if (copied) Icons.Default.Check else Icons.Default.ContentCopy, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text(if (copied) "Copié" else "Copier", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
+    }
+}
+
+@Composable
+private fun CodeText(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        fontFamily    = FontFamily.Monospace,
+        fontSize      = DsTextSize.title,
+        fontWeight    = FontWeight.Bold,
+        letterSpacing = 1.5.sp,
+        color         = DsColors.TextPrimary,
+        modifier      = modifier
+    )
+}
+
+/** Android 13 and later keep a sensitive clip out of the clipboard preview, like a password. */
+private fun copyCode(context: Context, code: String) {
+    val clip = ClipData.newPlainText("Code d'activation", code)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
+    }
+    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(clip)
+}
+
+/** For an account made by a code: an e-mail and a password, to sign in without the code too. */
+@Composable
+private fun AddEmailCard(enabled: Boolean, onAdd: () -> Unit) {
+    Card {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Badge(Icons.Default.Email, DsColors.PrimaryLight, DsColors.Primary)
+            Spacer(Modifier.width(DsSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("Adresse e-mail", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text(
+                    "Facultatif : avec une adresse e-mail et un mot de passe, vous pourrez aussi vous connecter sans votre code.",
+                    fontSize = DsTextSize.bodySmall,
+                    color    = DsColors.TextSecondary
+                )
+            }
+        }
+        Spacer(Modifier.height(DsSpacing.md))
+        OutlinedButton(onClick = onAdd, enabled = enabled, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium) {
+            Text("Ajouter une adresse e-mail", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
+    }
+}
+
+@Composable
+private fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewModel: AccountViewModel) {
     when (dialog) {
         is AccountDialog.BusinessName -> {
             var name by rememberSaveable { mutableStateOf(dialog.suggestion) }
@@ -279,17 +435,145 @@ private fun AccountDialogs(dialog: AccountDialog, viewModel: AccountViewModel) {
             },
             confirm = "Continuer" to viewModel::dismissDialog,
         )
-        AccountDialog.ConfirmSignOut -> Dialog(
-            title   = "Se déconnecter ?",
-            text    = "Ce téléphone sera libéré de l'abonnement et passera en consultation seule. " +
-                "Vos données restent sur le téléphone. Une connexion Internet est nécessaire.",
-            confirm = "Se déconnecter" to viewModel::signOut,
-            dismiss = "Annuler" to viewModel::dismissDialog,
+        is AccountDialog.EnterCode -> {
+            var code by rememberSaveable { mutableStateOf("") }
+            val busy = state.work == AccountWork.RENEWING
+            Dialog(
+                title   = "Saisir un code",
+                text    = "Le code reçu de DistriGo ou de votre revendeur prolonge votre abonnement.",
+                confirm = "Valider" to { viewModel.renewWithCode(code) },
+                dismiss = "Annuler" to viewModel::dismissDialog,
+                busy    = busy,
+            ) {
+                OutlinedTextField(
+                    value                = code,
+                    onValueChange        = {
+                        code = normalizeCode(it)
+                        if (dialog.error != null) viewModel.ask(AccountDialog.EnterCode())
+                    },
+                    enabled              = !busy,
+                    label                = { Text("Code d'activation") },
+                    placeholder          = { Text("XXXX-XXXX-XXXX") },
+                    singleLine           = true,
+                    isError              = dialog.error != null,
+                    supportingText       = { Text(dialog.error ?: "${code.length} / $CODE_LENGTH") },
+                    textStyle            = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp),
+                    visualTransformation = CodeDashes,
+                    keyboardOptions      = KeyboardOptions(
+                        capitalization     = KeyboardCapitalization.Characters,
+                        autoCorrectEnabled = false,
+                        keyboardType       = KeyboardType.Ascii,
+                        imeAction          = ImeAction.Done
+                    ),
+                    keyboardActions      = KeyboardActions(onDone = { viewModel.renewWithCode(code) }),
+                    shape                = DsShapes.medium,
+                    colors               = dsTextFieldColors(),
+                    modifier             = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        is AccountDialog.Renewed -> Dialog(
+            title   = "Abonnement prolongé",
+            text    = dialog.validTo?.let { "Merci ! Votre abonnement est valable jusqu'au ${day(it)}." }
+                ?: "Merci ! Le code a été ajouté à votre abonnement.",
+            confirm = "Continuer" to viewModel::dismissDialog,
         )
+        is AccountDialog.AddEmail -> {
+            var email by rememberSaveable { mutableStateOf("") }
+            var password by rememberSaveable { mutableStateOf("") }
+            var visible by rememberSaveable { mutableStateOf(false) }
+            val busy = state.work == AccountWork.ADDING_EMAIL
+            Dialog(
+                title   = "Ajouter une adresse e-mail",
+                text    = "Vous pourrez vous connecter avec elle sur n'importe quel téléphone. " +
+                    "Votre entreprise, votre abonnement et votre code ne changent pas.",
+                confirm = "Ajouter" to { viewModel.addEmail(email, password) },
+                dismiss = "Annuler" to viewModel::dismissDialog,
+                busy    = busy,
+            ) {
+                OutlinedTextField(
+                    value           = email,
+                    onValueChange   = { email = it },
+                    enabled         = !busy,
+                    label           = { Text("Adresse e-mail") },
+                    singleLine      = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    shape           = DsShapes.medium,
+                    colors          = dsTextFieldColors(),
+                    modifier        = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value                = password,
+                    onValueChange        = { password = it },
+                    enabled              = !busy,
+                    label                = { Text("Mot de passe") },
+                    supportingText       = { Text("$MIN_PASSWORD caractères au moins") },
+                    singleLine           = true,
+                    visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon         = {
+                        IconButton(onClick = { visible = !visible }) {
+                            Icon(
+                                if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (visible) "Masquer le mot de passe" else "Afficher le mot de passe"
+                            )
+                        }
+                    },
+                    keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions      = KeyboardActions(onDone = { viewModel.addEmail(email, password) }),
+                    shape                = DsShapes.medium,
+                    colors               = dsTextFieldColors(),
+                    modifier             = Modifier.fillMaxWidth()
+                )
+                dialog.error?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.Danger) }
+            }
+        }
+        AccountDialog.ConfirmSignOut -> {
+            val leaving = "Ce téléphone sera libéré de l'abonnement et passera en consultation seule. " +
+                "Vos données restent sur le téléphone. Une connexion Internet est nécessaire."
+            val withoutEmail = (state.account as? AccountState.SignedIn)?.session?.isAnonymous == true
+            if (!withoutEmail) {
+                Dialog(
+                    title   = "Se déconnecter ?",
+                    text    = leaving,
+                    confirm = "Se déconnecter" to viewModel::signOut,
+                    dismiss = "Annuler" to viewModel::dismissDialog,
+                )
+            } else {
+                // No e-mail to sign in with: the code is the only way back
+                val code = state.activationCode
+                Dialog(
+                    title   = "Se déconnecter ?",
+                    text    = if (code != null) {
+                        "Ce compte n'a pas d'adresse e-mail : pour y revenir, il faudra ce code d'activation. Notez-le avant de continuer."
+                    } else {
+                        "Ce compte n'a pas d'adresse e-mail, et son code d'activation n'est pas enregistré sur ce téléphone : " +
+                            "sans ce code, vous ne pourrez plus y revenir. Ajoutez d'abord une adresse e-mail."
+                    },
+                    confirm = "Se déconnecter" to viewModel::signOut,
+                    dismiss = "Annuler" to viewModel::dismissDialog,
+                    danger  = true,
+                ) {
+                    if (code != null) {
+                        Box(
+                            modifier         = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceSunken).padding(DsSpacing.md),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CodeText(formatCode(code))
+                        }
+                    } else {
+                        TextButton(onClick = { viewModel.ask(AccountDialog.AddEmail()) }) {
+                            Text("Ajouter une adresse e-mail", fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                        }
+                    }
+                    Text(leaving)
+                }
+            }
+        }
         AccountDialog.ConfirmDelete -> Dialog(
             title   = "Supprimer le compte ?",
             text    = "Le compte, l'entreprise associée et l'abonnement seront supprimés définitivement. " +
-                "Les données de ce téléphone (clients, ventes, stock) restent sur le téléphone.",
+                "Les données de ce téléphone (clients, ventes, stock) restent sur le téléphone." +
+                if (state.activationCode != null) " Votre code d'activation ne fonctionnera plus." else "",
             confirm = "Supprimer" to viewModel::deleteAccount,
             dismiss = "Annuler" to viewModel::dismissDialog,
             danger  = true,
@@ -313,12 +597,6 @@ private fun LicenseState.look(): Look = when (this) {
     LicenseState.Revoked -> Look("Appareil libéré", "Cet appareil n'est plus associé à l'abonnement. Activez-le pour le reprendre.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     is LicenseState.NoLicense -> Look("Non activé", "Activez cet appareil pour commencer.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     LicenseState.Unchecked -> Look("…", "Lecture de la licence…", DsColors.TextSecondary, DsColors.SurfaceSunken)
-}
-
-private fun licenseOf(state: LicenseState): License? = when (state) {
-    is LicenseState.Judged -> state.license
-    is LicenseState.CheckInRequired -> state.license
-    else -> null
 }
 
 private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
@@ -364,10 +642,12 @@ private fun Dialog(
     confirm: Pair<String, () -> Unit>,
     dismiss: Pair<String, () -> Unit>? = null,
     danger: Boolean = false,
+    /** The server is working on the answer: the buttons wait, the confirm one spins. */
+    busy: Boolean = false,
     extra: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
-        onDismissRequest = { (dismiss ?: confirm).second() },
+        onDismissRequest = { if (!busy) (dismiss ?: confirm).second() },
         title = { Text(title) },
         text  = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
@@ -376,9 +656,15 @@ private fun Dialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = confirm.second) { Text(confirm.first, color = if (danger) DsColors.Danger else DsColors.Primary) }
+            TextButton(onClick = confirm.second, enabled = !busy) {
+                if (busy) {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                } else {
+                    Text(confirm.first, color = if (danger) DsColors.Danger else DsColors.Primary)
+                }
+            }
         },
-        dismissButton = dismiss?.let { { TextButton(onClick = it.second) { Text(it.first) } } },
+        dismissButton = dismiss?.let { { TextButton(onClick = it.second, enabled = !busy) { Text(it.first) } } },
         containerColor    = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor  = DsColors.TextSecondary

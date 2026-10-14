@@ -173,5 +173,5 @@ select * from private.codes_by_batch;
     `AppMetaDao.hasBusinessData`), where Back leaves the app;
   - from Compte when signed out: « Se connecter », « Créer un compte », « Activer avec un code ».
 - **Removed:** the old sign-in and sign-up screens, and the « Aperçu » button.
-| **C3** | Compte: « Votre code » (kept encrypted on the phone: only it can show the code again), « Saisir un code », « Ajouter une adresse e-mail ». | |
+| **C3** | Compte: « Votre code » (kept encrypted on the phone: only it can show the code again), « Saisir un code », « Ajouter une adresse e-mail », a sign-out warning for code accounts. | **done, 2026-10-14**: 523 unit tests pass, and the owner's test on the M34 passed (codes in batch « Test C3 — téléphone ») |
 | **C4** | A private page to create and export codes without Studio; a cleanup of anonymous accounts that never used a code. | later |

@@ -112,7 +112,7 @@ internal fun isWellFormedCode(code: String): Boolean =
     code.length == CODE_LENGTH && code.all { it in CODE_ALPHABET } && codeCheckChar(code.take(CODE_LENGTH - 1)) == code.last()
 
 /** Shows the dashes without storing them, so typing and deleting never trip over one. */
-private object CodeDashes : VisualTransformation {
+internal object CodeDashes : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val mapping = object : OffsetMapping {
             // A dash after every fourth character, never after the last one typed

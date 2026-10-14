@@ -68,8 +68,19 @@ sealed interface AuthOutcome {
     data class Failed(val error: AuthError) : AuthOutcome
 }
 
+/** How giving an account made by a code an e-mail ended. */
+sealed interface EmailUpdate {
+    /** The address holds: the account signs in with it from now on. */
+    data object Done : EmailUpdate
+
+    /** Supabase waits for the link it sent to [email] (e-mail confirmation turned on). */
+    data class ConfirmByLink(val email: String) : EmailUpdate
+
+    data class Failed(val error: AuthError) : EmailUpdate
+}
+
 /**
- * Supabase Auth, over HTTPS: the five calls DistriGo needs, written here rather than taken from an SDK so that
+ * Supabase Auth, over HTTPS: the calls DistriGo needs, written here rather than taken from an SDK so that
  * the app keeps its one HTTP client and its JSON as everywhere else.
  */
 class AuthApi(
@@ -118,6 +129,26 @@ class AuthApi(
         return post("token?grant_type=refresh_token", body, onSuccess = ::session)
     }
 
+    /**
+     * Gives an account made by an activation code an e-mail and a password (PUT /auth/v1/user): it becomes an
+     * ordinary account, same id, same business, which can sign in on any phone. Both go in one request: Supabase
+     * refuses a password alone for an anonymous account. With e-mail confirmation off (this project) the address
+     * holds at once and the account stops being anonymous; on, it waits for its link.
+     */
+    suspend fun updateUser(accessToken: String, email: String, password: String): EmailUpdate {
+        val body = JsonObject().apply {
+            addProperty("email", email)
+            addProperty("password", password)
+        }
+        return send("user", body, bearer = accessToken, method = "PUT", failed = EmailUpdate::Failed) { user ->
+            when {
+                user.text("email").equals(email, ignoreCase = true) -> EmailUpdate.Done
+                user.text("new_email").equals(email, ignoreCase = true) -> EmailUpdate.ConfirmByLink(email)
+                else -> EmailUpdate.Failed(AuthError.SERVER)
+            }
+        }
+    }
+
     /** Ends the session on the server too. Its failure changes nothing: the phone forgets the session anyway. */
     suspend fun signOut(accessToken: String) {
         post("logout", JsonObject(), bearer = accessToken) { AuthOutcome.ConfirmEmail("") }
@@ -131,12 +162,21 @@ class AuthApi(
         body: JsonObject,
         bearer: String? = null,
         onSuccess: (JsonObject) -> AuthOutcome,
-    ): AuthOutcome = withContext(Dispatchers.IO) {
+    ): AuthOutcome = send(path, body, bearer, "POST", AuthOutcome::Failed, onSuccess)
+
+    private suspend fun <T> send(
+        path: String,
+        body: JsonObject,
+        bearer: String?,
+        method: String,
+        failed: (AuthError) -> T,
+        onSuccess: (JsonObject) -> T,
+    ): T = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(backend.auth(path))
             .header("apikey", backend.publishableKey)
             .apply { if (bearer != null) header("Authorization", "Bearer $bearer") }
-            .post(body.toString().toRequestBody(JSON))
+            .method(method, body.toString().toRequestBody(JSON))
             .build()
         try {
             http.newCall(request).execute().use { response ->
@@ -144,13 +184,15 @@ class AuthApi(
                 if (response.isSuccessful) {
                     onSuccess(json ?: JsonObject())
                 } else {
-                    AuthOutcome.Failed(AuthError.from(response.code, json))
+                    failed(AuthError.from(response.code, json))
                 }
             }
         } catch (e: IOException) {
-            AuthOutcome.Failed(AuthError.NETWORK)
+            failed(AuthError.NETWORK)
         }
     }
+
+    private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString
 
     private fun parse(text: String?): JsonObject? =
         try {

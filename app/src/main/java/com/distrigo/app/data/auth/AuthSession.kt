@@ -104,7 +104,8 @@ data class AuthSession(
                 provider = if (user.get("is_anonymous")?.takeIf { it.isJsonPrimitive }?.asBoolean == true) {
                     ANONYMOUS
                 } else {
-                    appMetadata?.text("provider") ?: "email"
+                    // A code account given an e-mail may still name "anonymous" as the provider it began with
+                    appMetadata?.text("provider")?.takeIf { it != ANONYMOUS } ?: "email"
                 },
             )
         }
