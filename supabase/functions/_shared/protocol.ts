@@ -63,6 +63,14 @@ export function optionalText(body: Record<string, unknown>, field: string, maxLe
     return value.trim() === "" ? null : value.trim();
 }
 
+/** One of a known list, or nothing: what the SQL's check constraint would otherwise refuse with a 500. */
+export function optionalChoice(body: Record<string, unknown>, field: string, choices: readonly string[]): string | null {
+    const value = body[field];
+    if (value == null) return null;
+    if (typeof value !== "string" || !choices.includes(value)) throw new BadRequest(field);
+    return value;
+}
+
 export function optionalBoolean(body: Record<string, unknown>, field: string): boolean {
     const value = body[field];
     if (value == null) return false;

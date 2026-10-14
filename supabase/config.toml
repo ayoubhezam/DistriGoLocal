@@ -431,3 +431,7 @@ verify_jwt = false
 
 [functions.account-delete]
 verify_jwt = false
+
+# « Saisir un code » in Compte (docs/activation_codes.md).
+[functions.code-redeem]
+verify_jwt = false

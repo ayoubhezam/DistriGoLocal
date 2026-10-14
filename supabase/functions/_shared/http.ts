@@ -11,7 +11,7 @@ import postgres from "npm:postgres@3.4.5";
 import { importSigningKey } from "./jws.ts";
 import { BadRequest, type Reply } from "./protocol.ts";
 import { revocationList } from "./revocation.ts";
-import type { Config } from "./service.ts";
+import type { Client, Config } from "./service.ts";
 
 function env(name: string): string {
     const value = Deno.env.get(name);
@@ -59,7 +59,15 @@ export async function deleteAuthUser(userId: string): Promise<void> {
 const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-export function serve(operation: (config: Config, userId: string, body: Record<string, unknown>) => Promise<Reply>) {
+/** The caller's address, as the platform's proxy reports it: the first of x-forwarded-for. */
+function clientOf(request: Request): Client {
+    const forwarded = request.headers.get("x-forwarded-for");
+    return { ip: forwarded?.split(",")[0]?.trim() || null };
+}
+
+export function serve(
+    operation: (config: Config, userId: string, body: Record<string, unknown>, client: Client) => Promise<Reply>,
+) {
     Deno.serve(async (request) => {
         if (request.method !== "POST") return json({ status: "method_not_allowed" }, 405);
         try {
@@ -74,7 +82,7 @@ export function serve(operation: (config: Config, userId: string, body: Record<s
             if (typeof body !== "object" || body === null || Array.isArray(body)) {
                 return json({ status: "bad_request", field: "body" }, 400);
             }
-            const answer = await operation(await loadConfig(), userId, body as Record<string, unknown>);
+            const answer = await operation(await loadConfig(), userId, body as Record<string, unknown>, clientOf(request));
             return json(answer.body, answer.status);
         } catch (error) {
             if (error instanceof BadRequest) return json({ status: "bad_request", field: error.message }, 400);

@@ -7,10 +7,44 @@ import { writeFileSync } from "node:fs";
 import { test } from "node:test";
 import postgres from "postgres";
 import { importSigningKey } from "../_shared/jws.ts";
-import { activate, type Config, createNonce, deleteAccount, refresh, release } from "../_shared/service.ts";
+import { BadRequest } from "../_shared/protocol.ts";
+import { activate, type Config, createNonce, deleteAccount, refresh, release, renewWithCode } from "../_shared/service.ts";
 import { DEBUG_SIGNING_DIGEST, fixture, testKeys } from "./support.ts";
 
 const url = process.env.DISTRIGO_TEST_DB_URL;
+
+/** The operations' configuration, as Supabase gives it, but with test-a and a fixed now. */
+async function configFor(sql: postgres.Sql): Promise<Config> {
+    return {
+        sql,
+        signingKey: await importSigningKey(testKeys["test-a"]),
+        keyId: "test-a",
+        packageName: "com.distrigo.app",
+        signingDigests: [DEBUG_SIGNING_DIGEST],
+        revocation: async () => ({ entries: new Map(), fresh: true }),
+        now: () => new Date("2026-10-10T12:00:00Z"),
+    };
+}
+
+/** The fixture's activation nonce, handed out (again) to this user, as license-nonce would have. */
+async function handOutActivation(sql: postgres.Sql, user: string): Promise<void> {
+    await sql`delete from private.nonces where value = decode(${fixture.activation_nonce_hex}, 'hex')`;
+    await sql`insert into private.nonces (value, user_id, purpose, expires_at)
+              values (decode(${fixture.activation_nonce_hex}, 'hex'), ${user}::uuid, 'activate', now() + interval '5 minutes')`;
+}
+
+/** The fixture phone's activation request, for this user, with what else the app sends. */
+const activationBody = (user: string, extra: Record<string, unknown> = {}) => ({
+    nonce: Buffer.from(fixture.activation_nonce_hex, "hex").toString("base64url"),
+    installation_id: fixture.installation_id,
+    certificate_chain: fixture.chain,
+    signature: fixture.activation_signature,
+    android_id: `m34-${user}`,
+    model: fixture.model,
+    os_version: "16",
+    app_version: "1.0",
+    ...extra,
+});
 
 /** The claims of a license, after checking its signature with the test key's public half. */
 function claimsOf(token: string): Record<string, unknown> {
@@ -23,15 +57,7 @@ function claimsOf(token: string): Record<string, unknown> {
 test("activation, check-in, release and deletion, with a real phone's key", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
     const sql = postgres(url!, { max: 4, onnotice: () => {} });
     t.after(() => sql.end());
-    const config: Config = {
-        sql,
-        signingKey: await importSigningKey(testKeys["test-a"]),
-        keyId: "test-a",
-        packageName: "com.distrigo.app",
-        signingDigests: [DEBUG_SIGNING_DIGEST],
-        revocation: async () => ({ entries: new Map(), fresh: true }),
-        now: () => new Date("2026-10-10T12:00:00Z"),
-    };
+    const config = await configFor(sql);
     const owner = crypto.randomUUID();
     const stranger = crypto.randomUUID();
     await sql`insert into auth.users (id, email) values (${owner}, 'owner@example.com'), (${stranger}, 'other@example.com')`;
@@ -40,17 +66,7 @@ test("activation, check-in, release and deletion, with a real phone's key", { sk
     const handOut = async (hex: string, user: string, purpose: string) =>
         sql`insert into private.nonces (value, user_id, purpose, expires_at)
             values (decode(${hex}, 'hex'), ${user}::uuid, ${purpose}, now() + interval '5 minutes')`;
-    const activation = (extra: Record<string, unknown> = {}) => ({
-        nonce: Buffer.from(fixture.activation_nonce_hex, "hex").toString("base64url"),
-        installation_id: fixture.installation_id,
-        certificate_chain: fixture.chain,
-        signature: fixture.activation_signature,
-        android_id: `m34-${owner}`,
-        model: fixture.model,
-        os_version: "16",
-        app_version: "1.0",
-        ...extra,
-    });
+    const activation = (extra: Record<string, unknown> = {}) => activationBody(owner, extra);
     const checkIn = (nonceHex: string) => ({
         nonce: Buffer.from(nonceHex, "hex").toString("base64url"),
         installation_id: fixture.installation_id,
@@ -84,9 +100,19 @@ test("activation, check-in, release and deletion, with a real phone's key", { sk
         assert.deepEqual(answer.body, { status: "bad_signature" });
     });
 
+    await t.test("an activity or a sales-rep count off the lists is a bad request, before anything is read", async () => {
+        await assert.rejects(activate(config, owner, activation({ business_name: "X", business_activity: "épicerie" })), BadRequest);
+        await assert.rejects(activate(config, owner, activation({ business_name: "X", business_sales_reps: "3" })), BadRequest);
+    });
+
     let deviceId = "";
     await t.test("with its name, the business is made, its trial started, and the phone gets its first license", async () => {
-        const answer = await activate(config, owner, activation({ business_name: "Distribution M34" }));
+        const answer = await activate(config, owner, activation({
+            business_name: "Distribution M34",
+            contact_phone: "0661 23 45 67",
+            business_activity: "boissons",
+            business_sales_reps: "2-5",
+        }));
         assert.equal(answer.body.status, "activated", JSON.stringify(answer.body));
         assert.equal(answer.body.tier, "normal");
         assert.equal(answer.body.trial, true);
@@ -103,6 +129,9 @@ test("activation, check-in, release and deletion, with a real phone's key", { sk
         assert.equal(device.policy_tier, "normal");
         assert.equal(device.attestation.security_level, "tee");
         assert.equal(device.attestation.boot_state, "verified");
+        const [business] = await sql`select contact_phone, activity, sales_reps from public.businesses where id = ${claims.org as string}::uuid`;
+        assert.deepEqual({ ...business }, { contact_phone: "0661 23 45 67", activity: "boissons", sales_reps: "2-5" });
+        assert.equal(answer.body.code, undefined);
         golden.activation = answer.body.license as string;
     });
 
@@ -169,4 +198,94 @@ test("activation, check-in, release and deletion, with a real phone's key", { sk
             tokens: golden,
         }, null, 2) + "\n");
     }
+});
+
+test("activation codes: refused, asked for a company, made, joined, renewed", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
+    const sql = postgres(url!, { max: 4, onnotice: () => {} });
+    t.after(() => sql.end());
+    const config = await configFor(sql);
+    const client = { ip: "203.0.113.42" };
+    // Two anonymous accounts: the merchant's first phone, then the one after it
+    const first = crypto.randomUUID();
+    const next = crypto.randomUUID();
+    await sql`insert into auth.users (id, is_anonymous) values (${first}, true), (${next}, true)`;
+    const newCode = async (days = 182) =>
+        (await sql`select code from private.create_codes(1, 'solo', ${days}, 'Tests Node')`)[0].code as string;
+    const unknownCode = async () => (await sql`select private.format_code(private.new_code()) as code`)[0].code as string;
+    const failures = async () =>
+        (await sql`select count(*)::int as n from private.code_attempts where installation_id = ${fixture.installation_id}::uuid`)[0].n;
+    const code = await newCode();
+
+    await handOutActivation(sql, first);
+
+    await t.test("an unknown code is refused, counted, and leaves the nonce usable", async () => {
+        const answer = await activate(config, first, activationBody(first, { activation_code: await unknownCode() }), client);
+        assert.deepEqual(answer.body, { status: "bad_code" });
+        assert.equal(await failures(), 1);
+        const [{ used }] = await sql`select used_at is not null as used from private.nonces where value = decode(${fixture.activation_nonce_hex}, 'hex')`;
+        assert.equal(used, false);
+    });
+
+    await t.test("after five refusals an hour, the phone waits, even with a good code", async () => {
+        for (let i = 0; i < 4; i++) await activate(config, first, activationBody(first, { activation_code: await unknownCode() }), client);
+        assert.equal(await failures(), 5);
+        const answer = await activate(config, first, activationBody(first, { activation_code: code }), client);
+        assert.equal(answer.body.status, "too_many_attempts");
+        assert.ok(new Date(answer.body.retry_at as string).getTime() > Date.now() + 59 * 60_000);
+        await sql`delete from private.code_attempts`;
+    });
+
+    await t.test("a code without a company asks for one, and nothing is written", async () => {
+        const answer = await activate(config, first, activationBody(first, { activation_code: code }), client);
+        assert.deepEqual(answer.body, { status: "code_needs_business" });
+        const [{ n }] = await sql`select count(*)::int as n from public.memberships where user_id = ${first}::uuid`;
+        assert.equal(n, 0);
+    });
+
+    let business = "";
+    await t.test("with the company, the business is made with the code's plan, and the phone activated", async () => {
+        const answer = await activate(config, first, activationBody(first, {
+            activation_code: code.toLowerCase().replaceAll("-", " "),
+            business_name: "Épicerie Node",
+            contact_phone: "0770 12 34 56",
+        }), client);
+        assert.equal(answer.body.status, "activated", JSON.stringify(answer.body));
+        assert.equal(answer.body.code, "created");
+        assert.equal(answer.body.trial, false);
+        const claims = claimsOf(answer.body.license as string);
+        assert.equal(claims.plan, "solo");
+        assert.equal(claims.sub, first);
+        business = claims.org as string;
+        const [row] = await sql`select name, contact_phone from public.businesses where id = ${business}::uuid`;
+        assert.deepEqual({ ...row }, { name: "Épicerie Node", contact_phone: "0770 12 34 56" });
+        // 182 days from today, through the last one: the license's vt ends the 182nd day
+        const [{ days }] = await sql`select valid_to - valid_from + 1 as days from public.subscriptions where business_id = ${business}::uuid`;
+        assert.equal(days, 182);
+    });
+
+    await t.test("the same code on the next phone's account joins that business", async () => {
+        await handOutActivation(sql, next);
+        const answer = await activate(config, next, activationBody(next, { activation_code: code }), client);
+        assert.equal(answer.body.status, "activated", JSON.stringify(answer.body));
+        assert.equal(answer.body.code, "joined");
+        const claims = claimsOf(answer.body.license as string);
+        assert.equal(claims.org, business);
+        assert.equal(claims.sub, next);
+    });
+
+    await t.test("« Saisir un code » adds a new code's days, once; a key or an unknown code adds nothing", async () => {
+        const renewal = await newCode(30);
+        const answer = await renewWithCode(config, next, { code: renewal }, client);
+        assert.equal(answer.body.status, "renewed", JSON.stringify(answer.body));
+        assert.equal(answer.body.business_id, business);
+        assert.equal(answer.body.days, 30);
+        const [{ days }] = await sql`select valid_to - valid_from + 1 as days from public.subscriptions where business_id = ${business}::uuid`;
+        assert.equal(days, 182 + 30);
+        assert.equal((await renewWithCode(config, next, { code: renewal }, client)).body.status, "code_used");
+        assert.equal((await renewWithCode(config, next, { code }, client)).body.status, "code_used");
+        assert.equal((await renewWithCode(config, next, { code: await unknownCode() }, client)).body.status, "bad_code");
+        const [{ n }] = await sql`select count(*)::int as n from private.code_attempts where user_id = ${next}::uuid`;
+        assert.equal(n, 1);
+        await assert.rejects(renewWithCode(config, next, {}, client), BadRequest);
+    });
 });

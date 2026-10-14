@@ -1,15 +1,15 @@
-// The five operations behind the Edge Functions (docs/license_architecture.md §6.3). The rules that must hold
-// under concurrency are in SQL (private.*); this file does the cryptography and composes the SQL calls in one
-// transaction. Everything it needs comes in through Config, so the Node tests run it against a local
-// PostgreSQL exactly as Supabase runs it.
+// The operations behind the Edge Functions (docs/license_architecture.md §6.3, docs/activation_codes.md). The
+// rules that must hold under concurrency are in SQL (private.*); this file does the cryptography and composes the
+// SQL calls in one transaction. Everything it needs comes in through Config, so the Node tests run it against a
+// local PostgreSQL exactly as Supabase runs it.
 
 import type { JSONValue, Sql, TransactionSql } from "npm:postgres@3.4.5";
 import { inspect } from "./attestation.ts";
 import { base64Decode, base64UrlEncode, signLicense, verifyDeviceSignature } from "./jws.ts";
 import { judge } from "./policy.ts";
 import {
-    BadRequest, bytes, chain, optionalBoolean, optionalObject, optionalText, optionalUuid, reply, type Reply,
-    signedMessage, uuid,
+    BadRequest, bytes, chain, optionalBoolean, optionalChoice, optionalObject, optionalText, optionalUuid, reply,
+    type Reply, signedMessage, uuid,
 } from "./protocol.ts";
 import type { RevocationList } from "./revocation.ts";
 
@@ -26,6 +26,17 @@ export interface Config {
     revocation: () => Promise<RevocationList>;
     now?: () => Date;
 }
+
+/** Who asks, beyond the account: the connection's address, which failed codes are also counted against. */
+export interface Client {
+    ip: string | null;
+}
+
+const NO_CLIENT: Client = { ip: null };
+
+/** The business's details the e-mail sign-up sends: the values public.businesses' checks accept. */
+const ACTIVITIES = ["alimentation", "boissons", "frais", "hygiene", "droguerie", "materiaux", "pharmacie", "autre"] as const;
+const SALES_REPS = ["1", "2-5", "6-10", "10+"] as const;
 
 type Body = Record<string, unknown>;
 
@@ -73,8 +84,14 @@ export async function createNonce(config: Config, userId: string, body: Body): P
  * Replies activated (with the license), or what the phone must do: no_business (send business_name),
  * choose_business, seat_taken (ask, then send transfer), transfer_limit, refused, bad_signature, bad_nonce.
  * Every answer but activated rolls back, so the same nonce and attestation serve the phone's next attempt.
+ *
+ * With activation_code (docs/activation_codes.md), the code decides the business instead, in the same
+ * transaction: a new code makes it (with business_name and contact_phone when the code names none), a key
+ * joins it, and either way the phone is then activated in it, or nothing happens. More replies: bad_code,
+ * code_expired, code_used, code_needs_business (send business_name and contact_phone), too_many_attempts
+ * (with retry_at). activated then says what the code did: code = created, joined or renewed.
  */
-export async function activate(config: Config, userId: string, body: Body): Promise<Reply> {
+export async function activate(config: Config, userId: string, body: Body, client: Client = NO_CLIENT): Promise<Reply> {
     const nonce = bytes(body, "nonce", 64);
     const installationId = uuid(body, "installation_id");
     const certificates = chain(body, "certificate_chain");
@@ -87,6 +104,17 @@ export async function activate(config: Config, userId: string, body: Body): Prom
     const businessId = optionalUuid(body, "business_id");
     const transfer = optionalBoolean(body, "transfer");
     const replaceDevice = optionalUuid(body, "replace_device");
+    const activationCode = optionalText(body, "activation_code", 24);
+    const contactPhone = optionalText(body, "contact_phone", 30);
+    const activity = optionalChoice(body, "business_activity", ACTIVITIES);
+    const salesReps = optionalChoice(body, "business_sales_reps", SALES_REPS);
+
+    // Before any work: a phone, account or connection that keeps getting codes refused waits.
+    if (activationCode !== null) {
+        const [{ gate }] = await config.sql`
+            select private.code_attempts_gate(${installationId}::uuid, ${userId}::uuid, ${client.ip}::text) as gate`;
+        if (gate.blocked) return reply({ status: "too_many_attempts", retry_at: gate.retry_at });
+    }
 
     const revocation = await config.revocation();
     const attestation = await inspect(certificates, {
@@ -122,17 +150,28 @@ export async function activate(config: Config, userId: string, body: Body): Prom
     const keySpki = attestation.keySpki;
     const keyHash = attestation.keyHash;
 
-    return transaction(config, async (tx) => {
+    const answer = await transaction(config, async (tx) => {
         const [{ ok }] = await tx`select private.consume_nonce(decode(${hex(nonce)}, 'hex'), ${userId}::uuid, 'activate') as ok`;
         if (!ok) throw new Rollback(reply({ status: "bad_nonce" }));
+        let business = businessId;
         let trial: boolean | null = null;
-        if (businessName !== null && businessId === null) {
-            const [{ created }] = await tx`select private.create_business(${userId}::uuid, ${businessName}, ${androidId}) as created`;
+        let codeUse: string | null = null;
+        if (activationCode !== null) {
+            const [{ redeemed }] = await tx`
+                select private.redeem_code(${userId}::uuid, ${activationCode}, ${businessName}, ${contactPhone}) as redeemed`;
+            if (!["created", "joined", "renewed"].includes(redeemed.status)) throw new Rollback(reply(redeemed));
+            business = redeemed.business_id;
+            codeUse = redeemed.status;
+            if (codeUse === "created") trial = redeemed.plan === "trial";
+        } else if (businessName !== null && businessId === null) {
+            const [{ created }] = await tx`
+                select private.create_business(${userId}::uuid, ${businessName}, ${androidId}, ${contactPhone}, ${activity},
+                                               ${salesReps}) as created`;
             if (created.status === "created") trial = created.trial;
         }
         const [{ result }] = await tx`
             select private.activate_device(
-                ${userId}::uuid, ${businessId}::uuid, ${installationId}::uuid, ${keyHash}, decode(${hex(keySpki)}, 'hex'),
+                ${userId}::uuid, ${business}::uuid, ${installationId}::uuid, ${keyHash}, decode(${hex(keySpki)}, 'hex'),
                 ${androidId}, ${model}, ${osVersion}, ${appVersion}, ${tx.json(summary)}::jsonb, ${verdict.tier},
                 ${transfer}, ${replaceDevice}::uuid) as result`;
         if (result.status !== "activated") throw new Rollback(reply(result));
@@ -145,8 +184,34 @@ export async function activate(config: Config, userId: string, body: Body): Prom
             trial,
             tier: verdict.tier,
             reasons: verdict.reasons,
+            ...(codeUse !== null ? { code: codeUse } : {}),
         });
     });
+    // Counted after the rollback, which would otherwise take the count with it
+    if (activationCode !== null && answer.body.status === "bad_code") {
+        await config.sql`select private.record_code_failure(${installationId}::uuid, ${userId}::uuid, ${client.ip}::text)`;
+    }
+    return answer;
+}
+
+/**
+ * POST code-redeem {code, business_id?}: « Saisir un code » in Compte. A new code adds its days to the account's
+ * business (docs/activation_codes.md); the phone then checks in for the renewed license. Replies renewed
+ * {business_id, valid_to, plan, days}, or too_many_attempts (retry_at), bad_code, code_expired, code_used,
+ * no_business, choose_business, not_member.
+ */
+export async function renewWithCode(config: Config, userId: string, body: Body, client: Client = NO_CLIENT): Promise<Reply> {
+    const code = optionalText(body, "code", 24);
+    if (code === null) throw new BadRequest("code");
+    const businessId = optionalUuid(body, "business_id");
+    const [{ gate }] = await config.sql`
+        select private.code_attempts_gate(${null}::uuid, ${userId}::uuid, ${client.ip}::text) as gate`;
+    if (gate.blocked) return reply({ status: "too_many_attempts", retry_at: gate.retry_at });
+    const [{ result }] = await config.sql`select private.renew_with_code(${userId}::uuid, ${code}, ${businessId}::uuid) as result`;
+    if (result.status === "bad_code") {
+        await config.sql`select private.record_code_failure(${null}::uuid, ${userId}::uuid, ${client.ip}::text)`;
+    }
+    return reply(result);
 }
 
 /**

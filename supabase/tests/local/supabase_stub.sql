@@ -10,6 +10,8 @@ create table auth.users (
     id                  uuid primary key,
     email               text,
     raw_user_meta_data  jsonb not null default '{}',
+    -- Signed in without an e-mail (activation codes)
+    is_anonymous        boolean not null default false,
     created_at          timestamptz not null default now()
 );
 
@@ -24,6 +26,23 @@ grant usage on schema auth to anon, authenticated, service_role;
 create schema extensions;
 create extension pgcrypto with schema extensions;
 grant usage on schema extensions to anon, authenticated, service_role;
+
+-- Supabase Vault, as far as the migrations use it: secrets by name. Supabase encrypts them at rest; here the
+-- "decrypted" view simply shows them.
+create schema vault;
+create table vault.secrets (
+    id           uuid primary key default gen_random_uuid(),
+    name         text unique,
+    description  text not null default '',
+    secret       text not null
+);
+create view vault.decrypted_secrets as
+    select id, name, description, secret, secret as decrypted_secret from vault.secrets;
+create function vault.create_secret(new_secret text, new_name text default null, new_description text default '',
+                                    new_key_id uuid default null) returns uuid
+language sql as $$
+    insert into vault.secrets (name, description, secret) values (new_name, new_description, new_secret) returning id
+$$;
 
 -- Supabase's defaults: the API roles get everything in public. The migration narrows them; the tests check it did.
 grant usage on schema public to anon, authenticated, service_role;

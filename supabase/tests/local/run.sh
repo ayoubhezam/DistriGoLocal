@@ -29,9 +29,12 @@ for migration in "$supabase"/migrations/*.sql; do
 done
 
 # The tests print "ok: …" for each check; the first failure stops them.
-output="$(sql -f "$here/license_test.sql" 2>&1)" || { echo "$output"; exit 1; }
-echo "$output" | grep -o 'ok: .*'
-checks=$(echo "$output" | grep -c 'ok: ')
+checks=0
+for test in license_test.sql codes_test.sql; do
+    output="$(sql -f "$here/$test" 2>&1)" || { echo "$output"; exit 1; }
+    echo "$output" | grep -o 'ok: .*'
+    checks=$((checks + $(echo "$output" | grep -c 'ok: ')))
+done
 
 # ── The last seat, raced for by two phones at once ──
 # Phone 1's activation holds its transaction open; phone 2 asks for the seat meanwhile. The subscription's row
@@ -63,6 +66,29 @@ if [[ "$first_status" != "activated" || "$second" != "seat_taken" || "$active" !
     exit 1
 fi
 echo "ok: two phones racing for the last seat: the first gets it, the second waits and is told it is taken"
+checks=$((checks + 1))
+
+# ── One new code, typed on two phones at once ──
+# The code's row lock must make the second wait, then find the business the first made: one business, joined.
+code=$(sql -At -c "insert into auth.users (id, is_anonymous) values ('eeeeeeee-0000-4000-8000-0000000000f1', true),
+                                                                ('eeeeeeee-0000-4000-8000-0000000000f2', true)" \
+               -c "select code from private.create_codes(1, 'solo', 30, 'Course', 'Distribution Course')" | tail -1)
+sql -At <<SQL >"$work/code-race-1.txt" &
+begin;
+select private.redeem_code('eeeeeeee-0000-4000-8000-0000000000f1', '$code') ->> 'status';
+select pg_sleep(1.5);
+commit;
+SQL
+first=$!
+second=$(sql -At -c "select pg_sleep(0.3)" -c "select private.redeem_code('eeeeeeee-0000-4000-8000-0000000000f2', '$code') ->> 'status'" | tail -1)
+wait $first
+first_status=$(grep -v '^$' "$work/code-race-1.txt" | head -1)
+made=$(sql -At -c "select count(*) from public.businesses where name = 'Distribution Course'")
+if [[ "$first_status" != "created" || "$second" != "joined" || "$made" != "1" ]]; then
+    echo "FAILED: one code on two phones at once gave '$first_status' and '$second', $made businesses"
+    exit 1
+fi
+echo "ok: one new code typed on two phones at once makes one business: the second phone waits, then joins it"
 checks=$((checks + 1))
 echo "$checks SQL checks passed"
 
