@@ -259,3 +259,34 @@ export async function deleteAccount(
     await deleteAuthUser(userId);
     return reply({ status: "deleted" });
 }
+
+/**
+ * POST business-profile: « Informations de l'entreprise » in Compte (docs/activation_codes.md, step C5). Without
+ * a field it reads; with any of name, contact_phone, activity, sales_reps it changes those (a null or blank
+ * contact_phone clears it). Replies ok {business_id, name, contact_phone, activity, sales_reps, can_edit}, or
+ * no_business, choose_business, not_member, not_allowed (an agent changing it).
+ */
+export async function businessProfile(config: Config, userId: string, body: Body): Promise<Reply> {
+    const businessId = optionalUuid(body, "business_id");
+    const changes: Record<string, string | null> = {};
+    if ("name" in body) {
+        const name = optionalText(body, "name", 120);
+        if (name === null) throw new BadRequest("name");
+        changes.name = name;
+    }
+    if ("contact_phone" in body) changes.contact_phone = optionalText(body, "contact_phone", 30);
+    if ("activity" in body) {
+        const activity = optionalChoice(body, "activity", ACTIVITIES);
+        if (activity === null) throw new BadRequest("activity");
+        changes.activity = activity;
+    }
+    if ("sales_reps" in body) {
+        const salesReps = optionalChoice(body, "sales_reps", SALES_REPS);
+        if (salesReps === null) throw new BadRequest("sales_reps");
+        changes.sales_reps = salesReps;
+    }
+    const [{ result }] = Object.keys(changes).length === 0
+        ? await config.sql`select private.business_profile(${userId}::uuid, ${businessId}::uuid) as result`
+        : await config.sql`select private.update_business_profile(${userId}::uuid, ${config.sql.json(changes)}::jsonb, ${businessId}::uuid) as result`;
+    return reply(result);
+}

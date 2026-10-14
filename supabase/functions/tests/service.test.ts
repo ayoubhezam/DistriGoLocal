@@ -8,7 +8,9 @@ import { test } from "node:test";
 import postgres from "postgres";
 import { importSigningKey } from "../_shared/jws.ts";
 import { BadRequest } from "../_shared/protocol.ts";
-import { activate, type Config, createNonce, deleteAccount, refresh, release, renewWithCode } from "../_shared/service.ts";
+import {
+    activate, businessProfile, type Config, createNonce, deleteAccount, refresh, release, renewWithCode,
+} from "../_shared/service.ts";
 import { DEBUG_SIGNING_DIGEST, fixture, testKeys } from "./support.ts";
 
 const url = process.env.DISTRIGO_TEST_DB_URL;
@@ -287,5 +289,51 @@ test("activation codes: refused, asked for a company, made, joined, renewed", { 
         const [{ n }] = await sql`select count(*)::int as n from private.code_attempts where user_id = ${next}::uuid`;
         assert.equal(n, 1);
         await assert.rejects(renewWithCode(config, next, {}, client), BadRequest);
+    });
+});
+
+test("« Informations de l'entreprise »: read, changed field by field, and checked", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
+    const sql = postgres(url!, { max: 2, onnotice: () => {} });
+    t.after(() => sql.end());
+    const config = await configFor(sql);
+    const owner = "c0ffee00-0000-4000-8000-000000000031";
+    const stranger = "c0ffee00-0000-4000-8000-000000000032";
+    await sql`insert into auth.users (id, email) values (${owner}::uuid, 'profil@example.com'), (${stranger}::uuid, 'x@example.com')`;
+    await sql`select private.create_business(${owner}::uuid, 'Épicerie Profil', 'phone-profil', '0770 00 11 22', 'alimentation', '1')`;
+
+    await t.test("an empty request reads the profile", async () => {
+        const answer = await businessProfile(config, owner, {});
+        assert.equal(answer.status, 200);
+        assert.deepEqual(
+            { ...answer.body, business_id: undefined },
+            { status: "ok", business_id: undefined, name: "Épicerie Profil", contact_phone: "0770 00 11 22",
+              activity: "alimentation", sales_reps: "1", can_edit: true },
+        );
+        assert.equal((await businessProfile(config, stranger, {})).body.status, "no_business");
+    });
+
+    await t.test("the fields sent are changed, the others kept; a blank phone clears it", async () => {
+        let answer = await businessProfile(config, owner, { name: " Épicerie Profil Centre ", sales_reps: "2-5" });
+        assert.equal(answer.body.name, "Épicerie Profil Centre");
+        assert.equal(answer.body.sales_reps, "2-5");
+        assert.equal(answer.body.activity, "alimentation");
+        assert.equal(answer.body.contact_phone, "0770 00 11 22");
+        answer = await businessProfile(config, owner, { contact_phone: "" });
+        assert.equal(answer.body.contact_phone, null);
+        answer = await businessProfile(config, owner, { contact_phone: "0661 22 33 44", activity: "boissons" });
+        assert.equal(answer.body.contact_phone, "0661 22 33 44");
+        assert.equal(answer.body.activity, "boissons");
+    });
+
+    await t.test("what the table would refuse is a bad request, and changes nothing", async () => {
+        for (const body of [
+            { name: "   " }, { name: null }, { name: "x".repeat(121) }, { activity: "piraterie" }, { activity: null },
+            { sales_reps: "12" }, { contact_phone: "0".repeat(31) }, { contact_phone: 661 }, { business_id: "abc" },
+        ]) {
+            await assert.rejects(businessProfile(config, owner, body), BadRequest, JSON.stringify(body));
+        }
+        const answer = await businessProfile(config, owner, {});
+        assert.equal(answer.body.name, "Épicerie Profil Centre");
+        assert.equal(answer.body.activity, "boissons");
     });
 });
