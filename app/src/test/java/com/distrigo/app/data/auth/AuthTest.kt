@@ -11,6 +11,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertFalse
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
@@ -174,5 +175,25 @@ class AuthTest {
         repository.signOut()
         assertEquals(AccountState.SignedOut, repository.state.value)
         assertNull(SessionStore(folder.root, SoftwareSessionCipher()).load())
+    }
+
+    @Test
+    fun `an account for an activation code signs up with neither e-mail nor password, and knows it is anonymous`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"access_token":"access-1","token_type":"bearer","expires_in":3600,"expires_at":4102444800,
+            "refresh_token":"refresh-1","user":{"id":"0b6f4c1e-5d2a-4f7e-9c3b-1a2d3e4f5a6b","email":"","is_anonymous":true,
+            "user_metadata":{},"app_metadata":{}}}"""))
+        val outcome = api.signInAnonymously() as AuthOutcome.SignedIn
+        val request = server.takeRequest()
+        assertEquals("/auth/v1/signup", request.path)
+        val body = request.json
+        assertFalse(body.has("email"))
+        assertFalse(body.has("password"))
+        assertTrue(outcome.session.isAnonymous)
+        assertNull(outcome.session.email)
+        assertNull(outcome.session.initials)
+        assertFalse(session().isAnonymous)
+
+        server.enqueue(jsonResponse(422, """{"code":422,"error_code":"anonymous_provider_disabled","msg":"Anonymous sign-ins are disabled"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.ANONYMOUS_DISABLED), api.signInAnonymously())
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -220,6 +221,9 @@ fun DsStepBadge(
  */
 val LocalAccountInitials = androidx.compose.runtime.staticCompositionLocalOf<String?> { null }
 
+/** Whether the signed-in account came from an activation code: it has no name, so its avatar shows a key. */
+val LocalAccountByCode = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 /**
  * The trailing pair every bottom-tab root carries: notifications, then the account.
  *
@@ -233,11 +237,12 @@ fun RowScope.DsTopBarRootActions(
     onNotificationsClick : () -> Unit,
     onProfileClick       : () -> Unit,
     notificationCount    : Int = 0,
-    initials             : String? = LocalAccountInitials.current
+    initials             : String? = LocalAccountInitials.current,
+    byCode               : Boolean = LocalAccountByCode.current
 ) {
     DsTopBarNotificationButton(count = notificationCount, onClick = onNotificationsClick)
     Spacer(Modifier.width(DsSpacing.sm))
-    DsTopBarAvatar(initials = initials, onClick = onProfileClick)
+    DsTopBarAvatar(initials = initials, byCode = byCode, onClick = onProfileClick)
 }
 
 /**
@@ -293,11 +298,13 @@ fun DsTopBarNotificationButton(
  * The account control.
  *
  * Falls back to a person glyph until there is a name to derive initials from, then shows them
- * the way the client and supplier avatars already do — initials in a tinted circle.
+ * the way the client and supplier avatars already do — initials in a tinted circle. An account
+ * opened with an activation code has no name: [byCode] shows a key instead.
  */
 @Composable
 fun DsTopBarAvatar(
     initials : String? = null,
+    byCode   : Boolean = false,
     onClick  : () -> Unit
 ) {
     Box(
@@ -310,7 +317,7 @@ fun DsTopBarAvatar(
     ) {
         if (initials.isNullOrBlank()) {
             Icon(
-                Icons.Default.Person,
+                if (byCode) Icons.Default.Key else Icons.Default.Person,
                 contentDescription = "Profil",
                 tint     = DsColors.Primary,
                 modifier = Modifier.size(20.dp)

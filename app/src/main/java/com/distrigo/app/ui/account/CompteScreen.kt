@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +50,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import com.distrigo.app.ui.onboarding.OnboardingStart
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -59,9 +61,7 @@ import java.util.Locale
 fun CompteScreen(
     viewModel: AccountViewModel,
     onBack: () -> Unit,
-    onSignIn: () -> Unit,
-    onSignUp: () -> Unit,
-    onPreviewOnboarding: () -> Unit,
+    onOpenOnboarding: (OnboardingStart) -> Unit,
 ) {
     BackHandler { onBack() }
     val state by viewModel.state.collectAsState()
@@ -77,7 +77,11 @@ fun CompteScreen(
                 AccountState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.Primary)
                 }
-                AccountState.SignedOut -> SignedOutCard(onSignIn, onSignUp)
+                AccountState.SignedOut -> SignedOutCard(
+                    onSignIn = { onOpenOnboarding(OnboardingStart.SIGN_IN) },
+                    onSignUp = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
+                    onCode   = { onOpenOnboarding(OnboardingStart.CODE) },
+                )
                 is AccountState.SignedIn -> {
                     AccountCard(account.session)
                     SubscriptionCard(
@@ -111,10 +115,6 @@ fun CompteScreen(
                     }
                 }
             }
-            // Temporary: shows the new onboarding's first pages until the onboarding replaces it
-            TextButton(onClick = onPreviewOnboarding, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("Aperçu : écrans d'accueil", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
-            }
         }
     }
 
@@ -122,7 +122,7 @@ fun CompteScreen(
 }
 
 @Composable
-private fun SignedOutCard(onSignIn: () -> Unit, onSignUp: () -> Unit) {
+private fun SignedOutCard(onSignIn: () -> Unit, onSignUp: () -> Unit, onCode: () -> Unit) {
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Badge(Icons.Default.VerifiedUser, DsColors.PrimaryLight, DsColors.Primary)
@@ -142,6 +142,10 @@ private fun SignedOutCard(onSignIn: () -> Unit, onSignUp: () -> Unit) {
         OutlinedButton(onClick = onSignUp, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium) {
             Text("Créer un compte", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
+        // A code bought from DistriGo or a reseller: no e-mail needed (docs/activation_codes.md)
+        TextButton(onClick = onCode, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text("Activer avec un code", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        }
     }
 }
 
@@ -153,14 +157,24 @@ private fun AccountCard(session: AuthSession) {
                 modifier = Modifier.size(48.dp).clip(DsShapes.pill).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                Text(session.initials ?: "?", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                // An account from an activation code has no name: a key says how it was opened
+                val initials = session.initials
+                if (initials == null && session.isAnonymous) {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(24.dp))
+                } else {
+                    Text(initials ?: "?", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                }
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text(session.displayName ?: session.email ?: "Compte", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text(session.displayName ?: session.email ?: if (session.isAnonymous) "Compte sans e-mail" else "Compte", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                 session.email?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
                 Text(
-                    if (session.provider == "google") "Connecté avec Google" else "Connecté par e-mail",
+                    when {
+                        session.isAnonymous -> "Activé avec un code"
+                        session.provider == "google" -> "Connecté avec Google"
+                        else -> "Connecté par e-mail"
+                    },
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextTertiary
                 )

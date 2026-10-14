@@ -21,6 +21,7 @@ enum class AuthError(val message: String) {
     PROVIDER_DISABLED("Cette méthode de connexion n'est pas encore disponible."),
     RATE_LIMITED("Trop de tentatives. Réessayez dans quelques minutes."),
     SESSION_EXPIRED("Votre session a expiré. Reconnectez-vous."),
+    ANONYMOUS_DISABLED("L'activation par code n'est pas encore ouverte. Réessayez plus tard."),
     NETWORK("Pas de connexion Internet. Réessayez une fois connecté."),
     SERVER("Le service ne répond pas. Réessayez plus tard."),
     ;
@@ -39,6 +40,7 @@ enum class AuthError(val message: String) {
                 "email_not_confirmed" -> EMAIL_NOT_CONFIRMED
                 "signup_disabled" -> SIGNUP_DISABLED
                 "provider_disabled", "email_provider_disabled" -> PROVIDER_DISABLED
+                "anonymous_provider_disabled" -> ANONYMOUS_DISABLED
                 "over_request_rate_limit", "over_email_send_rate_limit" -> RATE_LIMITED
                 "refresh_token_not_found", "refresh_token_already_used", "session_not_found", "session_expired",
                 "user_not_found", "user_banned", "bad_jwt" -> SESSION_EXPIRED
@@ -85,6 +87,13 @@ class AuthApi(
             AuthSession.fromAuthResponse(json, clock())?.let(AuthOutcome::SignedIn) ?: AuthOutcome.ConfirmEmail(email)
         }
     }
+
+    /**
+     * An account without an e-mail, for an activation code (docs/activation_codes.md): Supabase's anonymous
+     * sign-in, a sign-up with neither e-mail nor phone. It holds a license like any account.
+     */
+    suspend fun signInAnonymously(): AuthOutcome =
+        post("signup", JsonObject().apply { add("data", JsonObject()) }, onSuccess = ::session)
 
     suspend fun signInWithPassword(email: String, password: String): AuthOutcome {
         val body = JsonObject().apply {

@@ -7,18 +7,16 @@ import androidx.navigation.compose.composable
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import com.distrigo.app.ui.account.AccountViewModel
 import com.distrigo.app.ui.account.CompteScreen
-import com.distrigo.app.ui.account.SignInScreen
-import com.distrigo.app.ui.account.SignUpScreen
+import com.distrigo.app.ui.onboarding.OnboardingStart
 
 /**
- * Compte, and its sign-in and sign-up screens, sharing one AccountViewModel. [onPreviewOnboarding] opens
- * the onboarding's first pages, which the activity draws edge to edge above everything.
+ * Compte, the account and this phone's subscription. Signing in, signing up and activation codes are the
+ * onboarding's (ui/onboarding): [onOpenOnboarding] opens it on that screen, drawn by the activity above everything.
  */
 @Composable
-fun AccountNavHost(onBack: () -> Unit, onPreviewOnboarding: () -> Unit) {
+fun AccountNavHost(onBack: () -> Unit, onOpenOnboarding: (OnboardingStart) -> Unit) {
     val navController = rememberTrackedNavController()
     val viewModel: AccountViewModel = hiltViewModel()
-    val backToCompte: () -> Unit = { navController.popBackStack(Screen.AccountHome.route, inclusive = false) }
 
     NavHost(
         navController      = navController,
@@ -31,31 +29,9 @@ fun AccountNavHost(onBack: () -> Unit, onPreviewOnboarding: () -> Unit) {
     ) {
         composable(Screen.AccountHome.route) {
             CompteScreen(
-                viewModel = viewModel,
-                onBack    = onBack,
-                onSignIn  = { navController.navigate(Screen.AccountSignIn.route) { launchSingleTop = true } },
-                onSignUp  = { navController.navigate(Screen.AccountSignUp.route) { launchSingleTop = true } },
-                onPreviewOnboarding = onPreviewOnboarding,
-            )
-        }
-        composable(Screen.AccountSignIn.route) {
-            SignInScreen(
-                viewModel  = viewModel,
-                onBack     = backToCompte,
-                onSignUp   = {
-                    navController.navigate(Screen.AccountSignUp.route) { popUpTo(Screen.AccountHome.route) }
-                },
-                onSignedIn = backToCompte,
-            )
-        }
-        composable(Screen.AccountSignUp.route) {
-            SignUpScreen(
-                viewModel  = viewModel,
-                onBack     = backToCompte,
-                onSignIn   = {
-                    navController.navigate(Screen.AccountSignIn.route) { popUpTo(Screen.AccountHome.route) }
-                },
-                onSignedIn = backToCompte,
+                viewModel        = viewModel,
+                onBack           = onBack,
+                onOpenOnboarding = onOpenOnboarding,
             )
         }
     }

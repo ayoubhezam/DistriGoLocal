@@ -20,4 +20,11 @@ interface AppMetaDao {
     /** Blocking, and in one transaction: callers are already off the main thread. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun putAll(rows: List<AppMetaEntity>)
+
+    /**
+     * Whether the business has recorded anything here yet. A fresh install has no products, clients, sales or
+     * purchases: only then does the onboarding open by itself (docs/activation_codes.md, decision 6). Blocking.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM products) OR EXISTS(SELECT 1 FROM clients) OR EXISTS(SELECT 1 FROM ventes) OR EXISTS(SELECT 1 FROM purchase_orders)")
+    fun hasBusinessData(): Boolean
 }

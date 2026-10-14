@@ -76,6 +76,21 @@ internal val ACTIVITIES = listOf(
 /** « Nombre de commerciaux », in ranges: the plan a business will need follows from it. */
 internal val SALES_REPS = listOf("1", "2 à 5", "6 à 10", "Plus de 10")
 
+/** What the server stores for each label (public.businesses' checks); null for anything else. */
+internal fun activityCode(label: String): String? = mapOf(
+    "Alimentation générale" to "alimentation",
+    "Boissons" to "boissons",
+    "Produits laitiers et frais" to "frais",
+    "Hygiène et cosmétiques" to "hygiene",
+    "Droguerie et entretien" to "droguerie",
+    "Matériaux et quincaillerie" to "materiaux",
+    "Pharmacie et parapharmacie" to "pharmacie",
+    "Autre" to "autre",
+)[label]
+
+internal fun salesRepsCode(label: String): String? =
+    mapOf("1" to "1", "2 à 5" to "2-5", "6 à 10" to "6-10", "Plus de 10" to "10+")[label]
+
 /** The two steps' fields, kept together so going back to step 1 and forward again loses nothing. */
 private class SignUpState(
     fullName: String = "", phone: String = "", email: String = "", password: String = "",
@@ -114,7 +129,7 @@ private class SignUpState(
 
 /** Créer un compte: step 1, who you are; step 2, your business. Back from step 2 returns to step 1. */
 @Composable
-internal fun SignUpPages(actions: OnboardingActions, onBack: () -> Unit) {
+internal fun SignUpPages(actions: OnboardingActions, status: OnboardingStatus, onBack: () -> Unit) {
     val state = rememberSaveable(saver = SignUpState.Saver) { SignUpState() }
     var step by rememberSaveable { mutableIntStateOf(1) }
     BackHandler(enabled = step == 2) { step = 1 }
@@ -145,9 +160,9 @@ internal fun SignUpPages(actions: OnboardingActions, onBack: () -> Unit) {
                         if (state.personalValid) step = 2
                     })
                 } else {
-                    BusinessStep(state, actions, onCreate = {
+                    BusinessStep(state, actions, status, onCreate = {
                         state.triedBusiness = true
-                        if (state.businessValid) actions.createAccount(state.form())
+                        if (state.businessValid && !status.busy) actions.createAccount(state.form())
                     })
                 }
             }
@@ -203,7 +218,7 @@ private fun PersonalStep(state: SignUpState, onContinue: () -> Unit) {
 }
 
 @Composable
-private fun BusinessStep(state: SignUpState, actions: OnboardingActions, onCreate: () -> Unit) {
+private fun BusinessStep(state: SignUpState, actions: OnboardingActions, status: OnboardingStatus, onCreate: () -> Unit) {
     val tried = state.triedBusiness
     FormTitle("Votre activité", "Parlez-nous de votre entreprise")
     Spacer(Modifier.height(DsSpacing.xl))
@@ -244,7 +259,11 @@ private fun BusinessStep(state: SignUpState, actions: OnboardingActions, onCreat
         onPrivacy = actions.openPrivacy
     )
     Spacer(Modifier.height(DsSpacing.xl))
-    BrandButton("Créer mon compte", onClick = onCreate)
+    status.error?.let {
+        FormError(it)
+        Spacer(Modifier.height(DsSpacing.md))
+    }
+    BrandButton("Créer mon compte", onClick = onCreate, busy = status.busy)
 }
 
 /** The checkbox, with the two documents as links in its sentence. */

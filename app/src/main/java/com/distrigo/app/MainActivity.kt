@@ -96,6 +96,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.data.license.holdsLicense
+import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -113,6 +116,10 @@ class MainActivity : ComponentActivity() {
     // Lazy and read on IO, like the database: the account's initials for every avatar (LocalAccountInitials).
     @javax.inject.Inject
     lateinit var authRepository: dagger.Lazy<com.distrigo.app.data.auth.AuthRepository>
+
+    // Lazy and read on IO too: whether this phone holds a license, for the fresh-install onboarding.
+    @javax.inject.Inject
+    lateinit var licenseManager: dagger.Lazy<com.distrigo.app.data.license.LicenseManager>
 
     /** The business's money format, read off the main thread. */
     private val moneyFormats: Flow<MoneyFormat> by lazy {
@@ -151,14 +158,40 @@ class MainActivity : ComponentActivity() {
             var moneyFormat by rememberSaveable { mutableStateOf(MoneyFormat.DEFAULT) }
             LaunchedEffect(Unit) { moneyFormats.collect { moneyFormat = it } }
             var accountInitials by rememberSaveable { mutableStateOf<String?>(null) }
-            var onboardingPreview by rememberSaveable { mutableStateOf(false) }
+            var accountByCode by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 withContext(Dispatchers.IO) { authRepository.get() }.state.collect { account ->
-                    accountInitials = (account as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session?.initials
+                    val session = (account as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session
+                    accountInitials = session?.initials
+                    accountByCode = session?.isAnonymous == true
+                }
+            }
+            // The onboarding (docs/activation_codes.md), where it opens; required on a fresh install, where
+            // Back leaves the app rather than the onboarding.
+            val onboardingViewModel: com.distrigo.app.ui.onboarding.OnboardingViewModel = hiltViewModel()
+            var onboarding by rememberSaveable { mutableStateOf<com.distrigo.app.ui.onboarding.OnboardingStart?>(null) }
+            var onboardingRequired by rememberSaveable { mutableStateOf(false) }
+            val openOnboarding: (com.distrigo.app.ui.onboarding.OnboardingStart) -> Unit = { start ->
+                onboardingViewModel.reset()
+                onboarding = start
+            }
+            // A fresh install opens on the onboarding: no account, no license, and nothing recorded yet. A phone
+            // that already has its data (an update, a restore) never does: Compte invites it instead.
+            LaunchedEffect(Unit) {
+                val fresh = withContext(Dispatchers.IO) {
+                    val account = authRepository.get().state.first { it != com.distrigo.app.data.auth.AccountState.Loading }
+                    account == com.distrigo.app.data.auth.AccountState.SignedOut &&
+                        !licenseManager.get().evaluate().holdsLicense &&
+                        !database.get().appMetaDao().hasBusinessData()
+                }
+                if (fresh && onboarding == null) {
+                    onboardingRequired = true
+                    openOnboarding(com.distrigo.app.ui.onboarding.OnboardingStart.WELCOME)
                 }
             }
             DistriGoTheme { ProvideMoneyFormat(moneyFormat) { androidx.compose.runtime.CompositionLocalProvider(
-                com.distrigo.app.ui.designsystem.LocalAccountInitials provides accountInitials
+                com.distrigo.app.ui.designsystem.LocalAccountInitials provides accountInitials,
+                com.distrigo.app.ui.designsystem.LocalAccountByCode provides accountByCode
             ) {
                 // imePadding here is what lifts every form in the app: the root shrinks by the
                 // keyboard's height, so each scroll container inside shrinks with it, and Compose's
@@ -398,7 +431,7 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.Compte.route) {
                                 com.distrigo.app.ui.navigation.AccountNavHost(
                                     onBack           = { navController.popBackStack() },
-                                    onPreviewOnboarding = { onboardingPreview = true }
+                                    onOpenOnboarding = openOnboarding
                                 )
                             }
 
@@ -531,10 +564,18 @@ class MainActivity : ComponentActivity() {
                     } // closes Scaffold-wrapping gesture Box
             }
 
-            // The onboarding's welcome and feature pages, previewed from Compte. A sibling of the root rather
-            // than inside it, so it escapes the status-bar padding and its photo runs edge to edge.
-            if (onboardingPreview) {
-                com.distrigo.app.ui.onboarding.OnboardingPreview(onClose = { onboardingPreview = false })
+            // The onboarding: a sibling of the root rather than inside it, so it escapes the status-bar padding
+            // and the welcome photo runs edge to edge.
+            onboarding?.let { start ->
+                com.distrigo.app.ui.onboarding.Onboarding(
+                    viewModel  = onboardingViewModel,
+                    start      = start,
+                    onFinished = {
+                        onboarding = null
+                        onboardingRequired = false
+                    },
+                    onClose    = { if (onboardingRequired) finish() else onboarding = null }
+                )
             }
         } } }
     }

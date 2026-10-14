@@ -31,12 +31,31 @@ interface DeviceFacts {
 /** A phone already holding the business's seat, as the server lists them on seat_taken. */
 data class SeatHolder(val id: String, val model: String?, val lastSeenAt: Instant?)
 
+/**
+ * What the user typed that decides the business, sent with the activation (docs/activation_codes.md):
+ * an activation code, or a new e-mail account's business. All optional; the server ignores what it doesn't need.
+ */
+data class ActivationDetails(
+    /** As typed: the server reads it leniently (case, dashes, O for 0). */
+    val activationCode: String? = null,
+    val businessName: String? = null,
+    val contactPhone: String? = null,
+    /** One of the server's codes: alimentation, boissons, frais, hygiene, droguerie, materiaux, pharmacie, autre. */
+    val activity: String? = null,
+    /** 1, 2-5, 6-10 or 10+. */
+    val salesReps: String? = null,
+)
+
 /** Where an activation stands: done, or what the user must answer next. */
 sealed interface ActivationStep {
-    data class Activated(val trial: Boolean?, val reduced: Boolean) : ActivationStep
+    /** [code]: what an activation code did — created, joined or renewed — or null without one. */
+    data class Activated(val trial: Boolean?, val reduced: Boolean, val code: String? = null) : ActivationStep
 
     /** The account has no business yet: its name, then [ActivationRequest] again. */
     data class NeedsBusinessName(val request: ActivationRequest) : ActivationStep
+
+    /** A valid code that names no company: its name and a phone number, then [ActivationRequest] again. */
+    data class CodeNeedsBusiness(val request: ActivationRequest) : ActivationStep
 
     /** The business's seat is taken: transfer it here, or not. */
     data class SeatTaken(val request: ActivationRequest, val holders: List<SeatHolder>) : ActivationStep
@@ -54,6 +73,13 @@ sealed interface ActivationStep {
  * answer but "activated", so the same request serves the user's answer within the nonce's five minutes.
  */
 class ActivationRequest internal constructor(internal val body: JsonObject)
+
+/** What a code bought for the account's business (code-redeem). */
+sealed interface Renewal {
+    /** The days were added, and the phone holds the license they pay for. */
+    data object Renewed : Renewal
+    data class Failed(val message: String) : Renewal
+}
 
 sealed interface CheckIn {
     data object Done : CheckIn
@@ -79,10 +105,11 @@ class LicenseClient(
     private val device: DeviceFacts,
 ) {
     /**
-     * Starts activating this phone: a nonce, a new device key attested with it, the request. Refused while the
-     * phone holds a license — making a new key would invalidate it.
+     * Starts activating this phone: a nonce, a new device key attested with it, the request, with [details]
+     * when the user gave a code or a new business. Refused while the phone holds a license — making a new key
+     * would invalidate it.
      */
-    suspend fun startActivation(): ActivationStep {
+    suspend fun startActivation(details: ActivationDetails = ActivationDetails()): ActivationStep {
         val state = withContext(Dispatchers.IO) { license.evaluate() }
         if (state.holdsLicense) return ActivationStep.AlreadyActivated
         val nonce = when (val reply = call("license-nonce", JsonObject().apply { addProperty("purpose", "activate") })) {
@@ -101,24 +128,60 @@ class LicenseClient(
                 addProperty("model", device.model)
                 addProperty("os_version", device.osVersion)
                 addProperty("app_version", device.appVersion)
+                details.activationCode?.let { addProperty("activation_code", it) }
+                details.businessName?.let { addProperty("business_name", it) }
+                details.contactPhone?.let { addProperty("contact_phone", it) }
+                details.activity?.let { addProperty("business_activity", it) }
+                details.salesReps?.let { addProperty("business_sales_reps", it) }
             }
         }
         return send(ActivationRequest(body))
     }
 
-    /** The user's answer: the business's name, or yes to the transfer (of [replaceDevice], or the oldest). */
+    /**
+     * The user's answer: the business's name (with [contactPhone] for a code's company), or yes to the transfer
+     * (of [replaceDevice], or the oldest).
+     */
     suspend fun continueActivation(
         request: ActivationRequest,
         businessName: String? = null,
         transfer: Boolean = false,
         replaceDevice: String? = null,
+        contactPhone: String? = null,
     ): ActivationStep {
         val body = request.body.deepCopy().apply {
             businessName?.let { addProperty("business_name", it) }
+            contactPhone?.let { addProperty("contact_phone", it) }
             if (transfer) addProperty("transfer", true)
             replaceDevice?.let { addProperty("replace_device", it) }
         }
         return send(ActivationRequest(body))
+    }
+
+    /**
+     * « Saisir un code » (docs/activation_codes.md): a new code's days for the account's business. Then a check-in,
+     * so the phone holds the license they pay for at once, not at its next check-in.
+     */
+    suspend fun renewWithCode(code: String): Renewal {
+        val reply = when (val answer = call("code-redeem", JsonObject().apply { addProperty("code", code) })) {
+            is Reply.Answer -> answer.body
+            is Reply.Refused -> return Renewal.Failed(answer.message)
+        }
+        return when (reply.text("status")) {
+            "renewed" -> when (val check = checkIn()) {
+                CheckIn.Done -> Renewal.Renewed
+                // Paid for all the same: the next check-in brings it
+                is CheckIn.Failed -> Renewal.Failed("Le code a bien été ajouté, mais la licence n'a pas pu être mise à jour : ${check.message}")
+                CheckIn.Revoked, CheckIn.NotActivated -> Renewal.Failed("Le code a bien été ajouté. Activez maintenant ce téléphone.")
+            }
+            "bad_code" -> Renewal.Failed("Ce code n'existe pas ou n'est plus valable.")
+            "code_expired" -> Renewal.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur.")
+            "code_used" -> Renewal.Failed("Ce code a déjà été utilisé.")
+            "too_many_attempts" -> Renewal.Failed(tooManyAttempts(reply.text("retry_at")?.let(::instant)))
+            "no_business" -> Renewal.Failed("Ce compte n'a pas encore d'entreprise à renouveler.")
+            "choose_business" -> Renewal.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
+            else -> Renewal.Failed(SERVER_MESSAGE)
+        }
     }
 
     private suspend fun send(request: ActivationRequest): ActivationStep {
@@ -135,12 +198,18 @@ class LicenseClient(
                         ActivationStep.Activated(
                             trial = reply.get("trial")?.takeIf { it.isJsonPrimitive }?.asBoolean,
                             reduced = reply.text("tier") == "reduced",
+                            code = reply.text("code"),
                         )
                     }
                     is LicenseCheck.Rejected -> ActivationStep.Failed("La licence reçue n'a pas pu être vérifiée (${check.why}).")
                 }
             }
             "no_business" -> ActivationStep.NeedsBusinessName(request)
+            "code_needs_business" -> ActivationStep.CodeNeedsBusiness(request)
+            "bad_code" -> ActivationStep.Failed("Ce code n'existe pas ou n'est plus valable.")
+            "code_expired" -> ActivationStep.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur.")
+            "code_used" -> ActivationStep.Failed("Ce code a déjà servi à un renouvellement.")
+            "too_many_attempts" -> ActivationStep.Failed(tooManyAttempts(reply.text("retry_at")?.let(::instant)))
             "seat_taken" -> ActivationStep.SeatTaken(request, holders(reply.getAsJsonArray("devices")))
             "transfer_limit" -> ActivationStep.TransferLimit(reply.text("next_at")?.let(::instant))
             "choose_business" -> ActivationStep.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
@@ -277,6 +346,15 @@ class LicenseClient(
         }.orEmpty()
 
     private fun instant(text: String): Instant? = runCatching { java.time.OffsetDateTime.parse(text).toInstant() }.getOrNull()
+
+    /** Too many codes refused within the hour: when the phone may try again, in its own time. */
+    private fun tooManyAttempts(retryAt: Instant?): String =
+        if (retryAt == null) {
+            "Trop d'essais. Réessayez dans une heure."
+        } else {
+            "Trop d'essais. Réessayez après " +
+                java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(retryAt.atZone(java.time.ZoneId.systemDefault())) + "."
+        }
 
     private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString
 

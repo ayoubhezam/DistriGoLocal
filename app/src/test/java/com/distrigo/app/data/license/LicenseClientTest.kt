@@ -20,6 +20,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 import org.junit.rules.TemporaryFolder
 import java.time.Instant
 import java.util.Base64
@@ -206,5 +208,76 @@ class LicenseClientTest {
         server.shutdown()
         assertEquals(ActivationStep.Failed(AuthError.NETWORK.message), client.startActivation())
         assertNull(keys.challenge)
+    }
+
+    @Test
+    fun `a code goes with the activation, the company follows when it names none, and the answer says what the code did`() = runBlocking {
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"code_needs_business"}"""))
+        val asked = client.startActivation(ActivationDetails(activationCode = "7kq4 m2xp 9htd")) as ActivationStep.CodeNeedsBusiness
+        server.takeRequest()
+        assertEquals("7kq4 m2xp 9htd", server.takeRequest().json.get("activation_code").asString)
+
+        server.enqueue(jsonResponse(200, """{"status":"activated","license":"${Golden.token("valid")}","device_id":"d-1","business_id":"b",
+            "trial":false,"tier":"normal","reasons":[],"code":"created"}"""))
+        val done = client.continueActivation(asked.request, businessName = "Épicerie Benali", contactPhone = "0661 23 45 67")
+        assertEquals(ActivationStep.Activated(trial = false, reduced = false, code = "created"), done)
+        val second = server.takeRequest().json
+        assertEquals("7kq4 m2xp 9htd", second.get("activation_code").asString)
+        assertEquals("Épicerie Benali", second.get("business_name").asString)
+        assertEquals("0661 23 45 67", second.get("contact_phone").asString)
+        assertTrue(license.state.value is LicenseState.Active)
+    }
+
+    @Test
+    fun `a new account's business goes with its first activation`() = runBlocking {
+        server.enqueue(nonceReply())
+        server.enqueue(activated())
+        client.startActivation(ActivationDetails(businessName = "Grossiste F7", contactPhone = "0550 11 22 33", activity = "boissons", salesReps = "2-5"))
+        server.takeRequest()
+        val body = server.takeRequest().json
+        assertEquals("Grossiste F7", body.get("business_name").asString)
+        assertEquals("0550 11 22 33", body.get("contact_phone").asString)
+        assertEquals("boissons", body.get("business_activity").asString)
+        assertEquals("2-5", body.get("business_sales_reps").asString)
+        assertNull(body.get("activation_code"))
+    }
+
+    @Test
+    fun `a refused code says why, and when to try again`() = runBlocking {
+        val retry = "2026-10-14T21:38:00+00:00"
+        val at = DateTimeFormatter.ofPattern("HH:mm").format(Instant.parse("2026-10-14T21:38:00Z").atZone(ZoneId.systemDefault()))
+        val cases = listOf(
+            """{"status":"bad_code"}""" to ActivationStep.Failed("Ce code n'existe pas ou n'est plus valable."),
+            """{"status":"code_expired"}""" to ActivationStep.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur."),
+            """{"status":"code_used"}""" to ActivationStep.Failed("Ce code a déjà servi à un renouvellement."),
+            """{"status":"too_many_attempts","retry_at":"$retry"}""" to ActivationStep.Failed("Trop d'essais. Réessayez après $at."),
+        )
+        for ((answer, expected) in cases) {
+            server.enqueue(nonceReply())
+            server.enqueue(jsonResponse(200, answer))
+            assertEquals(answer, expected, client.startActivation(ActivationDetails(activationCode = "7KQ4M2XP9HTD")))
+        }
+    }
+
+    @Test
+    fun `a code renews the business, then a check-in brings the license it pays for`() = runBlocking {
+        keys.hash = Golden.deviceHash
+        license.install(Golden.token("valid"))
+        phone.passTo(Golden.lateIssuedAt + 2 * SECOND)
+
+        server.enqueue(jsonResponse(200, """{"status":"renewed","business_id":"b","valid_to":"2027-04-14","plan":"solo","days":182}"""))
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"ok","license":"${Golden.token("late")}"}"""))
+        assertEquals(Renewal.Renewed, client.renewWithCode("7KQ4-M2XP-9HTD"))
+        val redeem = server.takeRequest()
+        assertEquals("/functions/v1/code-redeem", redeem.path)
+        assertEquals("7KQ4-M2XP-9HTD", redeem.json.get("code").asString)
+        assertEquals("/functions/v1/license-nonce", server.takeRequest().path)
+        assertEquals("/functions/v1/license-refresh", server.takeRequest().path)
+        assertEquals(8L, (license.state.value as LicenseState.Judged).license.seq)
+
+        server.enqueue(jsonResponse(200, """{"status":"code_used"}"""))
+        assertEquals(Renewal.Failed("Ce code a déjà été utilisé."), client.renewWithCode("7KQ4-M2XP-9HTD"))
     }
 }

@@ -30,10 +30,13 @@ data class AuthSession(
     val userId: String,
     val email: String?,
     val displayName: String?,
-    /** "email" or "google". */
+    /** "email", "google", or "anonymous" for an account made by an activation code. */
     val provider: String,
 ) {
     override fun toString(): String = "AuthSession(user=$userId, provider=$provider)"
+
+    /** Made by an activation code: no e-mail, so the code is how it comes back (docs/activation_codes.md). */
+    val isAnonymous: Boolean get() = provider == ANONYMOUS
 
     /** Two letters for the avatar: from the name, or else the e-mail. */
     val initials: String?
@@ -98,9 +101,15 @@ data class AuthSession(
                 userId = user.text("id") ?: return null,
                 email = user.text("email"),
                 displayName = metadata?.text("full_name") ?: metadata?.text("name"),
-                provider = appMetadata?.text("provider") ?: "email",
+                provider = if (user.get("is_anonymous")?.takeIf { it.isJsonPrimitive }?.asBoolean == true) {
+                    ANONYMOUS
+                } else {
+                    appMetadata?.text("provider") ?: "email"
+                },
             )
         }
+
+        const val ANONYMOUS = "anonymous"
 
         private fun JsonObject.text(key: String): String? =
             get(key)?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() }

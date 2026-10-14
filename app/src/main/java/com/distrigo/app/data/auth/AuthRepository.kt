@@ -56,6 +56,9 @@ class AuthRepository(
     suspend fun signInWithGoogle(idToken: String, rawNonce: String): AuthOutcome =
         keep(api.signInWithGoogle(idToken, rawNonce))
 
+    /** An account without an e-mail, for an activation code. */
+    suspend fun signInAnonymously(): AuthOutcome = keep(api.signInAnonymously())
+
     /**
      * An access token good for at least a minute: the stored one, or a fresh one. [forceRefresh] when the server
      * has just refused the stored one. A session the server no longer knows signs the phone out.

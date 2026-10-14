@@ -47,7 +47,13 @@ private val WaveHeight = 64.dp
 
 /** Connexion, as in the mockup: the logo, e-mail and password, Google, and the way to sign up. */
 @Composable
-internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreateAccount: () -> Unit, onCode: () -> Unit) {
+internal fun SignInPage(
+    actions: OnboardingActions,
+    status: OnboardingStatus,
+    onBack: () -> Unit,
+    onCreateAccount: () -> Unit,
+    onCode: () -> Unit,
+) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     // Errors wait for the first try, so an untouched form isn't already red
@@ -56,7 +62,7 @@ internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreate
     val passwordError = if (tried && password.isEmpty()) "Saisissez votre mot de passe" else null
     val submit = {
         tried = true
-        if (isEmail(email) && password.isNotEmpty()) actions.signIn(email.trim(), password)
+        if (isEmail(email) && password.isNotEmpty() && !status.busy) actions.signIn(email.trim(), password)
     }
 
     Box(Modifier.fillMaxSize().background(DsBrand.Mist)) {
@@ -114,7 +120,11 @@ internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreate
                             textDecoration = TextDecoration.Underline
                         )
                     }
-                    BrandButton("Se connecter", onClick = submit)
+                    status.error?.let {
+                        FormError(it)
+                        Spacer(Modifier.height(DsSpacing.md))
+                    }
+                    BrandButton("Se connecter", onClick = submit, busy = status.busy)
                     // The ways in without an e-mail and password
                     OrDivider()
                     CodeButton(onCode)

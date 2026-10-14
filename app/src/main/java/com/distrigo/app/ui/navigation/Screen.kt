@@ -44,8 +44,6 @@ sealed class Screen(val route: String) {
     data object Compte        : Screen("compte")
     data object AccountGraph  : Screen("account_graph")
     data object AccountHome   : Screen("account_home")
-    data object AccountSignIn : Screen("account_sign_in")
-    data object AccountSignUp : Screen("account_sign_up")
 
     data object SettingsGraph      : Screen("settings_graph")
     data object SettingsHome       : Screen("settings_home")

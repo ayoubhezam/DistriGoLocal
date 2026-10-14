@@ -3,7 +3,6 @@ package com.distrigo.app.ui.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.auth.AccountState
-import com.distrigo.app.data.auth.AuthOutcome
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.license.ActivationRequest
 import com.distrigo.app.data.license.ActivationStep
@@ -21,6 +20,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,6 +77,12 @@ class AccountViewModel @Inject constructor(
             auth.restore()
             license.evaluate()
         }
+        // Someone signed in (in the onboarding, above Compte): « Vous êtes déconnecté. » and its kind no longer apply.
+        viewModelScope.launch {
+            auth.state.map { it is AccountState.SignedIn }.distinctUntilChanged().drop(1).collect { signedIn ->
+                if (signedIn) dismissMessage()
+            }
+        }
     }
 
     fun dismissDialog() = local.value.let { local.value = it.copy(dialog = null) }
@@ -85,39 +93,10 @@ class AccountViewModel @Inject constructor(
         local.value = local.value.copy(dialog = dialog)
     }
 
-    // ── Signing in ──
-
-    fun signIn(email: String, password: String, onSignedIn: () -> Unit) =
-        authenticate(onSignedIn) { auth.signIn(email, password) }
-
-    fun signUp(name: String, email: String, password: String, onSignedIn: () -> Unit) =
-        authenticate(onSignedIn) { auth.signUp(email, password, name) }
-
-    fun signInWithGoogle(idToken: String, rawNonce: String, onSignedIn: () -> Unit) =
-        authenticate(onSignedIn) { auth.signInWithGoogle(idToken, rawNonce) }
+    // Signing in and up is the onboarding's (ui/onboarding/OnboardingViewModel).
 
     fun showError(text: String) {
         local.value = local.value.copy(message = AccountMessage(text, isError = true))
-    }
-
-    private fun authenticate(onSignedIn: () -> Unit, attempt: suspend () -> AuthOutcome) {
-        if (local.value.work != null) return
-        local.value = local.value.copy(work = AccountWork.SIGNING_IN, message = null)
-        viewModelScope.launch {
-            val outcome = attempt()
-            local.value = local.value.copy(work = null)
-            when (outcome) {
-                is AuthOutcome.SignedIn -> {
-                    onSignedIn()
-                    // A phone without a license activates at once: the reason to sign in at all.
-                    if (!license.state.value.holdsLicense) activate()
-                }
-                is AuthOutcome.ConfirmEmail -> local.value = local.value.copy(
-                    message = AccountMessage("Compte créé. Ouvrez le lien envoyé à ${outcome.email}, puis connectez-vous.", isError = false),
-                )
-                is AuthOutcome.Failed -> showError(outcome.error.message)
-            }
-        }
     }
 
     // ── The license ──
@@ -144,6 +123,8 @@ class AccountViewModel @Inject constructor(
     private suspend fun follow(step: ActivationStep) {
         when (step) {
             is ActivationStep.Activated -> ask(AccountDialog.Activated(step.trial, step.reduced))
+            // Only an activation code asks this, and Compte sends none
+            is ActivationStep.CodeNeedsBusiness -> showError("Activez ce téléphone avec votre code depuis l'écran d'accueil.")
             is ActivationStep.NeedsBusinessName -> {
                 val suggestion = withContext(Dispatchers.IO) { runCatching { businessSettings.get().name }.getOrDefault("") }
                 ask(AccountDialog.BusinessName(step.request, suggestion))

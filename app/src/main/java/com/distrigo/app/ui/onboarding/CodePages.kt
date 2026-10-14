@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Apartment
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Icon
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 
 /** An activation code's length, without its dashes. */
@@ -90,6 +92,25 @@ internal fun normalizeCode(typed: String): String =
 /** XXXX-XXXX-XXXX, as printed on the code. */
 internal fun formatCode(code: String): String = code.chunked(4).joinToString("-")
 
+/** Luhn mod 32, as the server's private.code_check_char: the check character that follows [payload]. */
+internal fun codeCheckChar(payload: String): Char {
+    var factor = 2
+    var sum = 0
+    for (i in payload.indices.reversed()) {
+        val addend = factor * CODE_ALPHABET.indexOf(payload[i])
+        sum += addend / 32 + addend % 32
+        factor = 3 - factor
+    }
+    return CODE_ALPHABET[(32 - sum % 32) % 32]
+}
+
+/**
+ * Twelve characters of the alphabet, the last checking the first eleven: a typo shows here, before the
+ * server is asked, so it never counts as a refused attempt (docs/activation_codes.md, decision 5).
+ */
+internal fun isWellFormedCode(code: String): Boolean =
+    code.length == CODE_LENGTH && code.all { it in CODE_ALPHABET } && codeCheckChar(code.take(CODE_LENGTH - 1)) == code.last()
+
 /** Shows the dashes without storing them, so typing and deleting never trip over one. */
 private object CodeDashes : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
@@ -116,7 +137,7 @@ internal fun CodePages(
     var code by rememberSaveable { mutableStateOf("") }
     var step by rememberSaveable { mutableIntStateOf(1) }
     // The server asked for the company: the code was right
-    LaunchedEffect(status.codeNeedsBusiness) { if (status.codeNeedsBusiness) step = 2 }
+    LaunchedEffect(status.needsBusiness) { if (status.needsBusiness) step = 2 }
     val backToCode = {
         actions.resetCode()
         step = 1
@@ -167,12 +188,13 @@ internal fun CodePages(
 
 @Composable
 private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: OnboardingStatus, onActivate: () -> Unit) {
-    // A short code is caught here; whether it exists is the server's to say
+    // A short or mistyped code is caught here; whether it exists is the server's to say
     var tried by rememberSaveable { mutableStateOf(false) }
     val tooShort = tried && code.length < CODE_LENGTH
+    val typo = tried && code.length == CODE_LENGTH && !isWellFormedCode(code)
     val submit = {
         tried = true
-        if (code.length == CODE_LENGTH && !status.busy) onActivate()
+        if (isWellFormedCode(code) && !status.busy) onActivate()
     }
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(DsSpacing.md))
@@ -185,6 +207,10 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
         Spacer(Modifier.height(DsSpacing.lg))
     }
     FormTitle("Activer avec un code", "Saisissez le code reçu de DistriGo ou de votre revendeur.")
+    if (status.codeRequired) {
+        Spacer(Modifier.height(DsSpacing.md))
+        Notice("L'essai gratuit a déjà été utilisé sur ce téléphone : activez DistriGo avec un code.")
+    }
     Spacer(Modifier.height(DsSpacing.xl))
     CodeField(
         code     = code,
@@ -193,6 +219,7 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
         error    = when {
             status.error != null -> status.error
             tooShort -> "Le code contient $CODE_LENGTH caractères"
+            typo -> "Ce code contient une faute de frappe. Vérifiez chaque caractère."
             else -> null
         },
         onDone   = submit
@@ -269,19 +296,22 @@ private fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolean
     }
 }
 
-/** A valid code that carries no company: who it belongs to, in two fields, then the activation. */
+/**
+ * « Votre entreprise »: a valid [code] that carries no company, or (code null) an account without a business,
+ * signed in on this phone. Who it belongs to, in two fields, then the activation.
+ */
 @Composable
-private fun CodeBusinessStep(code: String, status: OnboardingStatus, actions: OnboardingActions) {
+private fun CodeBusinessStep(code: String?, status: OnboardingStatus, actions: OnboardingActions) {
     var company by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var tried by rememberSaveable { mutableStateOf(false) }
     val submit = {
         tried = true
-        if (company.isNotBlank() && isPhone(phone) && !status.busy) actions.completeCodeBusiness(company.trim(), phone.trim())
+        if (company.isNotBlank() && isPhone(phone) && !status.busy) actions.completeBusiness(company.trim(), phone.trim())
     }
 
     // The code was accepted: say so before asking anything
-    Row(
+    if (code != null) Row(
         Modifier
             .fillMaxWidth()
             .clip(CircleShape)
@@ -299,8 +329,11 @@ private fun CodeBusinessStep(code: String, status: OnboardingStatus, actions: On
             color      = DsBrand.Ink
         )
     }
-    Spacer(Modifier.height(DsSpacing.lg))
-    FormTitle("Votre entreprise", "Une dernière étape : à qui appartient ce code ?")
+    if (code != null) Spacer(Modifier.height(DsSpacing.lg))
+    FormTitle(
+        "Votre entreprise",
+        if (code != null) "Une dernière étape : à qui appartient ce code ?" else "Une dernière étape avant d'activer DistriGo sur ce téléphone."
+    )
     Spacer(Modifier.height(DsSpacing.xl))
     BrandTextField(
         value          = company,
@@ -329,4 +362,37 @@ private fun CodeBusinessStep(code: String, status: OnboardingStatus, actions: On
     Spacer(Modifier.height(DsSpacing.xxl))
     BrandButton("Activer DistriGo", onClick = submit, busy = status.busy)
     Spacer(Modifier.height(DsSpacing.lg))
+}
+
+/** « Votre entreprise » on its own: an account without a business, after Connexion. */
+@Composable
+internal fun BusinessPage(actions: OnboardingActions, status: OnboardingStatus, onBack: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(DsBrand.Mist)) {
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+            Column(Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight)) {
+                FormTopBar(onBack = onBack)
+                Column(Modifier.padding(horizontal = FormGutter)) {
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    CodeBusinessStep(code = null, status = status, actions = actions)
+                }
+            }
+        }
+    }
+}
+
+/** A note in the brand's orange, above a form: why the user is here. */
+@Composable
+private fun Notice(text: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .background(DsBrand.Orange.copy(alpha = 0.14f))
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm + 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = DsBrand.OrangeDeep, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(text, fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, color = DsBrand.Ink)
+    }
 }

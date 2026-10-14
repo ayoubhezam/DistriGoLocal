@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Visibility
@@ -389,5 +390,22 @@ internal fun GoogleButton(onClick: () -> Unit) {
         Image(painterResource(R.drawable.ic_google_g), contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.md))
         Text("Se connecter avec Google", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+    }
+}
+
+/** Why the last attempt failed, as the server or the network said it: above the form's button. */
+@Composable
+internal fun FormError(text: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .background(DsColors.DangerLight)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm + 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(text, fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, color = DsColors.Danger)
     }
 }
