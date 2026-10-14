@@ -105,8 +105,9 @@ internal fun CardHeader(icon: ImageVector, title: String, trailing: (@Composable
 
 /**
  * A detail: its icon, its label, its value at the end, on two lines when long. [onClick] makes it a row to change,
- * with its chevron; [enabled] false holds it while something else runs. A [value] of null reads « À renseigner »
- * (to change) or « — »; [badge] shows in its place (the subscription's status).
+ * with its chevron; [enabled] false holds it while something else runs. A [value] of null reads « Ajouter » on a
+ * row to change (short enough beside « Nombre de commerciaux », where « À renseigner » broke in two), else « — »;
+ * [badge] shows in its place (the subscription's status).
  */
 @Composable
 internal fun InfoRow(
@@ -133,7 +134,7 @@ internal fun InfoRow(
             badge()
         } else {
             Text(
-                value ?: if (onClick != null) "À renseigner" else "—",
+                value ?: if (onClick != null) "Ajouter" else "—",
                 fontFamily = DsBrand.Font,
                 fontWeight = if (value != null) FontWeight.Bold else FontWeight.SemiBold,
                 fontSize   = CompteSize.Body,
