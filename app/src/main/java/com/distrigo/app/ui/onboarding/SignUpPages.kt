@@ -76,8 +76,8 @@ internal val ACTIVITIES = listOf(
 /** « Nombre de commerciaux », in ranges: the plan a business will need follows from it. */
 internal val SALES_REPS = listOf("1", "2 à 5", "6 à 10", "Plus de 10")
 
-/** What the server stores for each label (public.businesses' checks); null for anything else. */
-internal fun activityCode(label: String): String? = mapOf(
+/** What the server stores for each label (public.businesses' checks). */
+private val ACTIVITY_CODES = mapOf(
     "Alimentation générale" to "alimentation",
     "Boissons" to "boissons",
     "Produits laitiers et frais" to "frais",
@@ -86,10 +86,16 @@ internal fun activityCode(label: String): String? = mapOf(
     "Matériaux et quincaillerie" to "materiaux",
     "Pharmacie et parapharmacie" to "pharmacie",
     "Autre" to "autre",
-)[label]
+)
+private val SALES_REPS_CODES = mapOf("1" to "1", "2 à 5" to "2-5", "6 à 10" to "6-10", "Plus de 10" to "10+")
 
-internal fun salesRepsCode(label: String): String? =
-    mapOf("1" to "1", "2 à 5" to "2-5", "6 à 10" to "6-10", "Plus de 10" to "10+")[label]
+/** The server's code for a label; null for anything else. */
+internal fun activityCode(label: String): String? = ACTIVITY_CODES[label]
+internal fun salesRepsCode(label: String): String? = SALES_REPS_CODES[label]
+
+/** The label for a code the server stores, for Compte; null for none or an unknown one. */
+internal fun activityLabel(code: String?): String? = ACTIVITY_CODES.entries.firstOrNull { it.value == code }?.key
+internal fun salesRepsLabel(code: String?): String? = SALES_REPS_CODES.entries.firstOrNull { it.value == code }?.key
 
 /** The two steps' fields, kept together so going back to step 1 and forward again loses nothing. */
 private class SignUpState(

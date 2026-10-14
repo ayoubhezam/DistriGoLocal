@@ -175,3 +175,42 @@ select * from private.codes_by_batch;
 - **Removed:** the old sign-in and sign-up screens, and the « Aperçu » button.
 | **C3** | Compte: « Votre code » (kept encrypted on the phone: only it can show the code again), « Saisir un code », « Ajouter une adresse e-mail », a sign-out warning for code accounts. | **done, 2026-10-14**: 523 unit tests pass, and the owner's test on the M34 passed (codes in batch « Test C3 — téléphone ») |
 | **C4** | A private page to create and export codes without Studio; a cleanup of anonymous accounts that never used a code. | later |
+| **C5** | Compte redesigned from the owner's mockup (2026-10-14), with « Informations de l'entreprise »: the business-profile function reads and changes the name, phone, activity and sales reps. | **done, 2026-10-14**: server live; app 526 unit tests, approved by the owner on the M34 |
+
+## C5: « Informations de l'entreprise » (business-profile)
+
+- **Migration `20261014180000_business_profile.sql`:**
+  - `private.business_of(user, business?)` finds the caller's business: the one named, or their only one. It
+    returns no_business, choose_business or not_member otherwise.
+  - `private.business_profile` reads the name, contact_phone, activity, sales_reps and can_edit (owner or
+    manager).
+  - `private.update_business_profile(user, changes jsonb, business?)` changes only the keys present; a null
+    or blank contact_phone clears it. Agents get not_allowed.
+  - The three functions are revoked from public, anon and authenticated by name: the private schema's
+    default privileges cannot take back the EXECUTE that PUBLIC gets on every new function (the privilege
+    test failed until this was added).
+- **POST business-profile:** `{}` reads; any of name, contact_phone, activity, sales_reps changes them. The
+  function refuses a blank or long name, an unknown activity or range, and a phone over 30 characters
+  (bad_request).
+- **Tests:** 63 SQL checks (7 new in `business_profile_test.sql`), 41 Node tests, deno check on all seven
+  functions.
+- **Live, 2026-10-14:**
+  - Deployed: db push, and the `business-profile` function only. The other six are unchanged in behaviour.
+  - Smoke test: GET → 405, no session → 401, app roles without EXECUTE.
+  - The owner's profile was read (« DISTRIGO », its phone, activity and reps still empty), and a change was
+    made in a rolled-back transaction.
+  - A throwaway anonymous account got no_business, and a blank name → 400. The account was deleted.
+- **The app, approved by the owner on the M34 (2026-10-14):**
+  - Compte is rebuilt in the onboarding's identity: Plus Jakarta Sans and DsBrand colours, white cards on Mist,
+    the wave at the end of the page. The top bar is pinned, with a hairline once the page scrolls.
+  - The cards follow the mockup: the business (name, phone, how the account signs in), « Votre code
+    d'activation », « Informations sur l'abonnement », « Informations de l'entreprise » (business-profile,
+    each row in its own dialog), « Gestion du compte ».
+  - One change from the mockup: the status pill sits in a « Statut » row. Next to the card's title it pushed
+    the title onto two lines at phone width.
+  - Long values take two lines. An e-mail sign-up on a phone that already had its trial reads « Essai déjà
+    utilisé ».
+  - Sizes come from `CompteSize`, measured against a reference app the owner chose. Plus Jakarta Sans is wide,
+    so the text sits one step below the usual sizes.
+  - The last profile read is kept on the phone (`BusinessProfileStore`), so Compte shows the business without
+    Internet.

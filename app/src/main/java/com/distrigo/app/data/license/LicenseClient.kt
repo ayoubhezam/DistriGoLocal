@@ -81,6 +81,27 @@ sealed interface Renewal {
     data class Failed(val message: String) : Renewal
 }
 
+/** « Informations de l'entreprise » (business-profile): what the server keeps about the account's business. */
+data class BusinessProfile(
+    val businessId: String,
+    val name: String,
+    val contactPhone: String?,
+    /** One of the server's codes, as in [ActivationDetails.activity]; null until given. */
+    val activity: String?,
+    /** 1, 2-5, 6-10 or 10+; null until given. */
+    val salesReps: String?,
+    /** Owners and managers change it; agents only read it. */
+    val canEdit: Boolean,
+)
+
+sealed interface ProfileAnswer {
+    data class Found(val profile: BusinessProfile) : ProfileAnswer
+
+    /** The account has no business yet: nothing to show. */
+    data object NoBusiness : ProfileAnswer
+    data class Failed(val message: String) : ProfileAnswer
+}
+
 sealed interface CheckIn {
     data object Done : CheckIn
 
@@ -181,6 +202,40 @@ class LicenseClient(
             "no_business" -> Renewal.Failed("Ce compte n'a pas encore d'entreprise à renouveler.")
             "choose_business" -> Renewal.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
             else -> Renewal.Failed(SERVER_MESSAGE)
+        }
+    }
+
+    /**
+     * The business's profile; with [changes] (the server's field names: name, contact_phone, activity, sales_reps;
+     * a null phone clears it), those are changed first. Either way the answer is the whole profile as it now is.
+     */
+    suspend fun businessProfile(changes: Map<String, String?> = emptyMap()): ProfileAnswer {
+        val body = JsonObject().apply { changes.forEach { (field, value) -> addProperty(field, value) } }
+        val reply = when (val answer = call("business-profile", body)) {
+            is Reply.Answer -> answer.body
+            is Reply.Refused -> return ProfileAnswer.Failed(answer.message)
+        }
+        return when (reply.text("status")) {
+            "ok" -> {
+                val businessId = reply.text("business_id")
+                val name = reply.text("name")
+                if (businessId == null || name == null) return ProfileAnswer.Failed(SERVER_MESSAGE)
+                ProfileAnswer.Found(
+                    BusinessProfile(
+                        businessId = businessId,
+                        name = name,
+                        contactPhone = reply.text("contact_phone"),
+                        activity = reply.text("activity"),
+                        salesReps = reply.text("sales_reps"),
+                        canEdit = reply.get("can_edit")?.takeIf { it.isJsonPrimitive }?.asBoolean == true,
+                    ),
+                )
+            }
+            "no_business" -> ProfileAnswer.NoBusiness
+            "not_allowed" -> ProfileAnswer.Failed("Seuls le gérant et les responsables peuvent modifier ces informations.")
+            "not_member" -> ProfileAnswer.Failed("Ce compte n'est plus membre de l'entreprise.")
+            "choose_business" -> ProfileAnswer.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
+            else -> ProfileAnswer.Failed(SERVER_MESSAGE)
         }
     }
 

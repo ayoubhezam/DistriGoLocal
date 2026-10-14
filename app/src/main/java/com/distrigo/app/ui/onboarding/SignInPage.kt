@@ -150,7 +150,7 @@ internal fun SignInPage(
 
 /** The mockup's blue wave rising from the bottom-left corner. */
 @Composable
-private fun BottomWave(modifier: Modifier) {
+internal fun BottomWave(modifier: Modifier) {
     Canvas(modifier.fillMaxWidth(0.62f).height(WaveHeight)) {
         val w = size.width
         val h = size.height

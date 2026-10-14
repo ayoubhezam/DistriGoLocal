@@ -7,6 +7,7 @@ import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.Backend
 import com.distrigo.app.data.auth.SessionStore
 import com.distrigo.app.data.license.AndroidDeviceFacts
+import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.DeviceKey
 import com.distrigo.app.data.license.DeviceKeys
 import com.distrigo.app.data.license.LicenseClient
@@ -42,6 +43,12 @@ object AccountModule {
     @Singleton
     fun provideActivationCodeStore(@ApplicationContext context: Context): ActivationCodeStore =
         ActivationCodeStore.forApp(context)
+
+    /** The last business profile the server gave, for Compte without Internet. */
+    @Provides
+    @Singleton
+    fun provideBusinessProfileStore(@ApplicationContext context: Context): BusinessProfileStore =
+        BusinessProfileStore.forApp(context)
 
     /** One device key for the license and its server calls, so both always see the same key. */
     @Provides

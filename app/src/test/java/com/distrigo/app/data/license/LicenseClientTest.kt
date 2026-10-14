@@ -280,4 +280,57 @@ class LicenseClientTest {
         server.enqueue(jsonResponse(200, """{"status":"code_used"}"""))
         assertEquals(Renewal.Failed("Ce code a déjà été utilisé."), client.renewWithCode("7KQ4-M2XP-9HTD"))
     }
+
+    // ── « Informations de l'entreprise » ──
+
+    @Test
+    fun `the business profile is read with an empty request, and changed field by field`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"status":"ok","business_id":"b","name":"DISTRIGO","contact_phone":null,
+            "activity":null,"sales_reps":null,"can_edit":true}"""))
+        assertEquals(
+            ProfileAnswer.Found(BusinessProfile("b", "DISTRIGO", contactPhone = null, activity = null, salesReps = null, canEdit = true)),
+            client.businessProfile(),
+        )
+        val read = server.takeRequest()
+        assertEquals("/functions/v1/business-profile", read.path)
+        assertEquals(0, read.json.size())
+
+        server.enqueue(jsonResponse(200, """{"status":"ok","business_id":"b","name":"DISTRIGO","contact_phone":null,
+            "activity":"boissons","sales_reps":"2-5","can_edit":true}"""))
+        val changed = client.businessProfile(mapOf("activity" to "boissons", "contact_phone" to null)) as ProfileAnswer.Found
+        assertEquals("boissons", changed.profile.activity)
+        assertEquals("2-5", changed.profile.salesReps)
+        val body = server.takeRequest().json
+        assertEquals("boissons", body.get("activity").asString)
+        assertTrue("a cleared phone is sent as null", body.has("contact_phone") && body.get("contact_phone").isJsonNull)
+    }
+
+    @Test
+    fun `the business profile's refusals read in French`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"status":"no_business"}"""))
+        assertEquals(ProfileAnswer.NoBusiness, client.businessProfile())
+        server.enqueue(jsonResponse(200, """{"status":"not_allowed"}"""))
+        assertEquals(
+            ProfileAnswer.Failed("Seuls le gérant et les responsables peuvent modifier ces informations."),
+            client.businessProfile(mapOf("name" to "X")),
+        )
+        server.enqueue(jsonResponse(400, """{"status":"bad_request","field":"name"}"""))
+        assertTrue(client.businessProfile(mapOf("name" to "")) is ProfileAnswer.Failed)
+        server.enqueue(jsonResponse(200, """{"status":"ok","business_id":"b"}"""))
+        assertTrue("a profile without its name is not one", client.businessProfile() is ProfileAnswer.Failed)
+    }
+
+    @Test
+    fun `the business profile is kept for the account it was read for`() {
+        val store = BusinessProfileStore(folder.root)
+        assertNull(store.load())
+        val profile = BusinessProfile("b", "Épicerie Benali", "0661 23 45 67", "alimentation", "1", canEdit = true)
+        store.save("u-1", profile)
+        assertEquals(BusinessProfileStore.Saved("u-1", profile), BusinessProfileStore(folder.root).load())
+        store.save("u-1", profile.copy(contactPhone = null, salesReps = null))
+        assertEquals(profile.copy(contactPhone = null, salesReps = null), BusinessProfileStore(folder.root).load()?.profile)
+        store.clear()
+        assertNull(store.saved.value)
+        assertNull(BusinessProfileStore(folder.root).load())
+    }
 }

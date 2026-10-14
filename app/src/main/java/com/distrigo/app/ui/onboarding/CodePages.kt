@@ -241,7 +241,7 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
 
 /** The code, large and spaced like on paper, with how many characters are still missing. */
 @Composable
-private fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolean, error: String?, onDone: () -> Unit) {
+internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolean, error: String?, onDone: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val codeStyle = TextStyle(

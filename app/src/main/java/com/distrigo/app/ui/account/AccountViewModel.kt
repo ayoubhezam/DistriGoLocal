@@ -9,19 +9,25 @@ import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.EmailUpdate
 import com.distrigo.app.data.license.ActivationRequest
 import com.distrigo.app.data.license.ActivationStep
+import com.distrigo.app.data.license.BusinessProfile
+import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.CheckIn
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
 import com.distrigo.app.data.license.LicenseState
+import com.distrigo.app.data.license.ProfileAnswer
 import com.distrigo.app.data.license.Renewal
 import com.distrigo.app.data.license.SeatHolder
 import com.distrigo.app.data.license.heldLicense
 import com.distrigo.app.data.repository.BusinessSettingsRepository
 import com.distrigo.app.ui.onboarding.CODE_LENGTH
 import com.distrigo.app.ui.onboarding.MIN_PASSWORD
+import com.distrigo.app.ui.onboarding.activityCode
 import com.distrigo.app.ui.onboarding.isEmail
+import com.distrigo.app.ui.onboarding.isPhone
 import com.distrigo.app.ui.onboarding.isWellFormedCode
 import com.distrigo.app.ui.onboarding.normalizeCode
+import com.distrigo.app.ui.onboarding.salesRepsCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +45,18 @@ import java.time.Instant
 import javax.inject.Inject
 
 /** What is under way, so the screens disable their buttons and show a spinner. */
-enum class AccountWork { SIGNING_IN, ACTIVATING, CHECKING_IN, RENEWING, ADDING_EMAIL, SIGNING_OUT, DELETING }
+enum class AccountWork { SIGNING_IN, ACTIVATING, CHECKING_IN, RENEWING, ADDING_EMAIL, SAVING_PROFILE, SIGNING_OUT, DELETING }
+
+/** « Informations de l'entreprise »: each row, under the name business-profile knows it by. */
+enum class ProfileField(val server: String, val title: String) {
+    NAME("name", "Nom de l'entreprise"),
+    PHONE("contact_phone", "Téléphone"),
+    ACTIVITY("activity", "Type d'activité"),
+    SALES_REPS("sales_reps", "Nombre de commerciaux"),
+}
+
+/** Where reading the business's profile stands. */
+enum class ProfileLoad { IDLE, LOADING, LOADED, NO_BUSINESS, FAILED }
 
 /** A question or an answer shown over the Compte screen. */
 sealed interface AccountDialog {
@@ -54,6 +71,9 @@ sealed interface AccountDialog {
 
     /** « Ajouter une adresse e-mail », for an account made by a code. */
     data class AddEmail(val error: String? = null) : AccountDialog
+
+    /** One row of « Informations de l'entreprise » changed. */
+    data class EditProfile(val field: ProfileField, val error: String? = null) : AccountDialog
     data object ConfirmSignOut : AccountDialog
     data object ConfirmDelete : AccountDialog
 }
@@ -68,6 +88,11 @@ data class AccountUiState(
     val message: AccountMessage? = null,
     /** This business's activation code, kept on the phone when it opened the business; null when unknown. */
     val activationCode: String? = null,
+    /** The business's profile: from the server, or the last one kept on the phone; null until known. */
+    val profile: BusinessProfile? = null,
+    val profileLoad: ProfileLoad = ProfileLoad.IDLE,
+    /** Why the profile could not be read, when nothing was kept either. */
+    val profileProblem: String? = null,
 )
 
 /**
@@ -81,17 +106,20 @@ class AccountViewModel @Inject constructor(
     private val client: LicenseClient,
     private val businessSettings: BusinessSettingsRepository,
     private val codes: ActivationCodeStore,
+    private val profiles: BusinessProfileStore,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(AccountUiState())
 
     val state: StateFlow<AccountUiState> =
-        combine(auth.state, license.state, local, codes.saved) { account, licenseState, ui, saved ->
+        combine(auth.state, license.state, local, codes.saved, profiles.saved) { account, licenseState, ui, saved, profile ->
+            val userId = (account as? AccountState.SignedIn)?.session?.userId
             ui.copy(
                 account = account,
                 license = licenseState,
                 // Only the business this phone holds: another account signed in here never sees it
-                activationCode = saved?.takeIf { account is AccountState.SignedIn && it.businessId == licenseState.heldLicense?.businessId }?.code,
+                activationCode = saved?.takeIf { userId != null && it.businessId == licenseState.heldLicense?.businessId }?.code,
+                profile = profile?.takeIf { userId != null && it.userId == userId }?.profile,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
@@ -101,11 +129,17 @@ class AccountViewModel @Inject constructor(
             auth.restore()
             license.evaluate()
             codes.load()
+            profiles.load()
+            withContext(Dispatchers.Main) { refreshProfile() }
         }
-        // Someone signed in (in the onboarding, above Compte): « Vous êtes déconnecté. » and its kind no longer apply.
+        // Someone signed in (in the onboarding, above Compte): « Vous êtes déconnecté. » and its kind no longer
+        // apply, and the profile is theirs to read
         viewModelScope.launch {
             auth.state.map { it is AccountState.SignedIn }.distinctUntilChanged().drop(1).collect { signedIn ->
-                if (signedIn) dismissMessage()
+                if (signedIn) {
+                    dismissMessage()
+                    refreshProfile()
+                }
             }
         }
     }
@@ -122,6 +156,59 @@ class AccountViewModel @Inject constructor(
 
     fun showError(text: String) {
         local.value = local.value.copy(message = AccountMessage(text, isError = true))
+    }
+
+    // ── The business ──
+
+    /** The profile from the server, kept for next time. Without Internet the one kept stays on screen. */
+    fun refreshProfile() {
+        val session = (auth.state.value as? AccountState.SignedIn)?.session ?: return
+        if (local.value.profileLoad == ProfileLoad.LOADING) return
+        local.value = local.value.copy(profileLoad = ProfileLoad.LOADING, profileProblem = null)
+        viewModelScope.launch {
+            when (val answer = client.businessProfile()) {
+                is ProfileAnswer.Found -> {
+                    withContext(Dispatchers.IO) { profiles.save(session.userId, answer.profile) }
+                    local.value = local.value.copy(profileLoad = ProfileLoad.LOADED)
+                }
+                ProfileAnswer.NoBusiness -> {
+                    withContext(Dispatchers.IO) { profiles.clear() }
+                    local.value = local.value.copy(profileLoad = ProfileLoad.NO_BUSINESS)
+                }
+                is ProfileAnswer.Failed -> local.value = local.value.copy(profileLoad = ProfileLoad.FAILED, profileProblem = answer.message)
+            }
+        }
+    }
+
+    /** One row of « Informations de l'entreprise »: checked here, sent, then kept as the server answers it. */
+    fun saveProfile(field: ProfileField, typed: String) {
+        val session = (auth.state.value as? AccountState.SignedIn)?.session ?: return
+        val text = typed.trim()
+        val value: String? = when (field) {
+            ProfileField.NAME -> when {
+                text.isEmpty() -> return ask(AccountDialog.EditProfile(field, "Indiquez le nom de l'entreprise."))
+                text.length > 120 -> return ask(AccountDialog.EditProfile(field, "120 caractères au plus."))
+                else -> text
+            }
+            // Empty clears it
+            ProfileField.PHONE -> when {
+                text.isEmpty() -> null
+                !isPhone(text) -> return ask(AccountDialog.EditProfile(field, "Numéro de téléphone invalide."))
+                else -> text
+            }
+            ProfileField.ACTIVITY -> activityCode(text) ?: return ask(AccountDialog.EditProfile(field, "Choisissez une activité."))
+            ProfileField.SALES_REPS -> salesRepsCode(text) ?: return ask(AccountDialog.EditProfile(field, "Choisissez un nombre."))
+        }
+        work(AccountWork.SAVING_PROFILE, keepDialog = true) {
+            when (val answer = client.businessProfile(mapOf(field.server to value))) {
+                is ProfileAnswer.Found -> {
+                    withContext(Dispatchers.IO) { profiles.save(session.userId, answer.profile) }
+                    local.value = local.value.copy(dialog = null, profileLoad = ProfileLoad.LOADED, profileProblem = null)
+                }
+                ProfileAnswer.NoBusiness -> ask(AccountDialog.EditProfile(field, "Ce compte n'a pas encore d'entreprise."))
+                is ProfileAnswer.Failed -> ask(AccountDialog.EditProfile(field, answer.message))
+            }
+        }
     }
 
     // ── The license ──
@@ -189,7 +276,11 @@ class AccountViewModel @Inject constructor(
 
     private suspend fun follow(step: ActivationStep) {
         when (step) {
-            is ActivationStep.Activated -> ask(AccountDialog.Activated(step.trial, step.reduced))
+            is ActivationStep.Activated -> {
+                ask(AccountDialog.Activated(step.trial, step.reduced))
+                // A business may have been made for it
+                refreshProfile()
+            }
             // Only an activation code asks this, and Compte sends none
             is ActivationStep.CodeNeedsBusiness -> showError("Activez ce téléphone avec votre code depuis l'écran d'accueil.")
             is ActivationStep.NeedsBusinessName -> {
@@ -219,7 +310,12 @@ class AccountViewModel @Inject constructor(
     fun deleteAccount() = work(AccountWork.DELETING) {
         val problem = client.deleteAccount()
         // Its business is gone with it: the code opens nothing any more
-        if (problem == null) withContext(Dispatchers.IO) { codes.clear() }
+        if (problem == null) {
+            withContext(Dispatchers.IO) {
+                codes.clear()
+                profiles.clear()
+            }
+        }
         local.value = local.value.copy(
             message = if (problem == null) AccountMessage("Votre compte a été supprimé.", isError = false)
             else AccountMessage(problem, isError = true),
