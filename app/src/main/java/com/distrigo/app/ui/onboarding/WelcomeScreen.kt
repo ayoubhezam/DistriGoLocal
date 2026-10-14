@@ -48,6 +48,9 @@ import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 
+/** The logo's tagline, set as text under it (the logo files don't carry it). */
+internal const val BRAND_TAGLINE = "GÉREZ. DISTRIBUEZ. DÉVELOPPEZ."
+
 // The truck's middle in welcome_hero.webp, as a fraction of the photo's height
 private const val TRUCK_FOCUS_Y = 0.72f
 // brand_logo_on_dark.webp's height over its width
@@ -120,7 +123,7 @@ private fun HeroPhoto(modifier: Modifier) {
             )
             Spacer(Modifier.height(TaglineGap))
             Text(
-                "GÉREZ. DISTRIBUEZ. DÉVELOPPEZ.",
+                BRAND_TAGLINE,
                 fontFamily    = DsBrand.Font,
                 fontWeight    = FontWeight.Bold,
                 fontSize      = 11.sp,
