@@ -32,7 +32,7 @@ internal val ONBOARDING_PAGE_COUNT = 1 + FEATURE_PAGES.size
  * to sign-in and back, and the system bars can follow it.
  */
 @Composable
-internal fun OnboardingCarousel(pager: PagerState, onSignIn: () -> Unit, onCreateAccount: () -> Unit) {
+internal fun OnboardingCarousel(pager: PagerState, onSignIn: () -> Unit, onCreateAccount: () -> Unit, onCode: () -> Unit) {
     val scope = rememberCoroutineScope()
     val next: () -> Unit = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }
 
@@ -43,7 +43,7 @@ internal fun OnboardingCarousel(pager: PagerState, onSignIn: () -> Unit, onCreat
 
     HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
         if (page == 0) {
-            WelcomeScreen(onStart = next, onSignIn = onSignIn)
+            WelcomeScreen(onStart = next, onSignIn = onSignIn, onCode = onCode)
         } else {
             FeaturePage(FEATURE_PAGES[page - 1], page = page, onSkip = onCreateAccount, onNext = next, onCreateAccount = onCreateAccount)
         }

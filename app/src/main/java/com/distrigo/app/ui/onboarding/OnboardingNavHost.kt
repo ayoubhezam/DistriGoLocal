@@ -15,6 +15,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,6 +31,8 @@ import com.distrigo.app.ui.navigation.navEnterTransition
 import com.distrigo.app.ui.navigation.navExitTransition
 import com.distrigo.app.ui.navigation.navPopEnterTransition
 import com.distrigo.app.ui.navigation.navPopExitTransition
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** What the onboarding hands over when it ends. The preview answers each with a message. */
 class OnboardingActions(
@@ -38,22 +41,40 @@ class OnboardingActions(
     val signInWithGoogle: (() -> Unit)?,
     val forgotPassword: () -> Unit,
     val createAccount: (SignUpForm) -> Unit,
+    /** A complete code (no dashes): the answer arrives in [OnboardingStatus]. */
+    val redeemCode: (code: String) -> Unit,
+    /** The company a code without one belongs to, once [OnboardingStatus.codeNeedsBusiness] asked for it. */
+    val completeCodeBusiness: (company: String, phone: String) -> Unit,
+    /** Forgets a code's error or pending company, when the code is edited or left. */
+    val resetCode: () -> Unit,
     val openTerms: () -> Unit,
     val openPrivacy: () -> Unit,
+)
+
+/** What the account side reports back while it works: the onboarding's screens only show it. */
+data class OnboardingStatus(
+    val busy: Boolean = false,
+    /** Why the last attempt failed, in French, for the screen that made it. */
+    val error: String? = null,
+    /** The code is valid but carries no company: its name and a phone number come next. */
+    val codeNeedsBusiness: Boolean = false,
+    /** The phone is activated: the success screen. */
+    val activation: ActivationSummary? = null,
 )
 
 private const val CAROUSEL = "onboarding_carousel"
 private const val SIGN_IN  = "onboarding_sign_in"
 private const val SIGN_UP  = "onboarding_sign_up"
+private const val CODE     = "onboarding_code"
 private const val SUCCESS  = "onboarding_success"
 
 /**
- * The onboarding (docs/design/onboarding_ui_review.md): the carousel, then Connexion or Créer un
- * compte, and once [activation] arrives the success screen, which [onFinished] leaves. It draws edge
- * to edge, so its caller places it outside the root's status-bar padding.
+ * The onboarding (docs/design/onboarding_ui_review.md): the carousel, then Connexion, Créer un compte or
+ * Activer avec un code, and once [status] carries an activation the success screen, which [onFinished]
+ * leaves. It draws edge to edge, so its caller places it outside the root's status-bar padding.
  */
 @Composable
-fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?, onFinished: () -> Unit) {
+fun OnboardingNavHost(actions: OnboardingActions, status: OnboardingStatus, onFinished: () -> Unit) {
     val navController = rememberTrackedNavController()
     val pager = rememberPagerState { ONBOARDING_PAGE_COUNT }
     val route = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -61,9 +82,11 @@ fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?
     OnboardingSystemBars(lightIcons = (route == null || route == CAROUSEL) && pager.currentPage == 0)
 
     // Activated: the success screen replaces everything, so Back can't return to the forms
+    val activation = status.activation
     LaunchedEffect(activation) {
         if (activation != null) navController.navigate(SUCCESS) { popUpTo(CAROUSEL) { inclusive = true } }
     }
+    val openCode = { navController.navigate(CODE) { launchSingleTop = true } }
 
     NavHost(
         navController      = navController,
@@ -78,6 +101,7 @@ fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?
                 pager           = pager,
                 onSignIn        = { navController.navigate(SIGN_IN) { launchSingleTop = true } },
                 onCreateAccount = { navController.navigate(SIGN_UP) { launchSingleTop = true } },
+                onCode          = openCode,
             )
         }
         composable(SIGN_IN) {
@@ -85,10 +109,22 @@ fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?
                 actions         = actions,
                 onBack          = { navController.popBackStack() },
                 onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(CAROUSEL) } },
+                onCode          = openCode,
             )
         }
         composable(SIGN_UP) {
             SignUpPages(actions = actions, onBack = { navController.popBackStack() })
+        }
+        composable(CODE) {
+            CodePages(
+                actions         = actions,
+                status          = status,
+                onBack          = {
+                    actions.resetCode()
+                    navController.popBackStack()
+                },
+                onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(CAROUSEL) } },
+            )
         }
         composable(SUCCESS) {
             activation?.let { SuccessPage(it, onContinue = onFinished) }
@@ -97,36 +133,55 @@ fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?
 }
 
 /**
- * [OnboardingNavHost] on its own, opened from Compte while the onboarding is being built. A valid
- * sign-in or sign-up shows the success screen with a sample 30-day trial (nothing is sent); the rest
- * only says it isn't wired yet. Back from the welcome page, or the success screen's button, closes it.
+ * [OnboardingNavHost] on its own, opened from Compte while the onboarding is being built; nothing is sent.
+ * - A valid sign-in or sign-up shows the success screen with a sample 30-day trial.
+ * - A code is "checked" for a moment: one made of a single repeated character is unknown, any other is
+ *   valid without a company, so the company step shows, then a sample 6-month subscription.
+ * The rest only says it isn't wired yet. Back from the welcome page, or the success screen's button, closes it.
  */
 @Composable
 fun OnboardingPreview(onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val context = LocalContext.current
-    var activation by remember { mutableStateOf<ActivationSummary?>(null) }
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf(OnboardingStatus()) }
     val actions = remember(context) {
         val say: (String) -> Unit = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
         OnboardingActions(
-            signIn           = { _, _ -> activation = sampleTrial(newAccount = false) },
-            signInWithGoogle = { activation = sampleTrial(newAccount = false) },
-            forgotPassword   = { say("La réinitialisation du mot de passe arrive bientôt.") },
-            createAccount    = { activation = sampleTrial(newAccount = true) },
-            openTerms        = { say("Les conditions d'utilisation sont en cours de rédaction.") },
-            openPrivacy      = { say("La politique de confidentialité est en cours de rédaction.") },
+            signIn               = { _, _ -> status = OnboardingStatus(activation = sample(ActivationOrigin.SIGN_IN, trial = true, days = 30)) },
+            signInWithGoogle     = { status = OnboardingStatus(activation = sample(ActivationOrigin.SIGN_IN, trial = true, days = 30)) },
+            forgotPassword       = { say("La réinitialisation du mot de passe arrive bientôt.") },
+            createAccount        = { status = OnboardingStatus(activation = sample(ActivationOrigin.NEW_ACCOUNT, trial = true, days = 30)) },
+            redeemCode           = { code ->
+                status = OnboardingStatus(busy = true)
+                scope.launch {
+                    delay(1_200)
+                    status = if (code.all { it == code.first() }) OnboardingStatus(error = "Ce code n'existe pas ou n'est plus valable.")
+                             else OnboardingStatus(codeNeedsBusiness = true)
+                }
+            },
+            completeCodeBusiness = { _, _ ->
+                status = status.copy(busy = true)
+                scope.launch {
+                    delay(1_200)
+                    status = OnboardingStatus(activation = sample(ActivationOrigin.CODE, trial = false, days = 182))
+                }
+            },
+            resetCode            = { status = OnboardingStatus() },
+            openTerms            = { say("Les conditions d'utilisation sont en cours de rédaction.") },
+            openPrivacy          = { say("La politique de confidentialité est en cours de rédaction.") },
         )
     }
     // Drawn over the app, so nothing beneath it may be touched through it
     Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {
-        OnboardingNavHost(actions, activation = activation, onFinished = onClose)
+        OnboardingNavHost(actions, status = status, onFinished = onClose)
     }
 }
 
-/** A 30-day trial starting now, as a new account gets it. */
-private fun sampleTrial(newAccount: Boolean): ActivationSummary {
+/** A license starting now and lasting [days], as the preview's activations get it. */
+private fun sample(origin: ActivationOrigin, trial: Boolean, days: Int): ActivationSummary {
     val now = System.currentTimeMillis()
-    return ActivationSummary(newAccount, trial = true, validFromMillis = now, validToMillis = now + 30L * 24 * 60 * 60 * 1000)
+    return ActivationSummary(origin, trial = trial, validFromMillis = now, validToMillis = now + days * 24L * 60 * 60 * 1000)
 }
 
 /**

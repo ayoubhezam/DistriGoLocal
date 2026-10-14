@@ -47,7 +47,7 @@ private val WaveHeight = 64.dp
 
 /** Connexion, as in the mockup: the logo, e-mail and password, Google, and the way to sign up. */
 @Composable
-internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreateAccount: () -> Unit) {
+internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreateAccount: () -> Unit, onCode: () -> Unit) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     // Errors wait for the first try, so an untouched form isn't already red
@@ -60,7 +60,6 @@ internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreate
     }
 
     Box(Modifier.fillMaxSize().background(DsBrand.Mist)) {
-        BottomWave(Modifier.align(Alignment.BottomStart).navigationBarsPadding())
         BoxWithConstraints(
             Modifier
                 .fillMaxSize()
@@ -116,8 +115,11 @@ internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreate
                         )
                     }
                     BrandButton("Se connecter", onClick = submit)
+                    // The ways in without an e-mail and password
+                    OrDivider()
+                    CodeButton(onCode)
                     actions.signInWithGoogle?.let { google ->
-                        OrDivider()
+                        Spacer(Modifier.height(DsSpacing.sm + 2.dp))
                         GoogleButton(google)
                     }
                 }
@@ -128,8 +130,9 @@ internal fun SignInPage(actions: OnboardingActions, onBack: () -> Unit, onCreate
                         Text("Créer un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
                     }
                 }
-                // Keeps the last line clear of the wave
-                Spacer(Modifier.height(WaveHeight))
+                // In the page's flow rather than pinned to the screen: when the page scrolls, it can't cover the line above
+                Spacer(Modifier.height(DsSpacing.sm))
+                BottomWave(Modifier)
             }
         }
     }

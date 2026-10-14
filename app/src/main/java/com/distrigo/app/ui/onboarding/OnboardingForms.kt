@@ -23,11 +23,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -86,7 +88,7 @@ internal fun isPhone(text: String): Boolean {
 }
 
 // Placeholders stay readable (4:1 on white) yet clearly lighter than what was typed
-private val Placeholder = DsBrand.Slate.copy(alpha = 0.85f)
+internal val Placeholder = DsBrand.Slate.copy(alpha = 0.85f)
 private val ButtonHeight = 50.dp
 
 /** The form screens' side margin, as on the feature pages. */
@@ -127,7 +129,7 @@ internal fun FormTitle(title: String, subtitle: String) {
 }
 
 /** The frame every field shares: white, rounded, blue while in use, red when wrong. */
-private fun Modifier.fieldFrame(active: Boolean, error: Boolean) = this
+internal fun Modifier.fieldFrame(active: Boolean, error: Boolean) = this
     .fillMaxWidth()
     .clip(DsShapes.medium)
     .background(Color.White)
@@ -139,12 +141,12 @@ private fun Modifier.fieldFrame(active: Boolean, error: Boolean) = this
     .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
 
 @Composable
-private fun FieldLabel(label: String) {
+internal fun FieldLabel(label: String) {
     Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 16.sp, color = DsBrand.Ink)
 }
 
 @Composable
-private fun FieldError(error: String?) {
+internal fun FieldError(error: String?) {
     if (error != null) {
         Text(
             error,
@@ -314,18 +316,47 @@ internal fun BrandChoiceField(
     }
 }
 
-/** The navy main button with its arrow, as at the end of every form in the mockup. */
+/**
+ * The navy main button with its arrow, as at the end of every form in the mockup. While [busy] it
+ * shows a spinner in the same navy and takes no second tap.
+ */
 @Composable
-internal fun BrandButton(label: String, onClick: () -> Unit) {
+internal fun BrandButton(label: String, onClick: () -> Unit, busy: Boolean = false) {
     Button(
+        onClick  = onClick,
+        enabled  = !busy,
+        modifier = Modifier.fillMaxWidth().height(ButtonHeight),
+        shape    = DsShapes.pill,
+        colors   = ButtonDefaults.buttonColors(
+            containerColor         = DsBrand.Ink,
+            contentColor           = Color.White,
+            disabledContainerColor = DsBrand.Ink,
+            disabledContentColor   = Color.White
+        )
+    ) {
+        if (busy) {
+            CircularProgressIndicator(color = Color.White, strokeWidth = 2.5.dp, modifier = Modifier.size(22.dp))
+        } else {
+            Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(Modifier.width(DsSpacing.sm))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/** « Activer avec un code »: the way in without an e-mail, outlined like Google's but in the brand's blue. */
+@Composable
+internal fun CodeButton(onClick: () -> Unit) {
+    OutlinedButton(
         onClick  = onClick,
         modifier = Modifier.fillMaxWidth().height(ButtonHeight),
         shape    = DsShapes.pill,
-        colors   = ButtonDefaults.buttonColors(containerColor = DsBrand.Ink, contentColor = Color.White)
+        border   = BorderStroke(1.5.dp, DsBrand.Blue),
+        colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = DsBrand.Ink)
     ) {
-        Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(Modifier.width(DsSpacing.sm))
-        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.Key, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(DsSpacing.md))
+        Text("Activer avec un code", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 15.sp)
     }
 }
 

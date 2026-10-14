@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -68,13 +71,14 @@ private val ButtonHeight      = 52.dp
 
 /**
  * The onboarding's first page (docs/design/onboarding_ui_review.md): the brand photo, the logo and
- * the two ways in. It draws edge to edge, under the status bar; [OnboardingCarousel] hosts it.
+ * the ways in: start, sign in, or a code. It draws edge to edge, under the status bar;
+ * [OnboardingCarousel] hosts it.
  */
 @Composable
-internal fun WelcomeScreen(onStart: () -> Unit, onSignIn: () -> Unit) {
+internal fun WelcomeScreen(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().background(DsBrand.Navy)) {
         HeroPhoto(Modifier.weight(1f).fillMaxWidth())
-        BottomPanel(onStart, onSignIn, Modifier.overlapUp(PanelOverlap))
+        BottomPanel(onStart, onSignIn, onCode, Modifier.overlapUp(PanelOverlap))
     }
 }
 
@@ -137,7 +141,7 @@ private fun HeroPhoto(modifier: Modifier) {
 }
 
 @Composable
-private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, modifier: Modifier) {
+private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () -> Unit, modifier: Modifier) {
     Column(
         modifier            = modifier
             .fillMaxWidth()
@@ -187,7 +191,20 @@ private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, modifier: Mod
         ) {
             Text("J'ai déjà un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         }
-        Spacer(Modifier.height(DsSpacing.lg))
+        // Who holds a code would otherwise take « Commencer » and end up on the sign-up form
+        TextButton(onClick = onCode) {
+            Icon(Icons.Outlined.Key, contentDescription = null, tint = DsBrand.Orange, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text(
+                "J'ai un code d'activation",
+                fontFamily     = DsBrand.Font,
+                fontWeight     = FontWeight.SemiBold,
+                fontSize       = 14.sp,
+                color          = Color.White,
+                textDecoration = TextDecoration.Underline
+            )
+        }
+        Spacer(Modifier.height(DsSpacing.xs))
         PageDots(current = 0, active = DsBrand.Orange, inactive = Color.White.copy(alpha = 0.35f))
     }
 }

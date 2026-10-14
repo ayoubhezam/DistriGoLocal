@@ -61,12 +61,15 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
+/** How this phone got its license: what the success screen's subtitle says. */
+enum class ActivationOrigin { NEW_ACCOUNT, SIGN_IN, CODE }
+
 /**
- * What the success screen tells: whether an account was just created, and the license this phone
- * now holds (data/license/License.kt: plan, validFrom, validTo).
+ * What the success screen tells: how the phone was activated, and the license it now holds
+ * (data/license/License.kt: plan, validFrom, validTo).
  */
 class ActivationSummary(
-    val newAccount: Boolean,
+    val origin: ActivationOrigin,
     val trial: Boolean,
     val validFromMillis: Long,
     val validToMillis: Long,
@@ -107,8 +110,12 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
                 )
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(
-                    // Signing in on a new phone activates it too, but creates nothing
-                    if (summary.newAccount) "Votre compte a été créé avec succès." else "Bon retour ! Ce téléphone est activé.",
+                    when (summary.origin) {
+                        ActivationOrigin.NEW_ACCOUNT -> "Votre compte a été créé avec succès."
+                        // Signing in on a new phone activates it too, but creates nothing
+                        ActivationOrigin.SIGN_IN     -> "Bon retour ! Ce téléphone est activé."
+                        ActivationOrigin.CODE        -> "Votre code a été activé avec succès."
+                    },
                     fontFamily = DsBrand.Font,
                     fontWeight = FontWeight.Medium,
                     fontSize   = 15.sp,
@@ -136,7 +143,7 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
     }
 }
 
-/** The offer and its dates: the trial's length and end, or a subscription's end. */
+/** The offer, its length and its end: a trial, or a subscription bought with a code. */
 @Composable
 private fun OfferCard(summary: ActivationSummary) {
     val end = DAY.format(Instant.ofEpochMilli(summary.validToMillis).atZone(ZoneId.systemDefault()))
@@ -161,14 +168,17 @@ private fun OfferCard(summary: ActivationSummary) {
             CrownBadge()
         }
         Spacer(Modifier.height(DsSpacing.md))
-        if (summary.trial) {
-            OfferLine(Icons.Outlined.CalendarMonth, "Durée :", "$days jours")
-            Spacer(Modifier.height(DsSpacing.md))
-            OfferLine(Icons.Outlined.EventAvailable, "Expire le :", end)
-        } else {
-            OfferLine(Icons.Outlined.EventAvailable, "Valable jusqu'au :", end)
-        }
+        OfferLine(Icons.Outlined.CalendarMonth, "Durée :", duration(days))
+        Spacer(Modifier.height(DsSpacing.md))
+        OfferLine(Icons.Outlined.EventAvailable, if (summary.trial) "Expire le :" else "Valable jusqu'au :", end)
     }
+}
+
+/** « 30 jours » for a trial, « 6 mois » or « 1 an » for what a code buys. */
+private fun duration(days: Int): String = when {
+    days < 60 -> "$days jours"
+    days in 330..400 -> "1 an"
+    else -> "${(days / 30.44).roundToInt()} mois"
 }
 
 @Composable
