@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -41,18 +45,25 @@ class OnboardingActions(
 private const val CAROUSEL = "onboarding_carousel"
 private const val SIGN_IN  = "onboarding_sign_in"
 private const val SIGN_UP  = "onboarding_sign_up"
+private const val SUCCESS  = "onboarding_success"
 
 /**
  * The onboarding (docs/design/onboarding_ui_review.md): the carousel, then Connexion or Créer un
- * compte. It draws edge to edge, so its caller places it outside the root's status-bar padding.
+ * compte, and once [activation] arrives the success screen, which [onFinished] leaves. It draws edge
+ * to edge, so its caller places it outside the root's status-bar padding.
  */
 @Composable
-fun OnboardingNavHost(actions: OnboardingActions) {
+fun OnboardingNavHost(actions: OnboardingActions, activation: ActivationSummary?, onFinished: () -> Unit) {
     val navController = rememberTrackedNavController()
     val pager = rememberPagerState { ONBOARDING_PAGE_COUNT }
     val route = navController.currentBackStackEntryAsState().value?.destination?.route
     // Only the welcome page is dark
     OnboardingSystemBars(lightIcons = (route == null || route == CAROUSEL) && pager.currentPage == 0)
+
+    // Activated: the success screen replaces everything, so Back can't return to the forms
+    LaunchedEffect(activation) {
+        if (activation != null) navController.navigate(SUCCESS) { popUpTo(CAROUSEL) { inclusive = true } }
+    }
 
     NavHost(
         navController      = navController,
@@ -79,32 +90,43 @@ fun OnboardingNavHost(actions: OnboardingActions) {
         composable(SIGN_UP) {
             SignUpPages(actions = actions, onBack = { navController.popBackStack() })
         }
+        composable(SUCCESS) {
+            activation?.let { SuccessPage(it, onContinue = onFinished) }
+        }
     }
 }
 
 /**
- * [OnboardingNavHost] on its own, opened from Compte while the onboarding is being built: what would
- * leave it only says so, and Back from the welcome page closes it.
+ * [OnboardingNavHost] on its own, opened from Compte while the onboarding is being built. A valid
+ * sign-in or sign-up shows the success screen with a sample 30-day trial (nothing is sent); the rest
+ * only says it isn't wired yet. Back from the welcome page, or the success screen's button, closes it.
  */
 @Composable
 fun OnboardingPreview(onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val context = LocalContext.current
+    var activation by remember { mutableStateOf<ActivationSummary?>(null) }
     val actions = remember(context) {
         val say: (String) -> Unit = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
         OnboardingActions(
-            signIn           = { _, _ -> say("Aperçu : la connexion n'est pas encore branchée.") },
-            signInWithGoogle = { say("Aperçu : la connexion Google n'est pas encore branchée.") },
+            signIn           = { _, _ -> activation = sampleTrial(newAccount = false) },
+            signInWithGoogle = { activation = sampleTrial(newAccount = false) },
             forgotPassword   = { say("La réinitialisation du mot de passe arrive bientôt.") },
-            createAccount    = { say("Aperçu : la création du compte n'est pas encore branchée.") },
+            createAccount    = { activation = sampleTrial(newAccount = true) },
             openTerms        = { say("Les conditions d'utilisation sont en cours de rédaction.") },
             openPrivacy      = { say("La politique de confidentialité est en cours de rédaction.") },
         )
     }
     // Drawn over the app, so nothing beneath it may be touched through it
     Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {
-        OnboardingNavHost(actions)
+        OnboardingNavHost(actions, activation = activation, onFinished = onClose)
     }
+}
+
+/** A 30-day trial starting now, as a new account gets it. */
+private fun sampleTrial(newAccount: Boolean): ActivationSummary {
+    val now = System.currentTimeMillis()
+    return ActivationSummary(newAccount, trial = true, validFromMillis = now, validToMillis = now + 30L * 24 * 60 * 60 * 1000)
 }
 
 /**
