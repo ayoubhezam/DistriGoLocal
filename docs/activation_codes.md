@@ -174,7 +174,7 @@ select * from private.codes_by_batch;
   - from Compte when signed out: « Se connecter », « Créer un compte », « Activer avec un code ».
 - **Removed:** the old sign-in and sign-up screens, and the « Aperçu » button.
 | **C3** | Compte: « Votre code » (kept encrypted on the phone: only it can show the code again), « Saisir un code », « Ajouter une adresse e-mail », a sign-out warning for code accounts. | **done, 2026-10-14**: 523 unit tests pass, and the owner's test on the M34 passed (codes in batch « Test C3 — téléphone ») |
-| **C4** | A private page to create and export codes without Studio; a cleanup of anonymous accounts that never used a code. | later |
+| **C4** | « Administration » in DistriGo, for the owner only: create batches, follow them, check and revoke a code, export as WhatsApp text and PDF cards. A nightly cleanup of anonymous accounts that never got a business. | **done, 2026-10-15**: server live; app 539 unit tests; walked on the owner's M34 (codes, check and revoke, PDF cards); « Comptes clients » used by the owner |
 | **C5** | Compte redesigned from the owner's mockup (2026-10-14), with « Informations de l'entreprise »: the business-profile function reads and changes the name, phone, activity and sales reps. | **done, 2026-10-14**: server live; app 526 unit tests, approved by the owner on the M34 |
 
 ## C5: « Informations de l'entreprise » (business-profile)
@@ -214,3 +214,89 @@ select * from private.codes_by_batch;
     so the text sits one step below the usual sizes.
   - The last profile read is kept on the phone (`BusinessProfileStore`), so Compte shows the business without
     Internet.
+
+## C4: « Administration » and the cleanup
+
+**The owner's decisions (2026-10-14):**
+- The codes are managed in DistriGo, on an « Administration » screen for the owner only, not on a web page.
+- Exports are a WhatsApp text and printable PDF cards.
+- Anonymous accounts without a business are deleted after 7 days.
+- The screen uses Compte's design language (ui/designsystem/BrandComponents.kt).
+
+**Server (migration `20261014200000_codes_admin.sql`, function `codes-admin`), live 2026-10-14:**
+- **Who may use it:** `private.is_admin(user)` is true only when the account's app_metadata says
+  `"distrigo_admin": true`. Only the service role writes app_metadata. The owner's account
+  (ayoubhezam05@gmail.com) was marked on 2026-10-14:
+  ```sql
+  update auth.users set raw_app_meta_data = raw_app_meta_data || '{"distrigo_admin": true}'::jsonb
+  where email = '…';
+  ```
+- **POST codes-admin:** anyone else gets not_allowed. Its actions:
+  - `batches` reads `codes_by_batch`;
+  - `create` takes a count (1 to 200), plan solo, days, a batch, and optionally a company, expires_on and a
+    note. It answers the codes once. Without expires_on they expire in 12 months; expires_on null means
+    never;
+  - `status` and `revoke` work on one code.
+- **Cleanup:** `private.cleanup_anonymous_accounts(after default 7 days)` deletes the anonymous accounts that
+  never had a membership. Members past or present, and accounts given an e-mail, stay.
+  - pg_cron (installed by the migration) runs it every night at 02:30 UTC, as job `distrigo-anonymous-cleanup`.
+- **Tests:** 67 SQL checks and 47 Node tests pass, with deno check on all eight functions.
+- **Live smoke test:**
+  - The cron job is active, and the app roles can't execute the functions.
+  - GET → 405, no session → 401.
+  - A throwaway anonymous account was refused both batches and create (not_allowed), and no batch was made.
+    The account was deleted.
+
+**App (2026-10-15):**
+- **Shared design pieces.** Compte's pieces now live in `ui/designsystem/BrandComponents.kt`, for every screen
+  in the new design language:
+  - `BrandScreen` (pinned top bar, scrolling content, the wave), `BrandCard`, `BrandCardHeader`, `BrandInfoRow`,
+    `BrandActionRow`, `BrandPill`, `BrandNotice`, `BrandMessage`, `BrandWideButton`, `BrandDialog`,
+    `BrandChips`, `BrandCodeText`;
+  - `BrandSize`, formerly CompteSize.
+- **The session carries `isAdmin`** (app_metadata `distrigo_admin`). Opening Compte refreshes the session, so the
+  flag appears without signing out. `FunctionCalls` is the one way the app calls an Edge Function, for
+  LicenseClient and `CodesAdminClient`.
+- **« Administration »**, from Compte → Gestion du compte, for the owner only. Its view model belongs to its own
+  screen, so merchants opening Compte never call codes-admin.
+  - The batches, each with its free codes (« 41/50 libres ») and what the others became.
+  - « Nouveau lot »: name; 1/5/10/20/50/100 codes; 1 mois/3 mois/6 mois/1 an; codes valid 12 mois/6 mois/sans
+    limite; optional company and note.
+  - « Codes créés »: the codes, shown once, with a warning before leaving unshared; « Envoyer sur WhatsApp »
+    (WhatsApp or WhatsApp Business, else the share sheet) and « Cartes PDF à imprimer ».
+  - « Vérifier un code »: what a code became; revoke one still free, or a key.
+- **PDF cards:** ten to an A4 page (2 × 5, about 93 × 52 mm), with dashed cutting lines. Each card has
+  « DistriGo » with « Go » in orange, the code, the plan and duration, the deadline, the company if any, and
+  « Ouvrez DistriGo → « Activer avec un code » ». The PDF is written to `cache/codes/`, the last export only, and
+  shared through the FileProvider.
+- **Found on the phone and fixed:**
+  - « Quitter » on the codes' screen went back two screens: the closing screen asked to leave a second time.
+    Its exit now pops only while it is the current screen.
+  - The variable font's lighter weights gave spaces almost no width in the PDF. The card's words are now
+    placed one by one.
+- **Test batches:** « Test C4 », « Test C4 PDF » and « Test C4 PDF 2 », 8 codes, all revoked.
+
+**« Comptes clients » (added to C4 on 2026-10-15, at the owner's request).** The owner had no way to cancel a client's
+account.
+- **Migration `20261015090000_clients_admin.sql`:**
+  - `private.find_businesses(query)` searches by a part of the name, the phone's digits (4 or more), a part of an
+    e-mail, or one of the business's codes. With no query it returns the 30 latest.
+  - `private.set_business_suspended(admin, business, suspended, note)` sets subscriptions.status to suspended or
+    active, adding the note.
+  - `private.delete_business(admin, business)` deletes the business (subscription, seats and memberships go with
+    it); its key code then opens nothing.
+  - Both refuse the owner's own business (own_business).
+- **codes-admin actions:** `businesses`, `suspend`, `reactivate`, `delete_business`.
+- **Suspension:** no license is issued, so activation is refused (« L'abonnement est suspendu ») and each phone's
+  license ends at its next check-in, within the 14-day offline window at most until L4 checks in on its own.
+- **App:** « Comptes clients » in Administration. Search; each client shows who it is, its subscription and a
+  status pill (Actif, Essai, Expiré, Suspendu). Opening one shows its details with Suspendre (with an optional
+  reason) or Réactiver, and Supprimer le compte, each confirmed. The owner's own business is marked « (vous) »
+  and offers no action.
+- **Tests:** 73 SQL checks and 52 Node tests pass; the app has 539 unit tests. Deployed 2026-10-15 (db push,
+  codes-admin).
+- **Clean-up on 2026-10-15:** the owner's test accounts « ALI OEUF » (by code) and « DOLIPRANE SARL » (e-mail) were
+  deleted on the server, at the owner's request.
+- **Phone, 2026-10-15:** the owner deleted « Client Test C4 » and « SARL FATEH » himself from « Comptes clients ». The
+  test client's throwaway account was deleted afterwards. Only « DISTRIGO » remains.
+

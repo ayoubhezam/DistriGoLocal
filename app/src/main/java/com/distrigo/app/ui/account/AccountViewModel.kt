@@ -130,6 +130,8 @@ class AccountViewModel @Inject constructor(
             license.evaluate()
             codes.load()
             profiles.load()
+            // What changed on the server since the session was issued (the admin flag)
+            if (auth.state.value is AccountState.SignedIn) auth.refreshSession()
             withContext(Dispatchers.Main) { refreshProfile() }
         }
         // Someone signed in (in the onboarding, above Compte): « Vous êtes déconnecté. » and its kind no longer

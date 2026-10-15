@@ -6,20 +6,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,11 +32,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.distrigo.app.data.auth.AccountState
 import com.distrigo.app.data.license.SeatHolder
+import com.distrigo.app.ui.designsystem.BrandCodeText
+import com.distrigo.app.ui.designsystem.BrandDialog
+import com.distrigo.app.ui.designsystem.BrandDialogText
+import com.distrigo.app.ui.designsystem.BrandSize
 import com.distrigo.app.ui.designsystem.DsBrand
-import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.onboarding.ACTIVITIES
@@ -193,14 +190,14 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
                             modifier         = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsBrand.Mist).padding(DsSpacing.md),
                             contentAlignment = Alignment.Center
                         ) {
-                            CodeText(formatCode(code))
+                            BrandCodeText(formatCode(code))
                         }
                     } else {
                         TextButton(onClick = { viewModel.ask(AccountDialog.AddEmail()) }) {
-                            Text("Ajouter une adresse e-mail", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = CompteSize.Action, color = DsBrand.Blue)
+                            Text("Ajouter une adresse e-mail", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
                         }
                     }
-                    DialogText(leaving)
+                    BrandDialogText(leaving)
                 }
             }
         }
@@ -287,63 +284,14 @@ private fun ChoiceList(options: List<String>, selected: String, enabled: Boolean
                     option,
                     fontFamily = DsBrand.Font,
                     fontWeight = if (chosen) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize   = CompteSize.Action,
+                    fontSize   = BrandSize.Action,
                     color      = if (chosen) DsBrand.Blue else DsBrand.Ink,
                     modifier   = Modifier.weight(1f)
                 )
-                if (chosen) Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(CompteSize.ButtonIcon))
+                if (chosen) Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(BrandSize.ButtonIcon))
             }
         }
     }
-}
-
-@Composable
-private fun DialogText(text: String) {
-    Text(text, fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = CompteSize.Body, lineHeight = CompteSize.BodyLine, color = DsBrand.Slate)
-}
-
-/**
- * The onboarding's dialog: white, rounded, Plus Jakarta Sans. [busy]: the server is working on the answer, so the
- * buttons wait and the confirm one spins. What [extra] holds scrolls when the keyboard leaves it little room.
- */
-@Composable
-private fun BrandDialog(
-    title: String,
-    text: String?,
-    confirm: Pair<String, () -> Unit>,
-    dismiss: Pair<String, () -> Unit>? = null,
-    danger: Boolean = false,
-    busy: Boolean = false,
-    extra: (@Composable ColumnScope.() -> Unit)? = null,
-) {
-    AlertDialog(
-        onDismissRequest = { if (!busy) (dismiss ?: confirm).second() },
-        title            = { Text(title, fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, fontSize = CompteSize.DialogTitle, color = DsBrand.Ink) },
-        text             = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                text?.let { DialogText(it) }
-                extra?.invoke(this)
-            }
-        },
-        confirmButton    = {
-            TextButton(onClick = confirm.second, enabled = !busy) {
-                if (busy) {
-                    CircularProgressIndicator(color = DsBrand.Blue, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                } else {
-                    Text(confirm.first, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = CompteSize.Action, color = if (danger) DsColors.Danger else DsBrand.Blue)
-                }
-            }
-        },
-        dismissButton    = dismiss?.let {
-            {
-                TextButton(onClick = it.second, enabled = !busy) {
-                    Text(it.first, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = CompteSize.Action, color = DsBrand.Slate)
-                }
-            }
-        },
-        shape            = DsShapes.large,
-        containerColor   = Color.White
-    )
 }
 
 private fun holders(holders: List<SeatHolder>): String =

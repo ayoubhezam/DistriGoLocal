@@ -44,6 +44,11 @@ sealed class Screen(val route: String) {
     data object Compte        : Screen("compte")
     data object AccountGraph  : Screen("account_graph")
     data object AccountHome   : Screen("account_home")
+    // The owner's « Administration » (docs/activation_codes.md, C4): codes, from Compte
+    data object AdminHome     : Screen("account_admin")
+    data object AdminNewBatch : Screen("account_admin_new")
+    data object AdminCreated  : Screen("account_admin_created")
+    data object AdminClients  : Screen("account_admin_clients")
 
     data object SettingsGraph      : Screen("settings_graph")
     data object SettingsHome       : Screen("settings_home")

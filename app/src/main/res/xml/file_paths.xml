@@ -3,6 +3,8 @@
     <cache-path name="receipts" path="receipts/" />
     <!-- CSV exports handed to the share sheet; replaced on each export. -->
     <cache-path name="exports" path="exports/" />
+    <!-- A new batch's activation codes as printable cards (Administration); the last export only. -->
+    <cache-path name="codes" path="codes/" />
     <!-- Where the camera writes a product photo; read into the image store, then deleted. -->
     <cache-path name="camera" path="camera/" />
     <!-- Diagnostic reports (crashes, ANRs), shared one at a time from Paramètres → Diagnostic. -->

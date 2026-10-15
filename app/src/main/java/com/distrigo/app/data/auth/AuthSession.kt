@@ -32,6 +32,11 @@ data class AuthSession(
     val displayName: String?,
     /** "email", "google", or "anonymous" for an account made by an activation code. */
     val provider: String,
+    /**
+     * DistriGo's owner: app_metadata says distrigo_admin true (docs/activation_codes.md, C4). It only shows the
+     * « Administration » screen; codes-admin checks the account itself on every call.
+     */
+    val isAdmin: Boolean = false,
 ) {
     override fun toString(): String = "AuthSession(user=$userId, provider=$provider)"
 
@@ -59,6 +64,7 @@ data class AuthSession(
         addProperty("email", email)
         addProperty("display_name", displayName)
         addProperty("provider", provider)
+        addProperty("admin", isAdmin)
     }
 
     companion object {
@@ -76,6 +82,7 @@ data class AuthSession(
                         email = json.text("email"),
                         displayName = json.text("display_name"),
                         provider = json.text("provider") ?: "email",
+                        isAdmin = json.get("admin")?.takeIf { it.isJsonPrimitive }?.asBoolean == true,
                     )
                 }
             } catch (e: RuntimeException) {
@@ -107,6 +114,8 @@ data class AuthSession(
                     // A code account given an e-mail may still name "anonymous" as the provider it began with
                     appMetadata?.text("provider")?.takeIf { it != ANONYMOUS } ?: "email"
                 },
+                // The boolean true only, as private.is_admin reads it
+                isAdmin = appMetadata?.get("distrigo_admin")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean == true,
             )
         }
 

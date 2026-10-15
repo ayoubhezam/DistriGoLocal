@@ -280,4 +280,33 @@ class AuthTest {
         SessionStore(folder.root, SoftwareSessionCipher()).clear()
         assertEquals("V1A9Y8XWJFC3", ActivationCodeStore(folder.root, SoftwareSessionCipher()).load()?.code)
     }
+
+    // ── The owner's admin flag (C4) ──
+
+    @Test
+    fun `the owner's admin flag comes from app_metadata, the boolean true only, and is kept at rest`() {
+        fun answer(flag: String) = com.google.gson.JsonParser().parse(
+            """{"access_token":"a","refresh_token":"r","expires_in":3600,
+                "user":{"id":"u","email":"o@example.com","app_metadata":{"provider":"email"$flag}}}"""
+        ).asJsonObject
+        val owner = AuthSession.fromAuthResponse(answer(""","distrigo_admin":true"""), 0)!!
+        assertTrue(owner.isAdmin)
+        assertFalse(AuthSession.fromAuthResponse(answer(""","distrigo_admin":"true""""), 0)!!.isAdmin)
+        assertFalse(AuthSession.fromAuthResponse(answer(""), 0)!!.isAdmin)
+        assertFalse(session().isAdmin)
+
+        SessionStore(folder.root, SoftwareSessionCipher()).save(owner)
+        assertTrue(SessionStore(folder.root, SoftwareSessionCipher()).load()!!.isAdmin)
+    }
+
+    @Test
+    fun `a forced refresh brings what changed on the server, such as the admin flag`() = runBlocking {
+        val repository = repository(session())
+        server.enqueue(jsonResponse(200, """{"access_token":"access-2","token_type":"bearer","expires_in":3600,"expires_at":4102444800,
+            "refresh_token":"refresh-2","user":{"id":"0b6f4c1e-5d2a-4f7e-9c3b-1a2d3e4f5a6b","email":"a@example.com",
+            "user_metadata":{"full_name":"Ayoub Test"},"app_metadata":{"provider":"email","distrigo_admin":true}}}"""))
+        repository.refreshSession()
+        assertEquals("/auth/v1/token?grant_type=refresh_token", server.takeRequest().path)
+        assertTrue((repository.state.value as AccountState.SignedIn).session.isAdmin)
+    }
 }

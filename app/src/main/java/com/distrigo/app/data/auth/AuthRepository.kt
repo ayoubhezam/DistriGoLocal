@@ -93,6 +93,14 @@ class AuthRepository(
         }
     }
 
+    /**
+     * The session as the server now sees the account: a new e-mail, or the owner's admin flag (C4), set since it
+     * was issued. Without a network the stored session stays.
+     */
+    suspend fun refreshSession() {
+        accessToken(forceRefresh = true)
+    }
+
     /** Signs out here and, if it can, on the server. */
     suspend fun signOut() {
         session?.let { api.signOut(it.accessToken) }

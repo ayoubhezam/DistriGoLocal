@@ -8,6 +8,7 @@ import com.distrigo.app.data.auth.Backend
 import com.distrigo.app.data.auth.SessionStore
 import com.distrigo.app.data.license.AndroidDeviceFacts
 import com.distrigo.app.data.license.BusinessProfileStore
+import com.distrigo.app.data.license.CodesAdminClient
 import com.distrigo.app.data.license.DeviceKey
 import com.distrigo.app.data.license.DeviceKeys
 import com.distrigo.app.data.license.LicenseClient
@@ -49,6 +50,12 @@ object AccountModule {
     @Singleton
     fun provideBusinessProfileStore(@ApplicationContext context: Context): BusinessProfileStore =
         BusinessProfileStore.forApp(context)
+
+    /** The owner's « Administration » screen and codes-admin (C4); the server refuses anyone else. */
+    @Provides
+    @Singleton
+    fun provideCodesAdminClient(http: OkHttpClient, auth: AuthRepository): CodesAdminClient =
+        CodesAdminClient(http, Backend.DISTRIGO, auth)
 
     /** One device key for the license and its server calls, so both always see the same key. */
     @Provides

@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.onboarding
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -30,9 +29,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -40,10 +36,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.R
+import com.distrigo.app.ui.designsystem.BrandWave
 import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsSpacing
-
-private val WaveHeight = 64.dp
 
 /** Connexion, as in the mockup: the logo, e-mail and password, Google, and the way to sign up. */
 @Composable
@@ -142,24 +137,9 @@ internal fun SignInPage(
                 }
                 // In the page's flow rather than pinned to the screen: when the page scrolls, it can't cover the line above
                 Spacer(Modifier.height(DsSpacing.sm))
-                BottomWave(Modifier)
+                BrandWave(Modifier)
             }
         }
     }
 }
 
-/** The mockup's blue wave rising from the bottom-left corner. */
-@Composable
-internal fun BottomWave(modifier: Modifier) {
-    Canvas(modifier.fillMaxWidth(0.62f).height(WaveHeight)) {
-        val w = size.width
-        val h = size.height
-        val wave = Path().apply {
-            moveTo(0f, h * 0.15f)
-            cubicTo(w * 0.30f, h * 0.05f, w * 0.55f, h * 0.95f, w, h)
-            lineTo(0f, h)
-            close()
-        }
-        drawPath(wave, Brush.linearGradient(listOf(DsBrand.Blue, DsBrand.Ink), start = Offset(0f, 0f), end = Offset(w, h)))
-    }
-}
