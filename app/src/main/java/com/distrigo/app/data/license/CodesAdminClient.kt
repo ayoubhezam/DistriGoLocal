@@ -41,7 +41,12 @@ data class CodeOrder(
     val businessName: String? = null,
     val note: String? = null,
     val plan: String = "solo",
-)
+) {
+    companion object {
+        /** The longest a code may give: the database's check on activation_codes.days, which codes-admin applies too. */
+        const val MAX_DAYS = 1100
+    }
+}
 
 /** A code just made: shown this once, since the server keeps only its fingerprint. */
 data class NewCode(val code: String, val expiresOn: LocalDate?)

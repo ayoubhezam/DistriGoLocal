@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.core.format.approximateLength
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -168,18 +169,12 @@ private fun OfferCard(summary: ActivationSummary) {
             CrownBadge()
         }
         Spacer(Modifier.height(DsSpacing.md))
-        OfferLine(Icons.Outlined.CalendarMonth, "Durée :", duration(days))
+        OfferLine(Icons.Outlined.CalendarMonth, "Durée :", approximateLength(days))
         Spacer(Modifier.height(DsSpacing.md))
         OfferLine(Icons.Outlined.EventAvailable, if (summary.trial) "Expire le :" else "Valable jusqu'au :", end)
     }
 }
 
-/** « 30 jours » for a trial, « 6 mois » or « 1 an » for what a code buys. */
-private fun duration(days: Int): String = when {
-    days < 60 -> "$days jours"
-    days in 330..400 -> "1 an"
-    else -> "${(days / 30.44).roundToInt()} mois"
-}
 
 @Composable
 private fun OfferLine(icon: ImageVector, label: String, value: String) {

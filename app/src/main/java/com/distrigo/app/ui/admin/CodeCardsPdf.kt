@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.admin
 
+import com.distrigo.app.core.format.subscriptionLength
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
@@ -95,7 +96,7 @@ internal object CodeCardsPdf {
         canvas.drawText("CODE D'ACTIVATION", x + CARD_W - pad, brandBase - 1f, p.label)
 
         canvas.drawText(code.code, center, y + 64f, p.code)
-        centered(canvas, "DistriGo Solo · ${duration(batch.order.days)}", center, y + 84f, p.offer)
+        centered(canvas, "DistriGo Solo · ${subscriptionLength(batch.order.days)}", center, y + 84f, p.offer)
         centered(canvas, code.expiresOn?.let { "À activer avant le ${day(it)}" } ?: "Sans date limite", center, y + 97f, p.small)
         batch.order.businessName?.trim()?.takeIf { it.isNotEmpty() }?.let {
             centered(canvas, "Pour : $it", center, y + 109f, p.smallInk)

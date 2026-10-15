@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.admin
 
+import com.distrigo.app.core.format.subscriptionLength
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.license.CodeBatch
@@ -147,7 +149,7 @@ private fun BatchRow(batch: CodeBatch) {
             Text(
                 listOfNotNull(
                     plan(batch.plan).takeIf { batch.plan != "solo" },
-                    duration(batch.days),
+                    subscriptionLength(batch.days),
                     batch.createdOn?.let { "créé le ${SHORT.format(it)}" },
                 ).joinToString(" · "),
                 fontFamily = DsBrand.Font,
@@ -178,6 +180,9 @@ private fun uses(batch: CodeBatch): String? = listOfNotNull(
 
 private enum class Validity { DEFAULT, SIX_MONTHS, NEVER }
 
+/** The « Autre » chip among the durations in days: no code gives zero days. */
+private const val OTHER_LENGTH = 0
+
 /** « Nouveau lot »: a name, how many, how long, until when; a company and a note if wanted. */
 @Composable
 fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () -> Unit) {
@@ -187,6 +192,10 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
     var name by rememberSaveable { mutableStateOf("") }
     var count by rememberSaveable { mutableIntStateOf(10) }
     var days by rememberSaveable { mutableIntStateOf(365) }
+    // « Autre »: a duration typed in days, months or years
+    var customAmount by rememberSaveable { mutableStateOf("") }
+    var customUnit by rememberSaveable { mutableStateOf(LengthUnit.DAYS) }
+    val chosenDays: Int? = if (days == OTHER_LENGTH) customDays(customAmount, customUnit) else days
     var validity by rememberSaveable { mutableStateOf(Validity.DEFAULT) }
     var company by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
@@ -202,7 +211,10 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
         Validity.NEVER -> CodeExpiry.Never
     }
     val create = {
-        viewModel.create(CodeOrder(count = count, days = days, batch = name, expiry = expiry, businessName = company, note = note))
+        chosenDays?.let { length ->
+            viewModel.create(CodeOrder(count = count, days = length, batch = name, expiry = expiry, businessName = company, note = note))
+        }
+        Unit
     }
 
     BrandScreen(title = "Nouveau lot", onBack = onBack) {
@@ -223,7 +235,23 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
                 BrandFieldLabel("Nombre de codes")
                 BrandChips(listOf(1, 5, 10, 20, 50, 100).map { it to "$it" }, count, enabled = !busy) { count = it }
                 BrandFieldLabel("Durée de l'abonnement, par code")
-                BrandChips(listOf(30, 90, 182, 365).map { it to duration(it) }, days, enabled = !busy) { days = it }
+                BrandChips(
+                    listOf(30, 90, 182, 365).map { it to subscriptionLength(it) } + (OTHER_LENGTH to "Autre"),
+                    days,
+                    enabled = !busy
+                ) { days = it }
+                if (days == OTHER_LENGTH) {
+                    BrandTextField(
+                        value         = customAmount,
+                        onValueChange = { typed -> customAmount = typed.filter(Char::isDigit).take(4) },
+                        label         = "Durée",
+                        placeholder   = "Ex. : 45",
+                        icon          = Icons.Outlined.Event,
+                        error         = "De 1 jour à 3 ans (${CodeOrder.MAX_DAYS} jours au plus).".takeIf { customAmount.isNotEmpty() && chosenDays == null },
+                        keyboardType  = KeyboardType.Number
+                    )
+                    BrandChips(LengthUnit.entries.map { it to it.label }, customUnit, enabled = !busy) { customUnit = it }
+                }
                 BrandFieldLabel("Codes non utilisés valables")
                 BrandChips(
                     listOf(Validity.DEFAULT to "12 mois", Validity.SIX_MONTHS to "6 mois", Validity.NEVER to "Sans limite"),
@@ -259,12 +287,17 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
             if (count == 1) "Créer le code" else "Créer les $count codes",
             Icons.Outlined.Key,
             filled  = true,
-            enabled = state.work == null,
+            enabled = state.work == null && chosenDays != null,
             busy    = busy,
             onClick = create
         )
+        // A typed duration also in days, so « 2 ans » shows what the codes will really give
+        val length = chosenDays?.let { d ->
+            val label = subscriptionLength(d)
+            label + if (days == OTHER_LENGTH && "jour" !in label) " ($d jours)" else ""
+        } ?: "durée à choisir"
         Small(
-            "DistriGo Solo · ${duration(days)} par code · " + when (val e = expiry) {
+            "DistriGo Solo · $length par code · " + when (val e = expiry) {
                 // The server counts the 12 months from its own day (UTC): no date here that could differ by one
                 CodeExpiry.Default -> "à activer dans les 12 mois"
                 CodeExpiry.Never -> "sans date limite"
@@ -311,7 +344,7 @@ fun CreatedCodesScreen(viewModel: AdminViewModel, onDone: () -> Unit) {
             }
             BrandInfoRow(Icons.Outlined.WorkspacePremium, "Formule", plan(created.order.plan))
             BrandRowDivider()
-            BrandInfoRow(Icons.Outlined.Event, "Durée, par code", duration(created.order.days))
+            BrandInfoRow(Icons.Outlined.Event, "Durée, par code", subscriptionLength(created.order.days))
             BrandRowDivider()
             BrandInfoRow(Icons.Outlined.EventAvailable, "À activer avant le", created.codes.firstOrNull()?.expiresOn?.let(::day) ?: "Sans limite")
             created.order.businessName?.trim()?.takeIf { it.isNotEmpty() }?.let {
@@ -434,7 +467,7 @@ private fun CheckDialog(check: CodeCheck, work: AdminWork?, viewModel: AdminView
 private fun CodeDetails(state: CodeState) {
     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
         state.batch?.let { Detail("Lot", it) }
-        state.plan?.let { p -> Detail("Formule", plan(p) + (state.days?.let { " · ${duration(it)}" } ?: "")) }
+        state.plan?.let { p -> Detail("Formule", plan(p) + (state.days?.let { " · ${subscriptionLength(it)}" } ?: "")) }
         state.businessName?.let { Detail("Entreprise", it) }
         state.redeemedAt?.let { Detail("Utilisé le", day(it.atZone(java.time.ZoneId.systemDefault()).toLocalDate())) }
         if (state.status == "unused" || state.status == "expired") {

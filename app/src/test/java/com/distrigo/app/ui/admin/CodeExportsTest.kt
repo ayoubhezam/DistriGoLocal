@@ -4,6 +4,7 @@ import com.distrigo.app.data.license.CodeOrder
 import com.distrigo.app.data.license.NewCode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.LocalDate
 
@@ -11,13 +12,25 @@ import java.time.LocalDate
 class CodeExportsTest {
 
     @Test
-    fun `durations read as a merchant says them`() {
-        assertEquals("1 mois", duration(30))
-        assertEquals("3 mois", duration(90))
-        assertEquals("6 mois", duration(182))
-        assertEquals("1 an", duration(365))
-        assertEquals("2 mois", duration(60))
-        assertEquals("45 jours", duration(45))
+    fun `a typed duration gives whole days, from one day to three years`() {
+        assertEquals(15, customDays("15", LengthUnit.DAYS))
+        assertEquals(45, customDays(" 45 ", LengthUnit.DAYS))
+        assertEquals(60, customDays("2", LengthUnit.MONTHS))
+        assertEquals(730, customDays("2", LengthUnit.YEARS))
+        assertEquals(1095, customDays("3", LengthUnit.YEARS))
+        assertEquals(1100, customDays("1100", LengthUnit.DAYS))
+        assertNull("past the database's limit", customDays("1101", LengthUnit.DAYS))
+        assertNull(customDays("37", LengthUnit.MONTHS))
+        assertNull(customDays("4", LengthUnit.YEARS))
+        assertNull(customDays("0", LengthUnit.DAYS))
+        assertNull(customDays("", LengthUnit.DAYS))
+        assertNull(customDays("9999", LengthUnit.YEARS))
+    }
+
+    @Test
+    fun `a custom batch's duration is shared as it was chosen`() {
+        val batch = CreatedBatch(CodeOrder(count = 1, days = 730, batch = "Grossiste"), listOf(NewCode("7KQ4-M2XP-9HTD", null)))
+        assertEquals(true, whatsAppText(batch).contains("DistriGo Solo · 2 ans par code"))
     }
 
     @Test

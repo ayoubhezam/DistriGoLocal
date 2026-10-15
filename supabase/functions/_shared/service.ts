@@ -332,7 +332,8 @@ export async function codesAdmin(config: Config, userId: string, body: Body): Pr
             const count = integer(body, "count", 1, 200);
             const plan = optionalChoice(body, "plan", CODE_PLANS);
             if (plan === null) throw new BadRequest("plan");
-            const days = integer(body, "days", 1, 3660);
+            // The database's check on activation_codes.days: past it, a clear bad_request rather than a failed insert
+            const days = integer(body, "days", 1, 1100);
             const batch = optionalText(body, "batch", 80);
             if (batch === null) throw new BadRequest("batch");
             const businessName = optionalText(body, "business_name", 120);

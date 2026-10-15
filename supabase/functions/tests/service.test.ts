@@ -372,6 +372,12 @@ test("« Administration »: codes created, followed and revoked by the owner alo
         assert.equal((never.body.codes as { expires_on: string | null }[])[0].expires_on, null);
         const dated = await codesAdmin(config, owner, { action: "create", count: 1, plan: "solo", days: 30, batch: "Daté", expires_on: "2027-06-30", business_name: "Épicerie Datée", note: "salon" });
         assert.equal((dated.body.codes as { expires_on: string | null }[])[0].expires_on, "2027-06-30");
+
+        // « Autre » on the screen: any whole number of days, up to the database's 1,100
+        for (const days of [15, 45, 1100]) {
+            const custom = await codesAdmin(config, owner, { action: "create", count: 1, plan: "solo", days, batch: `Durée ${days}` });
+            assert.equal(custom.body.status, "created", JSON.stringify(custom.body));
+        }
     });
 
     await t.test("the batches count what became of their codes", async () => {
@@ -405,7 +411,7 @@ test("« Administration »: codes created, followed and revoked by the owner alo
         const create = { action: "create", count: 3, plan: "solo", days: 30, batch: "X" };
         for (const body of [
             {}, { action: "drop" }, { ...create, count: 0 }, { ...create, count: 201 }, { ...create, count: "3" },
-            { ...create, count: 2.5 }, { ...create, plan: "trial" }, { ...create, days: 0 }, { ...create, batch: "  " },
+            { ...create, count: 2.5 }, { ...create, plan: "trial" }, { ...create, days: 0 }, { ...create, days: 1101 }, { ...create, batch: "  " },
             { ...create, expires_on: "2027-02-30" }, { ...create, expires_on: "30/06/2027" }, { action: "status" },
             { action: "revoke", code: "" },
         ]) {
