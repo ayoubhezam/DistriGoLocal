@@ -264,8 +264,13 @@ every day.
 | Step | Expected |
 |---|---|
 | Activate, then `adb shell dumpsys jobscheduler` | DistriGo's 12-hour job is listed with its network constraint |
-| Force the job (`cmd jobscheduler run -f`) | « Vérifié le » moves; « Dernière connexion » moves in « Comptes clients » |
-| Airplane mode, force the job | Retries are scheduled, nothing changes on screen |
+| Wait for the job's window (8 to 12 hours after the schedule began), app closed | « Vérifié le » moves; « Dernière connexion » moves in « Comptes clients »; `check_in.json` names the background |
+| Airplane mode, force the one-off job of L4c | Retries are scheduled, nothing changes on screen |
+
+Forcing the 12-hour job (`cmd jobscheduler run -f`) before its window starts the app's process, but WorkManager then
+declines to run the worker (« being executed before schedule ») and puts the job back: a periodic job runs only once
+its period is due (seen on the M34 on 2026-10-15). The forced test belongs to the one-off job (L4c), which has no such
+wait.
 | Back online, open the app | A check-in within a minute |
 | Reboot | The job is still scheduled |
 | Add days to the subscription on the server, force the job, app closed | Next opening shows the new end date |

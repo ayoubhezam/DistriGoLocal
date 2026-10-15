@@ -130,3 +130,28 @@ internal class HmacSeal(seed: Int = 1) : StateSeal {
         doFinal(data)
     }
 }
+
+/** The Keystore, played: the key it makes is the golden licenses' device. */
+internal class FakeKeys : DeviceKeys {
+    var hash: String? = null
+    var challenge: ByteArray? = null
+    val signed = mutableListOf<String>()
+    override fun publicKeyHash() = hash
+    override fun create(challenge: ByteArray): CreatedKey {
+        this.challenge = challenge
+        hash = Golden.deviceHash
+        return CreatedKey(Golden.deviceHash, listOf(byteArrayOf(1, 2, 3)), strongBox = false, attested = true)
+    }
+    override fun sign(data: ByteArray): ByteArray {
+        signed += String(data)
+        return byteArrayOf(9, 9)
+    }
+}
+
+internal object TestDeviceFacts : DeviceFacts {
+    override val installationId get() = Golden.installationId
+    override val androidId = "android-1"
+    override val model = "Samsung SM-M346B"
+    override val osVersion = "16"
+    override val appVersion = "1.0"
+}

@@ -395,8 +395,8 @@ private fun SubscriptionCard(
 }
 
 /**
- * « Vérifié le … · Vérifier »: the last check-in, and one now. Until the app checks in by itself (L4), this is
- * how the phone renews the days it may stay offline.
+ * « Vérifié le … · Vérifier »: the last check-in, the button's or the background job's (the license's issue time),
+ * and one now.
  */
 @Composable
 private fun CheckedLine(issuedAt: Long, checking: Boolean, enabled: Boolean, onCheckIn: () -> Unit) {

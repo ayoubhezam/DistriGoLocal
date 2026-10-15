@@ -12,6 +12,8 @@ import com.distrigo.app.data.license.ActivationStep
 import com.distrigo.app.data.license.BusinessProfile
 import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.CheckIn
+import com.distrigo.app.data.license.CheckInSource
+import com.distrigo.app.data.license.LicenseCheckIn
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
 import com.distrigo.app.data.license.LicenseState
@@ -104,6 +106,7 @@ class AccountViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val license: LicenseManager,
     private val client: LicenseClient,
+    private val checkIns: LicenseCheckIn,
     private val businessSettings: BusinessSettingsRepository,
     private val codes: ActivationCodeStore,
     private val profiles: BusinessProfileStore,
@@ -225,7 +228,7 @@ class AccountViewModel @Inject constructor(
 
     fun checkIn() = work(AccountWork.CHECKING_IN) {
         local.value = local.value.copy(
-            message = when (val result = client.checkIn()) {
+            message = when (val result = checkIns.run(CheckInSource.BUTTON)) {
                 CheckIn.Done -> AccountMessage("Abonnement vérifié.", isError = false)
                 CheckIn.Revoked -> AccountMessage("Cet appareil n'est plus associé à l'abonnement.", isError = true)
                 CheckIn.Suspended -> AccountMessage(LicenseClient.SUSPENDED_MESSAGE, isError = true)

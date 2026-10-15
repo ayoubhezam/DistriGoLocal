@@ -6,11 +6,15 @@ import com.distrigo.app.data.auth.AuthApi
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.Backend
 import com.distrigo.app.data.auth.SessionStore
+import androidx.work.WorkManager
 import com.distrigo.app.data.license.AndroidDeviceFacts
 import com.distrigo.app.data.license.BusinessProfileStore
+import com.distrigo.app.data.license.CheckInLog
 import com.distrigo.app.data.license.CodesAdminClient
 import com.distrigo.app.data.license.DeviceKey
 import com.distrigo.app.data.license.DeviceKeys
+import com.distrigo.app.data.license.LicenseCheckIn
+import com.distrigo.app.data.license.LicenseCheckInScheduler
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
 import dagger.Module
@@ -76,4 +80,22 @@ object AccountModule {
         keys: DeviceKeys,
         license: LicenseManager,
     ): LicenseClient = LicenseClient(http, Backend.DISTRIGO, auth, keys, license, AndroidDeviceFacts(context))
+
+    /** One check-in at a time for the background job and « Vérifier » (docs/license_l4_checkin.md §5.1). */
+    @Provides
+    @Singleton
+    fun provideLicenseCheckIn(
+        @ApplicationContext context: Context,
+        auth: AuthRepository,
+        license: LicenseManager,
+        client: LicenseClient,
+    ): LicenseCheckIn = LicenseCheckIn(auth, license, client, CheckInLog.forApp(context))
+
+    @Provides
+    @Singleton
+    fun provideLicenseCheckInScheduler(
+        @ApplicationContext context: Context,
+        auth: AuthRepository,
+        license: LicenseManager,
+    ): LicenseCheckInScheduler = LicenseCheckInScheduler({ WorkManager.getInstance(context) }, auth.state, license.state)
 }

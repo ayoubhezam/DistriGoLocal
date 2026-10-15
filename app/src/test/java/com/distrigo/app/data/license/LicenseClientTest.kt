@@ -35,31 +35,8 @@ class LicenseClientTest {
     private val server = MockWebServer().apply { start() }
     private val phone = FakePhone(Golden.issuedAt + 2 * SECOND)
 
-    /** The Keystore, played: the key it makes is the golden licenses' device. */
-    private class FakeKeys : DeviceKeys {
-        var hash: String? = null
-        var challenge: ByteArray? = null
-        val signed = mutableListOf<String>()
-        override fun publicKeyHash() = hash
-        override fun create(challenge: ByteArray): CreatedKey {
-            this.challenge = challenge
-            hash = Golden.deviceHash
-            return CreatedKey(Golden.deviceHash, listOf(byteArrayOf(1, 2, 3)), strongBox = false, attested = true)
-        }
-        override fun sign(data: ByteArray): ByteArray {
-            signed += String(data)
-            return byteArrayOf(9, 9)
-        }
-    }
-
     private val keys = FakeKeys()
-    private val facts = object : DeviceFacts {
-        override val installationId = Golden.installationId
-        override val androidId = "android-1"
-        override val model = "Samsung SM-M346B"
-        override val osVersion = "16"
-        override val appVersion = "1.0"
-    }
+    private val facts = TestDeviceFacts
 
     // Lazy: the temporary folder exists only once the rule has started.
     private val store by lazy { LicenseStore(folder.newFolder("license"), HmacSeal()) }

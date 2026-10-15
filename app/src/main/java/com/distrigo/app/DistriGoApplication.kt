@@ -14,6 +14,7 @@ import com.distrigo.app.data.backup.BackupMessages
 import com.distrigo.app.data.backup.RestoreInstaller
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.backup.auto.AutoBackupScheduler
+import com.distrigo.app.data.license.LicenseCheckInScheduler
 import com.distrigo.app.data.license.LicenseManager
 import dagger.hilt.android.HiltAndroidApp
 import com.distrigo.app.diagnostics.CrashReporter
@@ -38,6 +39,9 @@ class DistriGoApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var licenseManager: dagger.Lazy<LicenseManager>
+
+    @Inject
+    lateinit var licenseCheckInScheduler: dagger.Lazy<LicenseCheckInScheduler>
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
@@ -73,11 +77,13 @@ class DistriGoApplication : Application(), Configuration.Provider {
             }
         }, "auto-backup-schedule").start()
         // The signed-in account, and what the license allows (docs/license_architecture.md §2.4). Nothing is
-        // enforced yet (Phase L5): this only makes the Compte screen and the avatar right from the start.
+        // enforced yet (Phase L5): this only makes the Compte screen and the avatar right from the start. Then the
+        // background check-ins follow them (docs/license_l4_checkin.md §4).
         Thread({
             try {
                 authRepository.get().restore()
                 licenseManager.get().evaluate()
+                licenseCheckInScheduler.get().start()
             } catch (e: RuntimeException) {
                 Log.w("DistriGoApplication", "could not read the account or the license", e)
             }

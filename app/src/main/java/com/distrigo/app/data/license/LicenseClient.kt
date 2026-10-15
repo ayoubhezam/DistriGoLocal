@@ -5,6 +5,8 @@ import com.distrigo.app.data.auth.Backend
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.time.Instant
@@ -105,7 +107,9 @@ sealed interface CheckIn {
     data object Suspended : CheckIn
 
     data object NotActivated : CheckIn
-    data class Failed(val message: String) : CheckIn
+
+    /** [retry]: the network or the server failed, and trying again later may succeed (the background job does). */
+    data class Failed(val message: String, val retry: Boolean = false) : CheckIn
 }
 
 /**
@@ -122,6 +126,13 @@ class LicenseClient(
     private val device: DeviceFacts,
 ) {
     private val functions = FunctionCalls(http, backend, auth)
+
+    /**
+     * Check-ins, releasing and deleting change the license here after the server answers: one at a time, so a
+     * check-in's answer never lands after a sign-out has forgotten the license, and two check-ins never race to
+     * install their licenses.
+     */
+    private val licenseCalls = Mutex()
     /**
      * Starts activating this phone: a nonce, a new device key attested with it, the request, with [details]
      * when the user gave a code or a new business. Refused while the phone holds a license — making a new key
@@ -278,13 +289,18 @@ class LicenseClient(
         }
     }
 
-    /** The check-in: the phone proves it still holds its key, and gets the next license. */
-    suspend fun checkIn(): CheckIn {
+    /**
+     * The check-in: the phone proves it still holds its key, and gets the next license. The app's check-ins go
+     * through LicenseCheckIn; only a code's renewal calls this directly, for a license that includes its days.
+     */
+    suspend fun checkIn(): CheckIn = licenseCalls.withLock { checkInNow() }
+
+    private suspend fun checkInNow(): CheckIn {
         val state = withContext(Dispatchers.IO) { license.evaluate() }
         if (!state.holdsLicense) return CheckIn.NotActivated
         val nonce = when (val reply = call("license-nonce", JsonObject().apply { addProperty("purpose", "refresh") })) {
-            is Reply.Answer -> reply.body.text("nonce") ?: return CheckIn.Failed(SERVER_MESSAGE)
-            is Reply.Refused -> return CheckIn.Failed(reply.message)
+            is Reply.Answer -> reply.body.text("nonce") ?: return CheckIn.Failed(SERVER_MESSAGE, retry = true)
+            is Reply.Refused -> return CheckIn.Failed(reply.message, reply.retry)
         }
         val body = withContext(Dispatchers.IO) {
             JsonObject().apply {
@@ -296,11 +312,11 @@ class LicenseClient(
         }
         val reply = when (val answer = call("license-refresh", body)) {
             is Reply.Answer -> answer.body
-            is Reply.Refused -> return CheckIn.Failed(answer.message)
+            is Reply.Refused -> return CheckIn.Failed(answer.message, answer.retry)
         }
         return when (reply.text("status")) {
             "ok" -> {
-                val token = reply.text("license") ?: return CheckIn.Failed(SERVER_MESSAGE)
+                val token = reply.text("license") ?: return CheckIn.Failed(SERVER_MESSAGE, retry = true)
                 when (val check = withContext(Dispatchers.IO) { license.install(token) }) {
                     is LicenseCheck.Valid -> CheckIn.Done
                     is LicenseCheck.Rejected -> CheckIn.Failed("La licence reçue n'a pas pu être vérifiée (${check.why}).")
@@ -314,12 +330,18 @@ class LicenseClient(
                 withContext(Dispatchers.IO) { license.suspend() }
                 CheckIn.Suspended
             }
+            // The nonce expired between the two calls: a new one will do
+            "bad_nonce" -> CheckIn.Failed(SERVER_MESSAGE, retry = true)
+            // The server doesn't know this phone's key: trying again won't change that
+            "bad_signature" -> CheckIn.Failed("Ce téléphone n'a pas pu prouver son identité. Contactez DistriGo.")
             else -> CheckIn.Failed(SERVER_MESSAGE)
         }
     }
 
     /** « Libérer cet appareil »: the seat is freed on the server; the license here is then forgotten. */
-    suspend fun releaseThisDevice(): String? {
+    suspend fun releaseThisDevice(): String? = licenseCalls.withLock { releaseNow() }
+
+    private suspend fun releaseNow(): String? {
         val deviceId = withContext(Dispatchers.IO) { license.deviceId() }
         if (deviceId != null) {
             when (val reply = call("device-release", JsonObject().apply { addProperty("device_id", deviceId) })) {
@@ -332,7 +354,9 @@ class LicenseClient(
     }
 
     /** Deletes the account and, if it alone owns its business, the business. Null when done, else why not. */
-    suspend fun deleteAccount(): String? {
+    suspend fun deleteAccount(): String? = licenseCalls.withLock { deleteNow() }
+
+    private suspend fun deleteNow(): String? {
         val reply = when (val answer = call("account-delete", JsonObject())) {
             is Reply.Answer -> answer.body
             is Reply.Refused -> return answer.message

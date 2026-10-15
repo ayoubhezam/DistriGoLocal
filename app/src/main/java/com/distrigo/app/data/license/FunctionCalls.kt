@@ -17,7 +17,9 @@ import java.io.IOException
 /** What an Edge Function answered: its JSON (HTTP 200), or why there is none, in the user's words. */
 internal sealed interface Reply {
     data class Answer(val body: JsonObject) : Reply
-    data class Refused(val message: String) : Reply
+
+    /** [retry]: the network or the server failed, so the same call may well succeed later. */
+    data class Refused(val message: String, val retry: Boolean = false) : Reply
 }
 
 /**
@@ -33,17 +35,17 @@ internal class FunctionCalls(
         repeat(2) { attempt ->
             val token = when (val access = auth.accessToken(forceRefresh = attempt > 0)) {
                 is AccessToken.Granted -> access.token
-                is AccessToken.Denied -> return Reply.Refused(access.error.message)
+                is AccessToken.Denied -> return Reply.Refused(access.error.message, retry = access.error in PASSING)
             }
-            val (status, json) = post(function, token, body) ?: return Reply.Refused(AuthError.NETWORK.message)
+            val (status, json) = post(function, token, body) ?: return Reply.Refused(AuthError.NETWORK.message, retry = true)
             when {
                 status == 401 && attempt == 0 -> Unit // the token: renewed, then once more
                 status == 401 -> return Reply.Refused(AuthError.SESSION_EXPIRED.message)
                 status == 200 && json != null -> return Reply.Answer(json)
-                else -> return Reply.Refused(SERVER_MESSAGE)
+                else -> return Reply.Refused(SERVER_MESSAGE, retry = true)
             }
         }
-        return Reply.Refused(SERVER_MESSAGE)
+        return Reply.Refused(SERVER_MESSAGE, retry = true)
     }
 
     private suspend fun post(function: String, token: String, body: JsonObject): Pair<Int, JsonObject?>? =
@@ -70,5 +72,8 @@ internal class FunctionCalls(
 
     companion object {
         const val SERVER_MESSAGE = "Le service ne répond pas comme prévu. Réessayez plus tard."
+
+        /** Renewing the token failed for now, not for good: an expired session needs the user. */
+        private val PASSING = setOf(AuthError.NETWORK, AuthError.SERVER, AuthError.RATE_LIMITED)
     }
 }
