@@ -162,13 +162,14 @@ internal fun FieldError(error: String?) {
 
 /**
  * A field as in the mockup: an icon, the label inside the frame above what is typed, the example as
- * placeholder. [onDone] makes the keyboard's action key submit instead of moving to the next field.
+ * placeholder. [onDone] makes the keyboard's action key submit instead of moving to the next field. A null
+ * [label] leaves the placeholder alone on one line (a search field).
  */
 @Composable
 internal fun BrandTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    label: String?,
     placeholder: String,
     icon: ImageVector,
     error: String? = null,
@@ -201,8 +202,10 @@ internal fun BrandTextField(
                     Icon(icon, contentDescription = null, tint = if (focused) DsBrand.Blue else DsBrand.Slate, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.md))
                     Column(Modifier.weight(1f)) {
-                        FieldLabel(label)
-                        Spacer(Modifier.height(2.dp))
+                        if (label != null) {
+                            FieldLabel(label)
+                            Spacer(Modifier.height(2.dp))
+                        }
                         Box {
                             if (value.isEmpty()) {
                                 Text(placeholder, fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Placeholder, maxLines = 1)

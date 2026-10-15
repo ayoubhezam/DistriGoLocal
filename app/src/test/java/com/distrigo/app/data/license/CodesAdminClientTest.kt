@@ -76,6 +76,56 @@ class CodesAdminClientTest {
     }
 
     @Test
+    fun `a batch is opened by its name, plan and days, with the business each used code went to`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"status":"ok","batch":"Revendeur Sétif","plan":"solo","days":365,"total":5,"unused":3,
+            "keys":1,"renewals":1,"expired":0,"revoked":0,"created_on":"2026-10-15","expires_on":"2026-11-14","business_name":null,
+            "note":"payé en espèces","live_keys":1,"uses":[
+              {"use":"renewal","business_name":"Dépôt Renouvelé","redeemed_at":"2026-10-15T10:00:00.5+00:00"},
+              {"use":"key","business_name":null,"redeemed_at":"2026-10-15T09:00:00+00:00"}]}"""))
+        val asked = CodeBatch("Revendeur Sétif", "solo", 365, 5, 3, 1, 1, 0, 0, LocalDate.of(2026, 10, 15))
+        val details = (client.batch(asked) as AdminAnswer.Done).value!!
+        assertEquals(asked, details.batch)
+        assertEquals(LocalDate.of(2026, 11, 14), details.expiresOn)
+        assertEquals("payé en espèces", details.note)
+        assertEquals(1, details.liveKeys)
+        assertEquals(
+            listOf(
+                BatchUse(key = false, businessName = "Dépôt Renouvelé", redeemedAt = java.time.Instant.parse("2026-10-15T10:00:00.5Z")),
+                BatchUse(key = true, businessName = null, redeemedAt = java.time.Instant.parse("2026-10-15T09:00:00Z")),
+            ),
+            details.uses,
+        )
+        val body = server.takeRequest().json
+        assertEquals("batch", body.get("action").asString)
+        assertEquals("Revendeur Sétif", body.get("batch").asString)
+        assertEquals("solo", body.get("plan").asString)
+        assertEquals(365, body.get("days").asInt)
+
+        server.enqueue(jsonResponse(200, """{"status":"unknown_batch"}"""))
+        assertEquals(AdminAnswer.Done(null), client.batch(asked))
+    }
+
+    @Test
+    fun `a batch's free codes are revoked, and its deletion is refused while a code opens a business`() = runBlocking {
+        val batch = CodeBatch("Salon", "solo", 30, 2, 2, 0, 0, 0, 0, null)
+        server.enqueue(jsonResponse(200, """{"status":"ok","revoked":2}"""))
+        assertEquals(AdminAnswer.Done(2), client.revokeBatch(batch, reason = " Revendeur parti "))
+        val revoke = server.takeRequest().json
+        assertEquals("revoke_batch", revoke.get("action").asString)
+        assertEquals("Revendeur parti", revoke.get("reason").asString)
+
+        server.enqueue(jsonResponse(200, """{"status":"in_use","keys":3}"""))
+        assertEquals(AdminAnswer.Done(BatchDeletion.InUse(3)), client.deleteBatch(batch))
+        assertEquals("delete_batch", server.takeRequest().json.get("action").asString)
+        server.enqueue(jsonResponse(200, """{"status":"deleted","codes":2}"""))
+        assertEquals(AdminAnswer.Done(BatchDeletion.Deleted(2)), client.deleteBatch(batch))
+        server.enqueue(jsonResponse(200, """{"status":"unknown_batch"}"""))
+        assertEquals(AdminAnswer.Done(BatchDeletion.Unknown), client.deleteBatch(batch))
+        server.enqueue(jsonResponse(200, """{"status":"not_allowed"}"""))
+        assertEquals(AdminAnswer.NotAllowed, client.revokeBatch(batch, reason = null))
+    }
+
+    @Test
     fun `a code is checked, then revoked`() = runBlocking {
         server.enqueue(jsonResponse(200, """{"status":"key","batch":"Salon","plan":"solo","days":30,"expires_on":"2027-10-14",
             "business_id":"b","business_name":"Épicerie Benali","redeemed_at":"2026-10-14T10:09:53.123+00:00","revoked_at":null,"note":null}"""))

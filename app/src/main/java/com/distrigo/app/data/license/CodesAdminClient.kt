@@ -65,6 +65,34 @@ data class CodeState(
     val note: String? = null,
 )
 
+/** A batch opened from « Lots » (private.batch_details): its counts and what its codes became. */
+data class BatchDetails(
+    val batch: CodeBatch,
+    /** The day its free codes must be activated by; null when they never expire. */
+    val expiresOn: LocalDate?,
+    /** The company its codes open, when it was made for one client. */
+    val businessName: String?,
+    val note: String?,
+    /** Codes that are the key of a business that still exists: the batch can't be deleted while there are any. */
+    val liveKeys: Int,
+    /** Its used codes, latest first. */
+    val uses: List<BatchUse>,
+)
+
+/** A used code: the business it went to (null once that business was deleted), as its key or a renewal, and when. */
+data class BatchUse(val key: Boolean, val businessName: String?, val redeemedAt: Instant?)
+
+/** What « Supprimer le lot » did. */
+sealed interface BatchDeletion {
+    data class Deleted(val codes: Int) : BatchDeletion
+
+    /** Refused: [keys] of its codes still open a business. */
+    data class InUse(val keys: Int) : BatchDeletion
+
+    /** No such batch any more. */
+    data object Unknown : BatchDeletion
+}
+
 /** A client's business, as « Comptes clients » lists it. */
 data class ClientBusiness(
     val id: String,
@@ -106,22 +134,70 @@ class CodesAdminClient(http: OkHttpClient, backend: Backend, auth: AuthRepositor
 
     suspend fun batches(): AdminAnswer<List<CodeBatch>> =
         ask(JsonObject().apply { addProperty("action", "batches") }, "ok") { reply ->
-            reply.getAsJsonArray("batches")?.mapNotNull { element ->
-                val b = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
-                CodeBatch(
-                    name = b.text("batch") ?: return@mapNotNull null,
-                    plan = b.text("plan") ?: "solo",
-                    days = b.int("days") ?: 0,
-                    total = b.int("total") ?: 0,
-                    unused = b.int("unused") ?: 0,
-                    keys = b.int("keys") ?: 0,
-                    renewals = b.int("renewals") ?: 0,
-                    expired = b.int("expired") ?: 0,
-                    revoked = b.int("revoked") ?: 0,
-                    createdOn = b.text("created_on")?.let(::day),
-                )
-            }.orEmpty()
+            reply.getAsJsonArray("batches")?.mapNotNull { element -> element.takeIf { it.isJsonObject }?.asJsonObject?.let(::codeBatch) }.orEmpty()
         }
+
+    // ── A batch, named as « Lots » lists it ──
+
+    /** Its details; null when there is no such batch any more. */
+    suspend fun batch(batch: CodeBatch): AdminAnswer<BatchDetails?> =
+        ask(batchBody("batch", batch), null) { reply ->
+            val read = reply.takeIf { reply.text("status") == "ok" }?.let(::codeBatch) ?: return@ask null
+            BatchDetails(
+                batch = read,
+                expiresOn = reply.text("expires_on")?.let(::day),
+                businessName = reply.text("business_name"),
+                note = reply.text("note"),
+                liveKeys = reply.int("live_keys") ?: 0,
+                uses = reply.getAsJsonArray("uses")?.mapNotNull { element ->
+                    val u = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+                    BatchUse(
+                        key = u.text("use") == "key",
+                        businessName = u.text("business_name"),
+                        redeemedAt = u.text("redeemed_at")?.let(::instant),
+                    )
+                }.orEmpty(),
+            )
+        }
+
+    /** « Révoquer les codes libres »: how many were revoked; null when there is no such batch any more. */
+    suspend fun revokeBatch(batch: CodeBatch, reason: String?): AdminAnswer<Int?> {
+        val body = batchBody("revoke_batch", batch).apply { reason?.trim()?.takeIf { it.isNotEmpty() }?.let { addProperty("reason", it) } }
+        return ask(body, null) { reply -> reply.int("revoked").takeIf { reply.text("status") == "ok" } }
+    }
+
+    /** « Supprimer le lot »: refused while one of its codes opens a business. */
+    suspend fun deleteBatch(batch: CodeBatch): AdminAnswer<BatchDeletion> =
+        ask(batchBody("delete_batch", batch), null) { reply ->
+            when (reply.text("status")) {
+                "deleted" -> BatchDeletion.Deleted(reply.int("codes") ?: 0)
+                "in_use" -> BatchDeletion.InUse(reply.int("keys") ?: 0)
+                else -> BatchDeletion.Unknown
+            }
+        }
+
+    private fun batchBody(action: String, batch: CodeBatch) = JsonObject().apply {
+        addProperty("action", action)
+        addProperty("batch", batch.name)
+        addProperty("plan", batch.plan)
+        addProperty("days", batch.days)
+    }
+
+    private fun codeBatch(b: JsonObject): CodeBatch? {
+        val name = b.text("batch") ?: return null
+        return CodeBatch(
+            name = name,
+            plan = b.text("plan") ?: "solo",
+            days = b.int("days") ?: 0,
+            total = b.int("total") ?: 0,
+            unused = b.int("unused") ?: 0,
+            keys = b.int("keys") ?: 0,
+            renewals = b.int("renewals") ?: 0,
+            expired = b.int("expired") ?: 0,
+            revoked = b.int("revoked") ?: 0,
+            createdOn = b.text("created_on")?.let(::day),
+        )
+    }
 
     suspend fun create(order: CodeOrder): AdminAnswer<List<NewCode>> {
         val body = JsonObject().apply {

@@ -304,6 +304,11 @@ const CODE_PLANS = ["solo"] as const;
  *     expires_on they expire in 12 months; expires_on null means never.
  *   {action: "status", code} → private.code_status
  *   {action: "revoke", code, reason?} → revoked, or unknown
+ * A batch, named as "batches" lists it (migration 20261015140000):
+ *   {action: "batch", batch, plan, days} → ok {…its counts, expires_on, business_name, note, live_keys, uses}
+ *   {action: "revoke_batch", batch, plan, days, reason?} → ok {revoked}: its free codes
+ *   {action: "delete_batch", batch, plan, days} → deleted {codes}, or in_use {keys} while a code is a business's key
+ *   (each answers unknown_batch when there is no such batch)
  * « Comptes clients » (migration 20261015090000):
  *   {action: "businesses", query?} → ok {businesses: [...]} (private.find_businesses; the latest without a query)
  *   {action: "suspend" | "reactivate", business_id, note?} → ok {subscription_status}, own_business, unknown_business
@@ -312,7 +317,10 @@ const CODE_PLANS = ["solo"] as const;
 export async function codesAdmin(config: Config, userId: string, body: Body): Promise<Reply> {
     const [{ admin }] = await config.sql`select private.is_admin(${userId}::uuid) as admin`;
     if (!admin) return reply({ status: "not_allowed" });
-    switch (optionalChoice(body, "action", ["batches", "create", "status", "revoke", "businesses", "suspend", "reactivate", "delete_business"])) {
+    switch (optionalChoice(body, "action", [
+        "batches", "create", "status", "revoke", "batch", "revoke_batch", "delete_batch",
+        "businesses", "suspend", "reactivate", "delete_business",
+    ])) {
         case "batches": {
             const rows = await config.sql`
                 select b.batch, b.plan_id, b.days, b.total::int as total, b.unused::int as unused, b.keys::int as keys,
@@ -365,6 +373,22 @@ export async function codesAdmin(config: Config, userId: string, body: Body): Pr
             if (code === null) throw new BadRequest("code");
             const reason = optionalText(body, "reason", 120);
             const [{ result }] = await config.sql`select private.revoke_code(${code}, ${reason}) as result`;
+            return reply(result);
+        }
+        case "batch":
+        case "revoke_batch":
+        case "delete_batch": {
+            // As the batch's codes were made: a name up to the database's 120, a plan, days within its check
+            const batch = optionalText(body, "batch", 120);
+            if (batch === null) throw new BadRequest("batch");
+            const plan = optionalText(body, "plan", 40);
+            if (plan === null) throw new BadRequest("plan");
+            const days = integer(body, "days", 1, 1100);
+            const [{ result }] = body.action === "batch"
+                ? await config.sql`select private.batch_details(${batch}, ${plan}, ${days}::int) as result`
+                : body.action === "revoke_batch"
+                ? await config.sql`select private.revoke_batch(${batch}, ${plan}, ${days}::int, ${optionalText(body, "reason", 120)}) as result`
+                : await config.sql`select private.delete_batch(${batch}, ${plan}, ${days}::int) as result`;
             return reply(result);
         }
         case "businesses": {

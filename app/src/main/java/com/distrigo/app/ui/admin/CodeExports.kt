@@ -15,6 +15,14 @@ private val DAY = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRENCH)
 
 internal fun day(date: LocalDate): String = DAY.format(date)
 
+/** « 1 code », « 3 codes » (and « 0 code », as French says it). */
+internal fun codes(count: Int): String = if (count > 1) "$count codes" else "$count code"
+
+/** Why « Supprimer le lot » is refused: some of its codes still open a business, which would lose its key. */
+internal fun inUse(keys: Int): String =
+    "Ce lot ne peut pas être supprimé : " +
+        (if (keys > 1) "$keys de ses codes ouvrent une entreprise." else "un de ses codes ouvre une entreprise.")
+
 /** « Autre » on « Nouveau lot »: the unit a typed duration is in, and its days (a month as the « 1 mois » preset). */
 internal enum class LengthUnit(val label: String, val days: Int) {
     DAYS("jours", 1),

@@ -3,6 +3,7 @@ package com.distrigo.app.ui.admin
 import com.distrigo.app.core.format.subscriptionLength
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.license.CodeBatch
+import com.distrigo.app.data.license.BatchUse
 import com.distrigo.app.data.license.CodeExpiry
 import com.distrigo.app.data.license.CodeOrder
 import com.distrigo.app.data.license.CodeState
@@ -130,19 +134,23 @@ fun AdminHomeScreen(viewModel: AdminViewModel, onBack: () -> Unit, onNewBatch: (
                 batches.isEmpty() -> BrandCardBody { Body("Aucun lot pour l'instant.", center = true) }
                 else -> batches.forEachIndexed { i, batch ->
                     if (i > 0) BrandRowDivider()
-                    BatchRow(batch)
+                    BatchRow(batch) { viewModel.openBatch(batch) }
                 }
             }
         }
     }
 
     state.check?.let { CheckDialog(it, state.work, viewModel) }
+    state.openedBatch?.let { BatchDialog(it, state, viewModel) }
 }
 
-/** A batch: its name, what its codes give, and how many are still free. */
+/** A batch: its name, what its codes give, and how many are still free. Tapped, its details. */
 @Composable
-private fun BatchRow(batch: CodeBatch) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun BatchRow(batch: CodeBatch, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = DsSpacing.lg, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(Modifier.weight(1f)) {
             Text(batch.name, fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Body, lineHeight = BrandSize.BodyLine, color = DsBrand.Ink, maxLines = 2)
             // Every code is DistriGo Solo today: the plan is named only when it differs
@@ -177,6 +185,99 @@ private fun uses(batch: CodeBatch): String? = listOfNotNull(
     batch.revoked.takeIf { it > 0 }?.let { "$it ${if (it > 1) "révoqués" else "révoqué"}" },
     batch.expired.takeIf { it > 0 }?.let { "$it ${if (it > 1) "expirés" else "expiré"}" },
 ).joinToString(" · ").ifEmpty { null }
+
+/** The used codes listed at most: a dialog doesn't scroll, and the counts above say the rest. */
+private const val USES_SHOWN = 6
+
+/**
+ * A batch opened from « Lots »: what it gives, until when, what its codes became and for which businesses; its free
+ * codes revoked, or the batch deleted once none of its codes opens a business (each asked first).
+ */
+@Composable
+private fun BatchDialog(batch: CodeBatch, state: AdminUiState, viewModel: AdminViewModel) {
+    val details = state.batchDetails
+    val busy = state.work == AdminWork.CHANGING
+    when (state.batchAction) {
+        null -> BrandDialog(
+            title   = batch.name,
+            text    = null,
+            confirm = "Fermer" to viewModel::closeBatch,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
+                Detail("Formule", "${plan(batch.plan)} · ${subscriptionLength(batch.days)} par code")
+                batch.createdOn?.let { Detail("Créé le", SHORT.format(it)) }
+                details?.let { d ->
+                    Detail("À activer avant le", d.expiresOn?.let { SHORT.format(it) } ?: "Sans limite")
+                    d.businessName?.let { Detail("Entreprise", it) }
+                    d.note?.let { Detail("Note", it) }
+                }
+                Detail("Codes libres", "${batch.unused} sur ${batch.total}")
+                uses(batch)?.let { Detail("Les autres", it) }
+            }
+            when {
+                details != null -> if (details.uses.isNotEmpty()) {
+                    BrandFieldLabel("Codes utilisés")
+                    details.uses.take(USES_SHOWN).forEach { UseLine(it) }
+                    if (details.uses.size > USES_SHOWN) Small("… et ${details.uses.size - USES_SHOWN} de plus")
+                }
+                state.batchError != null -> Unit
+                state.work == AdminWork.READING_BATCH -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DsBrand.Blue, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
+                }
+                // Read while something else ran, so not read: the owner asks again
+                else -> TextButton(onClick = { viewModel.retryBatch() }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Afficher le détail", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
+                }
+            }
+            state.batchError?.let { BrandMessage(it, isError = true) }
+            if (details != null) {
+                if (batch.unused > 0) {
+                    BrandWideButton("Révoquer les codes libres", Icons.Outlined.Block, filled = false, enabled = !busy, danger = true) {
+                        viewModel.askBatch(BatchAction.REVOKE_FREE)
+                    }
+                }
+                if (details.liveKeys == 0) {
+                    BrandWideButton("Supprimer le lot", Icons.Outlined.DeleteOutline, filled = false, enabled = !busy, danger = true) {
+                        viewModel.askBatch(BatchAction.DELETE)
+                    }
+                } else {
+                    BrandDialogText(inUse(details.liveKeys))
+                }
+            }
+        }
+        BatchAction.REVOKE_FREE -> BrandDialog(
+            title   = "Révoquer les codes libres ?",
+            text    = (if (batch.unused > 1) "Les ${batch.unused} codes libres de « ${batch.name} » ne pourront plus être utilisés."
+                       else "Le code libre de « ${batch.name} » ne pourra plus être utilisé.") +
+                " Les codes déjà utilisés, et les entreprises qu'ils ont ouvertes, ne changent pas.",
+            confirm = "Révoquer" to viewModel::applyBatchAction,
+            dismiss = "Annuler" to viewModel::cancelBatchAction,
+            danger  = true,
+            busy    = busy,
+        )
+        BatchAction.DELETE -> BrandDialog(
+            title   = "Supprimer le lot ?",
+            text    = "« ${batch.name} » et ses ${codes(batch.total)} seront effacés : un code encore libre ne pourra plus être utilisé." +
+                if (batch.keys + batch.renewals > 0) " Les abonnements déjà obtenus avec ses codes ne changent pas." else "",
+            confirm = "Supprimer" to viewModel::applyBatchAction,
+            dismiss = "Annuler" to viewModel::cancelBatchAction,
+            danger  = true,
+            busy    = busy,
+        )
+    }
+}
+
+/** A used code: the business it went to, as its key or a renewal, and when. */
+@Composable
+private fun UseLine(use: BatchUse) {
+    Small(
+        listOfNotNull(
+            use.businessName ?: "Entreprise supprimée",
+            if (use.key) "clé" else "renouvellement",
+            use.redeemedAt?.let { SHORT.format(it.atZone(java.time.ZoneId.systemDefault())) },
+        ).joinToString(" · ")
+    )
+}
 
 private enum class Validity { DEFAULT, SIX_MONTHS, NEVER }
 

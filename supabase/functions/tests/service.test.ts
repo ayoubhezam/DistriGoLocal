@@ -350,7 +350,10 @@ test("« Administration »: codes created, followed and revoked by the owner alo
     const wellFormed = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 
     await t.test("anyone else is told not_allowed, whatever they ask, and nothing is made", async () => {
-        for (const body of [{ action: "batches" }, { action: "create", count: 5, plan: "solo", days: 30, batch: "Pirate" }]) {
+        for (const body of [
+            { action: "batches" }, { action: "create", count: 5, plan: "solo", days: 30, batch: "Pirate" },
+            { action: "delete_batch", batch: "Pirate", plan: "solo", days: 30 },
+        ]) {
             assert.deepEqual((await codesAdmin(config, merchant, body)).body, { status: "not_allowed" });
         }
         const [{ n }] = await sql`select count(*)::int as n from private.activation_codes where batch = 'Pirate'`;
@@ -407,13 +410,29 @@ test("« Administration »: codes created, followed and revoked by the owner alo
         assert.equal((await codesAdmin(config, owner, { action: "revoke", code: "0000-0000-0000" })).body.status, "unknown");
     });
 
+    await t.test("a batch is opened, its free codes revoked, then the batch deleted", async () => {
+        const named = { batch: "Revendeur Node", plan: "solo", days: 180 };
+        const details = (await codesAdmin(config, owner, { action: "batch", ...named })).body;
+        assert.equal(details.status, "ok", JSON.stringify(details));
+        assert.deepEqual(
+            [details.total, details.unused, details.revoked, details.live_keys],
+            [3, 2, 1, 0],
+            JSON.stringify(details),
+        );
+        assert.deepEqual(details.uses, []);
+        assert.deepEqual((await codesAdmin(config, owner, { action: "revoke_batch", ...named, reason: "Test" })).body, { status: "ok", revoked: 2 });
+        assert.deepEqual((await codesAdmin(config, owner, { action: "delete_batch", ...named })).body, { status: "deleted", codes: 3 });
+        assert.deepEqual((await codesAdmin(config, owner, { action: "batch", ...named })).body, { status: "unknown_batch" });
+    });
+
     await t.test("what the screen never sends is a bad request", async () => {
         const create = { action: "create", count: 3, plan: "solo", days: 30, batch: "X" };
         for (const body of [
             {}, { action: "drop" }, { ...create, count: 0 }, { ...create, count: 201 }, { ...create, count: "3" },
             { ...create, count: 2.5 }, { ...create, plan: "trial" }, { ...create, days: 0 }, { ...create, days: 1101 }, { ...create, batch: "  " },
             { ...create, expires_on: "2027-02-30" }, { ...create, expires_on: "30/06/2027" }, { action: "status" },
-            { action: "revoke", code: "" },
+            { action: "revoke", code: "" }, { action: "batch" }, { action: "revoke_batch", batch: "X", days: 30 },
+            { action: "delete_batch", batch: "X", plan: "solo", days: 1101 },
         ]) {
             await assert.rejects(codesAdmin(config, owner, body), BadRequest, JSON.stringify(body));
         }

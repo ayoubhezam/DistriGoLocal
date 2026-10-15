@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.PauseCircleOutline
@@ -19,6 +20,9 @@ import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,9 +58,13 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 // « Comptes clients » in the owner's Administration (docs/activation_codes.md, step C4): find a client's business,
 // see its subscription, suspend, reactivate or delete it.
+
+/** How long typing pauses before the search runs. */
+private const val SEARCH_PAUSE = 400L
 
 @Composable
 fun ClientsScreen(viewModel: AdminViewModel, onBack: () -> Unit) {
@@ -63,30 +72,46 @@ fun ClientsScreen(viewModel: AdminViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
     val searching = state.work == AdminWork.SEARCHING
+    val keyboard = LocalSoftwareKeyboardController.current
 
-    // The latest clients, until something is searched
-    LaunchedEffect(Unit) {
-        if (state.clients == null) viewModel.searchClients("")
+    // Searched as it is typed, once typing pauses; the latest clients while the field is empty. Not again for what
+    // is already on screen (back from a client, a rotation).
+    LaunchedEffect(query) {
+        if (query.isNotBlank()) delay(SEARCH_PAUSE)
+        if (state.clients != null && state.clientsQuery == query.trim().ifEmpty { null }) return@LaunchedEffect
+        viewModel.searchClients(query)
     }
 
     BrandScreen(title = "Comptes clients", onBack = onBack) {
         state.message?.let { BrandMessage(it, isError = false) }
+        // The search and what it found in one card: the field alone, no title and no button
         BrandCard {
-            BrandCardBody {
+            Box(Modifier.padding(DsSpacing.lg)) {
                 BrandTextField(
                     value         = query,
                     onValueChange = { query = it },
-                    label         = "Rechercher un client",
+                    label         = null,
                     placeholder   = "Nom, téléphone, e-mail ou code",
                     icon          = Icons.Outlined.Search,
-                    onDone        = { viewModel.searchClients(query) }
+                    // The keyboard's key searches at once
+                    onDone        = {
+                        keyboard?.hide()
+                        viewModel.searchClients(query)
+                    },
+                    // Always the same room at the end, so the field keeps its height whatever shows there
+                    trailing      = {
+                        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                            when {
+                                searching -> CircularProgressIndicator(color = DsBrand.Blue, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                query.isNotEmpty() -> IconButton(onClick = { query = "" }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Outlined.Close, contentDescription = "Effacer la recherche", tint = DsBrand.Slate, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
                 )
-                BrandWideButton("Rechercher", Icons.Outlined.Search, filled = true, enabled = state.work == null, busy = searching) {
-                    viewModel.searchClients(query)
-                }
             }
-        }
-        BrandCard {
+            HorizontalDivider(color = DsBrand.CardBorder, thickness = 1.dp)
             val clients = state.clients
             BrandCardHeader(Icons.Outlined.Storefront, if (state.clientsQuery == null) "Derniers clients" else "Résultats") {
                 clients?.let { BrandPill("${it.size}", DsBrand.Blue, DsBrand.Blue.copy(alpha = 0.1f)) }
@@ -177,7 +202,8 @@ private fun ClientDialog(business: ClientBusiness, state: AdminUiState, viewMode
             var note by rememberSaveable { mutableStateOf("") }
             BrandDialog(
                 title   = "Suspendre « ${business.name} » ?",
-                text    = "Ses téléphones perdront la licence à leur prochaine vérification, au plus tard dans 14 jours. " +
+                // They check in by themselves (docs/license_l4_checkin.md): every 12 hours, and when the app opens
+                text    = "Ses téléphones passeront en « Suspendu » à leur prochaine vérification, en général dans les 12 heures. " +
                     "L'activation lui sera refusée. Vous pourrez le réactiver.",
                 confirm = "Suspendre" to { viewModel.applyClientAction(note) },
                 dismiss = "Annuler" to viewModel::cancelClientAction,
@@ -196,7 +222,7 @@ private fun ClientDialog(business: ClientBusiness, state: AdminUiState, viewMode
         }
         ClientAction.REACTIVATE -> BrandDialog(
             title   = "Réactiver « ${business.name} » ?",
-            text    = "Ses téléphones pourront de nouveau vérifier ou activer l'abonnement, jusqu'au " +
+            text    = "Ses téléphones redeviendront actifs d'eux-mêmes à leur prochaine vérification, jusqu'au " +
                 (business.validTo?.let(::day) ?: "terme prévu") + ".",
             confirm = "Réactiver" to { viewModel.applyClientAction(null) },
             dismiss = "Annuler" to viewModel::cancelClientAction,

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.license.AdminAnswer
 import com.distrigo.app.data.license.ClientBusiness
 import com.distrigo.app.data.license.ClientOutcome
+import com.distrigo.app.data.license.BatchDeletion
+import com.distrigo.app.data.license.BatchDetails
 import com.distrigo.app.data.license.CodeBatch
 import com.distrigo.app.data.license.CodeOrder
 import com.distrigo.app.data.license.CodeState
@@ -17,6 +19,7 @@ import com.distrigo.app.ui.onboarding.formatCode
 import com.distrigo.app.ui.onboarding.isWellFormedCode
 import com.distrigo.app.ui.onboarding.normalizeCode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +38,10 @@ data class CodeCheck(
     val confirmRevoke: Boolean = false,
 )
 
-enum class AdminWork { LOADING, CREATING, CHECKING, REVOKING, SEARCHING, CHANGING }
+enum class AdminWork { LOADING, CREATING, CHECKING, REVOKING, READING_BATCH, SEARCHING, CHANGING }
+
+/** What the owner is about to do to a batch, once confirmed. */
+enum class BatchAction { REVOKE_FREE, DELETE }
 
 /** What the owner is about to do to a client's account, once confirmed. */
 enum class ClientAction { SUSPEND, REACTIVATE, DELETE }
@@ -50,6 +56,11 @@ data class AdminUiState(
     val created: CreatedBatch? = null,
     val check: CodeCheck? = null,
     val message: String? = null,
+    /** The batch opened from « Lots », its details once read, its action awaiting confirmation, what went wrong. */
+    val openedBatch: CodeBatch? = null,
+    val batchDetails: BatchDetails? = null,
+    val batchAction: BatchAction? = null,
+    val batchError: String? = null,
     // « Comptes clients »
     /** Null until searched. */
     val clients: List<ClientBusiness>? = null,
@@ -165,10 +176,93 @@ class AdminViewModel @Inject constructor(
 
     fun dismissMessage() = update { copy(message = null) }
 
+    // ── A batch ──
+
+    fun openBatch(batch: CodeBatch) {
+        update { copy(openedBatch = batch, batchDetails = null, batchAction = null, batchError = null) }
+        readBatch(batch)
+    }
+
+    /** Its details again, after a read that failed. */
+    fun retryBatch() = _state.value.openedBatch?.let(::readBatch)
+
+    fun closeBatch() = update { copy(openedBatch = null, batchDetails = null, batchAction = null, batchError = null) }
+
+    fun askBatch(action: BatchAction) = update { copy(batchAction = action, batchError = null) }
+
+    fun cancelBatchAction() = update { copy(batchAction = null) }
+
+    /** The confirmed action: its free codes revoked, or the batch deleted (refused while a code opens a business). */
+    fun applyBatchAction() {
+        val batch = _state.value.openedBatch ?: return
+        val action = _state.value.batchAction ?: return
+        work(AdminWork.CHANGING) {
+            when (action) {
+                BatchAction.REVOKE_FREE -> when (val answer = client.revokeBatch(batch, reason = "Lot révoqué depuis l'application")) {
+                    is AdminAnswer.Done -> {
+                        val revoked = answer.value ?: return@work batchGone(batch)
+                        update { copy(batchAction = null, message = "${codes(revoked)} ${if (revoked > 1) "révoqués" else "révoqué"} dans « ${batch.name} ».") }
+                        readBatches()
+                        // The batch as it now is
+                        (client.batch(batch) as? AdminAnswer.Done)?.value?.let { now -> update { copy(openedBatch = now.batch, batchDetails = now) } }
+                    }
+                    AdminAnswer.NotAllowed -> update { copy(batchAction = null, batchError = NOT_ALLOWED) }
+                    is AdminAnswer.Failed -> update { copy(batchAction = null, batchError = answer.message) }
+                }
+                BatchAction.DELETE -> when (val answer = client.deleteBatch(batch)) {
+                    is AdminAnswer.Done -> when (val deletion = answer.value) {
+                        is BatchDeletion.Deleted -> {
+                            update {
+                                copy(
+                                    openedBatch = null, batchDetails = null, batchAction = null,
+                                    message = "Le lot « ${batch.name} » est supprimé (${codes(deletion.codes)}).",
+                                )
+                            }
+                            readBatches()
+                        }
+                        is BatchDeletion.InUse -> update { copy(batchAction = null, batchError = inUse(deletion.keys)) }
+                        BatchDeletion.Unknown -> batchGone(batch)
+                    }
+                    AdminAnswer.NotAllowed -> update { copy(batchAction = null, batchError = NOT_ALLOWED) }
+                    is AdminAnswer.Failed -> update { copy(batchAction = null, batchError = answer.message) }
+                }
+            }
+        }
+    }
+
+    private fun readBatch(batch: CodeBatch) = work(AdminWork.READING_BATCH) {
+        when (val answer = client.batch(batch)) {
+            is AdminAnswer.Done -> answer.value?.let { details -> update { copy(openedBatch = details.batch, batchDetails = details) } }
+                ?: batchGone(batch)
+            AdminAnswer.NotAllowed -> update { copy(batchError = NOT_ALLOWED) }
+            is AdminAnswer.Failed -> update { copy(batchError = answer.message) }
+        }
+    }
+
+    /** Deleted meanwhile (another phone, Studio): the dialog closes, and the list shows what there is. */
+    private suspend fun batchGone(batch: CodeBatch) {
+        update { copy(openedBatch = null, batchDetails = null, batchAction = null, message = "Le lot « ${batch.name} » n'existe plus.") }
+        readBatches()
+    }
+
     // ── « Comptes clients » ──
 
-    /** A name, a phone, an e-mail or a code; empty, the latest clients. */
-    fun searchClients(query: String) = work(AdminWork.SEARCHING) { readClients(query) }
+    private var search: Job? = null
+
+    /**
+     * A name, a phone, an e-mail or a code; empty, the latest clients. Searched as the owner types: a newer search
+     * replaces one still running, so the last letters typed are never lost. Not while something else is under way.
+     */
+    fun searchClients(query: String) {
+        val busy = _state.value.work
+        if (busy != null && busy != AdminWork.SEARCHING) return
+        search?.cancel()
+        update { copy(work = AdminWork.SEARCHING, message = null) }
+        val job = viewModelScope.launch { readClients(query) }
+        search = job
+        // Only the latest search ends the work: a replaced one finishing late must not
+        job.invokeOnCompletion { if (search === job) update { copy(work = null) } }
+    }
 
     fun openClient(business: ClientBusiness) = update { copy(selectedClient = business, clientAction = null, clientError = null) }
 

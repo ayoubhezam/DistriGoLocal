@@ -28,6 +28,15 @@ class CodeExportsTest {
     }
 
     @Test
+    fun `counts and refusals read as French says them`() {
+        assertEquals("0 code", codes(0))
+        assertEquals("1 code", codes(1))
+        assertEquals("50 codes", codes(50))
+        assertEquals("Ce lot ne peut pas être supprimé : un de ses codes ouvre une entreprise.", inUse(1))
+        assertEquals("Ce lot ne peut pas être supprimé : 3 de ses codes ouvrent une entreprise.", inUse(3))
+    }
+
+    @Test
     fun `a custom batch's duration is shared as it was chosen`() {
         val batch = CreatedBatch(CodeOrder(count = 1, days = 730, batch = "Grossiste"), listOf(NewCode("7KQ4-M2XP-9HTD", null)))
         assertEquals(true, whatsAppText(batch).contains("DistriGo Solo · 2 ans par code"))
