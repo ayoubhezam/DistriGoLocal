@@ -37,6 +37,14 @@ sealed interface LicenseState {
         override val canRecord get() = false
     }
 
+    /**
+     * The business's subscription is suspended (« Comptes clients »). The license and the key stay, so the first
+     * check-in after a reactivation installs a new license, with nothing for the user to do.
+     */
+    data class Suspended(val license: License) : LicenseState {
+        override val canRecord get() = false
+    }
+
     /** Only a check-in can tell. */
     data class CheckInRequired(val license: License?, val why: CheckInReason, val error: Throwable? = null) : LicenseState {
         override val canRecord get() = false

@@ -19,6 +19,7 @@ fun interface StateSeal {
  *  - `anchor.state`: the [AnchorState] as JSON on the first line, its seal (base64url) on the second. An
  *    edited or missing state reads as none, and only a check-in makes a new one.
  *  - `revoked`: present once the server has said this phone no longer holds the subscription.
+ *  - `suspended`: present once the server has said the business's subscription is suspended.
  *  - `device.id`: the server's id for this phone, which « Libérer cet appareil » names.
  *
  * Why `no_backup`, like DeviceIdentity: Auto Backup and a device-to-device transfer copy the database and
@@ -30,6 +31,7 @@ class LicenseStore(private val dir: File, private val seal: StateSeal) : AnchorS
     private val tokenFile get() = File(dir, "license.jws")
     private val anchorFile get() = File(dir, "anchor.state")
     private val revokedFile get() = File(dir, "revoked")
+    private val suspendedFile get() = File(dir, "suspended")
     private val deviceIdFile get() = File(dir, "device.id")
 
     fun readToken(): String? = synchronized(LOCK) {
@@ -50,12 +52,21 @@ class LicenseStore(private val dir: File, private val seal: StateSeal) : AnchorS
         }
     }
 
+    fun isSuspended(): Boolean = synchronized(LOCK) { suspendedFile.isFile }
+
+    fun setSuspended(suspended: Boolean) {
+        synchronized(LOCK) {
+            if (suspended) write(suspendedFile, "") else suspendedFile.delete()
+        }
+    }
+
     /** Forgets everything: a sign-out. Never called by an update. */
     fun clear() {
         synchronized(LOCK) {
             tokenFile.delete()
             anchorFile.delete()
             revokedFile.delete()
+            suspendedFile.delete()
             deviceIdFile.delete()
         }
     }

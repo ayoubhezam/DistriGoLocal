@@ -216,8 +216,9 @@ export async function renewWithCode(config: Config, userId: string, body: Body, 
 
 /**
  * POST license-refresh: the check-in. The phone signs signedMessage("refresh", …) with its device key.
- * Replies ok (with the next license), or revoked, not_member, unknown_device, subscription_inactive (all of which
- * the phone takes as the end of its license), bad_signature, bad_nonce.
+ * Replies ok (with the next license), or revoked, not_member, unknown_device (which the phone takes as the end of
+ * its license), subscription_inactive (which it keeps its license through, suspended, until the next ok),
+ * bad_signature, bad_nonce.
  */
 export async function refresh(config: Config, userId: string, body: Body): Promise<Reply> {
     const nonce = bytes(body, "nonce", 64);

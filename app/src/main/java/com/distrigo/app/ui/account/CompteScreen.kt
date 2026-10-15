@@ -74,6 +74,7 @@ import com.distrigo.app.data.auth.AccountState
 import com.distrigo.app.data.auth.AuthSession
 import com.distrigo.app.data.license.BusinessProfile
 import com.distrigo.app.data.license.License
+import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseState
 import com.distrigo.app.data.license.heldLicense
 import com.distrigo.app.data.license.holdsLicense
@@ -379,9 +380,12 @@ private fun SubscriptionCard(
             val notice = if (trialUsed) "L'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo." else license.notice(held)
             notice?.let { BrandNotice(it, look.color, look.background) }
             if (license.holdsLicense) {
-                // A code pays for more time: the thing to do once the subscription is ending
+                // A code pays for more time: the thing to do once the subscription is ending. Not while suspended:
+                // the days would be added, but only DistriGo lifts a suspension
                 val ending = license is LicenseState.RenewSoon || ended
-                BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
+                if (license !is LicenseState.Suspended) {
+                    BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
+                }
                 held?.let { CheckedLine(it.issuedAt, checking = work == AccountWork.CHECKING_IN, enabled = work == null, onCheckIn = onCheckIn) }
             } else {
                 BrandWideButton("Activer cet appareil", Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)
@@ -476,6 +480,7 @@ private fun LicenseState.look(): Look = when (this) {
     is LicenseState.NotYetValid -> Look("Pas encore valable", "L'abonnement commence plus tard.", DsColors.Warning, DsColors.WarningLight)
     is LicenseState.CheckInRequired -> Look("Vérification nécessaire", "Connectez ce téléphone à Internet, puis touchez « Vérifier ».", DsColors.Warning, DsColors.WarningLight)
     LicenseState.Revoked -> Look("Appareil libéré", "Cet appareil n'est plus associé à l'abonnement. Activez-le pour le reprendre.", DsColors.TextSecondary, DsColors.SurfaceSunken)
+    is LicenseState.Suspended -> Look("Suspendu", LicenseClient.SUSPENDED_MESSAGE, DsColors.Danger, DsColors.DangerLight)
     is LicenseState.NoLicense -> Look("Non activé", "Activez cet appareil pour commencer.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     LicenseState.Unchecked -> Look("…", "Lecture de la licence…", DsColors.TextSecondary, DsColors.SurfaceSunken)
 }

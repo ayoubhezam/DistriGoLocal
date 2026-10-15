@@ -173,6 +173,34 @@ class LicenseClientTest {
     }
 
     @Test
+    fun `a suspended subscription keeps the license here, and the check-in after the reactivation heals it`() = runBlocking {
+        keys.hash = Golden.deviceHash
+        license.install(Golden.token("valid"))
+
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"subscription_inactive"}"""))
+        assertEquals(CheckIn.Suspended, client.checkIn())
+        assertEquals(7L, (license.state.value as LicenseState.Suspended).license.seq)
+        assertEquals("a suspended phone is not activated again", ActivationStep.AlreadyActivated, client.startActivation())
+
+        // A code adds its days, but the license waits for the reactivation
+        server.enqueue(jsonResponse(200, """{"status":"renewed","business_id":"b","valid_to":"2027-04-14","plan":"solo","days":182}"""))
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"subscription_inactive"}"""))
+        assertEquals(
+            Renewal.Failed("Le code a bien été ajouté, mais l'abonnement est suspendu. Contactez DistriGo."),
+            client.renewWithCode("7KQ4-M2XP-9HTD"),
+        )
+
+        phone.passTo(Golden.lateIssuedAt + 2 * SECOND)
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"ok","license":"${Golden.token("late")}"}"""))
+        assertEquals(CheckIn.Done, client.checkIn())
+        assertEquals(8L, (license.state.value as LicenseState.Judged).license.seq)
+        assertEquals(7, server.requestCount)
+    }
+
+    @Test
     fun `a refused access token is renewed once, and the call made again`() = runBlocking {
         server.enqueue(jsonResponse(401, """{"status":"unauthenticated"}"""))
         server.enqueue(jsonResponse(200, sessionJson(access = "access-2", refresh = "refresh-2")))

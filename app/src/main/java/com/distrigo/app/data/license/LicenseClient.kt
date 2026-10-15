@@ -101,6 +101,9 @@ sealed interface CheckIn {
     /** The server says this phone no longer has the subscription: the license is revoked here too. */
     data object Revoked : CheckIn
 
+    /** The business's subscription is suspended: the license stays, marked, and check-ins go on. */
+    data object Suspended : CheckIn
+
     data object NotActivated : CheckIn
     data class Failed(val message: String) : CheckIn
 }
@@ -187,6 +190,8 @@ class LicenseClient(
                 CheckIn.Done -> Renewal.Renewed
                 // Paid for all the same: the next check-in brings it
                 is CheckIn.Failed -> Renewal.Failed("Le code a bien été ajouté, mais la licence n'a pas pu être mise à jour : ${check.message}")
+                // The days are added; the license comes with the reactivation
+                CheckIn.Suspended -> Renewal.Failed("Le code a bien été ajouté, mais l'abonnement est suspendu. Contactez DistriGo.")
                 CheckIn.Revoked, CheckIn.NotActivated -> Renewal.Failed("Le code a bien été ajouté. Activez maintenant ce téléphone.")
             }
             "bad_code" -> Renewal.Failed("Ce code n'existe pas ou n'est plus valable.")
@@ -267,7 +272,7 @@ class LicenseClient(
                 if (reply.text("reason") == "repackaged") "Cette copie de DistriGo n'est pas l'application officielle."
                 else "Ce téléphone n'a pas pu prouver son identité. Réessayez.",
             )
-            "subscription_inactive" -> ActivationStep.Failed("L'abonnement est suspendu. Contactez l'équipe DistriGo.")
+            "subscription_inactive" -> ActivationStep.Failed(SUSPENDED_MESSAGE)
             "bad_nonce" -> ActivationStep.Failed("Le délai est dépassé. Recommencez l'activation.")
             else -> ActivationStep.Failed(SERVER_MESSAGE)
         }
@@ -301,9 +306,13 @@ class LicenseClient(
                     is LicenseCheck.Rejected -> CheckIn.Failed("La licence reçue n'a pas pu être vérifiée (${check.why}).")
                 }
             }
-            "revoked", "not_member", "unknown_device", "subscription_inactive" -> {
+            "revoked", "not_member", "unknown_device" -> {
                 withContext(Dispatchers.IO) { license.revoke() }
                 CheckIn.Revoked
+            }
+            "subscription_inactive" -> {
+                withContext(Dispatchers.IO) { license.suspend() }
+                CheckIn.Suspended
             }
             else -> CheckIn.Failed(SERVER_MESSAGE)
         }
@@ -368,6 +377,9 @@ class LicenseClient(
     companion object {
         private const val SERVER_MESSAGE = FunctionCalls.SERVER_MESSAGE
 
+        /** A suspended business, wherever the phone hears it: activation, check-in, a code. */
+        const val SUSPENDED_MESSAGE = "L'abonnement est suspendu. Contactez DistriGo."
+
         /** What the device key signs: supabase/functions/_shared/protocol.ts, signedMessage. */
         internal fun signedMessage(purpose: String, nonce: String, installationId: String): ByteArray =
             "distrigo-$purpose\n$nonce\n$installationId".toByteArray(Charsets.UTF_8)
@@ -376,12 +388,13 @@ class LicenseClient(
 
 /** Whether this state holds a license the phone verified: a check-in renews it, a new activation would break it. */
 val LicenseState.holdsLicense: Boolean
-    get() = this is LicenseState.Judged || (this is LicenseState.CheckInRequired && license != null)
+    get() = heldLicense != null
 
 /** The license this state was judged from, when there is one: its plan, its dates, its business. */
 val LicenseState.heldLicense: License?
     get() = when (this) {
         is LicenseState.Judged -> license
         is LicenseState.CheckInRequired -> license
+        is LicenseState.Suspended -> license
         else -> null
     }

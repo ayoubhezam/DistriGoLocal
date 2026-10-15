@@ -228,6 +228,7 @@ class AccountViewModel @Inject constructor(
             message = when (val result = client.checkIn()) {
                 CheckIn.Done -> AccountMessage("Abonnement vérifié.", isError = false)
                 CheckIn.Revoked -> AccountMessage("Cet appareil n'est plus associé à l'abonnement.", isError = true)
+                CheckIn.Suspended -> AccountMessage(LicenseClient.SUSPENDED_MESSAGE, isError = true)
                 CheckIn.NotActivated -> AccountMessage("Activez d'abord cet appareil.", isError = true)
                 is CheckIn.Failed -> AccountMessage(result.message, isError = true)
             },

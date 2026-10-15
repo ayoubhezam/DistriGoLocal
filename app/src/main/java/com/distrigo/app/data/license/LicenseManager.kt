@@ -45,6 +45,7 @@ class LicenseManager internal constructor(
             // accepted. The other order would leave an anchor whose seq refuses the stored token.
             store.writeToken(token)
             store.setRevoked(false)
+            store.setSuspended(false)
             clock.anchor(check.license.issuedAt, check.license.seq)
         }
         publish(judge())
@@ -54,6 +55,15 @@ class LicenseManager internal constructor(
     /** The server said this phone no longer holds the subscription. Lasts until a newer license is installed. */
     fun revoke(): LicenseState = synchronized(lock) {
         store.setRevoked(true)
+        publish(judge())
+    }
+
+    /**
+     * The server said the business's subscription is suspended. The license and the key stay; the mark lasts until
+     * a newer license is installed, which the first check-in after a reactivation brings.
+     */
+    fun suspend(): LicenseState = synchronized(lock) {
+        store.setSuspended(true)
         publish(judge())
     }
 
@@ -72,6 +82,8 @@ class LicenseManager internal constructor(
         try {
             when {
                 store.isRevoked() -> LicenseState.Revoked
+                // Only a license this phone still holds is suspended: without its key, an activation is needed anyway
+                store.isSuspended() -> judgeStored().let { stored -> stored.heldLicense?.let(LicenseState::Suspended) ?: stored }
                 else -> judgeStored()
             }
         } catch (e: Exception) {

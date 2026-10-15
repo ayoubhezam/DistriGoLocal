@@ -133,6 +133,33 @@ class LicenseManagerTest {
         assertTrue(manager.state.value.canRecord)
     }
 
+    @Test
+    fun `a suspended phone keeps its license but stops, across restarts and past its offline window, until a newer license comes`() {
+        val manager = activated()
+        val suspended = manager.suspend() as LicenseState.Suspended
+        assertEquals(7L, suspended.license.seq)
+        assertFalse(suspended.canRecord)
+        assertTrue("still checks in, never activates again", suspended.holdsLicense)
+        assertEquals(suspended, manager().evaluate())
+        phone.passTo(Golden.offlineUntil + SECOND)
+        assertEquals(suspended, manager.evaluate())
+
+        phone.passTo(Golden.lateIssuedAt + 2 * SECOND)
+        assertTrue(manager.install(Golden.token("late")) is LicenseCheck.Valid)
+        assertTrue(manager.state.value.canRecord)
+        assertTrue("the mark is gone from the files", manager().evaluate().canRecord)
+    }
+
+    @Test
+    fun `a suspended phone that lost its key needs an activation, and signing out forgets the suspension`() {
+        val manager = activated()
+        manager.suspend()
+        assertEquals(LicenseState.NoLicense(Rejection.NO_DEVICE_KEY), manager(deviceHash = null).evaluate())
+        assertEquals(LicenseState.Revoked, manager.revoke())
+        assertEquals(LicenseState.NoLicense(), manager.clear())
+        assertFalse(File(folder.root, "suspended").exists())
+    }
+
     // ── What the user may try ──
 
     @Test

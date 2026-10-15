@@ -168,6 +168,7 @@ millisecond) and asks `TrustedClock` for the time. The result is a `StateFlow<Li
 | `CheckInRequired` | `t > ou`, or reboots since anchor > `mb`, or clock state missing or altered | « Vérification de l'abonnement nécessaire : connectez-vous à Internet. » | **no** |
 | `ClockBehind` | wall clock more than 24 h behind the floor | « La date du téléphone est en retard. Activez « Date et heure automatiques ». » | **no** |
 | `Revoked` | the server said so | « Cet appareil n'est plus associé au compte. » | **no** |
+| `Suspended` | the server said the subscription is suspended; the license and the key stay, and the next `ok` clears it (L4, `docs/license_l4_checkin.md` §6) | « L'abonnement est suspendu. Contactez DistriGo. » | **no** |
 | `NoLicense` | never activated, signed out, or key lost | sign-in screen | **no** |
 
 Wall clock 10 minutes to 24 hours behind: an amber banner only. Past 24 hours, recording is blocked
@@ -606,7 +607,8 @@ in it: a phone that missed a reply would sign the wrong seq and be locked out.
 
 Every activation reply except `activated` is rolled back. The phone therefore answers `no_business`
 or `seat_taken` with the same nonce, key and attestation, within the nonce's 5 minutes. On `revoked`,
-`not_member`, `unknown_device` or `subscription_inactive`, the phone calls `LicenseManager.revoke()`.
+`not_member` or `unknown_device`, the phone calls `LicenseManager.revoke()`. On `subscription_inactive` it
+calls `LicenseManager.suspend()`: the license stays, marked, until a check-in brings a new one (L4a).
 
 ### 6.5 Accounts → subscription
 
