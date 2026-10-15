@@ -29,6 +29,8 @@ class CheckInLog(private val dir: File) {
         val lastAnswerAt: Long? = null,
         val lastBackgroundAttemptAt: Long? = null,
         val lastBackgroundAnswerAt: Long? = null,
+        /** Since when the 12-hour schedule has existed; null while there is none. */
+        val scheduledSince: Long? = null,
     )
 
     private val file get() = File(dir, "check_in.json")
@@ -60,6 +62,21 @@ class CheckInLog(private val dir: File) {
         entry
     }
 
+    /** The schedule exists from [at], unless it already did: called at every start, it keeps the first time. */
+    fun markScheduled(at: Long) {
+        synchronized(LOCK) {
+            val before = read()
+            if (before.scheduledSince == null) write(before.copy(scheduledSince = at))
+        }
+    }
+
+    fun markUnscheduled() {
+        synchronized(LOCK) {
+            val before = read()
+            if (before.scheduledSince != null) write(before.copy(scheduledSince = null))
+        }
+    }
+
     private fun outcome(result: CheckIn): String = when (result) {
         CheckIn.Done -> "done"
         CheckIn.Suspended -> "suspended"
@@ -80,6 +97,7 @@ class CheckInLog(private val dir: File) {
             addProperty("last_answer_at", entry.lastAnswerAt)
             addProperty("last_background_attempt_at", entry.lastBackgroundAttemptAt)
             addProperty("last_background_answer_at", entry.lastBackgroundAnswerAt)
+            addProperty("scheduled_since", entry.scheduledSince)
         }
         val temp = File(dir, "check_in.json.tmp")
         temp.writeText(json.toString(), Charsets.UTF_8)
@@ -98,12 +116,27 @@ class CheckInLog(private val dir: File) {
             lastAnswerAt = time("last_answer_at"),
             lastBackgroundAttemptAt = time("last_background_attempt_at"),
             lastBackgroundAnswerAt = time("last_background_answer_at"),
+            scheduledSince = time("scheduled_since"),
         )
     }
 
     companion object {
         private val LOCK = Any()
         private const val FORMAT = 1
+
+        /** §3.4: how long the background may stay silent while other check-ins get through. */
+        const val HELD_BACK_AFTER = 3 * 24 * 3_600_000L
+
+        /**
+         * The battery hint (§3.4, decision 6): no background check-in has got an answer for [HELD_BACK_AFTER] since
+         * the schedule began or the last one did, though the phone has been online since (a check-in in front or
+         * « Vérifier » got one). Android, or Samsung's battery saving, is holding the job back.
+         */
+        fun backgroundHeldBack(entry: Entry, now: Long): Boolean {
+            val since = entry.lastBackgroundAnswerAt ?: entry.scheduledSince ?: return false
+            val lastAnswer = entry.lastAnswerAt ?: return false
+            return now - since > HELD_BACK_AFTER && lastAnswer > since
+        }
 
         fun forApp(context: android.content.Context) =
             CheckInLog(File(context.applicationContext.noBackupFilesDir, "license"))

@@ -95,6 +95,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.license.holdsLicense
@@ -120,6 +121,10 @@ class MainActivity : ComponentActivity() {
     // Lazy and read on IO too: whether this phone holds a license, for the fresh-install onboarding.
     @javax.inject.Inject
     lateinit var licenseManager: dagger.Lazy<com.distrigo.app.data.license.LicenseManager>
+
+    // Lazy and built on IO: the license while the app is in front (docs/license_l4_checkin.md §5.4).
+    @javax.inject.Inject
+    lateinit var licenseInFront: dagger.Lazy<com.distrigo.app.data.license.LicenseInFront>
 
     /** The business's money format, read off the main thread. */
     private val moneyFormats: Flow<MoneyFormat> by lazy {
@@ -597,6 +602,13 @@ class MainActivity : ComponentActivity() {
         // setContent; GeoRepository.init above now only records the context.
         lifecycleScope.launch(Dispatchers.IO) {
             com.distrigo.app.data.geo.GeoRepository.preload()
+        }
+
+        // While the app is in front: the license read again (at once, every 15 minutes, on a date change) and a
+        // check-in when one is due. Stopped when the app leaves the front, started again when it comes back.
+        lifecycleScope.launch {
+            val inFront = withContext(Dispatchers.IO) { licenseInFront.get() }
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { inFront.whileInFront() }
         }
     }
 

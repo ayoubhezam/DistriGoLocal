@@ -40,8 +40,8 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
             manager.cancel(NOTIFICATION_ID)
             return
         }
-        if (!canNotify()) return
-        ensureChannel()
+        if (!canNotify(context)) return
+        ensureChannel(context)
 
         val problem = state.lastProblem ?: return
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
@@ -61,26 +61,27 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun canNotify(): Boolean {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return false
-        return NotificationManagerCompat.from(context).areNotificationsEnabled()
-    }
-
-    private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT < 26) return
-        val manager = context.getSystemService(NotificationManager::class.java)
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Sauvegardes", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Avertit quand les sauvegardes automatiques échouent"
-            }
-        )
-    }
-
     companion object {
+        /** Also the license's reminder's channel (CheckInNotifications, docs/license_l4_checkin.md decision 3). */
         const val CHANNEL_ID = "backups"
         const val NOTIFICATION_ID = 4101
+
+        fun canNotify(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) return false
+            return NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
+
+        fun ensureChannel(context: Context) {
+            if (Build.VERSION.SDK_INT < 26) return
+            val manager = context.getSystemService(NotificationManager::class.java)
+            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+            manager.createNotificationChannel(
+                NotificationChannel(CHANNEL_ID, "Sauvegardes", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Avertit quand les sauvegardes automatiques échouent"
+                }
+            )
+        }
     }
 }

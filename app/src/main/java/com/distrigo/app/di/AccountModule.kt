@@ -9,12 +9,15 @@ import com.distrigo.app.data.auth.SessionStore
 import androidx.work.WorkManager
 import com.distrigo.app.data.license.AndroidDeviceFacts
 import com.distrigo.app.data.license.BusinessProfileStore
+import com.distrigo.app.data.license.CheckInAlerts
 import com.distrigo.app.data.license.CheckInLog
+import com.distrigo.app.data.license.CheckInNotifications
 import com.distrigo.app.data.license.CodesAdminClient
 import com.distrigo.app.data.license.DeviceKey
 import com.distrigo.app.data.license.DeviceKeys
 import com.distrigo.app.data.license.LicenseCheckIn
 import com.distrigo.app.data.license.LicenseCheckInScheduler
+import com.distrigo.app.data.license.LicenseInFront
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
 import dagger.Module
@@ -81,15 +84,23 @@ object AccountModule {
         license: LicenseManager,
     ): LicenseClient = LicenseClient(http, Backend.DISTRIGO, auth, keys, license, AndroidDeviceFacts(context))
 
+    @Provides
+    @Singleton
+    fun provideCheckInLog(@ApplicationContext context: Context): CheckInLog = CheckInLog.forApp(context)
+
     /** One check-in at a time for the background job and « Vérifier » (docs/license_l4_checkin.md §5.1). */
     @Provides
     @Singleton
     fun provideLicenseCheckIn(
-        @ApplicationContext context: Context,
         auth: AuthRepository,
         license: LicenseManager,
         client: LicenseClient,
-    ): LicenseCheckIn = LicenseCheckIn(auth, license, client, CheckInLog.forApp(context))
+        log: CheckInLog,
+    ): LicenseCheckIn = LicenseCheckIn(auth, license, client, log)
+
+    @Provides
+    @Singleton
+    fun provideCheckInAlerts(@ApplicationContext context: Context): CheckInAlerts = CheckInNotifications(context)
 
     @Provides
     @Singleton
@@ -97,5 +108,17 @@ object AccountModule {
         @ApplicationContext context: Context,
         auth: AuthRepository,
         license: LicenseManager,
-    ): LicenseCheckInScheduler = LicenseCheckInScheduler({ WorkManager.getInstance(context) }, auth.state, license.state)
+        log: CheckInLog,
+        alerts: CheckInAlerts,
+    ): LicenseCheckInScheduler =
+        LicenseCheckInScheduler({ WorkManager.getInstance(context) }, auth.state, license.state, log, alerts)
+
+    @Provides
+    @Singleton
+    fun provideLicenseInFront(
+        @ApplicationContext context: Context,
+        auth: AuthRepository,
+        license: LicenseManager,
+        scheduler: LicenseCheckInScheduler,
+    ): LicenseInFront = LicenseInFront(context, auth, license, scheduler)
 }

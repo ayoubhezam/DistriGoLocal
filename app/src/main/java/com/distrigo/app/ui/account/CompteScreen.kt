@@ -4,8 +4,11 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -142,12 +145,17 @@ private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiStat
     val idle = state.work == null
     IdentityCard(session, state.profile)
     state.activationCode?.let { CodeCard(it, withoutEmail = session.isAnonymous) }
+    val context = LocalContext.current
     SubscriptionCard(
         license     = state.license,
         work        = state.work,
+        batteryHint = state.batteryHint,
         onActivate  = viewModel::activate,
         onCheckIn   = viewModel::checkIn,
         onEnterCode = { viewModel.ask(AccountDialog.EnterCode()) },
+        onOpenAppSettings = {
+            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+        },
     )
     // An account without a business has nothing to show here
     if (state.profileLoad != ProfileLoad.NO_BUSINESS) {
@@ -341,9 +349,11 @@ private fun copyCode(context: Context, code: String) {
 private fun SubscriptionCard(
     license: LicenseState,
     work: AccountWork?,
+    batteryHint: Boolean,
     onActivate: () -> Unit,
     onCheckIn: () -> Unit,
     onEnterCode: () -> Unit,
+    onOpenAppSettings: () -> Unit,
 ) {
     val look = license.look()
     val held = license.heldLicense
@@ -379,6 +389,16 @@ private fun SubscriptionCard(
         BrandCardBody {
             val notice = if (trialUsed) "L'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo." else license.notice(held)
             notice?.let { BrandNotice(it, look.color, look.background) }
+            if (batteryHint && license.holdsLicense) {
+                // A hint, never a block (decision 6): the button opens the screen where the battery is set
+                BrandNotice(
+                    "La vérification automatique semble bloquée par l'économie de batterie. Dans les paramètres de " +
+                        "DistriGo, réglez la batterie sur « Non restreinte ».",
+                    DsColors.Warning,
+                    DsColors.WarningLight,
+                )
+                BrandWideButton("Ouvrir les paramètres de DistriGo", Icons.Outlined.Settings, filled = false, enabled = true, onClick = onOpenAppSettings)
+            }
             if (license.holdsLicense) {
                 // A code pays for more time: the thing to do once the subscription is ending. Not while suspended:
                 // the days would be added, but only DistriGo lifts a suspension

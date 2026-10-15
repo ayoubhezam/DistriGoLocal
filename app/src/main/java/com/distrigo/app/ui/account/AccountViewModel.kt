@@ -12,6 +12,7 @@ import com.distrigo.app.data.license.ActivationStep
 import com.distrigo.app.data.license.BusinessProfile
 import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.CheckIn
+import com.distrigo.app.data.license.CheckInLog
 import com.distrigo.app.data.license.CheckInSource
 import com.distrigo.app.data.license.LicenseCheckIn
 import com.distrigo.app.data.license.LicenseClient
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -95,6 +97,8 @@ data class AccountUiState(
     val profileLoad: ProfileLoad = ProfileLoad.IDLE,
     /** Why the profile could not be read, when nothing was kept either. */
     val profileProblem: String? = null,
+    /** The background check-ins seem held back by the battery saving (CheckInLog.backgroundHeldBack). */
+    val batteryHint: Boolean = false,
 )
 
 /**
@@ -107,6 +111,7 @@ class AccountViewModel @Inject constructor(
     private val license: LicenseManager,
     private val client: LicenseClient,
     private val checkIns: LicenseCheckIn,
+    private val checkInLog: CheckInLog,
     private val businessSettings: BusinessSettingsRepository,
     private val codes: ActivationCodeStore,
     private val profiles: BusinessProfileStore,
@@ -133,6 +138,7 @@ class AccountViewModel @Inject constructor(
             license.evaluate()
             codes.load()
             profiles.load()
+            readBatteryHint()
             // What changed on the server since the session was issued (the admin flag)
             if (auth.state.value is AccountState.SignedIn) auth.refreshSession()
             withContext(Dispatchers.Main) { refreshProfile() }
@@ -236,6 +242,13 @@ class AccountViewModel @Inject constructor(
                 is CheckIn.Failed -> AccountMessage(result.message, isError = true)
             },
         )
+        withContext(Dispatchers.IO) { readBatteryHint() }
+    }
+
+    /** From the check-in log. File I/O: off the main thread. */
+    private fun readBatteryHint() {
+        val held = CheckInLog.backgroundHeldBack(checkInLog.read(), System.currentTimeMillis())
+        local.update { it.copy(batteryHint = held) }
     }
 
     /** « Saisir un code »: the dialog stays up while the server works, and shows its refusal under the field. */
