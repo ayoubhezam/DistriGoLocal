@@ -8,8 +8,8 @@ import { inspect } from "./attestation.ts";
 import { base64Decode, base64UrlEncode, signLicense, verifyDeviceSignature } from "./jws.ts";
 import { judge } from "./policy.ts";
 import {
-    BadRequest, bytes, chain, optionalBoolean, optionalChoice, optionalObject, optionalText, optionalUuid, reply,
-    type Reply, signedMessage, uuid,
+    BadRequest, bytes, chain, integer, optionalBoolean, optionalChoice, optionalDate, optionalObject, optionalText,
+    optionalUuid, reply, type Reply, signedMessage, uuid,
 } from "./protocol.ts";
 import type { RevocationList } from "./revocation.ts";
 
@@ -289,4 +289,102 @@ export async function businessProfile(config: Config, userId: string, body: Body
         ? await config.sql`select private.business_profile(${userId}::uuid, ${businessId}::uuid) as result`
         : await config.sql`select private.update_business_profile(${userId}::uuid, ${config.sql.json(changes)}::jsonb, ${businessId}::uuid) as result`;
     return reply(result);
+}
+
+/** The plans a code can carry: the trial is the e-mail sign-up's, never sold. */
+const CODE_PLANS = ["solo"] as const;
+
+/**
+ * POST codes-admin: the owner's « Administration » screen (docs/activation_codes.md, step C4). Only an account
+ * whose app_metadata says distrigo_admin true may call it; anyone else is told not_allowed.
+ *   {action: "batches"} → ok {batches: [{batch, plan, days, total, unused, keys, renewals, expired, revoked, created_on}]}
+ *   {action: "create", count, plan, days, batch, business_name?, expires_on?, note?} → created {codes: [{code,
+ *     expires_on}]}. The codes are shown this once: the database keeps only their fingerprints. Without
+ *     expires_on they expire in 12 months; expires_on null means never.
+ *   {action: "status", code} → private.code_status
+ *   {action: "revoke", code, reason?} → revoked, or unknown
+ * « Comptes clients » (migration 20261015090000):
+ *   {action: "businesses", query?} → ok {businesses: [...]} (private.find_businesses; the latest without a query)
+ *   {action: "suspend" | "reactivate", business_id, note?} → ok {subscription_status}, own_business, unknown_business
+ *   {action: "delete_business", business_id} → deleted, own_business, unknown_business
+ */
+export async function codesAdmin(config: Config, userId: string, body: Body): Promise<Reply> {
+    const [{ admin }] = await config.sql`select private.is_admin(${userId}::uuid) as admin`;
+    if (!admin) return reply({ status: "not_allowed" });
+    switch (optionalChoice(body, "action", ["batches", "create", "status", "revoke", "businesses", "suspend", "reactivate", "delete_business"])) {
+        case "batches": {
+            const rows = await config.sql`
+                select b.batch, b.plan_id, b.days, b.total::int as total, b.unused::int as unused, b.keys::int as keys,
+                       b.renewals::int as renewals, b.expired::int as expired, b.revoked::int as revoked,
+                       b.created_at::date::text as created_on
+                from private.codes_by_batch b
+                limit 200`;
+            return reply({
+                status: "ok",
+                batches: rows.map((r) => ({
+                    batch: r.batch, plan: r.plan_id, days: r.days, total: r.total, unused: r.unused, keys: r.keys,
+                    renewals: r.renewals, expired: r.expired, revoked: r.revoked, created_on: r.created_on,
+                })),
+            });
+        }
+        case "create": {
+            const count = integer(body, "count", 1, 200);
+            const plan = optionalChoice(body, "plan", CODE_PLANS);
+            if (plan === null) throw new BadRequest("plan");
+            const days = integer(body, "days", 1, 3660);
+            const batch = optionalText(body, "batch", 80);
+            if (batch === null) throw new BadRequest("batch");
+            const businessName = optionalText(body, "business_name", 120);
+            const note = optionalText(body, "note", 200);
+            // Absent: the 12 months create_codes gives by default; null: no expiry
+            const rows = "expires_on" in body
+                ? await config.sql`
+                    select c.code, c.expires_on::text as expires_on
+                    from private.create_codes(${count}::int, ${plan}, ${days}::int, ${batch}, ${businessName},
+                                              ${optionalDate(body, "expires_on")}::date, ${note}) c`
+                : await config.sql`
+                    select c.code, c.expires_on::text as expires_on
+                    from private.create_codes(${count}::int, ${plan}, ${days}::int, ${batch}, ${businessName},
+                                              p_note => ${note}) c`;
+            return reply({
+                status: "created",
+                batch, plan, days,
+                codes: rows.map((r) => ({ code: r.code, expires_on: r.expires_on })),
+            });
+        }
+        case "status": {
+            const code = optionalText(body, "code", 24);
+            if (code === null) throw new BadRequest("code");
+            const [{ result }] = await config.sql`select private.code_status(${code}) as result`;
+            return reply(result);
+        }
+        case "revoke": {
+            const code = optionalText(body, "code", 24);
+            if (code === null) throw new BadRequest("code");
+            const reason = optionalText(body, "reason", 120);
+            const [{ result }] = await config.sql`select private.revoke_code(${code}, ${reason}) as result`;
+            return reply(result);
+        }
+        case "businesses": {
+            const query = optionalText(body, "query", 120);
+            const [{ result }] = await config.sql`select private.find_businesses(${query}) as result`;
+            return reply({ status: "ok", businesses: result });
+        }
+        case "suspend":
+        case "reactivate": {
+            const businessId = uuid(body, "business_id");
+            const note = optionalText(body, "note", 200);
+            const suspended = body.action === "suspend";
+            const [{ result }] = await config.sql`
+                select private.set_business_suspended(${userId}::uuid, ${businessId}::uuid, ${suspended}, ${note}) as result`;
+            return reply(result);
+        }
+        case "delete_business": {
+            const businessId = uuid(body, "business_id");
+            const [{ result }] = await config.sql`select private.delete_business(${userId}::uuid, ${businessId}::uuid) as result`;
+            return reply(result);
+        }
+        default:
+            throw new BadRequest("action");
+    }
 }

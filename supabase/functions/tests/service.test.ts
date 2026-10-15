@@ -9,7 +9,7 @@ import postgres from "postgres";
 import { importSigningKey } from "../_shared/jws.ts";
 import { BadRequest } from "../_shared/protocol.ts";
 import {
-    activate, businessProfile, type Config, createNonce, deleteAccount, refresh, release, renewWithCode,
+    activate, businessProfile, codesAdmin, type Config, createNonce, deleteAccount, refresh, release, renewWithCode,
 } from "../_shared/service.ts";
 import { DEBUG_SIGNING_DIGEST, fixture, testKeys } from "./support.ts";
 
@@ -337,3 +337,136 @@ test("« Informations de l'entreprise »: read, changed field by field, and chec
         assert.equal(answer.body.activity, "boissons");
     });
 });
+
+test("« Administration »: codes created, followed and revoked by the owner alone", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
+    const sql = postgres(url!, { max: 2, onnotice: () => {} });
+    t.after(() => sql.end());
+    const config = await configFor(sql);
+    const owner = "c0ffee00-0000-4000-8000-000000000041";
+    const merchant = "c0ffee00-0000-4000-8000-000000000042";
+    await sql`insert into auth.users (id, email, raw_app_meta_data) values
+        (${owner}::uuid, 'owner-node@example.com', '{"distrigo_admin": true}'),
+        (${merchant}::uuid, 'merchant-node@example.com', '{}')`;
+    const wellFormed = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
+
+    await t.test("anyone else is told not_allowed, whatever they ask, and nothing is made", async () => {
+        for (const body of [{ action: "batches" }, { action: "create", count: 5, plan: "solo", days: 30, batch: "Pirate" }]) {
+            assert.deepEqual((await codesAdmin(config, merchant, body)).body, { status: "not_allowed" });
+        }
+        const [{ n }] = await sql`select count(*)::int as n from private.activation_codes where batch = 'Pirate'`;
+        assert.equal(n, 0);
+    });
+
+    let code = "";
+    await t.test("a batch is created and shown once; it expires in 12 months unless told otherwise", async () => {
+        const answer = await codesAdmin(config, owner, { action: "create", count: 3, plan: "solo", days: 180, batch: "Revendeur Node" });
+        assert.equal(answer.body.status, "created", JSON.stringify(answer.body));
+        const codes = answer.body.codes as { code: string; expires_on: string | null }[];
+        assert.equal(codes.length, 3);
+        for (const c of codes) assert.match(c.code, wellFormed);
+        const [{ inAYear }] = await sql`select (current_date + 365)::text as "inAYear"`;
+        assert.equal(codes[0].expires_on, inAYear);
+        code = codes[0].code;
+
+        const never = await codesAdmin(config, owner, { action: "create", count: 1, plan: "solo", days: 30, batch: "Sans fin", expires_on: null });
+        assert.equal((never.body.codes as { expires_on: string | null }[])[0].expires_on, null);
+        const dated = await codesAdmin(config, owner, { action: "create", count: 1, plan: "solo", days: 30, batch: "Daté", expires_on: "2027-06-30", business_name: "Épicerie Datée", note: "salon" });
+        assert.equal((dated.body.codes as { expires_on: string | null }[])[0].expires_on, "2027-06-30");
+    });
+
+    await t.test("the batches count what became of their codes", async () => {
+        const answer = await codesAdmin(config, owner, { action: "batches" });
+        assert.equal(answer.body.status, "ok");
+        const batch = (answer.body.batches as Record<string, unknown>[]).find((b) => b.batch === "Revendeur Node");
+        assert.ok(batch);
+        assert.equal(batch.plan, "solo");
+        assert.equal(batch.days, 180);
+        assert.equal(batch.total, 3);
+        assert.equal(batch.unused, 3);
+        assert.equal(batch.revoked, 0);
+        assert.match(batch.created_on as string, /^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    await t.test("a code is checked and revoked; the batch counts it", async () => {
+        assert.equal((await codesAdmin(config, owner, { action: "status", code })).body.status, "unused");
+        assert.equal((await codesAdmin(config, owner, { action: "status", code: code.toLowerCase().replaceAll("-", " ") })).body.status, "unused");
+        assert.equal((await codesAdmin(config, owner, { action: "revoke", code, reason: "Perdu" })).body.status, "revoked");
+        const status = (await codesAdmin(config, owner, { action: "status", code })).body;
+        assert.equal(status.status, "revoked");
+        assert.equal(status.batch, "Revendeur Node");
+        const batches = (await codesAdmin(config, owner, { action: "batches" })).body.batches as Record<string, unknown>[];
+        const batch = batches.find((b) => b.batch === "Revendeur Node")!;
+        assert.equal(batch.unused, 2);
+        assert.equal(batch.revoked, 1);
+        assert.equal((await codesAdmin(config, owner, { action: "revoke", code: "0000-0000-0000" })).body.status, "unknown");
+    });
+
+    await t.test("what the screen never sends is a bad request", async () => {
+        const create = { action: "create", count: 3, plan: "solo", days: 30, batch: "X" };
+        for (const body of [
+            {}, { action: "drop" }, { ...create, count: 0 }, { ...create, count: 201 }, { ...create, count: "3" },
+            { ...create, count: 2.5 }, { ...create, plan: "trial" }, { ...create, days: 0 }, { ...create, batch: "  " },
+            { ...create, expires_on: "2027-02-30" }, { ...create, expires_on: "30/06/2027" }, { action: "status" },
+            { action: "revoke", code: "" },
+        ]) {
+            await assert.rejects(codesAdmin(config, owner, body), BadRequest, JSON.stringify(body));
+        }
+    });
+});
+
+test("« Comptes clients »: found, suspended, reactivated and deleted by the owner alone", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
+    const sql = postgres(url!, { max: 2, onnotice: () => {} });
+    t.after(() => sql.end());
+    const config = await configFor(sql);
+    const owner = "c0ffee00-0000-4000-8000-000000000051";
+    const client = "c0ffee00-0000-4000-8000-000000000052";
+    await sql`insert into auth.users (id, email, raw_app_meta_data) values
+        (${owner}::uuid, 'owner-clients-node@example.com', '{"distrigo_admin": true}'),
+        (${client}::uuid, 'client-node@example.com', '{}')`;
+    await sql`select private.create_business(${owner}::uuid, 'Dépôt du Patron', 'phone-owner-node')`;
+    await sql`select private.create_business(${client}::uuid, 'Superette Node', 'phone-client-node', '0550 98 76 54')`;
+    let business = "";
+
+    await t.test("a client is found by its phone, with its subscription and owner", async () => {
+        assert.deepEqual((await codesAdmin(config, client, { action: "businesses" })).body, { status: "not_allowed" });
+        const answer = await codesAdmin(config, owner, { action: "businesses", query: "0550 987" });
+        assert.equal(answer.body.status, "ok");
+        const found = answer.body.businesses as Record<string, unknown>[];
+        assert.equal(found.length, 1);
+        assert.equal(found[0].name, "Superette Node");
+        assert.equal(found[0].owner_email, "client-node@example.com");
+        assert.equal(found[0].status, "active");
+        assert.equal(found[0].phones, 0);
+        business = found[0].business_id as string;
+        const latest = (await codesAdmin(config, owner, { action: "businesses" })).body.businesses as unknown[];
+        assert.ok(latest.length >= 2 && latest.length <= 30);
+    });
+
+    await t.test("suspended with a note, then reactivated; never the owner's own", async () => {
+        const suspended = await codesAdmin(config, owner, { action: "suspend", business_id: business, note: "Impayé" });
+        assert.deepEqual(suspended.body, { status: "ok", subscription_status: "suspended" });
+        const [{ status }] = await sql`select status from public.subscriptions where business_id = ${business}::uuid`;
+        assert.equal(status, "suspended");
+        assert.equal((await codesAdmin(config, owner, { action: "reactivate", business_id: business })).body.subscription_status, "active");
+        const [{ own }] = await sql`select business_id::text as own from public.memberships where user_id = ${owner}::uuid`;
+        assert.equal((await codesAdmin(config, owner, { action: "suspend", business_id: own })).body.status, "own_business");
+        assert.equal((await codesAdmin(config, owner, { action: "delete_business", business_id: own })).body.status, "own_business");
+    });
+
+    await t.test("deleted, once", async () => {
+        assert.equal((await codesAdmin(config, owner, { action: "delete_business", business_id: business })).body.status, "deleted");
+        assert.equal((await codesAdmin(config, owner, { action: "delete_business", business_id: business })).body.status, "unknown_business");
+        const found = (await codesAdmin(config, owner, { action: "businesses", query: "Superette Node" })).body.businesses as unknown[];
+        assert.equal(found.length, 0);
+    });
+
+    await t.test("what the screen never sends is a bad request", async () => {
+        for (const body of [
+            { action: "suspend" }, { action: "suspend", business_id: "abc" }, { action: "delete_business" },
+            { action: "businesses", query: "x".repeat(121) }, { action: "reactivate", business_id: 42 },
+        ]) {
+            await assert.rejects(codesAdmin(config, owner, body), BadRequest, JSON.stringify(body));
+        }
+    });
+});
+

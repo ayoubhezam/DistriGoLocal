@@ -439,3 +439,7 @@ verify_jwt = false
 # « Informations de l'entreprise » in Compte (docs/activation_codes.md, step C5).
 [functions.business-profile]
 verify_jwt = false
+
+# The owner's « Administration » screen: codes without Studio (docs/activation_codes.md, step C4).
+[functions.codes-admin]
+verify_jwt = false

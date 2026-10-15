@@ -84,3 +84,20 @@ export function optionalObject(body: Record<string, unknown>, field: string): Re
     if (typeof value !== "object" || Array.isArray(value) || JSON.stringify(value).length > 4096) throw new BadRequest(field);
     return value as Record<string, unknown>;
 }
+
+/** A whole number from [min] to [max]. */
+export function integer(body: Record<string, unknown>, field: string, min: number, max: number): number {
+    const value = body[field];
+    if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) throw new BadRequest(field);
+    return value;
+}
+
+/** A calendar day, YYYY-MM-DD, that exists; null when not given. */
+export function optionalDate(body: Record<string, unknown>, field: string): string | null {
+    const value = body[field];
+    if (value == null) return null;
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new BadRequest(field);
+    const day = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(day.getTime()) || day.toISOString().slice(0, 10) !== value) throw new BadRequest(field);
+    return value;
+}

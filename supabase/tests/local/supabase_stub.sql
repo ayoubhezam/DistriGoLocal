@@ -10,6 +10,8 @@ create table auth.users (
     id                  uuid primary key,
     email               text,
     raw_user_meta_data  jsonb not null default '{}',
+    -- Written only by the service role: distrigo_admin (codes-admin)
+    raw_app_meta_data   jsonb not null default '{}',
     -- Signed in without an e-mail (activation codes)
     is_anonymous        boolean not null default false,
     created_at          timestamptz not null default now()
