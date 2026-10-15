@@ -811,11 +811,28 @@ L4, so that the phone can be activated as soon as an account exists.
 - **Not yet enforced:** the license is read and shown, but nothing is blocked; that comes in L5. There
   is no automatic check-in yet (L4).
 
-**L4 — Automatic check-in.**
-- `LicenseRefreshWorker` and the foreground check-in, a first-run invitation to activate (data
-  kept), and the `app_meta.business_id` check (§4.7). Play Integrity comes later, with D5.
-- Done when a phone activates, survives airplane mode and a reboot, and picks up a change to `vt`
-  made on the server at its next check-in.
+**L4 — Automatic check-in.** Built on 2026-10-15; the plan, its six decisions and what changed while
+building are in `docs/license_l4_checkin.md`.
+- **Suspension is a state of its own** (`Suspended`): the license and the key stay, and the first
+  check-in after « Réactiver » heals it with nothing for the merchant to do.
+- **`LicenseCheckIn`** runs one check-in at a time. `LicenseCheckInWorker` runs it every 12 hours (4-hour
+  flex, any network, backoff from 30 minutes) and once when the app comes to the front with a license
+  over 6 hours old, or a state that asks for one. `CheckInLog` keeps the last ones.
+- **`LicenseInFront`** reads the license again at each start, every 15 minutes and on a time change.
+- **The merchant is told** by a reminder notification 2 days before the offline window ends
+  (`LicenseReminderWorker`, on the backups' channel), and by a hint in Compte when battery saving holds
+  the background job back.
+- **`app_meta.business_id`** binds the data to the first license's business. Another business's
+  license reads `OtherBusiness` until the merchant keeps the data or signs out. A restore names the
+  backup's business first.
+- **There is no « Vérifier » button:** the phone checks in by itself (owner, 2026-10-15). « Saisir un
+  code » stays.
+- **The first-run invitation was dropped** (L4e, owner, 2026-10-15): no phone holds data without a
+  license before the launch.
+- Play Integrity comes later, with D5.
+- Shown on the Galaxy M34 against the live server: the job registered with its network condition and
+  surviving a process kill, an update and a force-stop; suspension and reactivation picked up by
+  itself in front; the reminder planned; the battery hint; another business's data kept.
 
 **L5 — Enforcement.**
 - `LicensePolicy` in the tab roots, the Dashboard's quick actions and the form entry points.

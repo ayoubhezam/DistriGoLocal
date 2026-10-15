@@ -154,7 +154,6 @@ private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiStat
         // The account's business by its name, once the profile read is this license's
         accountName = state.profile?.takeIf { it.businessId == state.license.heldLicense?.businessId }?.name,
         onActivate  = viewModel::activate,
-        onCheckIn   = viewModel::checkIn,
         onEnterCode = { viewModel.ask(AccountDialog.EnterCode()) },
         onOpenAppSettings = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
@@ -358,7 +357,6 @@ private fun SubscriptionCard(
     dataName: String?,
     accountName: String?,
     onActivate: () -> Unit,
-    onCheckIn: () -> Unit,
     onEnterCode: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onKeepData: () -> Unit,
@@ -431,7 +429,7 @@ private fun SubscriptionCard(
                 if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
                     BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
                 }
-                held?.let { CheckedLine(it.issuedAt, checking = work == AccountWork.CHECKING_IN, enabled = work == null, onCheckIn = onCheckIn) }
+                held?.let { CheckedLine(it.issuedAt) }
             } else {
                 BrandWideButton("Activer cet appareil", Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)
             }
@@ -440,30 +438,20 @@ private fun SubscriptionCard(
 }
 
 /**
- * « Vérifié le … · Vérifier »: the last check-in, the button's or the background job's (the license's issue time),
- * and one now.
+ * « Mis à jour le … »: the last check-in, from the background or the app coming to the front (the license's issue
+ * time). The phone checks in by itself (docs/license_l4_checkin.md): there is no button for it.
  */
 @Composable
-private fun CheckedLine(issuedAt: Long, checking: Boolean, enabled: Boolean, onCheckIn: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Text("Vérifié le ${CHECKED.format(Instant.ofEpochMilli(issuedAt).atZone(ZoneId.systemDefault()))}", fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = BrandSize.Small, color = DsBrand.Slate)
-        Text("  ·  ", fontFamily = DsBrand.Font, fontSize = BrandSize.Small, color = DsBrand.Slate)
-        if (checking) {
-            CircularProgressIndicator(color = DsBrand.Blue, strokeWidth = 2.dp, modifier = Modifier.padding(vertical = DsSpacing.sm).size(14.dp))
-        } else {
-            Text(
-                "Vérifier",
-                fontFamily = DsBrand.Font,
-                fontWeight = FontWeight.Bold,
-                fontSize   = BrandSize.Small,
-                color      = if (enabled) DsBrand.Blue else DsBrand.Slate,
-                modifier   = Modifier
-                    .clip(DsShapes.small)
-                    .clickable(enabled = enabled, role = Role.Button, onClick = onCheckIn)
-                    .padding(horizontal = DsSpacing.xs, vertical = DsSpacing.sm)
-            )
-        }
-    }
+private fun CheckedLine(issuedAt: Long) {
+    Text(
+        "Mis à jour le ${CHECKED.format(Instant.ofEpochMilli(issuedAt).atZone(ZoneId.systemDefault()))}",
+        fontFamily = DsBrand.Font,
+        fontWeight = FontWeight.Medium,
+        fontSize   = BrandSize.Small,
+        color      = DsBrand.Slate,
+        textAlign  = TextAlign.Center,
+        modifier   = Modifier.fillMaxWidth().padding(vertical = DsSpacing.sm)
+    )
 }
 
 /** « Informations de l'entreprise »: the business-profile, each row changed in its own dialog. */
@@ -523,7 +511,7 @@ private fun LicenseState.look(): Look = when (this) {
     is LicenseState.Expired -> Look("Expiré", "Consultation seule : saisissez un code pour reprendre. Sauvegarde et export restent disponibles.", DsColors.Danger, DsColors.DangerLight)
     is LicenseState.ClockBehind -> Look("Date incorrecte", "La date du téléphone est en retard. Activez « Date et heure automatiques ».", DsColors.Danger, DsColors.DangerLight)
     is LicenseState.NotYetValid -> Look("Pas encore valable", "L'abonnement commence plus tard.", DsColors.Warning, DsColors.WarningLight)
-    is LicenseState.CheckInRequired -> Look("Vérification nécessaire", "Connectez ce téléphone à Internet, puis touchez « Vérifier ».", DsColors.Warning, DsColors.WarningLight)
+    is LicenseState.CheckInRequired -> Look("Vérification nécessaire", "Connectez ce téléphone à Internet : la vérification se fait toute seule.", DsColors.Warning, DsColors.WarningLight)
     LicenseState.Revoked -> Look("Appareil libéré", "Cet appareil n'est plus associé à l'abonnement. Activez-le pour le reprendre.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     is LicenseState.Suspended -> Look("Suspendu", LicenseClient.SUSPENDED_MESSAGE, DsColors.Danger, DsColors.DangerLight)
     is LicenseState.OtherBusiness -> Look("Autre entreprise", "Ces données appartiennent à une autre entreprise.", DsColors.Danger, DsColors.DangerLight)
@@ -543,7 +531,7 @@ private fun otherBusinessNotice(dataName: String?, accountName: String?): String
 private fun LicenseState.notice(held: License?): String? = when (this) {
     is LicenseState.Active -> null
     is LicenseState.RenewSoon -> held?.let { "Votre abonnement se termine le ${day(it.validTo)} : saisissez un code pour le prolonger." } ?: look().explanation
-    is LicenseState.CheckInSoon -> held?.let { "Connectez ce téléphone à Internet avant le ${day(it.offlineUntil)}, puis touchez « Vérifier »." } ?: look().explanation
+    is LicenseState.CheckInSoon -> held?.let { "Connectez ce téléphone à Internet avant le ${day(it.offlineUntil)} : la vérification se fait toute seule." } ?: look().explanation
     else -> look().explanation.ifEmpty { null }
 }
 

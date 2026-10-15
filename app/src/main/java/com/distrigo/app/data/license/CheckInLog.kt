@@ -7,7 +7,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
 /** Who asked for a check-in (docs/license_l4_checkin.md §4). */
-enum class CheckInSource { BACKGROUND, FOREGROUND, BUTTON }
+enum class CheckInSource { BACKGROUND, FOREGROUND }
 
 /**
  * The last check-ins, in `no_backup/license/check_in.json`: when one was last tried and by whom, what came of it,
@@ -129,8 +129,8 @@ class CheckInLog(private val dir: File) {
 
         /**
          * The battery hint (§3.4, decision 6): no background check-in has got an answer for [HELD_BACK_AFTER] since
-         * the schedule began or the last one did, though the phone has been online since (a check-in in front or
-         * « Vérifier » got one). Android, or Samsung's battery saving, is holding the job back.
+         * the schedule began or the last one did, though the phone has been online since (a check-in in front got
+         * one). Android, or Samsung's battery saving, is holding the job back.
          */
         fun backgroundHeldBack(entry: Entry, now: Long): Boolean {
             val since = entry.lastBackgroundAnswerAt ?: entry.scheduledSince ?: return false

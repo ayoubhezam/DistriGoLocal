@@ -94,7 +94,7 @@ object AccountModule {
     @Singleton
     fun provideCheckInLog(@ApplicationContext context: Context): CheckInLog = CheckInLog.forApp(context)
 
-    /** One check-in at a time for the background job and « Vérifier » (docs/license_l4_checkin.md §5.1). */
+    /** One check-in at a time for the background job and the app in front (docs/license_l4_checkin.md §5.1). */
     @Provides
     @Singleton
     fun provideLicenseCheckIn(

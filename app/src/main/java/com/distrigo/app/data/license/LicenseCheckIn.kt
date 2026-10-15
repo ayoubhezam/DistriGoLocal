@@ -11,9 +11,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * One check-in at a time for the whole app (docs/license_l4_checkin.md §5.1). The background job, the app coming
- * to the front (L4c) and « Vérifier » all ask through [run]. A request made while one is under way waits for its
- * answer instead of starting another.
+ * One check-in at a time for the whole app (docs/license_l4_checkin.md §5.1). The background job and the app coming
+ * to the front (L4c) both ask through [run]. A request made while one is under way waits for its answer instead of
+ * starting another.
  *
  * A code's renewal checks in through LicenseClient directly: it needs a check-in made after the code was
  * redeemed, not one that may have started before.

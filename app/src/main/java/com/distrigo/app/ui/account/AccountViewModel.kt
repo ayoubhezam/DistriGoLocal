@@ -11,10 +11,7 @@ import com.distrigo.app.data.license.ActivationRequest
 import com.distrigo.app.data.license.ActivationStep
 import com.distrigo.app.data.license.BusinessProfile
 import com.distrigo.app.data.license.BusinessProfileStore
-import com.distrigo.app.data.license.CheckIn
 import com.distrigo.app.data.license.CheckInLog
-import com.distrigo.app.data.license.CheckInSource
-import com.distrigo.app.data.license.LicenseCheckIn
 import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseManager
 import com.distrigo.app.data.license.LicenseState
@@ -49,7 +46,7 @@ import java.time.Instant
 import javax.inject.Inject
 
 /** What is under way, so the screens disable their buttons and show a spinner. */
-enum class AccountWork { SIGNING_IN, ACTIVATING, CHECKING_IN, RENEWING, ADDING_EMAIL, SAVING_PROFILE, KEEPING_DATA, SIGNING_OUT, DELETING }
+enum class AccountWork { SIGNING_IN, ACTIVATING, RENEWING, ADDING_EMAIL, SAVING_PROFILE, KEEPING_DATA, SIGNING_OUT, DELETING }
 
 /** « Informations de l'entreprise »: each row, under the name business-profile knows it by. */
 enum class ProfileField(val server: String, val title: String) {
@@ -112,7 +109,6 @@ class AccountViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val license: LicenseManager,
     private val client: LicenseClient,
-    private val checkIns: LicenseCheckIn,
     private val checkInLog: CheckInLog,
     private val businessSettings: BusinessSettingsRepository,
     private val codes: ActivationCodeStore,
@@ -235,19 +231,6 @@ class AccountViewModel @Inject constructor(
 
     fun confirmTransfer(request: ActivationRequest) =
         work(AccountWork.ACTIVATING) { follow(client.continueActivation(request, transfer = true)) }
-
-    fun checkIn() = work(AccountWork.CHECKING_IN) {
-        local.value = local.value.copy(
-            message = when (val result = checkIns.run(CheckInSource.BUTTON)) {
-                CheckIn.Done -> AccountMessage("Abonnement vérifié.", isError = false)
-                CheckIn.Revoked -> AccountMessage("Cet appareil n'est plus associé à l'abonnement.", isError = true)
-                CheckIn.Suspended -> AccountMessage(LicenseClient.SUSPENDED_MESSAGE, isError = true)
-                CheckIn.NotActivated -> AccountMessage("Activez d'abord cet appareil.", isError = true)
-                is CheckIn.Failed -> AccountMessage(result.message, isError = true)
-            },
-        )
-        withContext(Dispatchers.IO) { readBatteryHint() }
-    }
 
     /**
      * « Garder les données pour … » (docs/license_l4_checkin.md §7): the data on this phone becomes the account's

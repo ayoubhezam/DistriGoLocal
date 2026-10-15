@@ -71,16 +71,16 @@ class LicenseCheckInTest {
         server.enqueue(nonceReply().setBodyDelay(300, TimeUnit.MILLISECONDS))
         server.enqueue(renewed())
         val background = async(Dispatchers.Default) { checkIns.run(CheckInSource.BACKGROUND) }
-        val button = async(Dispatchers.Default) { checkIns.run(CheckInSource.BUTTON) }
+        val inFront = async(Dispatchers.Default) { checkIns.run(CheckInSource.FOREGROUND) }
         assertEquals(CheckIn.Done, background.await())
-        assertEquals(CheckIn.Done, button.await())
+        assertEquals(CheckIn.Done, inFront.await())
         assertEquals(2, server.requestCount)
         assertEquals(8L, (license.state.value as LicenseState.Judged).license.seq)
 
         // Once it is over, the next request makes a new one
         server.enqueue(nonceReply())
         server.enqueue(answer("subscription_inactive"))
-        assertEquals(CheckIn.Suspended, checkIns.run(CheckInSource.BUTTON))
+        assertEquals(CheckIn.Suspended, checkIns.run(CheckInSource.FOREGROUND))
         assertEquals(4, server.requestCount)
     }
 
@@ -95,7 +95,7 @@ class LicenseCheckInTest {
         server.enqueue(answer("bad_nonce"))
         assertEquals(CheckIn.Failed(FunctionCalls.SERVER_MESSAGE, retry = true), checkIns.run(CheckInSource.BACKGROUND))
 
-        // The server doesn't know this phone's key: no retry, and « Vérifier » says why
+        // The server doesn't know this phone's key: no retry, and the log keeps why
         server.enqueue(nonceReply())
         server.enqueue(answer("bad_signature"))
         assertEquals(
@@ -126,8 +126,8 @@ class LicenseCheckInTest {
         activated()
         server.enqueue(nonceReply())
         server.enqueue(renewed())
-        checkIns.run(CheckInSource.BUTTON)
-        assertEquals(CheckInLog.Entry(lastAttemptAt = 1_000, lastSource = CheckInSource.BUTTON, lastOutcome = "done", lastAnswerAt = 1_000), log())
+        checkIns.run(CheckInSource.FOREGROUND)
+        assertEquals(CheckInLog.Entry(lastAttemptAt = 1_000, lastSource = CheckInSource.FOREGROUND, lastOutcome = "done", lastAnswerAt = 1_000), log())
 
         now = 2_000
         server.enqueue(jsonResponse(503, "{}"))
@@ -165,7 +165,7 @@ class LicenseCheckInTest {
     fun `an unreadable log reads as empty and is replaced by the next check-in`() = runBlocking {
         java.io.File(logDir, "check_in.json").writeText("{not json")
         assertEquals(CheckInLog.Entry(), log())
-        checkIns.run(CheckInSource.BUTTON)
+        checkIns.run(CheckInSource.FOREGROUND)
         assertEquals("not_activated", log().lastOutcome)
     }
 }

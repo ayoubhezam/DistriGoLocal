@@ -1,6 +1,7 @@
 # L4: automatic check-in (plan)
 
-**Status: approved by the owner on 2026-10-15, with the six recommended decisions of §12. Built step by step from L4a (§13).**
+**Status: approved by the owner on 2026-10-15, with the six recommended decisions of §12. L4a to L4d and L4f
+were built and shown on the phone the same day. The owner then dropped L4e and the « Vérifier » button (§14).**
 
 This expands the four lines of `docs/license_architecture.md` §8 (L4), written on 2026-10-10, before
 activation codes, suspension and the new Compte existed. The protocol is unchanged (§2.3, §6.4).
@@ -15,7 +16,7 @@ itself, quietly:
 - **Every 12 hours in the background**, with WorkManager, only when there is a network. Android chooses the
   moment, folding it into its own battery-saving windows.
 - **When the app comes to the front**, if the last check-in is more than 6 hours old (or something is due).
-- **« Vérifier » in Compte**, as now.
+- ~~**« Vérifier » in Compte**, as now.~~ Removed on 2026-10-15 (§14).
 
 One check-in is two small HTTPS calls (a few kilobytes) and one signature with the phone's key. It holds
 no wake lock of its own and runs no service. Battery cost is negligible.
@@ -130,7 +131,7 @@ to `CheckInRequired`, as designed.
 |---|---|---|
 | **Background** | Periodic unique work `license-check-in`, 12 h | Scheduled on activation, sign-in with a license, and every app start (`KEEP`, so a schedule lost with WorkManager's data comes back). Cancelled on sign-out, account deletion, revocation, or when there is no license. |
 | **App in front** | One-off unique work `license-check-in-now`, network constraint | At `ON_START`, if the last success is more than **6 hours** old, or the state is `CheckInSoon`, `CheckInRequired` or `Suspended` (decision 2). Offline, it waits in WorkManager and runs as soon as the network returns. |
-| **« Vérifier »** in Compte | Direct call through `LicenseCheckIn`, with the spinner | Always; the result shows in Compte's message line, as today. |
+| ~~**« Vérifier »** in Compte~~ | Removed on 2026-10-15 (§14) | — |
 | **Reboot** | WorkManager restores its schedule by itself | — |
 
 ---
@@ -165,7 +166,7 @@ in a pocket.
 | network error, timeout, server error | nothing changes | unchanged | **retry** (backoff) |
 | session expired (refresh token refused) | the account is signed out locally, as `FunctionCalls` already does | unchanged until the offline window ends | done; Compte asks to sign in again |
 | *(no call)* key missing on the phone | the local evaluation finds it first (phone reset, Keystore cleared): `NoLicense`, « clé absente », as `LicenseManager` already judges it | `NoLicense` | done; schedule cancelled; a new activation is needed |
-| `bad_signature` | the server doesn't recognise this phone's key; retrying won't change it | unchanged | done (no retry); « Vérifier » shows the message |
+| `bad_signature` | the server doesn't recognise this phone's key; retrying won't change it | unchanged | done (no retry); `check_in.json` keeps the message |
 | `bad_nonce` | a nonce expired between the two calls | unchanged | retry |
 
 ### 5.3 Where it is stored
@@ -264,7 +265,7 @@ every day.
 | Step | Expected |
 |---|---|
 | Activate, then `adb shell dumpsys jobscheduler` | DistriGo's 12-hour job is listed with its network constraint |
-| Wait for the job's window (8 to 12 hours after the schedule began), app closed | « Vérifié le » moves; « Dernière connexion » moves in « Comptes clients »; `check_in.json` names the background |
+| Wait for the job's window (8 to 12 hours after the schedule began), app closed | « Mis à jour le » moves; « Dernière connexion » moves in « Comptes clients »; `check_in.json` names the background |
 | Airplane mode, force the one-off job of L4c | Retries are scheduled, nothing changes on screen |
 
 Forcing the 12-hour job (`cmd jobscheduler run -f`) before its window starts the app's process, but WorkManager then
@@ -317,3 +318,32 @@ Each step builds, passes the unit tests and is shown on the phone before the nex
 4. **L4d: the data's business.** `app_meta.business_id`, the « autre entreprise » screen, the restore warning.
 5. **L4e: the Dashboard card** (if decision 5 is yes).
 6. **L4f: the phone walk** (§10), the architecture document's §8 updated, commit and push.
+
+---
+
+## 14. What changed while building (2026-10-15)
+
+| Step | Commit | Change from the plan |
+|---|---|---|
+| L4a | 388f00f | Compte hides « Saisir un code » while suspended: a code adds days, but only DistriGo lifts a suspension. |
+| L4b | d3dd354 | The schedule follows the account and the license (`LicenseCheckInScheduler.follow`) instead of a call at each place that changes them. Check-in, release and deletion take turns in `LicenseClient`, so a check-in's answer can't reinstall a license a sign-out has just forgotten. |
+| L4c | 719f3eb | The reminder comes 2 days before the end of the offline window, or half-way through a shorter one (a reduced phone's single day), so a phone checking in as it should is never told to. The battery hint adds the backup screen's advice (« réglez la batterie sur « Non restreinte » »). |
+| L4d | 2a70748 | `OtherBusiness` is said in Compte; at each start a dialog leads there (« Ouvrir Compte » / « Plus tard »), since nothing is blocked before L5. A suspension is said before it. |
+| L4e | — | **Dropped by the owner:** DistriGo has not launched, so no phone holds data without a license. |
+| — | L4f | **« Vérifier » removed by the owner:** the background and the app in front check in by themselves. Compte keeps the line as information, renamed « Mis à jour le … » (the owner's choice over « Synchronisé », which could read as the data being saved online), and its notes now say the check happens by itself once the phone is online. « Saisir un code » stays. |
+
+What the phone showed (Galaxy M34, debug build, live server):
+
+- The 12-hour job is registered with its network condition, no battery condition and a 30-minute backoff. It
+  survives a process kill, an update and a force-stop, keeping its timing.
+- Forcing it before its window starts the app's process, but WorkManager declines to run the worker (see §10).
+- DISTRIGO suspended, then « Vérifier » → « Suspendu ». Reactivated, then Home and back → « Actif » on its own,
+  within seconds (`FOREGROUND`, `done`).
+- The reminder job is planned 12 days out, with no network condition, and planned again for each new license.
+- The battery hint (from an edited check-in log, restored after) and its button to « Infos sur l'application ».
+- The first check-in bound the data to DISTRIGO. With another business written into the database, the dialog
+  showed at start, Compte said « Autre entreprise », and « Les garder pour DISTRIGO » brought « Actif » back.
+
+Not seen on the phone: the notification itself (it needs a license 2 days from the end of its window), the
+15-minute and time-change evaluations (they would move the phone's date), the restore warning (it needs another
+business's backup), a reboot, airplane mode, and `dumpsys batterystats` after a day.

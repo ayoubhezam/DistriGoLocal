@@ -64,7 +64,7 @@ class LicenseInFront(
 
         /**
          * Whether coming to the front calls for a check-in: the last license is more than [IN_FRONT_AFTER] old
-         * (its issue time, whoever got it: the background, « Vérifier », a code, an activation), or the state asks
+         * (its issue time, whoever got it: the background, the app in front, a code, an activation), or the state asks
          * for one. Only while the background check-ins would run too.
          */
         fun dueInFront(account: AccountState, state: LicenseState, now: Long): Boolean {
