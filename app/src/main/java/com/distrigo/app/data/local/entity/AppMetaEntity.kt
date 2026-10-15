@@ -15,6 +15,8 @@ import androidx.room.PrimaryKey
  *    the current one, this database was copied here from another device. The triggers that stamp
  *    `origin_device_id` and `tombstones.device_id` read it.
  *
+ *  - `business_id` — the business the data belongs to, set by the first license installed over it (see
+ *    data/license/DataBusiness.kt). A license of another business finds it and asks whose data this is.
  *  - `numbering.<table>` — the document number counters (see DocumentNumbers.kt).
  *  - `backup.last_at`, `backup.last_size`, `backup.last_name` — the last backup made of this database: when
  *    (a UTC instant), its size in bytes, and the file name it was saved as (see BackupCreator).

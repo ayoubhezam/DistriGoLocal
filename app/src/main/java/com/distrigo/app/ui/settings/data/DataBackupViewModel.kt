@@ -42,7 +42,10 @@ import java.time.Instant
 import javax.inject.Inject
 import com.distrigo.app.data.backup.PreparedRestore
 import com.distrigo.app.data.backup.RestorePreparation
+import com.distrigo.app.data.backup.RestoreBusiness
 import com.distrigo.app.data.backup.RestoreStockRule
+import com.distrigo.app.data.license.LicenseManager
+import com.distrigo.app.data.license.heldLicense
 
 /** The last backup made of this data, from `app_meta`. */
 data class LastBackup(val at: Instant, val size: Long?, val fileName: String)
@@ -72,8 +75,16 @@ sealed class DataBackupState {
     data class BackupSaved(val backup: CreatedBackup) : DataBackupState()
     data class AutoBackupSaved(val outcome: AutoBackupOutcome.Saved) : DataBackupState()
     data class Previewing(val preview: BackupPreview, val isSafetyBackup: Boolean) : DataBackupState()
-    /** The backup is unpacked and checked; restoring it changes the stock rule, and the user decides. Nothing has changed yet. */
-    data class ConfirmingStockRule(val restore: PreparedRestore, val preview: BackupPreview, val rule: RestoreStockRule) : DataBackupState()
+    /**
+     * The backup is unpacked and checked; restoring it changes the stock rule, or brings another business's data
+     * ([otherBusiness]), and the user decides. Nothing has changed yet.
+     */
+    data class ConfirmingRestore(
+        val restore: PreparedRestore,
+        val preview: BackupPreview,
+        val rule: RestoreStockRule,
+        val otherBusiness: RestoreBusiness? = null,
+    ) : DataBackupState()
     /** A restore is scheduled: the app must restart now. */
     data object RestartNeeded : DataBackupState()
     data class Failed(val message: String) : DataBackupState()
@@ -89,6 +100,7 @@ class DataBackupViewModel @Inject constructor(
     private val coordinator: RestoreCoordinator,
     private val installer: RestoreInstaller,
     private val scheduler: AutoBackupScheduler,
+    private val license: LicenseManager,
 ) : ViewModel() {
 
     val lastBackup: StateFlow<LastBackup?> =
@@ -225,28 +237,34 @@ class DataBackupViewModel @Inject constructor(
 
     /**
      * Unpacks and checks [preview]'s backup, then restores it — unless restoring it changes the stock rule,
-     * in which case the screen asks first ([DataBackupState.ConfirmingStockRule]).
+     * or brings another business's data than the license's, in which case the screen asks first ([DataBackupState.ConfirmingRestore]).
      */
     fun restore(preview: BackupPreview) = run("Vérification de la sauvegarde…") {
         val current = db.businessSettingsDao().allowNegativeStock() ?: true
         when (val preparation = coordinator.prepare(preview.uri, preview.manifest, current, ::showStep)) {
             is RestorePreparation.NotRestorable -> DataBackupState.Failed(BackupMessages.of(preparation.problem))
-            is RestorePreparation.Ready ->
-                if (preparation.stockRule.worthTelling) DataBackupState.ConfirmingStockRule(preparation.restore, preview, preparation.stockRule)
-                else commit(preparation.restore, preview)
+            is RestorePreparation.Ready -> {
+                val licenseBusiness = license.state.value.heldLicense?.businessId
+                val other = preparation.business?.takeIf { it.isOther(licenseBusiness) }
+                if (preparation.stockRule.worthTelling || other != null) {
+                    DataBackupState.ConfirmingRestore(preparation.restore, preview, preparation.stockRule, other)
+                } else {
+                    commit(preparation.restore, preview)
+                }
+            }
         }
     }
 
-    /** The user read what the restore does to the stock rule, and goes ahead. */
-    fun confirmStockRule(confirming: DataBackupState.ConfirmingStockRule) {
+    /** The user read what the restore brings (another business's data, a stock rule), and goes ahead. */
+    fun confirmRestore(confirming: DataBackupState.ConfirmingRestore) {
         if (_state.value != confirming) return
         _state.value = DataBackupState.Idle
         run("Copie de sécurité de vos données actuelles…") { commit(confirming.restore, confirming.preview) }
     }
 
     /** The user turned the restore down at the stock rule: the unpacked backup goes, and nothing changed. */
-    fun cancelStockRule() {
-        val confirming = _state.value as? DataBackupState.ConfirmingStockRule ?: return
+    fun cancelRestore() {
+        val confirming = _state.value as? DataBackupState.ConfirmingRestore ?: return
         _state.value = DataBackupState.Idle
         viewModelScope.launch(Dispatchers.IO) { coordinator.discard(confirming.restore) }
         refresh()
@@ -273,7 +291,7 @@ class DataBackupViewModel @Inject constructor(
 
     /** Back to the screen after a result, an error or a preview the user did not confirm. */
     fun dismiss() {
-        if (_state.value is DataBackupState.ConfirmingStockRule) return cancelStockRule()
+        if (_state.value is DataBackupState.ConfirmingRestore) return cancelRestore()
         if (_state.value !is DataBackupState.Working && _state.value != DataBackupState.RestartNeeded) {
             _state.value = DataBackupState.Idle
             refresh()

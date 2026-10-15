@@ -150,12 +150,17 @@ private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiStat
         license     = state.license,
         work        = state.work,
         batteryHint = state.batteryHint,
+        dataName    = state.dataName,
+        // The account's business by its name, once the profile read is this license's
+        accountName = state.profile?.takeIf { it.businessId == state.license.heldLicense?.businessId }?.name,
         onActivate  = viewModel::activate,
         onCheckIn   = viewModel::checkIn,
         onEnterCode = { viewModel.ask(AccountDialog.EnterCode()) },
         onOpenAppSettings = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
         },
+        onKeepData  = viewModel::keepData,
+        onSignOut   = { viewModel.ask(AccountDialog.ConfirmSignOut) },
     )
     // An account without a business has nothing to show here
     if (state.profileLoad != ProfileLoad.NO_BUSINESS) {
@@ -350,10 +355,14 @@ private fun SubscriptionCard(
     license: LicenseState,
     work: AccountWork?,
     batteryHint: Boolean,
+    dataName: String?,
+    accountName: String?,
     onActivate: () -> Unit,
     onCheckIn: () -> Unit,
     onEnterCode: () -> Unit,
     onOpenAppSettings: () -> Unit,
+    onKeepData: () -> Unit,
+    onSignOut: () -> Unit,
 ) {
     val look = license.look()
     val held = license.heldLicense
@@ -387,7 +396,11 @@ private fun SubscriptionCard(
             }
         }
         BrandCardBody {
-            val notice = if (trialUsed) "L'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo." else license.notice(held)
+            val notice = when {
+                trialUsed -> "L'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo."
+                license is LicenseState.OtherBusiness -> otherBusinessNotice(dataName, accountName)
+                else -> license.notice(held)
+            }
             notice?.let { BrandNotice(it, look.color, look.background) }
             if (batteryHint && license.holdsLicense) {
                 // A hint, never a block (decision 6): the button opens the screen where the battery is set
@@ -399,11 +412,23 @@ private fun SubscriptionCard(
                 )
                 BrandWideButton("Ouvrir les paramètres de DistriGo", Icons.Outlined.Settings, filled = false, enabled = true, onClick = onOpenAppSettings)
             }
+            if (license is LicenseState.OtherBusiness) {
+                // The two answers (docs/license_l4_checkin.md §7); signing out asks first, as from « Gestion du compte »
+                BrandWideButton(
+                    accountName?.let { "Les garder pour $it" } ?: "Garder les données pour ce compte",
+                    Icons.Outlined.Check,
+                    filled  = true,
+                    enabled = work == null,
+                    busy    = work == AccountWork.KEEPING_DATA,
+                    onClick = onKeepData,
+                )
+                BrandWideButton("Se déconnecter", Icons.AutoMirrored.Outlined.Logout, filled = false, enabled = work == null, busy = work == AccountWork.SIGNING_OUT, onClick = onSignOut)
+            }
             if (license.holdsLicense) {
                 // A code pays for more time: the thing to do once the subscription is ending. Not while suspended:
-                // the days would be added, but only DistriGo lifts a suspension
+                // the days would be added, but only DistriGo lifts a suspension; nor before the data's business is settled
                 val ending = license is LicenseState.RenewSoon || ended
-                if (license !is LicenseState.Suspended) {
+                if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
                     BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
                 }
                 held?.let { CheckedLine(it.issuedAt, checking = work == AccountWork.CHECKING_IN, enabled = work == null, onCheckIn = onCheckIn) }
@@ -501,8 +526,17 @@ private fun LicenseState.look(): Look = when (this) {
     is LicenseState.CheckInRequired -> Look("Vérification nécessaire", "Connectez ce téléphone à Internet, puis touchez « Vérifier ».", DsColors.Warning, DsColors.WarningLight)
     LicenseState.Revoked -> Look("Appareil libéré", "Cet appareil n'est plus associé à l'abonnement. Activez-le pour le reprendre.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     is LicenseState.Suspended -> Look("Suspendu", LicenseClient.SUSPENDED_MESSAGE, DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.OtherBusiness -> Look("Autre entreprise", "Ces données appartiennent à une autre entreprise.", DsColors.Danger, DsColors.DangerLight)
     is LicenseState.NoLicense -> Look("Non activé", "Activez cet appareil pour commencer.", DsColors.TextSecondary, DsColors.SurfaceSunken)
     LicenseState.Unchecked -> Look("…", "Lecture de la licence…", DsColors.TextSecondary, DsColors.SurfaceSunken)
+}
+
+/** OtherBusiness, with the names when known: the data's (its settings) and the account's (its profile). */
+private fun otherBusinessNotice(dataName: String?, accountName: String?): String {
+    val data = dataName?.let { "Les données de ce téléphone (« $it »)" } ?: "Les données de ce téléphone"
+    val account = accountName?.let { "« $it »" } ?: "celle de ce compte"
+    return "$data appartiennent à une autre entreprise que $account. Gardez-les pour votre entreprise si elles sont " +
+        "bien à vous ; sinon, déconnectez-vous."
 }
 
 /** The note under the dates: nothing while all is well, otherwise what the state asks for, with its date. */

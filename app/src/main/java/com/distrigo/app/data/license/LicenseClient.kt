@@ -420,5 +420,6 @@ val LicenseState.heldLicense: License?
         is LicenseState.Judged -> license
         is LicenseState.CheckInRequired -> license
         is LicenseState.Suspended -> license
+        is LicenseState.OtherBusiness -> license
         else -> null
     }

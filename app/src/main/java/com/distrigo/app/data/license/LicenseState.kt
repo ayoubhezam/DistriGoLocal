@@ -45,6 +45,15 @@ sealed interface LicenseState {
         override val canRecord get() = false
     }
 
+    /**
+     * The data on this phone belongs to another business than the license's ([dataBusinessId], `app_meta.business_id`):
+     * another account signed in, or another business's backup restored (docs/license_l4_checkin.md §7). Until the
+     * user keeps the data for the license's business or signs out.
+     */
+    data class OtherBusiness(val license: License, val dataBusinessId: String) : LicenseState {
+        override val canRecord get() = false
+    }
+
     /** Only a check-in can tell. */
     data class CheckInRequired(val license: License?, val why: CheckInReason, val error: Throwable? = null) : LicenseState {
         override val canRecord get() = false

@@ -211,6 +211,26 @@ class MainActivity : ComponentActivity() {
                         currentRoute == Screen.TabProduits.route ||
                         currentRoute == Screen.TabAchats.route
 
+                    // The data belongs to another business than the account's (docs/license_l4_checkin.md §7): said once
+                    // per start, and answered in Compte, which says it too. Not over the onboarding.
+                    var licenseState by remember { mutableStateOf<com.distrigo.app.data.license.LicenseState>(com.distrigo.app.data.license.LicenseState.Unchecked) }
+                    LaunchedEffect(Unit) { withContext(Dispatchers.IO) { licenseManager.get() }.state.collect { licenseState = it } }
+                    var otherBusinessTold by rememberSaveable { mutableStateOf(false) }
+                    if (licenseState is com.distrigo.app.data.license.LicenseState.OtherBusiness && !otherBusinessTold &&
+                        onboarding == null && currentRoute != Screen.Compte.route
+                    ) {
+                        com.distrigo.app.ui.designsystem.BrandDialog(
+                            title   = "Ces données appartiennent à une autre entreprise",
+                            text    = "Les données de ce téléphone ont été enregistrées pour une autre entreprise que celle du compte " +
+                                "connecté. Dans Compte, gardez-les pour votre entreprise, ou déconnectez-vous.",
+                            confirm = "Ouvrir Compte" to {
+                                otherBusinessTold = true
+                                navController.navigate(Screen.Compte.route) { launchSingleTop = true }
+                            },
+                            dismiss = "Plus tard" to { otherBusinessTold = true },
+                        )
+                    }
+
                     val density = LocalDensity.current
                     val maxDrawerWidthPx = remember(maxWidth, density) {
                         with(density) { maxWidth.toPx() } * PlusDrawerMaxWidthFraction

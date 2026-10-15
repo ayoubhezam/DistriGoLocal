@@ -160,6 +160,74 @@ class LicenseManagerTest {
         assertFalse(File(folder.root, "suspended").exists())
     }
 
+    // ── The data's business (docs/license_l4_checkin.md §7) ──
+
+    /** `app_meta.business_id`, played: it lives in the database, so a restore or another account can change it. */
+    private class MemoryDataBusiness(var id: String? = null) : DataBusiness {
+        override fun read() = id
+        override fun bind(businessId: String) {
+            id = businessId
+        }
+    }
+
+    private fun bound(data: DataBusiness) = LicenseStore(folder.root, HmacSeal()).let { store ->
+        LicenseManager(store, LicenseVerifier(Golden.trusted), TrustedClock(store, phone), { Golden.deviceHash }, { Golden.installationId }, Golden.PACKAGE, data)
+    }
+
+    @Test
+    fun `the first license binds the data to its business, and the next ones leave it`() {
+        val data = MemoryDataBusiness()
+        val manager = bound(data)
+        assertTrue(manager.install(Golden.token("valid")) is LicenseCheck.Valid)
+        val business = (manager.state.value as LicenseState.Active).license.businessId
+        assertEquals(business, data.id)
+        phone.passTo(Golden.lateIssuedAt + 2 * SECOND)
+        assertTrue(manager.install(Golden.token("late")) is LicenseCheck.Valid)
+        assertEquals(business, data.id)
+        assertTrue(manager.state.value.canRecord)
+    }
+
+    @Test
+    fun `another business's data stops recording, across restarts, until it is kept for the license's business`() {
+        val data = MemoryDataBusiness("another-business")
+        val manager = bound(data)
+        manager.install(Golden.token("valid"))
+        val other = manager.state.value as LicenseState.OtherBusiness
+        assertEquals("another-business", other.dataBusinessId)
+        assertFalse(other.canRecord)
+        assertTrue("still checks in, never activates again", other.holdsLicense)
+        assertEquals(other, bound(data).evaluate())
+
+        val kept = manager.keepData()
+        assertTrue(kept.canRecord)
+        assertEquals(other.license.businessId, data.id)
+        assertTrue(bound(data).evaluate().canRecord)
+    }
+
+    @Test
+    fun `a suspension is said before the data's business, and signing out leaves the data bound`() {
+        val data = MemoryDataBusiness("another-business")
+        val manager = bound(data)
+        manager.install(Golden.token("valid"))
+        assertState(LicenseState.Suspended::class, manager.suspend())
+        assertState(LicenseState.Suspended::class, manager.keepData())
+        assertEquals("nothing to keep while suspended", "another-business", data.id)
+
+        assertEquals(LicenseState.NoLicense(), manager.clear())
+        assertEquals("another-business", data.id)
+    }
+
+    @Test
+    fun `an unreadable database is not the license's trouble`() {
+        val broken = object : DataBusiness {
+            override fun read(): String = throw IllegalStateException("database closed")
+            override fun bind(businessId: String) = throw IllegalStateException("database closed")
+        }
+        val manager = bound(broken)
+        assertTrue(manager.install(Golden.token("valid")) is LicenseCheck.Valid)
+        assertState(LicenseState.Active::class, manager.state.value)
+    }
+
     // ── What the user may try ──
 
     @Test

@@ -49,7 +49,7 @@ import java.time.Instant
 import javax.inject.Inject
 
 /** What is under way, so the screens disable their buttons and show a spinner. */
-enum class AccountWork { SIGNING_IN, ACTIVATING, CHECKING_IN, RENEWING, ADDING_EMAIL, SAVING_PROFILE, SIGNING_OUT, DELETING }
+enum class AccountWork { SIGNING_IN, ACTIVATING, CHECKING_IN, RENEWING, ADDING_EMAIL, SAVING_PROFILE, KEEPING_DATA, SIGNING_OUT, DELETING }
 
 /** « Informations de l'entreprise »: each row, under the name business-profile knows it by. */
 enum class ProfileField(val server: String, val title: String) {
@@ -99,6 +99,8 @@ data class AccountUiState(
     val profileProblem: String? = null,
     /** The background check-ins seem held back by the battery saving (CheckInLog.backgroundHeldBack). */
     val batteryHint: Boolean = false,
+    /** The name the data on this phone carries (Paramètres, the receipts' header); null when never set. */
+    val dataName: String? = null,
 )
 
 /**
@@ -139,6 +141,8 @@ class AccountViewModel @Inject constructor(
             codes.load()
             profiles.load()
             readBatteryHint()
+            val dataName = runCatching { businessSettings.get().name }.getOrNull()?.takeIf { it.isNotBlank() }
+            local.update { it.copy(dataName = dataName) }
             // What changed on the server since the session was issued (the admin flag)
             if (auth.state.value is AccountState.SignedIn) auth.refreshSession()
             withContext(Dispatchers.Main) { refreshProfile() }
@@ -243,6 +247,17 @@ class AccountViewModel @Inject constructor(
             },
         )
         withContext(Dispatchers.IO) { readBatteryHint() }
+    }
+
+    /**
+     * « Garder les données pour … » (docs/license_l4_checkin.md §7): the data on this phone becomes the account's
+     * business's, an owner who moved to another account say.
+     */
+    fun keepData() = work(AccountWork.KEEPING_DATA) {
+        val state = withContext(Dispatchers.IO) { license.keepData() }
+        if (state !is LicenseState.OtherBusiness) {
+            local.update { it.copy(message = AccountMessage("Les données de ce téléphone sont maintenant celles de votre entreprise.", isError = false)) }
+        }
     }
 
     /** From the check-in log. File I/O: off the main thread. */

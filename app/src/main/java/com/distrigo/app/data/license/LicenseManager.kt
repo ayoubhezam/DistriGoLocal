@@ -22,6 +22,8 @@ class LicenseManager internal constructor(
     private val deviceKeyHash: () -> String?,
     private val installationId: () -> String,
     private val packageName: String,
+    /** The business the data belongs to (§7 of docs/license_l4_checkin.md); the app's is `app_meta.business_id`. */
+    private val data: DataBusiness = NoDataBusiness,
 ) {
     private val lock = Any()
 
@@ -47,6 +49,8 @@ class LicenseManager internal constructor(
             store.setRevoked(false)
             store.setSuspended(false)
             clock.anchor(check.license.issuedAt, check.license.seq)
+            // The first license over the data binds it to its business; a later one is compared with it
+            if (dataBusiness() == null) bindData(check.license.businessId)
         }
         publish(judge())
         check
@@ -67,6 +71,15 @@ class LicenseManager internal constructor(
         publish(judge())
     }
 
+    /**
+     * « Garder les données pour … »: the data on this phone now belongs to the license's business — an owner who moved
+     * to another account, say. Nothing changes unless the state was OtherBusiness.
+     */
+    fun keepData(): LicenseState = synchronized(lock) {
+        (judge() as? LicenseState.OtherBusiness)?.let { bindData(it.license.businessId) }
+        publish(judge())
+    }
+
     /** The server's id for this phone, from its activation: what « Libérer cet appareil » names. */
     fun deviceId(): String? = synchronized(lock) { store.readDeviceId() }
 
@@ -80,11 +93,18 @@ class LicenseManager internal constructor(
 
     private fun judge(): LicenseState =
         try {
-            when {
-                store.isRevoked() -> LicenseState.Revoked
-                // Only a license this phone still holds is suspended: without its key, an activation is needed anyway
-                store.isSuspended() -> judgeStored().let { stored -> stored.heldLicense?.let(LicenseState::Suspended) ?: stored }
-                else -> judgeStored()
+            if (store.isRevoked()) {
+                LicenseState.Revoked
+            } else {
+                val stored = judgeStored()
+                // Only a license this phone still holds is suspended or compared with the data: without its key, an
+                // activation is needed anyway
+                val held = stored.heldLicense
+                when {
+                    held == null -> stored
+                    store.isSuspended() -> LicenseState.Suspended(held)
+                    else -> dataBusiness()?.takeIf { it != held.businessId }?.let { LicenseState.OtherBusiness(held, it) } ?: stored
+                }
             }
         } catch (e: Exception) {
             // Keystore or file trouble: fail closed, and let a check-in repair it.
@@ -102,13 +122,29 @@ class LicenseManager internal constructor(
         }
     }
 
+    /** The database's trouble is not the license's: unreadable, the data is taken as not bound yet. */
+    private fun dataBusiness(): String? =
+        try {
+            data.read()
+        } catch (e: Exception) {
+            null
+        }
+
+    private fun bindData(businessId: String) {
+        try {
+            data.bind(businessId)
+        } catch (e: Exception) {
+            // Bound at the next license instead
+        }
+    }
+
     private fun binding(deviceKeyHash: String, minSeq: Long) =
         LicenseBinding(packageName, installationId(), deviceKeyHash, minSeq)
 
     private fun publish(state: LicenseState): LicenseState = state.also { _state.value = it }
 
     companion object {
-        fun forApp(context: Context, deviceKey: DeviceKeys = DeviceKey()): LicenseManager {
+        fun forApp(context: Context, deviceKey: DeviceKeys = DeviceKey(), data: DataBusiness = NoDataBusiness): LicenseManager {
             val app = context.applicationContext
             val store = LicenseStore.forApp(app)
             return LicenseManager(
@@ -118,7 +154,14 @@ class LicenseManager internal constructor(
                 deviceKeyHash = deviceKey::publicKeyHash,
                 installationId = { DeviceIdentity.id(app) },
                 packageName = app.packageName,
+                data = data,
             )
         }
     }
+}
+
+/** No data to bind: the license alone, as in the license's own tests. */
+object NoDataBusiness : DataBusiness {
+    override fun read(): String? = null
+    override fun bind(businessId: String) = Unit
 }

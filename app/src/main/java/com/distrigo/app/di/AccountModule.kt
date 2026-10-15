@@ -6,8 +6,10 @@ import com.distrigo.app.data.auth.AuthApi
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.Backend
 import com.distrigo.app.data.auth.SessionStore
+import com.distrigo.app.data.local.database.AppDatabase
 import androidx.work.WorkManager
 import com.distrigo.app.data.license.AndroidDeviceFacts
+import com.distrigo.app.data.license.AppMetaDataBusiness
 import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.CheckInAlerts
 import com.distrigo.app.data.license.CheckInLog
@@ -69,10 +71,14 @@ object AccountModule {
     @Singleton
     fun provideDeviceKeys(): DeviceKeys = DeviceKey()
 
+    /** The database only when the license is first read (off the main thread): building it waits for a pending restore. */
     @Provides
     @Singleton
-    fun provideLicenseManager(@ApplicationContext context: Context, keys: DeviceKeys): LicenseManager =
-        LicenseManager.forApp(context, keys)
+    fun provideLicenseManager(
+        @ApplicationContext context: Context,
+        keys: DeviceKeys,
+        database: dagger.Lazy<AppDatabase>,
+    ): LicenseManager = LicenseManager.forApp(context, keys, AppMetaDataBusiness { database.get() })
 
     @Provides
     @Singleton

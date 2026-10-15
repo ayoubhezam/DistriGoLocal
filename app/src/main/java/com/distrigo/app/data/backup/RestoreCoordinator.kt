@@ -18,9 +18,12 @@ sealed class RestoreOutcome {
     data class SafetyBackupFailed(val reason: BackupFailedException.Reason) : RestoreOutcome()
 }
 
-/** A backup unpacked and checked, and what restoring it does to the stock rule; or why it cannot be restored. */
+/**
+ * A backup unpacked and checked, what restoring it does to the stock rule, and whose data it is ([business], null
+ * when it can't be read); or why it cannot be restored.
+ */
 sealed class RestorePreparation {
-    data class Ready(val restore: PreparedRestore, val stockRule: RestoreStockRule) : RestorePreparation()
+    data class Ready(val restore: PreparedRestore, val stockRule: RestoreStockRule, val business: RestoreBusiness? = null) : RestorePreparation()
     data class NotRestorable(val problem: BackupProblem) : RestorePreparation()
 }
 
@@ -81,7 +84,14 @@ class RestoreCoordinator(
             restore.dir.deleteRecursively()
             throw e
         }
-        return RestorePreparation.Ready(restore, rule)
+        // Only a word of warning: a backup whose business can't be read is restored all the same
+        val business = try {
+            RestoreBusiness.read(restore)
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "could not read the backup's business", e)
+            null
+        }
+        return RestorePreparation.Ready(restore, rule, business)
     }
 
     /** A prepared restore the user turned down: its staging folder goes, and nothing else changed. */
