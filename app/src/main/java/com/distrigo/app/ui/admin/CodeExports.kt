@@ -47,7 +47,8 @@ internal fun whatsAppText(batch: CreatedBatch): String = buildString {
     appendLine()
     batch.codes.forEachIndexed { i, code -> appendLine("${i + 1}. ${code.code}") }
     appendLine()
-    append("Pour activer : ouvrez DistriGo, puis « Activer avec un code ».")
+    // Copied whole, the message carries its code into DistriGo: its code field finds it
+    append("Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».")
 }
 
 /** WhatsApp, or WhatsApp Business; without either, Android's share sheet. */

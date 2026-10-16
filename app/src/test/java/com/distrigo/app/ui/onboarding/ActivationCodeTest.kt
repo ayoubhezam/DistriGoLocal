@@ -43,6 +43,31 @@ class ActivationCodeTest {
     }
 
     @Test
+    fun `a code copied with its whole message — WhatsApp, an SMS, an e-mail — is found in it`() {
+        val first = "7KQ4M2XP9HT".let { it + codeCheckChar(it) }
+        val second = "V8A2NG3ZPBE".let { it + codeCheckChar(it) }
+        val whatsApp = """
+            *DistriGo — codes d'activation*
+            Lot : Revendeur Sétif — oct. 2026
+            DistriGo Solo · 6 mois par code
+            À activer avant le 14 octobre 2027
+
+            1. ${formatCode(first)}
+            2. ${formatCode(second)}
+
+            Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».
+        """.trimIndent()
+        assertEquals("the first of the list, not a word of the title", first, extractCode(whatsApp))
+        assertEquals(first, extractCode("Votre code : ```${formatCode(first)}```"))
+        assertEquals(first, extractCode("code ${first.lowercase()} merci"))
+        assertEquals("in fours with spaces", first, extractCode("Code: ${first.chunked(4).joinToString(" ")}."))
+        assertEquals("O for 0, as typed", second, extractCode(formatCode(second).replace('0', 'O')))
+        assertNull("a code with a typo is no code", extractCode("1. ${formatCode(first.dropLast(1) + if (first.last() == 'A') 'B' else 'A')}"))
+        assertNull(extractCode("*DistriGo — codes d'activation* Lot : Salon"))
+        assertNull("part of a longer string", extractCode("X${first}Y"))
+    }
+
+    @Test
     fun `every label of the sign-up's lists has the code the server stores`() {
         ACTIVITIES.forEach { assertNotNull(it, activityCode(it)) }
         SALES_REPS.forEach { assertNotNull(it, salesRepsCode(it)) }

@@ -58,7 +58,7 @@ class CodeExportsTest {
             1. 7KQ4-M2XP-9HTD
             2. V1A9-Y8XW-JFC3
 
-            Pour activer : ouvrez DistriGo, puis « Activer avec un code ».
+            Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».
             """.trimIndent(),
             whatsAppText(batch),
         )

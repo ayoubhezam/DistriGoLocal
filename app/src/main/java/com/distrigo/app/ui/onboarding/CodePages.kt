@@ -1,5 +1,10 @@
 package com.distrigo.app.ui.onboarding
 
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
@@ -91,6 +96,17 @@ internal fun normalizeCode(typed: String): String =
 
 /** XXXX-XXXX-XXXX, as printed on the code. */
 internal fun formatCode(code: String): String = code.chunked(4).joinToString("-")
+
+// Twelve code characters, in fours or together, standing apart from the words around them (O, I and L included:
+// normalizeCode reads them as 0 and 1)
+private val CODE_IN_TEXT = Regex("(?<![0-9A-Z])[0-9A-Z]{4}[- ]?[0-9A-Z]{4}[- ]?[0-9A-Z]{4}(?![0-9A-Z])")
+
+/**
+ * The first code in [text]: a WhatsApp message, an SMS or an e-mail copied whole, with its title, its list and its
+ * instructions around the code. Only a code whose check character is right counts, so no word is taken for one.
+ */
+internal fun extractCode(text: String): String? =
+    CODE_IN_TEXT.findAll(text.uppercase()).map { normalizeCode(it.value) }.firstOrNull(::isWellFormedCode)
 
 /** Luhn mod 32, as the server's private.code_check_char: the check character that follows [payload]. */
 internal fun codeCheckChar(payload: String): Char {
@@ -244,6 +260,13 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
 internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolean, error: String?, onDone: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
+    val context = LocalContext.current
+    // « Coller » found no code in what was copied: said under the field until the next change
+    var pasteMissed by remember { mutableStateOf(false) }
+    val change = { text: String ->
+        pasteMissed = false
+        onChange(text)
+    }
     val codeStyle = TextStyle(
         fontFamily    = DsBrand.Font,
         fontWeight    = FontWeight.ExtraBold,
@@ -255,7 +278,8 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
     Column(Modifier.fillMaxWidth()) {
         BasicTextField(
             value                = code,
-            onValueChange        = onChange,
+            // More than a code's length at once is a paste: the message it came in, whole; the code is in it
+            onValueChange        = { typed -> change(extractCode(typed)?.takeIf { typed.length > CODE_LENGTH + 2 } ?: typed) },
             enabled              = enabled,
             singleLine           = true,
             textStyle            = codeStyle,
@@ -272,7 +296,23 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
             modifier             = Modifier.fillMaxWidth(),
             decorationBox        = { field ->
                 Column(Modifier.fieldFrame(active = focused, error = error != null).padding(vertical = DsSpacing.xs)) {
-                    FieldLabel("Code d'activation")
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { FieldLabel("Code d'activation") }
+                        // For whoever doesn't know the long press: the code copied from WhatsApp, an SMS, an e-mail
+                        Text(
+                            "Coller",
+                            fontFamily = DsBrand.Font,
+                            fontWeight = FontWeight.Bold,
+                            fontSize   = 13.sp,
+                            color      = if (enabled) DsBrand.Blue else DsBrand.Slate,
+                            modifier   = Modifier
+                                .clickable(enabled = enabled, role = Role.Button) {
+                                    val found = copiedText(context)?.let(::extractCode)
+                                    if (found != null) change(found) else pasteMissed = true
+                                }
+                                .padding(horizontal = DsSpacing.xs, vertical = 2.dp)
+                        )
+                    }
                     Spacer(Modifier.height(DsSpacing.sm))
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         if (code.isEmpty()) Text("XXXX-XXXX-XXXX", style = codeStyle.copy(color = Placeholder.copy(alpha = 0.45f)))
@@ -282,7 +322,7 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
             }
         )
         Row(Modifier.fillMaxWidth()) {
-            Box(Modifier.weight(1f)) { FieldError(error) }
+            Box(Modifier.weight(1f)) { FieldError(error ?: "Aucun code d'activation dans le presse-papiers.".takeIf { pasteMissed }) }
             Text(
                 "${code.length} / $CODE_LENGTH",
                 fontFamily = DsBrand.Font,
@@ -396,3 +436,9 @@ private fun Notice(text: String) {
         Text(text, fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, color = DsBrand.Ink)
     }
 }
+
+/** What was last copied, as text; null when nothing, or not text. */
+private fun copiedText(context: Context): String? =
+    context.getSystemService(ClipboardManager::class.java)?.primaryClip
+        ?.takeIf { it.itemCount > 0 }
+        ?.getItemAt(0)?.coerceToText(context)?.toString()
