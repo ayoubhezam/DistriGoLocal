@@ -778,6 +778,7 @@ fun ProductFormScreen(
 
                     // ── Autres codes-barres ──
                     OtherBarcodesField(
+                        primary       = barcode.trim(),
                         codes         = extraBarcodes,
                         newCode       = newExtraBarcode,
                         onNewCode     = { newExtraBarcode = it; extraBarcodeError = "" },
