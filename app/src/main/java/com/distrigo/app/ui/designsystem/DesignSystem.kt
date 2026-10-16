@@ -14,13 +14,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.distrigo.app.R
 
 // ═══════════════════════════════════════════════════════════
-// COLORS — Softer, Stripe/Linear-inspired palette
+// COLORS — the brand's (DsBrand), by meaning, for every screen (the owner's choice, 2026-10-16): the names stay,
+// so no screen changes; their values are the onboarding's and Compte's.
 // ═══════════════════════════════════════════════════════════
 object DsColors {
-    // Primary — softer indigo-blue instead of saturated blue
-    val Primary        = Color(0xFF5B6EF5)
-    val PrimaryLight   = Color(0xFFEEF0FE)
-    val PrimaryDark    = Color(0xFF4453D1)
+    // Primary — the brand blue; white on it reads 4.9:1, and it on its light tint 4.3:1
+    val Primary        = Color(0xFF1E6BE5)
+    val PrimaryLight   = Color(0xFFEAF1FD)
+    // The brand navy (DsBrand.Ink): titles and emphasis
+    val PrimaryDark    = Color(0xFF0F2D6B)
 
     // Accent — muted teal-green instead of saturated green
     val Success        = Color(0xFF12B76A)
@@ -34,14 +36,17 @@ object DsColors {
     val Danger         = Color(0xFFF04438)
     val DangerLight    = Color(0xFFFEF3F2)
 
-    // Neutrals — Stripe-like gray scale (cooler, less flat gray)
-    val TextPrimary    = Color(0xFF101828)
-    val TextSecondary  = Color(0xFF667085)
-    val TextTertiary   = Color(0xFF98A2B3)
-    val Border         = Color(0xFFEAECF0)
+    // Neutrals — the brand's navy and slates. Long text and numbers in a near-black navy (the logo's darkest,
+    // 16.6:1), the brand navy kept for titles; secondary text the brand slate (5.1:1); hints 3.1:1
+    val TextPrimary    = Color(0xFF0B1D40)
+    val TextSecondary  = Color(0xFF5A6F94)
+    val TextTertiary   = Color(0xFF8794B0)
+    // The cards' hairline, as Compte's
+    val Border         = Color(0xFFE3EAF5)
     val Surface        = Color(0xFFFFFFFF)
-    val SurfaceMuted   = Color(0xFFF9FAFB)
-    val SurfaceSunken  = Color(0xFFF2F4F7)
+    // Mist, the onboarding's page; and a deeper Mist for sunken wells
+    val SurfaceMuted   = Color(0xFFF6F8FC)
+    val SurfaceSunken  = Color(0xFFEDF1F8)
 
     // ── Navigation: the Shifting Bottom Navigation bar ──
     // Semantic slots rather than raw colours, so a dark theme re-points this block alone and no
@@ -59,15 +64,15 @@ object DsColors {
     val NavBarNeedsDarkSystemIcons: Boolean get() = NavBarContainer.luminance() > 0.5f
 
     // Category tag palette (soft, for customer type badges)
-    val TagRetail      = Color(0xFF5B6EF5) to Color(0xFFEEF0FE)
+    val TagRetail      = Primary to PrimaryLight
     val TagWholesale   = Color(0xFF9333EA) to Color(0xFFF5F0FF)
     val TagBusiness    = Color(0xFFF79009) to Color(0xFFFFFAEB)
 }
 
 // ═══════════════════════════════════════════════════════════
-// BRAND — the logo's colours and heading font, for the onboarding
-// screens (docs/design/onboarding_ui_review.md). The rest of the
-// app keeps DsColors until the brand colours are adopted app-wide.
+// BRAND — the logo's colours and the font (docs/design/onboarding_ui_review.md):
+// the onboarding's and Compte's own pieces use them by name; every other
+// screen through DsColors and the theme's typography, which carry them.
 // ═══════════════════════════════════════════════════════════
 object DsBrand {
     // The logo's darkest navy; the welcome photo's dusk fades into it
@@ -89,6 +94,9 @@ object DsBrand {
      * docs/licenses/PlusJakartaSans-OFL.txt).
      */
     val Font = FontFamily(
+        // The inner screens' text is mostly regular weight: without these, it would fall to Medium
+        jakarta(FontWeight.Light),
+        jakarta(FontWeight.Normal),
         jakarta(FontWeight.Medium),
         jakarta(FontWeight.SemiBold),
         jakarta(FontWeight.Bold),
