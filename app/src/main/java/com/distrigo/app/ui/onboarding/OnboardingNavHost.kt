@@ -70,7 +70,10 @@ data class OnboardingStatus(
     val codeRequired: Boolean = false,
     /** The phone is activated: the success screen. */
     val activation: ActivationSummary? = null,
-)
+) {
+    /** A step only the onboarding shows: a sign-in made in Compte opens it there (MainActivity). */
+    val followUp: Boolean get() = activation != null || needsBusiness || seatTaken != null || codeRequired
+}
 
 /** Where the onboarding opens: the welcome screen on a fresh install, a form when Compte asks for one. */
 enum class OnboardingStart { WELCOME, SIGN_IN, SIGN_UP, CODE }
@@ -94,6 +97,7 @@ fun OnboardingNavHost(
     onFinished: () -> Unit,
     onClose: () -> Unit,
     start: OnboardingStart = OnboardingStart.WELCOME,
+    onIntroSeen: () -> Unit = {},
 ) {
     val navController = rememberTrackedNavController()
     val pager = rememberPagerState { ONBOARDING_PAGE_COUNT }
@@ -116,6 +120,11 @@ fun OnboardingNavHost(
         if (status.codeRequired) navController.navigate(CODE) { launchSingleTop = true }
     }
     val openCode = { navController.navigate(CODE) { launchSingleTop = true } }
+    // From the tour to a form: back to that form when the tour was opened from it (« Découvrir DistriGo »)
+    val leaveTour = { form: String ->
+        onIntroSeen()
+        if (!navController.popBackStack(form, inclusive = false)) navController.navigate(form) { launchSingleTop = true }
+    }
     val leave = {
         actions.resetCode()
         // Back from the first screen leaves the onboarding, as the system Back does
@@ -138,9 +147,9 @@ fun OnboardingNavHost(
         composable(CAROUSEL) {
             OnboardingCarousel(
                 pager           = pager,
-                onSignIn        = { navController.navigate(SIGN_IN) { launchSingleTop = true } },
-                onCreateAccount = { navController.navigate(SIGN_UP) { launchSingleTop = true } },
-                onCode          = openCode,
+                onSignIn        = { leaveTour(SIGN_IN) },
+                onCreateAccount = { leaveTour(SIGN_UP) },
+                onCode          = { leaveTour(CODE) },
             )
         }
         composable(SIGN_IN) {
@@ -150,6 +159,8 @@ fun OnboardingNavHost(
                 onBack          = leave,
                 onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(SIGN_IN) { inclusive = true } } },
                 onCode          = openCode,
+                // Opened at Connexion (a sign-out, Compte), the tour is one tap away; from the tour, Back is
+                onDiscover      = if (start == OnboardingStart.WELCOME) null else ({ navController.navigate(CAROUSEL) { launchSingleTop = true } }),
             )
         }
         composable(SIGN_UP) {
@@ -212,12 +223,28 @@ private fun TransferDialog(models: List<String>, busy: Boolean, onConfirm: () ->
  * [onClose] is Back from the first screen: closing it when Compte opened it, leaving the app on a fresh install.
  */
 @Composable
-fun Onboarding(viewModel: OnboardingViewModel, start: OnboardingStart, onFinished: () -> Unit, onClose: () -> Unit) {
+fun Onboarding(
+    viewModel: OnboardingViewModel,
+    start: OnboardingStart,
+    onFinished: () -> Unit,
+    onClose: () -> Unit,
+    onIntroSeen: () -> Unit = {},
+) {
     BackHandler(onBack = onClose)
     val status by viewModel.status.collectAsState()
+    val actions = rememberOnboardingActions(viewModel)
+    // Drawn over the app, so nothing beneath it may be touched through it
+    Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {
+        OnboardingNavHost(actions, status = status, onFinished = onFinished, onClose = onClose, start = start, onIntroSeen = onIntroSeen)
+    }
+}
+
+/** What the onboarding's screens hand to [viewModel]; Compte's sign-in form uses the same. */
+@Composable
+fun rememberOnboardingActions(viewModel: OnboardingViewModel): OnboardingActions {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val actions = remember(viewModel, context) {
+    return remember(viewModel, context) {
         val say: (String) -> Unit = { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
         val activity = context.findActivity()
         OnboardingActions(
@@ -244,10 +271,6 @@ fun Onboarding(viewModel: OnboardingViewModel, start: OnboardingStart, onFinishe
             openTerms            = { say("Les conditions d'utilisation sont en cours de rédaction.") },
             openPrivacy          = { say("La politique de confidentialité est en cours de rédaction.") },
         )
-    }
-    // Drawn over the app, so nothing beneath it may be touched through it
-    Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {
-        OnboardingNavHost(actions, status = status, onFinished = onFinished, onClose = onClose, start = start)
     }
 }
 

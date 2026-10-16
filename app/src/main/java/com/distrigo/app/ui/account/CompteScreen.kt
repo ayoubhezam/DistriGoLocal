@@ -9,7 +9,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
 import android.provider.Settings
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -98,6 +100,12 @@ import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import com.distrigo.app.ui.onboarding.CreateAccountLine
+import com.distrigo.app.ui.onboarding.OnboardingActions
+import com.distrigo.app.ui.onboarding.OnboardingStatus
+import com.distrigo.app.ui.onboarding.OnboardingViewModel
+import com.distrigo.app.ui.onboarding.SignInFields
+import com.distrigo.app.ui.onboarding.rememberOnboardingActions
 import com.distrigo.app.ui.onboarding.OnboardingStart
 import com.distrigo.app.ui.onboarding.activityLabel
 import com.distrigo.app.ui.onboarding.formatCode
@@ -122,18 +130,46 @@ fun CompteScreen(
     BackHandler { onBack() }
     val state by viewModel.state.collectAsState()
 
+    // Signed out, Compte is Connexion, with the onboarding's own view model (the activity's): a sign-in that needs
+    // more — a company, the seat moved here, a code — or succeeds continues in the onboarding, which MainActivity opens
+    val onboarding: OnboardingViewModel = hiltViewModel(LocalContext.current.findActivity() as ComponentActivity)
+    val signIn by onboarding.status.collectAsState()
+    val actions = rememberOnboardingActions(onboarding)
+    // A sign-in begun in this form: the form stays, its button turning, while the phone is activated — the account
+    // is signed in seconds before — so the onboarding's next screen comes straight after it, with no Compte between
+    var fromForm by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(signIn.busy, signIn.error) {
+        if (!fromForm || signIn.busy) return@LaunchedEffect
+        fromForm = false
+        val error = signIn.error
+        if (error != null && state.account is AccountState.SignedIn) {
+            // Signed in but not activated: said here, where « Activer cet appareil » tries again
+            viewModel.showError(error)
+            onboarding.reset()
+        }
+    }
+
     BrandScreen(title = "Compte", onBack = onBack) {
         state.message?.let { BrandMessage(it.text, it.isError) }
-        when (val account = state.account) {
-            AccountState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
+        val account = state.account
+        when {
+            account == AccountState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = DsBrand.Blue)
             }
-            AccountState.SignedOut -> SignedOutCard(
-                onSignIn = { onOpenOnboarding(OnboardingStart.SIGN_IN) },
-                onSignUp = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
-                onCode   = { onOpenOnboarding(OnboardingStart.CODE) },
+            account == AccountState.SignedOut || fromForm -> SignInCard(
+                actions         = actions,
+                status          = signIn,
+                onSignIn        = { email, password ->
+                    fromForm = true
+                    actions.signIn(email, password)
+                },
+                // Not followed: a Google sheet closed unanswered would leave the mark set (and Google is off for now)
+                onGoogle        = actions.signInWithGoogle,
+                onCode          = { onOpenOnboarding(OnboardingStart.CODE) },
+                onCreateAccount = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
+                onShown         = onboarding::reset,
             )
-            is AccountState.SignedIn -> SignedInCards(account.session, state, viewModel, onOpenAdmin)
+            account is AccountState.SignedIn -> SignedInCards(account.session, state, viewModel, onOpenAdmin)
         }
     }
 
@@ -204,31 +240,36 @@ private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiStat
 
 // ── Cards ──
 
+/**
+ * Signed out, Compte is Connexion itself (the owner's choice, 2026-10-15): the onboarding's form. A code and a new
+ * account open the onboarding at their own page. [onShown]: an earlier try's error is not this one's.
+ */
 @Composable
-private fun SignedOutCard(onSignIn: () -> Unit, onSignUp: () -> Unit, onCode: () -> Unit) {
+private fun SignInCard(
+    actions: OnboardingActions,
+    status: OnboardingStatus,
+    onSignIn: (email: String, password: String) -> Unit,
+    onGoogle: (() -> Unit)?,
+    onCode: () -> Unit,
+    onCreateAccount: () -> Unit,
+    onShown: () -> Unit,
+) {
+    LaunchedEffect(Unit) { onShown() }
     BrandCard {
+        BrandCardHeader(Icons.AutoMirrored.Outlined.Login, "Connexion")
         BrandCardBody {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar { Icon(Icons.Outlined.VerifiedUser, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(BrandSize.AvatarIcon)) }
-                Spacer(Modifier.width(DsSpacing.lg))
-                Column(Modifier.weight(1f)) {
-                    Text("Activez DistriGo sur ce téléphone", fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, fontSize = BrandSize.Name, lineHeight = 21.sp, color = DsBrand.Ink)
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text(
-                        "Un compte porte votre abonnement. Vos clients, ventes et stock restent sur ce téléphone.",
-                        fontFamily = DsBrand.Font,
-                        fontWeight = FontWeight.Medium,
-                        fontSize   = BrandSize.Small,
-                        lineHeight = BrandSize.SmallLine,
-                        color      = DsBrand.Slate
-                    )
-                }
+            Text(
+                "Un compte porte votre abonnement. Vos clients, ventes et stock restent sur ce téléphone.",
+                fontFamily = DsBrand.Font,
+                fontWeight = FontWeight.Medium,
+                fontSize   = BrandSize.Small,
+                lineHeight = BrandSize.SmallLine,
+                color      = DsBrand.Slate
+            )
+            Column {
+                SignInFields(actions, status, onCode, signIn = onSignIn, google = onGoogle)
             }
-            Spacer(Modifier.height(DsSpacing.xs))
-            BrandWideButton("Se connecter", Icons.AutoMirrored.Outlined.Login, filled = true, enabled = true, onClick = onSignIn)
-            BrandWideButton("Créer un compte", Icons.Outlined.PersonAddAlt, filled = false, enabled = true, onClick = onSignUp)
-            // A code bought from DistriGo or a reseller: no e-mail needed (docs/activation_codes.md)
-            BrandWideButton("Activer avec un code", Icons.Outlined.Key, filled = false, enabled = true, onClick = onCode)
+            CreateAccountLine(onCreateAccount, Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }

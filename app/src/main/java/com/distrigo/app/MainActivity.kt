@@ -169,6 +169,8 @@ class MainActivity : ComponentActivity() {
                     val session = (account as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session
                     accountInitials = session?.initials
                     accountByCode = session?.isAnonymous == true
+                    // Whoever has had an account here knows DistriGo: no tour for them again (EntryPolicy)
+                    if (session != null) withContext(Dispatchers.IO) { com.distrigo.app.ui.onboarding.OnboardingIntro.markSeen(this@MainActivity) }
                 }
             }
             // The onboarding (docs/activation_codes.md), where it opens; required on a fresh install, where
@@ -180,18 +182,27 @@ class MainActivity : ComponentActivity() {
                 onboardingViewModel.reset()
                 onboarding = start
             }
-            // A fresh install opens on the onboarding: no account, no license, and nothing recorded yet. A phone
-            // that already has its data (an update, a restore) never does: Compte invites it instead.
+            // A sign-in made in Compte's own form that needs a step only the onboarding shows — a company, the
+            // seat moved here, a code — or that succeeded: the onboarding opens on it, as it is, without a reset
+            val onboardingStatus by onboardingViewModel.status.collectAsState()
+            LaunchedEffect(onboardingStatus.followUp) {
+                if (onboardingStatus.followUp && onboarding == null) onboarding = com.distrigo.app.ui.onboarding.OnboardingStart.SIGN_IN
+            }
+            // Only a phone with no account, no license and nothing recorded opens on the onboarding: the welcome tour
+            // the first time, Connexion after (EntryPolicy). A phone that has its data (an update, a restore, a
+            // sign-out) opens on it, and Compte invites it to sign in.
             LaunchedEffect(Unit) {
-                val fresh = withContext(Dispatchers.IO) {
-                    val account = authRepository.get().state.first { it != com.distrigo.app.data.auth.AccountState.Loading }
-                    account == com.distrigo.app.data.auth.AccountState.SignedOut &&
-                        !licenseManager.get().evaluate().holdsLicense &&
-                        !database.get().appMetaDao().hasBusinessData()
+                val entry = withContext(Dispatchers.IO) {
+                    com.distrigo.app.ui.onboarding.EntryPolicy.atLaunch(
+                        account      = authRepository.get().state.first { it != com.distrigo.app.data.auth.AccountState.Loading },
+                        holdsLicense = { licenseManager.get().evaluate().holdsLicense },
+                        hasData      = { database.get().appMetaDao().hasBusinessData() },
+                        introSeen    = { com.distrigo.app.ui.onboarding.OnboardingIntro.seen(this@MainActivity) },
+                    )
                 }
-                if (fresh && onboarding == null) {
-                    onboardingRequired = true
-                    openOnboarding(com.distrigo.app.ui.onboarding.OnboardingStart.WELCOME)
+                if (entry is com.distrigo.app.ui.onboarding.Entry.Onboarding && onboarding == null) {
+                    onboardingRequired = entry.required
+                    openOnboarding(entry.start)
                 }
             }
             DistriGoTheme { ProvideMoneyFormat(moneyFormat) { androidx.compose.runtime.CompositionLocalProvider(
@@ -595,11 +606,21 @@ class MainActivity : ComponentActivity() {
                 com.distrigo.app.ui.onboarding.Onboarding(
                     viewModel  = onboardingViewModel,
                     start      = start,
+                    // Closed or done, it starts afresh next time: a past success must not open it again
                     onFinished = {
                         onboarding = null
                         onboardingRequired = false
+                        onboardingViewModel.reset()
                     },
-                    onClose    = { if (onboardingRequired) finish() else onboarding = null }
+                    onClose    = {
+                        if (onboardingRequired) {
+                            finish()
+                        } else {
+                            onboarding = null
+                            onboardingViewModel.reset()
+                        }
+                    },
+                    onIntroSeen = { lifecycleScope.launch(Dispatchers.IO) { com.distrigo.app.ui.onboarding.OnboardingIntro.markSeen(this@MainActivity) } }
                 )
             }
         } } }

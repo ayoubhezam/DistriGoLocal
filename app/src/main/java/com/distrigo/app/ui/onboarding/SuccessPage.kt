@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -144,9 +145,10 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
     }
 }
 
-/** The offer, its length and its end: a trial, or a subscription bought with a code. */
+/** The offer: its length, when it began, when it ends and how long is left; a trial, or a subscription. */
 @Composable
 private fun OfferCard(summary: ActivationSummary) {
+    val start = DAY.format(Instant.ofEpochMilli(summary.validFromMillis).atZone(ZoneId.systemDefault()))
     val end = DAY.format(Instant.ofEpochMilli(summary.validToMillis).atZone(ZoneId.systemDefault()))
     val days = ((summary.validToMillis - summary.validFromMillis) / DAY_MILLIS).roundToInt()
     Column(
@@ -170,20 +172,30 @@ private fun OfferCard(summary: ActivationSummary) {
         }
         Spacer(Modifier.height(DsSpacing.md))
         OfferLine(Icons.Outlined.CalendarMonth, "Durée :", approximateLength(days))
-        Spacer(Modifier.height(DsSpacing.md))
-        OfferLine(Icons.Outlined.EventAvailable, if (summary.trial) "Expire le :" else "Valable jusqu'au :", end)
+        Spacer(Modifier.height(DsSpacing.sm + 2.dp))
+        OfferLine(Icons.Outlined.Event, "Commencé le :", start)
+        Spacer(Modifier.height(DsSpacing.sm + 2.dp))
+        OfferLine(Icons.Outlined.EventAvailable, "Expire le :", end, note = timeLeft(summary.validToMillis, System.currentTimeMillis()))
     }
 }
 
+/** What is left until [validToMillis]: « Il reste 25 jours », « Il reste 6 mois », « Dernier jour ». */
+internal fun timeLeft(validToMillis: Long, now: Long): String {
+    val days = ((validToMillis - now) / DAY_MILLIS).toInt()
+    return if (days < 1) "Dernier jour" else "Il reste ${approximateLength(days)}"
+}
 
+
+/** One line of the offer: its icon, its label, its value, and a [note] under it (the time left). */
 @Composable
-private fun OfferLine(icon: ImageVector, label: String, value: String) {
+private fun OfferLine(icon: ImageVector, label: String, value: String, note: String? = null) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(30.dp))
+        Icon(icon, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(26.dp))
         Spacer(Modifier.width(DsSpacing.lg))
         Column {
-            Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 13.sp, color = DsBrand.Slate)
-            Text(value, fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = DsBrand.Blue)
+            Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 12.sp, color = DsBrand.Slate)
+            Text(value, fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = DsBrand.Blue)
+            note?.let { Text(it, fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = DsColors.Success) }
         }
     }
 }

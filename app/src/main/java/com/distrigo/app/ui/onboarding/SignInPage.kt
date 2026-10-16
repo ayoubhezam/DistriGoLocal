@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +41,10 @@ import com.distrigo.app.ui.designsystem.BrandWave
 import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsSpacing
 
-/** Connexion, as in the mockup: the logo, e-mail and password, Google, and the way to sign up. */
+/**
+ * Connexion, as in the mockup: the logo, e-mail and password, Google, and the way to sign up. [onDiscover], when
+ * given, offers the welcome tour to whoever came here without it.
+ */
 @Composable
 internal fun SignInPage(
     actions: OnboardingActions,
@@ -48,18 +52,8 @@ internal fun SignInPage(
     onBack: () -> Unit,
     onCreateAccount: () -> Unit,
     onCode: () -> Unit,
+    onDiscover: (() -> Unit)? = null,
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    // Errors wait for the first try, so an untouched form isn't already red
-    var tried by rememberSaveable { mutableStateOf(false) }
-    val emailError = if (tried && !isEmail(email)) "Adresse e-mail invalide" else null
-    val passwordError = if (tried && password.isEmpty()) "Saisissez votre mot de passe" else null
-    val submit = {
-        tried = true
-        if (isEmail(email) && password.isNotEmpty() && !status.busy) actions.signIn(email.trim(), password)
-    }
-
     Box(Modifier.fillMaxSize().background(DsBrand.Mist)) {
         BoxWithConstraints(
             Modifier
@@ -87,52 +81,13 @@ internal fun SignInPage(
                     Spacer(Modifier.height(DsSpacing.lg))
                     FormTitle("Connexion", "Accédez à votre espace en toute sécurité")
                     Spacer(Modifier.height(DsSpacing.lg))
-                    BrandTextField(
-                        value         = email,
-                        onValueChange = { email = it },
-                        label         = "Adresse e-mail",
-                        placeholder   = "exemple@domaine.com",
-                        icon          = Icons.Outlined.Email,
-                        error         = emailError,
-                        keyboardType  = KeyboardType.Email
-                    )
-                    Spacer(Modifier.height(DsSpacing.sm + 2.dp))
-                    BrandPasswordField(
-                        value         = password,
-                        onValueChange = { password = it },
-                        label         = "Mot de passe",
-                        placeholder   = "Votre mot de passe",
-                        error         = passwordError,
-                        onDone        = submit
-                    )
-                    TextButton(onClick = actions.forgotPassword, modifier = Modifier.align(Alignment.End)) {
-                        Text(
-                            "Mot de passe oublié ?",
-                            fontFamily     = DsBrand.Font,
-                            fontWeight     = FontWeight.SemiBold,
-                            fontSize       = 13.sp,
-                            color          = DsBrand.Blue,
-                            textDecoration = TextDecoration.Underline
-                        )
-                    }
-                    status.error?.let {
-                        FormError(it)
-                        Spacer(Modifier.height(DsSpacing.md))
-                    }
-                    BrandButton("Se connecter", onClick = submit, busy = status.busy)
-                    // The ways in without an e-mail and password
-                    OrDivider()
-                    CodeButton(onCode)
-                    actions.signInWithGoogle?.let { google ->
-                        Spacer(Modifier.height(DsSpacing.sm + 2.dp))
-                        GoogleButton(google)
-                    }
+                    SignInFields(actions, status, onCode)
                 }
                 Spacer(Modifier.weight(1f).heightIn(min = DsSpacing.lg))
-                Row(Modifier.align(Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Pas encore de compte ?", fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
-                    TextButton(onClick = onCreateAccount) {
-                        Text("Créer un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
+                CreateAccountLine(onCreateAccount, Modifier.align(Alignment.CenterHorizontally))
+                onDiscover?.let { discover ->
+                    TextButton(onClick = discover, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Text("Découvrir DistriGo", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = DsBrand.Slate)
                     }
                 }
                 // In the page's flow rather than pinned to the screen: when the page scrolls, it can't cover the line above
@@ -143,3 +98,79 @@ internal fun SignInPage(
     }
 }
 
+
+/**
+ * Connexion's form: e-mail and password, « Se connecter », then the ways in without them (a code, Google). On the
+ * onboarding's page, and in Compte while no one is signed in; [signIn] and [google] let Compte know a sign-in began
+ * there.
+ */
+@Composable
+internal fun ColumnScope.SignInFields(
+    actions: OnboardingActions,
+    status: OnboardingStatus,
+    onCode: () -> Unit,
+    signIn: (email: String, password: String) -> Unit = actions.signIn,
+    google: (() -> Unit)? = actions.signInWithGoogle,
+) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    // Errors wait for the first try, so an untouched form isn't already red
+    var tried by rememberSaveable { mutableStateOf(false) }
+    val emailError = if (tried && !isEmail(email)) "Adresse e-mail invalide" else null
+    val passwordError = if (tried && password.isEmpty()) "Saisissez votre mot de passe" else null
+    val submit = {
+        tried = true
+        if (isEmail(email) && password.isNotEmpty() && !status.busy) signIn(email.trim(), password)
+    }
+    BrandTextField(
+        value         = email,
+        onValueChange = { email = it },
+        label         = "Adresse e-mail",
+        placeholder   = "exemple@domaine.com",
+        icon          = Icons.Outlined.Email,
+        error         = emailError,
+        keyboardType  = KeyboardType.Email
+    )
+    Spacer(Modifier.height(DsSpacing.sm + 2.dp))
+    BrandPasswordField(
+        value         = password,
+        onValueChange = { password = it },
+        label         = "Mot de passe",
+        placeholder   = "Votre mot de passe",
+        error         = passwordError,
+        onDone        = submit
+    )
+    TextButton(onClick = actions.forgotPassword, modifier = Modifier.align(Alignment.End)) {
+        Text(
+            "Mot de passe oublié ?",
+            fontFamily     = DsBrand.Font,
+            fontWeight     = FontWeight.SemiBold,
+            fontSize       = 13.sp,
+            color          = DsBrand.Blue,
+            textDecoration = TextDecoration.Underline
+        )
+    }
+    status.error?.let {
+        FormError(it)
+        Spacer(Modifier.height(DsSpacing.md))
+    }
+    BrandButton("Se connecter", onClick = submit, busy = status.busy)
+    // The ways in without an e-mail and password
+    OrDivider()
+    CodeButton(onCode)
+    google?.let {
+        Spacer(Modifier.height(DsSpacing.sm + 2.dp))
+        GoogleButton(it)
+    }
+}
+
+/** « Pas encore de compte ? Créer un compte ». */
+@Composable
+internal fun CreateAccountLine(onCreateAccount: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text("Pas encore de compte ?", fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
+        TextButton(onClick = onCreateAccount) {
+            Text("Créer un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
+        }
+    }
+}
