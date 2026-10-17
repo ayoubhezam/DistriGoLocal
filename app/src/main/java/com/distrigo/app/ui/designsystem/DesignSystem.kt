@@ -53,7 +53,8 @@ object DsColors {
     // call site changes. Everything the bar paints comes from here.
     val NavBarContainer  = Surface
     val NavBarSelected   = Primary
-    val NavBarUnselected = TextPrimary
+    // The brand slate: the tabs not open step back, the open one in blue carries the eye
+    val NavBarUnselected = TextSecondary
     val NavBarBorder     = Border
 
     /**

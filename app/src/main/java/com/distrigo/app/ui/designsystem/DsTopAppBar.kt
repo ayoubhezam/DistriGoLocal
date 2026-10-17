@@ -96,8 +96,9 @@ val DsTopBarActionSize : Dp = 40.dp
  * @param subtitleColor defaults to [DsColors.TextSecondary]. The wizard steps pass
  *   [DsColors.Primary] once a client or supplier has been picked, so the subtitle itself says
  *   whether that step is satisfied — grey "Choisir un client", blue once one is chosen.
- * @param containerColor defaults to [DsColors.Surface]; screens painted on `SurfaceMuted` pass their
- *   own so the bar does not float on a different white.
+ * @param containerColor defaults to Mist ([DsColors.SurfaceMuted]), as Compte's bar (the owner's choice,
+ *   2026-10-17): the bar sits on the page rather than on a white band. The title and icons are the brand navy
+ *   ([DsColors.PrimaryDark]), kept for titles; the height stays compact.
  * @param titleMarquee scrolls the title instead of truncating it. Off by default, because a title
  *   that is a screen's name is short and a moving one would only be noise. It is meant for the few
  *   bars whose title is assembled from data of unbounded length - the Tournée's
@@ -115,7 +116,7 @@ fun DsTopAppBar(
     titleMarquee   : Boolean = false,
     leading        : DsTopBarLeading = DsTopBarLeading.None,
     size           : DsTopBarSize = DsTopBarSize.Regular,
-    containerColor : Color = DsColors.Surface,
+    containerColor : Color = DsColors.SurfaceMuted,
     actions        : @Composable RowScope.() -> Unit = {}
 ) {
     val hasLeading = leading != DsTopBarLeading.None
@@ -153,7 +154,7 @@ fun DsTopAppBar(
                 title,
                 fontSize   = if (isLarge) DsTextSize.headline else DsTextSize.title,
                 fontWeight = if (isLarge) FontWeight.ExtraBold else FontWeight.Bold,
-                color      = DsColors.TextPrimary,
+                color      = DsColors.PrimaryDark,
                 maxLines   = 1,
                 // Ellipsis and marquee are alternatives, not companions: clipping the string is
                 // what the scroll exists to avoid, and leaving it on would ellipsize the very tail
@@ -183,7 +184,7 @@ private fun DsTopBarIcon(
     onClick : () -> Unit
 ) {
     IconButton(onClick = onClick) {
-        Icon(icon, contentDescription = label, tint = DsColors.TextPrimary)
+        Icon(icon, contentDescription = label, tint = DsColors.PrimaryDark)
     }
 }
 

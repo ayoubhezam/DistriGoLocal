@@ -8,11 +8,9 @@ import androidx.compose.ui.graphics.Color
 /**
  * Standard [androidx.compose.material3.OutlinedTextField] colors for the app.
  *
- * Every colour Material 3 leaves unset falls back to the active `colorScheme`, which is
- * wallpaper-derived on Android 12+ (`dynamicColor = true` in `DistriGoTheme`). Only
- * `background`/`surface` are pinned there, so anything resolved from `onSurface`,
- * `onSurfaceVariant` or `primary` drifts per device — input text, labels, icons and the
- * cursor included. Pinning them here keeps text fields identical on every device.
+ * Every colour Material 3 leaves unset falls back to the active `colorScheme`, the brand's in
+ * `DistriGoTheme` (no wallpaper colours since 2026-10-17). Naming them here all the same keeps a
+ * field's look in one place: input text, labels, icons and the cursor included.
  *
  * Defaults cover the common case; pass named arguments to vary a single colour per call site.
  */

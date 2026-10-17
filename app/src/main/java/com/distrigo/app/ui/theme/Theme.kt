@@ -1,15 +1,11 @@
 package com.distrigo.app.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.distrigo.app.ui.designsystem.DsColors
@@ -20,10 +16,57 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = Pink80
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+/**
+ * The brand's scheme, every role from DsColors (the owner's choice, 2026-10-17): no colour comes from the
+ * wallpaper any more (Android 12+ dynamic colour), so every Material component — buttons, switches, checkboxes,
+ * chips, menus, dialogs, date pickers, snackbars — looks the same on every phone, in the onboarding's and
+ * Compte's colours.
+ */
+private val BrandColorScheme = lightColorScheme(
+    primary                = DsColors.Primary,
+    onPrimary              = DsColors.Surface,
+    primaryContainer       = DsColors.PrimaryLight,
+    onPrimaryContainer     = DsColors.PrimaryDark,
+    inversePrimary         = DsColors.PrimaryLight,
+    // Tonal buttons and selected chips: the blue's light tint, navy on it
+    secondary              = DsColors.TextSecondary,
+    onSecondary            = DsColors.Surface,
+    secondaryContainer     = DsColors.PrimaryLight,
+    onSecondaryContainer   = DsColors.PrimaryDark,
+    tertiary               = DsColors.PrimaryDark,
+    onTertiary             = DsColors.Surface,
+    tertiaryContainer      = DsColors.PrimaryLight,
+    onTertiaryContainer    = DsColors.PrimaryDark,
+    background             = DsColors.Surface,
+    onBackground           = DsColors.TextPrimary,
+    // Default content colour: date picker day numbers, dropdown item labels
+    surface                = DsColors.Surface,
+    onSurface              = DsColors.TextPrimary,
+    surfaceVariant         = DsColors.SurfaceMuted,
+    // Untinted icons, dropdown item icons, bottom sheet drag handles
+    onSurfaceVariant       = DsColors.TextSecondary,
+    // No blue cast on raised surfaces: white stays white
+    surfaceTint            = DsColors.Surface,
+    // Snackbars: the near-black navy
+    inverseSurface         = DsColors.TextPrimary,
+    inverseOnSurface       = DsColors.Surface,
+    error                  = DsColors.Danger,
+    onError                = DsColors.Surface,
+    errorContainer         = DsColors.DangerLight,
+    onErrorContainer       = DsColors.Danger,
+    // OutlinedButton borders and dividers: the cards' hairline
+    outline                = DsColors.Border,
+    outlineVariant         = DsColors.Border,
+    // Menus (surfaceContainer), dialogs and date pickers (High), sheets (Low): white, as Compte's dialogs. Menus
+    // keep their shadow, and dialogs and sheets their scrim, to stand off the page
+    surfaceBright          = DsColors.Surface,
+    surfaceDim             = DsColors.SurfaceSunken,
+    surfaceContainerLowest = DsColors.Surface,
+    surfaceContainerLow    = DsColors.Surface,
+    surfaceContainer       = DsColors.Surface,
+    surfaceContainerHigh   = DsColors.Surface,
+    // A switch's track when off
+    surfaceContainerHighest = DsColors.SurfaceSunken,
 )
 
 @Composable
@@ -35,45 +78,9 @@ fun DistriGoTheme(
     // Theme.Material.Light with no values-night, so this aligns Compose with the platform side.
     // Switch back to isSystemInDarkTheme() once a real dark palette exists.
     darkTheme: Boolean = false,
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val rawColorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
-    // Both the static LightColorScheme and Android 12+ dynamic color (wallpaper-derived) can hand
-    // back tinted roles. Any role left unpinned leaks the wallpaper palette into every Material
-    // component that falls back to it — TextButton labels, OutlinedButton borders, icon buttons,
-    // dropdown menus and the date pickers all did. Pin the roles the app actually relies on to
-    // design system tokens so components look the same on every device.
-    // Dark theme keeps its own scheme untouched; the app is light-only for now.
-    val colorScheme = if (darkTheme) rawColorScheme else rawColorScheme.copy(
-        background           = DsColors.Surface,
-        surface              = DsColors.Surface,
-        // Default content colour: date picker day numbers, dropdown item labels
-        onSurface            = DsColors.TextPrimary,
-        // TextButton / OutlinedButton labels, selection handles, date picker accents
-        primary              = DsColors.Primary,
-        // Untinted icons, dropdown item icons, bottom sheet drag handles
-        onSurfaceVariant     = DsColors.TextSecondary,
-        // Raised containers. Deliberately not Surface: these sit on top of an already-white page
-        // and would lose all separation but the shadow. Material maps them separately —
-        // menus read surfaceContainer, dialogs and date pickers read surfaceContainerHigh.
-        surfaceContainer     = DsColors.SurfaceSunken,
-        surfaceContainerHigh = DsColors.SurfaceSunken,
-        // Bottom sheets and elevated cards — white, matching the sites that set it explicitly
-        surfaceContainerLow  = DsColors.Surface,
-        // OutlinedButton borders — matches the border of every other outlined element in the app
-        outline              = DsColors.Border
-    )
+    val colorScheme = if (darkTheme) DarkColorScheme else BrandColorScheme
 
     // The system still applies its own dark-mode appearance to the status/navigation bar icons.
     // With the app forced light those white icons land on a white background and vanish
