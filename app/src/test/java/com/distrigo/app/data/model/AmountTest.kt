@@ -1,7 +1,9 @@
 package com.distrigo.app.data.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AmountTest {
@@ -14,6 +16,19 @@ class AmountTest {
         assertNull(Amount.parse(""))
         assertNull(Amount.parse("12,5,0"))
         assertNull(Amount.parse("abc"))
+    }
+
+    @Test
+    fun aBalanceReadsFromHalfACentime() {
+        // A remainder of the sums' decimals is settled, not owed: 0.1 + 0.2 - 0.3 is 5.55e-17, not 0
+        assertTrue(Amount.settled(0.1 + 0.2 - 0.3))
+        assertTrue(Amount.settled(0.004))
+        assertTrue(Amount.settled(-0.004))
+        assertTrue(Amount.owing(0.005))
+        assertTrue(Amount.owing(0.01))
+        assertTrue(Amount.inAdvance(-0.005))
+        assertFalse(Amount.owing(0.004))
+        assertFalse(Amount.inAdvance(-0.004))
     }
 
     @Test

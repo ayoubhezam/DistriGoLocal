@@ -57,6 +57,16 @@ class PartyListFiltersTest {
     }
 
     @Test
+    fun `the debts card counts the clients the Avec dettes filter shows`() {
+        // The 0.004 left by the sums' decimals made the card say one client more than the filter (2026-10-17)
+        val owing = filterClients(clients, "", ClientListFilters(balance = BalanceFilter.OWING))
+        assertEquals(names(owing), names(clientsInDebt(clients)))
+        assertEquals(listOf("Épicerie Amine"), names(filterClients(clients, "", debtOnly = true)))
+        val suppliers = listOf(supplier(1, "Cevital", 500.0), supplier(2, "Ifri", 0.004))
+        assertEquals(500.0, supplierDebtTotal(suppliers), 0.0)
+    }
+
+    @Test
     fun `criteria combine with the search`() {
         val f = ClientListFilters(type = "retail", secteur = "centre", balance = BalanceFilter.OWING)
         assertTrue(f.isActive)

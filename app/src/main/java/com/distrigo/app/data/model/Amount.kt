@@ -17,6 +17,24 @@ object Amount {
     fun normalize(value: Double): Double =
         if (!value.isFinite()) value else BigDecimal.valueOf(value).setScale(DECIMALS, RoundingMode.HALF_UP).toDouble()
 
+    /**
+     * Half a centime: below it, an account's balance is nothing, as it would show 0,00 DA. A balance is a sum of
+     * decimals, so an account settled to the centime can still hold a remainder of a millionth of a dinar; compared
+     * with zero, that remainder made a settled client a debtor: « 0,00 DA dû » in red, counted in « Dettes en cours »
+     * but not by the « Avec dettes » filter (2026-10-17). Every screen and receipt reads a balance through these three;
+     * the reports' queries hold the same half centime.
+     */
+    const val HALF_CENTIME = 0.005
+
+    /** Owed: half a centime or more. */
+    fun owing(balance: Double): Boolean = balance >= HALF_CENTIME
+
+    /** Paid in advance: half a centime or more the other way. */
+    fun inAdvance(balance: Double): Boolean = balance <= -HALF_CENTIME
+
+    /** Settled: within half a centime of zero. */
+    fun settled(balance: Double): Boolean = !owing(balance) && !inAdvance(balance)
+
     /** What an amount field keeps of what was typed: digits and one '.', a ',' turned into '.', 2 decimals at most. */
     fun sanitizeInput(raw: String): String {
         val kept = raw.replace(',', '.').filter { it.isDigit() || it == '.' }

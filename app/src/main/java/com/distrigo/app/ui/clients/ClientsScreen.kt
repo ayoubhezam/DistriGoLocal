@@ -46,6 +46,7 @@ import com.distrigo.app.ui.common.RemovableFilterChips
 import com.distrigo.app.ui.common.ClientListFilters
 import com.distrigo.app.ui.common.placesOf
 import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
+import com.distrigo.app.data.model.Amount
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -370,7 +371,7 @@ private fun ClientCard(
         Spacer(Modifier.width(8.dp))
 
         Column(horizontalAlignment = Alignment.End) {
-            if (client.balance > 0) {
+            if (Amount.owing(client.balance)) {
                 Text(
                     money.amount(client.balance),
                     fontSize   = DsTextSize.body,

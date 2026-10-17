@@ -14,6 +14,7 @@ import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.distrigo.app.data.model.Amount
 
 object ReceiptPdfGenerator {
 
@@ -176,7 +177,7 @@ object ReceiptPdfGenerator {
 
         if (receipt.paid > 0 || receipt.balance != receipt.total) {
             drawInfoLineRight("Payé", receipt.money.da(receipt.paid))
-            if (receipt.balance > 0) drawInfoLineRight("Reste", receipt.money.da(receipt.balance))
+            if (Amount.owing(receipt.balance)) drawInfoLineRight("Reste", receipt.money.da(receipt.balance))
             else drawInfoLineRight("Statut", "Réglé")
         }
 

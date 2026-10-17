@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsColors
+import com.distrigo.app.data.model.Amount
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,7 +155,7 @@ private fun receiptAsPlainText(receipt: ReceiptData): String {
     sb.appendLine("—".repeat(20))
     sb.appendLine("TOTAL: ${money.da(receipt.total)}")
     sb.appendLine("Payé: ${money.da(receipt.paid)}")
-    if (receipt.balance > 0) sb.appendLine("Reste: ${money.da(receipt.balance)}")
+    if (Amount.owing(receipt.balance)) sb.appendLine("Reste: ${money.da(receipt.balance)}")
     else sb.appendLine("Statut: Réglé")
     receipt.note?.takeIf { it.isNotBlank() }?.let { sb.appendLine("Note: $it") }
     return sb.toString()

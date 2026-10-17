@@ -31,6 +31,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.data.model.Amount
 
 /**
  * Shared between ClientDetailScreen and SupplierDetailScreen so the two
@@ -117,8 +118,8 @@ fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Mo
 @Composable
 fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
     val money = LocalMoneyFormatter.current
-    val owed = balance >= 0.005
-    val advance = balance <= -0.005
+    val owed = Amount.owing(balance)
+    val advance = Amount.inAdvance(balance)
     val color = when {
         owed -> DsColors.Danger
         advance -> DsColors.Primary

@@ -65,6 +65,7 @@ import com.distrigo.app.ui.retours.RetourFournisseurListScreen
 import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.data.model.Amount
 
 @OptIn(ExperimentalFoundationApi::class)
 /** How many of the latest transactions the supplier's card shows before « Voir tout ». */
@@ -88,9 +89,9 @@ fun SupplierDetailScreen(
         .find { it.id == supplier.id } ?: supplier
 
     val balanceStatus = when {
-        currentSupplier.balance > 0    -> "due"
-        currentSupplier.balance == 0.0 -> "settled"
-        else                           -> "credit"
+        Amount.owing(currentSupplier.balance)     -> "due"
+        Amount.inAdvance(currentSupplier.balance) -> "credit"
+        else                                      -> "settled"
     }
 
     val colors   = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)

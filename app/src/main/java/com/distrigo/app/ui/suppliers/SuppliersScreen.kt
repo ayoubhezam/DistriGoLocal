@@ -38,6 +38,7 @@ import com.distrigo.app.ui.common.CountAndFiltersRow
 import com.distrigo.app.ui.common.RemovableFilterChips
 import com.distrigo.app.ui.common.SupplierListFilters
 import com.distrigo.app.ui.common.placesOf
+import com.distrigo.app.data.model.Amount
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -190,7 +191,7 @@ fun SuppliersScreen(
 @Composable
 fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
-        val isDebt = supplier.balance > 0
+        val isDebt = Amount.owing(supplier.balance)
         val colors = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
         val color = Color(colors[supplier.name[0].code % colors.size])
         val initials = supplier.name.split(" ").take(2)

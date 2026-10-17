@@ -8,6 +8,7 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.Vente
+import com.distrigo.app.data.model.Amount
 
 // ── List search, filtering and grouping, as plain functions ──────────────────────────────────────
 //
@@ -69,7 +70,7 @@ fun filterClients(
         }
         matchesSearch &&
             (typeFilter == "all" || c.customer_type == typeFilter) &&
-            (!debtOnly || c.balance > 0)
+            (!debtOnly || Amount.owing(c.balance))
     }
 }
 
@@ -81,9 +82,9 @@ enum class BalanceFilter(val label: String) {
     OWING("Avec dettes"), SETTLED("Soldés"), ADVANCE("En avance");
 
     fun matches(balance: Double): Boolean = when (this) {
-        OWING   -> balance >= 0.005
-        ADVANCE -> balance <= -0.005
-        SETTLED -> balance > -0.005 && balance < 0.005
+        OWING   -> Amount.owing(balance)
+        ADVANCE -> Amount.inAdvance(balance)
+        SETTLED -> Amount.settled(balance)
     }
 }
 
@@ -138,7 +139,7 @@ private fun samePlace(wanted: String?, actual: String?): Boolean =
     wanted == null || actual?.trim().equals(wanted.trim(), ignoreCase = true)
 
 /** The clients who currently owe something. */
-fun clientsInDebt(clients: List<Client>): List<Client> = clients.filter { it.balance > 0 }
+fun clientsInDebt(clients: List<Client>): List<Client> = clients.filter { Amount.owing(it.balance) }
 
 // ── Suppliers ──
 
@@ -152,9 +153,9 @@ fun filterSuppliers(suppliers: List<Supplier>, query: String): List<Supplier> {
     }
 }
 
-/** What is owed to suppliers in total: the sum of every positive balance. */
+/** What is owed to suppliers in total: the sum of every balance owed. */
 fun supplierDebtTotal(suppliers: List<Supplier>): Double =
-    suppliers.filter { it.balance > 0 }.sumOf { it.balance }
+    suppliers.filter { Amount.owing(it.balance) }.sumOf { it.balance }
 
 // ── Dépôt Vente ──
 

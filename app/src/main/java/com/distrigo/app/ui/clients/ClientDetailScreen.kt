@@ -70,6 +70,7 @@ import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.IntOffset
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.data.model.Amount
 @OptIn(ExperimentalFoundationApi::class)
 /** How many of the latest transactions the client's card shows before « Voir tout ». */
 private const val FACTURE_PREVIEW = 3
@@ -92,9 +93,9 @@ fun ClientDetailScreen(
     val drill = LocalDrillDown.current
 
     val balanceStatus = when {
-        currentClient.balance > 0 -> "due"
-        currentClient.balance == 0.0 -> "settled"
-        else -> "credit"
+        Amount.owing(currentClient.balance)     -> "due"
+        Amount.inAdvance(currentClient.balance) -> "credit"
+        else                                    -> "settled"
     }
 
     val typeColors = when (currentClient.customer_type) {

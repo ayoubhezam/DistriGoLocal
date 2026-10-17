@@ -6,6 +6,7 @@ import com.distrigo.app.ui.components.ReceiptLineItem
 import com.distrigo.app.data.model.Quantity
 import java.util.Locale
 import com.distrigo.app.core.format.MoneyFormatter
+import com.distrigo.app.data.model.Amount
 
 /**
  * Lays a [ReceiptData] out for thermal paper, once, for everybody.
@@ -97,7 +98,7 @@ object ThermalLayout {
         add(ReceiptRow.Columns("TOTAL", money.da(receipt.total), RowWeight.Bold, RowScale.Large))
         if (receipt.paid > 0 || receipt.balance != receipt.total) {
             add(ReceiptRow.Columns("Payé", money.da(receipt.paid)))
-            if (receipt.balance > 0) add(ReceiptRow.Columns("Reste", money.da(receipt.balance), RowWeight.Bold))
+            if (Amount.owing(receipt.balance)) add(ReceiptRow.Columns("Reste", money.da(receipt.balance), RowWeight.Bold))
             else                     add(ReceiptRow.Columns("Statut", "Réglé"))
         }
         add(ReceiptRow.Rule())
@@ -117,7 +118,7 @@ object ThermalLayout {
         //
         // On a fully paid receipt nobody signs anything; on one with a balance the signature is the
         // acknowledgement of the debt, which is the whole reason to print it.
-        if (receipt.balance > 0) {
+        if (Amount.owing(receipt.balance)) {
             add(ReceiptRow.Blank(SECTION_GAP))
             add(ReceiptRow.Line("Signature :"))
             add(ReceiptRow.Blank(SECTION_GAP * 4))

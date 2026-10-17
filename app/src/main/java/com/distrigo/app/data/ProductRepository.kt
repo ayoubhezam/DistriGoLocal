@@ -853,7 +853,7 @@ class ProductRepository(
     }
 
     private fun requireSettled(balance: Double) {
-        if (kotlin.math.abs(balance) >= 0.005) throw UnsettledBalanceException(balance)
+        if (!Amount.settled(balance)) throw UnsettledBalanceException(balance)
     }
 
 

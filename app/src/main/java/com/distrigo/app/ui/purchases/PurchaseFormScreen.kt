@@ -36,6 +36,7 @@ import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.data.model.Amount
 
 data class CartItem(
     val product       : Product,
@@ -183,7 +184,7 @@ internal fun Step1Fournisseur(
                                 Text(
                                     "Solde : ${money.da(selectedSupplier.balance)}",
                                     fontSize = DsTextSize.bodySmall,
-                                    color    = if (selectedSupplier.balance > 0) DsColors.Danger else DsColors.TextSecondary
+                                    color    = if (Amount.owing(selectedSupplier.balance)) DsColors.Danger else DsColors.TextSecondary
                                 )
                             }
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
