@@ -53,7 +53,7 @@ import kotlin.math.abs
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 /** The margin's colour: neither the purchase price's green nor the selling price's blue. */
-private val MarginColor = Color(0xFF7C3AED)
+private val MarginColor = DsColors.AccentViolet
 
 /** Price-history rows shown before « Voir tout ». */
 private const val HISTORY_PREVIEW = 3
@@ -170,7 +170,7 @@ fun ProductDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Header ──
@@ -445,7 +445,7 @@ private fun DetailCard(
                 Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(DsSpacing.sm))
-            Text(title, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+            Text(title, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
             action?.invoke(this)
         }
         content()

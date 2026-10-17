@@ -58,12 +58,13 @@ import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.border
 
 /** How many lost products and products to restock the report itself lists. */
 private const val TOP_LOST = 5
 private const val TOP_RESTOCK = 5
 
-private val LossColors = listOf(Color(0xFFF04438), Color(0xFFF79009), Color(0xFF6366F1), Color(0xFF0E9384), Color(0xFFE91E63), Color(0xFF98A2B3))
+private val LossColors = listOf(DsColors.Danger, DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.TextTertiary)
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 private val INFO_VALUE = ReportInfo(
@@ -229,7 +230,7 @@ private fun TypesCard(report: StockReport) {
 @Composable
 private fun ProductRow(imageUri: String?, name: String, detail: String, detailColor: Color, figure: String, onClick: () -> Unit) {
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -293,7 +294,7 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
             subtitle = report?.let { "${plural(it.outOfStock, "rupture", "ruptures")} · ${it.lowStock} en stock bas" },
             leading = DsTopBarLeading.Back(onBack),
         )
-        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+        Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(

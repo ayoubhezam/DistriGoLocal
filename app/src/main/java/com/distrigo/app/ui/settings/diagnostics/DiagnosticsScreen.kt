@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.BorderStroke
 
 /**
  * Paramètres → Diagnostic: the reports the app wrote about its own trouble — crashes, freezes (ANR), native
@@ -77,7 +78,7 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
     }
 
     BackHandler { onBack() }
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Diagnostic", leading = DsTopBarLeading.Back(onBack)) {
             if (!reports.isNullOrEmpty()) {
                 IconButton(onClick = { confirmClear = true }) {
@@ -132,7 +133,7 @@ private fun colorOf(kind: ReportKind) = when (kind) {
 
 @Composable
 private fun ReportRow(report: DiagnosticReport, onClick: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = DsShapes.medium, color = DsColors.SurfaceMuted) {
+    Surface(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = DsShapes.medium, color = DsColors.Surface, border = BorderStroke(1.dp, DsColors.Border)) {
         Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(colorOf(report.kind).copy(alpha = 0.12f)),

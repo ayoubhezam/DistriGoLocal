@@ -80,6 +80,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.foundation.border
 
 private val FR = Locale.FRENCH
 private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
@@ -164,7 +165,7 @@ fun DashboardScreen(
 @Composable
 private fun Heading(title: String, detail: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg), verticalAlignment = Alignment.Bottom) {
-        Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.width(DsSpacing.sm))
         Text(detail, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -224,7 +225,7 @@ private fun TodayTiles(sales: DashboardSales, onClick: () -> Unit) {
 private fun TrendTile(icon: ImageVector, label: String, value: Figure, rate: Double?, accent: Color, modifier: Modifier, onClick: () -> Unit) {
     val (arrow, color) = trend(rate)
     Column(
-        modifier.fillMaxHeight().clip(DsShapes.large).background(DsColors.Surface)
+        modifier.fillMaxHeight().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
     ) {
         Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
@@ -243,7 +244,7 @@ private fun MonthCard(sales: DashboardSales, onClick: () -> Unit) {
     val (arrow, color) = trend(change(m.total, sales.lastMonth.total))
     val lastMonth = sales.now.minusMonths(1).month.getDisplayName(TextStyle.FULL, FR)
     Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
     ) {
         CardTitle("Ce mois", INFO_MONTH)
@@ -276,7 +277,7 @@ private fun WeekCard(sales: DashboardSales, onClick: () -> Unit) {
     val other = DsColors.Primary.copy(alpha = 0.35f)
     val stub = DsColors.SurfaceSunken
     Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

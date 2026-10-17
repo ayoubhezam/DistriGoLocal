@@ -90,7 +90,7 @@ fun ColumnScope.InventorySummaryStep(
 
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", "Total produits scannés", DsColors.Primary, Modifier.weight(1f))
-            InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", Color(0xFFF79009), Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", DsColors.Warning, Modifier.weight(1f))
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             InventorySummaryStatCard(Icons.Default.Receipt, money.da(summary.total_value_ecarts), "Valeur des écarts", DsColors.Danger, Modifier.weight(1f))
@@ -102,7 +102,7 @@ fun ColumnScope.InventorySummaryStep(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)
             ) {
-                Text("Produits non inventoriés", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text("Produits non inventoriés", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                 Text(
                     "${uncounted} produit(s) en stock n'ont pas été comptés. Que faire de leur stock ?",
                     fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
@@ -124,15 +124,15 @@ fun ColumnScope.InventorySummaryStep(
         }
 
         if (isConfirmed) {
-            Surface(shape = DsShapes.medium, color = Color(0xFF12B76A).copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = DsShapes.medium, color = DsColors.Success.copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF12B76A))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column {
-                        Text("Inventaire complété avec succès", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF12B76A))
+                        Text("Inventaire complété avec succès", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                         Text(
                             if (zeroed > 0) "Le stock a été mis à jour · $zeroed produit(s) mis à zéro" else "Le stock a été mis à jour",
-                            fontSize = DsTextSize.caption, color = Color(0xFF12B76A).copy(alpha = 0.8f)
+                            fontSize = DsTextSize.caption, color = DsColors.Success.copy(alpha = 0.8f)
                         )
                     }
                 }

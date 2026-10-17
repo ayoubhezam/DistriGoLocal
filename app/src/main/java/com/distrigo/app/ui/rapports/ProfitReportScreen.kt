@@ -45,7 +45,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 
-private val ChargeColors = listOf(Color(0xFFF79009), Color(0xFF6366F1), Color(0xFF0E9384), Color(0xFFE91E63), Color(0xFF0BA5EC), Color(0xFF98A2B3))
+private val ChargeColors = listOf(DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 
 private val INFO_NET = ReportInfo(
     "Résultat net",

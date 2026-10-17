@@ -61,12 +61,13 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.border
 
 /** How many parties the report itself ranks, and how many the concentration ring names. */
 private const val TOP_PARTIES = 10
 private const val TOP_SHARE = 5
 
-private val ShareColors = listOf(Color(0xFF6366F1), Color(0xFF0E9384), Color(0xFFF79009), Color(0xFFE91E63), Color(0xFF0BA5EC), Color(0xFF98A2B3))
+private val ShareColors = listOf(DsColors.Primary, DsColors.AccentTeal, DsColors.Warning, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 /** The words that change with the side, and what each figure means — for its ⓘ. */
@@ -201,7 +202,7 @@ private fun Tiles(report: PartyReport, words: PartyWords, onInactive: () -> Unit
             KpiTile(words.active, countFigure(report.parties.size), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.Group, words.activeInfo, accent = DsColors.Primary)
             KpiTile(words.average, report.average?.let { money.figure(it) } ?: Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
-                if (clients) Icons.Default.ShoppingBasket else Icons.Default.Receipt, words.averageInfo, accent = Color(0xFF0E9384))
+                if (clients) Icons.Default.ShoppingBasket else Icons.Default.Receipt, words.averageInfo, accent = DsColors.AccentTeal)
         }
         if (clients) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile("Nouveaux clients", countFigure(report.newCount), DsColors.TextPrimary, Modifier.weight(1f), null,
@@ -218,7 +219,7 @@ private fun Tiles(report: PartyReport, words: PartyWords, onInactive: () -> Unit
 private fun PartyLine(rank: Int, p: PartyFigures, by: PartyRanking, words: PartyWords, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -302,7 +303,7 @@ fun PartiesScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = words.listTitle, leading = DsTopBarLeading.Back(onBack))
-        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+        Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it },
                 placeholder = if (state.side == DebtSide.CLIENTS) "Rechercher un client" else "Rechercher un fournisseur",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg))
@@ -337,7 +338,7 @@ fun InactiveClientsScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Clients inactifs", subtitle = "Plus d'achat depuis le début de la période", leading = DsTopBarLeading.Back(onBack))
-        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+        Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = "Rechercher un client",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(8.dp))
@@ -362,7 +363,7 @@ fun InactiveClientsScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
 private fun InactiveLine(c: InactiveClient, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.border
 
 /**
  * What occupies the bar's leading slot.
@@ -262,14 +263,16 @@ fun DsTopBarNotificationButton(
         modifier = Modifier
             .size(DsTopBarActionSize)
             .clip(DsShapes.pill)
-            .background(DsColors.SurfaceMuted)
+            // White with the hairline: a Mist pill would vanish on the Mist bar
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.pill)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             Icons.Default.Notifications,
             contentDescription = "Notifications",
-            tint     = DsColors.TextPrimary,
+            tint     = DsColors.PrimaryDark,
             modifier = Modifier.size(20.dp)
         )
 

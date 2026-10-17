@@ -90,7 +90,7 @@ internal fun Step1Client(
                 "Choisir un client",
                 fontSize   = DsTextSize.headline,
                 fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary,
+                color      = DsColors.PrimaryDark,
                 textAlign  = TextAlign.Center
             )
 

@@ -248,7 +248,7 @@ fun VentesScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                     IconButton(onClick = { showFilterSheet = false }) {
                         Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
                     }
@@ -417,7 +417,7 @@ fun VentesScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Reached by being pushed from the Ventes hub, so it needs a back affordance —
@@ -491,7 +491,8 @@ fun VentesScreen(
                     Box(
                         modifier = Modifier
                             .clip(DsShapes.medium)
-                            .background(DsColors.SurfaceSunken)
+                            .background(DsColors.Surface)
+                            .border(1.dp, DsColors.Border, DsShapes.medium)
                             .clickable { showFilterSheet = true }
                             .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
                         contentAlignment = Alignment.Center

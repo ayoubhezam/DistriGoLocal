@@ -62,7 +62,7 @@ internal fun CountAndFiltersRow(
         Step2Chip(
             icon      = Icons.Default.FilterList,
             label     = "Filtres",
-            container = DsColors.SurfaceSunken,
+            container = DsColors.Surface,
             content   = if (filtersActive) DsColors.Primary else DsColors.TextSecondary,
             dot       = filtersActive,
             onClick   = onOpenFilters
@@ -158,7 +158,7 @@ internal fun PartyFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Filtres", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                Text("Filtres", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
                 }

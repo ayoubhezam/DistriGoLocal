@@ -35,9 +35,6 @@ import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.ui.designsystem.DsColors
 import java.nio.ByteBuffer
 
-/** Thermal paper is not white: a faint warm grey, which is also what keeps the card off the surface. */
-private val PaperTint = Color(0xFFFDFCF8)
-
 /** The widest roll we lay out for. Narrower paper is drawn to scale against it. */
 private const val WIDEST_PAPER_MM = 80f
 
@@ -75,7 +72,7 @@ fun ThermalReceiptPreview(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(PaperTint)
+                    .background(DsColors.ThermalPaper)
                     .padding(horizontal = margin, vertical = 10.dp)
                     .padding(bottom = TornEdgeHeight),
             ) {
@@ -199,7 +196,7 @@ fun A4PreviewPlaceholder(modifier: Modifier = Modifier) {
                 .width(cardWidth)
                 .height(cardWidth * 297f / 210f)
                 .align(Alignment.TopCenter)
-                .background(PaperTint)
+                .background(DsColors.ThermalPaper)
                 .padding(20.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,

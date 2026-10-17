@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.ProductListFilters
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.border
 
 // Step 02's filtering controls, shared by Achats, Dépôt Vente and Tournée Vente so the three read as
 // one tool: the count / Filtres row, and a removable chip per criterion applied.
@@ -72,6 +73,9 @@ internal fun Step2Chip(
             .height(Step2ChipHeight)
             .clip(DsShapes.medium)
             .background(container)
+            // A white chip is a control (« Filtres »): the hairline frames it, as every control. The count
+            // and the action keep their own fills.
+            .let { if (container == DsColors.Surface) it.border(1.dp, DsColors.Border, DsShapes.medium) else it }
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(horizontal = DsSpacing.sm),
         verticalAlignment     = Alignment.CenterVertically,
@@ -137,7 +141,7 @@ internal fun ProductCountAndFilters(
             // a count in the label widens the chip the moment a filter is set and squeezes the
             // product count beside it into an ellipsis — the one figure a user filters in order to
             // read. The chips below already say exactly what is applied.
-            container = DsColors.SurfaceSunken,
+            container = DsColors.Surface,
             content   = if (filtersActive) DsColors.Primary else DsColors.TextSecondary,
             dot       = filtersActive,
             onClick   = onOpenFilters

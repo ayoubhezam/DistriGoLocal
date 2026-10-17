@@ -75,7 +75,7 @@ fun TourneesScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         // ── Header ──
         // Pushed from the Ventes hub, so it takes a back affordance; null-safe because the
@@ -440,7 +440,7 @@ fun TourneeDetailScreen(
     Box(modifier = modifier.fillMaxSize()) {
         if (current == null || current.id != tourneeId) {
             Box(
-                Modifier.fillMaxSize().background(DsColors.Surface),
+                Modifier.fillMaxSize().background(DsColors.SurfaceMuted),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = DsColors.Primary)
@@ -500,7 +500,7 @@ fun TourneeDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DsColors.Surface)
+                    .background(DsColors.SurfaceMuted)
             ) {
                 // The bar is always fully visible — it never fades or translates; only the stats
                 // banner inside the list below it collapses.
@@ -685,7 +685,8 @@ fun TourneeDetailScreen(
                     Box(
                         modifier = Modifier
                             .clip(DsShapes.medium)
-                            .background(DsColors.SurfaceSunken)
+                            .background(DsColors.Surface)
+                            .border(1.dp, DsColors.Border, DsShapes.medium)
                             .clickable { showFilterSheet = true }
                             .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
                         contentAlignment = Alignment.Center
@@ -1559,7 +1560,7 @@ private fun TourneeVenteFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
                 }

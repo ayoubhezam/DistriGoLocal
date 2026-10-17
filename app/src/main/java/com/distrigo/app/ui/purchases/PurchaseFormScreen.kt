@@ -87,7 +87,7 @@ internal fun Step1Fournisseur(
                 "Choisir un fournisseur",
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary,
+                color      = DsColors.PrimaryDark,
                 textAlign  = TextAlign.Center
             )
 
@@ -161,7 +161,7 @@ internal fun Step1Fournisseur(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = DsShapes.large,
                     colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(1.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Primary)
                 ) {
                     Column(modifier = Modifier.padding(DsSpacing.lg)) {
@@ -267,7 +267,7 @@ internal fun Step3Validation(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = DsShapes.large,
                     colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(1.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -312,7 +312,7 @@ internal fun Step3Validation(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = DsShapes.large,
                     colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(1.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
                     Row(modifier = Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {

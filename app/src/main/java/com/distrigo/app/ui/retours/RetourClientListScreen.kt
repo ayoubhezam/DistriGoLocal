@@ -47,6 +47,7 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.common.FitText
 import androidx.compose.ui.text.style.TextAlign
 import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun RetourClientListScreen(
@@ -97,7 +98,7 @@ fun RetourClientListScreen(
                 onDeleted     = { selectedRetour = null; viewModel.loadRetours(client.id) }
             )
         } else {
-            Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = "Retours",
                     subtitle = "Historique des retours effectués",
@@ -175,7 +176,7 @@ fun RetourRow(retour: RetourClient, onClick: (() -> Unit)? = null) {
     Surface(
         modifier = Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape    = DsShapes.medium,
-        color    = DsColors.SurfaceMuted
+        color    = DsColors.Surface, border = BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(Modifier.fillMaxWidth().padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
             Box(

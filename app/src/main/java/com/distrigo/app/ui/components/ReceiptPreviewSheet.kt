@@ -40,9 +40,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.launch
-
-private val Ink   = Color(0xFF14213D)
-private val Muted = Color(0xFF64748B)
+import com.distrigo.app.ui.designsystem.DsColors
 
 /**
  * The receipt, exactly as it will come out of the printer.
@@ -99,7 +97,7 @@ fun ReceiptPreviewSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState       = sheetState,
-        containerColor   = Color(0xFFF1F5F9),
+        containerColor   = DsColors.SurfaceSunken,
     ) {
         Column(
             modifier = Modifier
@@ -111,7 +109,7 @@ fun ReceiptPreviewSheet(
                 "APERÇU DU REÇU",
                 fontSize   = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Muted,
+                color      = DsColors.TextSecondary,
                 textAlign  = TextAlign.Center,
                 modifier   = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             )
@@ -124,7 +122,7 @@ fun ReceiptPreviewSheet(
                     paper == null      -> A4PreviewPlaceholder()
                     rows == null       -> CircularProgressIndicator(
                         modifier = Modifier.padding(48.dp),
-                        color    = Ink,
+                        color    = DsColors.TextPrimary,
                     )
                     else               -> ThermalReceiptPreview(rows = rows!!, paper = paper)
                 }
@@ -165,7 +163,7 @@ fun ReceiptPreviewSheet(
                     enabled  = !busy,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape    = RoundedCornerShape(16.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Ink),
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.TextPrimary),
                 ) {
                     if (busy) {
                         CircularProgressIndicator(
@@ -189,7 +187,7 @@ fun ReceiptPreviewSheet(
                 Text(
                     printTargetLabel(printSettings),
                     fontSize  = 11.sp,
-                    color     = Muted,
+                    color     = DsColors.TextSecondary,
                     textAlign = TextAlign.Center,
                     modifier  = Modifier.fillMaxWidth(),
                 )

@@ -80,7 +80,7 @@ fun TourneesHubScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DsColors.Surface)
+                    .background(DsColors.SurfaceMuted)
             ) {
                 // The shipping badge used to ride in the leading slot as the hub's identity cue.
                 // The menu is a navigation control and outranks it, and the other three tab roots

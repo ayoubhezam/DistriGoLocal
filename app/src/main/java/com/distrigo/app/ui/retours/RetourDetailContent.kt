@@ -30,6 +30,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.foundation.border
 
 /** One returned product, as the details list it. */
 internal data class RetourLine(
@@ -73,7 +74,7 @@ internal fun RetourDetailContent(
     val money = LocalMoneyFormatter.current
     var confirmDelete by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Détail du retour", subtitle = "Retour $numberLabel", leading = DsTopBarLeading.Back(onBack))
 
         Column(
@@ -85,7 +86,8 @@ internal fun RetourDetailContent(
                 modifier            = Modifier
                     .fillMaxWidth()
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .padding(vertical = DsSpacing.xl, horizontal = DsSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -192,7 +194,7 @@ internal fun RetourDetailContent(
 private fun LineRow(line: RetourLine, showMotif: Boolean) {
     val money = LocalMoneyFormatter.current
     Row(
-        modifier          = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
+        modifier          = Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {

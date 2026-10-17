@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
+import androidx.compose.foundation.border
 
 /**
  * An expense, read-only. Tapping one in its list used to open the edit form straight away, where a
@@ -52,7 +53,7 @@ fun ChargeDetailScreen(
     LaunchedEffect(Unit) { vm.load() }
     LaunchedEffect(vm.missing) { if (vm.missing) onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Détail de la dépense", leading = DsTopBarLeading.Back(onBack))
 
         val charge = vm.charge
@@ -73,7 +74,8 @@ fun ChargeDetailScreen(
                 modifier            = Modifier
                     .fillMaxWidth()
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .padding(vertical = DsSpacing.xl, horizontal = DsSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -105,6 +107,7 @@ fun ChargeDetailScreen(
                     .fillMaxWidth()
                     .clip(DsShapes.large)
                     .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .padding(vertical = DsSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
             ) {

@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.distrigo.app.ui.designsystem.DsColors
 
 object PerteIconMapper {
     fun iconFor(key: String): ImageVector = when (key) {
@@ -19,6 +20,6 @@ object PerteIconMapper {
     fun colorFor(hex: String): Color = try {
         Color(android.graphics.Color.parseColor(hex))
     } catch (e: Exception) {
-        Color(0xFFF04438)
+        DsColors.Danger
     }
 }

@@ -31,10 +31,24 @@ object DsColors {
     // Warning — soft amber
     val Warning        = Color(0xFFF79009)
     val WarningLight   = Color(0xFFFFFAEB)
+    // A step before Warning: a debt a month old, between the recent (green) and the two-month (amber)
+    val Caution        = Color(0xFFFDB022)
 
     // Destructive — softer red, less alarming than pure red
     val Danger         = Color(0xFFF04438)
     val DangerLight    = Color(0xFFFEF3F2)
+    // A step deeper than DangerLight: an avatar sitting on a DangerLight card
+    val DangerSoft     = Color(0xFFFEE2E2)
+
+    // Accents — one hue per section, report or chart series, beside the brand blue and the three above (2026-10-17).
+    // Every colour a screen paints is named in this file: none is written out in a screen any more. A chart takes
+    // them after the blue, and the slate (TextTertiary) last, for « Autres ».
+    val AccentTeal     = Color(0xFF0E9384)
+    val AccentViolet   = Color(0xFF7C3AED)
+    val AccentRose     = Color(0xFFE5487A)
+    val AccentSky      = Color(0xFF0BA5EC)
+    // The logo's deep orange: dark enough for an icon on white, where the light one is not
+    val AccentOrange   = DsBrand.OrangeDeep
 
     // Neutrals — the brand's navy and slates. Long text and numbers in a near-black navy (the logo's darkest,
     // 16.6:1), the brand navy kept for titles; secondary text the brand slate (5.1:1); hints 3.1:1
@@ -66,8 +80,13 @@ object DsColors {
 
     // Category tag palette (soft, for customer type badges)
     val TagRetail      = Primary to PrimaryLight
-    val TagWholesale   = Color(0xFF9333EA) to Color(0xFFF5F0FF)
-    val TagBusiness    = Color(0xFFF79009) to Color(0xFFFFFAEB)
+    val TagWholesale   = AccentViolet to Color(0xFFF5F0FF)
+    val TagBusiness    = Warning to WarningLight
+
+    // Not the app's own: WhatsApp's green, on its buttons; and thermal paper, which is not white but a faint warm
+    // grey, on the receipt preview
+    val WhatsApp       = Color(0xFF25D366)
+    val ThermalPaper   = Color(0xFFFDFCF8)
 }
 
 // ═══════════════════════════════════════════════════════════

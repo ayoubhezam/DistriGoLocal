@@ -515,7 +515,7 @@ fun SupplierDetailScreen(
                         }
                     }
                     item {
-                        QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = Color(0xFF25D366)) {
+                        QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = DsColors.WhatsApp) {
                             if (hasPhone) {
                                 val digits = currentSupplier.phone!!.filter { it.isDigit() }
                                 try {

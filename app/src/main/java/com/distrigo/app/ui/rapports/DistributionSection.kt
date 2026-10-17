@@ -307,7 +307,7 @@ private fun StackedBar(served: Int, unserved: Int, length: Float) {
 @Composable
 private fun CommuneCard(c: CommuneStat) {
     Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .padding(DsSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -365,7 +365,7 @@ fun SectorSheetHost(sheet: SectorSheet?, onDismiss: () -> Unit) {
                     SectorLegend()
                     Spacer(Modifier.height(DsSpacing.lg))
                     Text("Clients sans vente (${s.withoutSale})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
-                        color = DsColors.TextPrimary)
+                        color = DsColors.PrimaryDark)
                     Spacer(Modifier.height(DsSpacing.xs))
                 }
             }
@@ -441,7 +441,7 @@ fun SectorsScreen(onBack: () -> Unit, viewModel: VentesReportViewModel) {
                 items(d.sectors, key = { it.id }) { s ->
                     SectorBar(
                         s, largest, onClick = { viewModel.openSector(s) },
-                        modifier = Modifier.padding(horizontal = DsSpacing.lg).clip(DsShapes.medium).background(DsColors.Surface),
+                        modifier = Modifier.padding(horizontal = DsSpacing.lg).clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium),
                         inset = DsSpacing.md,
                     )
                 }

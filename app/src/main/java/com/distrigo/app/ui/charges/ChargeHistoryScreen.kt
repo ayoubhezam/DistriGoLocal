@@ -228,7 +228,7 @@ fun ChargeHistoryScreen(
                 )
                 com.distrigo.app.ui.common.Step2Chip(
                     icon = Icons.Default.FilterList, label = "Filtres",
-                    container = DsColors.SurfaceSunken,
+                    container = DsColors.Surface,
                     content = if (filters.isActive) DsColors.Primary else DsColors.TextSecondary,
                     dot = filters.isActive, onClick = { sheet = true }
                 )
@@ -331,7 +331,7 @@ private fun ChargeFiltersSheet(
     ) {
         Column(Modifier.padding(horizontal = DsSpacing.lg).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                Text("Filtres", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = ChargeHistoryFilters() }) { Text("Réinitialiser") }
             }
             Text("Type", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)

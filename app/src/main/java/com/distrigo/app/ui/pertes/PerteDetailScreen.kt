@@ -33,6 +33,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
+import androidx.compose.foundation.border
 
 /**
  * A perte, read-only — the same flow as an expense's details (ChargeDetailScreen). Tapping one in its
@@ -59,7 +60,7 @@ fun PerteDetailScreen(
     LaunchedEffect(Unit) { vm.load() }
     LaunchedEffect(vm.missing) { if (vm.missing) onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Détail de la perte", leading = DsTopBarLeading.Back(onBack))
 
         val perte = vm.perte
@@ -80,7 +81,8 @@ fun PerteDetailScreen(
                 modifier            = Modifier
                     .fillMaxWidth()
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .padding(vertical = DsSpacing.xl, horizontal = DsSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

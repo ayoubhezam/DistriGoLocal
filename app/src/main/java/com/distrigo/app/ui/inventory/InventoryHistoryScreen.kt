@@ -35,6 +35,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.foundation.BorderStroke
 @Composable
 
 fun InventoryHistoryScreen(
@@ -54,7 +55,7 @@ fun InventoryHistoryScreen(
         snapshotFlow { viewModel.historySearch }.drop(1).collect { listState.scrollToItem(0) }
     }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Historique des inventaires",
             leading = DsTopBarLeading.Back(onBack)
@@ -132,12 +133,12 @@ fun InventoryHistoryScreen(
 @Composable
 private fun InventoryHistoryRow(entry: InventorySessionHistory, onClick: () -> Unit) {
     val isDraft = entry.session.status == "draft"
-    val statusColor = if (isDraft) Color(0xFFF79009) else Color(0xFF12B76A)
+    val statusColor = if (isDraft) DsColors.Warning else DsColors.Success
 
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape    = DsShapes.medium,
-        color    = DsColors.SurfaceMuted
+        color    = DsColors.Surface, border = BorderStroke(1.dp, DsColors.Border)
     ) {
         Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -189,7 +190,7 @@ fun InventorySessionDetailScreen(
 
     LaunchedEffect(sessionId) { viewModel.showSessionDetail(sessionId) }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Détail de l'inventaire",
             leading = DsTopBarLeading.Back(onBack)
@@ -218,10 +219,10 @@ fun InventorySessionDetailScreen(
                         val item = items[index] ?: return@items
                         val ecartColor = when {
                             item.ecart < 0 -> DsColors.Danger
-                            item.ecart > 0 -> Color(0xFF12B76A)
+                            item.ecart > 0 -> DsColors.Success
                             else           -> DsColors.TextSecondary
                         }
-                        Surface(shape = DsShapes.medium, color = DsColors.SurfaceMuted, modifier = Modifier.fillMaxWidth()) {
+                        Surface(shape = DsShapes.medium, color = DsColors.Surface, border = BorderStroke(1.dp, DsColors.Border), modifier = Modifier.fillMaxWidth()) {
                             Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)

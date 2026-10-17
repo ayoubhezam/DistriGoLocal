@@ -99,7 +99,7 @@ fun <T> SearchableSelectList(
                 title,
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
+                color      = DsColors.PrimaryDark
             )
         }
         Spacer(Modifier.height(DsSpacing.sm))

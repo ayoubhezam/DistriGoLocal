@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
+import androidx.compose.foundation.border
 
 /** One report of the list. [onOpen] is null for a report not built yet, shown as "Bientôt". */
 private class ReportEntry(
@@ -60,14 +61,14 @@ private class ReportEntry(
 fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit) {
     val entries = listOf(
         ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, marge, clients par secteur", onOpenVentes),
-        ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF9333EA), "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
-        ReportEntry(Icons.Default.People, Color(0xFF0E9384), "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
+        ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, DsColors.AccentViolet, "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
+        ReportEntry(Icons.Default.People, DsColors.AccentTeal, "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
         ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),
-        ReportEntry(Icons.Default.Inventory2, Color(0xFF667085), "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
+        ReportEntry(Icons.Default.Inventory2, DsColors.TextSecondary, "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
         ReportEntry(Icons.Default.PieChart, DsColors.Success, "Résultat", "Marge, charges et pertes : le bénéfice", onOpenResultat),
     )
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Rapports",
             subtitle = "Statistiques et performances",
@@ -90,7 +91,8 @@ private fun EntryRow(entry: ReportEntry) {
         Modifier
             .fillMaxWidth()
             .clip(DsShapes.medium)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
             .then(if (open != null) Modifier.clickable(role = Role.Button, onClick = open) else Modifier)
             .padding(DsSpacing.md)
             .alpha(if (open != null) 1f else 0.55f),

@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.distrigo.app.ui.designsystem.DsColors
 
 object ChargeIconMapper {
     fun iconFor(key: String): ImageVector = when (key) {
@@ -38,6 +39,6 @@ object ChargeIconMapper {
     fun colorFor(hex: String): Color = try {
         Color(android.graphics.Color.parseColor(hex))
     } catch (e: Exception) {
-        Color(0xFF5B6EF5)
+        DsColors.Primary
     }
 }

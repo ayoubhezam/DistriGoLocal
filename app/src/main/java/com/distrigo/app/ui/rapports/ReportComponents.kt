@@ -48,6 +48,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
+import androidx.compose.foundation.border
 
 // The pieces every report screen is built from, so they all read alike: the blue summary card, the
 // figure tiles, the section titles, the empty message, and how counts and shares are written.
@@ -162,6 +163,7 @@ fun KpiTile(
             .fillMaxHeight()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md)
     ) {
         Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -235,7 +237,7 @@ fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String,
 @Composable
 fun SectionTitle(text: String) {
     Text(
-        text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+        text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
         modifier = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm),
     )
 }
@@ -248,7 +250,7 @@ fun SectionTitle(text: String, action: String, onAction: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+            text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
             modifier = Modifier.weight(1f),
         )
         Text(

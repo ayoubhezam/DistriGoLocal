@@ -31,17 +31,19 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.foundation.border
 
 // How a list is sorted, the same everywhere: the "Trier" chip of Produits' controls row and its
 // "Trier par" sheet, taken out of Produits so every list that sorts looks and behaves the same.
 
-/** "Trier", a sunken chip; blue while a sort other than the list's default is on. */
+/** "Trier", white with the hairline as every control; blue while a sort other than the list's default is on. */
 @Composable
 fun ListSortChip(active: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(DsShapes.medium)
-            .background(DsColors.SurfaceSunken)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -79,7 +81,7 @@ fun <T> SortOptionsSheet(
         containerColor   = DsColors.Surface
     ) {
         Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-            Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+            Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(DsSpacing.md))
             options.forEach { option ->
                 Row(

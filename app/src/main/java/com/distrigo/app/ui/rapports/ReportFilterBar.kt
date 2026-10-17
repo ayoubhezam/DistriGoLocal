@@ -201,7 +201,7 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 .padding(horizontal = DsSpacing.lg)
                 .navigationBarsPadding()
         ) {
-            Text("Période", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text("Période", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(DsSpacing.md))
 
             ReportPeriod.entries.forEach { period ->

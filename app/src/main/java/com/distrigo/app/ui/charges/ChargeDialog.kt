@@ -114,7 +114,7 @@ fun ChargeDialog(
                 .padding(DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
-            Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
 
             val typing = newName
             if (typing != null) {

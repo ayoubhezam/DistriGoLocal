@@ -94,7 +94,7 @@ fun SuppliersScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
         // affordance; null-safe because the screen is still usable as a root.
@@ -150,7 +150,7 @@ fun SuppliersScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DsColors.Surface)
+                        .background(DsColors.SurfaceMuted)
                 ) {
                     // ── Search ──
                     DsCompactSearchField(
@@ -200,7 +200,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
             modifier  = Modifier.fillMaxWidth().clickable { onClick() },
             shape     = DsShapes.large,
             colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-            elevation = CardDefaults.cardElevation(1.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
             border    = androidx.compose.foundation.BorderStroke(
                 1.dp, if (isDebt) DsColors.Danger else DsColors.Border
             )

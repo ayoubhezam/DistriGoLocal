@@ -82,7 +82,7 @@ private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
 private const val DAY_MILLIS = 24 * 60 * 60 * 1000.0
 
 // A paler band behind the benefits, under the card
-private val BenefitsBackground = Color(0xFFEAF1FD)
+private val BenefitsBackground = DsColors.PrimaryLight
 
 /** The end of the onboarding, as in the mockup: the check, the offer and its dates, then the app. */
 @Composable

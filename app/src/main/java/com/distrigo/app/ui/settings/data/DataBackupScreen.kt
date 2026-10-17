@@ -146,7 +146,7 @@ fun DataBackupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DsColors.Surface)
+                .background(DsColors.SurfaceMuted)
         ) {
             DsTopAppBar(
                 title = "Données et sauvegarde",
@@ -219,7 +219,8 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
@@ -283,7 +284,8 @@ private fun AutoBackupSection(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
@@ -405,7 +407,8 @@ private fun AccountingExportSection(onOpen: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
@@ -437,7 +440,8 @@ private fun RestoreSection(onPick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
@@ -466,7 +470,7 @@ private fun SafetyBackupsSection(backups: List<SafetyBackup>, onRestore: (Safety
         fontSize = DsTextSize.caption, color = DsColors.TextSecondary
     )
     Column(
-        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted)
+        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
     ) {
         backups.forEachIndexed { index, backup ->
             if (index > 0) HorizontalDivider(color = DsColors.Border)
@@ -527,7 +531,7 @@ private fun RestorePreviewScreen(
     var confirming by remember { mutableStateOf(false) }
     val manifest = preview.manifest
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Restaurer cette sauvegarde ?", leading = DsTopBarLeading.Back(onCancel))
 
         Column(
@@ -539,7 +543,7 @@ private fun RestorePreviewScreen(
             verticalArrangement = Arrangement.spacedBy(DsSpacing.lg)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted).padding(DsSpacing.lg),
+                modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
                 Text(
@@ -605,7 +609,7 @@ private fun RestorePreviewScreen(
 
 @Composable
 private fun CountsTable(preview: BackupPreview) {
-    Column(Modifier.fillMaxWidth().clip(DsShapes.large).border(1.dp, DsColors.Border, DsShapes.large)) {
+    Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)) {
         Row(Modifier.fillMaxWidth().background(DsColors.SurfaceSunken).padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)) {
             Text("", Modifier.weight(1.4f))
             Text("Sauvegarde", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.End)
@@ -794,7 +798,7 @@ private fun RestartingScreen() {
     ) {
         CircularProgressIndicator(color = DsColors.Primary)
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Redémarrage de DistriGo…", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Text("Redémarrage de DistriGo…", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
             "La sauvegarde sera installée au démarrage. Si l'application ne se rouvre pas d'elle-même, ouvrez-la.",
@@ -807,7 +811,7 @@ private fun RestartingScreen() {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+    Text(text, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
 }
 
 @Composable

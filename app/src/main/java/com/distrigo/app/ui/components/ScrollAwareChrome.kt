@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.distrigo.app.ui.designsystem.DsColors
 
 /**
  * زر دائري عائم يتحرك بين وضعين: أعلى الشريط السفلي (عند الظهور)، أو ملاصقًا لأسفل الشاشة (عند الطي).
@@ -35,7 +36,7 @@ fun rememberFabBottomPadding(
 fun ScrollAwareFab(
     onClick        : () -> Unit,
     modifier       : Modifier = Modifier,
-    containerColor : Color = Color(0xFF2196F3)
+    containerColor : Color = DsColors.Primary
 ) {
     FloatingActionButton(
         onClick        = onClick,

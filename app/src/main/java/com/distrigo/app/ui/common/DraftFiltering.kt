@@ -151,7 +151,7 @@ fun DraftFilterBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
@@ -160,7 +160,8 @@ fun DraftFilterBar(
             Row(
                 modifier = Modifier
                     .clip(DsShapes.medium)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.medium)
                     .clickable(onClick = onOpenFilters)
                     .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -271,7 +272,7 @@ fun DraftFilterSheet(
                     "Filtres avancés",
                     fontWeight = FontWeight.Bold,
                     fontSize   = DsTextSize.bodyLarge,
-                    color      = DsColors.TextPrimary
+                    color      = DsColors.PrimaryDark
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, "Fermer", tint = DsColors.TextSecondary)

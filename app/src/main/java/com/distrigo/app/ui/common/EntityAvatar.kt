@@ -17,10 +17,12 @@ import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.designsystem.DsColors
 
+// The brand's blue and navy and the accents: white initials stay legible on each
 private val avatarColors = listOf(
-    Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A),
-    Color(0xFFC62828), Color(0xFFE65100), Color(0xFF00695C)
+    DsColors.Primary, DsColors.AccentTeal, DsColors.AccentViolet,
+    DsColors.AccentRose, DsColors.AccentOrange, DsColors.PrimaryDark
 )
 
 @Composable

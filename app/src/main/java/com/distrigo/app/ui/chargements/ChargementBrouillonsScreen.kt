@@ -117,8 +117,7 @@ fun ChargementBrouillonsScreen(
                         containerColor = if (isSelected) DsColors.PrimaryLight else DsColors.Surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    modifier = if (!isSelected) Modifier else
-                        Modifier.border(1.dp, DsColors.Primary, DsShapes.large)
+                    modifier = Modifier.border(1.dp, if (isSelected) DsColors.Primary else DsColors.Border, DsShapes.large)
                 ) {
                     Column(Modifier.padding(horizontal = DsSpacing.md)) {
                         ChargementDraftRow(
@@ -214,7 +213,7 @@ private fun EmptyChargementBrouillons(modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
             "Un mouvement non terminé est enregistré ici automatiquement, et vous pouvez le reprendre quand vous voulez.",

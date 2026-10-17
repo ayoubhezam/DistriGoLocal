@@ -96,7 +96,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
     }
 
   Box(modifier = modifier.fillMaxSize()) {
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
 
         // One bar serves both paged history routes, so the count line rides in the subtitle slot
         // the hand-rolled header spent a second Text on.

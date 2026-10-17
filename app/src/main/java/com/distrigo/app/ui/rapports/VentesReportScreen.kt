@@ -61,9 +61,10 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import java.util.Locale
 import kotlin.math.max
+import androidx.compose.foundation.border
 
 /** The camion's colour wherever the report splits dépôt (the primary colour) from camion. */
-private val CamionColor = Color(0xFF0E9384)
+private val CamionColor = DsColors.AccentTeal
 
 /**
  * Rapports › Ventes: what was sold over a period, from the dépôt, the camion, or both — the figures,
@@ -164,7 +165,7 @@ private fun KpiGrid(report: SalesReport) {
                 "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
                 Icons.Default.ShoppingBasket,
                 info = ReportInfo("Panier moyen", "Ce qu'une vente rapporte en moyenne sur la période : chiffre d'affaires ÷ nombre de ventes."),
-                accent = Color(0xFF0E9384),
+                accent = DsColors.AccentTeal,
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -200,10 +201,11 @@ private fun SourceSplit(report: SalesReport) {
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             InfoButton(
                 ReportInfo(
                     "Dépôt et camion",
@@ -287,6 +289,7 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
             .padding(DsSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

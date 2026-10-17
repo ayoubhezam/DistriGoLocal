@@ -31,13 +31,13 @@ private data class MoreMenuEntry(
 )
 
 private val MORE_MENU_ENTRIES = listOf(
-    MoreMenuEntry(Icons.Default.People, "Clients", "Gérer vos clients et leurs comptes", Color(0xFFFF9800), "clients"),
-    MoreMenuEntry(Icons.Default.Business, "Fournisseurs", "Gérer vos fournisseurs", Color(0xFF4CAF50), "fournisseurs"),
-    MoreMenuEntry(Icons.Default.BarChart, "Rapports", "Statistiques et performances", Color(0xFFE91E63), "rapports"),
-    MoreMenuEntry(Icons.Default.Settings, "Paramètres", "Configuration de l'application", Color(0xFF009688), "parametres"),
-    MoreMenuEntry(Icons.Default.Payments, "Charges", "Suivi des dépenses de l'activité", Color(0xFF3F51B5), "charges"),
-    MoreMenuEntry(Icons.Default.DeleteSweep, "Pertes", "Suivi des pertes et casses", Color(0xFFF04438), "pertes"),
-    MoreMenuEntry(Icons.Default.Inventory2, "Inventaire", "Comptage physique du stock par scan", Color(0xFF12B76A), "inventaire"),
+    MoreMenuEntry(Icons.Default.People, "Clients", "Gérer vos clients et leurs comptes", DsColors.AccentOrange, "clients"),
+    MoreMenuEntry(Icons.Default.Business, "Fournisseurs", "Gérer vos fournisseurs", DsColors.AccentViolet, "fournisseurs"),
+    MoreMenuEntry(Icons.Default.BarChart, "Rapports", "Statistiques et performances", DsColors.AccentRose, "rapports"),
+    MoreMenuEntry(Icons.Default.Settings, "Paramètres", "Configuration de l'application", DsColors.AccentTeal, "parametres"),
+    MoreMenuEntry(Icons.Default.Payments, "Charges", "Suivi des dépenses de l'activité", DsColors.Primary, "charges"),
+    MoreMenuEntry(Icons.Default.DeleteSweep, "Pertes", "Suivi des pertes et casses", DsColors.Danger, "pertes"),
+    MoreMenuEntry(Icons.Default.Inventory2, "Inventaire", "Comptage physique du stock par scan", DsColors.Success, "inventaire"),
     )
 
 @Composable
@@ -49,7 +49,8 @@ fun MoreScreen(
             .fillMaxSize()
             .background(DsColors.Surface)
     ) {
-        DsTopAppBar(title = "Plus", size = DsTopBarSize.Large)
+        // A drawer is a sheet, white as menus and dialogs: its bar too, not the pages' Mist
+        DsTopAppBar(title = "Plus", size = DsTopBarSize.Large, containerColor = DsColors.Surface)
 
         // The bar is pinned, so scrolling moved off the root onto the menu list below it.
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {

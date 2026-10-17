@@ -164,8 +164,7 @@ fun TourneeVenteBrouillonsScreen(
                             containerColor = if (isSelected) DsColors.PrimaryLight else DsColors.Surface
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        modifier = if (!isSelected) Modifier else
-                            Modifier.border(1.dp, DsColors.Primary, DsShapes.large)
+                        modifier = Modifier.border(1.dp, if (isSelected) DsColors.Primary else DsColors.Border, DsShapes.large)
                     ) {
                         Column(Modifier.padding(horizontal = DsSpacing.md)) {
                             TourneeVenteDraftRow(
@@ -277,7 +276,7 @@ private fun NoTourneeVenteDraftsMatchFilter(modifier: Modifier = Modifier, onCle
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun résultat", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text("Aucun résultat", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
             "Aucun brouillon ne correspond à ces filtres.",
@@ -311,7 +310,7 @@ private fun EmptyTourneeVenteBrouillons(modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
             "Une vente non terminée est enregistrée ici automatiquement, et vous pouvez la reprendre quand vous voulez.",

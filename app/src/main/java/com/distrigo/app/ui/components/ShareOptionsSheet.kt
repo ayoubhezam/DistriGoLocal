@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
+import com.distrigo.app.ui.designsystem.DsColors
 
-private val InkColor = Color(0xFF14213D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,16 +50,16 @@ fun ShareOptionsSheet(
                 "Partager le reçu",
                 fontSize   = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color      = InkColor,
+                color      = DsColors.TextPrimary,
                 modifier   = Modifier.padding(bottom = 12.dp)
             )
 
             ShareOptionRow(
-                iconBg   = Color(0xFFE8F5E9),
-                iconTint = Color(0xFF2E7D32),
+                iconBg   = DsColors.WhatsApp,
+                iconTint = Color.White,
                 title    = "WhatsApp",
                 subtitle = "Envoyer directement au client",
-                icon     = { WhatsAppIcon(tint = Color(0xFF2E7D32)) },
+                icon     = { WhatsAppIcon(tint = Color.White) },
                 onClick  = {
                     shareViaWhatsApp(context, receipt)
                     onDismiss()
@@ -67,11 +67,11 @@ fun ShareOptionsSheet(
             )
 
             ShareOptionRow(
-                iconBg   = Color(0xFFFFEBEE),
-                iconTint = Color(0xFFC62828),
+                iconBg   = DsColors.DangerLight,
+                iconTint = DsColors.Danger,
                 title    = "Exporter en PDF",
                 subtitle = "Enregistrer ou envoyer le fichier",
-                icon     = { Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFFC62828), modifier = Modifier.size(20.dp)) },
+                icon     = { Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp)) },
                 onClick  = {
                     // The PDF now takes a moment to generate off the main thread; a second tap in
                     // that moment would make a second file and open a second share. The sheet still
@@ -87,11 +87,11 @@ fun ShareOptionsSheet(
             )
 
             ShareOptionRow(
-                iconBg   = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF64748B),
+                iconBg   = DsColors.SurfaceSunken,
+                iconTint = DsColors.TextSecondary,
                 title    = "Copier en texte",
                 subtitle = "Coller où vous voulez",
-                icon     = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(19.dp)) },
+                icon     = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(19.dp)) },
                 onClick  = {
                     copyReceiptAsText(context, receipt)
                     onDismiss()
@@ -124,10 +124,10 @@ private fun ShareOptionRow(
         ) { icon() }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = InkColor)
-            Text(subtitle, fontSize = 12.sp, color = Color(0xFF94A3B8))
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(subtitle, fontSize = 12.sp, color = DsColors.TextSecondary)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(16.dp))
     }
 }
 

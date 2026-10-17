@@ -33,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.foundation.border
 
 /** Paramètres → Corbeille: what was deleted, to put back or, when nothing uses it, delete for good. */
 @Composable
@@ -49,7 +50,7 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
     }
     BackHandler { onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Corbeille", leading = DsTopBarLeading.Back(onBack))
 
         when {
@@ -122,7 +123,7 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
 private fun TrashRow(item: TrashItem, onRestore: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted).padding(start = DsSpacing.lg, top = DsSpacing.md, bottom = DsSpacing.md),
+        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(start = DsSpacing.lg, top = DsSpacing.md, bottom = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -159,7 +160,7 @@ private fun EmptyTrash() {
     ) {
         Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("La corbeille est vide", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Text("La corbeille est vide", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
             "Les produits, clients, fournisseurs, catégories, marques et types que vous supprimez arrivent ici, et peuvent être restaurés.",

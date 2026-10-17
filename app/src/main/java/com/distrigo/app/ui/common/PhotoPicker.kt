@@ -153,7 +153,7 @@ private fun PhotoSourceSheet(onCamera: () -> Unit, onGallery: () -> Unit, onDism
         ) {
             Text(
                 "Ajouter une photo",
-                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+                fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
                 modifier = Modifier.padding(bottom = DsSpacing.sm)
             )
             SourceRow(Icons.Default.PhotoCamera, "Prendre une photo", "Avec l'appareil photo", onCamera)

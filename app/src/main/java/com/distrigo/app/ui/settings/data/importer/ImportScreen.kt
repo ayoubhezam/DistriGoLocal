@@ -86,7 +86,7 @@ private fun Intro(onPick: () -> Unit) {
             )
         }
         Panel {
-            Text("Ce que l'import ne fait pas", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text("Ce que l'import ne fait pas", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Text(
                 "• Le stock d'un produit existant ne vient jamais du fichier : il se corrige par un inventaire ou un ajustement. Un nouveau produit prend son stock de départ.\n" +
                     "• Le solde d'un client vient de ses ventes et de ses paiements.\n" +
@@ -210,7 +210,7 @@ private fun Done(done: ImportState.Done, onAnother: () -> Unit, onFinish: () -> 
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
-                Text("Import terminé", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text("Import terminé", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             }
             Text(
                 "${done.fileName} : ${plural(done.result.created, "fiche créée", "fiches créées")}, ${plural(done.result.updated, "fiche modifiée", "fiches modifiées")}.",
@@ -236,7 +236,7 @@ private fun Failed(message: String, onPick: () -> Unit) {
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger)
-                Text("Import impossible", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text("Import impossible", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             }
             Text(message, fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         }

@@ -199,7 +199,7 @@ fun ClientsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
         // affordance; null-safe because the screen is still usable as a root.
@@ -266,7 +266,7 @@ fun ClientsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DsColors.Surface)
+                        .background(DsColors.SurfaceMuted)
                 ) {
                     // ── Search ──
                     DsCompactSearchField(

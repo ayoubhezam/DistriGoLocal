@@ -112,7 +112,7 @@ fun MovementFiltersSheet(
                 .padding(bottom = DsSpacing.lg)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                Text("Filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = MovementFilters() }) {
                     Text("Réinitialiser", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }

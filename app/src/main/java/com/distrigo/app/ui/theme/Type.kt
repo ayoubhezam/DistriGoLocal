@@ -2,6 +2,9 @@ package com.distrigo.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.designsystem.DsBrand
 
 /**
@@ -11,25 +14,34 @@ import com.distrigo.app.ui.designsystem.DsBrand
  *
  * Tabular figures throughout: every digit as wide as the others, so amounts and quantities line up in lists, tables
  * and reports.
+ *
+ * Line height in proportion to the size (1.4×) and tighter letter spacing (the owner's choice, 2026-10-17):
+ * Material's fixed line heights and tracking were drawn for Roboto at its role's size, so the screens' smaller
+ * Jakarta text (13–14 sp, given at the call site) wrapped onto loose, airy second lines. Headings keep a tighter
+ * 1.25× and their own (zero or negative) tracking.
  */
-private fun TextStyle.brand() = copy(fontFamily = DsBrand.Font, fontFeatureSettings = "tnum")
+private fun TextStyle.brand(lineHeight: TextUnit = 1.4.em, letterSpacing: TextUnit = this.letterSpacing) =
+    copy(fontFamily = DsBrand.Font, fontFeatureSettings = "tnum", lineHeight = lineHeight, letterSpacing = letterSpacing)
+
+private val BodyTracking = 0.15.sp
+private val LabelTracking = 0.1.sp
 
 val Typography = Typography().run {
     copy(
-        displayLarge   = displayLarge.brand(),
-        displayMedium  = displayMedium.brand(),
-        displaySmall   = displaySmall.brand(),
-        headlineLarge  = headlineLarge.brand(),
-        headlineMedium = headlineMedium.brand(),
-        headlineSmall  = headlineSmall.brand(),
+        displayLarge   = displayLarge.brand(lineHeight = 1.25.em),
+        displayMedium  = displayMedium.brand(lineHeight = 1.25.em),
+        displaySmall   = displaySmall.brand(lineHeight = 1.25.em),
+        headlineLarge  = headlineLarge.brand(lineHeight = 1.25.em),
+        headlineMedium = headlineMedium.brand(lineHeight = 1.25.em),
+        headlineSmall  = headlineSmall.brand(lineHeight = 1.25.em),
         titleLarge     = titleLarge.brand(),
         titleMedium    = titleMedium.brand(),
         titleSmall     = titleSmall.brand(),
-        bodyLarge      = bodyLarge.brand(),
-        bodyMedium     = bodyMedium.brand(),
-        bodySmall      = bodySmall.brand(),
-        labelLarge     = labelLarge.brand(),
-        labelMedium    = labelMedium.brand(),
-        labelSmall     = labelSmall.brand(),
+        bodyLarge      = bodyLarge.brand(letterSpacing = BodyTracking),
+        bodyMedium     = bodyMedium.brand(letterSpacing = BodyTracking),
+        bodySmall      = bodySmall.brand(letterSpacing = BodyTracking),
+        labelLarge     = labelLarge.brand(letterSpacing = LabelTracking),
+        labelMedium    = labelMedium.brand(letterSpacing = LabelTracking),
+        labelSmall     = labelSmall.brand(letterSpacing = LabelTracking),
     )
 }

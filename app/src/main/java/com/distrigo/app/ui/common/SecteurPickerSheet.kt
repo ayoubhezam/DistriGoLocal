@@ -61,7 +61,7 @@ fun SecteurPickerSheet(
                 "Secteurs disponibles à $communeName",
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
-                color      = DsColors.TextPrimary
+                color      = DsColors.PrimaryDark
             )
             if (isMultiSelect) {
                 Spacer(Modifier.height(2.dp))

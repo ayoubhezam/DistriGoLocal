@@ -401,7 +401,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             },
                             shape     = DsShapes.large,
                             colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                            elevation = CardDefaults.cardElevation(1.dp),
+                            elevation = CardDefaults.cardElevation(0.dp),
                             border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                         ) {
                             Row(
@@ -608,7 +608,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 modifier  = Modifier.fillMaxWidth(),
                                 shape     = DsShapes.large,
                                 colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                                elevation = CardDefaults.cardElevation(1.dp),
+                                elevation = CardDefaults.cardElevation(0.dp),
                                 border    = androidx.compose.foundation.BorderStroke(
                                     1.dp,
                                     when {

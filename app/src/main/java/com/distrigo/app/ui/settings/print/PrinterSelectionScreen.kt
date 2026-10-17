@@ -115,7 +115,7 @@ fun PrinterSelectionScreen(
     BackHandler { onBack() }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(DsColors.Surface)
+        modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
             title   = "Imprimantes",
@@ -410,7 +410,7 @@ private fun DiscoveredRow(device: DiscoveredDevice, onAdd: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.medium)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable { onAdd() }
             .padding(DsSpacing.md),

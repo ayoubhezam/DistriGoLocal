@@ -190,10 +190,11 @@ private fun DsCompactSearchSurface(
     Row(
         modifier = modifier
             .clip(DsShapes.pill)
-            .background(DsColors.SurfaceSunken)
-            // A focus ring rather than a permanent border: at rest it is a quiet surface, and the
-            // ring is what tells the user where their typing is going.
-            .border(1.dp, if (focused) DsColors.Primary else Color.Transparent, DsShapes.pill)
+            // White with the hairline, as the onboarding's fields (2026-10-17): it reads the same on a
+            // Mist list and on a white form, where the sunken grey it replaced vanished into the Mist.
+            // The hairline turns blue while typing, which is what tells the user where it is going.
+            .background(DsColors.Surface)
+            .border(1.dp, if (focused) DsColors.Primary else DsColors.Border, DsShapes.pill)
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(start = DsSpacing.md, end = 2.dp),
         verticalAlignment = Alignment.CenterVertically,

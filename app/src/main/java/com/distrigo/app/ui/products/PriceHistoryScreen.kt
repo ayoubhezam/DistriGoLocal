@@ -138,7 +138,7 @@ fun PriceHistoryScreen(
             // The latest few; every one, searchable, is a screen of its own behind « Voir tout ».
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = DsSpacing.sm)) {
-                    Text("Mouvements", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                    Text("Mouvements", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
                         shown.size.toString(),
@@ -439,7 +439,7 @@ private fun EmptyState(
         Box(Modifier.size(56.dp).clip(DsShapes.pill).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
         }
-        Text(title, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, modifier = Modifier.padding(top = DsSpacing.md))
+        Text(title, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = Modifier.padding(top = DsSpacing.md))
         Text(message, fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         if (action != null) {
             Button(

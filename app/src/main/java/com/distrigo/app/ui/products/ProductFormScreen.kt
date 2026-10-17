@@ -894,11 +894,12 @@ fun ProductFormScreen(
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
                         shape     = DsShapes.large,
-                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
-                        elevation = CardDefaults.cardElevation(0.dp)
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                            Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                             Spacer(Modifier.height(12.dp))
                             Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             Spacer(Modifier.height(6.dp))
@@ -1209,8 +1210,9 @@ fun ProductFormScreen(
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
                         shape     = DsShapes.large,
-                        colors    = CardDefaults.cardColors(containerColor = DsColors.SurfaceSunken),
-                        elevation = CardDefaults.cardElevation(0.dp)
+                        colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
@@ -1219,7 +1221,7 @@ fun ProductFormScreen(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                                    Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                                     Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                                 Switch(

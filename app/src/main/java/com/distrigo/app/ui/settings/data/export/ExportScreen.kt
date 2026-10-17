@@ -77,7 +77,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             ) {
                 // ── Données ──
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Données", Modifier.weight(1f), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                    Text("Données", Modifier.weight(1f), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                     val all = state.selected.size == ExportDataset.entries.size
                     TextButton(onClick = { viewModel.selectAll(!all) }) {
                         Text(if (all) "Tout désélectionner" else "Tout sélectionner", color = DsColors.Primary)
@@ -106,7 +106,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 }
 
                 // ── Format ──
-                Text("Format", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text("Format", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     ExportFormat.entries.forEach { format ->
                         FilterChip(
@@ -120,7 +120,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
 
                 // ── Période ──
                 if (state.usesPeriod) {
-                    Text("Période", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                    Text("Période", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         PeriodPreset.entries.forEach { preset ->
                             FilterChip(

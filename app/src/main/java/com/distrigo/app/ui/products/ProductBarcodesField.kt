@@ -157,7 +157,7 @@ private fun BarcodesSheet(
     ) {
         Column(Modifier.padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = DsSpacing.md)) {
-                Text("Codes-barres du produit", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                Text("Codes-barres du produit", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 Text("${codes.size + 1} / $MAX_BARCODES_PER_PRODUCT", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {

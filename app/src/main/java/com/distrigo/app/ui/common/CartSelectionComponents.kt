@@ -91,11 +91,6 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
  * approved visual/interaction reference this file implements.
  */
 
-// ── Danger avatar background, matches the existing hardcoded value already used
-// in VenteFormScreen's VenteCartRow (distinct from DsColors.DangerLight, which is
-// used for the card body background instead) ──
-private val DangerAvatarBg = Color(0xFFFEE2E2)
-
 @Composable
 fun SelectionCartCard(
     avatarIcon: ImageVector,
@@ -115,7 +110,7 @@ fun SelectionCartCard(
         else       -> DsColors.Border
     }
     val containerColor = if (isDanger) DsColors.DangerLight else DsColors.Surface
-    val avatarBg        = if (isDanger) DangerAvatarBg else DsColors.PrimaryLight
+    val avatarBg        = if (isDanger) DsColors.DangerSoft else DsColors.PrimaryLight
     val avatarTint       = if (isDanger) DsColors.Danger else DsColors.Primary
     val priceColor       = if (isDanger) DsColors.Danger else DsColors.Primary
     val chevronRotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chevronRotation")

@@ -50,7 +50,7 @@ fun PlaceholderScreen(
                     Icon(icon, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(40.dp))
                 }
                 Spacer(Modifier.height(DsSpacing.lg))
-                Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(subtitle, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
             }

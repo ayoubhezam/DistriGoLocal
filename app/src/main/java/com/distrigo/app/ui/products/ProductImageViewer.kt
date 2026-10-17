@@ -60,9 +60,10 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import com.distrigo.app.ui.designsystem.DsBrand
 
 /** The viewer's ground. Near-black rather than pure black, matching the app's ink. */
-private val ViewerBackground = Color(0xFF0B0D12)
+private val ViewerBackground = DsBrand.Navy
 
 /**
  * Full-screen photo viewer: swipe between the product's photos, pinch or double-tap to zoom.

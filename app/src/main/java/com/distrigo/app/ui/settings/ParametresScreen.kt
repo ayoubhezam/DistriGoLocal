@@ -32,6 +32,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import androidx.compose.foundation.border
 
 @Composable
 fun ParametresScreen(
@@ -47,7 +48,7 @@ fun ParametresScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
             title   = "Paramètres",
@@ -121,7 +122,8 @@ private fun NegativeStockCard(viewModel: StockSettingsViewModel = hiltViewModel(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -184,7 +186,8 @@ private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewMo
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .clickable(enabled = current != null) { choosing = true }
             .padding(DsSpacing.lg),
         verticalAlignment = Alignment.CenterVertically
@@ -266,7 +269,8 @@ private fun SettingsNavCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .clickable { onClick() }
             .padding(DsSpacing.lg),
         verticalAlignment = Alignment.CenterVertically

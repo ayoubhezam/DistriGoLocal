@@ -278,7 +278,7 @@ fun ProductsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                     IconButton(onClick = { showFilterSheet = false }) {
                         Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
                     }
@@ -560,7 +560,7 @@ fun ProductsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DsColors.Surface)
+                .background(DsColors.SurfaceMuted)
         ) {
             // The tab roots are the only screens with no back arrow, so the menu takes the
             // leading slot and the global controls take the trailing one.
@@ -783,7 +783,7 @@ fun ProductCard(
         ),
         shape     = DsShapes.large,
         colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) DsColors.DangerLight else DsColors.Border)
     ) {
         // The start padding is 8.dp rather than 14.dp because the photo's touch target below is
@@ -896,7 +896,7 @@ fun ProductGridCard(
         modifier  = Modifier.fillMaxWidth().clickable { onClick() },
         shape     = DsShapes.large,
         colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border    = androidx.compose.foundation.BorderStroke(1.dp, if (isLow) DsColors.DangerLight else DsColors.Border)
     ) {
         Column {
@@ -988,7 +988,8 @@ internal fun ProductListControls(
             Row(
                 modifier = Modifier
                     .clip(DsShapes.medium)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.medium)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
@@ -1030,7 +1031,8 @@ internal fun ProductListControls(
                 Box(
                     modifier = Modifier
                         .clip(DsShapes.medium)
-                        .background(DsColors.SurfaceSunken)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.medium)
                         .clickable { onFilters() }
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center

@@ -59,13 +59,14 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.border
 
 /** Each age band's colour: green while recent, to red past 90 days. */
 private val AgeColors = mapOf(
-    AgeBand.RECENT to Color(0xFF12B76A),
-    AgeBand.MONTH to Color(0xFFFDB022),
-    AgeBand.TWO_MONTHS to Color(0xFFF79009),
-    AgeBand.OLD to Color(0xFFF04438),
+    AgeBand.RECENT to DsColors.Success,
+    AgeBand.MONTH to DsColors.Caution,
+    AgeBand.TWO_MONTHS to DsColors.Warning,
+    AgeBand.OLD to DsColors.Danger,
 )
 
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -278,10 +279,11 @@ private fun AgeCard(report: DebtReport) {
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             InfoButton(debtInfo(report.side, "ages"), tint = DsColors.TextTertiary)
         }
         Spacer(Modifier.height(2.dp))
@@ -341,6 +343,7 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -401,7 +404,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
             else -> {
                 // On white, as in Produits: the sunken search pill reads against white, not against the
                 // list's grey. The grey starts under it, behind the white rows.
-                Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+                Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
                     DebtorSearchField(viewModel, words.searchHint, Modifier.padding(horizontal = DsSpacing.lg))
                     Spacer(Modifier.height(8.dp))
                     Row(

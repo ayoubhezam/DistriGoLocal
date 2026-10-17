@@ -64,6 +64,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
+import androidx.compose.foundation.border
 
 /** How many products the report itself ranks; "Voir tout" ranks them all. */
 private const val TOP_PRODUCTS = 10
@@ -71,9 +72,9 @@ private const val TOP_PRODUCTS = 10
 /** How many groups the ring shows; the rest are "Autres". */
 private const val TOP_GROUPS = 5
 
-private val ProduitsColor = Color(0xFF9333EA)
-private val GroupColors = listOf(Color(0xFF6366F1), Color(0xFF0E9384), Color(0xFFF79009), Color(0xFFE91E63), Color(0xFF0BA5EC), Color(0xFF98A2B3))
-private val AbcColors = listOf(Color(0xFF12B76A), Color(0xFFF79009), Color(0xFF98A2B3))
+private val ProduitsColor = DsColors.AccentViolet
+private val GroupColors = listOf(DsColors.Primary, DsColors.AccentTeal, DsColors.Warning, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
+private val AbcColors = listOf(DsColors.Success, DsColors.Warning, DsColors.TextTertiary)
 
 private val INFO_TOTAL = ReportInfo(
     "Ventes des produits",
@@ -203,7 +204,7 @@ private fun Tiles(report: ProductReport, onSansVente: () -> Unit) {
 @Composable
 internal fun TitleWithInfo(text: String, info: ReportInfo, action: String? = null, onAction: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Text(text, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         InfoButton(info, tint = DsColors.TextTertiary)
         Spacer(Modifier.weight(1f))
         if (action != null) Text(
@@ -232,7 +233,7 @@ internal fun Thumb(imageUri: String?) {
 fun ProductLine(rank: Int, p: ProductSales, by: ProductRanking, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -266,14 +267,14 @@ fun ProductLine(rank: Int, p: ProductSales, by: ProductRanking, onClick: () -> U
 @Composable
 internal fun CardColumn(content: @Composable () -> Unit) {
     Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).padding(DsSpacing.lg)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.lg)
     ) { content() }
 }
 
 @Composable
 internal fun CardTitle(text: String, info: ReportInfo) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(text, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         InfoButton(info, tint = DsColors.TextTertiary)
     }
 }
@@ -388,7 +389,7 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Produits vendus", leading = DsTopBarLeading.Back(onBack))
-        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+        Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
@@ -444,7 +445,7 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Sans vente", subtitle = report?.let { "Stock immobilisé : ${money.da(it.dormantValue)}" }, leading = DsTopBarLeading.Back(onBack))
-        Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
+        Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
@@ -476,7 +477,7 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
 private fun DormantLine(d: DormantProduct, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

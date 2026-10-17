@@ -289,7 +289,8 @@ fun MapPickerScreen(
                 .padding(horizontal = 16.dp, vertical = 80.dp)
                 .align(Alignment.BottomCenter),
             shape  = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = DsColors.Surface.copy(alpha = 0.9f))
+            colors = CardDefaults.cardColors(containerColor = DsColors.Surface.copy(alpha = 0.9f)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
         ) {
             Text(
                 text     = "${"%.6f".format(java.util.Locale.ROOT, selectedLat)}, ${"%.6f".format(java.util.Locale.ROOT, selectedLng)}",

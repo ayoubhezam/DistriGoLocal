@@ -92,7 +92,7 @@ fun MouvementsScreen(
     // ── Main List ──
     BackHandler { onBack() }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Mouvements",
             leading = DsTopBarLeading.Back(onBack)
@@ -208,7 +208,8 @@ private fun StatCard(modifier: Modifier = Modifier, label: String, value: String
     Column(
         modifier = modifier
             .clip(DsShapes.medium)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.medium)
             .padding(DsSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -303,7 +304,7 @@ fun MovementDetailView(
 
     BackHandler { onBack() }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Détail du mouvement",
             leading = DsTopBarLeading.Back(onBack)
@@ -343,7 +344,8 @@ fun MovementDetailView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceMuted)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .padding(DsSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

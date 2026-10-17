@@ -198,7 +198,7 @@ fun StockCamionScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DsColors.Surface)
+                .background(DsColors.SurfaceMuted)
         ) {
             DsTopAppBar(
                 title   = "Stock Camion",

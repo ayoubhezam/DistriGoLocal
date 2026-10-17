@@ -28,7 +28,7 @@ fun RestoringScreen() {
         Text(
             "Restauration en cours…",
             modifier = Modifier.padding(top = DsSpacing.lg),
-            fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, textAlign = TextAlign.Center
+            fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center
         )
         Text(
             "Vos données sont remises en place. L'application s'ouvre dès que c'est terminé.",
