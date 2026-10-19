@@ -135,6 +135,34 @@ an amber banner only, recording continues (§2.5).
   offline window set in Supabase Studio). The owner's account is not touched; at the end the phone
   is signed back into it and checked « Actif ».
 
+### 5.1 The walk, done (L5d, 2026-10-19)
+
+On two fresh emulators (owner's choice: the M34, its seat and its data stay out of it), test account
+`l5d.walk.20261019@distrigo.test`, business « TEST L5D » (`c6037283-…`), changed in the live database for that
+business only. The server's offline window is at least a day (CHECK 1–365), so no 10-minute window: the states
+came from the subscription's dates, a reboot limit of 1 (`max_reboots`, reset afterwards), and the emulator's
+clock (`cmd alarm set-time`, +7 h, makes the app check in when it comes to the front).
+
+| Step | Result |
+|---|---|
+| Reboot limit passed, airplane mode | `CheckInRequired`: red banner « Réessayer », « + » opens the sheet, gate `closed` |
+| Back online | banner gone in 5 s, gate `open`, no tap |
+| Date set back 2 days | the card at once (time-change receiver); still there after a reboot; « Régler la date » → automatic → gone |
+| Subscription ended yesterday | `Grace` red banner; notification 4103 « Abonnement expiré — période de grâce », once (not posted again after a restart) |
+| Ended past the grace, open tournée, 10 in the truck | sale « + » → sheet; truck target capped at 10, unload to 6 saved (`vers_depot` 4); tournée `fermée`; no sale; gate still `closed` after |
+| Backup and Excel export while expired | both saved |
+| Restore of a backup made while active | data back (tournée open, 10 in the truck), banner and gate still read-only |
+| Renewed | gate `open` at the next check-in |
+| Second emulator takes the seat | first emulator `revoked` at its next check-in, « Cet appareil n'est plus associé au compte », gate `closed` |
+
+Not walked: reprinting a receipt while expired (no sale on the test data). Seen on the way: a « reduced » device
+(1-day window) always showed the amber « Connectez-vous avant le … » warning, since a day is under the 3-day
+threshold. Changed at the owner's request: `CheckInSoon` now needs an offline window longer than the warning's
+three days, so a reduced phone is only told when a check-in is actually required.
+
+**L5 complete (owner, 2026-10-19):** L5a 2878e96, L5b 6bd484e, L5c 67bf970, the walk above; the benchmark build
+left on the M34.
+
 ## 6. Order of work
 
 1. **L5a — the gate:** `LicenseWriteGate`, the table list, writing `license.write_gate`, the French

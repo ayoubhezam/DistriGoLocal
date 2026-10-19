@@ -71,6 +71,17 @@ class LicenseRulesTest {
         assertFalse(required.canRecord)
     }
 
+    /** A « reduced » phone's window (a day) is always under the warning's three days: it is not warned, only required. */
+    @Test
+    fun `a window no longer than the warning never warns`() {
+        val reduced = license.copy(offlineUntil = issued + DAY)
+        assertState(LicenseState.Active::class, judge(at(issued + HOUR), reduced))
+        assertState(LicenseState.Active::class, judge(at(reduced.offlineUntil), reduced))
+        assertEquals(CheckInReason.OFFLINE_TOO_LONG, (judge(at(reduced.offlineUntil + 1), reduced) as LicenseState.CheckInRequired).why)
+        val threeDays = license.copy(offlineUntil = issued + 3 * DAY)
+        assertState(LicenseState.Active::class, judge(at(threeDays.offlineUntil - HOUR), threeDays))
+    }
+
     @Test
     fun `the reboots the license allows, and not one more`() {
         assertState(LicenseState.Active::class, judge(at(issued, reboots = 30)))

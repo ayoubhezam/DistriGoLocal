@@ -77,7 +77,10 @@ sealed interface LicenseState {
         override val canRecord get() = true
     }
 
-    /** Less than [LicenseRules.CHECK_IN_SOON] before the phone must check in. */
+    /**
+     * Less than [LicenseRules.CHECK_IN_SOON] before the phone must check in. Only for a license whose offline window is
+     * longer than that: a « reduced » phone's one-day window would otherwise warn every day (owner, 2026-10-19).
+     */
     data class CheckInSoon(override val license: License, override val time: TrustedTime.Known) : Judged {
         override val canRecord get() = true
     }
@@ -134,7 +137,8 @@ object LicenseRules {
             time.rebootsSinceCheckIn > license.maxReboots -> LicenseState.CheckInRequired(license, CheckInReason.TOO_MANY_REBOOTS)
             now < license.validFrom -> LicenseState.NotYetValid(license, time)
             now > license.validTo -> LicenseState.Grace(license, time)
-            license.offlineUntil - now < CHECK_IN_SOON -> LicenseState.CheckInSoon(license, time)
+            license.offlineUntil - now < CHECK_IN_SOON && license.offlineUntil - license.issuedAt > CHECK_IN_SOON ->
+                LicenseState.CheckInSoon(license, time)
             license.validTo - now < RENEW_SOON -> LicenseState.RenewSoon(license, time)
             else -> LicenseState.Active(license, time)
         }
