@@ -9,12 +9,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,11 +48,25 @@ fun ClientSearchPicker(
     onAddNewClient   : (() -> Unit)? = null,
     showBalance      : Boolean = true
 ) {
-    val money = LocalMoneyFormatter.current
     var clientSearch by remember { mutableStateOf("") }
 
     // Recomputed only when the list or the search changes; see filterClients.
     val filteredClients = remember(clients, clientSearch) { filterClients(clients, clientSearch) }
+
+    // One section per secteur, « Sans secteur » last, as in « Ajouter des clients ». Closed by
+    // default so the list is a short index of secteurs; the selected client's secteur opens.
+    val groups = remember(filteredClients) {
+        filteredClients
+            .groupBy { it.secteur_name?.takeIf { name -> name.isNotBlank() } ?: NO_SECTEUR }
+            .toSortedMap(compareBy { if (it == NO_SECTEUR) "￿" else it })
+    }
+    var opened by remember {
+        mutableStateOf(setOfNotNull(clients.firstOrNull { it.id == selectedClientId }?.let {
+            it.secteur_name?.takeIf { name -> name.isNotBlank() } ?: NO_SECTEUR
+        }))
+    }
+    // A search shows its matches at once, and a single secteur has nothing to fold.
+    fun isOpen(secteur: String) = clientSearch.isNotBlank() || groups.size == 1 || secteur in opened
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -80,53 +96,107 @@ fun ClientSearchPicker(
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            items(filteredClients, key = { it.id }) { client ->
-                val typeColors = when (client.customer_type) {
-                    "wholesale" -> DsColors.TagWholesale
-                    "business"  -> DsColors.TagBusiness
-                    else        -> DsColors.TagRetail
+            groups.forEach { (secteur, inGroup) ->
+                if (groups.size > 1) {
+                    item(key = "secteur_$secteur") {
+                        SecteurHeader(
+                            name     = secteur,
+                            count    = inGroup.size,
+                            expanded = isOpen(secteur),
+                            onToggle = { opened = if (secteur in opened) opened - secteur else opened + secteur }
+                        )
+                    }
                 }
-                val isSelected = selectedClientId == client.id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, if (isSelected) DsColors.Primary else DsColors.Border, DsShapes.large)
-                        .clickable { onClientSelected(client) }
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val initials = client.name.split(" ").take(2)
-                        .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
-                    Box(
-                        modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(typeColors.second),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(initials, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = typeColors.first)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(client.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, maxLines = 1)
-                        Text(client.phone ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                    if (showBalance) {
-                        Spacer(Modifier.width(8.dp))
-                        Column(horizontalAlignment = Alignment.End) {
-                            if (Amount.owing(client.balance)) {
-                                Text(money.da(client.balance), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
-                            } else {
-                                Text("✓ Soldé", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
-                            }
-                        }
-                    }
-                    if (isSelected) {
-                        Spacer(Modifier.width(8.dp))
-                        Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+                if (isOpen(secteur)) {
+                    items(inGroup, key = { it.id }) { client ->
+                        ClientPickerRow(client, selectedClientId == client.id, showBalance) { onClientSelected(client) }
                     }
                 }
             }
         }
 
+    }
+}
+
+private const val NO_SECTEUR = "Sans secteur"
+
+/** A secteur's fold: its name, how many clients, and the arrow that turns when it opens. */
+@Composable
+private fun SecteurHeader(name: String, count: Int, expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .background(DsColors.SurfaceSunken)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            name.uppercase(),
+            fontSize   = DsTextSize.caption,
+            fontWeight = FontWeight.Bold,
+            color      = DsColors.PrimaryDark,
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis,
+            modifier   = Modifier.weight(1f, fill = false)
+        )
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text("$count", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+        Spacer(Modifier.weight(1f))
+        Icon(
+            Icons.Default.KeyboardArrowDown,
+            contentDescription = if (expanded) "Replier" else "Déplier",
+            tint     = DsColors.PrimaryDark,
+            modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
+        )
+    }
+}
+
+@Composable
+private fun ClientPickerRow(client: Client, isSelected: Boolean, showBalance: Boolean, onClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
+    val typeColors = when (client.customer_type) {
+        "wholesale" -> DsColors.TagWholesale
+        "business"  -> DsColors.TagBusiness
+        else        -> DsColors.TagRetail
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.Surface)
+            .border(1.dp, if (isSelected) DsColors.PrimaryDark else DsColors.Border, DsShapes.large)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val initials = client.name.split(" ").take(2)
+            .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
+        Box(
+            modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(typeColors.second),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(initials, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = typeColors.first)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(client.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, maxLines = 1)
+            Text(client.phone ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        }
+        if (showBalance) {
+            Spacer(Modifier.width(8.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                if (Amount.owing(client.balance)) {
+                    Text(money.da(client.balance), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                } else {
+                    Text("✓ Soldé", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
+                }
+            }
+        }
+        if (isSelected) {
+            Spacer(Modifier.width(8.dp))
+            Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
+        }
     }
 }

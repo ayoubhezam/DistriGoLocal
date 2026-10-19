@@ -194,5 +194,5 @@ object ThermalLayout {
     }
 
     private fun badgeLabel(documentTitle: String): String =
-        if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
+        if (documentTitle.startsWith("V")) "REÇU DE VENTE" else "BON D'ACHAT"
 }

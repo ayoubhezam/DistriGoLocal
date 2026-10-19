@@ -133,7 +133,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
         ) {
             DsCompactSearchAction(
                 icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
-                tint = DsColors.Primary, onClick = { showScanner = true }
+                tint = DsColors.PrimaryDark, onClick = { showScanner = true }
             )
         }
         Text(

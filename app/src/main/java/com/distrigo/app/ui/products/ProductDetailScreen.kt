@@ -391,7 +391,7 @@ private fun DetailTabs(
                     text       = title,
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (index == selected) DsColors.Primary else DsColors.TextSecondary,
+                    color      = if (index == selected) DsColors.PrimaryDark else DsColors.TextSecondary,
                     textAlign  = TextAlign.Center,
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis,

@@ -132,7 +132,7 @@ fun Vente.toReceiptData(
     client   : Client? = null,
     packSizes: Map<Int, Int> = emptyMap()
 ): ReceiptData = ReceiptData(
-    documentTitle = "Vente $numberLabel",
+    documentTitle = numberLabel,
     referenceNumber = receiptNumber(numero, id),
     partyLabel    = "Client",
     partyName     = client_name,
@@ -175,7 +175,7 @@ fun Vente.toReceiptData(
 )
 
 fun PurchaseOrder.toReceiptData(business: BusinessSettings): ReceiptData = ReceiptData(
-    documentTitle = "Bon d'achat $numberLabel",
+    documentTitle = numberLabel,
     referenceNumber = receiptNumber(numero, id),
     partyLabel    = "Fournisseur",
     partyName     = supplier_name,

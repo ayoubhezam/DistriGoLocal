@@ -256,7 +256,7 @@ private fun KindSegments(
             val selected = filters.kind == kind
             Row(
                 modifier = Modifier.weight(1f).clip(DsShapes.small)
-                    .background(if (selected) DsColors.Primary else Color.Transparent)
+                    .background(if (selected) DsColors.PrimaryDark else Color.Transparent)
                     .clickable { onKind(kind) }
                     .padding(vertical = 7.dp),
                 horizontalArrangement = Arrangement.Center,

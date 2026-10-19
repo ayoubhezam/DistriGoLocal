@@ -247,7 +247,7 @@ fun ClientFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clip(DsShapes.small)
-                            .background(if (active) DsColors.Primary else Color.Transparent)
+                            .background(if (active) DsColors.PrimaryDark else Color.Transparent)
                             .clickable { customerType = value }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center

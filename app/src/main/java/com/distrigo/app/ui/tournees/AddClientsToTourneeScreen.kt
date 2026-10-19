@@ -102,9 +102,9 @@ fun AddClientsToTourneeScreen(
                 onClick  = { showAddClientScreen = true },
                 // A 40dp square, not a 48dp icon button, so it supplies the difference to the
                 // bar's standard end margin itself.
-                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "Nouveau client", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.PersonAdd, contentDescription = "Nouveau client", tint = Color.White, modifier = Modifier.size(18.dp))
             }
         }
 
@@ -203,7 +203,7 @@ fun AddClientsToTourneeScreen(
                         }
                         if (isSelected) {
                             Box(
-                                modifier         = Modifier.size(22.dp).clip(DsShapes.small).background(DsColors.Primary),
+                                modifier         = Modifier.size(22.dp).clip(DsShapes.small).background(DsColors.PrimaryDark),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))

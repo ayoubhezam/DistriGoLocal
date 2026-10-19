@@ -394,7 +394,7 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
                     icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
-                    tint = DsColors.Primary, onClick = { showScanner = true }
+                    tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                 )
             }
             if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
@@ -450,7 +450,7 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
                     icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
-                    tint = DsColors.Primary, onClick = { showScanner = true }
+                    tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                 )
             }
             if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,

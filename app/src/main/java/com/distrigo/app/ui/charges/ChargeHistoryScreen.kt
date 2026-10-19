@@ -366,7 +366,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label, fontSize = DsTextSize.bodySmall,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-        color = if (selected) DsColors.Primary else DsColors.TextSecondary,
+        color = if (selected) DsColors.PrimaryDark else DsColors.TextSecondary,
         modifier = Modifier
             .clip(DsShapes.pill)
             .background(if (selected) DsColors.PrimaryLight else DsColors.SurfaceSunken)

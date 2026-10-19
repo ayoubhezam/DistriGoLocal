@@ -27,7 +27,7 @@ object ReceiptPdfGenerator {
     private const val LOGO_TARGET_PX = 256
 
     private fun badgeLabel(documentTitle: String) =
-        if (documentTitle.startsWith("Vente")) "REÇU DE VENTE" else "BON D'ACHAT"
+        if (documentTitle.startsWith("V")) "REÇU DE VENTE" else "BON D'ACHAT"
 
 
     /**
@@ -119,7 +119,7 @@ object ReceiptPdfGenerator {
             yRight += 17f
         }
 
-        val isVente = receipt.documentTitle.startsWith("Vente")
+        val isVente = receipt.documentTitle.startsWith("V")
 
         drawInfoLineLeft("N°", receipt.referenceNumber)
         drawInfoLineLeft("Date", receipt.dateLabel)

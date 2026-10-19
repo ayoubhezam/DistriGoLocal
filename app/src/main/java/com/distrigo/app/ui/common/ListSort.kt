@@ -52,14 +52,14 @@ fun ListSortChip(active: Boolean, onClick: () -> Unit) {
             Icon(
                 Icons.Default.Sort,
                 contentDescription = "Trier",
-                tint = if (active) DsColors.Primary else DsColors.TextSecondary,
+                tint = if (active) DsColors.PrimaryDark else DsColors.TextSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(4.dp))
             Text(
                 "Trier",
                 fontSize = DsTextSize.caption,
-                color = if (active) DsColors.Primary else DsColors.TextSecondary
+                color = if (active) DsColors.PrimaryDark else DsColors.TextSecondary
             )
         }
     }
@@ -97,7 +97,7 @@ fun <T> SortOptionsSheet(
                     Text(
                         text       = label(option),
                         fontSize   = DsTextSize.body,
-                        color      = if (selected == option) DsColors.Primary else DsColors.TextPrimary,
+                        color      = if (selected == option) DsColors.PrimaryDark else DsColors.TextPrimary,
                         fontWeight = if (selected == option) FontWeight.SemiBold else FontWeight.Normal
                     )
                     if (selected == option) {

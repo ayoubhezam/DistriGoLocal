@@ -304,7 +304,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 DsCompactSearchAction(
                                     icon               = Icons.Default.QrCodeScanner,
                                     contentDescription = "Scanner un code-barres",
-                                    tint               = DsColors.Primary,
+                                    tint               = DsColors.PrimaryDark,
                                     onClick            = { showScanner = true }
                                 )
                             }
@@ -392,7 +392,7 @@ fun NavGraphBuilder.venteFormGraph(
                                             Text(
                                                 buildAnnotatedString {
                                                     append("${product.category_name ?: "—"} · ")
-                                                    withStyle(SpanStyle(color = DsColors.PrimaryDark, fontWeight = FontWeight.SemiBold)) {
+                                                    withStyle(SpanStyle(color = DsColors.Primary, fontWeight = FontWeight.SemiBold)) {
                                                         append(money.da(product.selling_price))
                                                     }
                                                 },
@@ -462,7 +462,7 @@ fun NavGraphBuilder.venteFormGraph(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(DsShapes.large)
-                                .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                                .background(if (cartItems.isNotEmpty()) DsColors.PrimaryDark else DsColors.Surface)
                                 .border(1.dp, if (cartItems.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.large)
                                 .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(cartRoute) }
                                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
@@ -471,19 +471,19 @@ fun NavGraphBuilder.venteFormGraph(
                         ) {
                             Box(
                                 modifier = Modifier.size(20.dp).clip(DsShapes.pill)
-                                    .background(if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary),
+                                    .background(if (cartItems.isNotEmpty()) DsColors.Surface else DsColors.TextTertiary),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("${cartItems.size}", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
+                                Text("${cartItems.size}", color = if (cartItems.isNotEmpty()) DsColors.PrimaryDark else Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                             }
                             Text(
                                 "Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                                color = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
+                                color = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
                                 money.da(total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                                color = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
+                                color = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                             )
                         }
                     }

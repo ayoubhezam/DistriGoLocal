@@ -88,7 +88,7 @@ fun OtherBarcodesField(
                 keyboardActions = KeyboardActions(onDone = { onAdd() }),
                 trailingIcon    = {
                     IconButton(onClick = onScan) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un autre code-barres", tint = DsColors.Primary)
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un autre code-barres", tint = DsColors.PrimaryDark)
                     }
                 },
                 colors          = dsTextFieldColors(

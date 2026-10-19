@@ -124,12 +124,15 @@ object DsBrand {
     )
 
     // Compose still marks variation settings experimental; they are how a variable font picks its weight
+    // From Android 10, Arabic is drawn heavier than the Latin beside it (see ArabicWeightFont)
     @OptIn(ExperimentalTextApi::class)
-    private fun jakarta(weight: FontWeight) = Font(
-        resId             = R.font.plus_jakarta_sans,
-        weight            = weight,
-        variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
-    )
+    private fun jakarta(weight: FontWeight) =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) ArabicWeightFont(weight)
+        else Font(
+            resId             = R.font.plus_jakarta_sans,
+            weight            = weight,
+            variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+        )
 }
 
 // ═══════════════════════════════════════════════════════════

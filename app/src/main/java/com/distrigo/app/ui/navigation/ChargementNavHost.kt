@@ -128,7 +128,7 @@ fun ChargementNavHost(
                 ) {
                     com.distrigo.app.ui.common.DsCompactSearchAction(
                         icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
-                        tint = DsColors.Primary, onClick = { showScanner = true }
+                        tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                     )
                 }
 
@@ -238,7 +238,7 @@ fun ChargementNavHost(
                         modifier = Modifier
                             .weight(1f)
                             .clip(DsShapes.medium)
-                            .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                            .background(if (cartItems.isNotEmpty()) DsColors.PrimaryDark else DsColors.Surface)
                             .border(1.dp, if (cartItems.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.medium)
                             .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(Screen.ChargementFormCart.route) }
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
@@ -248,16 +248,16 @@ fun ChargementNavHost(
                         Icon(
                             Icons.Default.ShoppingCart,
                             contentDescription = null,
-                            tint = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary
+                            tint = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                         )
                         Text(
                             if (cartItems.isEmpty()) "Sélection vide" else "Ma sélection",
-                            color      = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextTertiary,
+                            color      = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary,
                             fontWeight = FontWeight.SemiBold
                         )
                         if (cartItems.isNotEmpty()) {
                             Spacer(Modifier.weight(1f))
-                            Text("${cartItems.size}", color = DsColors.Primary, fontWeight = FontWeight.Bold)
+                            Text("${cartItems.size}", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

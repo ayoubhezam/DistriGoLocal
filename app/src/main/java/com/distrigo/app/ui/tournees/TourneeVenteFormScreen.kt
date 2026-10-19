@@ -55,7 +55,7 @@ data class TourneeVenteCartItem(
 // ── Step 1 : Client ──────────────────────────────────────────────────────────
 @Composable
 internal fun Step1Client(
-    /** The flow's title, as on its other steps: « Vente — Tournée #N ». */
+    /** The flow's title, as on its other steps: « Tournée #N ». */
     title          : String,
     selectedClient : Client?,
     onChooseClient : () -> Unit,
@@ -230,7 +230,7 @@ internal fun Step1Client(
 // ── Step 3 : Validation ──────────────────────────────────────────────────────
 @Composable
 internal fun Step3Validation(
-    /** The flow's title, as on its other steps: « Vente — Tournée #N ». */
+    /** The flow's title, as on its other steps: « Tournée #N ». */
     title               : String,
     selectedClient      : Client?,
     cartItems           : List<TourneeVenteCartItem>,

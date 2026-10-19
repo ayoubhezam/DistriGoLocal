@@ -430,8 +430,8 @@ fun ProductsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(DsShapes.medium)
-                                .background(if (active) DsColors.Primary else DsColors.Surface)
-                                .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                                .background(if (active) DsColors.PrimaryDark else DsColors.Surface)
+                                .border(1.dp, if (active) DsColors.PrimaryDark else DsColors.Border, DsShapes.medium)
                                 .clickable { viewModel.filterUnitType = value }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
@@ -756,7 +756,7 @@ private fun ProductSearchField(viewModel: ProductViewModel, onScan: () -> Unit, 
         DsCompactSearchAction(
             icon               = Icons.Default.QrCodeScanner,
             contentDescription = "Scanner un code-barres",
-            tint               = DsColors.Primary,
+            tint               = DsColors.PrimaryDark,
             onClick            = onScan
         )
     }
@@ -996,7 +996,7 @@ internal fun ProductListControls(
                 Box(
                     modifier = Modifier
                         .clip(DsShapes.small)
-                        .background(if (!isGrid) DsColors.Primary else Color.Transparent)
+                        .background(if (!isGrid) DsColors.PrimaryDark else Color.Transparent)
                         .clickable { onGridChange(false) }
                         .padding(6.dp),
                     contentAlignment = Alignment.Center
@@ -1011,7 +1011,7 @@ internal fun ProductListControls(
                 Box(
                     modifier = Modifier
                         .clip(DsShapes.small)
-                        .background(if (isGrid) DsColors.Primary else Color.Transparent)
+                        .background(if (isGrid) DsColors.PrimaryDark else Color.Transparent)
                         .clickable { onGridChange(true) }
                         .padding(6.dp),
                     contentAlignment = Alignment.Center

@@ -910,8 +910,8 @@ fun ProductFormScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clip(DsShapes.medium)
-                                            .background(if (active) DsColors.Primary else DsColors.Surface)
-                                            .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                                            .background(if (active) DsColors.PrimaryDark else DsColors.Surface)
+                                            .border(1.dp, if (active) DsColors.PrimaryDark else DsColors.Border, DsShapes.medium)
                                             .clickable { unitType = unit }
                                             .padding(vertical = 12.dp),
                                         contentAlignment = Alignment.Center

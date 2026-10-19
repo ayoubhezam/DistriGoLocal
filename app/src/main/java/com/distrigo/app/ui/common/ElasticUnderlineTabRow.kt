@@ -50,7 +50,7 @@ fun ElasticUnderlineTabRow(
             Row {
                 tabs.forEachIndexed { index, title ->
                     val proximity = (1f - abs(pageFraction - index)).coerceIn(0f, 1f)
-                    val tint = lerp(DsColors.TextSecondary, DsColors.Primary, proximity)
+                    val tint = lerp(DsColors.TextSecondary, DsColors.PrimaryDark, proximity)
                     Text(
                         text       = title,
                         fontSize   = DsTextSize.bodySmall,
@@ -97,7 +97,7 @@ fun ElasticUnderlineTabRow(
                         .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
                         .height(2.5.dp)
                         .clip(DsShapes.pill)
-                        .background(DsColors.Primary)
+                        .background(DsColors.PrimaryDark)
                 )
             }
         }

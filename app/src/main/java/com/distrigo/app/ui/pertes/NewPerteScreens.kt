@@ -142,7 +142,7 @@ fun NewPerteListScreen(
         ) {
             DsCompactSearchAction(
                 icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
-                tint = DsColors.Primary, onClick = { showScanner = true }
+                tint = DsColors.PrimaryDark, onClick = { showScanner = true }
             )
         }
         ProductCountAndFilters(count = count, filtersActive = viewModel.filters.isActive, onOpenFilters = { showFilters = true })

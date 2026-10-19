@@ -232,11 +232,11 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
         fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
-        color = if (selected) DsColors.Primary else DsColors.TextSecondary,
+        color = if (selected) DsColors.PrimaryDark else DsColors.TextSecondary,
         modifier = Modifier
             .clip(DsShapes.pill)
             .background(if (selected) DsColors.PrimaryLight else DsColors.Surface)
-            .border(1.dp, if (selected) DsColors.Primary else DsColors.Border, DsShapes.pill)
+            .border(1.dp, if (selected) DsColors.PrimaryDark else DsColors.Border, DsShapes.pill)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp)
     )

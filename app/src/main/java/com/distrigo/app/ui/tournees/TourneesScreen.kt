@@ -47,6 +47,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.common.EntityImage
+import com.distrigo.app.ui.common.avatarColor
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectList
@@ -1084,9 +1085,8 @@ private fun TourneeClientAvatarItem(
         else -> null
     }
     val ringColor = when {
-        isCurrent -> DsColors.Primary
-        isPending -> DsColors.Border
-        else      -> Color.Transparent
+        isCurrent -> DsColors.PrimaryDark
+        else      -> DsColors.Border
     }
 
     Column(
@@ -1103,20 +1103,20 @@ private fun TourneeClientAvatarItem(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(DsShapes.pill)
-                    .background(if (isPending) DsColors.SurfaceMuted else DsColors.SurfaceMuted)
-                    .border(2.dp, ringColor, DsShapes.pill),
+                    .background(avatarColor(client.name).copy(alpha = 0.16f))
+                    .border(if (isCurrent) 2.dp else 1.dp, ringColor, DsShapes.pill),
                 contentAlignment = Alignment.Center
             ) {
                 EntityImage(
                     ref                = client.image_uri,
                     contentDescription = null,
-                    modifier           = Modifier.fillMaxSize().clip(DsShapes.pill).alpha(if (isPending) 0.55f else 1f)
+                    modifier           = Modifier.fillMaxSize().clip(DsShapes.pill)
                 ) {
                     val initials = client.name.split(" ").take(2)
                         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                     Text(
                         initials, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                        color = if (isPending) DsColors.TextTertiary else DsColors.TextSecondary
+                        color = avatarColor(client.name)
                     )
                 }
             }
@@ -1155,7 +1155,7 @@ private fun TourneeClientAvatarItem(
             client.name.uppercase(),
             fontSize = DsTextSize.caption,
             fontWeight = FontWeight.Bold,
-            color = if (isPending) DsColors.TextTertiary else DsColors.TextPrimary,
+            color = if (isPending) DsColors.TextSecondary else DsColors.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -1318,18 +1318,17 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
             modifier = Modifier
                 .size(52.dp)
                 .clip(DsShapes.pill)
-                .background(DsColors.PrimaryLight)
-                .border(1.5.dp, DsColors.Primary, DsShapes.pill),
+                .background(DsColors.PrimaryDark),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(6.dp))
         Text(
             "Ajouter un client",
             fontSize   = DsTextSize.caption,
             fontWeight = FontWeight.Bold,
-            color      = DsColors.Primary,
+            color      = DsColors.PrimaryDark,
             maxLines   = 2,
             textAlign  = TextAlign.Center,
             lineHeight = 12.sp

@@ -308,7 +308,7 @@ fun CommissionPolicyScreen(
                             com.distrigo.app.ui.common.DsCompactSearchAction(
                                 icon = androidx.compose.material.icons.Icons.Default.QrCodeScanner,
                                 contentDescription = "Scanner un code-barres",
-                                tint = DsColors.Primary, onClick = { showScanner = true }
+                                tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                             )
                         }
 
@@ -455,7 +455,7 @@ private fun <T> SegmentedSelector(
                 modifier = Modifier
                     .weight(1f)
                     .clip(DsShapes.pill)
-                    .background(if (active) DsColors.Primary else Color.Transparent)
+                    .background(if (active) DsColors.PrimaryDark else Color.Transparent)
                     .clickable { onSelected(option) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center

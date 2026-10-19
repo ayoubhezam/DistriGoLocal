@@ -237,8 +237,8 @@ private fun <K> Segments(label: String, options: List<Pair<K?, String>>, selecte
                 modifier = Modifier
                     .weight(1f)
                     .clip(DsShapes.medium)
-                    .background(if (active) DsColors.Primary else DsColors.Surface)
-                    .border(1.dp, if (active) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                    .background(if (active) DsColors.PrimaryDark else DsColors.Surface)
+                    .border(1.dp, if (active) DsColors.PrimaryDark else DsColors.Border, DsShapes.medium)
                     .clickable { onSelect(value) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center

@@ -69,7 +69,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
     pagingItems: LazyPagingItems<T>,
     itemKey: (T) -> Any,
     onBack: () -> Unit,
-    accentColor: Color = DsColors.Primary,
+    accentColor: Color = DsColors.PrimaryDark,
     modifier: Modifier = Modifier,
     /**
      * The heading a row belongs under — a day, typically. Rows carrying the same one in a row are

@@ -102,7 +102,7 @@ fun MouvementsScreen(
                     Icon(
                         Icons.Default.FilterList,
                         contentDescription = "Filtres",
-                        tint = if (filters.activeCount > 0) DsColors.Primary else DsColors.TextSecondary
+                        tint = if (filters.activeCount > 0) DsColors.PrimaryDark else DsColors.TextSecondary
                     )
                 }
                 if (filters.activeCount > 0) {

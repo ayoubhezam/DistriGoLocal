@@ -216,7 +216,7 @@ fun StockCamionScreen(
                 DsCompactSearchAction(
                     icon               = Icons.Default.QrCodeScanner,
                     contentDescription = "Scanner un code-barres",
-                    tint               = DsColors.Primary,
+                    tint               = DsColors.PrimaryDark,
                     onClick            = { showScanner = true }
                 )
             }
