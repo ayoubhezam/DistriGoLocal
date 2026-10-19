@@ -43,6 +43,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
+import com.distrigo.app.ui.designsystem.DsStepBadge
 
 
 data class TourneeVenteCartItem(
@@ -54,12 +55,27 @@ data class TourneeVenteCartItem(
 // ── Step 1 : Client ──────────────────────────────────────────────────────────
 @Composable
 internal fun Step1Client(
+    /** The flow's title, as on its other steps: « Vente — Tournée #N ». */
+    title          : String,
     selectedClient : Client?,
     onChooseClient : () -> Unit,
-    onNext         : () -> Unit
+    onNext         : () -> Unit,
+    onBack         : () -> Unit
 ) {
     val money = LocalMoneyFormatter.current
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
+        // The flow's bar, as on its other steps and on Achats' step 1 (2026-10-19)
+        DsTopAppBar(
+            title         = title,
+            subtitle      = selectedClient?.name ?: "Choisir un client",
+            subtitleColor = if (selectedClient != null) DsColors.Primary else DsColors.TextSecondary,
+            leading       = DsTopBarLeading.Back(onBack)
+        ) {
+            DsStepBadge("Client", 1, 3)
+            Spacer(Modifier.width(DsSpacing.xs))
+        }
+        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -214,6 +230,8 @@ internal fun Step1Client(
 // ── Step 3 : Validation ──────────────────────────────────────────────────────
 @Composable
 internal fun Step3Validation(
+    /** The flow's title, as on its other steps: « Vente — Tournée #N ». */
+    title               : String,
     selectedClient      : Client?,
     cartItems           : List<TourneeVenteCartItem>,
     total               : Double,
@@ -235,112 +253,124 @@ internal fun Step3Validation(
     onConfirm           : () -> Unit
 ) {
     val money = LocalMoneyFormatter.current
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
+        // One bar, the flow's, as on its other steps (2026-10-19)
         DsTopAppBar(
-            title   = "Validation",
-            leading = DsTopBarLeading.Back(onBack)
-        )
+            title         = title,
+            subtitle      = selectedClient?.name,
+            subtitleColor = DsColors.Primary,
+            leading       = DsTopBarLeading.Back(onBack)
+        ) {
+            DsStepBadge("Validation", 3, 3)
+            Spacer(Modifier.width(DsSpacing.xs))
+        }
+        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
-            // ── Client summary card ──
+            // ── The sale in one frame: the client, its articles and the total, close together (as Achats,
+            // 2026-10-19). « Montant payé » and the note keep frames of their own below.
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(DsShapes.large)
                         .background(DsColors.Surface)
                         .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(DsSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(DsSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Box(
-                        modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                        contentAlignment = Alignment.Center
+                    // Client
+                    Row(
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceMuted)
+                            .padding(DsSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(Modifier.width(DsSpacing.md))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(selectedClient?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                        Text(
-                            "Solde du client : ${money.da(selectedClient?.balance ?: 0.0)}",
-                            fontSize = DsTextSize.bodySmall,
-                            color    = if ((selectedClient?.balance ?: 0.0) > 0) DsColors.Danger else DsColors.TextSecondary
-                        )
-                    }
-                }
-            }
-
-            // ── Articles header ──
-            item {
-                Text(
-                    "Articles (${cartItems.size})",
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = DsColors.TextSecondary,
-                    modifier   = Modifier.padding(top = DsSpacing.xs)
-                )
-            }
-
-            // ── Articles list (read-only) ──
-            items(cartItems, key = { it.product.id }) { item ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.Surface)
-                        .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(DsSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EntityImage(
-                            ref                = item.product.image_uri,
-                            contentDescription = null,
-                            modifier           = Modifier.fillMaxSize()
+                        Box(
+                            modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Person, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(DsSpacing.md))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(selectedClient?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                            Text(
+                                "Solde du client : ${money.da(selectedClient?.balance ?: 0.0)}",
+                                fontSize = DsTextSize.bodySmall,
+                                color    = if (Amount.owing(selectedClient?.balance ?: 0.0)) DsColors.Danger else DsColors.TextSecondary
+                            )
                         }
                     }
-                    Spacer(Modifier.width(DsSpacing.sm))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                        Text("${formatQty(item.quantity)} × ${money.da(item.unitPrice)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
-                    Spacer(Modifier.width(DsSpacing.sm))
+
                     Text(
-                        money.da(item.quantity * item.unitPrice),
-                        fontSize   = DsTextSize.body,
-                        fontWeight = FontWeight.Bold,
-                        color      = DsColors.PrimaryDark
+                        "Articles (${cartItems.size})",
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextSecondary,
+                        modifier   = Modifier.padding(start = DsSpacing.xs, top = 2.dp)
                     )
+
+                    // Articles (read-only)
+                    cartItems.forEach { item ->
+                        Row(
+                            modifier          = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceMuted)
+                                .padding(DsSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                EntityImage(
+                                    ref                = item.product.image_uri,
+                                    contentDescription = null,
+                                    modifier           = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+                                Text("${formatQty(item.quantity)} × ${money.da(item.unitPrice)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            }
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text(
+                                money.da(item.quantity * item.unitPrice),
+                                fontSize   = DsTextSize.body,
+                                fontWeight = FontWeight.Bold,
+                                color      = DsColors.PrimaryDark
+                            )
+                        }
+                    }
+
+                    // Total
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                        Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
+                    }
                 }
             }
 
-            // ── Total ──
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.medium)
-                        .background(DsColors.PrimaryLight)
-                        .padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
-                }
-            }
-
-            // ── Montant payé ──
+// ── Montant payé ──
             item {
                 Column(
                     modifier = Modifier
@@ -455,7 +485,7 @@ internal fun Step3Validation(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
-                    "Confirmer la vente · ${money.da(total)}",
+                    "Confirmer · ${money.da(total)}",
                     fontSize   = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -494,6 +524,9 @@ fun TourneeVenteCartRow(
         title           = item.product.name,
         metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${money.da(item.unitPrice)}",
         totalPriceLabel = money.da(item.quantity * item.unitPrice),
+        priceColor      = DsColors.PrimaryDark,
+        imageRef        = item.product.image_uri,
+        neutralAvatar   = true,
         isExpanded      = isExpanded,
         onToggleExpand  = onToggleExpand,
         isDanger   = isMissingProduct || overStock,

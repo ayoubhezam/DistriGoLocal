@@ -59,6 +59,9 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.common.ProductCountAndFilters
 import com.distrigo.app.ui.common.ActiveProductFilterChips
 import com.distrigo.app.ui.common.productFilterChips
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -141,9 +144,11 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             BackHandler { onBack() }
 
             Step1Client(
+                title          = "Vente — Tournée #${parentEntry.arguments?.getInt("tourneeId") ?: 0}",
                 selectedClient = formClient,
                 onChooseClient = { navController.navigate(clientPickerRoute) },
-                onNext         = { navController.navigate(productsRoute) }
+                onNext         = { navController.navigate(productsRoute) },
+                onBack         = onBack
             )
         }
 
@@ -314,7 +319,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                             modifier = Modifier
                                                 .size(42.dp)
                                                 .clip(DsShapes.medium)
-                                                .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
+                                                .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceSunken),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             EntityImage(
@@ -342,7 +347,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                 maxLines   = 1
                                             )
                                             Text(
-                                                "${product.category_name ?: "—"} · ${money.da(product.selling_price)}",
+                                                buildAnnotatedString {
+                                                    append("${product.category_name ?: "—"} · ")
+                                                    withStyle(SpanStyle(color = DsColors.PrimaryDark, fontWeight = FontWeight.SemiBold)) {
+                                                        append(money.da(product.selling_price))
+                                                    }
+                                                },
                                                 fontSize = DsTextSize.caption,
                                                 color    = DsColors.TextSecondary
                                             )
@@ -368,9 +378,9 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                         )
                                                     )
                                                 },
-                                                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                                                modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
                                             ) {
-                                                Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = Color.White, modifier = Modifier.size(20.dp))
                                             }
                                         } else {
                                             IconButton(
@@ -515,20 +525,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             )
                         }
 
-                        item {
-                            OutlinedTextField(
-                                value         = note,
-                                onValueChange = { session.setFormNote(it) },
-                                placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
-                                modifier      = Modifier.fillMaxWidth(),
-                                shape         = DsShapes.medium,
-                                minLines      = 2,
-                                colors = dsTextFieldColors(
-                                    unfocusedBorderColor = DsColors.Border,
-                                    focusedBorderColor   = DsColors.Primary
-                                )
-                            )
-                        }
+                        // No note here: the validation has the sale's note (2026-10-19).
 
                         item {
                             Row(
@@ -540,7 +537,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                                Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                                 Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                             }
                         }
@@ -654,6 +651,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             BackHandler { navController.popBackStack() }
 
             Step3Validation(
+                title               = "Vente — Tournée #$tourneeId",
                 selectedClient      = formClient,
                 cartItems           = cartItems,
                 total               = total,
