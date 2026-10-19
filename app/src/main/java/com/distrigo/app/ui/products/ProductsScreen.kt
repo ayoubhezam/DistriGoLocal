@@ -545,11 +545,12 @@ fun ProductsScreen(
                     }
                     Button(
                         onClick  = { showFilterSheet = false },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier.weight(1.4f).height(48.dp),
+                        contentPadding = PaddingValues(horizontal = DsSpacing.md),
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
-                        Text("Appliquer (${productCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Appliquer (${productCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                     }
                 }
             }

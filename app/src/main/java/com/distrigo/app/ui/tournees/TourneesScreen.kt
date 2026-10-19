@@ -1248,6 +1248,24 @@ private fun TourneeProgressHeader(
  * Unlike the progress header this renders with no clients at all, because the first circle is
  * how you get some.
  */
+private val latinCollator  = java.text.Collator.getInstance(java.util.Locale.FRENCH)
+private val arabicCollator = java.text.Collator.getInstance(java.util.Locale("ar"))
+
+/** Latin names first, A to Z with accents folded in; then Arabic names in their alphabet's order. */
+private val stripOrder = Comparator<com.distrigo.app.data.model.TourneeClientInfo> { a, b ->
+    val arabicA = a.client.name.isArabicName()
+    val arabicB = b.client.name.isArabicName()
+    when {
+        arabicA != arabicB -> if (arabicA) 1 else -1
+        arabicA            -> arabicCollator.compare(a.client.name.trim(), b.client.name.trim())
+        else               -> latinCollator.compare(a.client.name.trim(), b.client.name.trim())
+    }
+}
+
+/** Whether the name's first letter is Arabic (digits and spaces before it don't count). */
+private fun String.isArabicName(): Boolean =
+    firstOrNull { it.isLetter() }?.let { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.ARABIC } ?: false
+
 @Composable
 private fun TourneeClientStrip(
     tourneeClients      : List<com.distrigo.app.data.model.TourneeClientInfo>,
@@ -1261,6 +1279,8 @@ private fun TourneeClientStrip(
 ) {
     var sheetClientId by remember { mutableStateOf<Int?>(null) }
     val clientIdsWithVente = tourneeVentes.map { it.client_id }.toSet()
+    // A to Z, then the Arabic names أ to ي, so a client is found by name along the strip
+    val sortedClients = remember(tourneeClients) { tourneeClients.sortedWith(stripOrder) }
 
     androidx.compose.foundation.lazy.LazyRow(
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
@@ -1274,7 +1294,7 @@ private fun TourneeClientStrip(
             }
         }
 
-        items(tourneeClients, key = { it.client.id }) { info ->
+        items(sortedClients, key = { it.client.id }) { info ->
             TourneeClientAvatarItem(
                 info      = info,
                 hasVente  = info.client.id in clientIdsWithVente,
@@ -1604,11 +1624,12 @@ private fun TourneeVenteFilterSheet(
                 }
                 Button(
                     onClick  = onDismiss,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1.4f).height(48.dp),
+                    contentPadding = PaddingValues(horizontal = DsSpacing.md),
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                 }
             }
         }

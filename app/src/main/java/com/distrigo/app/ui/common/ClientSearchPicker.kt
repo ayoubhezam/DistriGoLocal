@@ -9,14 +9,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,15 +53,9 @@ fun ClientSearchPicker(
 
     // One section per secteur, « Sans secteur » last, as in « Ajouter des clients ». Closed by
     // default so the list is a short index of secteurs; the selected client's secteur opens.
-    val groups = remember(filteredClients) {
-        filteredClients
-            .groupBy { it.secteur_name?.takeIf { name -> name.isNotBlank() } ?: NO_SECTEUR }
-            .toSortedMap(compareBy { if (it == NO_SECTEUR) "￿" else it })
-    }
+    val groups = remember(filteredClients) { groupBySecteur(filteredClients) }
     var opened by remember {
-        mutableStateOf(setOfNotNull(clients.firstOrNull { it.id == selectedClientId }?.let {
-            it.secteur_name?.takeIf { name -> name.isNotBlank() } ?: NO_SECTEUR
-        }))
+        mutableStateOf(setOfNotNull(clients.firstOrNull { it.id == selectedClientId }?.let(::secteurOf)))
     }
     // A search shows its matches at once, and a single secteur has nothing to fold.
     fun isOpen(secteur: String) = clientSearch.isNotBlank() || groups.size == 1 || secteur in opened
@@ -115,41 +107,6 @@ fun ClientSearchPicker(
             }
         }
 
-    }
-}
-
-private const val NO_SECTEUR = "Sans secteur"
-
-/** A secteur's fold: its name, how many clients, and the arrow that turns when it opens. */
-@Composable
-private fun SecteurHeader(name: String, count: Int, expanded: Boolean, onToggle: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.medium)
-            .background(DsColors.SurfaceSunken)
-            .clickable(onClick = onToggle)
-            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            name.uppercase(),
-            fontSize   = DsTextSize.caption,
-            fontWeight = FontWeight.Bold,
-            color      = DsColors.PrimaryDark,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis,
-            modifier   = Modifier.weight(1f, fill = false)
-        )
-        Spacer(Modifier.width(DsSpacing.sm))
-        Text("$count", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
-        Spacer(Modifier.weight(1f))
-        Icon(
-            Icons.Default.KeyboardArrowDown,
-            contentDescription = if (expanded) "Replier" else "Déplier",
-            tint     = DsColors.PrimaryDark,
-            modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
-        )
     }
 }
 

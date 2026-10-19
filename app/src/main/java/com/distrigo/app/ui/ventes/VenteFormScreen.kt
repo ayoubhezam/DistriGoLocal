@@ -41,7 +41,6 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
-import com.distrigo.app.ui.common.DsCompactSearchTrigger
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.designsystem.DsStepBadge
@@ -131,46 +130,6 @@ internal fun Step1Client(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text("Choisir un client", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
-
-                Spacer(Modifier.height(DsSpacing.sm))
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .padding(DsSpacing.md)
-                ) {
-                    Row(
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-                        Text(
-                            "Pourquoi d'abord le client ?",
-                            fontSize   = DsTextSize.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = DsColors.Primary
-                        )
-                    }
-                    Spacer(Modifier.height(DsSpacing.xs))
-                    Text(
-                        "Le solde et l'historique du client permettent de vérifier sa situation avant de préparer la vente. " +
-                            "Cela évite les erreurs de facturation et de règlement.",
-                        fontSize = DsTextSize.caption,
-                        color    = DsColors.TextPrimary
-                    )
-                }
-
-                Spacer(Modifier.height(DsSpacing.md))
-
-                // The search bar the next step will have, dimmed, saying what unlocks it.
-                DsCompactSearchTrigger(
-                    text        = null,
-                    placeholder = "Choisissez d'abord un client",
-                    onClick     = {},
-                    enabled     = false
-                )
             } else {
                 val typeColors = when (selectedClient.customer_type) {
                     "wholesale" -> DsColors.TagWholesale

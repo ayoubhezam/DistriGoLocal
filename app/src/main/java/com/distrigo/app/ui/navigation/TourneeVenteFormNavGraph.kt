@@ -348,7 +348,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                             )
                                             Text(
                                                 buildAnnotatedString {
-                                                    append("${product.category_name ?: "—"} · ")
+                                                    // The category isolated: an Arabic one otherwise pulled the price and « DA » apart
+                                                    append("\u2068${product.category_name ?: "—"}\u2069 · ")
                                                     withStyle(SpanStyle(color = DsColors.Primary, fontWeight = FontWeight.SemiBold)) {
                                                         append(money.da(product.selling_price))
                                                     }

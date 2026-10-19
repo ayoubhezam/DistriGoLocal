@@ -34,7 +34,6 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
-import com.distrigo.app.ui.common.DsCompactSearchTrigger
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.avatarColor
@@ -115,48 +114,6 @@ internal fun Step1Fournisseur(
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text("Choisir un fournisseur", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
-
-                Spacer(Modifier.height(DsSpacing.lg))
-
-                // ── Info box ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .padding(14.dp)
-                ) {
-                    Row(
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
-                        Text(
-                            "Pourquoi d'abord le fournisseur ?",
-                            fontSize   = DsTextSize.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = DsColors.Primary
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Les prix d'achat et les produits disponibles dépendent du fournisseur choisi. " +
-                            "Cela permet de proposer une liste de produits pertinente et d'éviter les erreurs de saisie.",
-                        fontSize = DsTextSize.caption,
-                        color    = DsColors.TextPrimary
-                    )
-                }
-
-                Spacer(Modifier.height(DsSpacing.md))
-
-                // ── Search preview (disabled) ──
-                // The search bar the next step will have, dimmed, saying what unlocks it.
-                DsCompactSearchTrigger(
-                    text        = null,
-                    placeholder = "Choisissez d'abord un fournisseur",
-                    onClick     = {},
-                    enabled     = false
-                )
             } else {
                 // ── Selected supplier card ──
                 Card(

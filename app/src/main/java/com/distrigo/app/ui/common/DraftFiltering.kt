@@ -352,7 +352,8 @@ fun DraftFilterSheet(
                 }
                 Button(
                     onClick  = onDismiss,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1.4f).height(48.dp),
+                    contentPadding = PaddingValues(horizontal = DsSpacing.md),
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
@@ -360,7 +361,7 @@ fun DraftFilterSheet(
                         "Appliquer ($matchCount)",
                         fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.SemiBold,
-                        color      = Color.White
+                        color      = Color.White, maxLines = 1, softWrap = false
                     )
                 }
             }
