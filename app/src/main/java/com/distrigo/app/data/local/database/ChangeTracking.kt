@@ -244,7 +244,7 @@ internal fun replaceIfChanged(db: SupportSQLiteDatabase, name: String, sql: Stri
 
 /**
  * Installs the [UpdatedAtTriggers], [TombstoneTriggers], [DocumentTriggers], [StockLedgerTriggers],
- * [OriginTriggers] and [DocumentNumberTriggers] each time the database opens, in one transaction. The app's builder and the tests use it.
+ * [OriginTriggers], [DocumentNumberTriggers] and the [LicenseWriteGate] each time the database opens, in one transaction. The app's builder and the tests use it.
  */
 internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabase.Builder<AppDatabase> =
     addCallback(object : RoomDatabase.Callback() {
@@ -257,6 +257,7 @@ internal fun RoomDatabase.Builder<AppDatabase>.withChangeTracking(): RoomDatabas
                 StockLedgerTriggers.install(db)
                 OriginTriggers.install(db)
                 DocumentNumberTriggers.install(db)
+                LicenseWriteGate.install(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()

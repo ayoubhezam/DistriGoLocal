@@ -3,6 +3,7 @@ package com.distrigo.app.data.image
 import android.content.Context
 import android.util.Log
 import com.distrigo.app.data.local.dao.ImageBackfillDao
+import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.dao.LegacyImageRow
 import com.distrigo.app.data.local.database.AppDatabase
 import kotlinx.coroutines.Dispatchers
@@ -87,7 +88,7 @@ object ImageBackfill {
                 Table("product_images", dao::productImages, dao::setProductImage),
             )
             for (table in tables) {
-                val result = convert(context, table)
+                val result = convert(context, db, table)
                 converted += result.first
                 failed += result.second
             }
@@ -109,7 +110,7 @@ object ImageBackfill {
     )
 
     /** Walks one table by id. Returns converted-count to failed-count. */
-    private suspend fun convert(context: Context, table: Table): Pair<Int, Int> {
+    private suspend fun convert(context: Context, db: AppDatabase, table: Table): Pair<Int, Int> {
         var afterId = 0
         var converted = 0
         var failed = 0
@@ -127,7 +128,8 @@ object ImageBackfill {
                 val bytes = ImageStore.legacyBytes(row.payload)
                 val ref = bytes?.let { ImageStore.put(context, it) }
                 if (ref != null) {
-                    table.write(row.id, ref)
+                    // Storage, not an edit: a restored old backup is converted even when the license is read-only
+                    LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.IMAGE_FILES) { table.write(row.id, ref) }
                     converted++
                 } else {
                     failed++

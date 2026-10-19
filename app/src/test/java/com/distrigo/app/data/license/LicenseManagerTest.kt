@@ -27,6 +27,7 @@ class LicenseManagerTest {
         deviceHash: String? = Golden.deviceHash,
         installationId: String = Golden.installationId,
         seal: StateSeal = HmacSeal(),
+        gate: WriteGate = NoWriteGate,
     ): LicenseManager {
         val store = LicenseStore(dir, seal)
         return LicenseManager(
@@ -36,6 +37,7 @@ class LicenseManagerTest {
             deviceKeyHash = { deviceHash },
             installationId = { installationId },
             packageName = Golden.PACKAGE,
+            gate = gate,
         )
     }
 
@@ -104,6 +106,23 @@ class LicenseManagerTest {
         val expired = manager.evaluate() as LicenseState.Expired
         assertTrue(expired.certain)
         assertFalse(expired.canRecord)
+    }
+
+    /** docs/license_l5_enforcement.md §3: the database's write gate follows every state, in order. */
+    @Test
+    fun `the write gate follows what each published state allows`() {
+        val followed = mutableListOf<Boolean>()
+        val manager = manager(gate = object : WriteGate {
+            override fun follow(canRecord: Boolean) {
+                followed += canRecord
+            }
+        })
+        manager.evaluate()
+        assertTrue(manager.install(Golden.token("valid")) is LicenseCheck.Valid)
+        phone.passTo(Golden.offlineUntil + SECOND)
+        manager.evaluate()
+        manager.revoke()
+        assertEquals(listOf(false, true, false, false), followed)
     }
 
     @Test

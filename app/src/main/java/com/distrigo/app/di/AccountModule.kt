@@ -10,6 +10,7 @@ import com.distrigo.app.data.local.database.AppDatabase
 import androidx.work.WorkManager
 import com.distrigo.app.data.license.AndroidDeviceFacts
 import com.distrigo.app.data.license.AppMetaDataBusiness
+import com.distrigo.app.data.license.AppMetaWriteGate
 import com.distrigo.app.data.license.BusinessProfileStore
 import com.distrigo.app.data.license.CheckInAlerts
 import com.distrigo.app.data.license.CheckInLog
@@ -71,14 +72,17 @@ object AccountModule {
     @Singleton
     fun provideDeviceKeys(): DeviceKeys = DeviceKey()
 
-    /** The database only when the license is first read (off the main thread): building it waits for a pending restore. */
+    /**
+     * The database only when the license is first read (off the main thread): building it waits for a pending restore.
+     * Every state it publishes opens or closes the database's write gate (docs/license_l5_enforcement.md §3).
+     */
     @Provides
     @Singleton
     fun provideLicenseManager(
         @ApplicationContext context: Context,
         keys: DeviceKeys,
         database: dagger.Lazy<AppDatabase>,
-    ): LicenseManager = LicenseManager.forApp(context, keys, AppMetaDataBusiness { database.get() })
+    ): LicenseManager = LicenseManager.forApp(context, keys, AppMetaDataBusiness { database.get() }, AppMetaWriteGate { database.get() })
 
     @Provides
     @Singleton

@@ -3,6 +3,7 @@ package com.distrigo.app.data.repository
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.dao.incentive.PolicyWithTiers
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.entity.incentive.CalculationSource
 import com.distrigo.app.data.local.entity.incentive.CommissionPeriodEntity
 import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
@@ -97,26 +98,29 @@ class IncentiveRepository(private val db: AppDatabase) {
         ) {
             val value = measure(rules.source, period, zone, salesIn(period, zone))
             val reward = rules.rewardAt(value)
-            policyDao.insertPeriod(
-                CommissionPeriodEntity(
-                    policy_uuid          = policy.uuid,
-                    incentive_type       = policy.incentive_type,
-                    period_type          = policy.period_type,
-                    calculation_source   = policy.calculation_source,
-                    period_start         = period.start.toString(),
-                    period_end           = period.end.toString(),
-                    achieved_value       = value,
-                    objective            = rules.objective,
-                    achieved_percent     = rules.percentOf(value),
-                    reached              = reward !is RewardResult.NotAchieved,
-                    reward_amount        = (reward as? RewardResult.CashReward)?.amount,
-                    free_good_product_id = (reward as? RewardResult.FreeGoodsReward)?.productId,
-                    free_good_quantity   = (reward as? RewardResult.FreeGoodsReward)?.quantity,
-                    tier_order           = (reward as? RewardResult.CashReward)?.sourceTierOrder,
-                    closed_at            = closedAt,
-                    created_at           = closedAt,
+            // Figures already recorded, frozen: done even when the license is read-only (docs/license_l5_enforcement.md §3)
+            LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.COMMISSION_FREEZE) {
+                policyDao.insertPeriod(
+                    CommissionPeriodEntity(
+                        policy_uuid          = policy.uuid,
+                        incentive_type       = policy.incentive_type,
+                        period_type          = policy.period_type,
+                        calculation_source   = policy.calculation_source,
+                        period_start         = period.start.toString(),
+                        period_end           = period.end.toString(),
+                        achieved_value       = value,
+                        objective            = rules.objective,
+                        achieved_percent     = rules.percentOf(value),
+                        reached              = reward !is RewardResult.NotAchieved,
+                        reward_amount        = (reward as? RewardResult.CashReward)?.amount,
+                        free_good_product_id = (reward as? RewardResult.FreeGoodsReward)?.productId,
+                        free_good_quantity   = (reward as? RewardResult.FreeGoodsReward)?.quantity,
+                        tier_order           = (reward as? RewardResult.CashReward)?.sourceTierOrder,
+                        closed_at            = closedAt,
+                        created_at           = closedAt,
+                    )
                 )
-            )
+            }
             frozen++
             period = period.previous()
         }

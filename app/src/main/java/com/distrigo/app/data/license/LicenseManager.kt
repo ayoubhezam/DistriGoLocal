@@ -9,8 +9,9 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * The license, as the rest of the app sees it: one [state], re-evaluated on demand.
  *
- * Phase L1 (docs/license_architecture.md §8): everything here works offline and nothing calls it yet.
- * Check-in (L4) hands a fresh token to [install]; the screens and the write gate (L5) read [state].
+ * Phase L1 (docs/license_architecture.md §8): everything here works offline.
+ * Check-in (L4) hands a fresh token to [install]; the screens (L5b) read [state], and every state published is
+ * written to the database's write gate (L5a), which refuses writes while [LicenseState.canRecord] is false.
  *
  * Every method does file and Keystore I/O: call them off the main thread. They are serialized, so an
  * evaluation never reads a license half-installed.
@@ -24,6 +25,8 @@ class LicenseManager internal constructor(
     private val packageName: String,
     /** The business the data belongs to (§7 of docs/license_l4_checkin.md); the app's is `app_meta.business_id`. */
     private val data: DataBusiness = NoDataBusiness,
+    /** Where what the license allows is written for the database (docs/license_l5_enforcement.md §3). */
+    private val gate: WriteGate = NoWriteGate,
 ) {
     private val lock = Any()
 
@@ -141,10 +144,19 @@ class LicenseManager internal constructor(
     private fun binding(deviceKeyHash: String, minSeq: Long) =
         LicenseBinding(packageName, installationId(), deviceKeyHash, minSeq)
 
-    private fun publish(state: LicenseState): LicenseState = state.also { _state.value = it }
+    /** Under the lock, so the gate is written in the order the states are published. */
+    private fun publish(state: LicenseState): LicenseState = state.also {
+        _state.value = it
+        gate.follow(it.canRecord)
+    }
 
     companion object {
-        fun forApp(context: Context, deviceKey: DeviceKeys = DeviceKey(), data: DataBusiness = NoDataBusiness): LicenseManager {
+        fun forApp(
+            context: Context,
+            deviceKey: DeviceKeys = DeviceKey(),
+            data: DataBusiness = NoDataBusiness,
+            gate: WriteGate = NoWriteGate,
+        ): LicenseManager {
             val app = context.applicationContext
             val store = LicenseStore.forApp(app)
             return LicenseManager(
@@ -155,6 +167,7 @@ class LicenseManager internal constructor(
                 installationId = { DeviceIdentity.id(app) },
                 packageName = app.packageName,
                 data = data,
+                gate = gate,
             )
         }
     }

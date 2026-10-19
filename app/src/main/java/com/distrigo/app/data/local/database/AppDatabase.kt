@@ -169,6 +169,7 @@ abstract class AppDatabase : RoomDatabase() {
                     .withMigrationPolicy()
                     .withChangeTracking()
                     .withDeviceIdentity { DeviceIdentity.id(context) }
+                    .withLicenseGate()
                     .build()
                 INSTANCE = instance
                 instance

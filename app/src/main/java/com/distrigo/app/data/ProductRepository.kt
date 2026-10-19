@@ -5,6 +5,7 @@ import com.distrigo.app.data.time.BusinessDates
 import androidx.room.withTransaction
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
 import com.distrigo.app.data.local.entity.*
@@ -1639,50 +1640,55 @@ class ProductRepository(
         userName: String? = null,
         draftId: Int? = null
     ): Map<String, Any> {
-        depotGuard.guard(productIdsOf(items)) {
-            val today = java.time.LocalDate.now().toString()
-            val now   = java.time.Instant.now().toString()
+        // Unloading only (every line toward the dépôt) is allowed even when the license is read-only; loading is
+        // not (D4, docs/license_l5_enforcement.md §3).
+        val unloading = items.isNotEmpty() && items.all { it["direction"] == "vers_depot" }
+        LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.TRUCK_UNLOAD.takeIf { unloading }) {
+            depotGuard.guard(productIdsOf(items)) {
+                val today = java.time.LocalDate.now().toString()
+                val now   = java.time.Instant.now().toString()
 
-            val sessionId = db.chargementDao().getSessionByDate(today)?.id
-                ?: db.chargementDao().insertSession(
-                    ChargementSessionEntity(session_date = today, note = null, created_at = now)
+                val sessionId = db.chargementDao().getSessionByDate(today)?.id
+                    ?: db.chargementDao().insertSession(
+                        ChargementSessionEntity(session_date = today, note = null, created_at = now)
+                    ).toInt()
+
+                val chargementId = db.chargementDao().insertChargement(
+                    ChargementEntity(session_id = sessionId, note = note, created_at = now)
                 ).toInt()
+                val itemEntities = mutableListOf<ChargementItemEntity>()
 
-            val chargementId = db.chargementDao().insertChargement(
-                ChargementEntity(session_id = sessionId, note = note, created_at = now)
-            ).toInt()
-            val itemEntities = mutableListOf<ChargementItemEntity>()
+                for (map in items) {
+                    val productId = map["product_id"] as Int
+                    val quantity  = map.lineQuantity()
+                    val direction = map["direction"] as String
 
-            for (map in items) {
-                val productId = map["product_id"] as Int
-                val quantity  = map.lineQuantity()
-                val direction = map["direction"] as String
+                    val product = productDao.getProductById(productId)
+                        ?: throw IllegalStateException("Produit introuvable: $productId")
 
-                val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    requireFitsUnit(product.name, product.unit_type, quantity)
 
-                requireFitsUnit(product.name, product.unit_type, quantity)
-
-                // Chargement = transfert interne pur (dépôt ↔ camion) : ne touche jamais au total (stock)
-                // Ne génère volontairement aucun StockMovementEntity : ce n'est pas un mouvement
-                // du stock global, seulement une répartition interne dépôt ↔ camion.
-                // The line itself is the transfer's record: inserting it moves `camion_stock`
-                // (see StockLedger.kt).
-                itemEntities.add(
-                    ChargementItemEntity(
-                        chargement_id = chargementId,
-                        product_id    = productId,
-                        quantity      = quantity,
-                        direction     = direction,
-                        product_name  = product.name,
-                        unit_type     = product.unit_type
+                    // Chargement = transfert interne pur (dépôt ↔ camion) : ne touche jamais au total (stock)
+                    // Ne génère volontairement aucun StockMovementEntity : ce n'est pas un mouvement
+                    // du stock global, seulement une répartition interne dépôt ↔ camion.
+                    // The line itself is the transfer's record: inserting it moves `camion_stock`
+                    // (see StockLedger.kt).
+                    itemEntities.add(
+                        ChargementItemEntity(
+                            chargement_id = chargementId,
+                            product_id    = productId,
+                            quantity      = quantity,
+                            direction     = direction,
+                            product_name  = product.name,
+                            unit_type     = product.unit_type
+                        )
                     )
-                )
+                }
+                db.chargementDao().insertItems(itemEntities)
+                // Last, and inside the transaction: if anything above throws, the whole thing rolls
+                // back and the draft is still there to resume.
+                draftId?.let { db.chargementDraftDao().deleteById(it) }
             }
-            db.chargementDao().insertItems(itemEntities)
-            // Last, and inside the transaction: if anything above throws, the whole thing rolls
-            // back and the draft is still there to resume.
-            draftId?.let { db.chargementDraftDao().deleteById(it) }
         }
         return mapOf("message" to "Chargement créé avec succès")
     }
@@ -1961,8 +1967,11 @@ class ProductRepository(
         throw IllegalStateException("Une tournée est déjà ouverte (« ${open.nom} ») : clôturez-la avant d'en ouvrir une autre.")
     }
 
+    /** Allowed even when the license is read-only (D4, docs/license_l5_enforcement.md §3). */
     suspend fun closeTournee(id: Int): Map<String, Any> {
-        db.tourneeDao().updateTourneeStatus(id, "fermée", java.time.Instant.now().toString())
+        LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.TOURNEE_CLOSE) {
+            db.tourneeDao().updateTourneeStatus(id, "fermée", java.time.Instant.now().toString())
+        }
         return mapOf("message" to "Tournée fermée avec succès")
     }
 

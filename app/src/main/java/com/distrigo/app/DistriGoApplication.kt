@@ -76,9 +76,9 @@ class DistriGoApplication : Application(), Configuration.Provider {
                 Log.w("DistriGoApplication", "could not schedule the daily backup", e)
             }
         }, "auto-backup-schedule").start()
-        // The signed-in account, and what the license allows (docs/license_architecture.md §2.4). Nothing is
-        // enforced yet (Phase L5): this only makes the Compte screen and the avatar right from the start. Then the
-        // background check-ins follow them (docs/license_l4_checkin.md §4).
+        // The signed-in account, and what the license allows (docs/license_architecture.md §2.4): the Compte screen and
+        // the avatar right from the start, and the database's write gate opened or closed (docs/license_l5_enforcement.md
+        // §3; until then it opens closed). Then the background check-ins follow them (docs/license_l4_checkin.md §4).
         Thread({
             try {
                 authRepository.get().restore()

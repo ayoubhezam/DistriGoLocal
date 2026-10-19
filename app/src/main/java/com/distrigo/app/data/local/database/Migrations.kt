@@ -1220,6 +1220,9 @@ val MIGRATION_61_62 = object : Migration(61, 62) {
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
  *
+ * Each runs with the license gate lifted ([LicenseWriteGate.lifting]): a database whose gate was closed when
+ * the app was updated must migrate all the same.
+ *
  * Declared after the migrations on purpose: top-level properties initialise in file order.
  */
 internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
@@ -1231,7 +1234,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
     MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
     MIGRATION_61_62,
-)
+).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**
  * The versions a database may still be wiped from: every version before [MIGRATION_32_33].
