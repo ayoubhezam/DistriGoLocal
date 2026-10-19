@@ -156,7 +156,7 @@ fun ChargementNavHost(
                                 modifier = Modifier
                                     .size(42.dp)
                                     .clip(DsShapes.medium)
-                                    .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceMuted),
+                                    .background(if (isInCart) DsColors.PrimaryLight else DsColors.SurfaceSunken),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isInCart) {
@@ -199,8 +199,8 @@ fun ChargementNavHost(
                                     },
                                     shape          = DsShapes.small,
                                     colors         = ButtonDefaults.buttonColors(
-                                        containerColor = DsColors.PrimaryLight,
-                                        contentColor   = DsColors.Primary
+                                        containerColor = DsColors.PrimaryDark,
+                                        contentColor   = Color.White
                                     ),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                 ) {

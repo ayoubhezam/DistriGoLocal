@@ -73,7 +73,7 @@ internal fun ChargementCartRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+                modifier         = Modifier.size(36.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken),
                 contentAlignment = Alignment.Center
             ) {
                 EntityImage(
@@ -81,7 +81,7 @@ internal fun ChargementCartRow(
                     contentDescription = null,
                     modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
                 ) {
-                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             Spacer(Modifier.width(DsSpacing.sm))
