@@ -26,6 +26,7 @@ import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.local.entity.*
 import com.distrigo.app.data.local.entity.incentive.TargetPolicyEntity
 import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
+import com.distrigo.app.data.local.entity.incentive.CommissionPeriodEntity
 import com.distrigo.app.data.local.dao.incentive.TargetPolicyDao
 import com.distrigo.app.data.local.dao.mouvement.StockMovementDao
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
@@ -33,7 +34,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
  * The schema version this build writes. A backup records it, and a backup from a later version is refused
  * rather than opened: Room cannot downgrade a database.
  */
-const val DATABASE_VERSION = 61
+const val DATABASE_VERSION = 62
 
 /** The app's database file, in `databases/`. */
 const val DATABASE_NAME = "distrigo"
@@ -62,6 +63,7 @@ const val DATABASE_NAME = "distrigo"
         ChargeEntity::class,
         TargetPolicyEntity::class,
         PolicyTierEntity::class,
+        CommissionPeriodEntity::class,
         PerteTypeEntity::class,
         PerteEntity::class,
         InventorySessionEntity::class,

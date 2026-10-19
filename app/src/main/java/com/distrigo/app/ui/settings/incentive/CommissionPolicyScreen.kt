@@ -74,6 +74,7 @@ fun CommissionPolicyScreen(
     var fixedBonusAmount by remember { mutableStateOf("") }
     var freeGoodQuantity by remember { mutableStateOf("") }
     var tiers by remember { mutableStateOf(listOf(TierDraft())) }
+    var showReward by remember { mutableStateOf(true) }
     var saveError by remember { mutableStateOf("") }
     var freeGoodProductId by remember { mutableStateOf<Int?>(null) }
     var freeGoodProductName by remember { mutableStateOf("") }
@@ -99,6 +100,7 @@ fun CommissionPolicyScreen(
             fixedBonusAmount = pwt.policy.fixed_bonus_amount?.toString() ?: ""
             freeGoodQuantity = pwt.policy.free_good_quantity?.toString() ?: ""
             freeGoodProductId = pwt.policy.free_good_product_id
+            showReward = pwt.policy.show_reward
             freeGoodProductName = pwt.policy.free_good_product_id?.let { productViewModel.liveProduct(it)?.name } ?: ""
             if (pwt.tiers.isNotEmpty()) {
                 tiers = pwt.tiers.sortedBy { it.tier_order }.map {
@@ -113,10 +115,38 @@ fun CommissionPolicyScreen(
     }
 
     fun save() {
-        val target = targetValue.toDoubleOrNull()
-        if (target == null || target <= 0) {
-            saveError = "Veuillez saisir un objectif valide."
-            return
+        // In « Paliers » the objective is the first tier's threshold (D13, 2026-10-17): the tiers are kept by
+        // threshold, each needs a rate or a fixed bonus, and a tier left without a threshold is dropped.
+        val target: Double
+        val tierEntities: List<PolicyTierEntity>
+        if (incentiveType == IncentiveType.PROGRESSIVE_TIERS) {
+            val parsed = tiers
+                .mapNotNull { draft -> draft.minThreshold.toDoubleOrNull()?.takeIf { it > 0 }?.let { it to draft } }
+                .sortedBy { it.first }
+            when {
+                parsed.isEmpty() -> { saveError = "Ajoutez au moins un palier avec son seuil."; return }
+                parsed.any { (_, d) -> d.rewardRate.toDoubleOrNull() == null && d.fixedBonus.toDoubleOrNull() == null } -> {
+                    saveError = "Chaque palier a besoin d'un taux ou d'une prime fixe."; return
+                }
+                parsed.map { it.first }.distinct().size != parsed.size -> { saveError = "Deux paliers ont le même seuil."; return }
+            }
+            target = parsed.first().first
+            tierEntities = parsed.mapIndexed { index, (min, draft) ->
+                PolicyTierEntity(
+                    policy_id = 0, // يُستبدل في savePolicy بعد insertPolicy
+                    min_threshold = min,
+                    max_threshold = null,
+                    reward_rate = draft.rewardRate.toDoubleOrNull(),
+                    fixed_bonus = draft.fixedBonus.toDoubleOrNull(),
+                    tier_order = index
+                )
+            }
+        } else {
+            target = targetValue.toDoubleOrNull()?.takeIf { it > 0 } ?: run {
+                saveError = "Veuillez saisir un objectif valide."
+                return
+            }
+            tierEntities = emptyList()
         }
         saveError = ""
 
@@ -132,22 +162,9 @@ fun CommissionPolicyScreen(
             free_good_quantity = freeGoodQuantity.toIntOrNull(),
             is_active = true,
             distributor_id = null,
-            created_at = Instant.now().toString()
+            created_at = Instant.now().toString(),
+            show_reward = showReward
         )
-
-        val tierEntities = if (incentiveType == IncentiveType.PROGRESSIVE_TIERS) {
-            tiers.mapIndexedNotNull { index, draft ->
-                val min = draft.minThreshold.toDoubleOrNull() ?: return@mapIndexedNotNull null
-                PolicyTierEntity(
-                    policy_id = 0, // يُستبدل في savePolicy بعد insertPolicy
-                    min_threshold = min,
-                    max_threshold = null,
-                    reward_rate = draft.rewardRate.toDoubleOrNull(),
-                    fixed_bonus = draft.fixedBonus.toDoubleOrNull(),
-                    tier_order = index
-                )
-            }
-        } else emptyList()
 
         viewModel.savePolicy(
             policy = policy,
@@ -216,16 +233,19 @@ fun CommissionPolicyScreen(
             )
 
             Spacer(Modifier.height(DsSpacing.lg))
-            DsFormField(
-                label = "Objectif (DA) *",
-                value = targetValue,
-                onValueChange = { targetValue = it.filter { c -> c.isDigit() || c == '.' } },
-                error = saveError,
-                placeholder = "Ex: 500000",
-                keyboardType = KeyboardType.Decimal
-            )
+            // In « Paliers » the objective is the first tier's threshold, so it has no field of its own
+            if (incentiveType != IncentiveType.PROGRESSIVE_TIERS) {
+                DsFormField(
+                    label = "Objectif (DA) *",
+                    value = targetValue,
+                    onValueChange = { targetValue = it.filter { c -> c.isDigit() || c == '.' } },
+                    error = saveError,
+                    placeholder = "Ex: 500000",
+                    keyboardType = KeyboardType.Decimal
+                )
 
-            Spacer(Modifier.height(DsSpacing.lg))
+                Spacer(Modifier.height(DsSpacing.lg))
+            }
 
             // ── حقول متغيّرة حسب النوع ──
             when (incentiveType) {
@@ -345,8 +365,14 @@ fun CommissionPolicyScreen(
                         tiers = tiers,
                         onTiersChange = { tiers = it }
                     )
+                    if (saveError.isNotEmpty()) {
+                        Text(saveError, fontSize = DsTextSize.caption, color = DsColors.Danger, modifier = Modifier.padding(start = DsSpacing.xs, top = DsSpacing.xs))
+                    }
                 }
             }
+
+            Spacer(Modifier.height(DsSpacing.lg))
+            ShowRewardSwitch(checked = showReward, onCheckedChange = { showReward = it })
 
             Spacer(Modifier.height(DsSpacing.xxxl))
         }
@@ -370,6 +396,32 @@ fun CommissionPolicyScreen(
     }
 }
 
+
+/**
+ * Whether the Dashboard's « Objectif » shows the bonus (D13). In Solo the person holding the phone may be the owner,
+ * who pays it; off, the objective is shown without it.
+ */
+@Composable
+private fun ShowRewardSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = DsSpacing.md)) {
+            Text("Afficher la prime sur le tableau de bord", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(
+                if (checked) "La prime gagnée s'affiche avec l'objectif." else "L'objectif s'affiche sans la prime.",
+                fontSize = DsTextSize.caption,
+                color = DsColors.TextSecondary
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
 
 @Composable
 private fun SectionLabel(text: String) {
@@ -426,6 +478,11 @@ private fun TiersEditor(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
         SectionLabel("Paliers (à partir de plusieurs seuils)")
+        Text(
+            "L'objectif est le seuil du premier palier.",
+            fontSize = DsTextSize.caption,
+            color = DsColors.TextSecondary
+        )
 
         tiers.forEachIndexed { index, tier ->
             Column(

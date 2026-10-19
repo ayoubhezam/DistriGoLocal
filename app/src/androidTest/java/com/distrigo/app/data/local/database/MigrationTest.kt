@@ -97,7 +97,7 @@ class MigrationTest {
                 assertEquals("unstamped rows in $table", 0, sql.count(table, "updated_at <= 0"))
                 assertEquals("rows without created_at in $table", 0, sql.count(table, "created_at = ''"))
             }
-            assertEquals(37, UpdatedAtTriggers.trackedTables(sql).size)
+            assertEquals(38, UpdatedAtTriggers.trackedTables(sql).size)  // 62 added commission_periods
             for (table in UpdatedAtTriggers.trackedTables(sql)) {
                 assertTrue(table, storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
@@ -802,6 +802,27 @@ class MigrationTest {
             assertEquals(listOf("Produit périmé|2000"), sql.texts("SELECT motif || '|' || updated_at FROM retour_client_items"))
             assertEquals(listOf("Erreur de commande|2000"), sql.texts("SELECT motif || '|' || updated_at FROM retour_fournisseur_items"))
             assertEquals(1, sql.count("retour_client", "id = 1 AND updated_at = 3000 AND version = 2"))
+        } finally {
+            sql.close()
+        }
+    }
+
+    @Test
+    fun migration61To62KeepsThePolicyShowingItsBonusAndAddsTheFrozenPeriods() {
+        helper.createDatabase(TEST_DB, 61).apply {
+            execSQL(
+                "INSERT INTO target_policies (id, nom, incentive_type, period_type, calculation_source, target_value, " +
+                    "created_at, uuid, updated_at, version) VALUES (1, 'Politique MONTHLY', 'FIXED_RATE', 'MONTHLY', " +
+                    "'INVOICED_SALES', 100000, '2026-09-16T10:00:00Z', 'u-policy', 3000, 2)"
+            )
+            UpdatedAtTriggers.install(this)
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 62, true, MIGRATION_61_62)
+        try {
+            assertEquals(1, sql.count("target_policies", "id = 1 AND show_reward = 1 AND updated_at = 3000 AND version = 2"))
+            assertEquals(0, sql.count("commission_periods", "1"))
         } finally {
             sql.close()
         }

@@ -1183,6 +1183,39 @@ val MIGRATION_60_61 = object : Migration(60, 61) {
 }
 
 /**
+ * 61 → 62: the commission's « Objectif » (docs/design/dashboard_objectif_plan.md, D13).
+ *
+ * - `target_policies.show_reward`: whether the Dashboard shows the bonus; a policy already saved keeps showing it.
+ * - `commission_periods`: each ended period's result, frozen (see CommissionPeriodEntity). Empty at first: the
+ *   periods that ended are frozen the first time the progress is read.
+ *
+ * Its triggers are installed when the database opens, as every table's (see withChangeTracking). The CREATE
+ * statements are copied from Room's generated schema
+ * (`app/schemas/com.distrigo.app.data.local.database.AppDatabase/62.json`). **Do not hand-edit them** - change the
+ * entity, rebuild, and re-copy.
+ */
+val MIGRATION_61_62 = object : Migration(61, 62) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `target_policies` ADD COLUMN `show_reward` INTEGER NOT NULL DEFAULT 1")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `commission_periods` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `policy_uuid` TEXT NOT NULL, " +
+                "`incentive_type` TEXT NOT NULL, `period_type` TEXT NOT NULL, `calculation_source` TEXT NOT NULL, " +
+                "`period_start` TEXT NOT NULL, `period_end` TEXT NOT NULL, `achieved_value` REAL NOT NULL, " +
+                "`objective` REAL NOT NULL, `achieved_percent` INTEGER NOT NULL, `reached` INTEGER NOT NULL, " +
+                "`reward_amount` REAL, `free_good_product_id` INTEGER, `free_good_quantity` INTEGER, `tier_order` INTEGER, " +
+                "`closed_at` TEXT NOT NULL, `created_at` TEXT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', " +
+                "`updated_at` INTEGER NOT NULL DEFAULT 0, `version` INTEGER NOT NULL DEFAULT 1, `origin_device_id` TEXT)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_commission_periods_period_start_period_end` " +
+                "ON `commission_periods` (`period_start`, `period_end`)"
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_commission_periods_uuid` ON `commission_periods` (`uuid`)")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1197,6 +1230,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_48_49, MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52,
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
     MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
+    MIGRATION_61_62,
 )
 
 /**

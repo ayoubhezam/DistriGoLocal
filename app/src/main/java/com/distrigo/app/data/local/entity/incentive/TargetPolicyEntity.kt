@@ -34,7 +34,13 @@ data class TargetPolicyEntity(
     @ColumnInfo(defaultValue = "1")
     val version: Int = 1,
     /** The device that created the row; null for rows created before version 48. */
-    val origin_device_id: String? = null
+    val origin_device_id: String? = null,
+    /**
+     * Whether the Dashboard's « Objectif » shows the bonus (D13, 2026-10-17). In Solo the person holding the phone
+     * may be the owner, who pays it: off, the objective is shown without it. Added in version 62.
+     */
+    @ColumnInfo(defaultValue = "1")
+    val show_reward: Boolean = true
 )
 
 @Entity(tableName = "policy_tiers", indices = [Index(value = ["uuid"], unique = true)])
