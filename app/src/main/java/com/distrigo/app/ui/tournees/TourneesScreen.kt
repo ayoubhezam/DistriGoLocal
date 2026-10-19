@@ -1103,7 +1103,7 @@ private fun TourneeClientAvatarItem(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(DsShapes.pill)
-                    .background(avatarColor(client.name).copy(alpha = 0.16f))
+                    .background(avatarColor(client.name))
                     .border(if (isCurrent) 2.dp else 1.dp, ringColor, DsShapes.pill),
                 contentAlignment = Alignment.Center
             ) {
@@ -1116,7 +1116,7 @@ private fun TourneeClientAvatarItem(
                         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                     Text(
                         initials, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                        color = avatarColor(client.name)
+                        color = Color.White
                     )
                 }
             }
