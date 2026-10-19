@@ -143,7 +143,7 @@ fun SecteurPickerSheet(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) { Text("Ajouter") }
                 }
             } else {
@@ -164,7 +164,7 @@ fun SecteurPickerSheet(
                     onClick  = onDismiss,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) { Text("Terminé", fontWeight = FontWeight.SemiBold) }
             }
         }

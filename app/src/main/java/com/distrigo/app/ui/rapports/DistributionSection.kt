@@ -189,7 +189,7 @@ private fun MiniKpi(icon: ImageVector, label: String, value: Figure, caption: St
     ) {
         Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(DsSpacing.sm))
-        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
         FitText(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = accent)
         FitText(caption, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
     }
@@ -271,7 +271,7 @@ private fun SectorBar(
                 Text(s.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 Spacer(Modifier.width(DsSpacing.xs))
-                Text(percent(s.rate), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+                Text(percent(s.rate), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
                     maxLines = 1, softWrap = false)
             }
             Spacer(Modifier.width(DsSpacing.sm))
@@ -315,7 +315,7 @@ private fun CommuneCard(c: CommuneStat) {
                 color = if (c.name == null) DsColors.TextSecondary else DsColors.TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.sm))
-            AnimatedFigure(rateFigure(c.rate), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            AnimatedFigure(rateFigure(c.rate), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         }
         Spacer(Modifier.height(DsSpacing.sm))
         val rate by animateFloatAsState(c.rate.toFloat(), glide(), label = "rate")
@@ -405,7 +405,7 @@ fun SectorSheetHost(sheet: SectorSheet?, onDismiss: () -> Unit) {
 @Composable
 private fun SheetFigure(label: String, value: String, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        FitText(value, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
     }
 }

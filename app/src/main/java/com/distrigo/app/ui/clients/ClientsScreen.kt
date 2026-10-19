@@ -211,7 +211,7 @@ fun ClientsScreen(
         ) {
             FloatingActionButton(
                 onClick        = { onAddClient() },
-                containerColor = DsColors.Primary,
+                containerColor = DsColors.PrimaryDark,
                 contentColor   = Color.White,
                 modifier       = Modifier.size(40.dp),
                 shape          = DsShapes.pill

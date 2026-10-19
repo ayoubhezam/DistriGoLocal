@@ -147,7 +147,7 @@ fun ReportHeroCard(
 fun KpiTile(
     label: String, value: String, valueColor: Color, modifier: Modifier, badge: String?,
     icon: ImageVector, info: ReportInfo,
-    accent: Color = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
+    accent: Color = if (valueColor == DsColors.PrimaryDark || valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
 ) = KpiTile(label, Figure.text(value), valueColor, modifier, badge, icon, info, accent)
 
 /** The same card, its figure counting to a new value when it changes. */
@@ -156,7 +156,7 @@ fun KpiTile(
     label: String, value: Figure, valueColor: Color, modifier: Modifier, badge: String?,
     icon: ImageVector, info: ReportInfo,
     /** The card's own colour, for its icon and pill; the figure stays dark unless it is news. */
-    accent: Color = if (valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
+    accent: Color = if (valueColor == DsColors.PrimaryDark || valueColor == DsColors.TextPrimary) DsColors.Primary else valueColor,
 ) {
     Column(
         modifier
@@ -225,9 +225,9 @@ fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String,
         Column(Modifier.fillMaxWidth().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             AnimatedFigure(
                 Figure(total) { money.amount(it) }, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
-                color = DsColors.TextPrimary, textAlign = TextAlign.Center, minScale = 0.35f,
+                color = DsColors.PrimaryDark, textAlign = TextAlign.Center, minScale = 0.35f,
             )
-            Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             FitText(caption, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, minScale = 0.7f)
         }
     }

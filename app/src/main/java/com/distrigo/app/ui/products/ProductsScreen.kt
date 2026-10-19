@@ -547,7 +547,7 @@ fun ProductsScreen(
                         onClick  = { showFilterSheet = false },
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape    = DsShapes.medium,
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
                         Text("Appliquer (${productCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
@@ -707,7 +707,7 @@ fun ProductsScreen(
 
         FloatingActionButton(
             onClick        = { onAddProduct() },
-            containerColor = DsColors.Primary,
+            containerColor = DsColors.PrimaryDark,
             contentColor   = Color.White,
             modifier       = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         ) {
@@ -858,7 +858,7 @@ fun ProductCard(
                     LocalMoneyFormatter.current.da(product.selling_price),
                     fontWeight = FontWeight.Bold,
                     fontSize   = DsTextSize.body,
-                    color      = DsColors.Primary
+                    color      = DsColors.PrimaryDark
                 )
             }
 
@@ -938,7 +938,7 @@ fun ProductGridCard(
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, maxLines = 2)
                 Spacer(Modifier.height(4.dp))
-                Text(LocalMoneyFormatter.current.da(product.selling_price), fontWeight = FontWeight.Bold, fontSize = DsTextSize.body, color = DsColors.Primary)
+                Text(LocalMoneyFormatter.current.da(product.selling_price), fontWeight = FontWeight.Bold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                 Spacer(Modifier.height(4.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),

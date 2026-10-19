@@ -81,6 +81,7 @@ import com.distrigo.app.ui.products.ProductCard
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.border
 
 /** The dépôt's share of a product's stock: what a dépôt perte is taken from. */
 private val Product.depotStock: Double get() = stock - camion_stock
@@ -129,7 +130,7 @@ fun NewPerteListScreen(
     }
     BackHandler(onBack = onBack)
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Nouvelle perte", subtitle = "Produits perdus au dépôt", leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
@@ -178,7 +179,8 @@ fun NewPerteListScreen(
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.sm)
                 .clip(DsShapes.large)
-                .background(if (cart.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                .background(if (cart.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                .border(1.dp, if (cart.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.large)
                 .clickable(enabled = cart.isNotEmpty(), onClick = onOpenCart)
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -229,7 +231,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
     var editing by remember { mutableStateOf<PerteCartLine?>(null) }
     BackHandler(onBack = onBack)
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ma sélection", subtitle = "${cart.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -266,7 +268,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                                     Spacer(Modifier.weight(1f))
                                     Button(
                                         onClick = { editing = line }, shape = DsShapes.medium,
-                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                                     ) {
                                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(DsSpacing.xs))
@@ -291,7 +293,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
             Button(
                 onClick = onNext, enabled = cart.isNotEmpty(),
                 modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }
@@ -323,7 +325,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
     val lines = confirmed ?: live
     BackHandler { if (confirmed != null) onDone() else onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Résumé de la perte",
             leading = DsTopBarLeading.Back { if (confirmed != null) onDone() else onBack() }
@@ -354,7 +356,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
             }
             items(lines, key = { it.product.id }) { line ->
                 Row(
-                    Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
+                    Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -380,7 +382,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
             enabled = !saving && lines.isNotEmpty(),
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (saving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             else Text(if (confirmed != null) "Retour à l'historique" else "Confirmer", fontWeight = FontWeight.SemiBold)

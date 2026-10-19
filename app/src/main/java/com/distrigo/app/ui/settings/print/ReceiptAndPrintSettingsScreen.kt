@@ -121,7 +121,7 @@ fun ReceiptAndPrintSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
             title   = "Reçus et impression",
@@ -145,7 +145,8 @@ fun ReceiptAndPrintSettingsScreen(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceMuted)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .clickable { imagePicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -337,7 +338,7 @@ fun ReceiptAndPrintSettingsScreen(
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
@@ -388,7 +389,7 @@ private fun PrinterRow(selectedName: String?, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(52.dp)
             .clip(DsShapes.medium)
-            .background(DsColors.SurfaceMuted)
+            .background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.medium)
             .clickable { onClick() }
             .padding(horizontal = DsSpacing.md),
@@ -466,7 +467,7 @@ private fun <T> ChoiceRow(
                     .weight(1f)
                     .height(44.dp)
                     .clip(DsShapes.medium)
-                    .background(if (isSelected) DsColors.PrimaryLight else DsColors.SurfaceMuted)
+                    .background(if (isSelected) DsColors.PrimaryLight else DsColors.Surface)
                     .border(
                         width = if (isSelected) 1.5.dp else 1.dp,
                         color = if (isSelected) DsColors.Primary else DsColors.Border,

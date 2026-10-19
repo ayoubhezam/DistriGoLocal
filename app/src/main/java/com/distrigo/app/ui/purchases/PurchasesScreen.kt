@@ -445,7 +445,7 @@ fun PurchasesScreen(
                             .weight(1f)
                             .height(48.dp),
                         shape    = DsShapes.medium,
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
                         Text("Appliquer (${orderCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
@@ -683,7 +683,7 @@ fun PurchasesScreen(
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
             onClick        = { if (drafts.isEmpty()) onAddOrder() else showDraftsSheet = true },
-            containerColor = DsColors.Primary,
+            containerColor = DsColors.PrimaryDark,
             contentColor   = Color.White,
             modifier       = Modifier
                 .align(Alignment.BottomEnd)
@@ -812,7 +812,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                     money.da(order.total),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
-                    color      = DsColors.Primary
+                    color      = DsColors.PrimaryDark
                 )
                 Spacer(Modifier.height(4.dp))
                 Box(

@@ -140,18 +140,18 @@ private fun Tiles(report: ProfitReport) {
     val netLoss = report.net < 0
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Marge brute", money.figure(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Marge brute", money.figure(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null,
                 if (grossLoss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_GROSS,
                 accent = if (grossLoss) DsColors.Danger else DsColors.Primary)
-            KpiTile("Rentabilité", rateFigure(report.netShare), if (netLoss) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Rentabilité", rateFigure(report.netShare), if (netLoss) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null, Icons.Default.Percent, INFO_SHARE,
                 accent = if (netLoss) DsColors.Danger else DsColors.Success)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Charges", money.figure(report.chargesTotal), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Charges", money.figure(report.chargesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
                 plural(report.chargesCount, "charge", "charges"), Icons.Default.Payments, INFO_CHARGES, accent = DsColors.Warning)
-            KpiTile("Pertes", money.figure(report.lossesTotal), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Pertes", money.figure(report.lossesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
                 plural(report.lossesCount, "perte", "pertes"), Icons.Default.RemoveShoppingCart, INFO_LOSSES, accent = DsColors.Danger)
         }
     }
@@ -159,7 +159,7 @@ private fun Tiles(report: ProfitReport) {
 
 /** One line of the statement: its label, and its amount — taken off when [minus], a total when [total]. */
 @Composable
-private fun StatementLine(label: String, amount: Double, minus: Boolean = false, total: Boolean = false, color: Color = DsColors.TextPrimary) {
+private fun StatementLine(label: String, amount: Double, minus: Boolean = false, total: Boolean = false, color: Color = DsColors.PrimaryDark) {
     val money = LocalMoneyFormatter.current
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, fontSize = if (total) DsTextSize.body else DsTextSize.bodySmall,
@@ -182,7 +182,7 @@ private fun Statement(report: ProfitReport) {
         StatementLine("Chiffre d'affaires", report.sales)
         StatementLine("Coût des ventes", report.cost, minus = true)
         HorizontalDivider(color = DsColors.Border)
-        StatementLine("Marge brute", report.grossMargin, total = true, color = if (report.grossMargin < 0) DsColors.Danger else DsColors.TextPrimary)
+        StatementLine("Marge brute", report.grossMargin, total = true, color = if (report.grossMargin < 0) DsColors.Danger else DsColors.PrimaryDark)
         if (report.returnsCount > 0) {
             StatementLine("Retours clients (${report.returnsCount})", report.returnsMargin, minus = true)
         }
@@ -219,7 +219,7 @@ private fun ChargeTypes(report: ProfitReport) {
                                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(percentOf(amount, total) ?: percent(0.0), fontSize = DsTextSize.bodySmall,
-                                    fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                    fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                             }
                             FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }

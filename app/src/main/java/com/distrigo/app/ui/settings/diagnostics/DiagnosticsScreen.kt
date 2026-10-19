@@ -155,7 +155,7 @@ private fun ReportDetail(report: DiagnosticReport, onBack: () -> Unit, onShare: 
     var lines by remember(report) { mutableStateOf<List<String>?>(null) }
     LaunchedEffect(report) { lines = withContext(Dispatchers.IO) { DiagnosticReports.read(report).lines() } }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = report.kind.label, leading = DsTopBarLeading.Back(onBack)) {
             IconButton(onClick = onShare) { Icon(Icons.Default.Share, contentDescription = "Partager", tint = DsColors.Primary) }
             IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, contentDescription = "Supprimer", tint = DsColors.Danger) }

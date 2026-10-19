@@ -26,6 +26,12 @@ fun dsTextFieldColors(
     disabledLeadingIconColor  : Color = DsColors.TextSecondary,
     disabledTrailingIconColor : Color = DsColors.TextSecondary
 ): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    // White inside: on the Mist pages (2026-10-19) a transparent field would show the Mist through
+    focusedContainerColor      = DsColors.Surface,
+    unfocusedContainerColor    = DsColors.Surface,
+    errorContainerColor        = DsColors.Surface,
+    disabledContainerColor     = DsColors.SurfaceMuted,
+
     // Input text
     focusedTextColor           = DsColors.TextPrimary,
     unfocusedTextColor         = DsColors.TextPrimary,

@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.common.DsCompactSearchField
+import androidx.compose.foundation.border
 
 /** شريحة تحرير محلية للـ UI فقط — تُحوَّل إلى PolicyTierEntity عند الحفظ */
 private data class TierDraft(
@@ -174,7 +175,7 @@ fun CommissionPolicyScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Politique de commission",
             leading = DsTopBarLeading.Back(onBack)
@@ -385,7 +386,7 @@ fun CommissionPolicyScreen(
                 .padding(DsSpacing.lg)
                 .height(52.dp),
             shape = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (isSaving) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
@@ -444,7 +445,7 @@ private fun <T> SegmentedSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DsColors.SurfaceMuted, DsShapes.pill)
+            .background(DsColors.SurfaceSunken, DsShapes.pill)
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -488,7 +489,8 @@ private fun TiersEditor(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DsColors.SurfaceMuted, DsShapes.medium)
+                    .background(DsColors.Surface, DsShapes.medium)
+                    .border(1.dp, DsColors.Border, DsShapes.medium)
                     .padding(DsSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {

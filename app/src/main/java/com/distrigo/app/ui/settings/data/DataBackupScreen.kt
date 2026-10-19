@@ -255,7 +255,7 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
             onClick = onCreate,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))

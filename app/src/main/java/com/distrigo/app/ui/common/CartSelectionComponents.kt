@@ -571,7 +571,7 @@ fun PriceFieldWithHistory(
                                         money.da(p),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color      = DsColors.TextPrimary
+                                        color      = DsColors.PrimaryDark
                                     )
                                 },
                                 onClick = {

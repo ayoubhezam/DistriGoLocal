@@ -176,15 +176,15 @@ private fun Tiles(report: StockReport) {
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             // Red only when there is something to see to.
-            KpiTile("Ruptures", countFigure(report.outOfStock), if (report.outOfStock > 0) DsColors.Danger else DsColors.TextPrimary,
+            KpiTile("Ruptures", countFigure(report.outOfStock), if (report.outOfStock > 0) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null, Icons.Default.RemoveShoppingCart, INFO_OUT, accent = DsColors.Danger)
-            KpiTile("Stock bas", countFigure(report.lowStock), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Stock bas", countFigure(report.lowStock), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Warning, INFO_LOW, accent = DsColors.Warning)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Pertes", money.figure(report.lossValue), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Pertes", money.figure(report.lossValue), DsColors.PrimaryDark, Modifier.weight(1f),
                 plural(report.lossCount, "perte", "pertes"), Icons.Default.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
-            KpiTile("Taux de perte", rateFigure(report.lossRate), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Taux de perte", rateFigure(report.lossRate), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Percent, INFO_RATE, accent = DsColors.Primary)
         }
     }
@@ -215,7 +215,7 @@ private fun TypesCard(report: StockReport) {
                                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(percentOf(amount, total) ?: percent(0.0), fontSize = DsTextSize.bodySmall,
-                                    fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                    fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                             }
                             FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
@@ -241,7 +241,7 @@ private fun ProductRow(imageUri: String?, name: String, detail: String, detailCo
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(detail, fontSize = DsTextSize.caption, color = detailColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text(figure, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1, softWrap = false)
+                Text(figure, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
             }
         }
     }

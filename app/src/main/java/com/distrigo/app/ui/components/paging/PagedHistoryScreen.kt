@@ -50,6 +50,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
+import androidx.compose.material3.ButtonDefaults
 
 /** Room left under a list for the floating action drawn over it: the button, plus a gap. */
 private val FloatingActionClearance = 88.dp
@@ -152,7 +153,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
                         Spacer(Modifier.height(DsSpacing.sm))
                         Button(
                             onClick = { pagingItems.retry() },
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                         ) { Text("Réessayer", color = Color.White) }
                     }
                 }

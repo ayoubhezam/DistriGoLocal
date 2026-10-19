@@ -87,7 +87,7 @@ fun AchatRow(
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                     Spacer(Modifier.height(4.dp))
                     Box(
                         modifier = Modifier.clip(DsShapes.pill).background(statusColorLight).padding(horizontal = 8.dp, vertical = 2.dp)
@@ -159,7 +159,7 @@ fun AchatRow(
                 }
                 Text(
                     money.da(transaction.amount ?: 0.0),
-                    fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
+                    fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark
                 )
             }
         }

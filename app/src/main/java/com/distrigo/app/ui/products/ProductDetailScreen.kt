@@ -626,7 +626,7 @@ private fun PriceHistoryRow(movement: PriceMovement) {
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Text(
                 label,
                 fontSize   = DsTextSize.caption,

@@ -69,6 +69,7 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.products.ProductCard
 import com.distrigo.app.ui.purchases.ProductListFilters
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
+import androidx.compose.foundation.border
 
 /**
  * Inventaire: the products still to count, the way the Ventes and Achats product steps list theirs —
@@ -100,7 +101,7 @@ fun InventoryCountScreen(
     val money = LocalMoneyFormatter.current
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Inventaire", subtitle = numero, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
@@ -163,7 +164,8 @@ fun InventoryCountScreen(
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.sm)
                 .clip(DsShapes.large)
-                .background(if (countedCount > 0) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                .background(if (countedCount > 0) DsColors.PrimaryLight else DsColors.Surface)
+                .border(1.dp, if (countedCount > 0) Color.Transparent else DsColors.Border, DsShapes.large)
                 .clickable(enabled = countedCount > 0, onClick = onOpenSelection)
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
             verticalAlignment     = Alignment.CenterVertically,
@@ -273,7 +275,7 @@ fun InventoryCountDialog(
                     },
                     enabled = !isSaving && text.isNotBlank(),
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
                     else Text("Enregistrer", fontWeight = FontWeight.SemiBold)

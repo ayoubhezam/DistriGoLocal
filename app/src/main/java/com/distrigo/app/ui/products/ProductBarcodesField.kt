@@ -100,7 +100,7 @@ fun OtherBarcodesField(
                 onClick  = onAdd,
                 modifier = Modifier.size(48.dp),
                 shape    = DsShapes.medium,
-                colors   = IconButtonDefaults.filledTonalIconButtonColors(containerColor = DsColors.Primary, contentColor = DsColors.Surface)
+                colors   = IconButtonDefaults.filledTonalIconButtonColors(containerColor = DsColors.PrimaryDark, contentColor = DsColors.Surface)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Ajouter ce code-barres")
             }

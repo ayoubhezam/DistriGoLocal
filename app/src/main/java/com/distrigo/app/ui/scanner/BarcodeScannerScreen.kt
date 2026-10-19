@@ -230,7 +230,7 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
             Button(
                 onClick = onRetry,
                 shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 Text("Réessayer")
             }

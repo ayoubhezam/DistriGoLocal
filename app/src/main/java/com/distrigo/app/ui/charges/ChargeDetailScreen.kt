@@ -90,7 +90,7 @@ fun ChargeDetailScreen(
                     money.da(charge.montant),
                     fontSize   = 36.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color      = DsColors.TextPrimary
+                    color      = DsColors.PrimaryDark
                 )
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(
@@ -148,7 +148,7 @@ fun ChargeDetailScreen(
                 enabled  = !vm.deleting,
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))

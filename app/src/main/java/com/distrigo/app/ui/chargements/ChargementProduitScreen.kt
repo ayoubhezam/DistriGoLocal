@@ -163,7 +163,7 @@ fun ChargementProduitScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title    = "Mouvement de stock",
             subtitle = product.name,
@@ -236,7 +236,7 @@ fun ChargementProduitScreen(
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                 .height(52.dp),
             shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (isSaving) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))

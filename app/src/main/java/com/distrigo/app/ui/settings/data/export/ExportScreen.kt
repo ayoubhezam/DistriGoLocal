@@ -39,6 +39,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.border
 
 /** Données et sauvegarde → Exporter: choose data, a format and a period, then save the file or share it. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -68,7 +69,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     var picking by remember { mutableStateOf<String?>(null) } // "from" or "to"
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+        Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
             DsTopAppBar(title = "Exporter les données", leading = DsTopBarLeading.Back { if (!state.working) onBack() })
 
             Column(
@@ -83,7 +84,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                         Text(if (all) "Tout désélectionner" else "Tout sélectionner", color = DsColors.Primary)
                     }
                 }
-                Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted)) {
+                Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)) {
                     ExportDataset.entries.forEachIndexed { index, dataset ->
                         if (index > 0) HorizontalDivider(color = DsColors.Border)
                         Row(
@@ -183,7 +184,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     enabled = ready,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = DsShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.sm))

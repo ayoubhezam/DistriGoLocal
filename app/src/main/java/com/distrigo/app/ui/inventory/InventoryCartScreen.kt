@@ -80,7 +80,7 @@ fun InventoryCartScreen(
     var expandedId by remember { mutableStateOf<Int?>(null) }
     var deleting by remember { mutableStateOf<InventoryItem?>(null) }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ma sélection", subtitle = "$count produit(s) inventorié(s)", leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
 
@@ -141,7 +141,7 @@ fun InventoryCartScreen(
                                         onClick = { parsed?.let { onEdit(item, it); expandedId = null } },
                                         enabled = parsed != null && parsed >= 0 && parsed != item.qte_physique,
                                         shape = DsShapes.medium,
-                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                                     ) { Text("Enregistrer") }
                                 }
                             }
@@ -165,7 +165,7 @@ fun InventoryCartScreen(
                 enabled  = count > 0,
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }

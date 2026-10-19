@@ -34,6 +34,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import androidx.compose.foundation.border
 
 /** Données et sauvegarde → Importer: pick a workbook, see what it would do, row by row, then confirm. */
 @Composable
@@ -48,7 +49,7 @@ fun ImportScreen(onBack: () -> Unit, viewModel: ImportViewModel = hiltViewModel(
 
     BackHandler { if (!working) onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Importer depuis Excel", leading = DsTopBarLeading.Back { if (!working) onBack() })
 
         when (val current = state) {
@@ -98,7 +99,7 @@ private fun Intro(onPick: () -> Unit) {
             onClick = onPick,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
@@ -170,7 +171,7 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
                 enabled = plan.hasWork,
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 Text("Importer (${plan.creates + plan.updates})", fontWeight = FontWeight.SemiBold)
             }
@@ -187,7 +188,7 @@ private fun RowCard(row: PlannedRow) {
         is RowOutcome.Refused -> Triple("Refusé", DsColors.Danger, DsColors.DangerLight)
     }
     Column(
-        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
+        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.md),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -221,7 +222,7 @@ private fun Done(done: ImportState.Done, onAnother: () -> Unit, onFinish: () -> 
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
         }
-        Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)) {
+        Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
             Text("Terminer", fontWeight = FontWeight.SemiBold)
         }
         OutlinedButton(onClick = onAnother, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium) {
@@ -240,7 +241,7 @@ private fun Failed(message: String, onPick: () -> Unit) {
             }
             Text(message, fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         }
-        Button(onClick = onPick, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)) {
+        Button(onClick = onPick, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
             Text("Choisir un autre fichier", fontWeight = FontWeight.SemiBold)
         }
     }
@@ -251,7 +252,7 @@ private fun Failed(message: String, onPick: () -> Unit) {
 @Composable
 private fun Panel(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.SurfaceMuted).padding(DsSpacing.lg),
+        modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         content = content
     )

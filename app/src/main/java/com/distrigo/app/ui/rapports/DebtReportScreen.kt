@@ -236,16 +236,16 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             // Dark figures; only the balance's trend is coloured, green or red: that is the news.
-            KpiTile(words.credit, money.figure(report.credit), DsColors.TextPrimary, Modifier.weight(1f), null, Icons.Default.Schedule,
+            KpiTile(words.credit, money.figure(report.credit), DsColors.PrimaryDark, Modifier.weight(1f), null, Icons.Default.Schedule,
                 debtInfo(report.side, "credit"), accent = DsColors.Warning)
             KpiTile(
-                words.payments, money.figure(report.payments.total), DsColors.TextPrimary, Modifier.weight(1f),
+                words.payments, money.figure(report.payments.total), DsColors.PrimaryDark, Modifier.weight(1f),
                 plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"), accent = DsColors.Success
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                words.returns, money.figure(report.returns.total), DsColors.TextPrimary, Modifier.weight(1f),
+                words.returns, money.figure(report.returns.total), DsColors.PrimaryDark, Modifier.weight(1f),
                 plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn, debtInfo(report.side, "returns"),
             )
             // More owed is bad news on either side: red when the balance grew, green when it shrank.
@@ -255,7 +255,7 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
                 "Évolution du solde",
                 // Its sign follows the count: a balance that turns from growth to shrinkage crosses zero.
                 Figure(change) { v -> if (v > 0.005) "+ ${money.da(v)}" else if (v < -0.005) "− ${money.da(-v)}" else money.da(0.0) },
-                when { grew -> DsColors.Danger; shrank -> DsColors.Success; else -> DsColors.TextPrimary },
+                when { grew -> DsColors.Danger; shrank -> DsColors.Success; else -> DsColors.PrimaryDark },
                 Modifier.weight(1f),
                 when { grew -> "En hausse"; shrank -> "En baisse"; else -> "Stable" },
                 when { grew -> Icons.AutoMirrored.Filled.TrendingUp; shrank -> Icons.AutoMirrored.Filled.TrendingDown; else -> Icons.AutoMirrored.Filled.TrendingFlat },
@@ -310,7 +310,7 @@ private fun AgeCard(report: DebtReport) {
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(
                                     percentOf(amount, total) ?: percent(0.0),
-                                    fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+                                    fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
                                 )
                             }
                             FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
@@ -360,7 +360,7 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(DsSpacing.sm))
         Column(horizontalAlignment = Alignment.End) {
-            FitText(money.da(line.balance), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            FitText(money.da(line.balance), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(2.dp))
             Text(
                 line.oldest.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color,

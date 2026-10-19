@@ -230,7 +230,7 @@ private fun TrendTile(icon: ImageVector, label: String, value: Figure, rate: Dou
     ) {
         Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(DsSpacing.sm))
-        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(arrow, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
     }
@@ -252,14 +252,14 @@ private fun MonthCard(sales: DashboardSales, onClick: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Column(Modifier.weight(1f)) {
                 Text("Chiffre d'affaires", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                AnimatedFigure(money.figure(m.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                AnimatedFigure(money.figure(m.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                 Text("$arrow vs $lastMonth", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             }
             Column(Modifier.weight(1f)) {
                 Text("Marge brute", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 AnimatedFigure(money.figure(m.margin), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold,
-                    color = if (m.margin < 0) DsColors.Danger else DsColors.TextPrimary)
+                    color = if (m.margin < 0) DsColors.Danger else DsColors.PrimaryDark)
                 Text(m.marginRate?.let { "Taux ${percent(it)}" } ?: "Taux —", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
@@ -392,6 +392,6 @@ private fun BalanceHalf(label: String, value: Figure, accent: Color, modifier: M
     ) {
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 2)
         Spacer(Modifier.height(DsSpacing.xs))
-        AnimatedFigure(value, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        AnimatedFigure(value, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
     }
 }

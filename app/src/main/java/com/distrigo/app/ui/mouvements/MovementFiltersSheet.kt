@@ -192,7 +192,7 @@ fun MovementFiltersSheet(
                 enabled  = !draft.periodIsBackwards && count != 0,
                 modifier = Modifier.fillMaxWidth().padding(top = DsSpacing.lg).height(48.dp),
                 shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary, contentColor = DsColors.Surface)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = DsColors.Surface)
             ) {
                 Text(
                     when {

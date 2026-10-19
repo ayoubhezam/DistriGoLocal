@@ -52,7 +52,7 @@ fun ClientSearchPicker(
     // Recomputed only when the list or the search changes; see filterClients.
     val filteredClients = remember(clients, clientSearch) { filterClients(clients, clientSearch) }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = stringResource(R.string.client_picker_title),
             leading = DsTopBarLeading.Back(onBack)

@@ -283,7 +283,7 @@ fun ClientDetailScreen(
                             onError = { editError = it }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Text("Confirmer", color = Color.White)
                 }

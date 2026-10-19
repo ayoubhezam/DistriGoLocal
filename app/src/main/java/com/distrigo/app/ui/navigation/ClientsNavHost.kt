@@ -405,7 +405,7 @@ fun ClientsNavHost(
                                     onError   = { editError = it }
                                 )
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                         ) { Text("Confirmer", color = androidx.compose.ui.graphics.Color.White) }
                     },
                     dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } },

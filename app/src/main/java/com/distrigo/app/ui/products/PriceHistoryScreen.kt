@@ -386,7 +386,7 @@ private fun MovementRow(movement: PriceMovement) {
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(money.da(movement.unitPrice), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             DeltaPill(movement)
         }
     }
@@ -446,7 +446,7 @@ private fun EmptyState(
                 onClick = onAction,
                 modifier = Modifier.padding(top = DsSpacing.md),
                 shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary, contentColor = DsColors.Surface)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = DsColors.Surface)
             ) { Text(action, fontWeight = FontWeight.SemiBold) }
         }
     }

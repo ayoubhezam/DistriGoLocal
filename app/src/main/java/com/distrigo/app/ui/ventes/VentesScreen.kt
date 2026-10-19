@@ -401,7 +401,7 @@ fun VentesScreen(
                             .weight(1f)
                             .height(48.dp),
                         shape    = DsShapes.medium,
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
                         Text("Appliquer (${venteCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
@@ -632,7 +632,7 @@ fun VentesScreen(
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
             onClick        = { if (drafts.isEmpty()) onAddVente() else showDraftsSheet = true },
-            containerColor = DsColors.Primary,
+            containerColor = DsColors.PrimaryDark,
             contentColor   = Color.White,
             modifier       = Modifier
                 .align(Alignment.BottomEnd)
@@ -899,7 +899,7 @@ fun VenteDetailScreen(
                                         money.da(item.total_price),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.Bold,
-                                        color      = DsColors.TextPrimary
+                                        color      = DsColors.PrimaryDark
                                     )
                                 }
                                 if (index < itemsList.size - 1) {
@@ -929,7 +929,7 @@ fun VenteDetailScreen(
                                 money.da(displayVente.total),
                                 fontSize   = DsTextSize.headline,
                                 fontWeight = FontWeight.ExtraBold,
-                                color      = if (isDelivered) DsColors.TextPrimary else DsColors.Primary
+                                color      = DsColors.PrimaryDark
                             )
                         }
 
@@ -1182,7 +1182,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     money.da(vente.total),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.Bold,
-                    color      = DsColors.Primary
+                    color      = DsColors.PrimaryDark
                 )
                 Spacer(Modifier.height(4.dp))
                 Box(

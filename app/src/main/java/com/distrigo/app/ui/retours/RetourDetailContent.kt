@@ -100,7 +100,7 @@ internal fun RetourDetailContent(
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(partyName, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                 Spacer(Modifier.height(DsSpacing.xs))
-                Text(money.da(total), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.TextPrimary)
+                Text(money.da(total), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                 lines?.let {
                     Text(productCount(it.size), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                 }
@@ -209,7 +209,7 @@ private fun LineRow(line: RetourLine, showMotif: Boolean) {
             }
         }
         Spacer(Modifier.width(DsSpacing.sm))
-        Text(money.da(line.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+        Text(money.da(line.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
     }
 }
 

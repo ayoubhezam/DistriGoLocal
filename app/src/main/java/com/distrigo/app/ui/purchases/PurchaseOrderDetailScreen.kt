@@ -323,7 +323,7 @@ fun PurchaseOrderDetailScreen(
                                         money.da(item.total_cost),
                                         fontSize   = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.Bold,
-                                        color      = DsColors.TextPrimary
+                                        color      = DsColors.PrimaryDark
                                     )
                                 }
                                 if (index < itemsList.size - 1) {
@@ -343,7 +343,7 @@ fun PurchaseOrderDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
-                            Text(money.da(displayOrder.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary)
+                            Text(money.da(displayOrder.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                         }
 
                         Spacer(Modifier.height(DsSpacing.md))

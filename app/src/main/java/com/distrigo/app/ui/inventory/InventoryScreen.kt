@@ -149,7 +149,7 @@ fun ColumnScope.InventorySummaryStep(
             onClick  = onReturnHistory,
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Text("Retour à l'historique", color = Color.White, fontWeight = FontWeight.SemiBold)
         }
@@ -160,7 +160,7 @@ fun ColumnScope.InventorySummaryStep(
             enabled  = !isConfirming && (!needsChoice || choice != null),
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (isConfirming) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             else {

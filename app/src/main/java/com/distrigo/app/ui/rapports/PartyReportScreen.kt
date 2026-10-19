@@ -199,15 +199,15 @@ private fun Tiles(report: PartyReport, words: PartyWords, onInactive: () -> Unit
     val clients = report.side == DebtSide.CLIENTS
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile(words.active, countFigure(report.parties.size), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile(words.active, countFigure(report.parties.size), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Group, words.activeInfo, accent = DsColors.Primary)
-            KpiTile(words.average, report.average?.let { money.figure(it) } ?: Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile(words.average, report.average?.let { money.figure(it) } ?: Figure.text("—"), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 if (clients) Icons.Default.ShoppingBasket else Icons.Default.Receipt, words.averageInfo, accent = DsColors.AccentTeal)
         }
         if (clients) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Nouveaux clients", countFigure(report.newCount), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Nouveaux clients", countFigure(report.newCount), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.PersonAdd, INFO_NEW, accent = DsColors.Success)
-            KpiTile("Clients inactifs", countFigure(report.inactive.size), DsColors.TextPrimary,
+            KpiTile("Clients inactifs", countFigure(report.inactive.size), DsColors.PrimaryDark,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onInactive), null,
                 Icons.Default.Bedtime, INFO_INACTIVE, accent = DsColors.Warning)
         }
@@ -239,7 +239,7 @@ private fun PartyLine(rank: Int, p: PartyFigures, by: PartyRanking, words: Party
                     PartyRanking.MARGE -> money.da(p.margin)
                 }
                 Text(figure, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
-                    color = if (by == PartyRanking.MARGE && p.margin < 0) DsColors.Danger else DsColors.TextPrimary, maxLines = 1, softWrap = false)
+                    color = if (by == PartyRanking.MARGE && p.margin < 0) DsColors.Danger else DsColors.PrimaryDark, maxLines = 1, softWrap = false)
             }
         }
     }
@@ -272,7 +272,7 @@ private fun ShareCard(report: PartyReport, words: PartyWords) {
                                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(percentOf(amount, report.total) ?: percent(0.0), fontSize = DsTextSize.bodySmall,
-                                    fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                    fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                             }
                             FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
@@ -375,7 +375,7 @@ private fun InactiveLine(c: InactiveClient, onClick: () -> Unit) {
                 Text("Dernier achat le ${c.lastSale.format(DAY)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text(money.da(c.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1, softWrap = false)
+                Text(money.da(c.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
             }
         }
     }

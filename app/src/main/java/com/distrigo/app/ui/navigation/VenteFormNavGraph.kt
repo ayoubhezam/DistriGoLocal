@@ -274,7 +274,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title         = if (venteId != null) listOfNotNull("Modifier la vente", documentLabel("vente", venteId, session::documentLabel)).joinToString(" ") else "Vente dépôt",
                     // The name passed with the route until the client itself is read: right on frame 1.
@@ -453,7 +453,8 @@ fun NavGraphBuilder.venteFormGraph(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(DsShapes.large)
-                                .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                                .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                                .border(1.dp, if (cartItems.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.large)
                                 .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(cartRoute) }
                                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
                             verticalAlignment     = Alignment.CenterVertically,
@@ -498,7 +499,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = "Ma sélection",
                     subtitle = "${cartItems.size} article(s)",
@@ -533,7 +534,7 @@ fun NavGraphBuilder.venteFormGraph(
                             Button(
                                 onClick = { navController.popBackStack() },
                                 shape   = DsShapes.medium,
-                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                             ) { Text("Parcourir les produits") }
                         }
                     }
@@ -620,7 +621,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                             }
                         }
                     }
@@ -646,7 +647,7 @@ fun NavGraphBuilder.venteFormGraph(
                             enabled  = cartItems.isNotEmpty(),
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                         ) {
                             Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }

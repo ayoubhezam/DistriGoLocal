@@ -108,7 +108,7 @@ fun ChargementNavHost(
 
             BackHandler { onBack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title         = "Chargement / Déchargement",
                     subtitle      = if (cartItems.isNotEmpty()) "${cartItems.size} article(s)" else "Sélectionnez des produits",
@@ -238,7 +238,8 @@ fun ChargementNavHost(
                         modifier = Modifier
                             .weight(1f)
                             .clip(DsShapes.medium)
-                            .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                            .background(if (cartItems.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                            .border(1.dp, if (cartItems.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.medium)
                             .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(Screen.ChargementFormCart.route) }
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -316,7 +317,7 @@ fun ChargementNavHost(
 
             BackHandler { navController.popBackStack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = "Ma sélection",
                     subtitle = "${cartItems.size} article(s)",
@@ -349,7 +350,7 @@ fun ChargementNavHost(
                             Button(
                                 onClick = { navController.popBackStack() },
                                 shape   = DsShapes.medium,
-                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                             ) { Text("Parcourir les produits") }
                         }
                     }
@@ -412,7 +413,7 @@ fun ChargementNavHost(
                             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                             .height(52.dp),
                         shape    = DsShapes.medium,
-                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
                         if (isSaving) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))

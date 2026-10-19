@@ -92,7 +92,7 @@ fun AddClientsToTourneeScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title    = "Ajouter des clients",
             subtitle = tourneeNom,
@@ -219,7 +219,7 @@ fun AddClientsToTourneeScreen(
             enabled  = selected.isNotEmpty() && !isSaving,
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (isSaving) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))

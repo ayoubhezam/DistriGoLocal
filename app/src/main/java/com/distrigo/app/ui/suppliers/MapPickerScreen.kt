@@ -276,7 +276,7 @@ fun MapPickerScreen(
                 .padding(16.dp)
                 .align(Alignment.BottomCenter),
             shape  = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))

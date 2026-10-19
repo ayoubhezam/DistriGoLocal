@@ -121,7 +121,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
 
     val all = eligible
     val shown = all?.let { viewModel.visible(it, cart, viewModel.search) }
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = viewModel.title, subtitle = viewModel.partyName, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
@@ -177,7 +177,8 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
                 .fillMaxWidth()
                 .padding(horizontal = DsSpacing.xl, vertical = DsSpacing.sm)
                 .clip(DsShapes.large)
-                .background(if (cart.isNotEmpty()) DsColors.PrimaryLight else DsColors.SurfaceSunken)
+                .background(if (cart.isNotEmpty()) DsColors.PrimaryLight else DsColors.Surface)
+                .border(1.dp, if (cart.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.large)
                 .clickable(enabled = cart.isNotEmpty(), onClick = onOpenCart)
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -301,7 +302,7 @@ fun RetourDialog(
                     onClick = { val m = motif; if (m != null && quantity != null) onSave(quantity, m) },
                     enabled = motif != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) { Text("Enregistrer", fontWeight = FontWeight.SemiBold) }
             }
         }
@@ -317,7 +318,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
     var editing by remember { mutableStateOf<RetourCartLine?>(null) }
     BackHandler(onBack = onBack)
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ma sélection", subtitle = "${cart.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -353,7 +354,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                                     }
                                     Spacer(Modifier.weight(1f))
                                     Button(onClick = { editing = line }, shape = DsShapes.medium,
-                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)) {
+                                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
                                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(DsSpacing.xs))
                                         Text("Modifier")
@@ -377,7 +378,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
             Button(
                 onClick = onNext, enabled = cart.isNotEmpty(),
                 modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }
@@ -403,7 +404,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
     val lines = confirmed ?: live
     BackHandler { if (confirmed != null) onDone() else onBack() }
 
-    Column(Modifier.fillMaxSize().background(DsColors.Surface)) {
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Résumé du retour", subtitle = viewModel.partyName,
             leading = DsTopBarLeading.Back { if (confirmed != null) onDone() else onBack() }
@@ -432,14 +433,14 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
             }
             items(lines, key = { it.product.id }) { line ->
                 Row(
-                    Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
+                    Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         Text("${formatQty(line.quantity)} ${line.product.unit_type} · ${line.motif}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
-                    Text(money.da(line.quantity * viewModel.priceOf(line.product)), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                    Text(money.da(line.quantity * viewModel.priceOf(line.product)), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                 }
             }
             if (error.isNotEmpty()) item { Text(error, color = DsColors.Danger, fontSize = DsTextSize.bodySmall) }
@@ -455,7 +456,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
             enabled = !saving && lines.isNotEmpty(),
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (saving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             else Text(if (confirmed != null) "Terminer" else "Confirmer", fontWeight = FontWeight.SemiBold)

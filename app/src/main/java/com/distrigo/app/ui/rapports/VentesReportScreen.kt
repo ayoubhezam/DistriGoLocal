@@ -150,19 +150,19 @@ private fun KpiGrid(report: SalesReport) {
     val money = LocalMoneyFormatter.current
     // The figures are dark; colour is news: a margin is red only when it is a loss.
     val loss = report.grossMargin < 0
-    val marginColor = if (loss) DsColors.Danger else DsColors.TextPrimary
+    val marginColor = if (loss) DsColors.Danger else DsColors.PrimaryDark
     val sales = report.all.count
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         // Each row as tall as its taller tile, so the pairs line up.
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Nombre de ventes", countFigure(sales), DsColors.TextPrimary, Modifier.weight(1f), null,
+                "Nombre de ventes", countFigure(sales), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Receipt,
                 info = ReportInfo("Nombre de ventes", "Le nombre de ventes de la période — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion."),
                 accent = DsColors.Primary,
             )
             KpiTile(
-                "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.TextPrimary, Modifier.weight(1f), null,
+                "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.ShoppingBasket,
                 info = ReportInfo("Panier moyen", "Ce qu'une vente rapporte en moyenne sur la période : chiffre d'affaires ÷ nombre de ventes."),
                 accent = DsColors.AccentTeal,
@@ -247,7 +247,7 @@ private fun SourceLine(label: String, color: Color, figures: SalesFigures, total
                     fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary,
                 )
             }
-            AnimatedFigure(money.figure(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+            AnimatedFigure(money.figure(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             AnimatedFigure(countFigure(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
@@ -301,7 +301,7 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             )
             FitText(
                 money.da(b.all.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
-                color = DsColors.TextPrimary, textAlign = TextAlign.Center,
+                color = DsColors.PrimaryDark, textAlign = TextAlign.Center,
             )
             Text(plural(b.all.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
@@ -371,6 +371,6 @@ private fun Legend(label: String, color: Color, amount: String, modifier: Modifi
             Spacer(Modifier.width(DsSpacing.xs))
             Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
-        FitText(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, textAlign = TextAlign.Center)
+        FitText(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center)
     }
 }

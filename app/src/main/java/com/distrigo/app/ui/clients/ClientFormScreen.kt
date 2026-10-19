@@ -49,6 +49,7 @@ import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
 import com.distrigo.app.ui.common.EntityImage
+import androidx.compose.foundation.border
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
@@ -177,7 +178,7 @@ fun ClientFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
             title   = if (isEdit) "Modifier le client" else "Nouveau client",
@@ -202,7 +203,8 @@ fun ClientFormScreen(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceMuted)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .clickable { imagePicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -405,7 +407,7 @@ fun ClientFormScreen(
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.medium,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))

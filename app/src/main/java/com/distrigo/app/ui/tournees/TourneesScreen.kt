@@ -97,7 +97,7 @@ fun TourneesScreen(
                         onAddTournee()
                     }
                 },
-                containerColor = DsColors.Primary,
+                containerColor = DsColors.PrimaryDark,
                 contentColor   = Color.White,
                 modifier       = Modifier.size(40.dp),
                 shape          = DsShapes.pill
@@ -417,7 +417,7 @@ fun TourneeDetailScreen(
                             onError = { actionError = it }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Text("Rouvrir", color = Color.White)
                 }
@@ -1463,7 +1463,7 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
                     money.da(tournee.total_ventes ?: 0.0),
                     fontSize = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = DsColors.Primary
+                    color = DsColors.PrimaryDark
                 )
             }
         }
@@ -1607,7 +1607,7 @@ private fun TourneeVenteFilterSheet(
                     onClick  = onDismiss,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
@@ -1734,7 +1734,7 @@ private fun TourneeVenteRow(
             horizontalAlignment = Alignment.End,
             modifier            = Modifier.padding(end = 28.dp)
         ) {
-            Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+            Text(money.da(total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(4.dp))
             Box(
                 modifier = Modifier

@@ -369,7 +369,7 @@ fun StockCamionScreen(
             onClick         = {
                 if (drafts.isNotEmpty()) showDraftsSheet = true else showNewChargement = true
             },
-            containerColor  = DsColors.Primary,
+            containerColor  = DsColors.PrimaryDark,
             contentColor    = Color.White,
             modifier        = Modifier
                 .align(Alignment.BottomEnd)

@@ -258,7 +258,7 @@ fun ClientLocationPickerScreen(
             },
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,
-            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))

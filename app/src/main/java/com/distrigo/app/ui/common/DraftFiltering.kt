@@ -354,7 +354,7 @@ fun DraftFilterSheet(
                     onClick  = onDismiss,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Text(
                         "Appliquer ($matchCount)",

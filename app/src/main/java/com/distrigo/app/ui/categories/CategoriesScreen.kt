@@ -202,7 +202,7 @@ fun CategoriesScreen(viewModel: CategoryViewModel = hiltViewModel()) {
             Text("Catégories", fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
             FloatingActionButton(
                 onClick        = { showAddDialog = true },
-                containerColor = DsColors.Primary,
+                containerColor = DsColors.PrimaryDark,
                 contentColor   = Color.White,
                 modifier       = Modifier.size(40.dp),
                 shape          = DsShapes.pill

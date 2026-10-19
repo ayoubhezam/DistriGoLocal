@@ -153,7 +153,7 @@ fun PerteDialog(
                         },
                         enabled = !addingType && typing.isNotBlank(),
                         modifier = Modifier.weight(1f), shape = DsShapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) { Text("Ajouter le type", fontWeight = FontWeight.SemiBold) }
                 }
             } else Box {
@@ -230,7 +230,7 @@ fun PerteDialog(
                     onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }) },
                     enabled = !isSaving && newType == null && typeId != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
                     else Text("Enregistrer", fontWeight = FontWeight.SemiBold)

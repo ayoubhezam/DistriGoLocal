@@ -490,7 +490,7 @@ internal fun Step3Validation(
                 .height(52.dp),
             shape    = DsShapes.large,
             colors   = ButtonDefaults.buttonColors(
-                containerColor = if (isEdit) DsColors.Primary else DsColors.Success
+                containerColor = if (isEdit) DsColors.PrimaryDark else DsColors.Success
             )
         ) {
             if (isSaving) {

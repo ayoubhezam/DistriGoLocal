@@ -40,6 +40,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.distrigo.app.ui.common.EntityImage
+import androidx.compose.foundation.border
 
 fun formatPhone(phone: String): String {
     val digits = phone.filter { it.isDigit() }
@@ -170,7 +171,7 @@ fun SupplierFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
             title   = if (isEdit) "Modifier le fournisseur" else "Nouveau fournisseur",
@@ -195,7 +196,8 @@ fun SupplierFormScreen(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(DsShapes.large)
-                    .background(DsColors.SurfaceSunken)
+                    .background(DsColors.Surface)
+                    .border(1.dp, DsColors.Border, DsShapes.large)
                     .clickable { photoPicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -340,7 +342,7 @@ fun SupplierFormScreen(
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.large,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 else Text(

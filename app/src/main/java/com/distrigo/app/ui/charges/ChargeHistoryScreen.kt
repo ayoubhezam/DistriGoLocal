@@ -354,7 +354,7 @@ private fun ChargeFiltersSheet(
             Button(
                 onClick = { onApply(draft) },
                 modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.md))
         }

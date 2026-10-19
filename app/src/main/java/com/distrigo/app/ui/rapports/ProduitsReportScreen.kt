@@ -182,18 +182,18 @@ private fun Tiles(report: ProductReport, onSansVente: () -> Unit) {
     val a = report.abc.first()
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Produits vendus", countFigure(report.lines.size), DsColors.TextPrimary, Modifier.weight(1f), null,
+            KpiTile("Produits vendus", countFigure(report.lines.size), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.ShoppingCart, INFO_SOLD, accent = ProduitsColor)
             KpiTile("Taux de marge", rateFigure(report.marginRate),
-                if (loss) DsColors.Danger else DsColors.TextPrimary, Modifier.weight(1f), null,
+                if (loss) DsColors.Danger else DsColors.PrimaryDark, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_RATE,
                 accent = if (loss) DsColors.Danger else DsColors.Primary)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Classe A", countFigure(a.products, "produit", "produits"), DsColors.TextPrimary, Modifier.weight(1f),
+            KpiTile("Classe A", countFigure(a.products, "produit", "produits"), DsColors.PrimaryDark, Modifier.weight(1f),
                 percentOf(a.products.toDouble(), report.lines.size.toDouble()), Icons.Default.Star, INFO_A, accent = AbcColors[0])
             // The stock that did not move, in money; the card opens the list.
-            KpiTile("Sans vente", money.figure(report.dormantValue), DsColors.TextPrimary,
+            KpiTile("Sans vente", money.figure(report.dormantValue), DsColors.PrimaryDark,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onSansVente),
                 plural(report.dormant.size, "produit", "produits"), Icons.Default.Warehouse, INFO_DORMANT, accent = DsColors.Warning)
         }
@@ -257,7 +257,7 @@ fun ProductLine(rank: Int, p: ProductSales, by: ProductRanking, onClick: () -> U
                     ProductRanking.QUANTITE -> "${formatQty(p.quantity)} ${p.unit}"
                 }
                 Text(figure, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
-                    color = if (by == ProductRanking.MARGE && p.margin < 0) DsColors.Danger else DsColors.TextPrimary,
+                    color = if (by == ProductRanking.MARGE && p.margin < 0) DsColors.Danger else DsColors.PrimaryDark,
                     maxLines = 1, softWrap = false)
             }
         }
@@ -306,7 +306,7 @@ private fun GroupsCard(report: ProductReport, by: ProductGrouping, onGrouping: (
                                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(percentOf(amount, report.total) ?: percent(0.0), fontSize = DsTextSize.bodySmall,
-                                    fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                                    fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                             }
                             FitText(money.da(amount), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                         }
@@ -351,7 +351,7 @@ private fun AbcCard(report: ProductReport) {
                 Spacer(Modifier.width(DsSpacing.sm))
                 Column(horizontalAlignment = Alignment.End) {
                     Text("${percentOf(c.total, total) ?: percent(0.0)} des ventes", fontSize = DsTextSize.bodySmall,
-                        fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1)
+                        fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1)
                     Text(money.da(c.total), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, softWrap = false)
                 }
             }
@@ -490,7 +490,7 @@ private fun DormantLine(d: DormantProduct, onClick: () -> Unit) {
                 Text("Stock : ${formatQty(d.stock)} ${d.unit}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text(money.da(d.value), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1, softWrap = false)
+                Text(money.da(d.value), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
             }
         }
     }

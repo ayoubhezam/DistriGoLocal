@@ -226,7 +226,7 @@ fun PerteHistoryScreen(
                             Text("− ${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
                                 color = DsColors.Danger, maxLines = 1, softWrap = false)
                             Text(money.da(perte.valeur_totale), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
-                                color = DsColors.Primary, maxLines = 1, softWrap = false)
+                                color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -269,7 +269,7 @@ private fun PerteFiltersSheet(
             Button(
                 onClick = { onApply(draft) },
                 modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.md))
         }

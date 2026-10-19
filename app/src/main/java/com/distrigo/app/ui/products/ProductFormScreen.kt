@@ -605,7 +605,7 @@ fun ProductFormScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DsColors.Surface)
+            .background(DsColors.SurfaceMuted)
     ) {
         // ── Header ──
         DsTopAppBar(
@@ -714,7 +714,7 @@ fun ProductFormScreen(
                         clip  = false
                         alpha = lerp(1f, 0.97f, absOffset)
                     }
-                    .background(DsColors.Surface)
+                    .background(DsColors.SurfaceMuted)
             ) {
             when (page) {
                 0 -> Column(
@@ -840,7 +840,7 @@ fun ProductFormScreen(
                             onClick  = { showAddSupplierDialog = true },
                             modifier = Modifier.height(56.dp),
                             shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = androidx.compose.ui.graphics.Color.White)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
@@ -998,7 +998,8 @@ fun ProductFormScreen(
                             .fillMaxWidth()
                             .height(140.dp)
                             .clip(DsShapes.large)
-                            .background(DsColors.SurfaceSunken)
+                            .background(DsColors.Surface)
+                            .border(1.dp, DsColors.Border, DsShapes.large)
                             .clickable { photoPicker.choose() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -1086,7 +1087,7 @@ fun ProductFormScreen(
                             onClick  = { showAddCategoryDialog = true },
                             modifier = Modifier.height(56.dp),
                             shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = androidx.compose.ui.graphics.Color.White)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
@@ -1147,7 +1148,7 @@ fun ProductFormScreen(
                             enabled  = sousCategorieEnabled,
                             modifier = Modifier.height(56.dp),
                             shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = androidx.compose.ui.graphics.Color.White)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
@@ -1198,7 +1199,7 @@ fun ProductFormScreen(
                             onClick  = { showAddMarqueDialog = true },
                             modifier = Modifier.height(56.dp),
                             shape    = DsShapes.medium,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark, contentColor = androidx.compose.ui.graphics.Color.White)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
@@ -1260,7 +1261,7 @@ fun ProductFormScreen(
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.large,
-                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
                 if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 else Row(verticalAlignment = Alignment.CenterVertically) {

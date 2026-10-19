@@ -103,7 +103,7 @@ internal fun Step1Client(
                     onClick  = onChooseClient,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape    = DsShapes.medium,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
@@ -204,7 +204,7 @@ internal fun Step1Client(
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                 .height(52.dp),
             shape  = DsShapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
@@ -319,7 +319,7 @@ internal fun Step3Validation(
                         money.da(item.quantity * item.unitPrice),
                         fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.Bold,
-                        color      = DsColors.Primary
+                        color      = DsColors.PrimaryDark
                     )
                 }
             }
@@ -336,7 +336,7 @@ internal fun Step3Validation(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                 }
             }
 
@@ -346,7 +346,8 @@ internal fun Step3Validation(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(DsShapes.medium)
-                        .background(DsColors.SurfaceMuted)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.medium)
                         .padding(DsSpacing.md)
                 ) {
                     Row(

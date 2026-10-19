@@ -252,7 +252,7 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 onClick = { onApply(draft) },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = DsShapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark),
             ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.lg))
         }

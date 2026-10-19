@@ -158,7 +158,7 @@ fun ChargeDialog(
                         },
                         enabled = !adding && typing.isNotBlank(),
                         modifier = Modifier.weight(1f), shape = DsShapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                        colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) { Text("Ajouter", fontWeight = FontWeight.SemiBold) }
                 }
             } else Box {
@@ -243,7 +243,7 @@ fun ChargeDialog(
                     },
                     enabled = !isSaving && newName == null && subType != null && amount != null && amount > 0,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
                     else Text("Enregistrer", fontWeight = FontWeight.SemiBold)
