@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -100,6 +101,12 @@ fun SelectionCartCard(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     isDanger: Boolean = false,
+    /** The line total's colour when nothing is wrong; the purchase workflow gives it the navy. */
+    priceColor: Color = DsColors.Primary,
+    /** The product's photo, shown in the tile when it has one; the icon otherwise. */
+    imageRef: String? = null,
+    /** A gray tile and icon, as the product lists draw them, instead of the blue ones. */
+    neutralAvatar: Boolean = false,
     statusLine: @Composable () -> Unit,
     expandedContent: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier
@@ -110,9 +117,17 @@ fun SelectionCartCard(
         else       -> DsColors.Border
     }
     val containerColor = if (isDanger) DsColors.DangerLight else DsColors.Surface
-    val avatarBg        = if (isDanger) DsColors.DangerSoft else DsColors.PrimaryLight
-    val avatarTint       = if (isDanger) DsColors.Danger else DsColors.Primary
-    val priceColor       = if (isDanger) DsColors.Danger else DsColors.Primary
+    val avatarBg        = when {
+        isDanger      -> DsColors.DangerSoft
+        neutralAvatar -> DsColors.SurfaceSunken
+        else          -> DsColors.PrimaryLight
+    }
+    val avatarTint       = when {
+        isDanger      -> DsColors.Danger
+        neutralAvatar -> DsColors.TextSecondary
+        else          -> DsColors.Primary
+    }
+    val lineColor        = if (isDanger) DsColors.Danger else priceColor
     val chevronRotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chevronRotation")
 
     Column(
@@ -135,7 +150,9 @@ fun SelectionCartCard(
                 modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(avatarBg),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(avatarIcon, contentDescription = null, tint = avatarTint, modifier = Modifier.size(18.dp))
+                EntityImage(ref = imageRef, contentDescription = null, modifier = Modifier.fillMaxSize()) {
+                    Icon(avatarIcon, contentDescription = null, tint = avatarTint, modifier = Modifier.size(18.dp))
+                }
             }
             Spacer(Modifier.width(DsSpacing.sm))
             Column(modifier = Modifier.weight(1f)) {
@@ -156,7 +173,7 @@ fun SelectionCartCard(
                 )
             }
             Spacer(Modifier.width(DsSpacing.sm))
-            Text(totalPriceLabel, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = priceColor)
+            Text(totalPriceLabel, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = lineColor)
             Spacer(Modifier.width(4.dp))
             Icon(
                 Icons.Default.KeyboardArrowDown,

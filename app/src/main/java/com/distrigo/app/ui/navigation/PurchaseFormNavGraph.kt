@@ -81,6 +81,11 @@ import com.distrigo.app.ui.common.Step2Chip
 import com.distrigo.app.ui.common.productFilterChips
 import com.distrigo.app.ui.common.ActiveProductFilterChips
 import com.distrigo.app.ui.common.ProductCountAndFilters
+import androidx.compose.foundation.border
+import com.distrigo.app.ui.common.avatarColor
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -250,7 +255,7 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             BackHandler { onBack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
@@ -363,7 +368,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DsColors.Surface)
+                    .background(DsColors.SurfaceMuted)
             ) {
                 DsTopAppBar(
                     title   = "Choisir un fournisseur",
@@ -372,6 +377,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     DsTopBarAddButton(
                         contentDescription = "Nouveau fournisseur",
                         onClick            = { showAddSupplierDialog = true },
+                        containerColor     = DsColors.PrimaryDark,
                         modifier           = Modifier.padding(end = DsSpacing.md)
                     )
                 }
@@ -408,8 +414,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 modifier          = Modifier.padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val avatarColors = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
-                                val color        = Color(avatarColors[supplier.name[0].code % avatarColors.size])
+                                val color        = avatarColor(supplier.name)
                                 val initials     = supplier.name.split(" ").take(2)
                                     .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                                 Box(
@@ -529,7 +534,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             val activeFilterChips = productFilterChips(filters, categories, sousCategories, marques, suppliers, "Prix d'achat", money)
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
@@ -572,8 +577,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                         Step2Chip(
                             icon      = Icons.Default.Add,
                             label     = "Nouveau produit",
-                            container = DsColors.PrimaryLight,
-                            content   = DsColors.Primary,
+                            container = DsColors.PrimaryDark,
+                            content   = Color.White,
                             onClick   = { showAddProductScreen = true }
                         )
                     }
@@ -652,7 +657,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             maxLines   = 1
                                         )
                                         Text(
-                                            "${product.category_name ?: "—"} · ${money.da(product.purchase_price)}",
+                                            buildAnnotatedString {
+                                                append("${product.category_name ?: "—"} · ")
+                                                withStyle(SpanStyle(color = DsColors.PrimaryDark, fontWeight = FontWeight.SemiBold)) {
+                                                    append(money.da(product.purchase_price))
+                                                }
+                                            },
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
@@ -671,9 +681,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 // for this bon. A carton line is built as before.
                                                 session.setFormCartItems(cartItems + newPurchaseCartItem(product))
                                             },
-                                            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
+                                            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
                                         ) {
-                                            Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = Color.White, modifier = Modifier.size(20.dp))
                                         }
                                     } else {
                                         IconButton(
@@ -719,7 +729,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(DsShapes.pill)
-                                .background(if (cartItems.isNotEmpty()) DsColors.SuccessLight else DsColors.SurfaceSunken)
+                                .background(if (cartItems.isNotEmpty()) DsColors.SuccessLight else DsColors.Surface)
+                                .border(1.dp, if (cartItems.isNotEmpty()) Color.Transparent else DsColors.Border, DsShapes.pill)
                                 .clickable(enabled = cartItems.isNotEmpty()) { navController.navigate(Screen.PurchaseFormCart.route) }
                                 .padding(horizontal = 14.dp, vertical = DsSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
@@ -766,7 +777,7 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = "Ma sélection",
                     subtitle = formSupplier?.name ?: "",
@@ -799,7 +810,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             Button(
                                 onClick = { navController.popBackStack() },
                                 shape   = DsShapes.medium,
-                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                                colors  = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                             ) { Text("Parcourir les produits") }
                         }
                     }
@@ -838,6 +849,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 title           = item.product.name,
                                 metaLine        = metaLine,
                                 totalPriceLabel = money.da(item.quantity * item.unitCost),
+                                priceColor      = DsColors.PrimaryDark,
+                                imageRef        = item.product.image_uri,
+                                neutralAvatar   = true,
                                 isExpanded      = isExpanded,
                                 onToggleExpand  = { expandedCartItemId = if (isExpanded) null else item.product.id },
                                 statusLine      = {
@@ -988,21 +1002,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             )
                         }
 
-                        item {
-                            OutlinedTextField(
-                                value         = note,
-                                onValueChange = { session.setFormNote(it) },
-                                placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
-                                modifier      = Modifier.fillMaxWidth(),
-                                shape         = DsShapes.medium,
-                                minLines      = 2,
-                                maxLines      = 3,
-                                colors        = dsTextFieldColors(
-                                    unfocusedBorderColor = DsColors.Border,
-                                    focusedBorderColor   = DsColors.Primary
-                                )
-                            )
-                        }
+                        // No note here: the validation step has the bon's note (the owner, 2026-10-19).
 
                         item {
                             Row(
@@ -1014,8 +1014,8 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                                Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                                Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                             }
                         }
                     }
@@ -1050,7 +1050,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             enabled  = cartItems.isNotEmpty(),
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape    = DsShapes.large,
-                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                            colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                         ) {
                             Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }
@@ -1121,7 +1121,7 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
+            Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 PurchaseFormHeader(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),

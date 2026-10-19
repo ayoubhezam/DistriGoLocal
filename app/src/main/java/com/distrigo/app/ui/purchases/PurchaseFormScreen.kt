@@ -37,6 +37,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchTrigger
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
+import com.distrigo.app.ui.common.avatarColor
 
 data class CartItem(
     val product       : Product,
@@ -108,7 +109,7 @@ internal fun Step1Fournisseur(
                     onClick  = onChooseSupplier,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape    = DsShapes.large,
-                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+                    colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Icon(Icons.Default.Business, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
@@ -167,8 +168,7 @@ internal fun Step1Fournisseur(
                 ) {
                     Column(modifier = Modifier.padding(DsSpacing.lg)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val avatarColors = listOf(0xFF1565C0, 0xFF2E7D32, 0xFF6A1B9A, 0xFFC62828, 0xFFE65100, 0xFF00695C)
-                            val color        = Color(avatarColors[selectedSupplier.name[0].code % avatarColors.size])
+                            val color        = avatarColor(selectedSupplier.name)
                             val initials     = selectedSupplier.name.split(" ").take(2)
                                 .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
                             Box(
@@ -213,7 +213,7 @@ internal fun Step1Fournisseur(
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
                 .height(52.dp),
             shape  = DsShapes.large,
-            colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
@@ -251,27 +251,34 @@ internal fun Step3Validation(
     onConfirm               : () -> Unit
 ) {
     val money = LocalMoneyFormatter.current
+    // No bar of its own: the workflow's header above already says « Validation · 3/3 » and goes back.
     Column(modifier = Modifier.fillMaxSize()) {
-        DsTopAppBar(
-            title   = "Validation",
-            leading = DsTopBarLeading.Back(onBack)
-        )
-
         LazyColumn(
             modifier            = Modifier.weight(1f).fillMaxWidth(),
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // ── Supplier summary card ──
+            // ── The bon in one frame: the supplier, its articles and the total, close together (the owner,
+            // 2026-10-19). « Montant payé » and the note keep frames of their own below.
             item {
-                Card(
-                    modifier  = Modifier.fillMaxWidth(),
-                    shape     = DsShapes.large,
-                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(DsShapes.large)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
+                        .padding(DsSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // Supplier
+                    Row(
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.SurfaceMuted)
+                            .padding(DsSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                             contentAlignment = Alignment.Center
@@ -284,81 +291,75 @@ internal fun Step3Validation(
                             Text(
                                 "Solde du fournisseur : ${money.da(selectedSupplier?.balance ?: 0.0)}",
                                 fontSize = DsTextSize.bodySmall,
-                                color    = if ((selectedSupplier?.balance ?: 0.0) > 0) DsColors.Danger else DsColors.TextSecondary
+                                color    = if (Amount.owing(selectedSupplier?.balance ?: 0.0)) DsColors.Danger else DsColors.TextSecondary
                             )
                         }
                     }
-                }
-            }
 
-            // ── Articles header ──
-            item {
-                Text(
-                    "Articles (${cartItems.size})",
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = DsColors.TextSecondary,
-                    modifier   = Modifier.padding(top = 4.dp)
-                )
-            }
+                    Text(
+                        "Articles (${cartItems.size})",
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextSecondary,
+                        modifier   = Modifier.padding(start = DsSpacing.xs, top = 2.dp)
+                    )
 
-// ── Articles list (read-only) ──
-            items(cartItems, key = { it.product.id }) { item ->
-                val quantityLine = if (item.product.unit_type == "pièce")
-                    "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
-                else
-                    "${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)}"
+                    // Articles (read-only)
+                    cartItems.forEach { item ->
+                        val quantityLine = if (item.product.unit_type == "pièce")
+                            "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
+                        else
+                            "${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)}"
 
-                Card(
-                    modifier  = Modifier.fillMaxWidth(),
-                    shape     = DsShapes.large,
-                    colors    = CardDefaults.cardColors(containerColor = DsColors.Surface),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-                ) {
-                    Row(modifier = Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier          = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .background(DsColors.SurfaceMuted)
+                                .padding(DsSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            EntityImage(
-                                ref                = item.product.image_uri,
-                                contentDescription = null,
-                                modifier           = Modifier.fillMaxSize()
+                            Box(
+                                modifier         = Modifier.size(38.dp).clip(DsShapes.medium).background(DsColors.SurfaceSunken),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+                                EntityImage(
+                                    ref                = item.product.image_uri,
+                                    contentDescription = null,
+                                    modifier           = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+                                }
                             }
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
+                                Text(quantityLine, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text("${money.da(item.unitCost)}/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            }
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text(
+                                money.da(item.quantity * item.unitCost),
+                                fontSize   = DsTextSize.body,
+                                fontWeight = FontWeight.Bold,
+                                color      = DsColors.PrimaryDark
+                            )
                         }
-                        Spacer(Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                            Text(quantityLine, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                            Text("${money.da(item.unitCost)}/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                        }
-                        Spacer(Modifier.width(DsSpacing.sm))
-                        Text(
-                            money.da(item.quantity * item.unitCost),
-                            fontSize   = DsTextSize.body,
-                            fontWeight = FontWeight.Bold,
-                            color      = DsColors.Primary
-                        )
                     }
-                }
-            }
 
-            // ── Total ──
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.large)
-                        .background(DsColors.PrimaryLight)
-                        .padding(DsSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
+                    // Total
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                        Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
+                    }
                 }
             }
 
@@ -368,7 +369,8 @@ internal fun Step3Validation(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(DsShapes.large)
-                        .background(DsColors.SurfaceSunken)
+                        .background(DsColors.Surface)
+                        .border(1.dp, DsColors.Border, DsShapes.large)
                         .padding(14.dp)
                 ) {
                     Row(
@@ -446,7 +448,7 @@ internal fun Step3Validation(
                     value         = note,
                     onValueChange = onNoteChange,
                     placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
-                    modifier      = Modifier.fillMaxWidth(),
+                    modifier      = Modifier.fillMaxWidth().background(DsColors.Surface, DsShapes.medium),
                     shape         = DsShapes.medium,
                     minLines      = 2,
                     maxLines      = 3,
@@ -498,7 +500,7 @@ internal fun Step3Validation(
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
                     if (isEdit) "Enregistrer · ${money.da(total)}"
-                    else        "Confirmer la commande · ${money.da(total)}",
+                    else        "Confirmer · ${money.da(total)}",
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }

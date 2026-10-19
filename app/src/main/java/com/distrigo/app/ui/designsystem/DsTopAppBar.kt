@@ -351,10 +351,11 @@ fun DsTopBarAddButton(
     contentDescription : String,
     onClick            : () -> Unit,
     modifier           : Modifier = Modifier,
+    containerColor     : Color = DsColors.Primary,
 ) {
     FloatingActionButton(
         onClick        = onClick,
-        containerColor = DsColors.Primary,
+        containerColor = containerColor,
         contentColor   = Color.White,
         modifier       = modifier.size(DsTopBarActionSize),
         shape          = DsShapes.pill

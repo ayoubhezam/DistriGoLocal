@@ -25,6 +25,9 @@ private val avatarColors = listOf(
     DsColors.AccentRose, DsColors.AccentOrange, DsColors.PrimaryDark
 )
 
+/** The palette colour of [name]'s initials: the same name always gets the same one. */
+fun avatarColor(name: String): Color = avatarColors[name.firstOrNull()?.code?.rem(avatarColors.size) ?: 0]
+
 @Composable
 fun EntityAvatar(
     name     : String,
@@ -32,7 +35,7 @@ fun EntityAvatar(
     size     : Dp = 42.dp,
     modifier : Modifier = Modifier
 ) {
-    val color    = avatarColors[name.firstOrNull()?.code?.rem(avatarColors.size) ?: 0]
+    val color    = avatarColor(name)
     val initials = name.split(" ").take(2)
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }
         .joinToString("")
