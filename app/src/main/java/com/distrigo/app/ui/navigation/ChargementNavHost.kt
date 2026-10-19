@@ -118,6 +118,7 @@ fun ChargementNavHost(
                     subtitleColor = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextSecondary,
                     leading       = DsTopBarLeading.Back(onBack)
                 )
+                com.distrigo.app.ui.designsystem.DsUnloadOnlyNote()
 
                 // Outside the list, not its first item: a search box that scrolls away is gone
                 // exactly when a long list makes it useful. Fixed here, as Stock Camion and the
@@ -340,6 +341,7 @@ fun ChargementNavHost(
                     // TextButton brings its own inset; this makes up the standard end margin.
                     Spacer(Modifier.width(DsSpacing.xs))
                 }
+                com.distrigo.app.ui.designsystem.DsUnloadOnlyNote()
 
                 if (cartItems.isEmpty()) {
                     Box(
@@ -373,7 +375,7 @@ fun ChargementNavHost(
                             ChargementCartRow(
                                 item              = item,
                                 initiallyExpanded = preSelectedProductId == item.product.id,
-                                camionCap         = stockPolicy.camionTargetCap(item.product),
+                                camionCap         = license.camionCap(stockPolicy.camionTargetCap(item.product), item.product.camion_stock),
                                 onQuantityChange  = { newTarget ->
                                     session.setFormCartItems(cartItems.map {
                                         if (it.product.id == item.product.id) it.copy(targetCamion = newTarget.coerceAtLeast(0.0)) else it

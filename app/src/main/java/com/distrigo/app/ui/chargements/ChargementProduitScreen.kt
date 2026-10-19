@@ -101,7 +101,8 @@ fun ChargementProduitScreen(
     val stockPolicy by viewModel.stockPolicy.collectAsState()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
-    val camionCap = stockPolicy.camionTargetCap(product)
+    // Strict stock, and while the license does not record, no more than the truck holds now (D4: unload only)
+    val camionCap = license.camionCap(stockPolicy.camionTargetCap(product), product.camion_stock)
     // Strict stock: the stock moved after the target was set (a restored pending edit).
     val overStock = camionCap != null && targetCamion > camionCap + 1e-6
 
@@ -173,6 +174,7 @@ fun ChargementProduitScreen(
             subtitle = product.name,
             leading  = DsTopBarLeading.Back { attemptBack() }
         )
+        com.distrigo.app.ui.designsystem.DsUnloadOnlyNote()
 
         Column(
             modifier = Modifier

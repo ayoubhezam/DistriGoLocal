@@ -32,6 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  *    ([checkInNow], LicenseInFront).
  *  - [LicenseReminderWorker] when the phone must check in within [REMIND_BEFORE] and hasn't managed to: no network
  *    needed, since the phones that need the reminder are those without one.
+ *  - [LicenseGraceWorker] when the subscription ends ([graceNoticeAt]): one notification on the first day of grace
+ *    (docs/license_l5_enforcement.md, decision 6).
  *
  * The schedule follows the account and the license rather than each place that changes them: an activation or a
  * sign-in starts it, a sign-out, a deletion or a revocation stops it, and a suspension keeps it, so the
@@ -53,6 +55,7 @@ class LicenseCheckInScheduler(
         if (started.compareAndSet(false, true)) {
             scope.launch { follow(account, license, { guarded(::schedule) }, { guarded(::cancel) }) }
             scope.launch { followReminder(account, license, { at -> guarded { remind(at) } }, { guarded(::dropReminder) }) }
+            scope.launch { followReminder(account, license, { at -> guarded { noticeGrace(at) } }, { guarded(::dropGraceNotice) }, ::graceNoticeAt) }
         }
     }
 
@@ -111,6 +114,23 @@ class LicenseCheckInScheduler(
         alerts.clear()
     }
 
+    /** The grace notice for the license held now, at its subscription's end; already past, the worker looks at once. */
+    private fun noticeGrace(at: Long) {
+        val delay = at - clock()
+        // Still to come: a notice shown is about an earlier end, renewed since
+        if (delay > 0) alerts.clearGrace()
+        val request = OneTimeWorkRequestBuilder<LicenseGraceWorker>()
+            .setInitialDelay(delay.coerceAtLeast(0), TimeUnit.MILLISECONDS)
+            .addTag(GRACE_NAME)
+            .build()
+        workManager().enqueueUniqueWork(GRACE_NAME, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    private fun dropGraceNotice() {
+        workManager().cancelUniqueWork(GRACE_NAME)
+        alerts.clearGrace()
+    }
+
     private fun network() = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
     /** WorkManager trouble (its database, say) must not take the app down; the next start tries again. */
@@ -130,6 +150,7 @@ class LicenseCheckInScheduler(
         const val WORK_NAME = "license-check-in"
         const val NOW_NAME = "license-check-in-now"
         const val REMINDER_NAME = "license-check-in-reminder"
+        const val GRACE_NAME = "license-grace-notice"
         const val PERIOD_HOURS = 12L
         const val FLEX_HOURS = 4L
 
@@ -161,6 +182,17 @@ class LicenseCheckInScheduler(
         }
 
         /**
+         * When to announce the grace days (decision 6): the end of the subscription held, a second after. None when
+         * signed out, suspended, or for a license past its grace already: there is no grace left to announce.
+         */
+        fun graceNoticeAt(account: AccountState, license: LicenseState): Long? {
+            if (account !is AccountState.SignedIn || license is LicenseState.Suspended || license is LicenseState.Expired) return null
+            val held = license.heldLicense ?: return null
+            if (held.graceUntil <= held.validTo) return null
+            return held.validTo + 1_000
+        }
+
+        /**
          * Schedules whenever it becomes wanted, the first time included; cancels whenever it stops being wanted,
          * but not at the first reading: a phone without a license doesn't start WorkManager at each launch for a
          * schedule it never had.
@@ -178,15 +210,19 @@ class LicenseCheckInScheduler(
             }
         }
 
-        /** The same for the reminder: planned again for each license, dropped when none applies, not at the first reading. */
+        /**
+         * The same for the reminder ([timeOf] is [remindAt]) and the grace notice ([graceNoticeAt]): planned again for each
+         * license, dropped when none applies, not at the first reading.
+         */
         internal suspend fun followReminder(
             account: Flow<AccountState>,
             license: Flow<LicenseState>,
             remind: (Long) -> Unit,
             drop: () -> Unit,
+            timeOf: (AccountState, LicenseState) -> Long? = ::remindAt,
         ) {
             var first = true
-            combine(account, license) { a, l -> if (a == AccountState.Loading || l == LicenseState.Unchecked) null else Reminder(remindAt(a, l)) }
+            combine(account, license) { a, l -> if (a == AccountState.Loading || l == LicenseState.Unchecked) null else Reminder(timeOf(a, l)) }
                 .filterNotNull()
                 .distinctUntilChanged()
                 .collect { reminder ->

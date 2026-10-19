@@ -114,6 +114,18 @@ class LicensePolicyTest {
     }
 
     @Test
+    fun `a date set back more than a day gets its own card, with the date settings`() {
+        val clock = policy(LicenseState.ClockBehind(license(), at(issued + 2 * DAY, wall = issued)))
+        assertFalse(clock.canRecord)
+        val card = clock.banner!!
+        assertTrue(card.card)
+        assertEquals("La date du téléphone est en retard", card.text)
+        assertEquals("Activez « Date et heure automatiques », puis revenez.", card.detail)
+        assertEquals(Action.DATE_SETTINGS, card.action)
+        assertEquals("Régler la date", clock.block!!.actionLabel)
+    }
+
+    @Test
     fun `before the license is read, nothing is said and no sheet opens`() {
         val unchecked = policy(LicenseState.Unchecked)
         assertFalse(unchecked.canRecord)

@@ -44,6 +44,10 @@ data class LicensePolicy(
         val action: Action? = null,
         /** Decision 5: a warning closes for the day; a read-only banner stays. */
         val dismissible: Boolean = false,
+        /** A second line, under [text]: what to do. */
+        val detail: String? = null,
+        /** Drawn as a full-width card rather than a line (§4, the phone's date set back). */
+        val card: Boolean = false,
     )
 
     /** The « Consultation seule » sheet: one line of reason, then the main button. */
@@ -96,9 +100,15 @@ data class LicensePolicy(
                 is LicenseState.CheckInRequired ->
                     readOnly("Vérification de l'abonnement nécessaire : connectez-vous à Internet.", Action.RETRY,
                         "L'abonnement doit être vérifié : connectez-vous à Internet.", "Réessayer")
-                is LicenseState.ClockBehind ->
-                    readOnly("La date du téléphone est en retard : activez « Date et heure automatiques ».", Action.DATE_SETTINGS,
-                        "La date du téléphone est en retard : chaque document serait mal daté.", "Régler la date")
+                // §4: its own card, since every new document would carry a wrong date whatever the license says
+                is LicenseState.ClockBehind -> LicensePolicy(
+                    canRecord = false,
+                    banner = Banner(
+                        "La date du téléphone est en retard", Tone.READ_ONLY, Action.DATE_SETTINGS,
+                        detail = "Activez « Date et heure automatiques », puis revenez.", card = true,
+                    ),
+                    block = Block("La date du téléphone est en retard : chaque document serait mal daté.", Action.DATE_SETTINGS, "Régler la date"),
+                )
                 LicenseState.Revoked ->
                     readOnly("Cet appareil n'est plus associé au compte.", Action.ACCOUNT,
                         "Cet appareil n'est plus associé au compte.", "Compte")

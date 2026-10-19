@@ -570,6 +570,12 @@ fun TourneeDetailScreen(
                     // difference to the bar's standard end margin itself.
                     Spacer(Modifier.width(DsSpacing.md))
                 }
+                // D4: read-only, an open tournée can still be closed and the truck unloaded
+                if (current.status == "ouverte") {
+                    com.distrigo.app.ui.designsystem.DsUnloadOnlyNote(
+                        "Consultation seule : vous pouvez encore clôturer la tournée (menu ⋮) et décharger le camion."
+                    )
+                }
 
                 val ventes = current.ventes ?: emptyList()
                 val hasActiveFilters = viewModel.venteFilterStatus != null || viewModel.venteFilterPaymentStatus != null || viewModel.venteFilterClientId != null

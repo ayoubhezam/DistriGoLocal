@@ -141,7 +141,8 @@ an amber banner only, recording continues (§2.5).
    message, `allowing` for D4; the androidTest coverage and refusal tests.
 2. **L5b — the screens:** `LicensePolicy`, `DsLicenseBanner`, the « Consultation seule » sheet, every
    way in from §2; « Confirmer » in the open forms.
-3. **L5c — the clock card** and the D4 actions in the tournée and Stock Camion.
+3. **L5c — the clock card**, the D4 actions in the tournée and Stock Camion, and decision 6's grace
+   notification (moved here by the owner, 2026-10-19).
 4. **L5d — the walk** on the test account; benchmark build left on the phone at the end.
 
 Each part compiled, tested and shown on the phone before the next; commits as asked.

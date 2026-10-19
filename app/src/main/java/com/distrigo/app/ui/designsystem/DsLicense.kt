@@ -82,6 +82,17 @@ class LicenseUi(
         return true
     }
 
+    /** Recording is off: the truck's screens let its stock go down (an unload, D4), never up. */
+    val unloadOnly: Boolean
+        get() = !policy.canRecord && policy.block != null
+
+    /**
+     * The most the truck may hold of a product after this chargement: [stockCap] (strict stock), and, while only
+     * unloading is allowed, no more than it holds now ([camionNow]).
+     */
+    fun camionCap(stockCap: Double?, camionNow: Double): Double? =
+        if (unloadOnly) minOf(stockCap ?: camionNow, camionNow) else stockCap
+
     /** [action] wrapped in [runOrExplain], for an `onClick`. */
     fun guarded(action: () -> Unit): () -> Unit = { runOrExplain(action) }
 
@@ -134,6 +145,7 @@ object LicenseRefusals {
 @Composable
 fun DsLicenseBanner(license: LicenseUi = LocalLicense.current) {
     val banner = license.banner ?: return
+    if (banner.card) return LicenseCard(banner, license)
     val readOnly = banner.tone == LicensePolicy.Tone.READ_ONLY
     val tint = if (readOnly) DsColors.Danger else DsColors.Warning
     Row(
@@ -171,6 +183,66 @@ fun DsLicenseBanner(license: LicenseUi = LocalLicense.current) {
             ) {
                 Icon(Icons.Default.Close, contentDescription = "Fermer pour aujourd'hui", tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
             }
+        }
+    }
+}
+
+/**
+ * D4 in the truck's and the open tournée's screens: while the license does not record, the tournée can still be closed
+ * and the truck unloaded toward the dépôt (docs/license_l5_enforcement.md §7, decision 3), and this line says so.
+ * Nothing otherwise.
+ */
+@Composable
+fun DsUnloadOnlyNote(
+    text: String = "Consultation seule : vous pouvez encore décharger le camion vers le dépôt, pas le charger.",
+    license: LicenseUi = LocalLicense.current,
+) {
+    if (!license.unloadOnly) return
+    Row(
+        modifier          = Modifier
+            .fillMaxWidth()
+            .background(DsColors.WarningLight)
+            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(BrandSize.RowIcon))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(
+            text,
+            fontFamily = DsBrand.Font,
+            fontWeight = FontWeight.SemiBold,
+            fontSize   = BrandSize.Small,
+            lineHeight = BrandSize.SmallLine,
+            color      = DsColors.TextPrimary
+        )
+    }
+}
+
+/**
+ * The phone's date set back more than a day (§4): a full-width card in the banner's place, its title, what to do, and
+ * « Régler la date ». Coming back from the settings re-reads the license at once (LicenseInFront).
+ */
+@Composable
+private fun LicenseCard(banner: LicensePolicy.Banner, license: LicenseUi) {
+    Column(
+        modifier            = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
+            .clip(DsShapes.medium)
+            .background(DsColors.DangerLight)
+            .padding(DsSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Schedule, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text(banner.text, fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, fontSize = BrandSize.CardTitle, color = DsColors.Danger)
+        }
+        banner.detail?.let {
+            Text(it, fontFamily = DsBrand.Font, fontSize = BrandSize.Body, lineHeight = BrandSize.BodyLine, color = DsColors.TextPrimary)
+        }
+        banner.action?.let { action ->
+            BrandWideButton(label = action.label, icon = action.icon, filled = true, enabled = true) { license.act(action) }
         }
     }
 }

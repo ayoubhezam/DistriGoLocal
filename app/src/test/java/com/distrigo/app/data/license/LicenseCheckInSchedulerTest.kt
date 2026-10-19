@@ -86,4 +86,31 @@ class LicenseCheckInSchedulerTest {
         assertEquals(false, LicenseCheckInScheduler.wanted(signedIn, LicenseState.Revoked))
         assertEquals(false, LicenseCheckInScheduler.wanted(AccountState.SignedOut, active))
     }
+
+    /** Decision 6 (docs/license_l5_enforcement.md): one notice when the subscription ends, while there is grace to announce. */
+    @Test
+    fun `the grace notice is planned at the end of the subscription held`() {
+        assertEquals(license.validTo + 1_000, LicenseCheckInScheduler.graceNoticeAt(signedIn, active))
+        assertEquals(license.validTo + 1_000, LicenseCheckInScheduler.graceNoticeAt(signedIn, LicenseState.Grace(license, time)))
+        assertEquals("past the grace: nothing left to announce", null, LicenseCheckInScheduler.graceNoticeAt(signedIn, LicenseState.Expired(license, time)))
+        assertEquals(null, LicenseCheckInScheduler.graceNoticeAt(signedIn, LicenseState.Suspended(license)))
+        assertEquals(null, LicenseCheckInScheduler.graceNoticeAt(AccountState.SignedOut, active))
+        assertEquals(null, LicenseCheckInScheduler.graceNoticeAt(signedIn, LicenseState.NoLicense()))
+    }
+
+    @Test
+    fun `a renewal plans the notice again, the same end does not`() = runTest {
+        val planned = mutableListOf<Long>()
+        backgroundScope.launch {
+            LicenseCheckInScheduler.followReminder(account, state, { planned += it }, { calls += "drop" }, LicenseCheckInScheduler::graceNoticeAt)
+        }
+        runCurrent()
+        becomes(signedIn, active)
+        becomes(license = LicenseState.Grace(license, time))
+        val renewed = license.copy(validTo = license.validTo + 30 * 86_400_000L, graceUntil = license.graceUntil + 30 * 86_400_000L)
+        becomes(license = LicenseState.Active(renewed, time))
+        assertEquals(listOf(license.validTo + 1_000, renewed.validTo + 1_000), planned)
+        becomes(license = LicenseState.Revoked)
+        assertEquals(listOf("drop"), calls)
+    }
 }
