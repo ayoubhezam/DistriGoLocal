@@ -48,7 +48,7 @@ class ChangeTrackingTest {
     @Test
     fun everyBusinessTableIsTracked() {
         val tracked = UpdatedAtTriggers.trackedTables(sql)
-        assertEquals(37, tracked.size)
+        assertEquals(38, tracked.size)
         assertTrue(tracked.none { it.endsWith("_drafts") })
 
         for (table in tracked) {
