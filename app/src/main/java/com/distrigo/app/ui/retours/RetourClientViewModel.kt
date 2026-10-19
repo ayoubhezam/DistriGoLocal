@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.database.AppDatabase
@@ -58,7 +60,7 @@ class RetourClientViewModel @Inject constructor(
                 _retours.value = repository.getRetoursForClient(clientId)
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             } finally {
                 _isLoading.value = false
             }
@@ -76,7 +78,7 @@ class RetourClientViewModel @Inject constructor(
                 _detailPreview.value = repository.getDetailPreview(clientId, limit = 3)
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             }
         }
     }
@@ -90,7 +92,7 @@ class RetourClientViewModel @Inject constructor(
             val result = try {
                 repository.deleteRetour(id)
             } catch (e: Exception) {
-                mapOf("error" to (e.message ?: "La suppression a échoué."))
+                mapOf("error" to (userMessage(e, "La suppression a échoué.")))
             }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)

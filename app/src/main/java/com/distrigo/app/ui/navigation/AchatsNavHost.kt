@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,6 +57,8 @@ fun AchatsNavHost(
     onBack               : () -> Unit = {}
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
         onFullScreenChange(currentRoute != null && currentRoute != Screen.AchatsHome.route)
@@ -87,8 +91,8 @@ fun AchatsNavHost(
                 onProfileClick       = onProfileClick,
 
                 onFullScreenChange = onFullScreenChange,
-                onAddOrder         = { openForm(null, null) },
-                onEditOrder        = editOrder,
+                onAddOrder         = license.guarded { openForm(null, null) },
+                onEditOrder        = { id -> license.runOrExplain { editOrder(id) } },
                 onOrderClick       = { orderId -> navController.navigate(Screen.AchatsDetail.createRoute(orderId)) },
                 onResumeDraft      = resumeDraft,
                 onOpenBrouillons   = { navController.navigate(Screen.AchatsBrouillons.route) }
@@ -151,7 +155,7 @@ fun AchatsNavHost(
                     order      = found.order,
                     viewModel  = viewModel,
                     onBack     = { navController.popOr(onBack) },
-                    onEdit     = { editOrder(orderId) },
+                    onEdit     = license.guarded { editOrder(orderId) },
                     onReceived = { navController.popOr(onBack) }
                 )
             } else if (lookup == OrderLookup.Gone) {

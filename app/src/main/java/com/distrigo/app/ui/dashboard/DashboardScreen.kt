@@ -128,6 +128,7 @@ fun DashboardScreen(
         // leading slot and the global controls take the trailing one.
         DsTopAppBar(
             title   = "Dashboard",
+            licenseBanner = true,
             leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {

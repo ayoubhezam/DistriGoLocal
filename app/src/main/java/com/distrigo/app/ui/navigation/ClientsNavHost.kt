@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.runtime.mutableIntStateOf
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.layout.height
@@ -55,6 +57,8 @@ fun ClientsNavHost(
     onBack              : () -> Unit = {}
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     NavHost(
         navController      = navController,
@@ -79,11 +83,11 @@ fun ClientsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             ClientsScreen(
-                onImport      = { navController.navigate(Screen.ClientsImport.route) },
+                onImport      = license.guarded { navController.navigate(Screen.ClientsImport.route) },
                 viewModel     = viewModel,
                 onBack        = onBack,
-                onAddClient   = { navController.navigate(Screen.ClientsForm.createRoute()) },
-                onEditClient  = { clientId -> navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
+                onAddClient   = license.guarded { navController.navigate(Screen.ClientsForm.createRoute()) },
+                onEditClient  = { clientId -> license.runOrExplain { navController.navigate(Screen.ClientsForm.createRoute(clientId)) } },
                 onClientClick = { clientId -> navController.navigate(Screen.ClientsDetail.createRoute(clientId)) }
             )
         }
@@ -132,10 +136,10 @@ fun ClientsNavHost(
                         viewModel        = viewModel,
                         retourViewModel  = retourViewModel,
                         onBack           = { navController.popOr(onBack) },
-                        onEdit           = { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
-                        onDelete         = { showDeleteConfirm = true },
-                        onNewVente       = { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId, clientName = client.name)) },
-                        onRetourForm     = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) },
+                        onEdit           = license.guarded { navController.navigate(Screen.ClientsForm.createRoute(clientId)) },
+                        onDelete         = license.guarded { showDeleteConfirm = true },
+                        onNewVente       = license.guarded { navController.navigate(Screen.VenteFormGraphDirect.createRoute(clientId = clientId, clientName = client.name)) },
+                        onRetourForm     = license.guarded { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) },
                         onRetourHistory  = { navController.navigate(Screen.ClientsRetourHistory.createRoute(clientId)) },
                         onFactureHistory = { navController.navigate(Screen.ClientsFactureHistory.createRoute(clientId)) }
                     )
@@ -222,7 +226,7 @@ fun ClientsNavHost(
                     client      = client,
                     viewModel   = retourViewModel,
                     onBack      = { navController.popOr(onBack) },
-                    onAddRetour = { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) }
+                    onAddRetour = license.guarded { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) }
                 )
             } else if (!isLoading) {
                 // Gone — not merely not loaded yet: opened first, from a drill-down, the list is empty
@@ -277,7 +281,7 @@ fun ClientsNavHost(
                 newestRequests    = newestRequests,
                 floatingAction    = {
                     ExtendedFloatingActionButton(
-                        onClick        = { showPaymentDialog = true },
+                        onClick        = license.guarded { showPaymentDialog = true },
                         containerColor = DsColors.Success,
                         contentColor   = Color.White,
                         shape          = DsShapes.pill,
@@ -288,7 +292,7 @@ fun ClientsNavHost(
             ) { transaction ->
                 com.distrigo.app.ui.clients.FactureRow(
                     transaction,
-                    onLongPressPaiement = { longPressPayment = it },
+                    onLongPressPaiement = { payment -> license.runOrExplain { longPressPayment = payment } },
                     onOpenVente = { drill(DrillTarget.Vente(it)) }
                 )
             }

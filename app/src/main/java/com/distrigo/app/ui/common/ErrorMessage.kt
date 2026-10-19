@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.common
 
 import com.distrigo.app.data.local.database.LicenseWriteGate
+import com.distrigo.app.ui.designsystem.LicenseRefusals
 
 /**
  * The message a screen shows when an operation fails: the exception's own message, which the
@@ -13,5 +14,30 @@ import com.distrigo.app.data.local.database.LicenseWriteGate
  * A write the license's gate refused (docs/license_l5_enforcement.md §3) gets the gate's French sentence rather
  * than SQLite's.
  */
-fun extractErrorMessage(e: Exception): String =
-    if (LicenseWriteGate.isRefusal(e)) LicenseWriteGate.MESSAGE else e.message ?: "Erreur inconnue"
+fun extractErrorMessage(e: Exception): String = userMessage(e)
+
+/**
+ * [extractErrorMessage] for any failure, with the screen's own [fallback]. A refusal by the license's gate also opens
+ * the « Consultation seule » sheet (LicenseRefusals), so a write no screen guarded still says why.
+ */
+fun userMessage(e: Throwable, fallback: String = "Erreur inconnue"): String =
+    if (LicenseWriteGate.isRefusal(e)) {
+        LicenseRefusals.report()
+        LicenseWriteGate.MESSAGE
+    } else {
+        e.message ?: fallback
+    }
+
+/**
+ * Runs a repository write that reports refusals as an `"error"` entry, and makes anything it throws one too, in
+ * [userMessage]'s words: a refusal by the license's gate, a database error. The forms that call it show the entry and
+ * stay open, rather than the app stopping. A cancellation still propagates.
+ */
+suspend fun caughtAsError(block: suspend () -> Map<String, Any>): Map<String, Any> =
+    try {
+        block()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        mapOf("error" to userMessage(e))
+    }

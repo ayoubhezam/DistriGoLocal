@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -321,6 +323,8 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
     // What was confirmed stays on screen after the selection is cleared.
     var confirmed by remember { mutableStateOf<List<PerteCartLine>?>(null) }
     var saving by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var error by remember { mutableStateOf("") }
     val lines = confirmed ?: live
     BackHandler { if (confirmed != null) onDone() else onBack() }
@@ -370,7 +374,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
         }
         Button(
             onClick = {
-                if (confirmed != null) onDone() else {
+                if (confirmed != null) onDone() else if (!license.refuses()) {
                     saving = true; error = ""
                     val snapshot = live
                     viewModel.confirm(

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -111,7 +113,7 @@ class PerteDetailViewModel @Inject constructor(
             val result = try {
                 repository.deletePerte(current.id)
             } catch (e: Exception) {
-                mapOf("error" to (e.message ?: "La suppression a échoué."))
+                mapOf("error" to (userMessage(e, "La suppression a échoué.")))
             }
             val failure = result["error"] as? String
             if (failure != null) {

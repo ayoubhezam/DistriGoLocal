@@ -58,6 +58,7 @@ fun InventoryHistoryScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title   = "Historique des inventaires",
+            licenseBanner = true,
             leading = DsTopBarLeading.Back(onBack)
         ) {
             // The bar's end inset assumes a 48dp icon button; this pill is 40dp, so it supplies the

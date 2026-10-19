@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.categories
 
+import com.distrigo.app.ui.common.userMessage
+
 import com.distrigo.app.data.model.Category
 import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,7 @@ class CategoryViewModel @Inject constructor(
                 _categories.value = repository.getCategories()
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             } finally {
                 _isLoading.value = false
             }
@@ -53,7 +55,7 @@ class CategoryViewModel @Inject constructor(
                 loadCategories()
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -70,7 +72,7 @@ class CategoryViewModel @Inject constructor(
                 loadCategories()
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -86,7 +88,7 @@ class CategoryViewModel @Inject constructor(
                 loadCategories()
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }

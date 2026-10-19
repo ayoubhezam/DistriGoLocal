@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.lifecycle.ViewModel
 import com.distrigo.app.data.model.StockPolicy
 import com.distrigo.app.data.repository.BusinessSettingsRepository
@@ -52,7 +54,7 @@ class RetourFournisseurViewModel @Inject constructor(
                 _retours.value = repository.getRetoursForSupplier(supplierId)
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             } finally {
                 _isLoading.value = false
             }
@@ -70,7 +72,7 @@ class RetourFournisseurViewModel @Inject constructor(
                 _detailPreview.value = repository.getDetailPreview(supplierId, limit = 3)
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             }
         }
     }
@@ -85,7 +87,7 @@ class RetourFournisseurViewModel @Inject constructor(
             val result = try {
                 repository.deleteRetour(id)
             } catch (e: Exception) {
-                mapOf("error" to (e.message ?: "La suppression a échoué."))
+                mapOf("error" to (userMessage(e, "La suppression a échoué.")))
             }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)

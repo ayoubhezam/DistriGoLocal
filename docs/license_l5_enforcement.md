@@ -189,7 +189,10 @@ buttons, Plus Jakarta Sans, `BrandComponents`), not the mockup's bright blue.
 
 - **Illustration:** the owner's asset `subscription_expired.webp` (689 × 279, WebP with alpha). The
   original is at `C:\Users\pc\Desktop\photos\subscription_expired.webp`; a copy is kept in
-  `docs/design/subscription_expired.webp`. L5b puts it in `res/drawable-nodpi/`.
+  `docs/design/subscription_expired.webp`. L5b puts it in `res/drawable-nodpi/`. While the license is still
+  valid (Active, CheckInSoon, RenewSoon), the owner's `subscription_active.webp` (same size, green check; copy in
+  `docs/design/`) takes its place, with the subtitle « Votre abonnement DistriGo, et de l'aide si besoin »
+  (owner, 2026-10-19). Compte's « Abonnement et assistance » opens the screen for any license held.
 - **State card** (icon, title, one paragraph), its text true to the case:
   - `Expired`: « Votre abonnement a expiré ». « La période d'essai est terminée » only when the
     license is a trial; a paid plan gets its own sentence.

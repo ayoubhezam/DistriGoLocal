@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -286,6 +288,8 @@ fun ChargementNavHost(
             }
             var saveError by remember { mutableStateOf("") }
 
+            // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
+            val license = LocalLicense.current
             fun save() {
                 isSaving = true
                 saveError = ""
@@ -300,6 +304,11 @@ fun ChargementNavHost(
                     )
                 }
                 if (items.isEmpty()) {
+                    isSaving = false
+                    return
+                }
+                // Unloading stays allowed whatever the license (D4); loading the truck does not
+                if (items.any { it["direction"] == "vers_camion" } && license.refuses()) {
                     isSaving = false
                     return
                 }

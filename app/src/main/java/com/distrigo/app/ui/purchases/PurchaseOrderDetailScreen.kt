@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
@@ -59,6 +61,8 @@ fun PurchaseOrderDetailScreen(
     var showReceiveDialog by remember { mutableStateOf(false) }
     var showReopenDialog  by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var showReceiptPreview by remember { mutableStateOf(false) }
     var showShareOptions    by remember { mutableStateOf(false) }
     var deleteError       by remember { mutableStateOf("") }
@@ -225,7 +229,7 @@ fun PurchaseOrderDetailScreen(
                             leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Warning) },
                             onClick = {
                                 overflowMenuExpanded = false
-                                showReopenDialog = true
+                                license.runOrExplain { showReopenDialog = true }
                             }
                         )
                     } else {
@@ -234,7 +238,7 @@ fun PurchaseOrderDetailScreen(
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                             onClick = {
                                 overflowMenuExpanded = false
-                                onEdit()
+                                license.runOrExplain(onEdit)
                             }
                         )
                     }
@@ -243,7 +247,7 @@ fun PurchaseOrderDetailScreen(
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                         onClick = {
                             overflowMenuExpanded = false
-                            showDeleteDialog = true
+                            license.runOrExplain { showDeleteDialog = true }
                         }
                     )
                 }
@@ -452,7 +456,7 @@ fun PurchaseOrderDetailScreen(
 
         if (!isReceived) {
             Button(
-                onClick  = { showReceiveDialog = true },
+                onClick  = license.guarded { showReceiveDialog = true },
                 enabled  = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()

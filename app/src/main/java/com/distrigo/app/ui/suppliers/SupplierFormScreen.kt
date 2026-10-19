@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -102,6 +104,9 @@ fun SupplierFormScreen(
         if (name.isBlank()) { nameError = "Le nom est obligatoire."; valid = false }
         return valid
     }
+
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     fun save() {
         if (!validate()) return
@@ -338,7 +343,7 @@ fun SupplierFormScreen(
 
             // ── Save ──
             Button(
-                onClick  = { save() },
+                onClick  = { license.runOrExplain { save() } },
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.large,

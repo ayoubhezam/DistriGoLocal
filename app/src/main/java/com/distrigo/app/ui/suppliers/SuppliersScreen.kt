@@ -101,6 +101,7 @@ fun SuppliersScreen(
         // affordance; null-safe because the screen is still usable as a root.
         DsTopAppBar(
             title   = "Fournisseurs",
+            licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {

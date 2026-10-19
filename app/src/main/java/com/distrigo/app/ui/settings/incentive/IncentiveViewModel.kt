@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.settings.incentive
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.local.dao.incentive.PolicyWithTiers
@@ -50,7 +52,7 @@ class IncentiveViewModel @Inject constructor(
                 loadActivePolicy()
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             } finally {
                 _isSaving.value = false
             }

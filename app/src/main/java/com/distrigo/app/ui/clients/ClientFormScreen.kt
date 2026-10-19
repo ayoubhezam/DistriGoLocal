@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -116,6 +118,9 @@ fun ClientFormScreen(
 
 
 
+
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     fun save() {
         if (name.isBlank()) {
@@ -403,7 +408,7 @@ fun ClientFormScreen(
 
             // ── Enregistrer ──
             Button(
-                onClick  = { save() },
+                onClick  = { license.runOrExplain { save() } },
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.medium,

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
@@ -94,6 +96,8 @@ fun ProductsScreen(
     // Paged: a screenful at a time, from a query that applies the search, the sheet and the sort.
     val pagedProducts = viewModel.pagedProducts.collectAsLazyPagingItems()
     val productCount  by viewModel.productCount.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val categories    by viewModel.categories.collectAsState()
     val sousCategories by viewModel.sousCategories.collectAsState()
     val marques        by viewModel.marques.collectAsState()
@@ -215,8 +219,8 @@ fun ProductsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.PrimaryLight)
                             .clickable {
-                                onEditProduct(product.id)
                                 longPressProduct = null
+                                license.runOrExplain { onEditProduct(product.id) }
                             }
                             .padding(14.dp),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -231,8 +235,8 @@ fun ProductsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.DangerLight)
                             .clickable {
-                                showDeleteDialog = product
                                 longPressProduct = null
+                                license.runOrExplain { showDeleteDialog = product }
                             }
                             .padding(14.dp),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -567,6 +571,7 @@ fun ProductsScreen(
             // leading slot and the global controls take the trailing one.
             DsTopAppBar(
                 title   = "Produits",
+                licenseBanner = true,
                 leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
             ) {

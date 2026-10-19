@@ -6,6 +6,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.distrigo.app.diagnostics.rememberTrackedNavController
+import com.distrigo.app.ui.account.AbonnementScreen
 import com.distrigo.app.ui.account.AccountViewModel
 import com.distrigo.app.ui.account.CompteScreen
 import com.distrigo.app.ui.admin.AdminHomeScreen
@@ -18,15 +19,16 @@ import com.distrigo.app.ui.onboarding.OnboardingStart
 /**
  * Compte, the account and this phone's subscription. Signing in, signing up and activation codes are the
  * onboarding's (ui/onboarding): [onOpenOnboarding] opens it on that screen, drawn by the activity above everything.
+ * [start] is « Abonnement » when the license's banner or sheet opens it (docs/license_l5_enforcement.md §8.2).
  */
 @Composable
-fun AccountNavHost(onBack: () -> Unit, onOpenOnboarding: (OnboardingStart) -> Unit) {
+fun AccountNavHost(onBack: () -> Unit, onOpenOnboarding: (OnboardingStart) -> Unit, start: String = Screen.AccountHome.route) {
     val navController = rememberTrackedNavController()
     val viewModel: AccountViewModel = hiltViewModel()
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.AccountHome.route,
+        startDestination   = start,
         route              = Screen.AccountGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -39,6 +41,14 @@ fun AccountNavHost(onBack: () -> Unit, onOpenOnboarding: (OnboardingStart) -> Un
                 onBack           = onBack,
                 onOpenOnboarding = onOpenOnboarding,
                 onOpenAdmin      = { navController.navigate(Screen.AdminHome.route) { launchSingleTop = true } },
+                onOpenSubscription = { navController.navigate(Screen.AccountAbonnement.route) { launchSingleTop = true } },
+            )
+        }
+        composable(Screen.AccountAbonnement.route) {
+            AbonnementScreen(
+                viewModel = viewModel,
+                // Opened straight from the root, Back leaves the graph; from Compte, it goes back to Compte
+                onBack    = { if (navController.previousBackStackEntry != null) navController.popBackStack() else onBack() },
             )
         }
         // The owner's « Administration » (C4): its view model lives with its own entry, so opening Compte never

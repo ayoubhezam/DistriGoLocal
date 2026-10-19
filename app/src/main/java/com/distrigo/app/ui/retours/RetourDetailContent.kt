@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -73,6 +75,8 @@ internal fun RetourDetailContent(
 ) {
     val money = LocalMoneyFormatter.current
     var confirmDelete by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Détail du retour", subtitle = "Retour $numberLabel", leading = DsTopBarLeading.Back(onBack))
@@ -143,7 +147,7 @@ internal fun RetourDetailContent(
 
         // ── The only action: a return is deleted, never edited ──
         OutlinedButton(
-            onClick  = { confirmDelete = true },
+            onClick  = license.guarded { confirmDelete = true },
             enabled  = !deleting,
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,

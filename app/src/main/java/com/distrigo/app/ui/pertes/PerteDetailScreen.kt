@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -55,6 +57,8 @@ fun PerteDetailScreen(
     var confirmEdit by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     // Each time the screen shows: back from the form, it shows what was saved.
     LaunchedEffect(Unit) { vm.load() }
@@ -164,7 +168,7 @@ fun PerteDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
             ) {
                 OutlinedButton(
-                    onClick  = { confirmDelete = true },
+                    onClick  = license.guarded { confirmDelete = true },
                     enabled  = !vm.deleting,
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape    = DsShapes.medium,

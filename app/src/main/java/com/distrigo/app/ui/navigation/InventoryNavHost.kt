@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +38,8 @@ fun InventoryNavHost(
     openSessionId: Int? = null,
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     NavHost(
         navController      = navController,
@@ -59,7 +63,7 @@ fun InventoryNavHost(
                         navController.navigate(Screen.InventaireDetail.createRoute(historyEntry.session.id))
                     }
                 },
-                onAddNew = { navController.navigate(Screen.InventaireSessionGraph.route) }
+                onAddNew = license.guarded { navController.navigate(Screen.InventaireSessionGraph.route) }
             )
         }
 
@@ -227,7 +231,8 @@ fun InventoryNavHost(
                         zeroed          = zeroed,
                         confirmError    = confirmError,
                         onBack          = { navController.popBackStack() },
-                        onConfirm       = {
+                        onConfirm       = confirm@{
+                            if (license.refuses()) return@confirm
                             isConfirming = true
                             viewModel.finishSession(
                                 zeroUncounted = choice == UncountedChoice.ZERO,

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -47,6 +49,8 @@ fun ChargeDetailScreen(
     val vm = viewModel
     var confirmEdit by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var confirmDelete by remember { mutableStateOf(false) }
 
     // Each time the screen shows: back from the form, it shows what was saved.
@@ -132,7 +136,7 @@ fun ChargeDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
             OutlinedButton(
-                onClick  = { confirmDelete = true },
+                onClick  = license.guarded { confirmDelete = true },
                 enabled  = !vm.deleting,
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape    = DsShapes.medium,
@@ -144,7 +148,7 @@ fun ChargeDetailScreen(
                 Text("Supprimer", fontWeight = FontWeight.SemiBold)
             }
             Button(
-                onClick  = { confirmEdit = true },
+                onClick  = license.guarded { confirmEdit = true },
                 enabled  = !vm.deleting,
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape    = DsShapes.medium,

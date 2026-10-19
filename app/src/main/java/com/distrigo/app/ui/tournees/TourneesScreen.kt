@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.common.showUndo
 import com.distrigo.app.data.model.numberLabel
@@ -83,6 +85,7 @@ fun TourneesScreen(
         // screen is still usable as a root, where None is right.
         DsTopAppBar(
             title   = "Tournées",
+            licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {
@@ -218,6 +221,8 @@ fun TourneeDetailScreen(
         viewModel.observeVenteDrafts(tourneeId)
     }
     val venteDrafts by viewModel.venteDrafts.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     var showCloseDialog         by remember { mutableStateOf<Tournee?>(null) }
     var showReopenDialog        by remember { mutableStateOf<Tournee?>(null) }
@@ -482,7 +487,7 @@ fun TourneeDetailScreen(
                                     .fillMaxWidth()
                                     .clip(DsShapes.medium)
                                     .background(DsColors.DangerLight)
-                                    .clickable { showDeleteVenteInTournee = true }
+                                    .clickable { license.runOrExplain { showDeleteVenteInTournee = true } }
                                     .padding(DsSpacing.md),
                                 verticalAlignment     = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
@@ -549,14 +554,14 @@ fun TourneeDetailScreen(
                                 DropdownMenuItem(
                                     text        = { Text("Rouvrir") },
                                     leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Primary) },
-                                    onClick     = { showTourneeMenu = false; showReopenDialog = current }
+                                    onClick     = { showTourneeMenu = false; license.runOrExplain { showReopenDialog = current } }
                                 )
                             }
                             if ((current.ventes_count ?: 0) == 0) {
                                 DropdownMenuItem(
                                     text        = { Text("Supprimer la tournée") },
                                     leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
-                                    onClick     = { showTourneeMenu = false; showDeleteTourneeDialog = current }
+                                    onClick     = { showTourneeMenu = false; license.runOrExplain { showDeleteTourneeDialog = current } }
                                 )
                             }
                         }
@@ -624,10 +629,10 @@ fun TourneeDetailScreen(
                     tourneeVentes       = ventes,
                     isOpen              = current.status == "ouverte",
                     onCreateSale        = { cid -> onCreateVente(cid, tourneeClients.find { it.client.id == cid }?.client?.name) },
-                    onMarkVisitedNoSale = { cid -> viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) },
+                    onMarkVisitedNoSale = { cid -> license.runOrExplain { viewModel.markTourneeClientVisited(tourneeId, cid, onSuccess = {}, onError = {}) } },
                     onAddClient         = { onAddClients() },
                     onRemoveClient      = { cid ->
-                        confirmRemoveClient = tourneeClients.find { it.client.id == cid }
+                        license.runOrExplain { confirmRemoveClient = tourneeClients.find { it.client.id == cid } }
                     },
                     onReopenSaleForVisited = { cid ->
                         confirmReopenSaleClient = tourneeClients.find { it.client.id == cid }
@@ -800,7 +805,8 @@ fun TourneeDetailScreen(
                                     enabled     = vente.status != "delivered",
                                     label       = "Livré",
                                     icon        = Icons.Default.LocalShipping,
-                                    onConfirmed = {
+                                    onConfirmed = delivered@{
+                                        if (license.refuses()) return@delivered
                                         // Not a live list: it is reloaded after the change, and after its undo.
                                         val reload = { viewModel.loadTourneeDetail(tourneeId) }
                                         venteViewModel.deliverVente(

@@ -106,6 +106,9 @@ val DsTopBarActionSize : Dp = 40.dp
  *   "Souk Ahras (secteur 01, secteur 02, ...)" - where the tail is the part worth reading and an
  *   ellipsis is exactly what hides it. [basicMarquee] only animates when the text overflows, so a
  *   short one still sits still.
+ * @param licenseBanner draws the license's banner under the bar ([DsLicenseBanner], docs/license_l5_enforcement.md
+ *   §2): on the tab roots and the roots of the sections that record. Nothing shows while the license has nothing
+ *   to say.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -118,8 +121,16 @@ fun DsTopAppBar(
     leading        : DsTopBarLeading = DsTopBarLeading.None,
     size           : DsTopBarSize = DsTopBarSize.Regular,
     containerColor : Color = DsColors.SurfaceMuted,
+    licenseBanner  : Boolean = false,
     actions        : @Composable RowScope.() -> Unit = {}
 ) {
+    if (licenseBanner) {
+        Column(modifier) {
+            DsTopAppBar(title, Modifier, subtitle, subtitleColor, titleMarquee, leading, size, containerColor, licenseBanner = false, actions = actions)
+            DsLicenseBanner()
+        }
+        return
+    }
     val hasLeading = leading != DsTopBarLeading.None
     val isLarge    = size == DsTopBarSize.Large
 

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.data.model.Quantity
 import androidx.paging.LoadState
@@ -1076,8 +1078,11 @@ fun NavGraphBuilder.purchaseFormGraph(
             var isSaving by remember { mutableStateOf(false) }
             val total = cartItems.sumOf { it.quantity * it.unitCost }
 
+            // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
+            val license = LocalLicense.current
             fun doSave() {
                 if (formSupplier == null) return
+                if (license.refuses()) return
                 // A restored draft can reference a product that has since been deleted. Saving
                 // anyway would throw "Produit introuvable" deep inside the transaction and roll
                 // back with nothing the user can act on, so the line has to go first. Part 3 marks

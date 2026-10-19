@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.SnackbarHostState
@@ -84,6 +86,8 @@ fun PurchasesScreen(
 
     var longPressOrder   by remember { mutableStateOf<PurchaseOrder?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var deleteError      by remember { mutableStateOf("") }
 
     // ── Local UI state (لا تُحفظ في ViewModel) ──
@@ -167,7 +171,7 @@ fun PurchasesScreen(
                                 .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressOrder = null
-                                    onEditOrder(order.id)
+                                    license.runOrExplain { onEditOrder(order.id) }
                                 }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
@@ -192,7 +196,7 @@ fun PurchasesScreen(
                                 .fillMaxWidth()
                                 .clip(DsShapes.medium)
                                 .background(DsColors.DangerLight)
-                                .clickable { showDeleteDialog = true }
+                                .clickable { license.runOrExplain { showDeleteDialog = true } }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
@@ -469,6 +473,7 @@ fun PurchasesScreen(
             // leading slot and the global controls take the trailing one.
             DsTopAppBar(
                 title   = "Achats",
+                licenseBanner = true,
                 leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
             ) {
@@ -646,7 +651,8 @@ fun PurchasesScreen(
                                 enabled     = row.order.status != "received",
                                 label       = "Reçu",
                                 icon        = Icons.Default.Inventory2,
-                                onConfirmed = {
+                                onConfirmed = received@{
+                                    if (license.refuses()) return@received
                                     val order = row.order
                                     viewModel.receiveOrder(
                                         id        = order.id,

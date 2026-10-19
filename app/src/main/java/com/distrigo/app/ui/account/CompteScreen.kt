@@ -126,6 +126,7 @@ fun CompteScreen(
     onBack: () -> Unit,
     onOpenOnboarding: (OnboardingStart) -> Unit,
     onOpenAdmin: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
 ) {
     BackHandler { onBack() }
     val state by viewModel.state.collectAsState()
@@ -169,7 +170,7 @@ fun CompteScreen(
                 onCreateAccount = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
                 onShown         = onboarding::reset,
             )
-            account is AccountState.SignedIn -> SignedInCards(account.session, state, viewModel, onOpenAdmin)
+            account is AccountState.SignedIn -> SignedInCards(account.session, state, viewModel, onOpenAdmin, onOpenSubscription)
         }
     }
 
@@ -177,7 +178,13 @@ fun CompteScreen(
 }
 
 @Composable
-private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiState, viewModel: AccountViewModel, onOpenAdmin: () -> Unit) {
+private fun ColumnScope.SignedInCards(
+    session: AuthSession,
+    state: AccountUiState,
+    viewModel: AccountViewModel,
+    onOpenAdmin: () -> Unit,
+    onOpenSubscription: () -> Unit,
+) {
     val idle = state.work == null
     IdentityCard(session, state.profile)
     state.activationCode?.let { CodeCard(it, withoutEmail = session.isAnonymous) }
@@ -196,6 +203,7 @@ private fun ColumnScope.SignedInCards(session: AuthSession, state: AccountUiStat
         },
         onKeepData  = viewModel::keepData,
         onSignOut   = { viewModel.ask(AccountDialog.ConfirmSignOut) },
+        onOpenSubscription = onOpenSubscription,
     )
     // An account without a business has nothing to show here
     if (state.profileLoad != ProfileLoad.NO_BUSINESS) {
@@ -402,6 +410,7 @@ private fun SubscriptionCard(
     onOpenAppSettings: () -> Unit,
     onKeepData: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenSubscription: () -> Unit,
 ) {
     val look = license.look()
     val held = license.heldLicense
@@ -470,6 +479,9 @@ private fun SubscriptionCard(
                 if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
                     BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
                 }
+                // « Abonnement » (docs/license_l5_enforcement.md §8.2): the code, the state and DistriGo's contacts, for any
+                // license held, active included
+                BrandWideButton("Abonnement et assistance", Icons.Outlined.WorkspacePremium, filled = false, enabled = work == null, onClick = onOpenSubscription)
                 held?.let { CheckedLine(it.issuedAt) }
             } else {
                 BrandWideButton("Activer cet appareil", Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.common.caughtAsError
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -116,7 +118,7 @@ class NewPerteViewModel @Inject constructor(
         if (lines.isEmpty()) return onError("Aucun produit")
         val at = date.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant().toString()
         viewModelScope.launch {
-            val result = repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif) }, at)
+            val result = caughtAsError { repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif) }, at) }
             val error = result["error"] as? String
             if (error != null) onError(error) else { _cart.value = emptyList(); onSuccess(lines.size) }
         }

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.ui.common.userMessage
+
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.SupplierProduct
 import com.distrigo.app.data.repository.ProductRepository
@@ -41,7 +43,7 @@ class SupplierViewModel @Inject constructor(
     // (ajout/modification/suppression, recalcul de solde après achat ou paiement…) — no manual refresh.
     val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
         .onEach { _isLoading.value = false; _error.value = null }
-        .catch { e -> _error.value = e.message; _isLoading.value = false }
+        .catch { e -> _error.value = userMessage(e); _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun loadSupplierProducts(supplierId: Int) {
@@ -64,7 +66,7 @@ class SupplierViewModel @Inject constructor(
                 repository.addSupplier(supplier)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -80,7 +82,7 @@ class SupplierViewModel @Inject constructor(
                 repository.updateSupplier(id, supplier)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -133,7 +135,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -150,7 +152,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -168,7 +170,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }

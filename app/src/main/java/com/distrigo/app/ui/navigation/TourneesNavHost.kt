@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,6 +24,8 @@ fun TourneesNavHost(
     onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
         onFullScreenChange(currentRoute != null && currentRoute != Screen.TourneesHome.route)
@@ -42,7 +46,7 @@ fun TourneesNavHost(
             TourneesScreen(
                 viewModel      = viewModel,
                 onBack         = onBack,
-                onAddTournee   = { navController.navigate(Screen.TourneeForm.createRoute()) },
+                onAddTournee   = license.guarded { navController.navigate(Screen.TourneeForm.createRoute()) },
                 onTourneeClick = { tourneeId -> navController.navigate(Screen.TourneesDetail.createRoute(tourneeId)) }
             )
         }
@@ -59,13 +63,15 @@ fun TourneesNavHost(
                 tourneeId             = tourneeId,
                 viewModel              = viewModel,
                 onBack                 = { navController.popBackStack() },
-                onEditTournee          = { tournee -> navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) },
-                onAddClients           = { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
+                onEditTournee          = { tournee -> license.runOrExplain { navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) } },
+                onAddClients           = license.guarded { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
                 onCreateVente          = { clientId, clientName ->
-                    if (clientId != null) {
-                        navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
-                    } else {
-                        navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
+                    license.runOrExplain {
+                        if (clientId != null) {
+                            navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
+                        } else {
+                            navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
+                        }
                     }
                 },
                 onOpenVente            = { vente -> navController.navigate(Screen.TourneesVenteDetail.createRoute(tourneeId, vente.id)) },

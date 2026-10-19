@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.common.productRowSkeletons
 import androidx.paging.LoadState
 import com.distrigo.app.data.model.Quantity
@@ -678,8 +680,11 @@ fun NavGraphBuilder.venteFormGraph(
             val overStockProduct = if (editSource == "camion") null
                 else cartItems.firstOrNull { stockPolicy.exceedsDepot(it.product, it.quantity) }?.product?.name
 
+            // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
+            val license = LocalLicense.current
             fun doSave() {
                 if (formClient == null) return
+                if (license.refuses()) return
                 // A restored draft can reference a product that has since been deleted. Saving
                 // anyway throws "Produit introuvable" inside the commit transaction — it rolls
                 // back, so nothing is corrupted, but the button appears to do nothing at all.
@@ -724,6 +729,7 @@ fun NavGraphBuilder.venteFormGraph(
             // changed, nothing to ask. A blocked save (missing product, strict stock) goes straight
             // to doSave, which shows why.
             fun requestSave() {
+                if (license.refuses()) return
                 val id = venteId
                 if (id == null || formClient == null || missingProductIds.isNotEmpty() || overStockProduct != null) {
                     doSave(); return

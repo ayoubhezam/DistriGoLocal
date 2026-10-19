@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.common.userMessage
+
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.PurchaseOrderItem
 import com.distrigo.app.data.model.DraftBaseState
@@ -121,7 +123,7 @@ class PurchaseViewModel @Inject constructor(
             try {
                 _selectedOrder.value = repository.getPurchaseOrder(id)
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             }
         }
     }

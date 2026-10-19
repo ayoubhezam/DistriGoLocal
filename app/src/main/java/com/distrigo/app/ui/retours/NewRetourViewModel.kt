@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.common.caughtAsError
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -115,7 +117,8 @@ abstract class NewRetourViewModel(
         val lines = _cart.value
         if (lines.isEmpty()) return onError("Ajoutez au moins un produit")
         viewModelScope.launch {
-            val error = save(date, lines)
+            // A failure is said on the summary, which stays open, rather than stopping the app
+            val error = caughtAsError { save(date, lines)?.let { mapOf("error" to it) } ?: emptyMap() }["error"] as? String
             if (error != null) onError(error) else { _cart.value = emptyList(); onSuccess() }
         }
     }

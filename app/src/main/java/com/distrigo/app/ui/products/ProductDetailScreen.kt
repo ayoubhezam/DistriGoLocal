@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import androidx.activity.compose.BackHandler
@@ -106,6 +108,8 @@ fun ProductDetailScreen(
     )
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     // Back unwinds one layer at a time: the viewer, then manage mode, then the screen. Without
     // this, leaving manage mode needed a deliberate tap and Back would drop the whole screen.
@@ -181,7 +185,7 @@ fun ProductDetailScreen(
             leading = DsTopBarLeading.Back(onBack)
         ) {
             IconButton(
-                onClick  = { showDeleteDialog = true },
+                onClick  = license.guarded { showDeleteDialog = true },
                 modifier = Modifier
                     .clip(DsShapes.medium)
                     .background(DsColors.DangerLight)
@@ -207,9 +211,9 @@ fun ProductDetailScreen(
             images        = images,
             manageMode    = manageMode,
             onOpenViewer  = { index -> viewerIndex = index },
-            onAddPhoto    = { photoPicker.choose() },
-            onDeletePhoto = { pendingDelete = it },
-            onSetCover    = { viewModel.setPrimaryProductImage(it.id) { m -> galleryError = m } },
+            onAddPhoto    = license.guarded { photoPicker.choose() },
+            onDeletePhoto = { image -> license.runOrExplain { pendingDelete = image } },
+            onSetCover    = { image -> license.runOrExplain { viewModel.setPrimaryProductImage(image.id) { m -> galleryError = m } } },
             modifier      = Modifier.padding(horizontal = 16.dp)
         )
 

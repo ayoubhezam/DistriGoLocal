@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.common.userMessage
+
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +50,7 @@ class ClientViewModel @Inject constructor(
     // (ajout/modification/suppression, recalcul de solde après vente ou paiement…) — no manual refresh.
     val clients: StateFlow<List<Client>> = repository.observeClients()
         .onEach { _isLoading.value = false; _error.value = null }
-        .catch { e -> _error.value = e.message; _isLoading.value = false }
+        .catch { e -> _error.value = userMessage(e); _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** The Clients list's search box, as typed. */
@@ -190,7 +192,7 @@ class ClientViewModel @Inject constructor(
                 val result = repository.addClient(client)
                 onSuccess(result)
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -206,7 +208,7 @@ class ClientViewModel @Inject constructor(
                 repository.updateClient(id, client)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }
@@ -235,7 +237,7 @@ class ClientViewModel @Inject constructor(
             try {
                 onUpdated(repository.getClients().find { it.id == clientId })
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             }
         }
     }

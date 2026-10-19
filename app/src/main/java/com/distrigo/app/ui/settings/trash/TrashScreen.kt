@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.settings.trash
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -39,6 +41,8 @@ import androidx.compose.foundation.border
 @Composable
 fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val context = LocalContext.current
 
     LaunchedEffect(Unit) { viewModel.refresh() }
@@ -83,7 +87,7 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
                     items(state.items, key = { "${it.kind}-${it.id}" }) { item ->
-                        TrashRow(item, onRestore = { viewModel.restore(item) }, onDelete = { viewModel.askDelete(item) })
+                        TrashRow(item, onRestore = license.guarded { viewModel.restore(item) }, onDelete = license.guarded { viewModel.askDelete(item) })
                     }
                 }
             }

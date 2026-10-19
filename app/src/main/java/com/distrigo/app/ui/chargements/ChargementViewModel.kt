@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.chargements
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.ChargementDraft
@@ -130,7 +132,7 @@ class ChargementViewModel @Inject constructor(
                 repository.createChargement(note, items, userName, draftId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Erreur inconnue")
+                onError(userMessage(e, "Erreur inconnue"))
             }
         }
     }

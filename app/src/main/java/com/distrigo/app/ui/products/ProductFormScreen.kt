@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.data.model.ProductUnit
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.Quantity
@@ -213,6 +215,9 @@ fun ProductFormScreen(
         if (pagerState.currentPage != 0) coroutineScope.launch { pagerState.animateScrollToPage(0) }
     }
 
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
+
     fun submit(sp: Double, pp: Double) {
         isSaving = true
         val data = if (isEdit) {
@@ -333,7 +338,7 @@ fun ProductFormScreen(
                     val message = "Le code-barres $taken est déjà enregistré."
                     if (taken == barcode.trim()) barcodeError = message else extraBarcodeError = message
                 }
-                null -> submit(sp, pp)
+                null -> license.runOrExplain { submit(sp, pp) }
             }
             if (duplicate != null && pagerState.currentPage != 0) pagerState.animateScrollToPage(0)
         }

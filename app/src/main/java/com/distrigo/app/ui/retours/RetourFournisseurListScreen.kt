@@ -101,6 +101,7 @@ fun RetourFournisseurListScreen(
             Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = "Retours",
+                    licenseBanner = true,
                     subtitle = "Historique des retours effectués",
                     leading  = DsTopBarLeading.Back(onBack)
                 ) {

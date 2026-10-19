@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -79,6 +81,9 @@ fun TourneeFormScreen(
             }
         }
     }
+
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     fun save() {
         if (communeName.isBlank()) {
@@ -225,7 +230,7 @@ fun TourneeFormScreen(
 
             // ── Enregistrer ──
             Button(
-                onClick  = { save() },
+                onClick  = { license.runOrExplain { save() } },
                 enabled  = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = DsShapes.medium,

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.pertes.PerteDetailViewModel
 import com.distrigo.app.ui.pertes.PerteDetailScreen
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -33,6 +35,8 @@ fun PertesNavHost(
     onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val exit = { onBack?.invoke(); Unit }
 
     NavHost(
@@ -47,7 +51,7 @@ fun PertesNavHost(
         composable(Screen.PertesHome.route) {
             PerteHistoryScreen(
                 onBack  = onBack,
-                onNew   = { navController.navigate(Screen.PertesNewGraph.route) },
+                onNew   = license.guarded { navController.navigate(Screen.PertesNewGraph.route) },
                 onOpen  = { perte -> navController.navigate(Screen.PertesDetail.createRoute(perte.id)) }
             )
         }

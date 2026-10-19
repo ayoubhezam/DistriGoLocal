@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,6 +57,8 @@ fun VentesNavHost(
     onBack            : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val exit = { onBack?.invoke(); Unit }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
@@ -84,7 +88,7 @@ fun VentesNavHost(
             VentesScreen(
                 viewModel        = viewModel,
                 onBack           = onBack,
-                onAddVente       = { navController.navigate(Screen.VenteFormGraph.createRoute()) },
+                onAddVente       = license.guarded { navController.navigate(Screen.VenteFormGraph.createRoute()) },
                 onEditVente      = editVente,
                 onVenteClick     = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) },
                 onResumeDraft    = resumeDraft,

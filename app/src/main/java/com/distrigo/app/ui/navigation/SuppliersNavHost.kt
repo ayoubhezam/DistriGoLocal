@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.runtime.mutableIntStateOf
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.foundation.background
@@ -54,6 +56,8 @@ fun SuppliersNavHost(
     onBack             : (() -> Unit)? = null
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val exit = { onBack?.invoke(); Unit }
 
     NavHost(
@@ -75,7 +79,7 @@ fun SuppliersNavHost(
             SuppliersScreen(
                 viewModel       = viewModel,
                 onBack          = onBack,
-                onAddSupplier   = { navController.navigate(Screen.SuppliersForm.createRoute()) },
+                onAddSupplier   = license.guarded { navController.navigate(Screen.SuppliersForm.createRoute()) },
                 onSupplierClick = { supplierId -> navController.navigate(Screen.SuppliersDetail.createRoute(supplierId)) }
             )
         }
@@ -124,10 +128,10 @@ fun SuppliersNavHost(
                         viewModel         = viewModel,
                         retourViewModel   = retourViewModel,
                         onBack            = { navController.popOr(exit) },
-                        onEdit            = { navController.navigate(Screen.SuppliersForm.createRoute(supplierId)) },
-                        onDelete          = { showDeleteConfirm = true },
-                        onNewAchat        = { navController.navigate(Screen.PurchaseFormGraph.createRoute(supplierId = supplierId)) },
-                        onRetourForm      = { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) },
+                        onEdit            = license.guarded { navController.navigate(Screen.SuppliersForm.createRoute(supplierId)) },
+                        onDelete          = license.guarded { showDeleteConfirm = true },
+                        onNewAchat        = license.guarded { navController.navigate(Screen.PurchaseFormGraph.createRoute(supplierId = supplierId)) },
+                        onRetourForm      = license.guarded { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) },
                         onRetourHistory   = { navController.navigate(Screen.SuppliersRetourHistory.createRoute(supplierId)) },
                         onAchatHistory    = { navController.navigate(Screen.SuppliersAchatHistory.createRoute(supplierId)) },
                         onNavigateToOrder = onNavigateToOrder
@@ -216,7 +220,7 @@ fun SuppliersNavHost(
                     supplierName = supplier.name,
                     viewModel    = retourViewModel,
                     onBack       = { navController.popOr(exit) },
-                    onAddRetour  = { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) }
+                    onAddRetour  = license.guarded { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) }
                 )
             } else if (!isLoading) {
                 // Gone — not merely not loaded yet: see the client's returns, above.
@@ -287,7 +291,7 @@ fun SuppliersNavHost(
                 newestRequests    = newestRequests,
                 floatingAction    = {
                     ExtendedFloatingActionButton(
-                        onClick        = { showPaymentDialog = true },
+                        onClick        = license.guarded { showPaymentDialog = true },
                         containerColor = DsColors.Success,
                         contentColor   = Color.White,
                         shape          = DsShapes.pill,
@@ -298,7 +302,7 @@ fun SuppliersNavHost(
             ) { transaction ->
                 AchatRow(
                     transaction,
-                    onLongPressPaiement = { longPressPayment = it },
+                    onLongPressPaiement = { payment -> license.runOrExplain { longPressPayment = payment } },
                     onClickFacture = { onNavigateToOrder(it.id) }
                 )
             }

@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
+import com.distrigo.app.ui.common.userMessage
+
 import kotlinx.coroutines.flow.map
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -147,7 +151,7 @@ class ChargeHistoryViewModel @Inject constructor(private val repository: ChargeR
                 val id = repository.addCharge(input.subtypeId, input.montant, chargeInstant(input.date), input.fournisseur, input.note)
                 _justAdded.value = id to input.montant
                 null
-            } catch (e: Exception) { e.message ?: "Enregistrement impossible" }
+            } catch (e: Exception) { userMessage(e, "Enregistrement impossible") }
             onDone(error)
         }
     }
@@ -190,6 +194,8 @@ fun ChargeHistoryScreen(
     val justAdded by viewModel.justAdded.collectAsState()
     var sheet by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf("") }
     val snackbar = remember { SnackbarHostState() }
@@ -204,11 +210,12 @@ fun ChargeHistoryScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
             title = "Historique des charges",
+            licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
             Box(
                 modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary)
-                    .clickable(role = Role.Button) { saveError = ""; adding = true },
+                    .clickable(role = Role.Button) { license.runOrExplain { saveError = ""; adding = true } },
                 contentAlignment = Alignment.Center
             ) { Icon(Icons.Default.Add, contentDescription = "Nouvelle charge", tint = Color.White) }
         }

@@ -91,6 +91,7 @@ fun TourneesHubScreen(
                 // carries one.
                 DsTopAppBar(
                     title   = "Ventes",
+                    licenseBanner = true,
                     leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                     size    = DsTopBarSize.Large
                 ) {

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.chargements
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -97,6 +99,8 @@ fun ChargementProduitScreen(
 
     val delta = targetCamion - product.camion_stock
     val stockPolicy by viewModel.stockPolicy.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val camionCap = stockPolicy.camionTargetCap(product)
     // Strict stock: the stock moved after the target was set (a restored pending edit).
     val overStock = camionCap != null && targetCamion > camionCap + 1e-6
@@ -210,6 +214,8 @@ fun ChargementProduitScreen(
         Button(
             onClick = {
                 if (delta == 0.0) return@Button
+                // Unloading stays allowed whatever the license (D4); loading the truck does not
+                if (delta > 0 && license.refuses()) return@Button
                 isSaving  = true
                 saveError = ""
                 viewModel.createChargement(

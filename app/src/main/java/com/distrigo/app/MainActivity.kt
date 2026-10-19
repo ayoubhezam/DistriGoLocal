@@ -126,6 +126,10 @@ class MainActivity : ComponentActivity() {
     @javax.inject.Inject
     lateinit var licenseInFront: dagger.Lazy<com.distrigo.app.data.license.LicenseInFront>
 
+    // Lazy and used on IO: « Réessayer » on the license's banner and sheet asks for a check-in now.
+    @javax.inject.Inject
+    lateinit var licenseCheckInScheduler: dagger.Lazy<com.distrigo.app.data.license.LicenseCheckInScheduler>
+
     /** The business's money format, read off the main thread. */
     private val moneyFormats: Flow<MoneyFormat> by lazy {
         flow { emitAll(businessSettings.get().observeMoneyFormat()) }.flowOn(Dispatchers.IO)
@@ -226,6 +230,30 @@ class MainActivity : ComponentActivity() {
                     // per start, and answered in Compte, which says it too. Not over the onboarding.
                     var licenseState by remember { mutableStateOf<com.distrigo.app.data.license.LicenseState>(com.distrigo.app.data.license.LicenseState.Unchecked) }
                     LaunchedEffect(Unit) { withContext(Dispatchers.IO) { licenseManager.get() }.state.collect { licenseState = it } }
+
+                    // The license on the screens (docs/license_l5_enforcement.md §2): the banner under the bars, and the
+                    // « Consultation seule » sheet a blocked write opens, hosted once below.
+                    val licenseUi = remember(navController) {
+                        com.distrigo.app.ui.designsystem.LicenseUi(
+                            act = { action -> actOnLicense(action, navController) },
+                            onDismissed = { key ->
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    getSharedPreferences(LICENSE_UI_PREFS, MODE_PRIVATE).edit().putString(KEY_BANNER_DISMISSED, key).apply()
+                                }
+                            },
+                        )
+                    }
+                    LaunchedEffect(licenseUi) {
+                        licenseUi.dismissedKey = withContext(Dispatchers.IO) {
+                            getSharedPreferences(LICENSE_UI_PREFS, MODE_PRIVATE).getString(KEY_BANNER_DISMISSED, null)
+                        }
+                    }
+                    LaunchedEffect(licenseState) {
+                        // Debug builds can draw another state's screens (LicensePreview); the write gate stays the license's
+                        val preview = withContext(Dispatchers.IO) { com.distrigo.app.data.debug.LicensePreview.read(filesDir, licenseState) }
+                        licenseUi.policy = com.distrigo.app.data.license.LicensePolicy.of(preview ?: licenseState)
+                    }
+                    LaunchedEffect(licenseUi) { com.distrigo.app.ui.designsystem.LicenseRefusals.events.collect { licenseUi.explain() } }
                     var otherBusinessTold by rememberSaveable { mutableStateOf(false) }
                     if (licenseState is com.distrigo.app.data.license.LicenseState.OtherBusiness && !otherBusinessTold &&
                         onboarding == null && currentRoute != Screen.Compte.route
@@ -360,7 +388,10 @@ class MainActivity : ComponentActivity() {
                     // Drill-down: any screen, in any section, opens a record through the root — the
                     // only NavHost that knows every section (see DrillDown).
                     val drill: (DrillTarget) -> Unit = remember(navController) { { target -> drillDown(navController, target) } }
-                    CompositionLocalProvider(LocalDrillDown provides drill) {
+                    CompositionLocalProvider(
+                        LocalDrillDown provides drill,
+                        com.distrigo.app.ui.designsystem.LocalLicense provides licenseUi
+                    ) {
                         NavHost(
                             navController      = navController,
                             startDestination   = Screen.TabDashboard.route,
@@ -471,6 +502,15 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            // « Abonnement » straight from the license's banner or sheet (§8.2); Compte opens it too
+                            composable(Screen.Abonnement.route) {
+                                com.distrigo.app.ui.navigation.AccountNavHost(
+                                    onBack           = { navController.popBackStack() },
+                                    onOpenOnboarding = openOnboarding,
+                                    start            = Screen.AccountAbonnement.route
+                                )
+                            }
+
                             composable(Screen.PlusParametres.route) {
                                 com.distrigo.app.ui.navigation.SettingsNavHost(
                                     onBack = { navController.popBackStack() }
@@ -538,6 +578,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+                        com.distrigo.app.ui.designsystem.LicenseBlockSheet(licenseUi)
                     }
                     }
                 }
@@ -653,6 +694,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** What the license's banner and sheet buttons do (docs/license_l5_enforcement.md §8.1). */
+    private fun actOnLicense(action: com.distrigo.app.data.license.LicensePolicy.Action, navController: androidx.navigation.NavController) {
+        when (action) {
+            com.distrigo.app.data.license.LicensePolicy.Action.SUBSCRIPTION ->
+                navController.navigate(Screen.Abonnement.route) { launchSingleTop = true }
+            com.distrigo.app.data.license.LicensePolicy.Action.ACCOUNT ->
+                navController.navigate(Screen.Compte.route) { launchSingleTop = true }
+            com.distrigo.app.data.license.LicensePolicy.Action.RETRY -> {
+                lifecycleScope.launch(Dispatchers.IO) { licenseCheckInScheduler.get().checkInNow() }
+                android.widget.Toast.makeText(this, "Vérification de l'abonnement…", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            com.distrigo.app.data.license.LicensePolicy.Action.DATE_SETTINGS ->
+                runCatching { startActivity(android.content.Intent(android.provider.Settings.ACTION_DATE_SETTINGS)) }
+        }
+    }
+
     private fun reservePlusDrawerEdgeFromSystemGestures() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         val decorView = window.decorView
@@ -675,6 +732,10 @@ class MainActivity : ComponentActivity() {
 
 // Mirrors NavTransitions.kt's private NavTransitionMs (300); duplicated here rather than exposed
 // from that file, since this pass is scoped to leave NavTransitions.kt untouched.
+/** The license banner closed for the day (decision 5 of docs/license_l5_enforcement.md): `{day}|{text}`. */
+private const val LICENSE_UI_PREFS = "license_ui"
+private const val KEY_BANNER_DISMISSED = "banner_dismissed"
+
 private const val ShiftingNavAnimationMs      = 300
 private const val ShiftingNavSelectedWeight   = 1.8f
 private const val ShiftingNavUnselectedWeight = 1f

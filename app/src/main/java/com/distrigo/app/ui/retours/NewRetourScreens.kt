@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -400,6 +402,8 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
     val live by viewModel.cart.collectAsState()
     var confirmed by remember { mutableStateOf<List<RetourCartLine>?>(null) }
     var saving by remember { mutableStateOf(false) }
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     var error by remember { mutableStateOf("") }
     val lines = confirmed ?: live
     BackHandler { if (confirmed != null) onDone() else onBack() }
@@ -447,7 +451,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
         }
         Button(
             onClick = {
-                if (confirmed != null) onDone() else {
+                if (confirmed != null) onDone() else if (!license.refuses()) {
                     saving = true; error = ""
                     val snapshot = live
                     viewModel.confirm(onSuccess = { saving = false; confirmed = snapshot }, onError = { saving = false; error = it })

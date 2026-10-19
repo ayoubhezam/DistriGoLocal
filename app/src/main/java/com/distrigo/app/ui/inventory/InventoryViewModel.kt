@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.inventory
 
+import com.distrigo.app.ui.common.caughtAsError
+
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.InventoryItem
@@ -184,7 +188,7 @@ class InventoryViewModel @Inject constructor(
                 countLock.withLock { _counts.value = repository.getSessionSummary(session.id) }
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = userMessage(e)
             } finally {
                 _isLoading.value = false
             }
@@ -211,7 +215,7 @@ class InventoryViewModel @Inject constructor(
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
             val result = countLock.withLock {
-                repository.recordScan(sessionId, productId, qtePhysique, userName).also { result ->
+                caughtAsError { repository.recordScan(sessionId, productId, qtePhysique, userName) }.also { result ->
                     if (!result.containsKey("error")) {
                         _counts.value = _counts.value.moved(null, 0.0, result["ecart"] as Double, result["valeur_ecart"] as Double)
                     }
@@ -244,7 +248,7 @@ class InventoryViewModel @Inject constructor(
         val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
         viewModelScope.launch {
             val at = date.atTime(java.time.LocalTime.now()).atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
-            val result = countLock.withLock { repository.finishSession(sessionId, zeroUncounted, userName, at) }
+            val result = countLock.withLock { caughtAsError { repository.finishSession(sessionId, zeroUncounted, userName, at) } }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)
             } else {
@@ -267,7 +271,7 @@ class InventoryViewModel @Inject constructor(
         _activeSession.value ?: return onError("Aucune session active")
         viewModelScope.launch {
             val result = countLock.withLock {
-                repository.updateScan(itemId, newQtePhysique, userName).also { result ->
+                caughtAsError { repository.updateScan(itemId, newQtePhysique, userName) }.also { result ->
                     if (!result.containsKey("error")) {
                         _counts.value = _counts.value.moved(
                             result["old_ecart"] as Double, result["old_valeur_ecart"] as Double,
@@ -287,7 +291,7 @@ class InventoryViewModel @Inject constructor(
         _activeSession.value ?: return onError("Aucune session active")
         viewModelScope.launch {
             val result = countLock.withLock {
-                repository.deleteScan(itemId).also { result ->
+                caughtAsError { repository.deleteScan(itemId) }.also { result ->
                     if (!result.containsKey("error")) {
                         _counts.value = _counts.value.moved(result["ecart"] as Double, result["valeur_ecart"] as Double, null, 0.0)
                     }

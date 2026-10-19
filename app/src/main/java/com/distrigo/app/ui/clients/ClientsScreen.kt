@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
@@ -61,6 +63,8 @@ fun ClientsScreen(
 ){
     val money = LocalMoneyFormatter.current
     val clients   by viewModel.clients.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val isLoading by viewModel.isLoading.collectAsState()
 
     // The list as the search and the filters narrow it, worked out off the main thread once typing
@@ -123,8 +127,8 @@ fun ClientsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.PrimaryLight)
                             .clickable {
-                                onEditClient(client.id)
                                 longPressClient = null
+                                license.runOrExplain { onEditClient(client.id) }
                             }
                             .padding(14.dp),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -139,8 +143,8 @@ fun ClientsScreen(
                             .clip(DsShapes.medium)
                             .background(DsColors.DangerLight)
                             .clickable {
-                                showDeleteDialog = client
                                 longPressClient  = null
+                                license.runOrExplain { showDeleteDialog = client }
                             }
                             .padding(14.dp),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -206,6 +210,7 @@ fun ClientsScreen(
         // affordance; null-safe because the screen is still usable as a root.
         DsTopAppBar(
             title   = "Clients",
+            licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {

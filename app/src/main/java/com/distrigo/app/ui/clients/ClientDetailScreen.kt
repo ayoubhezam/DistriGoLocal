@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import com.distrigo.app.data.time.BusinessDates
@@ -126,6 +128,8 @@ fun ClientDetailScreen(
     val ledger by viewModel.ledger.collectAsState()
 
     val context = LocalContext.current
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val imageScope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -391,7 +395,7 @@ fun ClientDetailScreen(
                                         .clickable(
                                             indication        = null,
                                             interactionSource  = remember { MutableInteractionSource() }
-                                        ) { showPhotoMenu = true },
+                                        ) { license.runOrExplain { showPhotoMenu = true } },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
@@ -485,7 +489,7 @@ fun ClientDetailScreen(
                     if (balanceStatus == "due") {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Button(
-                            onClick        = { showPaymentDialog = true },
+                            onClick        = license.guarded { showPaymentDialog = true },
                             modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
                             shape          = DsShapes.medium,
                             colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
@@ -597,7 +601,7 @@ fun ClientDetailScreen(
                     }
                     item {
                         QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
-                            showPaymentDialog = true
+                            license.runOrExplain { showPaymentDialog = true }
                         }
                     }
                     item {
@@ -782,7 +786,7 @@ fun ClientDetailScreen(
                                     ledger.latest.take(FACTURE_PREVIEW).forEach { transaction ->
                                         FactureRow(
                                             transaction,
-                                            onLongPressPaiement = { longPressPayment = it },
+                                            onLongPressPaiement = { payment -> license.runOrExplain { longPressPayment = payment } },
                                             onOpenVente = { drill(DrillTarget.Vente(it)) }
                                         )
                                     }

@@ -202,6 +202,7 @@ fun StockCamionScreen(
         ) {
             DsTopAppBar(
                 title   = "Stock Camion",
+                licenseBanner = true,
                 leading = DsTopBarLeading.Back(onBack)
             )
             Spacer(Modifier.height(DsSpacing.md))

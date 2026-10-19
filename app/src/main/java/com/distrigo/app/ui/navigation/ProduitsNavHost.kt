@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import kotlinx.coroutines.flow.flowOf
 
@@ -26,6 +28,8 @@ fun ProduitsNavHost(
     onBack               : (() -> Unit)? = null,
 ) {
     val navController = rememberTrackedNavController()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val exit = { onBack?.invoke(); Unit }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -55,15 +59,15 @@ fun ProduitsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             ProductsScreen(
-                onImport             = { navController.navigate(Screen.ProduitsImport.route) },
+                onImport             = license.guarded { navController.navigate(Screen.ProduitsImport.route) },
                 viewModel      = viewModel,
                 onOpenMenu           = onOpenMenu,
                 onNotificationsClick = onNotificationsClick,
                 onProfileClick       = onProfileClick,
                 onFullScreenChange   = { photoViewerOpen = it },
 
-                onAddProduct   = { navController.navigate(Screen.ProduitsForm.createRoute()) },
-                onEditProduct  = { productId -> navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
+                onAddProduct   = license.guarded { navController.navigate(Screen.ProduitsForm.createRoute()) },
+                onEditProduct  = { productId -> license.runOrExplain { navController.navigate(Screen.ProduitsForm.createRoute(productId)) } },
                 onProductClick = { productId -> navController.navigate(Screen.ProduitsDetail.createRoute(productId)) }
             )
         }
@@ -123,8 +127,8 @@ fun ProduitsNavHost(
                     // vanished, `product` went null, the branch below popped the detail — and the
                     // pop that used to sit here took a second destination off the stack with it.
                     // A second dialog lived here too, asking what the screen had just asked.
-                    onDelete        = { viewModel.deleteProduct(productId) },
-                    onEdit          = { navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
+                    onDelete        = license.guarded { viewModel.deleteProduct(productId) },
+                    onEdit          = license.guarded { navController.navigate(Screen.ProduitsForm.createRoute(productId)) },
                     onViewMovements = { navController.navigate(Screen.ProduitsMovementsGraph.createRoute(productId)) },
                     // The detail lives inside the movements graph, which has to be entered first:
                     // Back from it then passes through the full list on its way to the product.

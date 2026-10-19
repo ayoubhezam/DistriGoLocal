@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.common.productRowSkeletons
 import androidx.paging.LoadState
 import com.distrigo.app.data.model.Quantity
@@ -604,8 +606,11 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 else -> null
             }
 
+            // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
+            val license = LocalLicense.current
             fun doSave() {
                 if (formClient == null) return
+                if (license.refuses()) return
                 // The block behind the marker on the cart line. Saving anyway would throw inside
                 // createVente's transaction — it rolls back, so nothing is corrupted, but the
                 // button would appear to do nothing at all.

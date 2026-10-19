@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.SnackbarHostState
@@ -77,6 +79,8 @@ fun VentesScreen(
     // Paged: only the sales near the screen are loaded, from a query that already applies the dépôt,
     // the search and the filters. The count and the client choices come from their own queries.
     val pagedVentes = viewModel.pagedVentes.collectAsLazyPagingItems()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val venteCount  by viewModel.venteCount.collectAsState()
     val drafts      by viewModel.drafts.collectAsState()
     var showDraftsSheet by remember { mutableStateOf(false) }
@@ -144,7 +148,7 @@ fun VentesScreen(
                                 .background(DsColors.PrimaryLight)
                                 .clickable {
                                     longPressVente = null
-                                    onEditVente(vente.id)
+                                    license.runOrExplain { onEditVente(vente.id) }
                                 }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
@@ -158,7 +162,7 @@ fun VentesScreen(
                                 .fillMaxWidth()
                                 .clip(DsShapes.medium)
                                 .background(DsColors.DangerLight)
-                                .clickable { showDeleteDialog = true }
+                                .clickable { license.runOrExplain { showDeleteDialog = true } }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
@@ -598,7 +602,8 @@ fun VentesScreen(
                                 enabled     = row.vente.status != "delivered",
                                 label       = "Livré",
                                 icon        = Icons.Default.LocalShipping,
-                                onConfirmed = {
+                                onConfirmed = delivered@{
+                                    if (license.refuses()) return@delivered
                                     val vente = row.vente
                                     viewModel.deliverVente(
                                         id        = vente.id,
@@ -683,6 +688,8 @@ fun VenteDetailScreen(
     BackHandler { onBack() }
 
     val fullVenteState by viewModel.selectedVente.collectAsState()
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
     val displayVente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
     val isDelivered  = displayVente.status == "delivered"
     var isDelivering by remember { mutableStateOf(false) }
@@ -799,7 +806,7 @@ fun VenteDetailScreen(
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                             onClick     = {
                                 overflowMenuExpanded = false
-                                edit()
+                                license.runOrExplain(edit)
                             }
                         )
                     }
@@ -808,7 +815,7 @@ fun VenteDetailScreen(
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                         onClick     = {
                             overflowMenuExpanded = false
-                            showDeleteDialog     = true
+                            license.runOrExplain { showDeleteDialog = true }
                         }
                     )
                 }
@@ -1049,7 +1056,7 @@ fun VenteDetailScreen(
 
         if (!isDelivered) {
             Button(
-                onClick = {
+                onClick = license.guarded {
                     isDelivering = true
                     viewModel.deliverVente(
                         id        = displayVente.id,

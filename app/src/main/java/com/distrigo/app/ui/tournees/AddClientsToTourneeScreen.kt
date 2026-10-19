@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.designsystem.LocalLicense
+
 import com.distrigo.app.ui.common.groupBySecteur
 import com.distrigo.app.ui.common.SecteurHeader
 import androidx.compose.foundation.background
@@ -84,6 +86,9 @@ fun AddClientsToTourneeScreen(
     // a single secteur has nothing to fold.
     var opened by remember { mutableStateOf(emptySet<String>()) }
     fun isOpen(secteur: String) = search.isNotBlank() || groupedClients.size == 1 || secteur in opened
+
+    // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
+    val license = LocalLicense.current
 
     fun save() {
         if (selected.isEmpty()) return
@@ -203,7 +208,7 @@ fun AddClientsToTourneeScreen(
         }
 
         Button(
-            onClick  = { save() },
+            onClick  = { license.runOrExplain { save() } },
             enabled  = selected.isNotEmpty() && !isSaving,
             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg).height(52.dp),
             shape    = DsShapes.medium,

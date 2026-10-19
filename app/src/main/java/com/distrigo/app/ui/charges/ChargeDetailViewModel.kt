@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.ui.common.userMessage
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -59,7 +61,7 @@ class ChargeDetailViewModel @Inject constructor(
                 )
                 load(); onDone()
             } catch (e: Exception) {
-                saveError = e.message ?: "Enregistrement impossible"
+                saveError = userMessage(e, "Enregistrement impossible")
             }
             saving = false
         }
@@ -97,7 +99,7 @@ class ChargeDetailViewModel @Inject constructor(
                 repository.deleteCharge(current.id)
                 onDeleted()
             } catch (e: Exception) {
-                error = e.message ?: "La suppression a échoué."
+                error = userMessage(e, "La suppression a échoué.")
                 deleting = false
             }
         }

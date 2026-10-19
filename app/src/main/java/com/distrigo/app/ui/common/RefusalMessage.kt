@@ -10,5 +10,5 @@ import com.distrigo.app.data.model.UnsettledBalanceException
 fun refusalMessage(error: Throwable, money: MoneyFormatter): String = when (error) {
     is UnsettledBalanceException ->
         "Impossible de supprimer : le solde n'est pas nul (${money.da(error.balance)})."
-    else -> error.message ?: "Erreur inconnue"
+    else -> userMessage(error)
 }
