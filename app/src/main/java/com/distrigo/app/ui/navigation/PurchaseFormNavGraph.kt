@@ -100,7 +100,7 @@ private fun PurchaseFormHeader(
     onBackClick  : () -> Unit
 ) {
     DsTopAppBar(
-        title         = if (isEdit) listOfNotNull("Modifier le bon", orderLabel).joinToString(" ") else "Nouveau bon",
+        title         = if (isEdit) (orderLabel?.let { "Modifier $it" } ?: "Modifier le bon") else "Nouveau bon",
         subtitle      = supplierName ?: "Choisir un fournisseur",
         // Blue once a supplier is chosen, grey while the step is still open.
         subtitleColor = if (supplierName != null) DsColors.Primary else DsColors.TextSecondary,

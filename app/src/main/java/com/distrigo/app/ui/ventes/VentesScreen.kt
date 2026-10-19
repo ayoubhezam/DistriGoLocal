@@ -128,7 +128,7 @@ fun VentesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressVente = null },
-                title            = { Text("Vente ${vente.numberLabel}") },
+                title            = { Text(vente.numberLabel) },
                 confirmButton    = {},
                 dismissButton    = {},
                 icon             = null,
@@ -603,7 +603,7 @@ fun VentesScreen(
                                         id        = vente.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("Vente ${vente.numberLabel} marquée comme livrée") {
+                                                swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée") {
                                                     viewModel.undeliverVente(vente.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }
@@ -762,7 +762,7 @@ fun VenteDetailScreen(
     ) {
         // ── Header (Outside Ticket) ──
         DsTopAppBar(
-            title          = "Vente ${displayVente.numberLabel}",
+            title          = displayVente.numberLabel,
             subtitle       = displayVente.client_name,
             leading        = DsTopBarLeading.Back({ onBack() }),
             // This screen is painted on SurfaceSunken, so the bar matches rather than
@@ -1152,7 +1152,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Vente ${vente.numberLabel}",
+                    vente.numberLabel,
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.Medium,
                     color      = DsColors.TextSecondary

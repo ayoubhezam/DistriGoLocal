@@ -276,7 +276,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title         = if (venteId != null) listOfNotNull("Modifier la vente", documentLabel("vente", venteId, session::documentLabel)).joinToString(" ") else "Vente dépôt",
+                    title         = if (venteId != null) (documentLabel("vente", venteId, session::documentLabel)?.let { "Modifier $it" } ?: "Modifier la vente") else "Vente dépôt",
                     // The name passed with the route until the client itself is read: right on frame 1.
                     subtitle      = formClient?.name ?: clientNameArg ?: "Choisir un client",
                     // Blue once a client is chosen, grey while the step is still open.

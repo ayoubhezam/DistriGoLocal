@@ -128,7 +128,7 @@ fun PurchaseOrderDetailScreen(
             title = { Text("Supprimer le bon ?") },
             text  = {
                 Column {
-                    Text("Voulez-vous supprimer le bon ${displayOrder.numberLabel} ?")
+                    Text("Voulez-vous supprimer ${displayOrder.numberLabel} ?")
                     if (deleteError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -190,7 +190,7 @@ fun PurchaseOrderDetailScreen(
     ) {
         // ── Header (Outside Ticket) ──
         DsTopAppBar(
-            title          = "Achat ${displayOrder.numberLabel}",
+            title          = displayOrder.numberLabel,
             subtitle       = displayOrder.supplier_name,
             leading        = DsTopBarLeading.Back({ onBack() }),
             // Painted on SurfaceSunken like the vente ticket, so the bar matches.

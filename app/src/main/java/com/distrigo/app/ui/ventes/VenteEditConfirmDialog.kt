@@ -50,7 +50,7 @@ internal fun VenteEditConfirmDialog(
                 modifier            = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
-                Text("Voulez-vous modifier la vente ${original.numberLabel} ?", color = DsColors.TextPrimary)
+                Text("Voulez-vous modifier ${original.numberLabel} ?", color = DsColors.TextPrimary)
                 Text("Ce qui va changer :", color = DsColors.TextSecondary)
                 effects.forEach { effect ->
                     Row {

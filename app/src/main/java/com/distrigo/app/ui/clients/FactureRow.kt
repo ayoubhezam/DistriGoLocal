@@ -79,7 +79,7 @@ fun FactureRow(
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Vente ${transaction.numberLabel} · ${formatOrderTime(transaction.created_at)}",
+                        "${transaction.numberLabel} · ${formatOrderTime(transaction.created_at)}",
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
                     if (statut == "Partiel") {

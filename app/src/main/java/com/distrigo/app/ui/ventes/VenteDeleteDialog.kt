@@ -44,7 +44,7 @@ internal fun VenteDeleteDialog(
         text             = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Text(
-                    "Êtes-vous sûr de vouloir supprimer la vente ${vente.numberLabel} de ${money.da(vente.total)} ?",
+                    "Êtes-vous sûr de vouloir supprimer ${vente.numberLabel} de ${money.da(vente.total)} ?",
                     color = DsColors.TextPrimary
                 )
                 Text("La suppression annulera ses mouvements de stock et mettra à jour le solde :", color = DsColors.TextSecondary)

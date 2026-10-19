@@ -114,7 +114,7 @@ fun PurchasesScreen(
                 title = { Text("Supprimer le bon ?") },
                 text = {
                     Column {
-                        Text("Voulez-vous supprimer le bon ${order.numberLabel} de ${order.supplier_name} ?")
+                        Text("Voulez-vous supprimer ${order.numberLabel} de ${order.supplier_name} ?")
                         if (deleteError.isNotEmpty()) {
                             Spacer(Modifier.height(DsSpacing.sm))
                             Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -150,7 +150,7 @@ fun PurchasesScreen(
         } else {
             AlertDialog(
                 onDismissRequest = { longPressOrder = null },
-                title            = { Text("Bon ${order.numberLabel}") },
+                title            = { Text(order.numberLabel) },
                 confirmButton    = {},
                 dismissButton    = {},
                 icon             = null,
@@ -651,7 +651,7 @@ fun PurchasesScreen(
                                         id        = order.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("Bon ${order.numberLabel} marqué comme reçu") {
+                                                swipeSnackbar.showUndo("${order.numberLabel} marqué comme reçu") {
                                                     viewModel.undoReceive(order.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }
@@ -782,7 +782,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Bon ${order.numberLabel}",
+                    order.numberLabel,
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.Medium,
                     color      = DsColors.TextSecondary

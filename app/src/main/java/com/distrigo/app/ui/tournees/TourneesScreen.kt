@@ -472,7 +472,7 @@ fun TourneeDetailScreen(
                 } else {
                     AlertDialog(
                         onDismissRequest = { longPressVenteInTournee = null },
-                        title = { Text("Vente ${vente.numberLabel}") },
+                        title = { Text(vente.numberLabel) },
                         confirmButton = {},
                         dismissButton = {},
                         text = {
@@ -807,7 +807,7 @@ fun TourneeDetailScreen(
                                             onSuccess = {
                                                 reload()
                                                 swipeScope.launch {
-                                                    swipeSnackbar.showUndo("Vente ${vente.numberLabel} marquée comme livrée") {
+                                                    swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée") {
                                                         venteViewModel.undeliverVente(
                                                             id        = vente.id,
                                                             onSuccess = { reload() },
@@ -1704,7 +1704,7 @@ private fun TourneeVenteRow(
             // Dépôt Vente list already gives it — the two lists show the same records, so they
             // should name them the same way.
             Text(
-                "Vente ${vente.numberLabel}",
+                vente.numberLabel,
                 fontSize   = DsTextSize.caption,
                 fontWeight = FontWeight.Medium,
                 color      = DsColors.TextSecondary
