@@ -1933,6 +1933,10 @@ class ProductRepository(
 
     // The banner shows the open tournée's name and nothing else. Same selection as before — the
     // existing getOpenTournee query — then its counters, without its sales.
+    /** The clients who bought on tournée [id]: the Dashboard's « Avec achat ». */
+    suspend fun clientIdsWithSaleOnTournee(id: Int): Set<Int> =
+        db.venteDao().getVentesForTournee(id).map { it.client_id }.toSet()
+
     suspend fun getOpenTournee(): Tournee? {
         val open = db.tourneeDao().getOpenTournee() ?: return null
         val summary = db.tourneeDao().getTourneeSummary(open.id) ?: return null

@@ -26,6 +26,12 @@ listed at the end.*
 | D12 | **« Alertes » stays** (stock-outs, low stock, old debts), shown only when there is one. |
 | D13 | **The five remaining commission rules are adopted** (Part 2, Step 1): returns subtract, the % rounds down, the objective is the first tier, a switch shows or hides the bonus, a closed period is frozen. |
 
+| D14 | **« Nouvelle vente »** opens the tournée sale when a tournée is open, otherwise Dépôt Vente (owner, 2026-10-20). |
+| D15 | **« Encaissement »** opens a picker of the clients who owe something (largest balance first, with search), then the same « Versement » dialog as the client's page, without leaving the Dashboard (owner, 2026-10-20). |
+| D16 | **The header reads « Bonjour, Ayoub »**: the account's first name, the date under it and the open tournée's chip; « Bonjour » alone for an account without a name (owner, 2026-10-20). |
+| D17 | **Back to the Figma design, fewer numbers** (owner, 2026-10-20, mockup `dashboard.png`): one blue card — « Ventes du jour » centred with its change as a pill beside it, never a sentence of comparison; under it « Objectif du mois » (bar, « réalisé / objectif DA », %), or the month's sales with « Fixez un objectif » without a policy; then « Payé à la vente » and « Crédit ». The separate Objectif and « Ce mois » cards are gone (pace, bonus and next-step sentence move to « Mon objectif », step 4). Order: quick actions, Tournée du jour, Clients du jour, Alertes, Activité récente (4 sales at most). |
+| D18 | **In « Paliers » the bar aims at the next tier** (owner, 2026-10-20): « Objectif du mois · Palier N », « réalisé / seuil du palier N », the share of that threshold, from zero; once every tier is passed, the last one. A middle tier reached is not the goal reached. The goal's text and bar are white below 100 %, light green (#86EFAC) at exactly 100 %, gold (#FFD54F) beyond; the % rounds down as everywhere (D13). `GoalProgress.target` holds the rule. |
+
 ---
 
 # Part 1: The dashboard

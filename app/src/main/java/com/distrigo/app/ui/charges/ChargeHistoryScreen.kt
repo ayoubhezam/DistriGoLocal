@@ -294,6 +294,28 @@ fun ChargeHistoryScreen(
     if (sheet) ChargeFiltersSheet(filters, types, subTypes, onApply = { viewModel.filters.value = it; sheet = false }, onDismiss = { sheet = false })
 }
 
+/**
+ * « Nouvelle charge » on its own, for a screen outside the history: the Dashboard's quick action « Charge »
+ * (docs/design/dashboard_objectif_plan.md, Part 1 §4). The same dialog and the same save as the history's « + ».
+ */
+@Composable
+fun NewChargeDialog(onDismiss: () -> Unit, viewModel: ChargeHistoryViewModel = hiltViewModel()) {
+    val types by viewModel.types.collectAsState()
+    val subTypes by viewModel.subTypes.collectAsState()
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf("") }
+    ChargeDialog(
+        title = "Nouvelle charge", types = types, subTypes = subTypes, initial = null,
+        isSaving = saving, error = saveError,
+        onSave = { input ->
+            saving = true; saveError = ""
+            viewModel.add(input) { error -> saving = false; if (error == null) onDismiss() else saveError = error }
+        },
+        onAddSubType = viewModel::addSubType,
+        onDismiss = onDismiss
+    )
+}
+
 /** A charge in the history: its sub-type's icon in its type's colour, the sub-type over the type, the amount in Primary. */
 @Composable
 private fun ChargeRow(charge: ChargeHistoryRow, amount: String, onClick: () -> Unit) {

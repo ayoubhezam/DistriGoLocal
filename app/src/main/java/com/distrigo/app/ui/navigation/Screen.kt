@@ -28,6 +28,7 @@ sealed class Screen(val route: String) {
     data object DrillRetoursClient : Drill("retours_client")
     data object DrillRetoursFournisseur : Drill("retours_fournisseur")
     data object DrillProduit  : Drill("produit")
+    data object DrillTournee  : Drill("tournee")
     data object PlusFournisseurs : Screen("plus_fournisseurs")
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")

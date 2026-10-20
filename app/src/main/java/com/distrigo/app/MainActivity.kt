@@ -407,6 +407,7 @@ class MainActivity : ComponentActivity() {
                             // here so the wiring is one edit away once those screens exist.
                             composable(Screen.TabDashboard.route) {
                                 com.distrigo.app.ui.navigation.DashboardNavHost(
+                                    onFullScreenChange   = { hideBottomBar = it },
                                     onOpenReport         = { report -> navController.navigate(Screen.PlusRapport.createRoute(report)) },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
@@ -562,6 +563,12 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.DrillProduit.route, arguments = drillId) { entry ->
                                 com.distrigo.app.ui.navigation.ProduitsNavHost(
                                     openProductId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack        = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillTournee.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.TourneesNavHost(
+                                    openTourneeId = entry.arguments!!.getInt(DRILL_ID),
                                     onBack        = { navController.popBackStack() }
                                 )
                             }

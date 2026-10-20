@@ -1,10 +1,11 @@
 package com.distrigo.app.ui.dashboard
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,46 +15,76 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.RemoveShoppingCart
-import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.data.local.entity.incentive.PeriodType
+import com.distrigo.app.data.model.Client
+import com.distrigo.app.data.model.incentive.GoalProgress
+import com.distrigo.app.data.model.incentive.GoalState
 import com.distrigo.app.data.repository.DashboardAlerts
-import com.distrigo.app.data.repository.DashboardBalances
 import com.distrigo.app.data.repository.DashboardSales
+import com.distrigo.app.data.repository.TourneeDay
 import com.distrigo.app.data.repository.change
+import com.distrigo.app.ui.charges.NewChargeDialog
+import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.EntityAvatar
+import com.distrigo.app.ui.common.PaymentDialog
+import com.distrigo.app.ui.common.matchesAllTokens
+import com.distrigo.app.ui.common.searchTokens
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -62,43 +93,33 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.designsystem.LocalLicense
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.LocalDrillDown
 import com.distrigo.app.ui.navigation.ReportEntry
 import com.distrigo.app.ui.rapports.AnimatedFigure
 import com.distrigo.app.ui.rapports.CardColumn
 import com.distrigo.app.ui.rapports.CardTitle
 import com.distrigo.app.ui.rapports.Figure
-import com.distrigo.app.ui.rapports.HeroHalf
-import com.distrigo.app.ui.rapports.ReportHeroCard
+import com.distrigo.app.ui.rapports.InfoButton
 import com.distrigo.app.ui.rapports.ReportInfo
 import com.distrigo.app.ui.rapports.countFigure
 import com.distrigo.app.ui.rapports.figure
-import com.distrigo.app.ui.rapports.glidingValues
 import com.distrigo.app.ui.rapports.percent
-import com.distrigo.app.ui.rapports.plural
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
-import androidx.compose.foundation.border
 
-private val FR = Locale.FRENCH
+internal val FR: Locale = Locale.FRENCH
 private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
 
 private val INFO_TODAY = ReportInfo(
-    "Chiffre d'affaires du jour",
-    "Les ventes d'aujourd'hui jusqu'à maintenant, dépôt et camion ensemble.\n\n" +
-        "Comparées au même jour de la semaine dernière, jusqu'à la même heure : un mardi matin avec un mardi matin.\n\n" +
-        "Touchez la carte pour le rapport Ventes du jour."
-)
-private val INFO_MONTH = ReportInfo(
-    "Ce mois",
-    "Le chiffre d'affaires et la marge brute du mois jusqu'à aujourd'hui, comparés au mois dernier jusqu'à la même date et la même heure.\n\n" +
-        "Taux de marge : sur le prix d'achat, comme dans le rapport Ventes."
-)
-private val INFO_WEEK = ReportInfo(
-    "7 derniers jours",
-    "Le chiffre d'affaires de chacun des sept derniers jours, aujourd'hui compris, dépôt et camion ensemble. Aujourd'hui est en couleur."
+    "Ventes du jour",
+    "Les ventes d'aujourd'hui jusqu'à maintenant, dépôt et tournée ensemble : ce qui a été payé à la vente, et le crédit " +
+        "qui reste.\n\nLe pourcentage compare au dernier jour de ventes jusqu'à la même heure : hier, ou le jour de ventes " +
+        "d'avant après un jour de repos.\n\nL'objectif est celui de Paramètres → Politique de commission ; sans politique, " +
+        "la carte montre les ventes du mois.\n\nTouchez la carte pour le rapport Ventes du jour, l'objectif pour celui du mois."
 )
 private val INFO_ALERTS = ReportInfo(
     "Alertes",
@@ -106,231 +127,371 @@ private val INFO_ALERTS = ReportInfo(
         "• Stock bas : ceux sous leur stock minimum.\n" +
         "• Créances de plus de 90 jours : ce que les clients doivent depuis plus de trois mois."
 )
-private val INFO_BALANCES = ReportInfo(
-    "Créances et dettes",
-    "Aujourd'hui : ce que vos clients vous doivent, et ce que vous devez à vos fournisseurs. Touchez-en un pour le détail."
-)
 
-/** The Dashboard: today, this month, the last seven days, what needs seeing to, and who owes what. */
+/**
+ * The Dashboard (docs/design/dashboard_objectif_plan.md, Part 1): today's sales against « hier », the objective, the
+ * quick actions, the alerts when there are any, the tournée of the day with its clients, and the latest sales.
+ */
 @Composable
 fun DashboardScreen(
     onOpenReport         : (ReportEntry) -> Unit = {},
     onOpenMenu           : (() -> Unit)? = null,
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {},
+    /** D14: the tournée sale when [tourneeId] is open, otherwise Dépôt Vente. */
+    onNewSale            : (tourneeId: Int?) -> Unit = {},
+    onNewPurchase        : () -> Unit = {},
+    onAddTourneeClients  : (TourneeDay) -> Unit = {},
+    /** « Fixez un objectif »: the commission policy in Paramètres. */
+    onSetObjective       : () -> Unit = {},
     viewModel            : DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val license = LocalLicense.current
+    val drill = LocalDrillDown.current
     val open = { link: DashboardLink -> viewModel.prepare(link); onOpenReport(link.report) }
+    var addingCharge by remember { mutableStateOf(false) }
+    var collecting by remember { mutableStateOf(false) }
+    var paying by remember { mutableStateOf<Client?>(null) }
+    val tournee = (state.tournee as? Block.Ready)?.value
+    val sales = (state.sales as? Block.Ready)?.value
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        // The tab roots are the only screens with no back arrow, so the menu takes the
-        // leading slot and the global controls take the trailing one.
+        // D16: the greeting and the date; the menu stays, the drawer being the only way to the other sections
         DsTopAppBar(
-            title   = "Dashboard",
+            title         = state.firstName?.let { "Bonjour, $it" } ?: "Bonjour",
+            subtitle      = sales?.now?.format(TODAY)?.replaceFirstChar { it.uppercase() },
             licenseBanner = true,
-            leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
-            size    = DsTopBarSize.Large
+            leading       = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
+            size          = DsTopBarSize.Large
         ) {
-            DsTopBarRootActions(
-                onNotificationsClick = onNotificationsClick,
-                onProfileClick       = onProfileClick
-            )
+            DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
+            modifier            = Modifier.fillMaxSize(),
+            contentPadding      = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.bottomNavClearance),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
-            val sales = state.sales
-            if (sales == null) {
-                item(key = "loading") {
-                    Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = DsColors.Primary)
+            // The chip shares the first item with Ventes du jour: as an item of its own, arriving after the card, it
+            // would be inserted above the list's anchor and stay scrolled out of sight
+            item(key = "today") {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                    tournee?.let { t -> TourneeChip(t) { drill(DrillTarget.Tournee(t.id)) } }
+                    if (sales == null) {
+                        Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = DsColors.PrimaryDark)
+                        }
+                    } else {
+                        TodayCard(
+                            sales          = sales,
+                            goal           = state.goal,
+                            onClick        = { open(DashboardLink.TODAY) },
+                            onGoal         = { open(DashboardLink.MONTH) },
+                            onSetObjective = onSetObjective,
+                        )
                     }
                 }
-            } else {
-                item(key = "today_title") { Heading("Aujourd'hui", sales.now.format(TODAY).replaceFirstChar { it.uppercase() }) }
-                item(key = "today") { TodayCard(sales) { open(DashboardLink.TODAY) } }
-                item(key = "today_tiles") { TodayTiles(sales) { open(DashboardLink.TODAY) } }
-                item(key = "month") { MonthCard(sales) { open(DashboardLink.MONTH) } }
-                item(key = "week") { WeekCard(sales) { open(DashboardLink.WEEK) } }
             }
-            state.alerts?.let { alerts -> item(key = "alerts") { AlertsCard(alerts) { open(it) } } }
-            state.balances?.let { balances -> item(key = "balances") { BalancesCard(balances) { open(it) } } }
+
+            item(key = "actions") {
+                QuickActions(
+                    onNewSale     = { license.runOrExplain { onNewSale(tournee?.id) } },
+                    onCollect     = { license.runOrExplain { collecting = true } },
+                    onNewPurchase = { license.runOrExplain(onNewPurchase) },
+                    onCharge      = { license.runOrExplain { addingCharge = true } },
+                )
+            }
+
+            // The tournée and its clients before the alerts (owner 2026-10-20)
+            tournee?.let { t ->
+                item(key = "tournee") { TourneeCard(t) { drill(DrillTarget.Tournee(t.id)) } }
+                item(key = "tournee_clients") {
+                    TourneeClientsRow(
+                        tournee  = t,
+                        onAdd    = { license.runOrExplain { onAddTourneeClients(t) } },
+                        onSeeAll = { drill(DrillTarget.Tournee(t.id)) },
+                    )
+                }
+            }
+
+            // D12: only when there is something to see to
+            (state.alerts as? Block.Ready)?.value?.takeIf { it.any }?.let { alerts ->
+                item(key = "alerts") { AlertsCard(alerts) { open(it) } }
+            }
+
+            item(key = "activity_title") {
+                ActivityHeader(state.activityFilter, viewModel::showActivity)
+            }
+            when (val activity = state.activity) {
+                Block.Loading -> Unit
+                is Block.Ready ->
+                    if (activity.value.isEmpty()) {
+                        item(key = "activity_empty") { ActivityEmpty(state.activityFilter) }
+                    } else {
+                        items(activity.value, key = { "sale_${it.id}" }) { sale ->
+                            RecentSaleRow(sale) { drill(DrillTarget.Vente(sale.id)) }
+                        }
+                    }
+            }
         }
     }
-}
 
-@Composable
-private fun Heading(title: String, detail: String) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg), verticalAlignment = Alignment.Bottom) {
-        Text(title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-        Spacer(Modifier.width(DsSpacing.sm))
-        Text(detail, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    if (addingCharge) NewChargeDialog(onDismiss = { addingCharge = false })
+    if (collecting) {
+        CollectSheet(
+            load      = viewModel::clientsOwing,
+            onPick    = { client -> collecting = false; paying = client },
+            onDismiss = { collecting = false },
+        )
+    }
+    paying?.let { client ->
+        PaymentDialog(
+            balance   = client.balance,
+            onSubmit  = { amount, note, onError, onSuccess ->
+                viewModel.addPayment(client.id, amount, note, onSuccess = { onSuccess(); paying = null }, onError = onError)
+            },
+            onDismiss = { paying = null },
+        )
     }
 }
 
-/** "▲ 12,5 %" or "▼ 3,0 %" — green up, red down — or nothing to compare with. */
-private fun trend(rate: Double?): Pair<String, Color> = when {
-    rate == null -> "—" to DsColors.TextTertiary
-    rate >= 0.0005 -> "▲ ${percent(rate)}" to DsColors.Success
-    rate <= -0.0005 -> "▼ ${percent(abs(rate))}" to DsColors.Danger
-    else -> "= ${percent(0.0)}" to DsColors.TextSecondary
-}
-
-/** Last week's same day, by name: "mardi". */
-private fun lastWeekDay(sales: DashboardSales) = sales.now.dayOfWeek.getDisplayName(TextStyle.FULL, FR)
-
+/** The open tournée, as a chip under the greeting: where the rep is today. */
 @Composable
-private fun TodayCard(sales: DashboardSales, onClick: () -> Unit) {
-    val money = LocalMoneyFormatter.current
-    val (arrow, _) = trend(change(sales.today.total, sales.lastWeek.total))
-    val compared = if (sales.lastWeek.total > 0) "$arrow vs ${lastWeekDay(sales)} dernier à la même heure"
-                   else "Rien vendu ${lastWeekDay(sales)} dernier à la même heure"
-    ReportHeroCard(
-        title = "Chiffre d'affaires du jour",
-        amount = money.figure(sales.today.total),
-        caption = compared,
-        info = INFO_TODAY,
-        halves = listOf(
-            HeroHalf("Payé à la vente", money.figure(sales.today.paid)),
-            HeroHalf("À crédit", money.figure(sales.today.credit)),
-        ),
-        onClick = onClick,
-    )
-}
-
-/** Today's sales, average basket and clients served, each against the same day last week. */
-@Composable
-private fun TodayTiles(sales: DashboardSales, onClick: () -> Unit) {
-    val money = LocalMoneyFormatter.current
-    val t = sales.today
-    val w = sales.lastWeek
+private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+        Modifier.padding(horizontal = DsSpacing.lg).clip(DsShapes.pill).background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.pill).clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TrendTile(Icons.Default.Receipt, "Ventes", countFigure(t.count), change(t.count.toDouble(), w.count.toDouble()),
-            DsColors.Primary, Modifier.weight(1f), onClick)
-        TrendTile(Icons.Default.ShoppingBasket, "Panier moyen", t.basket?.let { money.figure(it) } ?: Figure.text("—"),
-            t.basket?.let { now -> w.basket?.let { change(now, it) } }, DsColors.Success, Modifier.weight(1f), onClick)
-        TrendTile(Icons.Default.Groups, "Clients servis", countFigure(t.clients), change(t.clients.toDouble(), w.clients.toDouble()),
-            DsColors.Warning, Modifier.weight(1f), onClick)
+        Box(Modifier.size(8.dp).clip(CircleShape).background(DsColors.Success))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(DsSpacing.xs))
+        Text(
+            "Tournée en cours · ${tournee.label}",
+            fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
-/** A third of a row: an icon in its colour, the figure, its label, and how it compares with last week. */
-@Composable
-private fun TrendTile(icon: ImageVector, label: String, value: Figure, rate: Double?, accent: Color, modifier: Modifier, onClick: () -> Unit) {
-    val (arrow, color) = trend(rate)
-    Column(
-        modifier.fillMaxHeight().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
-            .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
-    ) {
-        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.height(DsSpacing.sm))
-        AnimatedFigure(value, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(arrow, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
-    }
+/** "+12,4 %", "−3,0 %", "= 0,0 %". */
+internal fun signedPercent(rate: Double): String = when {
+    rate >= 0.0005 -> "+${percent(rate)}"
+    rate <= -0.0005 -> "−${percent(abs(rate))}"
+    else -> "= ${percent(0.0)}"
 }
 
-/** This month so far: its sales and gross margin, the sales against last month to the same date. */
+/**
+ * The Dashboard's one card (the Figma design, owner 2026-10-20): Ventes du jour with its change beside the title — no
+ * sentence of comparison —, the objective's bar and amount, then « Payé à la vente » and « Crédit ». Without a
+ * commission policy the objective's place shows the month's sales and « Fixez un objectif ».
+ */
 @Composable
-private fun MonthCard(sales: DashboardSales, onClick: () -> Unit) {
+private fun TodayCard(
+    sales: DashboardSales,
+    goal: Block<GoalProgress?>,
+    onClick: () -> Unit,
+    onGoal: () -> Unit,
+    onSetObjective: () -> Unit,
+) {
     val money = LocalMoneyFormatter.current
-    val m = sales.month
-    val (arrow, color) = trend(change(m.total, sales.lastMonth.total))
-    val lastMonth = sales.now.minusMonths(1).month.getDisplayName(TextStyle.FULL, FR)
+    val white = Color.White
+    // Against the last day of sales to the same hour (D10); none before the first sale of the day, nor without such a day
+    val rate = sales.yesterday?.takeIf { sales.today.total > 0 }?.let { change(sales.today.total, it.total) }
     Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Primary)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
-    ) {
-        CardTitle("Ce mois", INFO_MONTH)
-        Spacer(Modifier.height(DsSpacing.md))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-            Column(Modifier.weight(1f)) {
-                Text("Chiffre d'affaires", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                AnimatedFigure(money.figure(m.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-                Text("$arrow vs $lastMonth", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("Marge brute", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                AnimatedFigure(money.figure(m.margin), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold,
-                    color = if (m.margin < 0) DsColors.Danger else DsColors.PrimaryDark)
-                Text(m.marginRate?.let { "Taux ${percent(it)}" } ?: "Taux —", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-        }
-    }
-}
-
-/** The last seven days as bars, today in colour; the bars move when the figures change. */
-@Composable
-private fun WeekCard(sales: DashboardSales, onClick: () -> Unit) {
-    val money = LocalMoneyFormatter.current
-    val days = sales.week
-    val top = (days.maxOfOrNull { it.total } ?: 0.0).coerceAtLeast(1.0)
-    val drawn = glidingValues(days.map { (it.total / top).toFloat() }, layout = days.firstOrNull()?.day)
-    val today = DsColors.Primary
-    val other = DsColors.Primary.copy(alpha = 0.35f)
-    val stub = DsColors.SurfaceSunken
-    Column(
-        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
-            .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            CardTitle("7 derniers jours", INFO_WEEK)
-            Spacer(Modifier.weight(1f))
-            AnimatedFigure(money.figure(days.sumOf { it.total }), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
-                color = DsColors.TextSecondary)
+            Text("Ventes du jour", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = white.copy(alpha = 0.9f))
+            rate?.let {
+                Spacer(Modifier.width(DsSpacing.sm))
+                TrendPill(it)
+            }
+            InfoButton(INFO_TODAY, tint = white.copy(alpha = 0.75f))
         }
+        AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
+            color = white, textAlign = TextAlign.Center)
+
+        when (goal) {
+            Block.Loading -> Unit
+            is Block.Ready -> {
+                Spacer(Modifier.height(DsSpacing.md))
+                val progress = goal.value
+                if (progress != null) HeroGoal(progress, onGoal) else HeroMonth(sales, onGoal, onSetObjective)
+            }
+        }
+
         Spacer(Modifier.height(DsSpacing.md))
-        Canvas(Modifier.fillMaxWidth().height(110.dp)) {
-            val slot = size.width / days.size.coerceAtLeast(1)
-            val bar = slot * 0.55f
-            val radius = CornerRadius(minOf(bar / 2, 6.dp.toPx()))
-            val shares = drawn()
-            days.forEachIndexed { i, d ->
-                val x = i * slot + (slot - bar) / 2
-                val h = shares.getOrElse(i) { 0f } * size.height
-                if (d.total <= 0 || h <= 0f) {
-                    drawRoundRect(stub, Offset(x, size.height - 2.dp.toPx()), Size(bar, 2.dp.toPx()), CornerRadius(1.dp.toPx()))
-                } else {
-                    drawRoundRect(if (i == days.lastIndex) today else other, Offset(x, size.height - h), Size(bar, h), radius)
+        HorizontalDivider(color = white.copy(alpha = 0.25f))
+        Spacer(Modifier.height(DsSpacing.md))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+            listOf("Payé à la vente" to sales.today.paid, "Crédit" to sales.today.credit).forEach { (label, value) ->
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(label, fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
+                    AnimatedFigure(money.figure(value), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+                        color = white, textAlign = TextAlign.Center)
                 }
             }
         }
+    }
+}
+
+/** « ↗ +12,4 % » on the card's blue. */
+@Composable
+private fun TrendPill(rate: Double) {
+    val icon = when {
+        rate >= 0.0005 -> Icons.AutoMirrored.Filled.TrendingUp
+        rate <= -0.0005 -> Icons.AutoMirrored.Filled.TrendingDown
+        else -> Icons.AutoMirrored.Filled.TrendingFlat
+    }
+    Row(
+        Modifier.clip(DsShapes.pill).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = DsSpacing.sm, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(signedPercent(rate), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = Color.White)
+    }
+}
+
+private fun GoalProgress.title(): String = when (period.type) {
+    PeriodType.MONTHLY -> "Objectif du mois"
+    PeriodType.QUARTERLY -> "Objectif du trimestre"
+    PeriodType.YEARLY -> "Objectif de l'année"
+}
+
+// The goal's colour on the card's blue (owner, 2026-10-20): white on the way, green once reached, gold beyond. Both
+// are light tints, readable on the blue where the app's own green would not be.
+private val GoalReached = Color(0xFF86EFAC)
+private val GoalExceeded = Color(0xFFFFD54F)
+
+/**
+ * The objective in the card: its name, « réalisé / cible DA », the percent, and the bar. In « Paliers » the target
+ * is the next tier, named after the title, and the last one once all are passed ([GoalProgress.target]).
+ */
+@Composable
+private fun HeroGoal(goal: GoalProgress, onClick: () -> Unit) {
+    val money = LocalMoneyFormatter.current
+    val white = Color.White
+    val target = goal.target
+    val color = when (target.state) {
+        GoalState.BELOW -> white
+        GoalState.REACHED -> GoalReached
+        GoalState.EXCEEDED -> GoalExceeded
+    }
+    Column(Modifier.fillMaxWidth().clip(DsShapes.medium).clickable(role = Role.Button, onClick = onClick).padding(vertical = DsSpacing.xs)) {
+        Text(
+            listOfNotNull(goal.title(), target.tier?.let { "Palier $it" }).joinToString(" · "),
+            fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${money.amount(goal.value)} / ${money.da(target.threshold)}", fontSize = DsTextSize.bodySmall,
+                fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text("${target.percent} %", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = color)
+        }
         Spacer(Modifier.height(DsSpacing.xs))
-        Row(Modifier.fillMaxWidth()) {
-            days.forEachIndexed { i, d ->
-                Text(
-                    d.day.dayOfWeek.getDisplayName(TextStyle.NARROW, FR),
-                    fontSize = DsTextSize.caption, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
-                    fontWeight = if (i == days.lastIndex) FontWeight.Bold else FontWeight.Normal,
-                    color = if (i == days.lastIndex) DsColors.Primary else DsColors.TextTertiary,
-                )
-            }
+        val fraction = if (target.threshold > 0) (goal.value / target.threshold).coerceIn(0.0, 1.0).toFloat() else 0f
+        Box(
+            Modifier.fillMaxWidth().height(8.dp).clip(DsShapes.pill).background(white.copy(alpha = 0.25f))
+                .semantics {
+                    contentDescription = target.tier?.let { "${target.percent} % du palier $it" } ?: "${target.percent} % de l'objectif"
+                }
+        ) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).clip(DsShapes.pill).background(color))
         }
     }
 }
 
-/** What needs seeing to, each line opening its list; or, when all is well, says so. */
+/** No commission policy: the month's sales, and « Fixez un objectif » (D3). */
+@Composable
+private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective: () -> Unit) {
+    val money = LocalMoneyFormatter.current
+    val white = Color.White
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).clip(DsShapes.medium).clickable(role = Role.Button, onClick = onClick).padding(vertical = DsSpacing.xs)) {
+            Text("Ventes du mois", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f))
+            Text(money.da(sales.month.total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = white,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.width(DsSpacing.sm))
+        Row(
+            Modifier.clip(DsShapes.pill).background(white.copy(alpha = 0.18f)).clickable(role = Role.Button, onClick = onSetObjective)
+                .heightIn(min = 36.dp).padding(horizontal = DsSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, tint = white, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Fixez un objectif", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = white)
+        }
+    }
+}
+
+/** The four quick actions, each behind the license (L5): Nouvelle vente, Encaissement, Nouvel achat, Charge. */
+@Composable
+private fun QuickActions(onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurchase: () -> Unit, onCharge: () -> Unit) {
+    BoxWithConstraints(Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth()) {
+        // One size for the four labels, small enough for the longest word to fit a tile whole (« Encaissement » on a
+        // narrow phone or a large font), so no word breaks in two
+        val measurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+        val tile = (maxWidth - DsSpacing.sm * 3) / 4 - DsSpacing.xs * 2
+        val labelStyle = LocalTextStyle.current.merge(TextStyle(fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold))
+        val longest = remember(measurer) {
+            QUICK_ACTION_WORDS.maxOf { measurer.measure(it, labelStyle, softWrap = false).size.width }
+        }
+        val fontSize = with(density) {
+            if (longest <= tile.toPx()) DsTextSize.caption else DsTextSize.caption * (tile.toPx() / longest)
+        }
+        Row(
+            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
+        ) {
+            QuickAction(Icons.Default.PointOfSale, "Nouvelle vente", DsColors.PrimaryDark, fontSize, Modifier.weight(1f), onNewSale)
+            QuickAction(Icons.Default.Payments, "Encaissement", DsColors.Success, fontSize, Modifier.weight(1f), onCollect)
+            QuickAction(Icons.Default.AddShoppingCart, "Nouvel achat", DsColors.Primary, fontSize, Modifier.weight(1f), onNewPurchase)
+            QuickAction(Icons.Default.Receipt, "Charge", DsColors.Warning, fontSize, Modifier.weight(1f), onCharge)
+        }
+    }
+}
+
+private val QUICK_ACTION_WORDS = listOf("Nouvelle", "vente", "Encaissement", "Nouvel", "achat", "Charge")
+
+@Composable
+private fun QuickAction(icon: ImageVector, label: String, accent: Color, fontSize: TextUnit, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.fillMaxHeight().heightIn(min = 88.dp).clip(DsShapes.large).background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large).clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+            .padding(vertical = DsSpacing.md, horizontal = DsSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(DsSpacing.sm))
+        Text(
+            label, fontSize = fontSize, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+            textAlign = TextAlign.Center, maxLines = 2, lineHeight = DsTextSize.bodySmall,
+        )
+    }
+}
+
+/** What needs seeing to, each line opening its list. Shown only when there is one (D12). */
 @Composable
 private fun AlertsCard(alerts: DashboardAlerts, onOpen: (DashboardLink) -> Unit) {
     val money = LocalMoneyFormatter.current
     CardColumn {
         CardTitle("Alertes", INFO_ALERTS)
         Spacer(Modifier.height(DsSpacing.sm))
-        if (!alerts.any) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = DsSpacing.sm)) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(DsSpacing.sm))
-                Text("Aucune alerte", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
-            }
-        }
         if (alerts.outOfStock > 0) AlertLine(Icons.Default.RemoveShoppingCart, DsColors.Danger, "Ruptures", "stock à zéro",
             countFigure(alerts.outOfStock, "produit", "produits")) { onOpen(DashboardLink.RESTOCK) }
         if (alerts.lowStock > 0) AlertLine(Icons.Default.Inventory2, DsColors.Warning, "Stock bas", "sous le minimum",
@@ -351,8 +512,6 @@ private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: St
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(DsSpacing.md))
-        // The words take the whole line, the figure the line under them: an amount in the billions
-        // beside them would cut them short.
         Column(Modifier.weight(1f)) {
             Text(
                 buildAnnotatedString {
@@ -367,32 +526,62 @@ private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: St
     }
 }
 
-/** What the clients owe and what is owed to the suppliers, side by side, each opening its report. */
+/**
+ * « Encaissement » (D15): the clients who owe something, the largest balance first, with the app's search; a tap
+ * opens the « Versement » dialog for that client.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BalancesCard(balances: DashboardBalances, onOpen: (DashboardLink) -> Unit) {
+private fun CollectSheet(load: suspend () -> List<Client>, onPick: (Client) -> Unit, onDismiss: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    CardColumn {
-        CardTitle("Créances et dettes", INFO_BALANCES)
-        Spacer(Modifier.height(DsSpacing.md))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            BalanceHalf("Vos clients vous doivent", money.figure(balances.clientsOwe), DsColors.Success, Modifier.weight(1f)) {
-                onOpen(DashboardLink.CLIENT_DEBTS)
+    var clients by remember { mutableStateOf<List<Client>?>(null) }
+    var query by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { clients = runCatching { load() }.getOrDefault(emptyList()) }
+    val tokens = searchTokens(query)
+    val shown = clients.orEmpty().filter { matchesAllTokens(tokens, it.name, it.phone, it.secteur_name) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = DsColors.Surface,
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg)) {
+            Text("Encaissement", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text("Choisissez le client qui verse", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+            Spacer(Modifier.height(DsSpacing.md))
+            DsCompactSearchField(value = query, onValueChange = { query = it }, placeholder = "Rechercher un client")
+            Spacer(Modifier.height(DsSpacing.sm))
+        }
+        when {
+            clients == null -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxl), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = DsColors.PrimaryDark)
             }
-            BalanceHalf("Vous devez aux fournisseurs", money.figure(balances.owedToSuppliers), DsColors.Warning, Modifier.weight(1f)) {
-                onOpen(DashboardLink.SUPPLIER_DEBTS)
+            shown.isEmpty() -> Text(
+                if (clients.orEmpty().isEmpty()) "Aucun client ne doit d'argent." else "Aucun client ne correspond.",
+                fontSize = DsTextSize.body, color = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xl),
+            )
+            else -> LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp), contentPadding = PaddingValues(bottom = DsSpacing.xxl)) {
+                items(shown, key = { it.id }) { client ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(client) }
+                            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        EntityAvatar(name = client.name, imageUri = client.image_uri, size = 40.dp)
+                        Spacer(Modifier.width(DsSpacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(client.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            client.secteur_name?.let {
+                                Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        Spacer(Modifier.width(DsSpacing.sm))
+                        Text(money.da(client.balance), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger, maxLines = 1)
+                    }
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun BalanceHalf(label: String, value: Figure, accent: Color, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.fillMaxHeight().clip(DsShapes.medium).background(accent.copy(alpha = 0.08f))
-            .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.md),
-    ) {
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 2)
-        Spacer(Modifier.height(DsSpacing.xs))
-        AnimatedFigure(value, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
     }
 }

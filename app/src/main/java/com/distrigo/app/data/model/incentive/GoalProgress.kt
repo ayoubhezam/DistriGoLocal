@@ -42,10 +42,13 @@ data class CommissionRules(
      * [value] as a share of the objective, rounded down (D13): 99,6 % reads 99, and 100 only once the objective is
      * reached — rounding to the nearest used to show « 100 % » with the bonus still out of reach.
      */
-    fun percentOf(value: Double): Int {
-        if (objective <= 0) return 0
-        val share = floor(value * 100 / objective).toInt().coerceAtLeast(0)
-        return if (reaches(value, objective)) share.coerceAtLeast(100) else share.coerceAtMost(99)
+    fun percentOf(value: Double): Int = percentOf(value, objective)
+
+    /** [value] as a share of any [threshold], rounded the same way. */
+    fun percentOf(value: Double, threshold: Double): Int {
+        if (threshold <= 0) return 0
+        val share = floor(value * 100 / threshold).toInt().coerceAtLeast(0)
+        return if (reaches(value, threshold)) share.coerceAtLeast(100) else share.coerceAtMost(99)
     }
 
     /**
@@ -72,6 +75,23 @@ data class CommissionRules(
         val next = thresholds.firstOrNull { it > 0 && !reaches(value, it) } ?: return null
         return Milestone(threshold = next, gap = next - value, reward = rewardAt(next))
     }
+}
+
+/** How far past its [GoalTarget]: below, just reached (exactly 100 %), or beyond (over 100 %). */
+enum class GoalState { BELOW, REACHED, EXCEEDED }
+
+/**
+ * What the Dashboard's bar aims at (owner, 2026-10-20): in « Paliers », the next tier while one is left — [tier] its
+ * number, from 1 — and the top tier once all are passed; otherwise the objective. [percent] is the measure's share
+ * of [threshold], rounded as [CommissionRules.percentOf], so 100 only once it is reached.
+ */
+data class GoalTarget(val threshold: Double, val tier: Int?, val percent: Int) {
+    val state: GoalState
+        get() = when {
+            percent < 100 -> GoalState.BELOW
+            percent == 100 -> GoalState.REACHED
+            else -> GoalState.EXCEEDED
+        }
 }
 
 /** A threshold still ahead: how far it is, and what reaching it would earn. */
@@ -120,6 +140,15 @@ data class GoalProgress(
     val policySince: LocalDate,
 ) {
     val objective: Double get() = rules.objective
+
+    /** The next milestone while one is left, else the last tier or the objective — see [GoalTarget]. */
+    val target: GoalTarget
+        get() {
+            val tiers = rules.sortedTiers
+            val threshold = next?.threshold ?: tiers.lastOrNull()?.threshold ?: objective
+            val tier = tiers.indexOfFirst { it.threshold == threshold }.takeIf { it >= 0 }?.plus(1)
+            return GoalTarget(threshold, tier, rules.percentOf(value, threshold))
+        }
 
     companion object {
         /** Projected at least this far past the next milestone, the period is « En avance ». */

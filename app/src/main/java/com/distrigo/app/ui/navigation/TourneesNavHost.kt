@@ -21,7 +21,9 @@ import com.distrigo.app.ui.ventes.VenteViewModel
 fun TourneesNavHost(
     onFullScreenChange: (Boolean) -> Unit = {},
     onNavigateToChargement: () -> Unit = {},
-    onBack            : (() -> Unit)? = null
+    onBack            : (() -> Unit)? = null,
+    /** Opens the section on that tournée — a drill-down from the Dashboard's « Tournée du jour ». */
+    openTourneeId     : Int? = null,
 ) {
     val navController = rememberTrackedNavController()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -33,7 +35,7 @@ fun TourneesNavHost(
 
     NavHost(
         navController      = navController,
-        startDestination   = Screen.TourneesHome.route,
+        startDestination   = if (openTourneeId != null) Screen.TourneesDetail.route else Screen.TourneesHome.route,
         route              = Screen.TourneesGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -53,7 +55,8 @@ fun TourneesNavHost(
 
         composable(
             route     = Screen.TourneesDetail.route,
-            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
+            // Started on, it has no route to read its id from: the drill-down's id is the default.
+            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType; openTourneeId?.let { defaultValue = it } })
         ) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
@@ -62,7 +65,7 @@ fun TourneesNavHost(
             TourneeDetailScreen(
                 tourneeId             = tourneeId,
                 viewModel              = viewModel,
-                onBack                 = { navController.popBackStack() },
+                onBack                 = { navController.popOr { onBack?.invoke() } },
                 onEditTournee          = { tournee -> license.runOrExplain { navController.navigate(Screen.TourneeForm.createRoute(tournee.id)) } },
                 onAddClients           = license.guarded { navController.navigate(Screen.TourneesAddClients.createRoute(tourneeId)) },
                 onCreateVente          = { clientId, clientName ->

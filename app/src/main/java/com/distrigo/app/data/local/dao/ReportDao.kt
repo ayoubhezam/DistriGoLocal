@@ -358,6 +358,27 @@ interface ReportDao {
     )
     suspend fun salesBySource(start: String, end: String, source: String?): List<SalesBySource>
 
+    /** The time of the last sale before [before], dépôt or tournée; null when there is none (the Dashboard's « hier »). */
+    @Query("SELECT MAX(created_at) FROM ventes WHERE created_at < :before")
+    suspend fun lastSaleBefore(before: String): String?
+
+    /**
+     * The latest [limit] sales, both places: all of them ([filter] 0), the paid ones (1) or those with credit left (2),
+     * paid to the half centime as everywhere else.
+     */
+    @Query(
+        """
+        SELECT id, numero, client_name, client_image_uri, source, total, montant_paye, created_at
+        FROM ventes
+        WHERE :filter = 0
+           OR (:filter = 1 AND montant_paye >= total - 0.005)
+           OR (:filter = 2 AND montant_paye < total - 0.005)
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun recentSales(filter: Int, limit: Int): List<RecentSaleRow>
+
     @Query(
         """
         SELECT COALESCE(SUM(i.quantity * i.purchase_price_snapshot), 0) AS cost,
@@ -474,3 +495,15 @@ interface ReportDao {
     )
     suspend fun supplierDebtors(): List<Debtor>
 }
+
+/** A row of « Activité récente ». */
+data class RecentSaleRow(
+    val id: Int,
+    val numero: String?,
+    val client_name: String?,
+    val client_image_uri: String?,
+    val source: String,
+    val total: Double,
+    val montant_paye: Double,
+    val created_at: String,
+)

@@ -26,23 +26,19 @@ data class SalesWindow(val count: Int, val total: Double, val paid: Double, val 
  */
 fun change(now: Double, before: Double): Double? = if (before > 0) (now - before) / before else null
 
-/** A day's sales, both places together. */
-data class DayTotal(val day: LocalDate, val total: Double)
-
 /**
  * The Dashboard's sales, as of [now]:
- * - [today] so far, and [lastWeek]: the same day a week before, up to the same hour — a day is compared
- *   with a day of the same kind, and a morning with a morning;
- * - [month] so far, and [lastMonth]: the month before, up to the same date and hour;
- * - [week]: the seven days up to today, oldest first.
+ * - [today] so far, and [yesterday]: the last day before today that had a sale ([yesterdayDay]), up to the same time
+ *   of day — « hier », even after a day off (D10 of docs/design/dashboard_objectif_plan.md); null when there is none;
+ * - [month] so far, and [lastMonth]: the month before, up to the same date and hour.
  */
 data class DashboardSales(
     val now: ZonedDateTime,
     val today: SalesWindow,
-    val lastWeek: SalesWindow,
+    val yesterday: SalesWindow?,
+    val yesterdayDay: LocalDate?,
     val month: SalesWindow,
     val lastMonth: SalesWindow,
-    val week: List<DayTotal>,
 )
 
 /** What needs seeing to: products out of stock and below their minimum, and client debts over 90 days. */
@@ -52,3 +48,66 @@ data class DashboardAlerts(val outOfStock: Int, val lowStock: Int, val oldClient
 
 /** What the clients owe today, and what is owed to the suppliers. */
 data class DashboardBalances(val clientsOwe: Double, val owedToSuppliers: Double)
+
+/** How much of a sale was paid at the time: all of it, part, or nothing. */
+enum class PaymentState { PAID, PARTIAL, UNPAID }
+
+/** « Activité récente »'s filter (D11). */
+enum class ActivityFilter(val label: String) {
+    ALL("Tous"),
+    PAID("Payées"),
+    CREDIT("À crédit"),
+}
+
+/** A recent sale, dépôt or tournée, as the Dashboard lists it. */
+data class RecentSale(
+    val id: Int,
+    val numero: String?,
+    val clientName: String?,
+    val clientImage: String?,
+    val source: String,
+    val total: Double,
+    val paid: Double,
+    val createdAt: String,
+) {
+    val state: PaymentState
+        get() = when {
+            paid >= total - com.distrigo.app.data.model.Amount.HALF_CENTIME -> PaymentState.PAID
+            paid > com.distrigo.app.data.model.Amount.HALF_CENTIME -> PaymentState.PARTIAL
+            else -> PaymentState.UNPAID
+        }
+}
+
+/** Where a client of the open tournée stands today (plan, Part 1 §6). */
+enum class VisitState { WITH_SALE, WITHOUT_SALE, PENDING }
+
+data class TourneeDayClient(val clientId: Int, val name: String, val imageUri: String?, val state: VisitState)
+
+/** The open tournée, as the Dashboard shows it: its label and its clients' visits. */
+data class TourneeDay(val id: Int, val label: String, val clients: List<TourneeDayClient>) {
+    val total: Int get() = clients.size
+    val withSale: Int get() = clients.count { it.state == VisitState.WITH_SALE }
+    val withoutSale: Int get() = clients.count { it.state == VisitState.WITHOUT_SALE }
+    val pending: Int get() = clients.count { it.state == VisitState.PENDING }
+    val visited: Int get() = withSale + withoutSale
+
+    companion object {
+        /**
+         * A client with a sale on the tournée bought; one marked visited without one didn't; the rest are still to
+         * visit. [statuses] are TourneeClientInfo's (« visite » once visited).
+         */
+        fun of(
+            id: Int,
+            label: String,
+            clients: List<Triple<Int, String, String?>>,
+            statuses: Map<Int, String>,
+            clientsWithSale: Set<Int>,
+        ) = TourneeDay(id, label, clients.map { (clientId, name, image) ->
+            TourneeDayClient(clientId, name, image, when {
+                clientId in clientsWithSale -> VisitState.WITH_SALE
+                statuses[clientId] == "visite" -> VisitState.WITHOUT_SALE
+                else -> VisitState.PENDING
+            })
+        })
+    }
+}

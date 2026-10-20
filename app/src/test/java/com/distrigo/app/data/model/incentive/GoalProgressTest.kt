@@ -120,4 +120,37 @@ class GoalProgressTest {
         assertNull(progress(paliers, 0.0).averageSale)
         assertTrue(progress(paliers, 600_000.0).reached)
     }
+
+    // The owner's example (2026-10-20): from 100 000 DA collected, 10 %; from 500 000 DA, 14 %
+    private val twoTiers = rules(
+        IncentiveType.PROGRESSIVE_TIERS, target = 100_000.0,
+        tiers = listOf(TierRule(0, 100_000.0, 10.0, null), TierRule(1, 500_000.0, 14.0, null)),
+    )
+
+    @Test
+    fun `the Dashboard aims at the next tier, then stays on the last`() {
+        assertEquals(GoalTarget(100_000.0, 1, 60), progress(twoTiers, 60_000.0).target)
+        // Tier 1 reached: the bar now aims at tier 2, from zero
+        assertEquals(GoalTarget(500_000.0, 2, 24), progress(twoTiers, 120_000.0).target)
+        assertEquals(GoalTarget(500_000.0, 2, 100), progress(twoTiers, 500_000.0).target)
+        assertEquals(GoalTarget(500_000.0, 2, 130), progress(twoTiers, 650_000.0).target)
+    }
+
+    @Test
+    fun `without tiers the Dashboard aims at the objective`() {
+        val r = rules(IncentiveType.FIXED_RATE, rate = 3.0)
+        assertEquals(GoalTarget(1_200_000.0, null, 74), progress(r, 888_000.0).target)
+        assertEquals(GoalTarget(1_200_000.0, null, 108), progress(r, 1_300_000.0).target)
+    }
+
+    @Test
+    fun `below 100 percent, exactly 100, then beyond`() {
+        assertEquals(GoalState.BELOW, progress(twoTiers, 499_999.0).target.state)
+        // A middle tier reached is not the goal reached: the next tier is ahead
+        assertEquals(GoalState.BELOW, progress(twoTiers, 100_000.0).target.state)
+        assertEquals(GoalState.REACHED, progress(twoTiers, 500_000.0).target.state)
+        assertEquals(GoalState.REACHED, progress(twoTiers, 504_999.0).target.state)
+        assertEquals(GoalState.EXCEEDED, progress(twoTiers, 505_000.0).target.state)
+        assertEquals(GoalState.BELOW, GoalTarget(0.0, null, 0).state)
+    }
 }

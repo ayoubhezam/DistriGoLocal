@@ -18,8 +18,8 @@ import java.time.ZonedDateTime
 
 /**
  * The Dashboard's windows on a real database, as of Tuesday 7 October 2026 at 14:00 in Algeria
- * (13:00 UTC): today so far against last Tuesday to the same hour, this month so far against
- * September to the 7th at the same hour, and the seven days up to today.
+ * (13:00 UTC): today so far against the last day with sales to the same hour (D10), this month so far
+ * against September to the 7th at the same hour, and the latest sales.
  */
 @RunWith(AndroidJUnit4::class)
 class DashboardReportTest {
@@ -53,19 +53,54 @@ class DashboardReportTest {
     }
 
     @Test
-    fun todayAgainstLastWeekToTheSameHour() = runBlocking {
+    fun todayAgainstYesterdayToTheSameHour() = runBlocking {
         vente(1, client = 1, at = "2026-10-07T09:00:00Z", total = 1000.0, paid = 600.0, cost = 800.0)  // 10:00 today
-        vente(2, client = 2, at = "2026-09-30T08:00:00Z", total = 500.0, paid = 500.0, cost = 400.0)   // last Tuesday 09:00
-        vente(3, client = 3, at = "2026-09-30T14:00:00Z", total = 700.0, paid = 0.0, cost = 500.0)     // last Tuesday 15:00: later
+        vente(2, client = 2, at = "2026-10-06T08:00:00Z", total = 500.0, paid = 500.0, cost = 400.0)   // yesterday 09:00
+        vente(3, client = 3, at = "2026-10-06T14:00:00Z", total = 700.0, paid = 0.0, cost = 500.0)     // yesterday 15:00: later
 
         val d = repository.dashboardSales(now)
         assertEquals(1, d.today.count)
         assertEquals(1000.0, d.today.total, 0.0)
         assertEquals(400.0, d.today.credit, 0.0)
         assertEquals(1, d.today.clients)
-        assertEquals(1, d.lastWeek.count)
-        assertEquals(500.0, d.lastWeek.total, 0.0)
-        assertEquals(1.0, change(d.today.total, d.lastWeek.total)!!, 1e-9)
+        assertEquals(LocalDate.of(2026, 10, 6), d.yesterdayDay)
+        assertEquals(1, d.yesterday!!.count)
+        assertEquals(500.0, d.yesterday!!.total, 0.0)
+        assertEquals(1.0, change(d.today.total, d.yesterday!!.total)!!, 1e-9)
+    }
+
+    /** D10: after a day off, « hier » is the last day that had sales, to the same hour. */
+    @Test
+    fun yesterdayIsTheLastDayWithSales() = runBlocking {
+        vente(1, client = 1, at = "2026-10-04T10:00:00Z", total = 800.0, paid = 800.0, cost = 600.0)   // Saturday 11:00
+        vente(2, client = 1, at = "2026-10-04T15:00:00Z", total = 300.0, paid = 300.0, cost = 200.0)   // Saturday 16:00: later
+
+        val d = repository.dashboardSales(now)
+        assertEquals(LocalDate.of(2026, 10, 4), d.yesterdayDay)
+        assertEquals(800.0, d.yesterday!!.total, 0.0)
+    }
+
+    @Test
+    fun noSaleBeforeTodayHasNothingToCompare() = runBlocking {
+        vente(1, client = 1, at = "2026-10-07T09:00:00Z", total = 1000.0, paid = 1000.0, cost = 800.0)
+        val d = repository.dashboardSales(now)
+        assertEquals(null, d.yesterdayDay)
+        assertEquals(null, d.yesterday)
+    }
+
+    @Test
+    fun recentSalesFilterOnWhatWasPaid() = runBlocking {
+        vente(1, client = 1, at = "2026-10-07T08:00:00Z", total = 1000.0, paid = 1000.0, cost = 800.0)
+        vente(2, client = 1, at = "2026-10-07T09:00:00Z", total = 1000.0, paid = 400.0, cost = 800.0)
+        vente(3, client = 1, at = "2026-10-07T10:00:00Z", total = 1000.0, paid = 0.0, cost = 800.0)
+
+        assertEquals(listOf(3, 2, 1), repository.recentSales(ActivityFilter.ALL).map { it.id })
+        assertEquals(listOf(1), repository.recentSales(ActivityFilter.PAID).map { it.id })
+        assertEquals(listOf(3, 2), repository.recentSales(ActivityFilter.CREDIT).map { it.id })
+        assertEquals(
+            listOf(PaymentState.UNPAID, PaymentState.PARTIAL, PaymentState.PAID),
+            repository.recentSales(ActivityFilter.ALL).map { it.state },
+        )
     }
 
     @Test
@@ -88,17 +123,6 @@ class DashboardReportTest {
         vente(1, client = 1, at = "2026-02-28T09:00:00Z", total = 900.0, paid = 900.0, cost = 600.0)
         val d = repository.dashboardSales(ZonedDateTime.of(2026, 3, 31, 12, 0, 0, 0, algiers))
         assertEquals(900.0, d.lastMonth.total, 0.0)
-    }
-
-    @Test
-    fun theSevenDaysUpToToday() = runBlocking {
-        vente(1, client = 1, at = "2026-10-07T09:00:00Z", total = 1000.0, paid = 1000.0, cost = 800.0)
-        vente(2, client = 1, at = "2026-09-30T23:30:00Z", total = 2000.0, paid = 2000.0, cost = 1500.0) // 1 October
-        vente(3, client = 2, at = "2026-09-30T08:00:00Z", total = 500.0, paid = 500.0, cost = 400.0)    // 30 September: out
-
-        val week = repository.dashboardSales(now).week
-        assertEquals((1..7).map { LocalDate.of(2026, 10, it) }, week.map { it.day })
-        assertEquals(listOf(2000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000.0), week.map { it.total })
     }
 
     @Test
