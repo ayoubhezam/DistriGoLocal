@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,7 +34,9 @@ fun EntityAvatar(
     name     : String,
     imageUri : String?,
     size     : Dp = 42.dp,
-    modifier : Modifier = Modifier
+    modifier : Modifier = Modifier,
+    /** The app's rounded square; the Dashboard's « Clients du jour » asks for a circle. */
+    shape    : Shape = DsShapes.medium,
 ) {
     val color    = avatarColor(name)
     val initials = name.split(" ").take(2)
@@ -43,14 +46,14 @@ fun EntityAvatar(
     Box(
         modifier         = modifier
             .size(size)
-            .clip(DsShapes.medium)
+            .clip(shape)
             .background(color.copy(alpha = 0.13f)),
         contentAlignment = Alignment.Center
     ) {
         EntityImage(
             ref                = imageUri,
             contentDescription = name,
-            modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
+            modifier           = Modifier.fillMaxSize().clip(shape)
         ) {
             Text(
                 text       = initials,

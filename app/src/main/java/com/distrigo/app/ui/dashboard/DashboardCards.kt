@@ -141,7 +141,8 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box {
-                        EntityAvatar(name = client.name, imageUri = client.imageUri, size = 52.dp)
+                        // Circles, as in the Figma design
+                        EntityAvatar(name = client.name, imageUri = client.imageUri, size = 52.dp, shape = CircleShape)
                         Box(
                             Modifier.align(Alignment.BottomEnd).size(14.dp).clip(CircleShape).background(DsColors.Surface).padding(2.dp)
                                 .clip(CircleShape).background(client.state.color)
