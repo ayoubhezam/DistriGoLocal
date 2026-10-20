@@ -19,6 +19,20 @@ class AmountTest {
     }
 
     @Test
+    fun aSavedAmountSeedsItsFieldAsPlainDigits() {
+        assertEquals("10000000", Amount.inputText(1.0E7))
+        assertEquals("100000", Amount.inputText(100000.0))
+        assertEquals("2.5", Amount.inputText(2.50))
+        assertEquals("0.1", Amount.inputText(0.1))
+        assertEquals("1250.13", Amount.inputText(1250.125))
+        assertEquals("0", Amount.inputText(0.0))
+        assertEquals("", Amount.inputText(Double.NaN))
+        // What the field holds reads back as the saved amount
+        assertEquals(1.0E7, Amount.parse(Amount.inputText(1.0E7))!!, 0.0)
+        assertEquals(Amount.inputText(123456.7), Amount.sanitizeInput(Amount.inputText(123456.7)))
+    }
+
+    @Test
     fun aBalanceReadsFromHalfACentime() {
         // A remainder of the sums' decimals is settled, not owed: 0.1 + 0.2 - 0.3 is 5.55e-17, not 0
         assertTrue(Amount.settled(0.1 + 0.2 - 0.3))

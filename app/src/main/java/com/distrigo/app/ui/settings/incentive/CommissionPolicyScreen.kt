@@ -46,6 +46,11 @@ import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.foundation.border
+import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.format.AmountInputDisplay
+import com.distrigo.app.ui.format.AmountVisualTransformation
+import com.distrigo.app.data.model.Amount
+import androidx.compose.ui.text.input.VisualTransformation
 
 /** شريحة تحرير محلية للـ UI فقط — تُحوَّل إلى PolicyTierEntity عند الحفظ */
 private data class TierDraft(
@@ -96,9 +101,9 @@ fun CommissionPolicyScreen(
             incentiveType = pwt.policy.incentive_type
             periodType = pwt.policy.period_type
             calculationSource = pwt.policy.calculation_source
-            targetValue = pwt.policy.target_value.toString()
-            rewardRate = pwt.policy.reward_rate?.toString() ?: ""
-            fixedBonusAmount = pwt.policy.fixed_bonus_amount?.toString() ?: ""
+            targetValue = Amount.inputText(pwt.policy.target_value)
+            rewardRate = pwt.policy.reward_rate?.let(Amount::inputText) ?: ""
+            fixedBonusAmount = pwt.policy.fixed_bonus_amount?.let(Amount::inputText) ?: ""
             freeGoodQuantity = pwt.policy.free_good_quantity?.toString() ?: ""
             freeGoodProductId = pwt.policy.free_good_product_id
             showReward = pwt.policy.show_reward
@@ -106,9 +111,9 @@ fun CommissionPolicyScreen(
             if (pwt.tiers.isNotEmpty()) {
                 tiers = pwt.tiers.sortedBy { it.tier_order }.map {
                     TierDraft(
-                        minThreshold = it.min_threshold.toString(),
-                        rewardRate = it.reward_rate?.toString() ?: "",
-                        fixedBonus = it.fixed_bonus?.toString() ?: ""
+                        minThreshold = Amount.inputText(it.min_threshold),
+                        rewardRate = it.reward_rate?.let(Amount::inputText) ?: "",
+                        fixedBonus = it.fixed_bonus?.let(Amount::inputText) ?: ""
                     )
                 }
             }
@@ -239,10 +244,11 @@ fun CommissionPolicyScreen(
                 DsFormField(
                     label = "Objectif (DA) *",
                     value = targetValue,
-                    onValueChange = { targetValue = it.filter { c -> c.isDigit() || c == '.' } },
+                    onValueChange = { targetValue = it },
                     error = saveError,
                     placeholder = "Ex: 500000",
-                    keyboardType = KeyboardType.Decimal
+                    keyboardType = KeyboardType.Decimal,
+                    amount = true
                 )
 
                 Spacer(Modifier.height(DsSpacing.lg))
@@ -254,18 +260,20 @@ fun CommissionPolicyScreen(
                     DsFormField(
                         label = "Taux de commission (%)",
                         value = rewardRate,
-                        onValueChange = { rewardRate = it.filter { c -> c.isDigit() || c == '.' } },
+                        onValueChange = { rewardRate = it },
                         placeholder = "Ex: 2.5",
-                        keyboardType = KeyboardType.Decimal
+                        keyboardType = KeyboardType.Decimal,
+                        amount = true
                     )
                 }
                 IncentiveType.FIXED_BONUS -> {
                     DsFormField(
                         label = "Prime forfaitaire (DA)",
                         value = fixedBonusAmount,
-                        onValueChange = { fixedBonusAmount = it.filter { c -> c.isDigit() || c == '.' } },
+                        onValueChange = { fixedBonusAmount = it },
                         placeholder = "Ex: 15000",
-                        keyboardType = KeyboardType.Decimal
+                        keyboardType = KeyboardType.Decimal,
+                        amount = true
                     )
                 }
                 IncentiveType.FREE_GOODS -> {
@@ -512,10 +520,11 @@ private fun TiersEditor(
                     label = "Seuil minimum (DA)",
                     value = tier.minThreshold,
                     onValueChange = { newVal ->
-                        onTiersChange(tiers.map { if (it.id == tier.id) it.copy(minThreshold = newVal.filter { c -> c.isDigit() || c == '.' }) else it })
+                        onTiersChange(tiers.map { if (it.id == tier.id) it.copy(minThreshold = newVal) else it })
                     },
                     placeholder = "Ex: 300000",
-                    keyboardType = KeyboardType.Decimal
+                    keyboardType = KeyboardType.Decimal,
+                    amount = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -523,10 +532,11 @@ private fun TiersEditor(
                             label = "Taux (%)",
                             value = tier.rewardRate,
                             onValueChange = { newVal ->
-                                onTiersChange(tiers.map { if (it.id == tier.id) it.copy(rewardRate = newVal.filter { c -> c.isDigit() || c == '.' }) else it })
+                                onTiersChange(tiers.map { if (it.id == tier.id) it.copy(rewardRate = newVal) else it })
                             },
                             placeholder = "Ex: 3",
-                            keyboardType = KeyboardType.Decimal
+                            keyboardType = KeyboardType.Decimal,
+                            amount = true
                         )
                     }
                     Box(modifier = Modifier.weight(1f)) {
@@ -534,10 +544,11 @@ private fun TiersEditor(
                             label = "Ou prime fixe (DA)",
                             value = tier.fixedBonus,
                             onValueChange = { newVal ->
-                                onTiersChange(tiers.map { if (it.id == tier.id) it.copy(fixedBonus = newVal.filter { c -> c.isDigit() || c == '.' }) else it })
+                                onTiersChange(tiers.map { if (it.id == tier.id) it.copy(fixedBonus = newVal) else it })
                             },
                             placeholder = "Ex: 20000",
-                            keyboardType = KeyboardType.Decimal
+                            keyboardType = KeyboardType.Decimal,
+                            amount = true
                         )
                     }
                 }
@@ -563,14 +574,27 @@ private fun DsFormField(
     onValueChange: (String) -> Unit,
     error: String = "",
     placeholder: String = "",
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    /**
+     * An amount or a rate: keeps what Amount.sanitizeInput leaves (the French keyboard's ',' read as '.') and shows
+     * it the business's way, « 10 000 000 », while the value stays plain digits.
+     */
+    amount: Boolean = false,
 ) {
+    val format = LocalMoneyFormatter.current.format
     Column {
         Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, fontSize = DsTextSize.body) },
+            onValueChange = { onValueChange(if (amount) Amount.sanitizeInput(it) else it) },
+            // The example reads like what will be typed: « Ex: 20 000 », not « Ex: 20000 »
+            placeholder = {
+                Text(
+                    if (amount) placeholder.replace(Regex("[0-9.]+")) { AmountInputDisplay.of(it.value, format).text } else placeholder,
+                    fontSize = DsTextSize.body,
+                )
+            },
+            visualTransformation = if (amount) AmountVisualTransformation(format) else VisualTransformation.None,
             singleLine = true,
             isError = error.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),

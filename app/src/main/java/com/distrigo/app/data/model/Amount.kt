@@ -48,6 +48,14 @@ object Amount {
         return integer.trimStart('0').ifEmpty { "0" } + trimmed.substring(integer.length)
     }
 
+    /**
+     * What an amount field holds for a saved [value], as [sanitizeInput] would leave it: digits and one '.', no
+     * exponent and no trailing zeros — 1.0E7 is "10000000", 2.50 is "2.5". Double's own text wrote « 1.0E7 » and
+     * « 100000.0 » in the commission policy's fields (2026-10-20).
+     */
+    fun inputText(value: Double): String =
+        if (!value.isFinite()) "" else BigDecimal.valueOf(normalize(value)).stripTrailingZeros().toPlainString()
+
     /** A typed amount, or null: ',' or '.', spaces ignored. */
     fun parse(text: String): Double? {
         val cleaned = text.trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
