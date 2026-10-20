@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.inventory
 
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
+
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.time.BusinessDates
 import androidx.compose.foundation.background
@@ -63,12 +65,11 @@ fun InventoryHistoryScreen(
         ) {
             // The bar's end inset assumes a 48dp icon button; this pill is 40dp, so it supplies the
             // difference itself to land on the same margin as every other action.
-            Box(
-                modifier         = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddNew() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter un inventaire", tint = Color.White)
-            }
+            DsTopBarAddButton(
+                contentDescription = "Ajouter un inventaire",
+                onClick            = onAddNew,
+                modifier           = Modifier.padding(end = DsSpacing.md)
+            )
         }
 
         Spacer(Modifier.height(DsSpacing.md))

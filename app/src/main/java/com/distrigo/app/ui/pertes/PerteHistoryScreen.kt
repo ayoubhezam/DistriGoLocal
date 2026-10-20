@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.pertes
 
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
+
 import kotlinx.coroutines.flow.map
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -142,10 +144,11 @@ fun PerteHistoryScreen(
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
-            Box(
-                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable(role = Role.Button, onClick = onNew),
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Default.Add, contentDescription = "Nouvelle perte", tint = Color.White) }
+            DsTopBarAddButton(
+                contentDescription = "Nouvelle perte",
+                onClick            = onNew,
+                modifier           = Modifier.padding(end = DsSpacing.md)
+            )
         }
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(

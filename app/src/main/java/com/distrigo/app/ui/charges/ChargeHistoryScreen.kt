@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
+
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.common.userMessage
@@ -213,11 +215,11 @@ fun ChargeHistoryScreen(
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
-            Box(
-                modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary)
-                    .clickable(role = Role.Button) { license.runOrExplain { saveError = ""; adding = true } },
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Default.Add, contentDescription = "Nouvelle charge", tint = Color.White) }
+            DsTopBarAddButton(
+                contentDescription = "Nouvelle charge",
+                onClick            = { license.runOrExplain { saveError = ""; adding = true } },
+                modifier           = Modifier.padding(end = DsSpacing.md)
+            )
         }
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(
@@ -317,7 +319,7 @@ private fun ChargeRow(charge: ChargeHistoryRow, amount: String, onClick: () -> U
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(DsSpacing.sm))
-        Text(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary, maxLines = 1, softWrap = false)
+        Text(amount, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
     }
 }
 

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.retours
 
+import com.distrigo.app.ui.designsystem.DsTopBarAddButton
+
 import com.distrigo.app.data.model.numberLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -105,14 +107,13 @@ fun RetourFournisseurListScreen(
                     subtitle = "Historique des retours effectués",
                     leading  = DsTopBarLeading.Back(onBack)
                 ) {
-                    Box(
-                        // A 40dp pill, not a 48dp icon button, so it supplies the difference to
-                        // the bar's standard end margin itself.
-                        modifier         = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.pill).background(DsColors.Primary).clickable { onAddRetour() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Nouveau retour", tint = Color.White)
-                    }
+                    // A 40dp pill, not a 48dp icon button, so it supplies the difference to
+                    // the bar's standard end margin itself.
+                    DsTopBarAddButton(
+                        contentDescription = "Nouveau retour",
+                        onClick            = onAddRetour,
+                        modifier           = Modifier.padding(end = DsSpacing.md)
+                    )
                 }
 
                 // ── Stats banner ──
