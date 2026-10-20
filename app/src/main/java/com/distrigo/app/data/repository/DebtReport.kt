@@ -84,7 +84,7 @@ suspend fun ReportDao.debtReport(
     val range = filter.resolve(today, zone)
     val first = range.firstDay.toString()
     val last = range.lastDay.toString()
-    val cut = listOf(30L, 60L, 90L).map { today.minusDays(it) }
+    val cut = ageCuts(today)
 
     val debtors: List<com.distrigo.app.data.local.dao.Debtor>
     val ageRows: List<DebtAge>
@@ -94,7 +94,7 @@ suspend fun ReportDao.debtReport(
     when (side) {
         DebtSide.CLIENTS -> {
             debtors = clientDebtors()
-            ageRows = cut.map { BusinessDates.dayStart(it, zone) }.let { clientDebtAges(it[0], it[1], it[2]) }
+            ageRows = clientDebtAges(cut, zone)
             credit = creditGiven(range.start, range.end)
             payments = clientPayments(range.start, range.end).let { ReturnFigures(it.count, it.total) }
             returns = clientReturns(first, last).let { ReturnFigures(it.count, it.total) }
@@ -108,18 +108,7 @@ suspend fun ReportDao.debtReport(
         }
     }
 
-    val creditsByParty = ageRows.groupBy { it.party }.mapValues { (_, rows) ->
-        DoubleArray(AgeBand.entries.size).also { a -> rows.forEach { a[it.band] += it.credit } }
-    }
-    val lines = debtors.map { d ->
-        DebtorLine(
-            id = d.id,
-            name = d.name,
-            balance = d.balance,
-            ages = spendByAge(d.balance, creditsByParty[d.id] ?: DoubleArray(0)),
-            lastPayment = d.last_payment?.let { runCatching { Instant.parse(it).atZone(zone).toLocalDate() }.getOrNull() },
-        )
-    }
+    val lines = debtLines(debtors, ageRows, zone)
     val ages = AgeBand.entries.indices.map { band -> lines.sumOf { it.ages[band] } }
 
     return DebtReport(
@@ -133,4 +122,38 @@ suspend fun ReportDao.debtReport(
         payments = payments,
         returns = returns,
     )
+}
+
+/**
+ * What the clients have owed for more than 90 days as of [today]: the report's « Plus de 90 jours », read without
+ * the period's flows the report adds — the Dashboard's alert (owner, 2026-10-20).
+ */
+suspend fun ReportDao.oldClientDebt(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): Double =
+    debtLines(clientDebtors(), clientDebtAges(ageCuts(today), zone), zone).sumOf { it.ages[AgeBand.OLD.ordinal] }
+
+/** The days 30, 60 and 90 days before [today], where the age bands meet. */
+private fun ageCuts(today: LocalDate): List<LocalDate> = listOf(30L, 60L, 90L).map { today.minusDays(it) }
+
+/** The clients' unpaid credit by party and band, a sale dated by its local day. */
+private suspend fun ReportDao.clientDebtAges(cut: List<LocalDate>, zone: ZoneId): List<DebtAge> =
+    cut.map { BusinessDates.dayStart(it, zone) }.let { clientDebtAges(it[0], it[1], it[2]) }
+
+/** Each party that owes, its balance spent on its credit by age ([spendByAge]). */
+private fun debtLines(
+    debtors: List<com.distrigo.app.data.local.dao.Debtor>,
+    ageRows: List<DebtAge>,
+    zone: ZoneId,
+): List<DebtorLine> {
+    val creditsByParty = ageRows.groupBy { it.party }.mapValues { (_, rows) ->
+        DoubleArray(AgeBand.entries.size).also { a -> rows.forEach { a[it.band] += it.credit } }
+    }
+    return debtors.map { d ->
+        DebtorLine(
+            id = d.id,
+            name = d.name,
+            balance = d.balance,
+            ages = spendByAge(d.balance, creditsByParty[d.id] ?: DoubleArray(0)),
+            lastPayment = d.last_payment?.let { runCatching { Instant.parse(it).atZone(zone).toLocalDate() }.getOrNull() },
+        )
+    }
 }

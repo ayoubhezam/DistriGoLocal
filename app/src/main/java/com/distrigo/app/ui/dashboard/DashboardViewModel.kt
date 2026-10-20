@@ -120,7 +120,9 @@ class DashboardViewModel @Inject constructor(
         activityFilter,
     ) { (name, sales, goal), alerts, tournee, recent, filter ->
         DashboardState(name, sales, goal, alerts, tournee, recent, filter)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
+    // Stopped as soon as the Dashboard is left, so every return reads it again, the last figures shown meanwhile: a
+    // return within a few seconds used to rely on the tables' signal alone (owner, 2026-10-20)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), DashboardState())
 
     fun showActivity(filter: ActivityFilter) {
         activityFilter.value = filter

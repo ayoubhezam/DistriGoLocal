@@ -287,6 +287,22 @@ interface ReportDao {
     )
     suspend fun restock(source: String?): List<RestockRow>
 
+    /**
+     * How many of [restock]'s products, both places together, are out of stock and how many only under their
+     * minimum: the Dashboard's alerts, counted where the list would have to be read whole. Same conditions as
+     * [restock] with no source, and the same « out » as RestockLine.isOut.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(stock <= 0.0005), 0) AS out_of_stock, COALESCE(SUM(stock > 0.0005), 0) AS low_stock
+        FROM products
+        WHERE deleted_at IS NULL
+          AND stock < MAX(min_stock, 0.0005)
+          AND (min_stock > 0 OR EXISTS (SELECT 1 FROM stock_movements m WHERE m.product_id = products.id))
+        """
+    )
+    suspend fun restockCounts(): RestockCounts
+
     /** The period's pertes by type, from [source] or both, costliest first. */
     @Query(
         """
@@ -491,6 +507,9 @@ interface ReportDao {
     )
     suspend fun supplierDebtors(): List<Debtor>
 }
+
+/** [ReportDao.restockCounts]: the products out of stock, and those only under their minimum. */
+data class RestockCounts(val out_of_stock: Int, val low_stock: Int)
 
 /** A row of « Activité récente ». */
 data class RecentSaleRow(

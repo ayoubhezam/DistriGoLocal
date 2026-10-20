@@ -118,6 +118,49 @@ class DashboardReportTest {
         )
     }
 
+    private fun product(id: Int, stock: Double, min: Double, moved: Boolean = false, deleted: Boolean = false) {
+        sql.execSQL(
+            "INSERT INTO products (id, name, selling_price, purchase_price, stock, min_stock, unit_type, packages, pack_size, " +
+                "has_expiry, camion_stock, uuid, created_at, updated_at, version, deleted_at) VALUES ($id, 'P$id', 100, 80, $stock, " +
+                "$min, 'carton', 0, 1, 0, 0, 'u-product-$id', '2026-01-01T00:00:00Z', 0, 1, " +
+                (if (deleted) "'2026-10-01T00:00:00Z'" else "NULL") + ")"
+        )
+        if (moved) sql.execSQL(
+            "INSERT INTO stock_movements (product_id, product_name, type, direction, quantity, emplacement, source_label, " +
+                "source_type, source_id, total_value, created_at, uuid, updated_at) VALUES ($id, 'P$id', 'achat', 'in', 5, " +
+                "'depot', 'Bon', 'purchase', 1, 400, '2026-09-01T00:00:00Z', 'u-move-$id', 0)"
+        )
+    }
+
+    private fun client(id: Int, balance: Double) = sql.execSQL(
+        "INSERT INTO clients (id, name, balance, customer_type, uuid, created_at, updated_at, version) " +
+            "VALUES ($id, 'C$id', $balance, 'retail', 'u-client-$id', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)"
+    )
+
+    /** The alerts are counted on their own (2026-10-20) and must say what the two reports they come from say. */
+    @Test
+    fun theAlertsCountWhatTheReportsShow() = runBlocking {
+        product(1, stock = 0.0, min = 0.0, moved = true)    // ever stocked, now empty: out
+        product(2, stock = 0.0, min = 0.0)                  // never stocked, no minimum: not followed
+        product(3, stock = 2.0, min = 5.0)                  // under its minimum: low
+        product(4, stock = -1.0, min = 3.0)                 // sold beyond its stock: out
+        product(5, stock = 10.0, min = 5.0)                 // fine
+        product(6, stock = 0.0, min = 5.0, deleted = true)  // deleted: not counted
+        client(1, balance = 1000.0)
+        client(2, balance = 300.0)
+        vente(1, client = 1, at = "2026-06-01T09:00:00Z", total = 1000.0, paid = 0.0, cost = 800.0)  // 128 days: old
+        vente(2, client = 2, at = "2026-10-01T09:00:00Z", total = 300.0, paid = 0.0, cost = 200.0)   // 6 days: recent
+
+        val today = now.toLocalDate()
+        val alerts = repository.dashboardAlerts(today, algiers)
+        val stock = repository.stockReport(com.distrigo.app.data.model.report.ReportFilter(), today, algiers)
+        val debts = repository.debtReport(DebtSide.CLIENTS, com.distrigo.app.data.model.report.ReportFilter(), today, algiers)
+        assertEquals(DashboardAlerts(outOfStock = 2, lowStock = 1, oldClientDebt = 1000.0), alerts)
+        assertEquals(stock.outOfStock, alerts.outOfStock)
+        assertEquals(stock.lowStock, alerts.lowStock)
+        assertEquals(debts.ages[AgeBand.OLD.ordinal], alerts.oldClientDebt, 0.0)
+    }
+
     @Test
     fun thisMonthSoFar() = runBlocking {
         vente(1, client = 1, at = "2026-10-07T09:00:00Z", total = 1000.0, paid = 1000.0, cost = 800.0)

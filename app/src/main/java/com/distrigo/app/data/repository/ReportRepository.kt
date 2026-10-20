@@ -280,11 +280,14 @@ class ReportRepository(
     /** A signal each time the open tournée's tables are written. */
     fun tourneeChanges(): Flow<Unit> = writes(TOURNEE_TABLES).map { }
 
-    /** The Dashboard's alerts as of [today]. */
+    /**
+     * The Dashboard's alerts as of [today]: the Stock et pertes report's « Ruptures » and « Stock bas », the Créances
+     * report's « Plus de 90 jours », each read on its own — building the two reports whole took most of a second on a
+     * large stock (2026-10-20).
+     */
     suspend fun dashboardAlerts(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): DashboardAlerts {
-        val stock = stockReport(ReportFilter(), today, zone)
-        val clients = debtReport(DebtSide.CLIENTS, ReportFilter(), today, zone)
-        return DashboardAlerts(stock.outOfStock, stock.lowStock, clients.ages[AgeBand.OLD.ordinal])
+        val stock = dao.restockCounts()
+        return DashboardAlerts(stock.out_of_stock, stock.low_stock, dao.oldClientDebt(today, zone))
     }
 
     /** What the clients owe and what is owed to the suppliers, as of [today]. */
