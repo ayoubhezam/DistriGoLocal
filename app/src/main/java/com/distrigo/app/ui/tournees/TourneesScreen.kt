@@ -887,9 +887,10 @@ fun TourneeDetailScreen(
  * Those explanations are Toasts rather than the screen's own transient banner, which draws
  * inside the screen's Box and therefore *under* this sheet's window — it showed nothing at all.
  */
+/** A tournée client's actions: sale, navigation, call, « sans vente », removal. The Dashboard's « Clients du jour » opens it too. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TourneeClientActionsSheet(
+internal fun TourneeClientActionsSheet(
     info          : com.distrigo.app.data.model.TourneeClientInfo,
     hasVente      : Boolean,
     isOpen        : Boolean,

@@ -358,10 +358,6 @@ interface ReportDao {
     )
     suspend fun salesBySource(start: String, end: String, source: String?): List<SalesBySource>
 
-    /** The time of the last sale before [before], dépôt or tournée; null when there is none (the Dashboard's « hier »). */
-    @Query("SELECT MAX(created_at) FROM ventes WHERE created_at < :before")
-    suspend fun lastSaleBefore(before: String): String?
-
     /**
      * The latest [limit] sales, both places: all of them ([filter] 0), the paid ones (1) or those with credit left (2),
      * paid to the half centime as everywhere else.

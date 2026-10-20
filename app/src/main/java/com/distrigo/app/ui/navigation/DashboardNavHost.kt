@@ -70,6 +70,9 @@ fun DashboardNavHost(
                     navController.navigate(DASHBOARD_ADD_CLIENTS) { launchSingleTop = true }
                 },
                 onSetObjective       = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
+                onTourneeClientSale  = { tourneeId, clientId, clientName ->
+                    navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
+                },
             )
         }
 
@@ -96,6 +99,20 @@ fun DashboardNavHost(
             clientViewModel  = { hiltViewModel() },
             onBack  = { navController.popBackStack(Screen.TourneeVenteFormGraph.route, inclusive = true) },
             onSaved = { navController.popBackStack(Screen.TourneeVenteFormGraph.route, inclusive = true) }
+        )
+
+        // A client of the day's sale: straight to the products, as from the tournée
+        tourneeVenteFormGraph(
+            navController    = navController,
+            graphRoute       = Screen.TourneeVenteFormGraphDirect.route,
+            routePrefix      = "dashboard_tournee_vente_form_direct",
+            skipClientStep   = true,
+            viewModel        = { hiltViewModel(dashboardEntry()) },
+            venteViewModel   = { hiltViewModel() },
+            productViewModel = { hiltViewModel() },
+            clientViewModel  = { hiltViewModel() },
+            onBack  = { navController.popBackStack(Screen.TourneeVenteFormGraphDirect.route, inclusive = true) },
+            onSaved = { navController.popBackStack(Screen.TourneeVenteFormGraphDirect.route, inclusive = true) }
         )
 
         purchaseFormGraph(

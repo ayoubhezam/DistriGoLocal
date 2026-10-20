@@ -261,22 +261,10 @@ class ReportRepository(
         val today = now.toLocalDate()
         val dayStart = today.atStartOfDay(now.zone)
         val monthStart = today.withDayOfMonth(1).atStartOfDay(now.zone)
-        // « Hier » is the last day that had a sale, to the same time of day (D10)
-        val yesterdayDay = dao.lastSaleBefore(com.distrigo.app.data.time.BusinessDates.bound(dayStart.toInstant()))
-            ?.let { com.distrigo.app.data.time.BusinessDates.localDay(it, now.zone) }
-            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        val yesterday = yesterdayDay?.let { day ->
-            val start = day.atStartOfDay(now.zone)
-            salesWindow(start.toInstant(), start.plus(java.time.Duration.between(dayStart, now)).toInstant())
-        }
         return DashboardSales(
             now = now,
             today = salesWindow(dayStart.toInstant(), now.toInstant()),
-            yesterday = yesterday,
-            yesterdayDay = yesterdayDay,
             month = salesWindow(monthStart.toInstant(), now.toInstant()),
-            // The month before, to the same date — the 31st meets the last day of a shorter month.
-            lastMonth = salesWindow(monthStart.minusMonths(1).toInstant(), now.minusMonths(1).toInstant()),
         )
     }
 

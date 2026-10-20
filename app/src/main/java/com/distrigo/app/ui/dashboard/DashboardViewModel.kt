@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.data.model.TourneeClientInfo
 
 /**
  * One block of the Dashboard: [Loading] until it has been read once, then [Ready], kept while it reloads. A block
@@ -139,6 +140,35 @@ class DashboardViewModel @Inject constructor(
             statuses = infos.associate { it.client.id to it.status },
             clientsWithSale = products.clientIdsWithSaleOnTournee(tournee.id),
         )
+    }
+
+    // ── « Clients du jour »: the tournée's own action sheet ──
+
+    /** [clientId] as the tournée's sheet reads it; null once it has left the tournée. */
+    suspend fun tourneeClient(tourneeId: Int, clientId: Int): TourneeClientInfo? =
+        runCatching { products.getTourneeClientsWithDetails(tourneeId).find { it.client.id == clientId } }.getOrNull()
+
+    /** « Marquer sans vente »: visited, nothing sold. */
+    fun markVisited(tourneeId: Int, clientId: Int, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                products.markTourneeClientVisited(tourneeId, clientId)
+            } catch (e: Exception) {
+                onError(userMessage(e))
+            }
+        }
+    }
+
+    /** « Supprimer de la tournée »: off the list; the client's sales stay. */
+    fun removeFromTournee(tourneeId: Int, clientId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                products.removeClientFromTournee(tourneeId, clientId)
+                onSuccess()
+            } catch (e: Exception) {
+                onError(userMessage(e))
+            }
+        }
     }
 
     // ── « Encaissement » (D15) ──

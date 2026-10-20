@@ -24,9 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingFlat
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.HourglassBottom
@@ -78,7 +75,6 @@ import com.distrigo.app.data.model.incentive.GoalState
 import com.distrigo.app.data.repository.DashboardAlerts
 import com.distrigo.app.data.repository.DashboardSales
 import com.distrigo.app.data.repository.TourneeDay
-import com.distrigo.app.data.repository.change
 import com.distrigo.app.ui.charges.NewChargeDialog
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.EntityAvatar
@@ -109,17 +105,29 @@ import com.distrigo.app.ui.rapports.figure
 import com.distrigo.app.ui.rapports.percent
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.abs
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.distrigo.app.data.model.TourneeClientInfo
+import com.distrigo.app.data.repository.VisitState
+import com.distrigo.app.ui.common.bidiIsolate
+import com.distrigo.app.ui.tournees.TourneeClientActionsSheet
+import kotlinx.coroutines.launch
 
 internal val FR: Locale = Locale.FRENCH
 private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
 
 private val INFO_TODAY = ReportInfo(
     "Ventes du jour",
-    "Les ventes d'aujourd'hui jusqu'à maintenant, dépôt et tournée ensemble : ce qui a été payé à la vente, et le crédit " +
-        "qui reste.\n\nLe pourcentage compare au dernier jour de ventes jusqu'à la même heure : hier, ou le jour de ventes " +
-        "d'avant après un jour de repos.\n\nL'objectif est celui de Paramètres → Politique de commission ; sans politique, " +
-        "la carte montre les ventes du mois.\n\nTouchez la carte pour le rapport Ventes du jour, l'objectif pour celui du mois."
+    "Le total des ventes d'aujourd'hui, de minuit à maintenant, dépôt et tournée ensemble.\n\n" +
+        "• Payé à la vente : ce que les clients ont payé sur ces ventes au moment de la vente, jamais plus que le " +
+        "total d'une vente (un surplus va au compte du client).\n" +
+        "• Crédit : le reste, Ventes du jour moins Payé à la vente.\n\n" +
+        "Un versement encaissé plus tard réduit la dette du client mais ne change pas ces chiffres : ils disent ce qui " +
+        "a été vendu aujourd'hui et comment.\n\n" +
+        "L'objectif est celui de Paramètres → Politique de commission ; sans politique, la carte montre les ventes du " +
+        "mois. Touchez la carte pour le rapport Ventes du jour, l'objectif pour celui du mois."
 )
 private val INFO_ALERTS = ReportInfo(
     "Alertes",
@@ -144,6 +152,8 @@ fun DashboardScreen(
     onAddTourneeClients  : (TourneeDay) -> Unit = {},
     /** « Fixez un objectif »: the commission policy in Paramètres. */
     onSetObjective       : () -> Unit = {},
+    /** « Créer une vente » on a client of the day: the tournée sale, the client already chosen. */
+    onTourneeClientSale  : (tourneeId: Int, clientId: Int, clientName: String) -> Unit = { _, _, _ -> },
     viewModel            : DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -153,6 +163,13 @@ fun DashboardScreen(
     var addingCharge by remember { mutableStateOf(false) }
     var collecting by remember { mutableStateOf(false) }
     var paying by remember { mutableStateOf<Client?>(null) }
+    // « Clients du jour »: the client whose sheet is open, then the confirmations the tournée asks for
+    var clientSheet by remember { mutableStateOf<ClientSheet?>(null) }
+    var confirmSale by remember { mutableStateOf<ClientSheet?>(null) }
+    var confirmRemove by remember { mutableStateOf<ClientSheet?>(null) }
+    var removeError by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val tournee = (state.tournee as? Block.Ready)?.value
     val sales = (state.sales as? Block.Ready)?.value
 
@@ -211,6 +228,13 @@ fun DashboardScreen(
                         tournee  = t,
                         onAdd    = { license.runOrExplain { onAddTourneeClients(t) } },
                         onSeeAll = { drill(DrillTarget.Tournee(t.id)) },
+                        onClient = { c ->
+                            scope.launch {
+                                viewModel.tourneeClient(t.id, c.clientId)?.let {
+                                    clientSheet = ClientSheet(t.id, it, hasSale = c.state == VisitState.WITH_SALE)
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -237,6 +261,85 @@ fun DashboardScreen(
         }
     }
 
+    clientSheet?.let { sheet ->
+        val info = sheet.info
+        TourneeClientActionsSheet(
+            info          = info,
+            hasVente      = sheet.hasSale,
+            // The Dashboard shows only the open tournée
+            isOpen        = true,
+            // As in the tournée: a client already served asks before a second sale
+            onCreateSale  = {
+                clientSheet = null
+                if (sheet.hasSale) confirmSale = sheet
+                else license.runOrExplain { onTourneeClientSale(sheet.tourneeId, info.client.id, info.client.name) }
+            },
+            onMarkVisited = {
+                clientSheet = null
+                license.runOrExplain {
+                    viewModel.markVisited(sheet.tourneeId, info.client.id) { error ->
+                        android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onRemove      = { clientSheet = null; license.runOrExplain { confirmRemove = sheet } },
+            onDismiss     = { clientSheet = null },
+        )
+    }
+    confirmSale?.let { sheet ->
+        AlertDialog(
+            onDismissRequest = { confirmSale = null },
+            title = { Text("Créer une vente ?") },
+            text  = { Text("Voulez-vous effectuer une vente pour ${sheet.info.client.name} ?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmSale = null
+                    license.runOrExplain { onTourneeClientSale(sheet.tourneeId, sheet.info.client.id, sheet.info.client.name) }
+                }) {
+                    Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmSale = null }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+    confirmRemove?.let { sheet ->
+        AlertDialog(
+            onDismissRequest = { confirmRemove = null; removeError = "" },
+            title = { Text("Retirer ce client ?", fontWeight = FontWeight.Bold) },
+            text  = {
+                Column {
+                    Text(
+                        "« ${bidiIsolate(sheet.info.client.name)} » sera retiré de la liste de cette " +
+                        "tournée. Les ventes déjà enregistrées pour ce client ne sont pas supprimées."
+                    )
+                    if (removeError.isNotEmpty()) {
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        Text(removeError, color = DsColors.Danger, fontSize = DsTextSize.caption)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeFromTournee(
+                        tourneeId = sheet.tourneeId,
+                        clientId  = sheet.info.client.id,
+                        onSuccess = { confirmRemove = null; removeError = "" },
+                        onError   = { removeError = it },
+                    )
+                }) {
+                    Text("Retirer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemove = null; removeError = "" }) { Text("Annuler") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+
     if (addingCharge) NewChargeDialog(onDismiss = { addingCharge = false })
     if (collecting) {
         CollectSheet(
@@ -255,6 +358,9 @@ fun DashboardScreen(
         )
     }
 }
+
+/** A client of the day whose sheet is open: its tournée, the client as the sheet reads it, and whether it has bought. */
+private data class ClientSheet(val tourneeId: Int, val info: TourneeClientInfo, val hasSale: Boolean)
 
 /** The open tournée, as a chip under the greeting: where the rep is today. */
 @Composable
@@ -277,16 +383,9 @@ private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
     }
 }
 
-/** "+12,4 %", "−3,0 %", "= 0,0 %". */
-internal fun signedPercent(rate: Double): String = when {
-    rate >= 0.0005 -> "+${percent(rate)}"
-    rate <= -0.0005 -> "−${percent(abs(rate))}"
-    else -> "= ${percent(0.0)}"
-}
-
 /**
- * The Dashboard's one card (the Figma design, owner 2026-10-20): Ventes du jour with its change beside the title — no
- * sentence of comparison —, the objective's bar and amount, then « Payé à la vente » and « Crédit ». Without a
+ * The Dashboard's one card (the Figma design, owner 2026-10-20): Ventes du jour, its title and amount alone — no
+ * comparison, no percentage —, the objective's bar and amount, then « Payé à la vente » and « Crédit ». Without a
  * commission policy the objective's place shows the month's sales and « Fixez un objectif ».
  */
 @Composable
@@ -299,8 +398,6 @@ private fun TodayCard(
 ) {
     val money = LocalMoneyFormatter.current
     val white = Color.White
-    // Against the last day of sales to the same hour (D10); none before the first sale of the day, nor without such a day
-    val rate = sales.yesterday?.takeIf { sales.today.total > 0 }?.let { change(sales.today.total, it.total) }
     Column(
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Primary)
             .clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
@@ -308,10 +405,6 @@ private fun TodayCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Ventes du jour", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = white.copy(alpha = 0.9f))
-            rate?.let {
-                Spacer(Modifier.width(DsSpacing.sm))
-                TrendPill(it)
-            }
             InfoButton(INFO_TODAY, tint = white.copy(alpha = 0.75f))
         }
         AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
@@ -338,24 +431,6 @@ private fun TodayCard(
                 }
             }
         }
-    }
-}
-
-/** « ↗ +12,4 % » on the card's blue. */
-@Composable
-private fun TrendPill(rate: Double) {
-    val icon = when {
-        rate >= 0.0005 -> Icons.AutoMirrored.Filled.TrendingUp
-        rate <= -0.0005 -> Icons.AutoMirrored.Filled.TrendingDown
-        else -> Icons.AutoMirrored.Filled.TrendingFlat
-    }
-    Row(
-        Modifier.clip(DsShapes.pill).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = DsSpacing.sm, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.width(4.dp))
-        Text(signedPercent(rate), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }
 

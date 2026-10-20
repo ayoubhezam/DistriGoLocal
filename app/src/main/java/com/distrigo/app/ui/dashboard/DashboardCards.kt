@@ -55,6 +55,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.distrigo.app.data.repository.TourneeDayClient
 
 private val INFO_TOURNEE = ReportInfo(
     "Tournée du jour",
@@ -112,9 +113,12 @@ private fun VisitCount(label: String, count: Int, color: Color, modifier: Modifi
     }
 }
 
-/** « Clients du jour » (D7): the tournée's clients in a row, each with its visit's colour; « Ajouter » first, « Voir tout » last. */
+/**
+ * « Clients du jour » (D7): the tournée's clients in a row, each with its visit's colour; « Ajouter » first, « Voir tout »
+ * last. A client opens [onClient], the tournée's own action sheet.
+ */
 @Composable
-internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll: () -> Unit) {
+internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll: () -> Unit, onClient: (TourneeDayClient) -> Unit) {
     val collator = Collator.getInstance(FR)
     val clients = tournee.clients.sortedWith { a, b -> collator.compare(a.name.trim(), b.name.trim()) }
     Column {
@@ -131,7 +135,11 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
                 RoundAction("Ajouter", Icons.Default.Add, DsColors.PrimaryDark, onAdd)
             }
             items(clients, key = { it.clientId }) { client ->
-                Column(Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    Modifier.width(64.dp).clip(DsShapes.medium)
+                        .clickable(role = Role.Button, onClickLabel = client.name) { onClient(client) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Box {
                         EntityAvatar(name = client.name, imageUri = client.imageUri, size = 52.dp)
                         Box(

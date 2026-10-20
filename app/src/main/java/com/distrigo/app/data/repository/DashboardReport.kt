@@ -1,6 +1,5 @@
 package com.distrigo.app.data.repository
 
-import java.time.LocalDate
 import java.time.ZonedDateTime
 
 /**
@@ -21,24 +20,13 @@ data class SalesWindow(val count: Int, val total: Double, val paid: Double, val 
 }
 
 /**
- * How [now] compares with [before]: 0.12 for 12 % more, −0.3 for 30 % less; null when there is nothing
- * before to compare with.
- */
-fun change(now: Double, before: Double): Double? = if (before > 0) (now - before) / before else null
-
-/**
- * The Dashboard's sales, as of [now]:
- * - [today] so far, and [yesterday]: the last day before today that had a sale ([yesterdayDay]), up to the same time
- *   of day — « hier », even after a day off (D10 of docs/design/dashboard_objectif_plan.md); null when there is none;
- * - [month] so far, and [lastMonth]: the month before, up to the same date and hour.
+ * The Dashboard's sales, as of [now]: [today] and the [month] so far. No comparison with another day or month: the
+ * owner took it off the Dashboard (2026-10-20).
  */
 data class DashboardSales(
     val now: ZonedDateTime,
     val today: SalesWindow,
-    val yesterday: SalesWindow?,
-    val yesterdayDay: LocalDate?,
     val month: SalesWindow,
-    val lastMonth: SalesWindow,
 )
 
 /** What needs seeing to: products out of stock and below their minimum, and client debts over 90 days. */
