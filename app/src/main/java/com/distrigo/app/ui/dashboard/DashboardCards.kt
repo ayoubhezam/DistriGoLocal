@@ -136,8 +136,8 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
             }
             items(clients, key = { it.clientId }) { client ->
                 Column(
-                    Modifier.width(64.dp).clip(DsShapes.medium)
-                        .clickable(role = Role.Button, onClickLabel = client.name) { onClient(client) },
+                    // Not clipped: a rounded corner cut the first letter of a name as long as the cell
+                    Modifier.width(64.dp).clickable(role = Role.Button, onClickLabel = client.name) { onClient(client) },
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box {
