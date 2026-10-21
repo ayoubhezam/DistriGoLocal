@@ -10,17 +10,17 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.backup.BackupCreator
-import com.distrigo.app.data.backup.BackupFailedException
+import com.distrigo.app.data.backup.BackupJob
+import com.distrigo.app.data.backup.BackupJobResult
+import com.distrigo.app.data.backup.BackupJobState
 import com.distrigo.app.data.backup.BackupInspection
 import com.distrigo.app.data.backup.BackupInspector
 import com.distrigo.app.data.backup.BackupMessages
 import com.distrigo.app.data.backup.BackupPreview
-import com.distrigo.app.data.backup.CreatedBackup
 import com.distrigo.app.data.backup.RestoreCoordinator
 import com.distrigo.app.data.backup.RestoreInstaller
 import com.distrigo.app.data.backup.RestoreOutcome
 import com.distrigo.app.data.backup.RestoreResult
-import com.distrigo.app.data.backup.auto.AutoBackupOutcome
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
 import com.distrigo.app.data.backup.auto.AutoBackupScheduler
 import com.distrigo.app.data.backup.auto.AutoBackupState
@@ -72,8 +72,8 @@ data class SafetyBackup(val file: File, val at: Instant, val size: Long)
 sealed class DataBackupState {
     data object Idle : DataBackupState()
     data class Working(val label: String) : DataBackupState()
-    data class BackupSaved(val backup: CreatedBackup) : DataBackupState()
-    data class AutoBackupSaved(val outcome: AutoBackupOutcome.Saved) : DataBackupState()
+    /** A backup started here finished while the screen was open; [toFolder] for « Sauvegarder maintenant ». */
+    data class BackupSaved(val result: BackupJobResult.Saved, val toFolder: Boolean) : DataBackupState()
     data class Previewing(val preview: BackupPreview, val isSafetyBackup: Boolean) : DataBackupState()
     /**
      * The backup is unpacked and checked; restoring it changes the stock rule, or brings another business's data
@@ -95,7 +95,6 @@ class DataBackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val autoBackup: AutoBackupRunner,
     private val db: AppDatabase,
-    private val creator: BackupCreator,
     private val inspector: BackupInspector,
     private val coordinator: RestoreCoordinator,
     private val installer: RestoreInstaller,
@@ -129,6 +128,41 @@ class DataBackupViewModel @Inject constructor(
     val autoStatus: StateFlow<AutoBackupStatus> = _autoStatus.asStateFlow()
 
     /**
+     * The latest backup started from this screen, running in the background (2026-10-21): the screen shows its
+     * step, keeps restoring until it ends, and a failure on its card until the next attempt.
+     */
+    val job: StateFlow<BackupJobState?> = BackupJob.observe(context).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** The jobs seen running here: only those end with a dialog; the others ended while the user was away. */
+    private val followed = mutableSetOf<java.util.UUID>()
+
+    init {
+        viewModelScope.launch {
+            job.collect { current ->
+                when (current) {
+                    is BackupJobState.Running -> followed += current.id
+                    is BackupJobState.Done -> if (followed.remove(current.id)) finished(current)
+                    null -> Unit
+                }
+            }
+        }
+    }
+
+    /** A job seen running here ended: its dialog, unless the screen is busy with something else, and fresh figures. */
+    private fun finished(done: BackupJobState.Done) {
+        if (_state.value == DataBackupState.Idle) {
+            _state.value = when (val result = done.result) {
+                is BackupJobResult.Saved -> DataBackupState.BackupSaved(result, done.toFolder)
+                is BackupJobResult.Failed -> DataBackupState.Failed(result.message)
+                BackupJobResult.Unchanged -> DataBackupState.Idle
+            }
+        }
+        refresh()
+    }
+
+    private val backupRunning: Boolean get() = job.value is BackupJobState.Running
+
+    /**
      * Reads the counts, the folder, the safety backups and the last restore again. The screen calls it each
      * time it opens: this view model outlives the screen, and any of these can change while it is closed.
      */
@@ -145,22 +179,20 @@ class DataBackupViewModel @Inject constructor(
         }
     }
 
-    fun createBackup(destination: Uri) = run("Création de la sauvegarde…") {
+    /**
+     * Starts a backup to [destination], just picked, in the background: the user may leave the screen. The file's
+     * grant is kept for the job, which may outlive this screen, and given back once it is written.
+     */
+    fun createBackup(destination: Uri) {
+        if (backupRunning) return
         try {
-            val created = creator.create(destination) { step ->
-                _state.value = DataBackupState.Working(
-                    when (step) {
-                        BackupCreator.Step.COPYING_DATABASE -> "Copie des données…"
-                        BackupCreator.Step.BUILDING_FILE -> "Préparation du fichier…"
-                        BackupCreator.Step.SAVING -> "Enregistrement…"
-                        BackupCreator.Step.VERIFYING -> "Vérification de la sauvegarde…"
-                    }
-                )
-            }
-            DataBackupState.BackupSaved(created)
-        } catch (e: BackupFailedException) {
-            DataBackupState.Failed(BackupMessages.of(e.reason))
+            context.contentResolver.takePersistableUriPermission(
+                destination, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        } catch (e: SecurityException) {
+            // The provider offers no lasting grant: the job, in this process, still has the picker's.
         }
+        BackupJob.start(context, destination)
     }
 
     /** Blocks on files, the folder's provider and WorkManager: call it off the main thread. */
@@ -216,17 +248,12 @@ class DataBackupViewModel @Inject constructor(
     }
 
     /** Runs an automatic backup now, whether or not the data changed since the last one. */
-    fun backupNow() = run("Sauvegarde automatique…") {
-        val outcome = autoBackup.run(force = true)
-        _autoStatus.value = readAutoStatus()
-        when (outcome) {
-            is AutoBackupOutcome.Saved -> DataBackupState.AutoBackupSaved(outcome)
-            is AutoBackupOutcome.Failed -> DataBackupState.Failed(BackupMessages.of(outcome.reason))
-            AutoBackupOutcome.Unchanged -> DataBackupState.Idle
-        }
+    fun backupNow() {
+        if (!backupRunning) BackupJob.start(context, destination = null)
     }
 
     fun inspect(uri: Uri, isSafetyBackup: Boolean = false) = run("Vérification du fichier…") {
+        if (backupRunning) return@run DataBackupState.Failed(WAIT_FOR_BACKUP)
         when (val inspection = inspector.inspect(uri)) {
             is BackupInspection.Restorable -> DataBackupState.Previewing(inspection.preview, isSafetyBackup)
             is BackupInspection.NotRestorable -> DataBackupState.Failed(BackupMessages.of(inspection.problem))
@@ -258,6 +285,11 @@ class DataBackupViewModel @Inject constructor(
     /** The user read what the restore brings (another business's data, a stock rule), and goes ahead. */
     fun confirmRestore(confirming: DataBackupState.ConfirmingRestore) {
         if (_state.value != confirming) return
+        if (backupRunning) {
+            _state.value = DataBackupState.Failed(WAIT_FOR_BACKUP)
+            viewModelScope.launch(Dispatchers.IO) { coordinator.discard(confirming.restore) }
+            return
+        }
         _state.value = DataBackupState.Idle
         run("Copie de sécurité de vos données actuelles…") { commit(confirming.restore, confirming.preview) }
     }
@@ -301,6 +333,10 @@ class DataBackupViewModel @Inject constructor(
     fun dismissLastRestore() {
         _lastRestore.value = null
         viewModelScope.launch(Dispatchers.IO) { installer.clearResult() }
+    }
+
+    private companion object {
+        const val WAIT_FOR_BACKUP = "Une sauvegarde est en cours : attendez qu'elle se termine pour restaurer."
     }
 
     /** Runs [block] off the main thread, one operation at a time, showing [label] until it reports a step. */

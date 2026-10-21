@@ -76,10 +76,10 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT < 26) return
             val manager = context.getSystemService(NotificationManager::class.java)
-            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+            // Created again each time: an existing channel then takes the description as it is now
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, "Sauvegardes", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "Avertit quand les sauvegardes automatiques échouent"
+                    description = "L'avancement et le résultat des sauvegardes, et quand les sauvegardes automatiques échouent"
                 }
             )
         }

@@ -7,6 +7,7 @@ import com.distrigo.app.data.lists.ListsRepository
 import com.distrigo.app.data.importer.ImportRepository
 import com.distrigo.app.data.importer.ImportSafety
 import com.distrigo.app.data.backup.auto.AutoBackupAlerts
+import com.distrigo.app.data.backup.BackupJobNotifier
 import com.distrigo.app.data.backup.auto.AutoBackupNotifications
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
 import com.distrigo.app.data.backup.auto.AutoBackupScheduler
@@ -81,6 +82,11 @@ object AppModule {
     @Singleton
     fun provideAutoBackupAlerts(@ApplicationContext context: Context): AutoBackupAlerts =
         AutoBackupNotifications(context)
+
+    @Provides
+    @Singleton
+    fun provideBackupJobNotifier(@ApplicationContext context: Context): BackupJobNotifier =
+        com.distrigo.app.ui.settings.data.BackupJobNotifications(context)
 
     @Provides
     @Singleton
