@@ -12,6 +12,8 @@ import com.distrigo.app.data.importer.ImportPlan
 import com.distrigo.app.data.importer.ImportPlanException
 import com.distrigo.app.data.importer.ImportRepository
 import com.distrigo.app.data.importer.ImportResult
+import com.distrigo.app.data.importer.ImportSheet
+import com.distrigo.app.data.importer.ImportTemplate
 import com.distrigo.app.data.importer.ImportStaleException
 import com.distrigo.app.data.importer.XlsxReadException
 import com.distrigo.app.data.importer.XlsxWorkbook
@@ -31,8 +33,8 @@ sealed class ImportState {
     /** Waiting for a file to be picked. */
     object Idle : ImportState()
     data class Working(val label: String) : ImportState()
-    /** The file is read and planned; the user decides. */
-    data class Preview(val fileName: String, val workbook: XlsxWorkbook, val plan: ImportPlan) : ImportState()
+    /** The file is read and planned for [sheet]; the user decides. */
+    data class Preview(val fileName: String, val workbook: XlsxWorkbook, val plan: ImportPlan, val sheet: ImportSheet) : ImportState()
     data class Done(val fileName: String, val result: ImportResult) : ImportState()
     /** Nothing was written; [message] says why, and [retryable] whether picking the same file again could help. */
     data class Failed(val message: String) : ImportState()
@@ -47,8 +49,8 @@ class ImportViewModel @Inject constructor(
     private val _state = MutableStateFlow<ImportState>(ImportState.Idle)
     val state: StateFlow<ImportState> = _state.asStateFlow()
 
-    /** Reads the picked file and shows what importing it would do. */
-    fun inspect(uri: Uri) {
+    /** Reads the picked file and shows what importing its [sheet] would do. */
+    fun inspect(uri: Uri, sheet: ImportSheet) {
         if (_state.value is ImportState.Working) return
         _state.value = ImportState.Working("Lecture du fichier…")
         viewModelScope.launch {
@@ -57,7 +59,7 @@ class ImportViewModel @Inject constructor(
                 val workbook = withContext(Dispatchers.IO) {
                     (context.contentResolver.openInputStream(uri) ?: throw FileNotFoundException(uri.toString())).use { importer.read(it) }
                 }
-                ImportState.Preview(name, workbook, importer.plan(workbook))
+                ImportState.Preview(name, workbook, importer.plan(workbook, sheet), sheet)
             } catch (e: XlsxReadException) {
                 Log.w(TAG, "file not readable: ${e.reason}", e)
                 ImportState.Failed(message(e.reason))
@@ -79,13 +81,35 @@ class ImportViewModel @Inject constructor(
         _state.value = ImportState.Working("Copie de sécurité, puis import…")
         viewModelScope.launch {
             _state.value = try {
-                ImportState.Done(preview.fileName, importer.apply(preview.workbook, preview.plan))
+                ImportState.Done(preview.fileName, importer.apply(preview.workbook, preview.plan, preview.sheet))
             } catch (e: BackupFailedException) {
                 Log.w(TAG, "no safety backup, so no import", e)
                 ImportState.Failed(BackupMessages.safetyBackupFailed(e.reason))
             } catch (e: ImportStaleException) {
                 ImportState.Failed("Les données ont changé depuis l'aperçu ; rien n'a été importé. Choisissez le fichier à nouveau pour un aperçu à jour.")
             }
+        }
+    }
+
+    /**
+     * Writes [sheet]'s empty template where the user chose, then says how it went: « Modèle enregistré », or why
+     * not.
+     */
+    fun saveTemplate(uri: Uri, sheet: ImportSheet, onDone: (String) -> Unit) {
+        viewModelScope.launch {
+            val message = try {
+                withContext(Dispatchers.IO) {
+                    (context.contentResolver.openOutputStream(uri) ?: throw FileNotFoundException(uri.toString())).use { ImportTemplate.write(sheet, it) }
+                }
+                "Modèle enregistré : remplissez-le sur l'ordinateur, puis importez-le ici."
+            } catch (e: IOException) {
+                Log.w(TAG, "template not written", e)
+                "Impossible d'enregistrer le modèle à cet endroit. Choisissez un autre dossier."
+            } catch (e: SecurityException) {
+                Log.w(TAG, "template not written", e)
+                "Impossible d'enregistrer le modèle à cet endroit. Choisissez un autre dossier."
+            }
+            onDone(message)
         }
     }
 

@@ -20,19 +20,31 @@ import java.time.format.DateTimeParseException
  * a wilaya or a commune must be one the app knows, as the client form only offers those.
  *
  * Stock is not imported into an existing product: it comes from movements, and is corrected with an
- * inventory or an adjustment. A new product takes its stock as an opening adjustment, as the form does.
+ * inventory or an adjustment, so the stock cells of an existing product's row are never read. A new product takes
+ * its stock as an opening adjustment, as the form does; below zero only while « Autoriser le stock négatif » is on.
  */
 class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: ImportGeo) {
 
-    fun plan(workbook: XlsxWorkbook): ImportPlan {
+    /**
+     * Plans [workbook]'s sheets — only [only]'s when given: Produits imports products and Clients clients, whatever
+     * else the file holds (2026-10-21).
+     */
+    fun plan(workbook: XlsxWorkbook, only: ImportSheet? = null): ImportPlan {
         val notes = mutableListOf<String>()
         val lookups = Lookups()
-        val sheets = ImportSheet.entries.mapNotNull { sheet ->
+        val sheets = ImportSheet.entries.filter { only == null || it == only }.mapNotNull { sheet ->
             val found = workbook.sheets.firstOrNull { ImportSheet.named(it.name) == sheet } ?: return@mapNotNull null
             when (sheet) {
                 ImportSheet.PRODUITS -> planProducts(found, lookups, notes)
                 ImportSheet.CLIENTS -> planClients(found, lookups, notes)
             }
+        }
+        if (sheets.isEmpty() && only != null) {
+            val other = ImportSheet.entries.firstOrNull { other -> other != only && workbook.sheets.any { ImportSheet.named(it.name) == other } }
+            throw ImportPlanException(
+                if (other != null) "Ce fichier contient des ${other.plural}, pas de ${only.plural}. Importez-le depuis l'écran ${other.title}."
+                else "Le fichier n'a pas de feuille « ${only.title} ». Téléchargez le modèle vide, ou exportez les ${only.plural} pour l'obtenir."
+            )
         }
         if (sheets.isEmpty()) {
             throw ImportPlanException(
@@ -128,8 +140,9 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         if (purchase != null && purchase < 0) return RowOutcome.Refused("Le prix d'achat ne peut pas être négatif.")
         if (selling != null && selling < 0) return RowOutcome.Refused("Le prix de vente ne peut pas être négatif.")
         val minStock = cells.quantity("stock minimum")?.let { if (it < 0) return RowOutcome.Refused("Le stock minimum ne peut pas être négatif.") else it }
-        val stock = cells.quantity("stock depot") ?: cells.quantity("stock")
-        if (stock != null && stock < 0) return RowOutcome.Refused("Le stock ne peut pas être négatif.")
+        // Read for a new product only: an existing product's stock comes from its movements, whatever the file says
+        val stock = if (existing != null) null else cells.quantity("stock depot") ?: cells.quantity("stock")
+        if (stock != null && stock < 0 && !snapshot.allowNegativeStock) return RowOutcome.Refused(NEGATIVE_OPENING_STOCK)
         val expiry = cells.date("date de peremption")
 
         val category = cells.text("categorie")
@@ -372,6 +385,9 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
 
     companion object {
         /** Header keys to field keys: the export's headers, and the ways a person might shorten them. */
+        const val NEGATIVE_OPENING_STOCK =
+            "Le stock négatif est désactivé (Paramètres → Autoriser le stock négatif) : un nouveau produit ne peut pas commencer sous zéro."
+
         private val PRODUCT_HEADERS: Map<String, String> = mapOf(
             "nom" to "nom", "produit" to "nom", "designation" to "nom",
             "code barres" to "code barres", "code barre" to "code barres", "codebarre" to "code barres", "ean" to "code barres", "barcode" to "code barres",
@@ -380,6 +396,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             "prix d achat" to "prix d achat", "prix achat" to "prix d achat", "pa" to "prix d achat",
             "prix de vente" to "prix de vente", "prix vente" to "prix de vente", "pv" to "prix de vente", "prix" to "prix de vente",
             "stock total" to "stock", "stock" to "stock", "stock depot" to "stock depot", "stock camion" to "stock camion",
+            "stock initial" to "stock depot", "stock de depart" to "stock depot",
             "stock minimum" to "stock minimum", "stock min" to "stock minimum",
             "date de peremption" to "date de peremption", "peremption" to "date de peremption", "date d expiration" to "date de peremption",
         )

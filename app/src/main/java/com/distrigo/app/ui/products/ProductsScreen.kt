@@ -90,7 +90,7 @@ fun ProductsScreen(
     onAddProduct   : () -> Unit = {},
     onEditProduct  : (Int) -> Unit = {},
     onProductClick : (Int) -> Unit = {},
-    /** "⋮ → Importer depuis Excel": products and clients from a workbook. */
+    /** "⋮ → Importer depuis Excel": products from a workbook's « Produits » sheet. */
     onImport       : () -> Unit = {}
 ) {
     // Paged: a screenful at a time, from a query that applies the search, the sheet and the sort.

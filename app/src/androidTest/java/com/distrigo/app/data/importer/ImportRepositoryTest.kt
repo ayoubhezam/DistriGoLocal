@@ -98,6 +98,15 @@ class ImportRepositoryTest {
 
     // ── Products ──
 
+    /** With « Autoriser le stock négatif » on (no setting yet reads as on), a new product starts below zero (2026-10-21). */
+    @Test
+    fun aNewProductCanStartBelowZeroThroughItsOpeningAdjustment() {
+        val result = import(productsBook(listOf("Lait en retard", null, null, null, null, null, null, null, 100.0, 120.0, -4)))
+        assertEquals(1, result.created)
+        val product = runBlocking { db.productDao().getAllProducts() }.single()
+        assertEquals(-4.0, product.stock, 0.0)
+    }
+
     @Test
     fun createsProductsWithTheirLookupsStockAndBarcode() {
         val result = import(productsBook(

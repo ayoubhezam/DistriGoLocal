@@ -58,7 +58,7 @@ fun ClientsScreen(
     onAddClient   : () -> Unit = {},
     onEditClient  : (Int) -> Unit = {},
     onClientClick : (Int) -> Unit = {},
-    /** "⋮ → Importer depuis Excel": products and clients from a workbook. */
+    /** "⋮ → Importer depuis Excel": clients from a workbook's « Clients » sheet. */
     onImport      : () -> Unit = {}
 ){
     val money = LocalMoneyFormatter.current

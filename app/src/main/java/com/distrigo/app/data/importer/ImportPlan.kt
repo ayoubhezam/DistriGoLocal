@@ -10,7 +10,10 @@ import com.distrigo.app.data.local.entity.SupplierEntity
 import java.text.Normalizer
 import java.time.LocalDate
 
-/** The sheets an import knows. Their names and headers are the ones the export writes, so an export is the template. */
+/**
+ * The sheets an import knows. Their names and headers are the ones the export writes, so an export is a template;
+ * [ImportTemplate] writes an empty one.
+ */
 enum class ImportSheet(val title: String, val singular: String, val plural: String) {
     PRODUITS("Produits", "produit", "produits"),
     CLIENTS("Clients", "client", "clients");
@@ -129,6 +132,8 @@ data class ImportSnapshot(
     val secteurs: List<SecteurEntity>,
     /** Each product's codes, primary first. A product missing here has only its `barcode`. */
     val barcodes: Map<Int, List<String>> = emptyMap(),
+    /** « Autoriser le stock négatif »: whether a new product may start below zero. */
+    val allowNegativeStock: Boolean = true,
 )
 
 /** The wilayas and communes the app knows, as the client form offers them. */

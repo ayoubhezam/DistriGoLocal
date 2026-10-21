@@ -24,7 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.widget.Toast
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.data.importer.ImportPlan
+import com.distrigo.app.data.importer.ImportSheet
+import com.distrigo.app.data.importer.ImportTemplate
 import com.distrigo.app.data.importer.LookupsToCreate
 import com.distrigo.app.data.importer.PlannedRow
 import com.distrigo.app.data.importer.RowOutcome
@@ -36,24 +41,31 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.foundation.border
 
-/** Données et sauvegarde → Importer: pick a workbook, see what it would do, row by row, then confirm. */
+/**
+ * Produits or Clients → Importer: pick a workbook, see what importing its [sheet] would do, row by row, then confirm.
+ * Only [sheet] is read, whatever else the file holds; « Télécharger un modèle vide » saves an empty one to fill in.
+ */
 @Composable
-fun ImportScreen(onBack: () -> Unit, viewModel: ImportViewModel = hiltViewModel()) {
+fun ImportScreen(sheet: ImportSheet, onBack: () -> Unit, viewModel: ImportViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val working = state is ImportState.Working
+    val context = LocalContext.current
 
     val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let(viewModel::inspect)
+        uri?.let { viewModel.inspect(it, sheet) }
     }
     val pick = { openLauncher.launch(arrayOf("*/*")) }
+    val templateLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX)) { uri ->
+        uri?.let { viewModel.saveTemplate(it, sheet) { message -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() } }
+    }
 
     BackHandler { if (!working) onBack() }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Importer depuis Excel", leading = DsTopBarLeading.Back { if (!working) onBack() })
+        DsTopAppBar(title = "Importer des ${sheet.plural}", leading = DsTopBarLeading.Back { if (!working) onBack() })
 
         when (val current = state) {
-            ImportState.Idle -> Intro(onPick = pick)
+            ImportState.Idle -> Intro(sheet, onPick = pick, onTemplate = { templateLauncher.launch(ImportTemplate.fileName(sheet)) })
             is ImportState.Working -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                     CircularProgressIndicator(color = DsColors.Primary)
@@ -67,17 +79,21 @@ fun ImportScreen(onBack: () -> Unit, viewModel: ImportViewModel = hiltViewModel(
     }
 }
 
+/** The template's file type, as the save dialog needs it. */
+private const val XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
 @Composable
-private fun Intro(onPick: () -> Unit) {
+private fun Intro(sheet: ImportSheet, onPick: () -> Unit, onTemplate: () -> Unit) {
+    val matches = if (sheet == ImportSheet.PRODUITS) "le nom (ou le code-barres)" else "le nom"
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.lg)
     ) {
         Panel {
-            Text("Ajoute ou met à jour des produits et des clients depuis un classeur Excel (.xlsx).", fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+            Text("Ajoute ou met à jour des ${sheet.plural} depuis un classeur Excel (.xlsx), feuille « ${sheet.title} ».", fontSize = DsTextSize.body, color = DsColors.TextPrimary)
             Text(
-                "Le plus simple : exportez les produits ou les clients, modifiez le fichier sur l'ordinateur, puis importez-le ici. " +
-                    "Une ligne dont le nom (ou le code-barres) existe déjà met la fiche à jour ; les autres lignes créent des fiches. " +
+                "Partez du modèle vide ci-dessous, ou exportez les ${sheet.plural} pour modifier ceux que vous avez déjà. " +
+                    "Une ligne dont $matches existe déjà met la fiche à jour ; les autres lignes créent des fiches. " +
                     "Une cellule vide ne change rien, donc un fichier avec seulement les colonnes à modifier suffit.",
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
@@ -89,8 +105,10 @@ private fun Intro(onPick: () -> Unit) {
         Panel {
             Text("Ce que l'import ne fait pas", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Text(
-                "• Le stock d'un produit existant ne vient jamais du fichier : il se corrige par un inventaire ou un ajustement. Un nouveau produit prend son stock de départ.\n" +
-                    "• Le solde d'un client vient de ses ventes et de ses paiements.\n" +
+                (if (sheet == ImportSheet.PRODUITS)
+                    "• Le stock d'un produit existant ne vient jamais du fichier : il se corrige par un inventaire ou un ajustement. " +
+                        "Un nouveau produit prend son stock initial, sous zéro seulement si « Autoriser le stock négatif » est activé.\n"
+                else "• Le solde d'un client vient de ses ventes et de ses paiements.\n") +
                     "• Rien n'est supprimé : une fiche absente du fichier reste telle quelle.",
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
@@ -104,6 +122,11 @@ private fun Intro(onPick: () -> Unit) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
             Text("Choisir un fichier Excel", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedButton(onClick = onTemplate, modifier = Modifier.fillMaxWidth().height(52.dp), shape = DsShapes.medium) {
+            Icon(Icons.Default.FileDownload, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text("Télécharger un modèle vide", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }
@@ -218,7 +241,7 @@ private fun Done(done: ImportState.Done, onAnother: () -> Unit, onFinish: () -> 
                 fontSize = DsTextSize.body, color = DsColors.TextPrimary
             )
             Text(
-                "Une copie de sécurité de vos données d'avant l'import a été gardée : Données et sauvegarde › Copies de sécurité. Restaurez-la pour annuler l'import.",
+                "Une copie de sécurité de vos données d'avant l'import a été gardée : Paramètres › Sauvegarde et restauration › Copies de sécurité. Restaurez-la pour annuler l'import.",
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
         }

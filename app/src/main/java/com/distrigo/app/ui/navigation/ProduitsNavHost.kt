@@ -52,7 +52,10 @@ fun ProduitsNavHost(
         // Bulk onboarding from a workbook — products and clients. Here, beside the lists it fills, rather
         // than beside Backup and Restore, where it was taken for a way to restore data.
         composable(Screen.ProduitsImport.route) {
-            com.distrigo.app.ui.settings.data.importer.ImportScreen(onBack = { navController.popBackStack() })
+            com.distrigo.app.ui.settings.data.importer.ImportScreen(
+                sheet  = com.distrigo.app.data.importer.ImportSheet.PRODUITS,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Screen.ProduitsHome.route) { entry ->

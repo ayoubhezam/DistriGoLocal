@@ -46,16 +46,19 @@ class ImportRepository(
     /** Reads the whole file; the stream is the caller's to close. */
     suspend fun read(input: InputStream): XlsxWorkbook = withContext(Dispatchers.IO) { XlsxReader.read(input) }
 
-    suspend fun plan(workbook: XlsxWorkbook): ImportPlan = withContext(Dispatchers.IO) { ImportPlanner(snapshot(), geo).plan(workbook) }
+    /** Plans [workbook] — only [only]'s sheet when given — without writing anything. */
+    suspend fun plan(workbook: XlsxWorkbook, only: ImportSheet? = null): ImportPlan =
+        withContext(Dispatchers.IO) { ImportPlanner(snapshot(), geo).plan(workbook, only) }
 
     /**
-     * Applies [plan], which must be the one made for [workbook]. Throws [ImportStaleException] when the data no
-     * longer matches it, `BackupFailedException` when no safety backup could be taken; nothing is written then.
+     * Applies [plan], which must be the one made for [workbook] and [only]. Throws [ImportStaleException] when the data
+     * — or « Autoriser le stock négatif » — no longer matches it, `BackupFailedException` when no safety backup could
+     * be taken; nothing is written then.
      */
-    suspend fun apply(workbook: XlsxWorkbook, plan: ImportPlan): ImportResult {
+    suspend fun apply(workbook: XlsxWorkbook, plan: ImportPlan, only: ImportSheet? = null): ImportResult {
         val backup = withContext(Dispatchers.IO) { safety.backup() }
         return db.withTransaction {
-            if (ImportPlanner(snapshot(), geo).plan(workbook) != plan) throw ImportStaleException()
+            if (ImportPlanner(snapshot(), geo).plan(workbook, only) != plan) throw ImportStaleException()
             val ids = Ids(snapshot()).also { it.create(plan.toCreate) }
             var created = 0
             var updated = 0
@@ -81,6 +84,7 @@ class ImportRepository(
         suppliers = db.supplierDao().getAllSuppliers(),
         secteurs = db.secteurDao().getAllSecteurs(),
         barcodes = db.productBarcodeDao().getAll().groupBy({ it.product_id }, { it.code }),
+        allowNegativeStock = db.businessSettingsDao().allowNegativeStock() != false,
     )
 
     // ── Products ──

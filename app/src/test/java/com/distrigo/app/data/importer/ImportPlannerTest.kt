@@ -349,4 +349,66 @@ class ImportPlannerTest {
         assertEquals("epicerie amine", ImportText.key("Épicerie   Amine"))
         assertEquals("حليب كانديا", ImportText.key(" حليب كانديا "))
     }
+
+    // ── One sheet per screen, and the stock rules (2026-10-21) ──
+
+    @Test
+    fun eachScreenReadsOnlyItsOwnSheet() {
+        val both = XlsxWorkbook(products(listOf("Nouveau lait")).sheets + clients(listOf("Nouveau client")).sheets)
+        assertEquals(listOf(ImportSheet.CLIENTS), planner().plan(both, only = ImportSheet.CLIENTS).sheets.map { it.sheet })
+        assertEquals(listOf(ImportSheet.PRODUITS), planner().plan(both, only = ImportSheet.PRODUITS).sheets.map { it.sheet })
+        // Without a scope, as before: every sheet the file has
+        assertEquals(2, planner().plan(both).sheets.size)
+    }
+
+    @Test
+    fun aFileForTheOtherScreenSaysWhereToGo() {
+        try {
+            planner().plan(products(listOf("Nouveau lait")), only = ImportSheet.CLIENTS)
+            fail("a products file imported as clients")
+        } catch (e: ImportPlanException) {
+            assertEquals("Ce fichier contient des produits, pas de clients. Importez-le depuis l'écran Produits.", e.message)
+        }
+        try {
+            planner().plan(XlsxWorkbook(listOf(sheet("Feuil1", listOf("Nom")))), only = ImportSheet.PRODUITS)
+            fail("a file without the sheet")
+        } catch (e: ImportPlanException) {
+            assertEquals("Le fichier n'a pas de feuille « Produits ». Téléchargez le modèle vide, ou exportez les produits pour l'obtenir.", e.message)
+        }
+    }
+
+    @Test
+    fun anExistingProductsStockIsNeverReadSoNeverRefused() {
+        // An export taken with the milk below zero, read back: its stock is not the import's business
+        val plan = planner(snapshot.copy(allowNegativeStock = false)).plan(products(
+            listOf("Lait Candia 1L", "6130000000123", "Produits laitiers", null, null, null, "carton", 0, 100.0, 120.0, -3.0, -3.0, 0.0, 10, null),
+        ))
+        assertEquals(listOf(RowOutcome.Unchanged(1)), plan.rows.map { it.outcome })
+    }
+
+    @Test
+    fun aNewProductStartsBelowZeroOnlyWhileTheSettingAllowsIt() {
+        val row = listOf("Nouveau lait", null, null, null, null, null, null, null, null, null, null, -4.0)
+        val allowed = planner(snapshot.copy(allowNegativeStock = true)).plan(products(row)).rows.single().outcome
+        assertEquals(-4.0, (allowed as RowOutcome.CreateProduct).values.initialStock!!, 0.0)
+
+        val strict = planner(snapshot.copy(allowNegativeStock = false)).plan(products(row)).rows.single()
+        assertEquals(ImportPlanner.NEGATIVE_OPENING_STOCK, refusal(strict))
+    }
+
+    @Test
+    fun anEmptyTemplateReadsBackWithEveryColumnKnownAndNoRow() {
+        for (kind in ImportSheet.entries) {
+            val bytes = java.io.ByteArrayOutputStream().also { ImportTemplate.write(kind, it) }.toByteArray()
+            val workbook = XlsxReader.read(bytes.inputStream())
+            assertEquals(listOf(kind.title), workbook.sheets.map { it.name })
+            val sheet = planner().plan(workbook, only = kind).sheets.single()
+            assertEquals(emptyList<String>(), sheet.ignoredColumns)
+            assertEquals(emptyList<PlannedRow>(), sheet.rows)
+        }
+        // « Stock initial » is a new product's opening stock
+        val filled = XlsxWorkbook(listOf(sheet("Produits", ImportTemplate.headers(ImportSheet.PRODUITS),
+            listOf("Nouveau lait", null, null, null, null, null, null, null, null, null, 12.0))))
+        assertEquals(12.0, (planner().plan(filled).rows.single().outcome as RowOutcome.CreateProduct).values.initialStock!!, 0.0)
+    }
 }
