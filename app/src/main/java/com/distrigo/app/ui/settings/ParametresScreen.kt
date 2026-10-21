@@ -5,23 +5,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CloudUpload
+import androidx.compose.material.icons.outlined.Contrast
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.MonetizationOn
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.BuildConfig
 import com.distrigo.app.core.format.MoneyFormat
@@ -32,13 +37,19 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import androidx.compose.foundation.border
 
+/**
+ * Paramètres, in sections (the owner's design, 2026-10-21): the account, the business's own rules and lists, the
+ * display preferences, the data, and help. The preferences not built yet are shown, faded, « Bientôt disponible ».
+ */
 @Composable
 fun ParametresScreen(
     onBack: () -> Unit,
+    onAccount: () -> Unit,
+    onLists: () -> Unit,
     onReceipt: () -> Unit,
     onCommission: () -> Unit,
+    onExport: () -> Unit,
     onData: () -> Unit,
     onTrash: () -> Unit,
     onDiagnostics: () -> Unit,
@@ -58,50 +69,58 @@ fun ParametresScreen(
         // Scrolls: the debug cards below the last entry used to fall off the bottom of the screen.
         Column(
             modifier            = Modifier.verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.xl)
         ) {
-            NegativeStockCard()
-            MoneyFormatCard()
-            SettingsNavCard(
-                icon     = Icons.Default.Receipt,
-                iconBg   = DsColors.SuccessLight,
-                iconTint = DsColors.Success,
-                title    = "Reçus et impression",
-                subtitle = "Logo, format du papier et imprimante",
-                onClick  = onReceipt
-            )
-            SettingsNavCard(
-                icon     = Icons.Default.Percent,
-                iconBg   = DsColors.PrimaryLight,
-                iconTint = DsColors.Primary,
-                title    = "Politique de commission",
-                subtitle = "Définir l'objectif et le mode de calcul des primes",
-                onClick  = onCommission
-            )
-            SettingsNavCard(
-                icon     = Icons.Default.Backup,
-                iconBg   = DsColors.WarningLight,
-                iconTint = DsColors.Warning,
-                title    = "Données et sauvegarde",
-                subtitle = "Sauvegarder vos données dans un fichier et les restaurer",
-                onClick  = onData
-            )
-            SettingsNavCard(
-                icon     = Icons.Default.DeleteOutline,
-                iconBg   = DsColors.DangerLight,
-                iconTint = DsColors.Danger,
-                title    = "Corbeille",
-                subtitle = "Restaurer les produits, clients et autres éléments supprimés",
-                onClick  = onTrash
-            )
-            SettingsNavCard(
-                icon     = Icons.Default.BugReport,
-                iconBg   = DsColors.SurfaceMuted,
-                iconTint = DsColors.TextSecondary,
-                title    = "Diagnostic",
-                subtitle = "Plantages et blocages enregistrés sur ce téléphone",
-                onClick  = onDiagnostics
-            )
+            SettingsSection("Compte") {
+                SettingsRow(Icons.Outlined.Person, DsColors.Primary, "Compte et connexion", "Gérer votre profil", onClick = onAccount)
+            }
+
+            SettingsSection("Votre activité") {
+                SettingsRow(
+                    Icons.Outlined.Folder, DsColors.AccentViolet, "Listes et catégories",
+                    "Catégories, marques, types de charges et de pertes, secteurs", onClick = onLists,
+                )
+                SettingsDivider()
+                SettingsRow(
+                    Icons.Outlined.Percent, DsColors.Primary, "Politique de commission",
+                    "Définir l'objectif et le mode de calcul des primes", onClick = onCommission,
+                )
+                SettingsDivider()
+                SettingsRow(Icons.Outlined.Receipt, DsColors.Success, "Reçus et impression", "Logo, format du papier et imprimante", onClick = onReceipt)
+                SettingsDivider()
+                NegativeStockRow()
+            }
+
+            SettingsSection("Préférences") {
+                MoneyFormatRow()
+                SettingsDivider()
+                SettingsRow(Icons.Outlined.MonetizationOn, DsColors.Success, "Devise principale", enabled = false)
+                SettingsDivider()
+                SettingsRow(Icons.Outlined.Contrast, DsColors.Warning, "Thème", enabled = false)
+                SettingsDivider()
+                SettingsRow(Icons.Outlined.CalendarMonth, DsColors.Primary, "Format de date", enabled = false)
+                SettingsDivider()
+                SettingsRow(Icons.Outlined.Notifications, DsColors.AccentViolet, "Notifications", enabled = false)
+            }
+
+            SettingsSection("Gestion des données") {
+                SettingsRow(Icons.Outlined.FileUpload, DsColors.Primary, "Exporter les données", "Ventes, achats, clients, produits… en Excel ou CSV", onClick = onExport)
+                SettingsDivider()
+                SettingsRow(
+                    Icons.Outlined.CloudUpload, DsColors.Warning, "Sauvegarde et restauration",
+                    "Sauvegarder vos données dans un fichier et les restaurer", onClick = onData,
+                )
+                SettingsDivider()
+                SettingsRow(
+                    Icons.Outlined.DeleteOutline, DsColors.Danger, "Corbeille",
+                    "Restaurer les produits, clients et autres éléments supprimés", onClick = onTrash,
+                )
+            }
+
+            SettingsSection("Assistance") {
+                SettingsRow(Icons.Outlined.BugReport, DsColors.TextSecondary, "Diagnostic", "Plantages et blocages enregistrés sur ce téléphone", onClick = onDiagnostics)
+            }
+
             // Absent from release builds: BuildConfig.DEBUG is a compile-time false there.
             if (BuildConfig.DEBUG) StressDataCard()
         }
@@ -114,42 +133,24 @@ fun ParametresScreen(
  * inventories, or undoing a document that brought stock in.
  */
 @Composable
-private fun NegativeStockCard(viewModel: StockSettingsViewModel = hiltViewModel()) {
+private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()) {
     val allowNegative by viewModel.allowNegative.collectAsState()
     val pendingStrict by viewModel.pendingStrict.collectAsState()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .padding(DsSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Inventory2, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-        }
-        Spacer(Modifier.width(DsSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Autoriser le stock négatif", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Text(
-                if (allowNegative == false) "Désactivé : le stock du dépôt ne peut jamais passer sous zéro"
-                else "Activé : le dépôt peut passer sous zéro, avec un avertissement",
-                fontSize = DsTextSize.caption,
-                color    = DsColors.TextSecondary
+    SettingsRow(
+        icon     = Icons.Outlined.Inventory2,
+        tint     = DsColors.Primary,
+        title    = "Autoriser le stock négatif",
+        subtitle = if (allowNegative == false) "Désactivé : le stock du dépôt ne peut jamais passer sous zéro"
+                   else "Activé : le dépôt peut passer sous zéro, avec un avertissement",
+        trailing = {
+            Switch(
+                checked         = allowNegative ?: true,
+                enabled         = allowNegative != null,
+                onCheckedChange = { viewModel.setAllowNegative(it) }
             )
         }
-        Spacer(Modifier.width(DsSpacing.sm))
-        Switch(
-            checked         = allowNegative ?: true,
-            enabled         = allowNegative != null,
-            onCheckedChange = { viewModel.setAllowNegative(it) }
-        )
-    }
+    )
 
     pendingStrict?.let { count ->
         AlertDialog(
@@ -174,41 +175,21 @@ private fun NegativeStockCard(viewModel: StockSettingsViewModel = hiltViewModel(
 private const val MONEY_FORMAT_SAMPLE = 1_236_790.5
 
 /**
- * "Format des montants": spaces, commas or dots between the thousands. The card shows the current
+ * "Format des montants": spaces, commas or dots between the thousands. The row shows the current
  * format on a sample amount; the dialog shows each choice the same way, and applies it on tap.
  */
 @Composable
-private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewModel()) {
+private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewModel()) {
     val current by viewModel.format.collectAsState()
     var choosing by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .clickable(enabled = current != null) { choosing = true }
-            .padding(DsSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Payments, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-        }
-        Spacer(Modifier.width(DsSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Format des montants", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Text(
-                current?.let { MoneyFormatter.of(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
-                fontSize = DsTextSize.caption,
-                color    = DsColors.TextSecondary
-            )
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
-    }
+    SettingsRow(
+        icon     = Icons.Outlined.Payments,
+        tint     = DsColors.Primary,
+        title    = "Format des montants",
+        subtitle = current?.let { MoneyFormatter.of(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
+        onClick  = { if (current != null) choosing = true },
+    )
 
     val selected = current
     if (choosing && selected != null) {
@@ -253,39 +234,5 @@ private fun MoneyFormatCard(viewModel: MoneyFormatSettingsViewModel = hiltViewMo
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary
         )
-    }
-}
-
-@Composable
-private fun SettingsNavCard(
-    icon     : androidx.compose.ui.graphics.vector.ImageVector,
-    iconBg   : androidx.compose.ui.graphics.Color,
-    iconTint : androidx.compose.ui.graphics.Color,
-    title    : String,
-    subtitle : String,
-    onClick  : () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .clickable { onClick() }
-            .padding(DsSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
-        }
-        Spacer(Modifier.width(DsSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
     }
 }

@@ -514,7 +514,8 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.PlusParametres.route) {
                                 com.distrigo.app.ui.navigation.SettingsNavHost(
-                                    onBack = { navController.popBackStack() }
+                                    onBack    = { navController.popBackStack() },
+                                    onAccount = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 

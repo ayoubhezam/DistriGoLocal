@@ -63,6 +63,16 @@ sealed class Screen(val route: String) {
     data object SettingsExport     : Screen("settings_data_export")
     data object SettingsTrash      : Screen("settings_trash")
     data object SettingsDiagnostics : Screen("settings_diagnostics")
+    data object SettingsLists      : Screen("settings_lists")
+    /** One list of « Listes et catégories »; [parentId] and [parentName] for a category's sous-catégories or a type's sous-types. */
+    data object SettingsList : Screen("settings_list/{kind}?parentId={parentId}&parentName={parentName}") {
+        fun createRoute(kind: com.distrigo.app.data.lists.ListKind, parentId: Long? = null, parentName: String? = null) =
+            "settings_list/${kind.name}" +
+                listOfNotNull(
+                    parentId?.let { "parentId=$it" },
+                    parentName?.let { "parentName=${android.net.Uri.encode(it)}" },
+                ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+    }
 
     // ── Ventes Hub (TabVentes content): Dépôt Vente / Tournées / Stock Camion ──
     data object VentesHubGraph       : Screen("ventes_hub_graph")
