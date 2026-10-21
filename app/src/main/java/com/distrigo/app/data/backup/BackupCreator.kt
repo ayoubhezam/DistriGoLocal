@@ -46,8 +46,8 @@ class BackupFailedException(val reason: Reason, message: String, cause: Throwabl
 /**
  * Makes a `.distrigo` backup and saves it where the user chose.
  *
- * The file is built and checked in the app's own cache first, then copied to [destination] and read
- * back from there. Only a file that reads back exactly as written counts as a backup: if anything fails,
+ * The file is built in the app's own cache first, then copied to [destination] and read back, whole,
+ * from there. Only a file that reads back exactly as written counts as a backup: if anything fails,
  * [destination] is deleted, so what the user finds in their folder is always usable. The last backup is then
  * recorded in `app_meta` (`backup.last_*`).
  *
@@ -117,8 +117,9 @@ class BackupCreator(
                 photosIncluded = includePhotos,
             )
             val local = File(workDir, "backup.${BackupFormat.EXTENSION}")
+            // Not read back here: the saved file is, whole, below — a damaged build cannot pass that check, and
+            // reading the local one too cost 9 s of a 87 s backup (M34, 2026-10-21).
             local.outputStream().use { BackupArchive.write(manifest, sources, it) }
-            requireSame(manifest, local.inputStream().use { BackupArchive.verify(it) }, "built file")
 
             onStep(Step.SAVING)
             failingAs(BackupFailedException.Reason.WRITE_FAILED) {

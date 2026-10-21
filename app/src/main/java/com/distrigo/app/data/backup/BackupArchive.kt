@@ -6,6 +6,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
+import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
@@ -28,7 +29,9 @@ object BackupArchive {
      * order. Every entry must have a source. Does not close [out].
      */
     fun write(manifest: BackupManifest, sources: Map<String, File>, out: OutputStream) {
-        val zip = ZipOutputStream(out)
+        // The fastest setting: deflating the database took 30 s of a 87 s backup at the default one
+        // (583 MB, M34, 2026-10-21); a somewhat larger file is worth the wait it saves.
+        val zip = ZipOutputStream(out).apply { setLevel(Deflater.BEST_SPEED) }
         zip.putNextEntry(ZipEntry(BackupFormat.MANIFEST_ENTRY))
         zip.write(manifest.toJson().toByteArray(Charsets.UTF_8))
         zip.closeEntry()

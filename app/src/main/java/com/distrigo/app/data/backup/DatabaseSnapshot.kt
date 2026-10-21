@@ -53,9 +53,13 @@ class SnapshotException(message: String, cause: Throwable? = null) : Exception(m
  *
  * ### What is checked
  *
- * The copy must pass `PRAGMA integrity_check` and carry `database_id` and `device_id`. Then the copy,
+ * The copy must pass `PRAGMA quick_check` and carry `database_id` and `device_id`. Then the copy,
  * not the live database, is what the counts and photo references are read from, so they describe
  * exactly what is in the file.
+ *
+ * `quick_check`, not `integrity_check`: it reads every page and every row, so a damaged file is still
+ * refused, and leaves out only matching each index against its table — 6 s where the full check took
+ * 24 s on a 583 MB copy (M34, 2026-10-21), for a copy SQLite has just written itself.
  */
 object DatabaseSnapshot {
 
@@ -147,11 +151,11 @@ object DatabaseSnapshot {
             val mode = sql.text("PRAGMA journal_mode = DELETE")
             if (!mode.equals("delete", ignoreCase = true)) throw SnapshotException("the copy stays in $mode mode")
 
-            val problems = sql.rawQuery("PRAGMA integrity_check", null).use { cursor ->
+            val problems = sql.rawQuery("PRAGMA quick_check", null).use { cursor ->
                 buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
             }
             if (problems != listOf("ok")) {
-                throw SnapshotException("integrity_check: " + problems.take(5).joinToString("; "))
+                throw SnapshotException("quick_check: " + problems.take(5).joinToString("; "))
             }
 
             val databaseId = sql.meta("database_id") ?: throw SnapshotException("no database_id")
