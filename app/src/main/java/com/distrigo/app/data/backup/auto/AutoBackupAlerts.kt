@@ -47,7 +47,7 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
             PendingIntent.getActivity(context, 0, it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         }
-        val text = problem.message + " Ouvrez DistriGo, Paramètres, Données et sauvegarde."
+        val text = problem.message + " Ouvrez DistriGo, Paramètres, Sauvegarde et restauration."
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_backup)
             .setContentTitle("Sauvegardes automatiques en échec")

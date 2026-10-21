@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -66,7 +65,7 @@ import com.distrigo.app.data.backup.RestoreBusiness
 import com.distrigo.app.data.backup.RestoreStockRule
 
 /**
- * Paramètres → Données et sauvegarde: save all the data to a file, and replace it with a file saved before.
+ * Paramètres → Sauvegarde et restauration: save all the data to a file, and replace it with a file saved before.
  *
  * Every operation runs in [DataBackupViewModel]; while one runs, the screen cannot be left, so a backup is
  * never abandoned half-way from here and a scheduled restore always reaches its restart.
@@ -74,7 +73,6 @@ import com.distrigo.app.data.backup.RestoreStockRule
 @Composable
 fun DataBackupScreen(
     onBack: () -> Unit,
-    onExport: () -> Unit,
     viewModel: DataBackupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -94,7 +92,7 @@ fun DataBackupScreen(
         uri?.let { viewModel.inspect(it) }
     }
 
-    // Read again each time the screen shows: it is composed anew on the way back from an export or an import.
+    // Read again each time the screen shows: it is composed anew on the way back to it.
     LaunchedEffect(Unit) { viewModel.refresh() }
 
     // Turning daily backups on asks, once, to be allowed to notify failures; they are turned on either way.
@@ -149,7 +147,7 @@ fun DataBackupScreen(
                 .background(DsColors.SurfaceMuted)
         ) {
             DsTopAppBar(
-                title = "Données et sauvegarde",
+                title = "Sauvegarde et restauration",
                 leading = DsTopBarLeading.Back { if (state !is DataBackupState.Working) onBack() }
             )
 
@@ -186,9 +184,6 @@ fun DataBackupScreen(
                 if (safetyBackups.isNotEmpty()) {
                     SafetyBackupsSection(safetyBackups, onRestore = viewModel::inspectSafetyBackup)
                 }
-
-                // Last and apart: files for reading and for the accountant, never a way back to the data.
-                AccountingExportSection(onOpen = onExport)
 
                 Spacer(Modifier.height(DsSpacing.lg))
             }
@@ -253,7 +248,7 @@ private fun BackupSection(lastBackup: LastBackup?, counts: Map<String, Long>, on
         }
         Button(
             onClick = onCreate,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             shape = DsShapes.medium,
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
@@ -369,7 +364,7 @@ private fun AutoBackupSection(
         // ── Actions ──
         OutlinedButton(
             onClick = onChooseFolder,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             shape = DsShapes.medium,
             border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
         ) {
@@ -378,7 +373,7 @@ private fun AutoBackupSection(
         if (folder.chosen && folder.available) {
             OutlinedButton(
                 onClick = onBackupNow,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 shape = DsShapes.medium,
                 border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
             ) {
@@ -401,39 +396,6 @@ private fun StatusLine(label: String, value: String) {
 }
 
 @Composable
-private fun AccountingExportSection(onOpen: () -> Unit) {
-    SectionTitle("Export pour la comptabilité")
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(DsShapes.large)
-            .background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large)
-            .padding(DsSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
-    ) {
-        Text(
-            "Ventes, achats, paiements, clients, produits, mouvements de stock, charges et pertes, en fichier Excel ou CSV, à ouvrir sur un ordinateur ou à envoyer au comptable.",
-            fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
-        )
-        OutlinedButton(
-            onClick = onOpen,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = DsShapes.medium,
-            border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
-        ) {
-            Icon(Icons.Default.TableChart, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text("Exporter (Excel / CSV)", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-        }
-        Text(
-            "Ces fichiers servent à consulter et à transmettre vos données : ils ne peuvent pas être restaurés. Pour une copie complète, créez une sauvegarde.",
-            fontSize = DsTextSize.caption, color = DsColors.TextTertiary
-        )
-    }
-}
-
-@Composable
 private fun RestoreSection(onPick: () -> Unit) {
     SectionTitle("Restauration")
     Column(
@@ -451,7 +413,7 @@ private fun RestoreSection(onPick: () -> Unit) {
         )
         OutlinedButton(
             onClick = onPick,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             shape = DsShapes.medium,
             border = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
         ) {
@@ -587,7 +549,7 @@ private fun RestorePreviewScreen(
             )
             Button(
                 onClick = { confirming = true },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
             ) {

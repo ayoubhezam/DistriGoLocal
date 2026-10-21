@@ -41,7 +41,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
 
-/** Données et sauvegarde → Exporter: choose data, a format and a period, then save the file or share it. */
+/** Paramètres → Exporter les données: choose data, a format and a period, then save the file or share it. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {

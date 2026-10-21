@@ -85,10 +85,7 @@ fun SettingsNavHost(
             CommissionPolicyScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.SettingsData.route) {
-            DataBackupScreen(
-                onBack   = { navController.popBackStack() },
-                onExport = { navController.navigate(Screen.SettingsExport.route) }
-            )
+            DataBackupScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.SettingsExport.route) {
             ExportScreen(onBack = { navController.popBackStack() })

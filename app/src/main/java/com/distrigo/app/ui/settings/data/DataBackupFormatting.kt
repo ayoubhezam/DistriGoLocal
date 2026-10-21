@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Locale
 
-/** How the Données et sauvegarde screen writes sizes, dates and table names. */
+/** How the Sauvegarde et restauration screen writes sizes, dates and table names. */
 object DataBackupFormatting {
 
     private val FRENCH = Locale.FRENCH
