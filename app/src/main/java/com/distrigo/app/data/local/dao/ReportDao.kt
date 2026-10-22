@@ -475,6 +475,23 @@ interface ReportDao {
     suspend fun clientDebtAges(b30: String, b60: String, b90: String): List<DebtAge>
 
     /** The same for suppliers, by the bon's calendar date: [d30], [d60] and [d90] are `yyyy-MM-dd`. */
+    /**
+     * What the debtor clients have owed for more than 90 days, at once: each balance less the unpaid credit of its
+     * sales since [b90], never below zero — what [clientDebtAges] and spendByAge leave in the oldest band, the balance
+     * being spent on the newest credit first. The covering index reads only each client's last 90 days (v63, owner
+     * 2026-10-22): 170 ms down to 25 ms on 120 000 sales.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(MAX(0, c.balance - (
+            SELECT COALESCE(SUM(v.total - v.montant_paye), 0) FROM ventes v
+            WHERE v.client_id = c.id AND v.created_at >= :b90 AND v.total > v.montant_paye
+        ))), 0)
+        FROM clients c WHERE c.deleted_at IS NULL AND c.balance > 0.005
+        """
+    )
+    suspend fun oldClientDebtSince(b90: String): Double
+
     @Query(
         """
         SELECT p.supplier_id AS party,

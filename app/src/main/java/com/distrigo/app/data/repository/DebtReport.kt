@@ -129,7 +129,7 @@ suspend fun ReportDao.debtReport(
  * the period's flows the report adds — the Dashboard's alert (owner, 2026-10-20).
  */
 suspend fun ReportDao.oldClientDebt(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): Double =
-    debtLines(clientDebtors(), clientDebtAges(ageCuts(today), zone), zone).sumOf { it.ages[AgeBand.OLD.ordinal] }
+    oldClientDebtSince(BusinessDates.dayStart(ageCuts(today)[2], zone))
 
 /** The days 30, 60 and 90 days before [today], where the age bands meet. */
 private fun ageCuts(today: LocalDate): List<LocalDate> = listOf(30L, 60L, 90L).map { today.minusDays(it) }

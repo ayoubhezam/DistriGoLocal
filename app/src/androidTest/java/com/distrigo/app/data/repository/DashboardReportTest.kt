@@ -118,6 +118,29 @@ class DashboardReportTest {
         )
     }
 
+    /**
+     * « Plus de 90 jours » read on its own (v63) is the report's oldest band in every case: old and recent credit,
+     * recent credit beyond the balance, a balance with no sale behind it, a deleted client.
+     */
+    @Test
+    fun theOldDebtIsTheReportsOldestBand() = runBlocking {
+        client(1, balance = 1500.0)
+        vente(1, client = 1, at = "2026-05-01T09:00:00Z", total = 2000.0, paid = 0.0, cost = 1500.0)  // old
+        vente(2, client = 1, at = "2026-09-20T09:00:00Z", total = 500.0, paid = 0.0, cost = 400.0)    // recent
+        client(2, balance = 200.0)
+        vente(3, client = 2, at = "2026-09-25T09:00:00Z", total = 500.0, paid = 0.0, cost = 400.0)    // recent, more than owed
+        client(3, balance = 700.0)                                                                    // opening balance, no sale
+        client(4, balance = 900.0)
+        vente(4, client = 4, at = "2026-04-01T09:00:00Z", total = 900.0, paid = 0.0, cost = 700.0)
+        sql.execSQL("UPDATE clients SET deleted_at = 1000 WHERE id = 4")            // deleted: not counted
+
+        val today = now.toLocalDate()
+        val alerts = repository.dashboardAlerts(today, algiers)
+        val debts = repository.debtReport(DebtSide.CLIENTS, com.distrigo.app.data.model.report.ReportFilter(), today, algiers)
+        assertEquals(1000.0 + 0.0 + 700.0, alerts.oldClientDebt, 0.001)
+        assertEquals(debts.ages[AgeBand.OLD.ordinal], alerts.oldClientDebt, 0.001)
+    }
+
     private fun product(id: Int, stock: Double, min: Double, moved: Boolean = false, deleted: Boolean = false) {
         sql.execSQL(
             "INSERT INTO products (id, name, selling_price, purchase_price, stock, min_stock, unit_type, packages, pack_size, " +

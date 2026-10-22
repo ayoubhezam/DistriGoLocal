@@ -828,6 +828,27 @@ class MigrationTest {
         }
     }
 
+    /** 62 -> 63 makes the sales' client index covering for the debt by age, and touches no row. */
+    @Test
+    fun migration62To63MakesTheClientSalesIndexCovering() {
+        helper.createDatabase(TEST_DB, 62).apply {
+            execSQL(
+                "INSERT INTO ventes (id, client_id, source, total, montant_paye, status, created_at, uuid, updated_at) " +
+                    "VALUES (1, 7, 'depot', 5000.0, 2000.0, 'partiel', '2026-07-01T10:00:00Z', 'u-v-1', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 63, true, MIGRATION_62_63)
+        try {
+            val indexes = sql.texts("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'ventes' AND name LIKE 'index_ventes_client_id%'")
+            assertEquals(listOf("index_ventes_client_id_created_at_total_montant_paye"), indexes)
+            assertEquals(1, sql.count("ventes", "client_id = 7 AND total - montant_paye = 3000.0 AND updated_at = 1000"))
+        } finally {
+            sql.close()
+        }
+    }
+
     private fun openWithAppPolicy(): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
             .withMigrationPolicy()

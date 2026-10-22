@@ -1216,6 +1216,20 @@ val MIGRATION_61_62 = object : Migration(61, 62) {
 }
 
 /**
+ * Version 63: the sales' (client_id, created_at) index becomes covering, total and montant_paye added, so the client
+ * debt by age reads no row of `ventes` (owner, 2026-10-22). No row changes.
+ */
+val MIGRATION_62_63 = object : Migration(62, 63) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP INDEX IF EXISTS `index_ventes_client_id_created_at`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_ventes_client_id_created_at_total_montant_paye` " +
+                "ON `ventes` (`client_id`, `created_at`, `total`, `montant_paye`)"
+        )
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1234,6 +1248,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_52_53, MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56,
     MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
     MIGRATION_61_62,
+    MIGRATION_62_63,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**
