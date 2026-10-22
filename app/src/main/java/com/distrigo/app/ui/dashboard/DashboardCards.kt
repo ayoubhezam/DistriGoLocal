@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.dashboard
 
+import com.distrigo.app.ui.designsystem.skeleton
+import com.distrigo.app.ui.designsystem.SkeletonBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -227,6 +229,35 @@ private fun saleTime(createdAt: String, zone: ZoneId = ZoneId.systemDefault()): 
 }
 
 /** A recent sale: the client, its number and time, the amount, and how it was paid (no delivery status, D4). */
+/** How many sales « Activité récente » shows: its skeleton has as many rows. */
+internal const val RECENT_SALES = 4
+
+/** A row's height, the same loaded or not: its skeleton then takes exactly its place. */
+private val RECENT_SALE_ROW_HEIGHT = 60.dp
+
+/** [RecentSaleRow]'s shape while the sales are read. */
+@Composable
+internal fun RecentSaleRowSkeleton() {
+    Row(
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().height(RECENT_SALE_ROW_HEIGHT).clip(DsShapes.large)
+            .background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(40.dp).skeleton(DsShapes.medium))
+        Spacer(Modifier.width(DsSpacing.md))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SkeletonBar(120.dp, 12.dp)
+            SkeletonBar(160.dp, 10.dp)
+        }
+        Spacer(Modifier.width(DsSpacing.sm))
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SkeletonBar(80.dp, 12.dp)
+            SkeletonBar(48.dp, 14.dp)
+        }
+    }
+}
+
 @Composable
 internal fun RecentSaleRow(sale: RecentSale, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
@@ -238,7 +269,7 @@ internal fun RecentSaleRow(sale: RecentSale, onClick: () -> Unit) {
     Row(
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large).clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+            .heightIn(min = RECENT_SALE_ROW_HEIGHT).padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EntityAvatar(name = sale.clientName ?: "?", imageUri = sale.clientImage, size = 40.dp)

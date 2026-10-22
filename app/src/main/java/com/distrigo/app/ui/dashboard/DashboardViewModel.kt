@@ -38,29 +38,72 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.distrigo.app.data.model.TourneeClientInfo
 
 /**
  * One block of the Dashboard: [Loading] until it has been read once, then [Ready], kept while it reloads. A block
- * with nothing to show is Ready with null (no policy, no tournée open).
+ * with nothing to show is Ready with null (no policy, no tournée open). [Failed] when its first read failed: it
+ * counts as read, so the Dashboard never waits on it forever.
  */
 sealed interface Block<out T> {
     data object Loading : Block<Nothing>
+    data object Failed : Block<Nothing>
     data class Ready<T>(val value: T) : Block<T>
 }
 
-/** The Dashboard as the screen shows it (docs/design/dashboard_objectif_plan.md, Part 1). */
-data class DashboardState(
+private fun <T> Block<T>.valueOrNull(): T? = (this as? Block.Ready)?.value
+
+/** The Dashboard's figures, every block read once (docs/design/dashboard_objectif_plan.md, Part 1). */
+data class DashboardContent(
     /** The account's first name for « Bonjour, … » (D16); null for an account without one. */
-    val firstName: String? = null,
-    val sales: Block<DashboardSales> = Block.Loading,
+    val firstName: String?,
+    /** Null only if they could not be read: the card then keeps its placeholder. */
+    val sales: DashboardSales?,
     /** The active commission policy's progress; null without a policy (the card then shows « Ce mois », D3). */
-    val goal: Block<GoalProgress?> = Block.Loading,
-    val alerts: Block<DashboardAlerts> = Block.Loading,
-    val tournee: Block<TourneeDay?> = Block.Loading,
-    val activity: Block<List<RecentSale>> = Block.Loading,
-    val activityFilter: ActivityFilter = ActivityFilter.ALL,
+    val goal: GoalProgress?,
+    val alerts: DashboardAlerts?,
+    val tournee: TourneeDay?,
+    val activity: List<RecentSale>,
+    val activityFilter: ActivityFilter,
 )
+
+/**
+ * The Dashboard all at once (owner, 2026-10-22): [Loading] — the skeleton — until every block has been read, then
+ * [Ready]. Loaded apart, each block arriving pushed the ones below it down the screen.
+ */
+sealed interface DashboardUiState {
+    data object Loading : DashboardUiState
+    data class Ready(val content: DashboardContent) : DashboardUiState
+
+    companion object {
+        /**
+         * [Ready] once no block is [Block.Loading]. A block never goes back to Loading (a reload keeps what was
+         * read), so once Ready the Dashboard stays Ready and only its figures change.
+         */
+        fun of(
+            name: Block<String?>,
+            sales: Block<DashboardSales>,
+            goal: Block<GoalProgress?>,
+            alerts: Block<DashboardAlerts>,
+            tournee: Block<TourneeDay?>,
+            activity: Block<List<RecentSale>>,
+            filter: ActivityFilter,
+        ): DashboardUiState {
+            if (listOf(name, sales, goal, alerts, tournee, activity).any { it == Block.Loading }) return Loading
+            return Ready(DashboardContent(
+                firstName      = name.valueOrNull(),
+                sales          = sales.valueOrNull(),
+                goal           = goal.valueOrNull(),
+                alerts         = alerts.valueOrNull(),
+                tournee        = tournee.valueOrNull(),
+                activity       = activity.valueOrNull().orEmpty(),
+                activityFilter = filter,
+            ))
+        }
+    }
+}
 
 /** Where a Dashboard card leads: a report, on the period the card showed. */
 enum class DashboardLink(val report: ReportEntry, val period: ReportPeriod) {
@@ -78,37 +121,48 @@ class DashboardViewModel @Inject constructor(
     private val products: ProductRepository,
     private val filterStore: ReportFilterStore,
     auth: AuthRepository,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
+
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /**
+     * Whether a tournée was open when the Dashboard last loaded: its skeleton then keeps the chip's place, so the
+     * swap only moves the screen the day the tournée opens or closes (owner, 2026-10-22).
+     */
+    val tourneeWasOpen: Boolean = prefs.getBoolean(KEY_TOURNEE_OPEN, false)
 
     /**
      * [read] once, then again each time [changes] says its tables were written — a burst of writes once. A failed
-     * read keeps what was shown.
+     * read keeps what was shown, or is [Block.Failed] if nothing was.
      */
     private fun <T> block(changes: Flow<Unit>, from: Block<T> = Block.Loading, read: suspend () -> T): Flow<Block<T>> {
         var last: Block<T> = from
         return changes.debounce(400).onStart { emit(Unit) }
-            .mapLatest { runCatching { read() }.map { Block.Ready(it) }.getOrNull() ?: last }
+            .mapLatest { runCatching { read() }.map { Block.Ready(it) }.getOrNull() ?: last.takeUnless { it == Block.Loading } ?: Block.Failed }
             .onStart { emit(last) }
             .map { it.also { last = it } }
     }
 
     private val activityFilter = MutableStateFlow(ActivityFilter.ALL)
 
-    private val firstName: Flow<String?> = auth.state.map { account ->
-        (account as? AccountState.SignedIn)?.session?.takeUnless { it.isAnonymous }
+    /** Loading until the stored session has been read: « Bonjour » then « Bonjour, Ayoub » was the first jump. */
+    private val firstName: Flow<Block<String?>> = auth.state.map { account ->
+        if (account == AccountState.Loading) Block.Loading
+        else Block.Ready((account as? AccountState.SignedIn)?.session?.takeUnless { it.isAnonymous }
             ?.displayName?.trim()?.split(Regex("\\s+"))?.firstOrNull { it.isNotEmpty() }
-            ?.replaceFirstChar { it.uppercase() }
+            ?.replaceFirstChar { it.uppercase() })
     }
 
     // A new filter keeps the sales shown until its own are read: emptied in between, the list would shrink and the
     // page jump up under the finger
     private var shownActivity: Block<List<RecentSale>> = Block.Loading
     private val activity: Flow<Block<List<RecentSale>>> = activityFilter.flatMapLatest { filter ->
-        block(reports.salesChanges(), from = shownActivity) { reports.recentSales(filter, limit = 4) }
+        block(reports.salesChanges(), from = shownActivity) { reports.recentSales(filter, limit = RECENT_SALES) }
     }.onEach { shownActivity = it }
 
-    // The blocks load apart, the quick ones first; each reloads only when its own tables change.
-    val state: StateFlow<DashboardState> = combine(
+    // The blocks are read together and shown together; each reloads only when its own tables change.
+    val state: StateFlow<DashboardUiState> = combine(
         combine(
             firstName,
             block(reports.salesChanges()) { reports.dashboardSales() },
@@ -119,10 +173,15 @@ class DashboardViewModel @Inject constructor(
         activity,
         activityFilter,
     ) { (name, sales, goal), alerts, tournee, recent, filter ->
-        DashboardState(name, sales, goal, alerts, tournee, recent, filter)
+        DashboardUiState.of(name, sales, goal, alerts, tournee, recent, filter)
     // Stopped as soon as the Dashboard is left, so every return reads it again, the last figures shown meanwhile: a
     // return within a few seconds used to rely on the tables' signal alone (owner, 2026-10-20)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), DashboardState())
+    }.onEach { ui ->
+        val open = (ui as? DashboardUiState.Ready)?.content?.tournee != null
+        if (ui is DashboardUiState.Ready && prefs.getBoolean(KEY_TOURNEE_OPEN, false) != open) {
+            prefs.edit().putBoolean(KEY_TOURNEE_OPEN, open).apply()
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), DashboardUiState.Loading)
 
     fun showActivity(filter: ActivityFilter) {
         activityFilter.value = filter
@@ -190,3 +249,6 @@ class DashboardViewModel @Inject constructor(
         }
     }
 }
+
+private const val PREFS = "dashboard"
+private const val KEY_TOURNEE_OPEN = "tournee_open"

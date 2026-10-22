@@ -1,5 +1,13 @@
 package com.distrigo.app.ui.dashboard
 
+import com.distrigo.app.ui.designsystem.skeleton
+import com.distrigo.app.ui.designsystem.SkeletonOnColor
+import com.distrigo.app.ui.designsystem.SkeletonBar
+import com.distrigo.app.ui.designsystem.DsShimmer
+import com.distrigo.app.data.repository.ActivityFilter
+import java.time.LocalDate
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -158,7 +166,8 @@ fun DashboardScreen(
     onOpenGoal           : () -> Unit = {},
     viewModel            : DashboardViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val ui by viewModel.state.collectAsState()
+    val content = (ui as? DashboardUiState.Ready)?.content
     val license = LocalLicense.current
     val drill = LocalDrillDown.current
     val open = { link: DashboardLink -> viewModel.prepare(link); onOpenReport(link.report) }
@@ -172,14 +181,14 @@ fun DashboardScreen(
     var removeError by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val tournee = (state.tournee as? Block.Ready)?.value
-    val sales = (state.sales as? Block.Ready)?.value
+    val tournee = content?.tournee
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         // D16: the greeting and the date; the menu stays, the drawer being the only way to the other sections
         DsTopAppBar(
-            title         = state.firstName?.let { "Bonjour, $it" } ?: "Bonjour",
-            subtitle      = sales?.now?.format(TODAY)?.replaceFirstChar { it.uppercase() },
+            title         = content?.firstName?.let { "Bonjour, $it" } ?: "Bonjour",
+            // From the clock, not from the sales: waiting for them, the line arrived late and the bar grew
+            subtitle      = LocalDate.now().format(TODAY).replaceFirstChar { it.uppercase() },
             licenseBanner = true,
             leading       = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size          = DsTopBarSize.Large
@@ -187,6 +196,15 @@ fun DashboardScreen(
             DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
         }
 
+        // Owner 2026-10-22: the skeleton until every block is read, then the Dashboard in one crossfade — loaded
+        // apart, each block pushed the ones below it down
+        Crossfade(targetState = content == null, animationSpec = tween(200), label = "dashboard") { loading ->
+        val c = content
+        if (loading || c == null) {
+            DashboardSkeleton(withTournee = viewModel.tourneeWasOpen)
+            return@Crossfade
+        }
+        val sales = c.sales
         LazyColumn(
             modifier            = Modifier.fillMaxSize(),
             contentPadding      = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.bottomNavClearance),
@@ -198,13 +216,12 @@ fun DashboardScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                     tournee?.let { t -> TourneeChip(t) { drill(DrillTarget.Tournee(t.id)) } }
                     if (sales == null) {
-                        Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = DsColors.PrimaryDark)
-                        }
+                        // Could not be read: the card's place is kept, as while loading
+                        DsShimmer { TodayCardSkeleton() }
                     } else {
                         TodayCard(
                             sales          = sales,
-                            goal           = state.goal,
+                            goal           = c.goal,
                             onClick        = { open(DashboardLink.TODAY) },
                             onGoal         = onOpenGoal,
                             onMonth        = { open(DashboardLink.MONTH) },
@@ -243,24 +260,21 @@ fun DashboardScreen(
             }
 
             // D12: only when there is something to see to
-            (state.alerts as? Block.Ready)?.value?.takeIf { it.any }?.let { alerts ->
+            c.alerts?.takeIf { it.any }?.let { alerts ->
                 item(key = "alerts") { AlertsCard(alerts) { open(it) } }
             }
 
             item(key = "activity_title") {
-                ActivityHeader(state.activityFilter, viewModel::showActivity)
+                ActivityHeader(c.activityFilter, viewModel::showActivity)
             }
-            when (val activity = state.activity) {
-                Block.Loading -> Unit
-                is Block.Ready ->
-                    if (activity.value.isEmpty()) {
-                        item(key = "activity_empty") { ActivityEmpty(state.activityFilter) }
-                    } else {
-                        items(activity.value, key = { "sale_${it.id}" }) { sale ->
-                            RecentSaleRow(sale) { drill(DrillTarget.Vente(sale.id)) }
-                        }
-                    }
+            if (c.activity.isEmpty()) {
+                item(key = "activity_empty") { ActivityEmpty(c.activityFilter) }
+            } else {
+                items(c.activity, key = { "sale_${it.id}" }) { sale ->
+                    RecentSaleRow(sale) { drill(DrillTarget.Vente(sale.id)) }
+                }
             }
+        }
         }
     }
 
@@ -369,7 +383,7 @@ private data class ClientSheet(val tourneeId: Int, val info: TourneeClientInfo, 
 @Composable
 private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
     Row(
-        Modifier.padding(horizontal = DsSpacing.lg).clip(DsShapes.pill).background(DsColors.Surface)
+        Modifier.padding(horizontal = DsSpacing.lg).height(TOURNEE_CHIP_HEIGHT).clip(DsShapes.pill).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.pill).clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -391,10 +405,99 @@ private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
  * comparison, no percentage —, the objective's bar and amount, then « Payé à la vente » and « Crédit ». Without a
  * commission policy the objective's place shows the month's sales and « Fixez un objectif ».
  */
+// The tournée chip's height, one line whatever its label: its skeleton holds the same place
+private val TOURNEE_CHIP_HEIGHT = 40.dp
+
+// « Tournée du jour »'s height, measured the same way
+private val TOURNEE_CARD_HEIGHT = 182.dp
+
+// The Ventes du jour card's height with an objective, its usual look, measured on the M34 at the default font
+// size: the skeleton holds exactly that place
+private val TODAY_CARD_HEIGHT = 219.dp
+
+/**
+ * The Dashboard before its figures are read: the real top bar and quick actions, and in place of the rest shapes of
+ * their size — the card, the activity's title and its four rows — so nothing moves when they arrive.
+ */
+@Composable
+private fun DashboardSkeleton(withTournee: Boolean) {
+    DsShimmer {
+        Column(
+            Modifier.fillMaxSize().padding(top = DsSpacing.sm).semantics { contentDescription = "Chargement du tableau de bord" },
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
+        ) {
+            // The chip shares the card's item, as on the loaded Dashboard
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                if (withTournee) {
+                    Box(Modifier.padding(horizontal = DsSpacing.lg).width(240.dp).height(TOURNEE_CHIP_HEIGHT).skeleton(DsShapes.pill))
+                }
+                TodayCardSkeleton()
+            }
+            // Real, with nothing to wait for; a tap waits for the Dashboard, which knows the open tournée
+            QuickActions(onNewSale = {}, onCollect = {}, onNewPurchase = {}, onCharge = {})
+            if (withTournee) TourneeCardSkeleton()
+            ActivityHeader(ActivityFilter.ALL) {}
+            repeat(RECENT_SALES) { RecentSaleRowSkeleton() }
+        }
+    }
+}
+
+/** « Tournée du jour »'s shape: its title and place, the visits line and bar, the three counts. */
+@Composable
+private fun TourneeCardSkeleton() {
+    Column(
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().height(TOURNEE_CARD_HEIGHT).clip(DsShapes.large)
+            .background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.lg),
+    ) {
+        SkeletonBar(140.dp, 16.dp)
+        SkeletonBar(90.dp, 10.dp, Modifier.padding(top = 8.dp))
+        SkeletonBar(160.dp, 12.dp, Modifier.padding(top = 16.dp))
+        SkeletonBar(0.dp, 8.dp, Modifier.fillMaxWidth().padding(top = 10.dp))
+        Spacer(Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+            repeat(3) { Box(Modifier.weight(1f).height(48.dp).skeleton(DsShapes.medium)) }
+        }
+    }
+}
+
+/** [TodayCard]'s shape: the title, the amount, the objective's lines and bar, then « Payé à la vente » and « Crédit ». */
+@Composable
+private fun TodayCardSkeleton() {
+    Column(
+        Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().height(TODAY_CARD_HEIGHT).clip(DsShapes.large)
+            .background(DsColors.Primary).padding(DsSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SkeletonBar(110.dp, 14.dp, Modifier.padding(top = 4.dp), base = SkeletonOnColor)
+        SkeletonBar(190.dp, 30.dp, Modifier.padding(top = 12.dp), base = SkeletonOnColor)
+        Spacer(Modifier.height(DsSpacing.lg))
+        Row(Modifier.fillMaxWidth()) {
+            SkeletonBar(120.dp, 12.dp, base = SkeletonOnColor)
+            Spacer(Modifier.weight(1f))
+            SkeletonBar(40.dp, 12.dp, base = SkeletonOnColor)
+        }
+        SkeletonBar(0.dp, 8.dp, Modifier.fillMaxWidth().padding(top = 10.dp), base = SkeletonOnColor)
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            SkeletonBar(150.dp, 12.dp, base = SkeletonOnColor)
+        }
+        Spacer(Modifier.weight(1f))
+        HorizontalDivider(color = Color.White.copy(alpha = 0.25f))
+        Spacer(Modifier.height(DsSpacing.md))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+            repeat(2) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    SkeletonBar(80.dp, 10.dp, base = SkeletonOnColor)
+                    SkeletonBar(100.dp, 16.dp, Modifier.padding(top = 6.dp), base = SkeletonOnColor)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun TodayCard(
     sales: DashboardSales,
-    goal: Block<GoalProgress?>,
+    goal: GoalProgress?,
     onClick: () -> Unit,
     onGoal: () -> Unit,
     /** Without a policy: the month's sales, to their report. */
@@ -415,14 +518,8 @@ private fun TodayCard(
         AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
             color = white, textAlign = TextAlign.Center)
 
-        when (goal) {
-            Block.Loading -> Unit
-            is Block.Ready -> {
-                Spacer(Modifier.height(DsSpacing.md))
-                val progress = goal.value
-                if (progress != null) HeroGoal(progress, onGoal) else HeroMonth(sales, onMonth, onSetObjective)
-            }
-        }
+        Spacer(Modifier.height(DsSpacing.md))
+        if (goal != null) HeroGoal(goal, onGoal) else HeroMonth(sales, onMonth, onSetObjective)
 
         Spacer(Modifier.height(DsSpacing.md))
         HorizontalDivider(color = white.copy(alpha = 0.25f))
