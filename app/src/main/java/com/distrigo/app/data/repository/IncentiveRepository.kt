@@ -6,11 +6,15 @@ import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.entity.incentive.CalculationSource
 import com.distrigo.app.data.local.entity.incentive.CommissionPeriodEntity
+import com.distrigo.app.data.local.entity.incentive.IncentiveType
 import com.distrigo.app.data.local.entity.incentive.PolicyTierEntity
 import com.distrigo.app.data.local.entity.incentive.TargetPolicyEntity
+import com.distrigo.app.data.local.entity.newRowUuid
 import com.distrigo.app.data.model.incentive.CommissionPeriod
 import com.distrigo.app.data.model.incentive.CommissionRules
 import com.distrigo.app.data.model.incentive.GoalProgress
+import com.distrigo.app.data.model.incentive.GoalStep
+import com.distrigo.app.data.model.incentive.GoalSteps
 import com.distrigo.app.data.model.incentive.RewardResult
 import com.distrigo.app.data.model.incentive.TierRule
 import com.distrigo.app.data.time.BusinessDates
@@ -50,6 +54,37 @@ class IncentiveRepository(private val db: AppDatabase) {
             salesTotal  = sales.total,
             showReward  = policy.show_reward,
             policySince = sinceOf(policy, zone) ?: today,
+        )
+    }
+
+    /**
+     * [goal]'s period in steps (« Rythme hebdomadaire », D21), each measured as the period is, against its share of
+     * the current aim; the steps not started yet are not read.
+     */
+    suspend fun steps(goal: GoalProgress, zone: ZoneId = ZoneId.systemDefault()): List<GoalStep> {
+        val values = GoalSteps.split(goal.period).map { (_, start, end) ->
+            if (goal.today.isBefore(start)) 0.0
+            else {
+                val step = CommissionPeriod(goal.period.type, start, end)
+                measure(goal.rules.source, step, zone, salesIn(step, zone))
+            }
+        }
+        return GoalSteps.of(goal.period, goal.today, goal.target.threshold, values)
+    }
+
+    /**
+     * « Ajuster mon objectif »: the active policy saved again with [target] and [source], the rest kept. Not for
+     * « Paliers », whose thresholds are the objective — those go through the policy form.
+     */
+    suspend fun saveObjective(target: Double, source: CalculationSource) {
+        val active = getActivePolicyWithTiers() ?: return
+        require(active.policy.incentive_type != IncentiveType.PROGRESSIVE_TIERS) { "Paliers: edit the policy" }
+        savePolicy(
+            active.policy.copy(
+                id = 0, uuid = newRowUuid(), target_value = target, calculation_source = source,
+                created_at = Instant.now().toString(), updated_at = System.currentTimeMillis(), version = 1,
+            ),
+            emptyList(),
         )
     }
 

@@ -127,7 +127,7 @@ private val INFO_TODAY = ReportInfo(
         "Un versement encaissé plus tard réduit la dette du client mais ne change pas ces chiffres : ils disent ce qui " +
         "a été vendu aujourd'hui et comment.\n\n" +
         "L'objectif est celui de Paramètres → Politique de commission ; sans politique, la carte montre les ventes du " +
-        "mois. Touchez la carte pour le rapport Ventes du jour, l'objectif pour celui du mois."
+        "mois. Touchez la carte pour le rapport Ventes du jour, l'objectif pour « Mon objectif »."
 )
 private val INFO_ALERTS = ReportInfo(
     "Alertes",
@@ -154,6 +154,8 @@ fun DashboardScreen(
     onSetObjective       : () -> Unit = {},
     /** « Créer une vente » on a client of the day: the tournée sale, the client already chosen. */
     onTourneeClientSale  : (tourneeId: Int, clientId: Int, clientName: String) -> Unit = { _, _, _ -> },
+    /** « Objectif du mois » on the card: « Mon objectif » (D20). */
+    onOpenGoal           : () -> Unit = {},
     viewModel            : DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -204,7 +206,8 @@ fun DashboardScreen(
                             sales          = sales,
                             goal           = state.goal,
                             onClick        = { open(DashboardLink.TODAY) },
-                            onGoal         = { open(DashboardLink.MONTH) },
+                            onGoal         = onOpenGoal,
+                            onMonth        = { open(DashboardLink.MONTH) },
                             onSetObjective = onSetObjective,
                         )
                     }
@@ -394,6 +397,8 @@ private fun TodayCard(
     goal: Block<GoalProgress?>,
     onClick: () -> Unit,
     onGoal: () -> Unit,
+    /** Without a policy: the month's sales, to their report. */
+    onMonth: () -> Unit,
     onSetObjective: () -> Unit,
 ) {
     val money = LocalMoneyFormatter.current
@@ -415,7 +420,7 @@ private fun TodayCard(
             is Block.Ready -> {
                 Spacer(Modifier.height(DsSpacing.md))
                 val progress = goal.value
-                if (progress != null) HeroGoal(progress, onGoal) else HeroMonth(sales, onGoal, onSetObjective)
+                if (progress != null) HeroGoal(progress, onGoal) else HeroMonth(sales, onMonth, onSetObjective)
             }
         }
 

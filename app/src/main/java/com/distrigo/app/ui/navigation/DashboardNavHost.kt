@@ -18,6 +18,7 @@ import com.distrigo.app.ui.settings.incentive.CommissionPolicyScreen
 import com.distrigo.app.ui.tournees.AddClientsToTourneeScreen
 
 private const val DASHBOARD_ADD_CLIENTS = "dashboard_tournee_add_clients"
+private const val DASHBOARD_MON_OBJECTIF = "dashboard_mon_objectif"
 
 /**
  * The Dashboard and what its quick actions open, in place (docs/design/dashboard_objectif_plan.md, Part 1): the
@@ -70,6 +71,7 @@ fun DashboardNavHost(
                     navController.navigate(DASHBOARD_ADD_CLIENTS) { launchSingleTop = true }
                 },
                 onSetObjective       = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
+                onOpenGoal           = { navController.navigate(DASHBOARD_MON_OBJECTIF) { launchSingleTop = true } },
                 onTourneeClientSale  = { tourneeId, clientId, clientName ->
                     navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
                 },
@@ -138,6 +140,13 @@ fun DashboardNavHost(
                     onSaved           = { navController.popBackStack() },
                 )
             }
+        }
+
+        composable(DASHBOARD_MON_OBJECTIF) {
+            com.distrigo.app.ui.goal.MonObjectifScreen(
+                onBack       = { navController.popBackStack() },
+                onEditPolicy = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
+            )
         }
 
         composable(Screen.SettingsCommission.route) {
