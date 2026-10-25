@@ -126,21 +126,12 @@ fun RapportsNavHost(onBack: () -> Unit, open: ReportEntry? = null) {
                 viewModel = hiltViewModel<com.distrigo.app.ui.rapports.ProduitsReportViewModel>(parent)
             )
         }
-        // The report holds its ViewModel, and its "Voir tout" of the sectors borrows it: the list shows
-        // the sectors already loaded, in the same commune. Held by the report, not the graph, the
-        // commune is the report's own and starts afresh each time it opens.
+        // The report holds its ViewModel: held by the report, not the graph, « Répartition des ventes » starts from
+        // the wilayas each time it opens.
         composable(Screen.RapportsVentes.route) {
             VentesReportScreen(
-                onBack       = { navController.popOr(exit) },
-                onAllSectors = { navController.navigate(Screen.RapportsSecteurs.route) },
-                viewModel    = hiltViewModel<VentesReportViewModel>()
-            )
-        }
-        composable(Screen.RapportsSecteurs.route) { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry(Screen.RapportsVentes.route) }
-            com.distrigo.app.ui.rapports.SectorsScreen(
-                onBack    = { navController.popBackStack() },
-                viewModel = hiltViewModel<VentesReportViewModel>(parent)
+                onBack    = { navController.popOr(exit) },
+                viewModel = hiltViewModel<VentesReportViewModel>()
             )
         }
         // The report and its "Voir tout" share one ViewModel, held by the graph: the full list shows

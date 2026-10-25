@@ -107,43 +107,14 @@ class ReportRepository(
         )
     }
 
-    /**
-     * Where the clients are and which of them bought over the period: the figures and the sectors of
-     * [commune] — every commune when null —, and every commune whichever is chosen.
-     */
-    suspend fun distribution(
+    /** « Répartition des ventes »: the period's sales by wilaya › commune › secteur › quartier › client ([salesPlaces]). */
+    suspend fun salesPlaces(
         filter: ReportFilter,
-        commune: String?,
         today: LocalDate = LocalDate.now(),
         zone: ZoneId = ZoneId.systemDefault(),
-    ): DistributionReport {
+    ): PlaceNode {
         val range = filter.resolve(today, zone)
-        val totals = dao.distributionTotals(range.start, range.end, range.source, commune)
-        return DistributionReport(
-            clients = totals.clients,
-            served = totals.served,
-            rate = totals.rate,
-            unsectored = totals.unsectored,
-            sectors = dao.sectorDistribution(range.start, range.end, range.source, commune).map {
-                SectorStat(it.id, it.name, it.commune, it.clients, it.served, it.without_sale, it.rate)
-            },
-            communes = dao.communeDistribution(range.start, range.end, range.source).map {
-                CommuneStat(it.commune.ifEmpty { null }, it.clients, it.served, it.without_sale, it.sectors, it.rate)
-            },
-        )
-    }
-
-    /** A sector's clients who bought nothing over the period, by name. */
-    suspend fun unservedClients(
-        filter: ReportFilter,
-        sectorId: Int,
-        today: LocalDate = LocalDate.now(),
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): List<UnservedClient> {
-        val range = filter.resolve(today, zone)
-        return dao.unservedClients(sectorId, range.start, range.end, range.source).map {
-            UnservedClient(it.id, it.name, it.image_uri, it.last_sale?.let { at -> runCatching { Instant.parse(at).atZone(zone).toLocalDate() }.getOrNull() })
-        }
+        return salesPlaces(dao.salesByClientPlace(range.start, range.end, range.source))
     }
 
     /** A signal each time the Produits report's tables are written. */

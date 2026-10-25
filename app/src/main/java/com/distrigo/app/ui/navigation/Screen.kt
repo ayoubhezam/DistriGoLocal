@@ -139,7 +139,6 @@ sealed class Screen(val route: String) {
     data object RapportsTiersTous : Screen("rapports_tiers_tous")
     data object RapportsInactifs : Screen("rapports_inactifs")
     data object RapportsResultat : Screen("rapports_resultat")
-    data object RapportsSecteurs : Screen("rapports_secteurs")
     /** One local day's sales, from the Ventes report's "Détail par jour". */
 
     // ── Charges ──

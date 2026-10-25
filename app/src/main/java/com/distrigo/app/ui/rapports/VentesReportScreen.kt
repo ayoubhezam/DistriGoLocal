@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.model.report.ReportSource
+import com.distrigo.app.data.repository.PlaceNode
 import com.distrigo.app.data.repository.SalesFigures
 import com.distrigo.app.data.repository.SalesReport
 import com.distrigo.app.ui.common.FitText
@@ -59,6 +60,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.util.Locale
 import kotlin.math.max
 import androidx.compose.foundation.border
@@ -68,17 +71,17 @@ private val CamionColor = DsColors.AccentTeal
 
 /**
  * Rapports › Ventes: what was sold over a period, from the dépôt, the camion, or both — the figures,
- * a bar a day (a month, over a long period), and where the clients are and which of them bought, in
- * one commune or all of them.
+ * a bar a day (a month, over a long period), and « Répartition des ventes », the sales by place.
  */
 @Composable
 fun VentesReportScreen(
     onBack: () -> Unit,
-    /** "Voir tout" of the sectors: every sector, the most clients first. */
-    onAllSectors: () -> Unit,
     viewModel: VentesReportViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val drill = LocalDrillDown.current
+    // « Voir tout » of « Répartition des ventes »: the place whose every part is listed
+    var allOf by remember { mutableStateOf<PlaceNode?>(null) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = "Ventes", subtitle = "Rapport des ventes", leading = DsTopBarLeading.Back(onBack))
@@ -97,7 +100,6 @@ fun VentesReportScreen(
             item { ReportFilterBar(state.filter, viewModel::setFilter) }
 
             val report = state.report
-            val distribution = state.distribution
             when {
                 report == null && state.error != null -> item { ReportMessage(state.error!!) }
                 report == null -> item {
@@ -115,16 +117,16 @@ fun VentesReportScreen(
                         item { KpiGrid(report) }
                         if (state.filter.source == ReportSource.TOUT) item { SourceSplit(report) }
                         item { ChartCard(state.buckets, splitBySource = state.filter.source == ReportSource.TOUT) }
-                    }
-                    // Even without a sale: the clients are still there, none of them served.
-                    if (distribution != null) {
-                        distributionItems(distribution, state.commune, viewModel::setCommune, onAllSectors, viewModel::openSector)
+                        salesPlacesItems(
+                            state, onOpen = viewModel::openPlace, onUp = viewModel::placeUp, onTo = viewModel::placeTo,
+                            onSeeAll = { allOf = it }, onClient = { drill(DrillTarget.Client(it)) },
+                        )
                     }
                 }
             }
         }
     }
-    SectorSheetHost(state.sheet, viewModel::closeSector)
+    PlacesSheet(allOf, onDismiss = { allOf = null }, onOpen = viewModel::openPlace, onClient = { drill(DrillTarget.Client(it)) })
 }
 
 // ── Résumé ──

@@ -60,7 +60,7 @@ private class ReportEntry(
 @Composable
 fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit) {
     val entries = listOf(
-        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, marge, clients par secteur", onOpenVentes),
+        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, marge, répartition des ventes", onOpenVentes),
         ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, DsColors.AccentViolet, "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
         ReportEntry(Icons.Default.People, DsColors.AccentTeal, "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
         ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),

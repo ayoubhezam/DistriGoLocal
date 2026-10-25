@@ -73,104 +73,43 @@ data class InactiveRow(val id: Int, val name: String, val image_uri: String?, va
 data class ReturnsCostRow(val count: Int, val total: Double, val cost: Double)
 data class ChargeTypeRow(val type: String, val count: Int, val value: Double)
 
-// ── Distribution (Ventes) ──
+// ── Répartition des ventes ──
 
-/** A sector's clients over a period: how many, how many bought, and the share that did. */
-data class SectorRow(
-    val id: Int, val name: String, val commune: String,
-    val clients: Int, val served: Int, val without_sale: Int, val rate: Double,
+/**
+ * One client's sales over a period, with where the client is now: its wilaya and commune, and its secteur and quartier
+ * by id with their current names (the client's copy when the row is gone). Every field but [client_id], [count] and
+ * [total] may be null — a client with no place, or one no longer there.
+ */
+data class ClientPlaceSalesRow(
+    val client_id: Int, val name: String?,
+    val wilaya: String?, val commune: String?,
+    val secteur_id: Int?, val secteur: String?,
+    val quartier_id: Int?, val quartier: String?,
+    val count: Int, val total: Double,
 )
-
-/** A commune's clients over a period — [commune] empty for the clients without one — and its sectors. */
-data class CommuneRow(
-    val commune: String, val clients: Int, val served: Int, val without_sale: Int, val sectors: Int, val rate: Double,
-)
-
-/** All the clients a distribution counts, those who bought, and those without a sector. */
-data class DistributionTotalsRow(val clients: Int, val served: Int, val unsectored: Int, val rate: Double)
-
-/** A client of a sector who bought nothing over the period, and the moment of its last sale ever, if any. */
-data class UnservedClientRow(val id: Int, val name: String, val image_uri: String?, val last_sale: String?)
 
 @Dao
 interface ReportDao {
 
-    // The distribution counts a client when it is not deleted and was there by the period's end: created
-    // before it, or having bought before it — a client added after its first sales, as an import or the
-    // test data do, is still there. A client is served when it has a sale between :start and :end, from
-    // :source or both. :commune narrows the figures and the sectors to one commune — '' to the clients
-    // without one, who have no sector either —; the communes are
-    // always all of them.
-    // Every ratio is 0 when there is no client: never a division by zero.
-
-    /** Every sector of the commune (all when null), its clients and those served, the largest first. */
+    /**
+     * The sales of :start to :end, from :source or both, one row per client who bought, with its place now (see
+     * [ClientPlaceSalesRow]). The same sales as [salesBySource]: their totals add up to its.
+     */
     @Query(
         """
-        SELECT id, name, commune, clients, served, clients - served AS without_sale,
-               CASE WHEN clients = 0 THEN 0.0 ELSE 1.0 * served / clients END AS rate
-        FROM (
-            SELECT s.id AS id, s.nom AS name, s.commune_name AS commune, COUNT(c.id) AS clients,
-                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served
-            FROM secteurs s
-            LEFT JOIN clients c ON c.secteur_id = s.id AND c.deleted_at IS NULL
-              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
-            WHERE :commune IS NULL OR s.commune_name = :commune
-            GROUP BY s.id
-        )
-        ORDER BY clients DESC, served DESC, name COLLATE NOCASE
+        SELECT v.client_id AS client_id, c.name AS name, c.wilaya_name AS wilaya, c.commune_name AS commune,
+               c.secteur_id AS secteur_id, COALESCE(s.nom, c.secteur_name) AS secteur,
+               c.quartier_id AS quartier_id, COALESCE(q.nom, c.quartier_name) AS quartier,
+               COUNT(*) AS count, COALESCE(SUM(v.total), 0) AS total
+        FROM ventes v
+        LEFT JOIN clients c ON c.id = v.client_id
+        LEFT JOIN secteurs s ON s.id = c.secteur_id
+        LEFT JOIN quartiers q ON q.id = c.quartier_id
+        WHERE v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source)
+        GROUP BY v.client_id
         """
     )
-    suspend fun sectorDistribution(start: String, end: String, source: String?, commune: String?): List<SectorRow>
-
-    /** The clients by commune, the largest first, those without a commune last. */
-    @Query(
-        """
-        SELECT g.commune AS commune, g.clients AS clients, g.served AS served, g.clients - g.served AS without_sale,
-               (SELECT COUNT(*) FROM secteurs s WHERE s.commune_name = g.commune) AS sectors,
-               CASE WHEN g.clients = 0 THEN 0.0 ELSE 1.0 * g.served / g.clients END AS rate
-        FROM (
-            SELECT COALESCE(c.commune_name, '') AS commune, COUNT(*) AS clients,
-                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served
-            FROM clients c
-            WHERE c.deleted_at IS NULL
-              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
-            GROUP BY COALESCE(c.commune_name, '')
-        ) g
-        ORDER BY g.commune = '', g.clients DESC, g.commune COLLATE NOCASE
-        """
-    )
-    suspend fun communeDistribution(start: String, end: String, source: String?): List<CommuneRow>
-
-    /** The distribution's totals: its clients, those served, and those without a sector. */
-    @Query(
-        """
-        SELECT clients, served, unsectored, CASE WHEN clients = 0 THEN 0.0 ELSE 1.0 * served / clients END AS rate
-        FROM (
-            SELECT COUNT(*) AS clients,
-                   COALESCE(SUM(EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))), 0) AS served,
-                   COALESCE(SUM(c.secteur_id IS NULL OR NOT EXISTS (SELECT 1 FROM secteurs s WHERE s.id = c.secteur_id)), 0) AS unsectored
-            FROM clients c
-            WHERE c.deleted_at IS NULL
-              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
-              AND (:commune IS NULL OR COALESCE(c.commune_name, '') = :commune)
-        )
-        """
-    )
-    suspend fun distributionTotals(start: String, end: String, source: String?, commune: String?): DistributionTotalsRow
-
-    /** A sector's clients who bought nothing over the period, by name, with their last sale ever. */
-    @Query(
-        """
-        SELECT c.id AS id, c.name AS name, c.image_uri AS image_uri,
-               (SELECT MAX(l.created_at) FROM ventes l WHERE l.client_id = c.id) AS last_sale
-        FROM clients c
-        WHERE c.secteur_id = :sectorId AND c.deleted_at IS NULL
-              AND (c.created_at < :end OR EXISTS (SELECT 1 FROM ventes e WHERE e.client_id = c.id AND e.created_at < :end))
-          AND NOT EXISTS (SELECT 1 FROM ventes v WHERE v.client_id = c.id AND v.created_at >= :start AND v.created_at < :end AND (:source IS NULL OR v.source = :source))
-        ORDER BY c.name COLLATE NOCASE
-        """
-    )
-    suspend fun unservedClients(sectorId: Int, start: String, end: String, source: String?): List<UnservedClientRow>
+    suspend fun salesByClientPlace(start: String, end: String, source: String?): List<ClientPlaceSalesRow>
 
     /**
      * The client returns dated [firstDay] to [lastDay], both included: how many, their lines at the
