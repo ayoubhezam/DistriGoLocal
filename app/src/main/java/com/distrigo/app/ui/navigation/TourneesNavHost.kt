@@ -24,6 +24,10 @@ fun TourneesNavHost(
     onBack            : (() -> Unit)? = null,
     /** Opens the section on that tournée — a drill-down from the Dashboard's « Tournée du jour ». */
     openTourneeId     : Int? = null,
+    /** The tab root's controls, when this is the « Tournées » tab. */
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
 ) {
     val navController = rememberTrackedNavController()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -48,6 +52,9 @@ fun TourneesNavHost(
             TourneesScreen(
                 viewModel      = viewModel,
                 onBack         = onBack,
+                onOpenMenu           = onOpenMenu,
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick,
                 onAddTournee   = license.guarded { navController.navigate(Screen.TourneeForm.createRoute()) },
                 onTourneeClick = { tourneeId -> navController.navigate(Screen.TourneesDetail.createRoute(tourneeId)) }
             )

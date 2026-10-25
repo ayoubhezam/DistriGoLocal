@@ -54,7 +54,11 @@ private fun editVenteAction(
 fun VentesNavHost(
     openVenteId       : Int? = null,
     onFullScreenChange: (Boolean) -> Unit = {},
-    onBack            : (() -> Unit)? = null
+    onBack            : (() -> Unit)? = null,
+    /** The tab root's controls, when this is the « Dépôt vente » tab. */
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
 ) {
     val navController = rememberTrackedNavController()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -88,6 +92,9 @@ fun VentesNavHost(
             VentesScreen(
                 viewModel        = viewModel,
                 onBack           = onBack,
+                onOpenMenu           = onOpenMenu,
+                onNotificationsClick = onNotificationsClick,
+                onProfileClick       = onProfileClick,
                 onAddVente       = license.guarded { navController.navigate(Screen.VenteFormGraph.createRoute()) },
                 onEditVente      = editVente,
                 onVenteClick     = { venteId -> navController.navigate(Screen.VentesDetail.createRoute(venteId)) },

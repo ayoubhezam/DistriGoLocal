@@ -54,6 +54,7 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.ui.purchases.formatOrderDate
@@ -70,6 +71,10 @@ fun VentesScreen(
     viewModel    : VenteViewModel = hiltViewModel(),
     modifier     : Modifier = Modifier,
     onBack       : (() -> Unit)? = null,
+    /** Set when the screen is a bottom tab's root: the menu, then the global controls, as the other tabs. */
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
     onAddVente   : () -> Unit = {},
     onEditVente  : (Int) -> Unit = {},
     onVenteClick : (Int) -> Unit = {},
@@ -425,14 +430,18 @@ fun VentesScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Reached by being pushed from the Ventes hub, so it needs a back affordance —
-            // system back already popped the hub, but nothing on screen said so. Null-safe
-            // because the screen is still usable as a root, where None is right.
+            // The « Dépôt vente » tab's root: the menu and the global controls. Opened on a sale
+            // (a drill-down), a back arrow instead.
             DsTopAppBar(
                 title   = "Dépôt Vente",
-                leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+                licenseBanner = true,
+                leading = onBack?.let { DsTopBarLeading.Back(it) } ?: onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
-            )
+            ) {
+                if (onOpenMenu != null) {
+                    DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
+                }
+            }
 
             // ── Search bar ──
             DsCompactSearchField(

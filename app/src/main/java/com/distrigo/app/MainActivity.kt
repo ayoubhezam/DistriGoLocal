@@ -11,14 +11,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -30,6 +24,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -37,6 +32,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -90,7 +87,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import com.distrigo.app.ui.tournees.TourneesHubScreen
+import com.distrigo.app.ui.tournees.StockCamionScreen
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -223,7 +220,8 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberTrackedNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
                     val isTabRoute = currentRoute == Screen.TabDashboard.route ||
-                        currentRoute == Screen.TabVentes.route ||
+                        currentRoute == Screen.TabDepotVente.route ||
+                        currentRoute == Screen.TabTournees.route ||
                         currentRoute == Screen.TabProduits.route ||
                         currentRoute == Screen.TabAchats.route
 
@@ -416,9 +414,20 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            composable(Screen.TabVentes.route) {
-                                TourneesHubScreen(
-                                    onFullScreenChange = { hideBottomBar = it },
+                            // Dépôt vente and Tournées open on their lists, with no hub before them
+                            composable(Screen.TabDepotVente.route) {
+                                com.distrigo.app.ui.navigation.VentesNavHost(
+                                    onFullScreenChange   = { hideBottomBar = it },
+                                    onOpenMenu           = { openDrawer() },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
+                                )
+                            }
+
+                            composable(Screen.TabTournees.route) {
+                                com.distrigo.app.ui.navigation.TourneesNavHost(
+                                    onFullScreenChange     = { hideBottomBar = it },
+                                    onNavigateToChargement = { navController.navigate(Screen.PlusStockCamion.route) },
                                     onOpenMenu           = { openDrawer() },
                                     onNotificationsClick = { /* TODO: notifications */ },
                                     onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
@@ -477,6 +486,13 @@ class MainActivity : ComponentActivity() {
                                 com.distrigo.app.ui.navigation.InventoryNavHost(
                                     onBack              = { navController.popBackStack() },
                                     onFullScreenChange  = { hideBottomBar = it }
+                                )
+                            }
+
+                            composable(Screen.PlusStockCamion.route) {
+                                StockCamionScreen(
+                                    onBack             = { navController.popBackStack() },
+                                    onFullScreenChange = { hideBottomBar = it }
                                 )
                             }
 
@@ -652,6 +668,7 @@ class MainActivity : ComponentActivity() {
                                 "charges"      -> navController.navigate(Screen.PlusCharges.route)
                                 "pertes"       -> navController.navigate(Screen.PlusPertes.route)
                                 "inventaire"   -> navController.navigate(Screen.PlusInventaire.route)
+                                "stock_camion" -> navController.navigate(Screen.PlusStockCamion.route)
                                 "rapports"     -> navController.navigate(Screen.PlusRapports.route)
                                 "parametres"   -> navController.navigate(Screen.PlusParametres.route)
                             }
@@ -757,9 +774,8 @@ class MainActivity : ComponentActivity() {
 private const val LICENSE_UI_PREFS = "license_ui"
 private const val KEY_BANNER_DISMISSED = "banner_dismissed"
 
-private const val ShiftingNavAnimationMs      = 300
-private const val ShiftingNavSelectedWeight   = 1.8f
-private const val ShiftingNavUnselectedWeight = 1f
+// The middle of the bar, Tournées' button
+private val TourneesNavSlot = 72.dp
 
 @Composable
 private fun ShiftingBottomNavBar(
@@ -813,34 +829,46 @@ private fun ShiftingBottomNavBar(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = DsSpacing.md)
+                        .padding(vertical = DsSpacing.sm)
                         .padding(bottom = systemNavInset),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ShiftingNavItem(
+                  // Two tabs a side of Tournées' button
+                  Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    BottomNavItem(
                         selected = currentRoute == Screen.TabDashboard.route,
                         icon     = Icons.Default.Home,
                         label    = stringResource(R.string.nav_dashboard),
                         onClick  = { onNavigate(Screen.TabDashboard.route) }
                     )
-                    ShiftingNavItem(
-                        selected = currentRoute == Screen.TabVentes.route,
-                        icon     = Icons.Default.LocalShipping,
-                        label    = stringResource(R.string.nav_ventes),
-                        onClick  = { onNavigate(Screen.TabVentes.route) }
+                    BottomNavItem(
+                        selected = currentRoute == Screen.TabDepotVente.route,
+                        icon     = Icons.Default.Storefront,
+                        label    = stringResource(R.string.nav_depot_vente),
+                        onClick  = { onNavigate(Screen.TabDepotVente.route) }
                     )
-                    ShiftingNavItem(
+                  }
+                  Box(Modifier.width(TourneesNavSlot), contentAlignment = Alignment.Center) {
+                      TourneesNavButton(
+                          selected = currentRoute == Screen.TabTournees.route,
+                          label    = stringResource(R.string.nav_tournees),
+                          onClick  = { onNavigate(Screen.TabTournees.route) }
+                      )
+                  }
+                  Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    BottomNavItem(
                         selected = currentRoute == Screen.TabProduits.route,
                         icon     = Icons.Default.ShoppingCart,
                         label    = stringResource(R.string.nav_produits),
                         onClick  = { onNavigate(Screen.TabProduits.route) }
                     )
-                    ShiftingNavItem(
+                    BottomNavItem(
                         selected = currentRoute == Screen.TabAchats.route,
                         icon     = Icons.Default.Receipt,
                         label    = stringResource(R.string.nav_achats),
                         onClick  = { onNavigate(Screen.TabAchats.route) }
                     )
+                  }
                 }
               }
             }
@@ -848,54 +876,51 @@ private fun ShiftingBottomNavBar(
     }
 }
 
+/** Tournées, the day's work: a round button in the brand blue in the bar's middle, on the tabs' line. */
 @Composable
-private fun RowScope.ShiftingNavItem(
+private fun TourneesNavButton(selected: Boolean, label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .shadow(if (selected) 4.dp else 2.dp, CircleShape)
+            .clip(CircleShape)
+            .background(if (selected) DsColors.PrimaryDark else DsColors.Primary)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Icons.Default.LocalShipping, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
+    }
+}
+
+/** A tab of the bar: its icon over its name, the open one in the bar's blue. */
+@Composable
+private fun RowScope.BottomNavItem(
     selected: Boolean,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit
 ) {
-    val weight by animateFloatAsState(
-        targetValue   = if (selected) ShiftingNavSelectedWeight else ShiftingNavUnselectedWeight,
-        animationSpec = tween(ShiftingNavAnimationMs),
-        label         = "shifting_nav_item_weight"
-    )
     val contentColor = if (selected) DsColors.NavBarSelected else DsColors.NavBarUnselected
-
-    Row(
+    Column(
         modifier = Modifier
-            .weight(weight)
-            .clip(DsShapes.pill)
+            .weight(1f)
+            .clip(DsShapes.medium)
             .clickable(
                 indication = null,
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-            ) { onClick() }
-            .padding(horizontal = DsSpacing.xs),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment     = Alignment.CenterVertically
+            ) { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint     = contentColor,
-            modifier = Modifier.size(24.dp)
+        Icon(icon, contentDescription = label, tint = contentColor, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(2.dp))
+        // Shrinks a little rather than be cut, a fifth of the bar wide
+        com.distrigo.app.ui.common.FitText(
+            label,
+            color      = contentColor,
+            fontSize   = DsTextSize.caption,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            minScale   = 0.8f
         )
-        AnimatedVisibility(
-            visible = selected,
-            enter = fadeIn(tween(ShiftingNavAnimationMs)) + expandHorizontally(tween(ShiftingNavAnimationMs)),
-            exit  = fadeOut(tween(ShiftingNavAnimationMs)) + shrinkHorizontally(tween(ShiftingNavAnimationMs))
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Spacer(Modifier.width(DsSpacing.xs))
-                Text(
-                    label,
-                    color      = contentColor,
-                    fontSize   = DsTextSize.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines   = 1
-                )
-            }
-        }
     }
 }
 

@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.avatarColor
 import com.distrigo.app.ui.common.DsCompactSearchField
@@ -64,6 +65,10 @@ fun TourneesScreen(
     viewModel      : TourneeViewModel = hiltViewModel(),
     modifier       : Modifier = Modifier,
     onBack         : (() -> Unit)? = null,
+    /** Set when the screen is a bottom tab's root: the menu, then the global controls, as the other tabs. */
+    onOpenMenu           : (() -> Unit)? = null,
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
     onAddTournee   : () -> Unit = {},
     onTourneeClick : (Int) -> Unit = {}
 ) {
@@ -81,12 +86,12 @@ fun TourneesScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         // ── Header ──
-        // Pushed from the Ventes hub, so it takes a back affordance; null-safe because the
-        // screen is still usable as a root, where None is right.
+        // The « Tournées » tab's root: the menu and the global controls beside « + ». Opened on a
+        // tournée (a drill-down), a back arrow instead.
         DsTopAppBar(
             title   = "Tournées",
             licenseBanner = true,
-            leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
+            leading = onBack?.let { DsTopBarLeading.Back(it) } ?: onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {
             FloatingActionButton(
@@ -107,6 +112,9 @@ fun TourneesScreen(
                 shape          = DsShapes.pill
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nouvelle tournée")
+            }
+            if (onOpenMenu != null) {
+                DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
             }
         }
 

@@ -38,6 +38,7 @@ private val MORE_MENU_ENTRIES = listOf(
     MoreMenuEntry(Icons.Default.Payments, "Charges", "Suivi des dépenses de l'activité", DsColors.Primary, "charges"),
     MoreMenuEntry(Icons.Default.DeleteSweep, "Pertes", "Suivi des pertes et casses", DsColors.Danger, "pertes"),
     MoreMenuEntry(Icons.Default.Inventory2, "Inventaire", "Comptage physique du stock par scan", DsColors.Success, "inventaire"),
+    MoreMenuEntry(Icons.Default.Warehouse, "Stock Camion", "Le stock et les produits disponibles dans le camion", DsColors.AccentSky, "stock_camion"),
     )
 
 @Composable

@@ -47,7 +47,7 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
-// are invoked from TourneesHubScreen. Not a nested graph: ChargementFormScreen had exactly one
+// are invoked as the « Dépôt vente » and « Tournées » tabs. Not a nested graph: ChargementFormScreen had exactly one
 // caller (StockCamionScreen), so there's no cross-NavHost sharing need like Vente/Tournée/
 // Purchase/Retour had, and preSelectedProductId/draftId are passed as ordinary composable
 // parameters (closed over directly) rather than threaded through nav route args, since this

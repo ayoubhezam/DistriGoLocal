@@ -6,10 +6,11 @@ sealed class Screen(val route: String) {
     // ── Outer shell (MainActivity): single root NavHost — bottom-tab destinations. "Plus" itself
     // is an 80%-width draggable overlay drawer (not a NavHost destination); the routes below are
     // the real destinations its menu items navigate to. ──
-    data object TabDashboard : Screen("tab_dashboard")
-    data object TabVentes    : Screen("tab_ventes")
-    data object TabProduits  : Screen("tab_produits")
-    data object TabAchats    : Screen("tab_achats")
+    data object TabDashboard  : Screen("tab_dashboard")
+    data object TabDepotVente : Screen("tab_depot_vente")
+    data object TabTournees   : Screen("tab_tournees")
+    data object TabProduits   : Screen("tab_produits")
+    data object TabAchats     : Screen("tab_achats")
     data object PlusClients : Screen("plus_clients") {
         fun createRoute() = route
     }
@@ -35,6 +36,8 @@ sealed class Screen(val route: String) {
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")
     data object PlusInventaire   : Screen("plus_inventaire")
+    // Also opened from a tournée's « Stock camion »
+    data object PlusStockCamion  : Screen("plus_stock_camion")
     data object PlusRapports     : Screen("plus_rapports")
     /** A report opened straight from the Dashboard: Back returns there, not to the list. */
     data object PlusRapport      : Screen("plus_rapport/{report}") {
@@ -98,13 +101,6 @@ sealed class Screen(val route: String) {
                     parentName?.let { "parentName=${android.net.Uri.encode(it)}" },
                 ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
     }
-
-    // ── Ventes Hub (TabVentes content): Dépôt Vente / Tournées / Stock Camion ──
-    data object VentesHubGraph       : Screen("ventes_hub_graph")
-    data object VentesHubMenu        : Screen("ventes_hub_menu")
-    data object VentesHubDepotVente  : Screen("ventes_hub_depot_vente")
-    data object VentesHubTournees    : Screen("ventes_hub_tournees")
-    data object VentesHubStockCamion : Screen("ventes_hub_stock_camion")
 
     // ── Chargement Form (self-contained 2-step wizard: Produits ↔ Panier) ──
     data object ChargementFormGraph    : Screen("chargement_form_graph")

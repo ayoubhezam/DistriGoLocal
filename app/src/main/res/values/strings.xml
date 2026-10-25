@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">DistriGo</string>
     <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_ventes">Ventes</string>
+    <string name="nav_depot_vente">Dépôt vente</string>
+    <string name="nav_tournees">Tournées</string>
     <string name="nav_produits">Produits</string>
     <string name="nav_achats">Achats</string>
     <string name="client_picker_title">Choisir un client</string>
