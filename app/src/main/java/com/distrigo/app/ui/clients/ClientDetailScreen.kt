@@ -68,7 +68,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.distrigo.app.ui.common.QuickActionButton
 import com.distrigo.app.ui.common.BalanceAdjustments
-import com.distrigo.app.ui.common.StatCell
+import com.distrigo.app.ui.common.BilledCell
+import com.distrigo.app.ui.common.PaidCell
 import com.distrigo.app.ui.common.SoldeCell
 import com.distrigo.app.ui.common.WhatsAppIcon
 import kotlinx.coroutines.launch
@@ -312,6 +313,8 @@ fun ClientDetailScreen(
 
 
     val pagerState = rememberPagerState(pageCount = { 3 })
+    // « Retours » on the card opens its tab
+    val tabScope = rememberCoroutineScope()
     val tabTitles = listOf("Informations", "Factures & Paiements", "Retours")
 
     // A return opened from "Retours récents" shows over the page, as it does over its list.
@@ -475,25 +478,23 @@ fun ClientDetailScreen(
                         .clip(DsShapes.large)
                         .background(DsColors.Surface)
                         .border(1.dp, DsColors.Border, DsShapes.large)
-                        .padding(vertical = DsSpacing.md)
+                        .padding(DsSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        StatCell(modifier = Modifier.weight(1f), label = "Total facturé", value = totalFacture, color = DsColors.Primary)
-                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
-                        StatCell(modifier = Modifier.weight(1f), label = "Total payé", value = totalPaye, color = DsColors.Success)
-                        Box(Modifier.width(1.dp).height(28.dp).background(DsColors.Border))
+                    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+                        BilledCell(modifier = Modifier.weight(1f).fillMaxHeight(), value = totalFacture)
+                        PaidCell(modifier = Modifier.weight(1f).fillMaxHeight(), value = totalPaye)
                         // Paying more than billed is an advance, shown as such rather than as a negative debt.
-                        SoldeCell(modifier = Modifier.weight(1f), balance = currentClient.balance)
+                        SoldeCell(modifier = Modifier.weight(1f).fillMaxHeight(), balance = currentClient.balance)
                     }
 
                     // What turns "Total facturé − Total payé" into the Solde beside them.
-                    BalanceAdjustments(returns = retourPreview.total)
+                    BalanceAdjustments(returns = retourPreview.total, onReturns = { tabScope.launch { pagerState.animateScrollToPage(2) } })
 
                     if (balanceStatus == "due") {
-                        Spacer(Modifier.height(DsSpacing.sm))
                         Button(
                             onClick        = license.guarded { showPaymentDialog = true },
-                            modifier       = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+                            modifier       = Modifier.fillMaxWidth(),
                             shape          = DsShapes.medium,
                             colors         = ButtonDefaults.buttonColors(containerColor = DsColors.Danger),
                             contentPadding = PaddingValues(vertical = 10.dp)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -96,19 +104,66 @@ fun QuickActionButton(
 }
 
 /**
- * One of the figures across a party's card. A third of the card wide, a full amount to the centime
- * ("11 781 712,80 DA") does not fit at body size, and its no-break spaces leave nowhere to wrap but
- * mid-word ("D" / "A"): so it shrinks to fit on its line instead.
+ * One of the three figures across a party's card: a tinted tile, its icon and label over the amount. A third of the
+ * card wide, a full amount to the centime ("11 781 712,80 DA") does not fit at body size, and its no-break spaces
+ * leave nowhere to wrap but mid-word ("D" / "A"): so it shrinks to fit on its line instead.
  */
 @Composable
-fun StatCell(label: String, value: Double, color: Color, modifier: Modifier = Modifier) {
-    val money = LocalMoneyFormatter.current
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        FitText(money.da(value), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
+private fun StatTile(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    background: Color,
+    modifier: Modifier = Modifier,
+    amount: @Composable () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(DsShapes.medium)
+            .background(background)
+            .padding(horizontal = DsSpacing.sm, vertical = 10.dp),
+        // The amounts share a baseline across the three tiles, whether a label took one line or two
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                modifier = Modifier.size(24.dp).clip(DsShapes.pill).background(DsColors.Surface),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+            }
+            Text(
+                label,
+                fontSize = DsTextSize.caption,
+                fontWeight = FontWeight.Medium,
+                color = DsColors.TextPrimary,
+                lineHeight = DsTextSize.bodySmall,
+                maxLines = 2
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        amount()
     }
 }
+
+/** "Total facturé" or "Total payé": [value] in [color], on [background]. */
+@Composable
+private fun StatCell(label: String, value: Double, icon: ImageVector, color: Color, background: Color, modifier: Modifier = Modifier) {
+    val money = LocalMoneyFormatter.current
+    StatTile(icon, label, color, background, modifier) {
+        FitText(money.da(value), fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = color)
+    }
+}
+
+/** The "Total facturé" tile. */
+@Composable
+fun BilledCell(value: Double, modifier: Modifier = Modifier) =
+    StatCell("Total facturé", value, Icons.Outlined.Description, DsColors.Primary, DsColors.PrimaryLight, modifier)
+
+/** The "Total payé" tile. */
+@Composable
+fun PaidCell(value: Double, modifier: Modifier = Modifier) =
+    StatCell("Total payé", value, Icons.Outlined.Payments, DsColors.SuccessDark, DsColors.SuccessLight, modifier)
 
 /**
  * The party's solde, from its stored [balance]: what it still owes in red, nothing in grey, or — when it has paid
@@ -120,21 +175,19 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
     val money = LocalMoneyFormatter.current
     val owed = Amount.owing(balance)
     val advance = Amount.inAdvance(balance)
-    val color = when {
-        owed -> DsColors.Danger
-        advance -> DsColors.Primary
-        else -> DsColors.TextSecondary
+    val (color, background) = when {
+        owed -> DsColors.DangerDark to DsColors.DangerLight
+        advance -> DsColors.Primary to DsColors.PrimaryLight
+        else -> DsColors.TextSecondary to DsColors.SurfaceMuted
     }
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        // The amount shrinks to fit like StatCell's; "(AVANCÉ)" gets its own line rather than share
-        // one that may shrink or be cut — it is the word that says which way the solde goes.
-        FitText(
-            money.da(kotlin.math.abs(balance)),
-            fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = color, textAlign = TextAlign.Center
-        )
-        if (advance) Text("(AVANCÉ)", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(2.dp))
-        Text("Solde", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
+    val icon = if (advance) Icons.Outlined.AccountBalanceWallet else Icons.Outlined.Schedule
+    StatTile(icon, "Solde", color, background, modifier) {
+        // "(AVANCÉ)" gets its own line rather than share one that may shrink or be cut — it is the word that says
+        // which way the solde goes.
+        Column {
+            FitText(money.da(kotlin.math.abs(balance)), fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = color)
+            if (advance) Text("(AVANCÉ)", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color)
+        }
     }
 }
 
@@ -143,30 +196,61 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
  *
  * "Total facturé − Total payé" is not what a party owes. The balance also subtracts returns, and a
  * supplier's starts from its opening balance — neither of which either total can show. Without
- * this line the card did not add up: a client billed 6000 DA and paid 2110 DA was shown owing
+ * these rows the card did not add up: a client billed 6000 DA and paid 2110 DA was shown owing
  * 1860 DA, with nothing on screen to say where the other 2030 DA went.
  *
  * The totals themselves are left as they are, because "Total facturé" should keep meaning what was
- * billed. This supplies the missing terms instead, so the three figures and this line together
- * read as one sum. It draws nothing when there is nothing to reconcile: a party with no returns
- * and no opening balance sees exactly the card it always did.
+ * billed. This supplies the missing terms instead, a row each, so the three figures and these rows
+ * together read as one sum. It draws nothing when there is nothing to reconcile: a party with no
+ * returns and no opening balance sees exactly the three tiles.
  *
- * [returns] is the total of the party's returns, as a positive amount; it is shown deducted.
+ * [returns] is the total of the party's returns, as a positive amount; it is shown deducted, and
+ * [onReturns], when given, opens them (the row then carries a chevron).
  * [initialBalance] is a supplier's opening balance; clients have none, so it defaults to zero.
  */
 @Composable
-fun BalanceAdjustments(returns: Double, initialBalance: Double = 0.0, modifier: Modifier = Modifier) {
+fun BalanceAdjustments(
+    returns: Double,
+    initialBalance: Double = 0.0,
+    onReturns: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     val money = LocalMoneyFormatter.current
-    val parts = buildList {
-        if (kotlin.math.abs(initialBalance) >= 0.005) add("Solde initial ${money.signedDa(initialBalance)}")
-        if (kotlin.math.abs(returns) >= 0.005) add("Retours ${money.signedDa(-returns)}")
+    val hasInitial = kotlin.math.abs(initialBalance) >= 0.005
+    val hasReturns = kotlin.math.abs(returns) >= 0.005
+    if (!hasInitial && !hasReturns) return
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+        if (hasInitial) AdjustmentRow(Icons.Outlined.AccountBalanceWallet, "Solde initial", money.signedDa(initialBalance), onClick = null)
+        if (hasReturns) AdjustmentRow(Icons.Outlined.Autorenew, "Retours", money.signedDa(-returns), onReturns)
     }
-    if (parts.isEmpty()) return
-    Text(
-        parts.joinToString("  ·  "),
-        modifier  = modifier.fillMaxWidth().padding(top = DsSpacing.sm, start = DsSpacing.lg, end = DsSpacing.lg),
-        fontSize  = DsTextSize.caption,
-        color     = DsColors.TextSecondary,
-        textAlign = TextAlign.Center
-    )
+}
+
+@Composable
+private fun AdjustmentRow(icon: ImageVector, label: String, amount: String, onClick: (() -> Unit)?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.medium)
+            .background(DsColors.PrimaryLight)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+    ) {
+        Box(
+            modifier = Modifier.size(28.dp).clip(DsShapes.pill).background(DsColors.Surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+        }
+        Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+        FitText(
+            amount,
+            fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        if (onClick != null) {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+        }
+    }
 }

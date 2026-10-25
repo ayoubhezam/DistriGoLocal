@@ -27,6 +27,8 @@ object DsColors {
     // Accent — muted teal-green instead of saturated green
     val Success        = Color(0xFF12B76A)
     val SuccessLight   = Color(0xFFECFDF3)
+    // A step darker: an amount written on SuccessLight (6:1 there, where Success is 2.3:1)
+    val SuccessDark    = Color(0xFF067647)
 
     // Warning — soft amber
     val Warning        = Color(0xFFF79009)
@@ -37,6 +39,8 @@ object DsColors {
     // Destructive — softer red, less alarming than pure red
     val Danger         = Color(0xFFF04438)
     val DangerLight    = Color(0xFFFEF3F2)
+    // A step darker: an amount written on DangerLight
+    val DangerDark     = Color(0xFFD92D20)
     // A step deeper than DangerLight: an avatar sitting on a DangerLight card
     val DangerSoft     = Color(0xFFFEE2E2)
 
