@@ -321,7 +321,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Ma sélection", subtitle = "${cart.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = "Ma sélection", subtitle = "${cart.distinctBy { it.product.id }.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (cart.isEmpty()) {
