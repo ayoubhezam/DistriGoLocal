@@ -1,16 +1,19 @@
 package com.distrigo.app.ui.common
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -23,6 +26,8 @@ fun DsSelectorField(
     value       : String,
     placeholder : String,
     error       : String = "",
+    /** Filled for the user and not changeable: no sheet, a lock instead of the arrow. */
+    locked      : Boolean = false,
     onClick     : () -> Unit
 ) {
     Column {
@@ -39,7 +44,8 @@ fun DsSelectorField(
                 .fillMaxWidth()
                 .border(1.dp, if (error.isNotEmpty()) DsColors.Danger else DsColors.Border, DsShapes.medium)
                 .clip(DsShapes.medium)
-                .clickable(onClick = onClick)
+                .background(if (locked) DsColors.SurfaceSunken else Color.Transparent)
+                .clickable(enabled = !locked, onClick = onClick)
                 .padding(horizontal = DsSpacing.md, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -49,7 +55,12 @@ fun DsSelectorField(
                 color    = if (value.isBlank()) DsColors.TextTertiary else DsColors.TextPrimary,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DsColors.TextSecondary)
+            Icon(
+                if (locked) Icons.Outlined.Lock else Icons.Default.ArrowDropDown,
+                contentDescription = if (locked) "Verrouillé" else null,
+                tint = DsColors.TextSecondary,
+                modifier = if (locked) Modifier.size(20.dp) else Modifier,
+            )
         }
         if (error.isNotEmpty()) {
             Text(

@@ -104,7 +104,7 @@ class DeviceTrackingTest {
         open(DEVICE_A)
         val origins = OriginTriggers.originTables(sql)
         val versioned = UpdatedAtTriggers.trackedTables(sql).filter { "version" in UpdatedAtTriggers.columns(sql, it) }
-        assertEquals(26, origins.size)
+        assertEquals(27, origins.size)  // 64 added quartiers
         assertEquals(versioned, origins)
         for (table in origins) {
             assertEquals(table, OriginTriggers.triggerSql(table), storedTriggerSql(sql, OriginTriggers.triggerName(table)))

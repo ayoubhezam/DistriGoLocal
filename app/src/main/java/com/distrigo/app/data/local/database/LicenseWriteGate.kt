@@ -69,7 +69,7 @@ object LicenseWriteGate {
         // The catalogue: products, clients, suppliers and what classifies them
         "products", "product_images", "product_barcodes",
         "categories", "sous_categories", "marques",
-        "clients", "suppliers", "secteurs",
+        "clients", "suppliers", "secteurs", "quartiers",
         "charge_types", "charge_subtypes", "perte_types",
     )
 

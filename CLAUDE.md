@@ -50,7 +50,9 @@ A setting (`business_settings.allow_negative_stock`), not a fixed rule. Dépôt 
 any section can open any record. Targets: Client, Supplier, Bon, Vente, Perte, Inventaire,
 RetoursClient, RetoursFournisseur, Produit.
 - `drillDown()` pops back to the record if it is already open on the stack (Back never loops) and
-  ignores a double tap.
+  ignores a double tap. "Open" also counts a record page inside a section (a client opened from the
+  Clients list, a quartier from its secteur): such a page calls `ShowsRecord(DrillTarget.X(id))`, which
+  notes it on its section's root entry. Client, secteur and quartier pages do; add it to a new record page.
 - To add a target: a `DrillTarget` case, its `Screen.Drill` route, and its case in `screen()`.
 - Inside a section opened on a record, go back with `popOr(exit)`, never a bare `popBackStack()`.
 - Reports reload when their tables are written (see `VentesReportViewModel`), so a drill-down and

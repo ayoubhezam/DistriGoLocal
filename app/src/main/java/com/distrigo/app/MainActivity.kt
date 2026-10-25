@@ -58,9 +58,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.distrigo.app.ui.navigation.DRILL_ID
+import com.distrigo.app.ui.navigation.DrillDown
 import com.distrigo.app.ui.navigation.DrillTarget
+import com.distrigo.app.ui.navigation.RootDrillDown
 import com.distrigo.app.ui.navigation.LocalDrillDown
-import com.distrigo.app.ui.navigation.drillDown
 import androidx.core.view.WindowCompat
 import com.distrigo.app.R
 import com.distrigo.app.ui.clients.ClientsScreen
@@ -387,7 +388,7 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(paddingValues)) {
                     // Drill-down: any screen, in any section, opens a record through the root — the
                     // only NavHost that knows every section (see DrillDown).
-                    val drill: (DrillTarget) -> Unit = remember(navController) { { target -> drillDown(navController, target) } }
+                    val drill: DrillDown = remember(navController) { RootDrillDown(navController) }
                     CompositionLocalProvider(
                         LocalDrillDown provides drill,
                         com.distrigo.app.ui.designsystem.LocalLicense provides licenseUi
@@ -571,6 +572,18 @@ class MainActivity : ComponentActivity() {
                                 com.distrigo.app.ui.navigation.TourneesNavHost(
                                     openTourneeId = entry.arguments!!.getInt(DRILL_ID),
                                     onBack        = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillSecteur.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.SettingsNavHost(
+                                    openSecteurId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack        = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.DrillQuartier.route, arguments = drillId) { entry ->
+                                com.distrigo.app.ui.navigation.SettingsNavHost(
+                                    openQuartierId = entry.arguments!!.getInt(DRILL_ID),
+                                    onBack         = { navController.popBackStack() }
                                 )
                             }
                             composable(Screen.DrillVente.route, arguments = drillId) { entry ->

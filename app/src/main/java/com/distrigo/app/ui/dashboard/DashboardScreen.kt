@@ -126,23 +126,8 @@ import kotlinx.coroutines.launch
 internal val FR: Locale = Locale.FRENCH
 private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
 
-private val INFO_TODAY = ReportInfo(
-    "Ventes du jour",
-    "Le total des ventes d'aujourd'hui, de minuit à maintenant, dépôt et tournée ensemble.\n\n" +
-        "• Payé à la vente : ce que les clients ont payé sur ces ventes au moment de la vente, jamais plus que le " +
-        "total d'une vente (un surplus va au compte du client).\n" +
-        "• Crédit : le reste, Ventes du jour moins Payé à la vente.\n\n" +
-        "Un versement encaissé plus tard réduit la dette du client mais ne change pas ces chiffres : ils disent ce qui " +
-        "a été vendu aujourd'hui et comment.\n\n" +
-        "L'objectif est celui de Paramètres → Politique de commission ; sans politique, la carte montre les ventes du " +
-        "mois. Touchez la carte pour le rapport Ventes du jour, l'objectif pour « Mon objectif »."
-)
-private val INFO_ALERTS = ReportInfo(
-    "Alertes",
-    "• Ruptures : les produits suivis dont le stock est à zéro ou moins.\n" +
-        "• Stock bas : ceux sous leur stock minimum.\n" +
-        "• Créances de plus de 90 jours : ce que les clients doivent depuis plus de trois mois."
-)
+private val INFO_TODAY = ReportInfo("Ventes du jour", "Ventes du jour = ventes d'aujourd'hui, dépôt + tournée\nCrédit = Ventes du jour − Payé à la vente\n\nUn versement encaissé plus tard ne change pas ces chiffres.")
+private val INFO_ALERTS = ReportInfo("Alertes", "Ruptures : stock ≤ 0\nStock bas : stock < stock minimum\nPlus de 90 jours : dette des ventes impayées depuis plus de 90 jours")
 
 /**
  * The Dashboard (docs/design/dashboard_objectif_plan.md, Part 1): today's sales against « hier », the objective, the

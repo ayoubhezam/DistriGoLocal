@@ -232,6 +232,24 @@ object GoalWording {
         else -> whole(0.0, money)
     }
 
+    /**
+     * The line under « Commission estimée »: « Taux actuel · 3 % » once a rate pays, else what will pay and from
+     * when — « 3 % dès l'objectif », « Dès le palier 1 » — or the policy's kind for a bonus or free goods.
+     */
+    fun commissionNote(goal: GoalProgress): String {
+        val r = goal.rules
+        return when (r.type) {
+            IncentiveType.FIXED_RATE ->
+                if (goal.reached) "Taux actuel · ${rate(r.rate ?: 0.0)}" else "${rate(r.rate ?: 0.0)} dès l'objectif"
+            IncentiveType.PROGRESSIVE_TIERS -> {
+                val tier = r.tierAt(goal.value) ?: return "Dès le palier 1"
+                tier.rate?.let { "Taux actuel · ${rate(it)}" } ?: "Palier ${r.sortedTiers.indexOf(tier) + 1}"
+            }
+            IncentiveType.FIXED_BONUS -> if (goal.reached) "Prime forfaitaire" else "Prime forfaitaire dès l'objectif"
+            IncentiveType.FREE_GOODS -> if (goal.reached) "Gratuité" else "Gratuité dès l'objectif"
+        }
+    }
+
     /** What a tier pays, for the ladder; null when the bonus is hidden. */
     fun tierPays(tier: TierRule, showReward: Boolean, money: MoneyFormatter): String? =
         if (!showReward) null else tier.rate?.let { rate(it) } ?: money.da(tier.fixedBonus ?: 0.0)

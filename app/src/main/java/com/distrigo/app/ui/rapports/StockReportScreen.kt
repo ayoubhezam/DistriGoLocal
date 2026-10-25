@@ -67,39 +67,14 @@ private const val TOP_RESTOCK = 5
 private val LossColors = listOf(DsColors.Danger, DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.TextTertiary)
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-private val INFO_VALUE = ReportInfo(
-    "Valeur du stock",
-    "Ce que vaut le stock aujourd'hui, au prix d'achat actuel : quantité × prix d'achat, produit par produit — quelle que soit la période choisie.\n\n" +
-        "Au dépôt et au camion selon Tout / Dépôt / Camion. Un stock passé sous zéro (vendu au-delà du stock) ne compte pas : ce sont des marchandises dues, pas une valeur."
-)
-private val INFO_OUT = ReportInfo(
-    "Ruptures",
-    "Les produits qui n'ont plus de stock aujourd'hui — ou moins que rien, vendus au-delà — parmi ceux qui ont un minimum ou ont déjà été en stock. Ils sont en tête de « À réapprovisionner »."
-)
-private val INFO_LOW = ReportInfo(
-    "Stock bas",
-    "Les produits qui ont encore du stock aujourd'hui, mais moins que le stock minimum fixé sur leur fiche."
-)
-private val INFO_LOSSES = ReportInfo(
-    "Pertes",
-    "Ce que les pertes de la période ont coûté — casse, péremption, vol… — chaque perte au prix d'achat qu'avait le produit, et leur nombre. Les pertes liées aux retours y sont, selon leur motif."
-)
-private val INFO_RATE = ReportInfo(
-    "Taux de perte",
-    "Pertes de la période ÷ ce qu'ont coûté les marchandises vendues sur la même période × 100 : pour 100 DA de marchandise vendue, ce qui a été perdu."
-)
-private val INFO_TYPES = ReportInfo(
-    "Pertes par type",
-    "Les pertes de la période réparties par type — Casse, Péremption, Vol, vos types à vous — selon ce qu'elles ont coûté. Les cinq premiers, le reste dans « Autres types »."
-)
-private val INFO_LOST = ReportInfo(
-    "Produits les plus perdus",
-    "Les produits dont les pertes ont coûté le plus sur la période, avec la quantité perdue dans leur unité."
-)
-private val INFO_RESTOCK = ReportInfo(
-    "À réapprovisionner",
-    "Les ruptures, puis les produits sous leur stock minimum, des plus vides aux moins vides — aujourd'hui, au dépôt, au camion ou les deux selon le choix."
-)
+private val INFO_VALUE = ReportInfo("Valeur du stock", "Valeur du stock = Stock × Prix d'achat actuel, aujourd'hui\nUn stock sous zéro compte pour 0.")
+private val INFO_OUT = ReportInfo("Ruptures", "Ruptures = produits suivis avec stock ≤ 0\nSuivis : avec un minimum, ou déjà en stock.")
+private val INFO_LOW = ReportInfo("Stock bas", "Stock bas = produits avec 0 < stock < stock minimum")
+private val INFO_LOSSES = ReportInfo("Pertes", "Pertes = Quantité perdue × Prix d'achat")
+private val INFO_RATE = ReportInfo("Taux de perte", "Taux de perte = Pertes ÷ Coût des ventes × 100")
+private val INFO_TYPES = ReportInfo("Pertes par type", "Pertes par type, selon leur coût. Les 5 premiers, le reste dans « Autres types ».")
+private val INFO_LOST = ReportInfo("Produits les plus perdus", "Classés par coût des pertes, avec la quantité perdue.")
+private val INFO_RESTOCK = ReportInfo("À réapprovisionner", "Les ruptures, puis les produits sous leur stock minimum, des plus vides aux moins vides.")
 
 /**
  * Rapports › Stock et pertes: what the stock is worth and what is missing, today; what was lost, over

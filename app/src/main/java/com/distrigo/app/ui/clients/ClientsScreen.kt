@@ -49,6 +49,13 @@ import com.distrigo.app.ui.common.ClientListFilters
 import com.distrigo.app.ui.common.placesOf
 import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 import com.distrigo.app.data.model.Amount
+import com.distrigo.app.ui.designsystem.BrandWideButton
+import com.distrigo.app.ui.designsystem.BrandDialog
+import com.distrigo.app.ui.designsystem.BrandChips
+import com.distrigo.app.ui.common.EntityAvatar
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -59,8 +66,25 @@ fun ClientsScreen(
     onEditClient  : (Int) -> Unit = {},
     onClientClick : (Int) -> Unit = {},
     /** "⋮ → Importer depuis Excel": clients from a workbook's « Clients » sheet. */
-    onImport      : () -> Unit = {}
+    onImport      : () -> Unit = {},
+    /**
+     * Select mode, « Ajouter des clients » to a quartier (owner, 2026-10-24): rows tick instead of opening, and a
+     * bottom button saves. Null for the list itself. [viewModel] then lists only clients outside the quartier.
+     */
+    selection     : ClientSelectionViewModel? = null,
+    onSelectionSaved : (ClientSelectionEvent.Saved) -> Unit = {},
 ){
+    val selecting = selection != null
+    val noSelection = remember { kotlinx.coroutines.flow.MutableStateFlow(ClientSelectionState()) }
+    val picked by (selection?.state ?: noSelection).collectAsState()
+    var confirmDiscard by remember { mutableStateOf(false) }
+    if (selection != null) {
+        LaunchedEffect(selection) {
+            selection.events.collect { event -> if (event is ClientSelectionEvent.Saved) onSelectionSaved(event) }
+        }
+        // A selection is work: leaving with one asks first, as the forms do
+        BackHandler { if (picked.selected.isNotEmpty()) confirmDiscard = true else onBack?.invoke() }
+    }
     val money = LocalMoneyFormatter.current
     val clients   by viewModel.clients.collectAsState()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -198,6 +222,16 @@ fun ClientsScreen(
         )
     }
 
+    if (confirmDiscard) {
+        BrandDialog(
+            title   = "Abandonner la saisie ?",
+            text    = "Les clients cochés ne seront pas ajoutés.",
+            confirm = "Abandonner" to { confirmDiscard = false; onBack?.invoke() },
+            dismiss = "Continuer la saisie" to { confirmDiscard = false },
+            danger  = true,
+        )
+    }
+
     val debtClients = remember(clients) { clientsInDebt(clients) }
     val totalDebt   = remember(debtClients) { debtClients.sumOf { it.balance } }
 
@@ -208,13 +242,17 @@ fun ClientsScreen(
     ) {
         // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
         // affordance; null-safe because the screen is still usable as a root.
+        val target = picked.target
         DsTopAppBar(
-            title   = "Clients",
+            title    = if (selecting) "Ajouter des clients" else "Clients",
+            subtitle = target?.takeIf { selecting }?.let { "Vers le quartier « ${it.name} » · ${it.secteurName}" },
             licenseBanner = true,
-            leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
-            size    = DsTopBarSize.Large
+            leading  = onBack?.let { back ->
+                DsTopBarLeading.Back { if (selecting && picked.selected.isNotEmpty()) confirmDiscard = true else back() }
+            } ?: DsTopBarLeading.None,
+            size     = if (selecting) DsTopBarSize.Regular else DsTopBarSize.Large
         ) {
-            FloatingActionButton(
+            if (!selecting) FloatingActionButton(
                 onClick        = { onAddClient() },
                 containerColor = DsColors.PrimaryDark,
                 contentColor   = Color.White,
@@ -223,13 +261,13 @@ fun ClientsScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Ajouter")
             }
-            DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
+            if (!selecting) DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
         }
 
         // The header used to be the list's first item and scrolled away with it. It is a pinned
         // bar now, so the list starts below it and carries only the list.
         LazyColumn(modifier = Modifier.weight(1f)) {
-            if (totalDebt > 0) {
+            if (totalDebt > 0 && !selecting) {
                 item {
                     Column {
                         Row(
@@ -291,19 +329,94 @@ fun ClientsScreen(
                         filtersActive = filters.isActive,
                         onOpenFilters = { showFilterSheet = true }
                     )
-                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters() })
+                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters(withoutQuartier = filters.withoutQuartier) })
+                    if (selecting) {
+                        // « Sans quartier »: the clients not placed yet, the usual ones to add
+                        val free = remember(clients) { clients.count { it.quartier_id == null } }
+                        Box(Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                            BrandChips(
+                                options  = listOf(false to "Tous", true to "Sans quartier · $free"),
+                                selected = filters.withoutQuartier,
+                                onSelect = { viewModel.listFilters = filters.copy(withoutQuartier = it) },
+                            )
+                        }
+                    }
 
                     Spacer(Modifier.height(DsSpacing.xs))
                 }
             }
             items(shown, key = { it.id }) { client ->
                 Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                    ClientCard(
+                    if (selection != null) {
+                        SelectableClientCard(client, selected = client.id in picked.selected) { selection.toggle(client.id) }
+                    } else ClientCard(
                         client      = client,
                         onClick     = { onClientClick(client.id) },
                         onLongClick = { longPressClient = client }
                     )
                 }
+            }
+        }
+        if (selection != null) {
+            val n = picked.selected.size
+            Column(
+                Modifier.fillMaxWidth().background(DsColors.Surface).padding(DsSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                picked.error?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.Danger) }
+                BrandWideButton(
+                    label   = if (n == 0) "Sélectionnez des clients" else "Ajouter $n client${if (n > 1) "s" else ""}",
+                    icon    = Icons.Default.Check,
+                    filled  = true,
+                    enabled = n > 0 && !picked.saving && picked.target != null,
+                    busy    = picked.saving,
+                    onClick = { license.runOrExplain { selection.save() } },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A client in « Ajouter des clients »: a box ticked by a tap, its name and phone, then where it is — or, ticked while in
+ * another quartier, « Sera déplacé depuis « … » ».
+ */
+@Composable
+private fun SelectableClientCard(client: Client, selected: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(if (selected) DsColors.PrimaryLight else DsColors.Surface)
+            .border(1.dp, if (selected) DsColors.PrimaryDark else DsColors.Border, DsShapes.large)
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() })
+            .padding(14.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Checkbox(checked = selected, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = DsColors.PrimaryDark))
+        EntityAvatar(client.name, client.image_uri)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                client.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                client.phone?.takeIf { it.isNotBlank() } ?: "Téléphone non renseigné",
+                fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, maxLines = 1
+            )
+            val from = client.quartier_name?.takeIf { it.isNotBlank() }
+            if (selected && from != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                    Text(
+                        "Sera déplacé depuis « $from »", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
+                        color = DsColors.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else {
+                val place = if (from != null) listOfNotNull(from, client.secteur_name).joinToString(" · ") else "Sans quartier"
+                Text(place, fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

@@ -98,6 +98,8 @@ data class ClientListFilters(
     val commune : String?        = null,
     val secteur : String?        = null,
     val balance : BalanceFilter? = null,
+    /** « Sans quartier »: the quick chip of « Ajouter des clients », outside the sheet (so not in [isActive]). */
+    val withoutQuartier: Boolean = false,
 ) {
     val isActive: Boolean get() = type != null || wilaya != null || commune != null || secteur != null || balance != null
 }
@@ -109,7 +111,8 @@ fun filterClients(clients: List<Client>, query: String, filters: ClientListFilte
             samePlace(filters.wilaya, c.wilaya_name) &&
             samePlace(filters.commune, c.commune_name) &&
             samePlace(filters.secteur, c.secteur_name) &&
-            (filters.balance?.matches(c.balance) ?: true)
+            (filters.balance?.matches(c.balance) ?: true) &&
+            (!filters.withoutQuartier || c.quartier_id == null)
     }
 
 /** What the Fournisseurs list's filter sheet narrows by: where the supplier is, and its solde. */

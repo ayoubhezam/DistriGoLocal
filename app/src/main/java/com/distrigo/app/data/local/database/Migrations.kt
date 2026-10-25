@@ -1230,6 +1230,25 @@ val MIGRATION_62_63 = object : Migration(62, 63) {
 }
 
 /**
+ * Version 64: quartiers inside secteurs (owner, 2026-10-24). A new `quartiers` table; a secteur gets a
+ * description, a client its quartier (id and name snapshot, as for its secteur). Adds only: no row changes.
+ */
+val MIGRATION_63_64 = object : Migration(63, 64) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `quartiers` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nom` TEXT NOT NULL, " +
+                "`secteur_id` INTEGER NOT NULL, `created_at` TEXT NOT NULL DEFAULT '', `uuid` TEXT NOT NULL DEFAULT '', " +
+                "`updated_at` INTEGER NOT NULL DEFAULT 0, `version` INTEGER NOT NULL DEFAULT 1, `origin_device_id` TEXT)"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_quartiers_secteur_id` ON `quartiers` (`secteur_id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_quartiers_uuid` ON `quartiers` (`uuid`)")
+        db.execSQL("ALTER TABLE `secteurs` ADD COLUMN `description` TEXT")
+        db.execSQL("ALTER TABLE `clients` ADD COLUMN `quartier_id` INTEGER")
+        db.execSQL("ALTER TABLE `clients` ADD COLUMN `quartier_name` TEXT")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1249,6 +1268,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_56_57, MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
     MIGRATION_61_62,
     MIGRATION_62_63,
+    MIGRATION_63_64,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

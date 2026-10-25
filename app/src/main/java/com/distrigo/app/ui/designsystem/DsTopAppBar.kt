@@ -106,6 +106,8 @@ val DsTopBarActionSize : Dp = 40.dp
  *   "Souk Ahras (secteur 01, secteur 02, ...)" - where the tail is the part worth reading and an
  *   ellipsis is exactly what hides it. [basicMarquee] only animates when the text overflows, so a
  *   short one still sits still.
+ * @param subtitleContent a line of its own in place of [subtitle], for a subtitle that does more than say: the
+ *   secteur's and the quartier's details put their name there, long-pressed to edit it (owner's prototype, 2026-10-24).
  * @param licenseBanner draws the license's banner under the bar ([DsLicenseBanner], docs/license_l5_enforcement.md
  *   §2): on the tab roots and the roots of the sections that record. Nothing shows while the license has nothing
  *   to say.
@@ -122,11 +124,12 @@ fun DsTopAppBar(
     size           : DsTopBarSize = DsTopBarSize.Regular,
     containerColor : Color = DsColors.SurfaceMuted,
     licenseBanner  : Boolean = false,
+    subtitleContent: (@Composable () -> Unit)? = null,
     actions        : @Composable RowScope.() -> Unit = {}
 ) {
     if (licenseBanner) {
         Column(modifier) {
-            DsTopAppBar(title, Modifier, subtitle, subtitleColor, titleMarquee, leading, size, containerColor, licenseBanner = false, actions = actions)
+            DsTopAppBar(title, Modifier, subtitle, subtitleColor, titleMarquee, leading, size, containerColor, licenseBanner = false, subtitleContent = subtitleContent, actions = actions)
             DsLicenseBanner()
         }
         return
@@ -174,7 +177,9 @@ fun DsTopAppBar(
                 overflow   = if (titleMarquee) TextOverflow.Clip else TextOverflow.Ellipsis,
                 modifier   = if (titleMarquee) Modifier.basicMarquee() else Modifier
             )
-            if (subtitle != null) {
+            if (subtitleContent != null) {
+                subtitleContent()
+            } else if (subtitle != null) {
                 Text(
                     subtitle,
                     fontSize = if (isLarge) DsTextSize.bodySmall else DsTextSize.caption,

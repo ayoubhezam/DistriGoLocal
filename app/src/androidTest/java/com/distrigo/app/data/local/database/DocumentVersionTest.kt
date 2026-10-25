@@ -50,7 +50,7 @@ class DocumentVersionTest {
         val versioned = tracked.filter { "version" in UpdatedAtTriggers.columns(sql, it) }
         val children = DocumentTriggers.PARENTS.keys - "pertes"   // pertes stand alone too
 
-        assertEquals(26, versioned.size)
+        assertEquals(27, versioned.size)  // 64 added quartiers
         assertEquals(12, children.size)
         assertEquals(tracked.toSet(), versioned.toSet() + children)
         assertTrue(children.none { it in versioned })

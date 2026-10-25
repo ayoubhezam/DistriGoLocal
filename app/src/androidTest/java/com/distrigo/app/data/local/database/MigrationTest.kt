@@ -97,7 +97,7 @@ class MigrationTest {
                 assertEquals("unstamped rows in $table", 0, sql.count(table, "updated_at <= 0"))
                 assertEquals("rows without created_at in $table", 0, sql.count(table, "created_at = ''"))
             }
-            assertEquals(38, UpdatedAtTriggers.trackedTables(sql).size)  // 62 added commission_periods
+            assertEquals(39, UpdatedAtTriggers.trackedTables(sql).size)  // 62 added commission_periods, 64 quartiers
             for (table in UpdatedAtTriggers.trackedTables(sql)) {
                 assertTrue(table, storedTriggerSql(sql, UpdatedAtTriggers.triggerName(table)) != null)
             }
@@ -844,6 +844,28 @@ class MigrationTest {
             val indexes = sql.texts("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'ventes' AND name LIKE 'index_ventes_client_id%'")
             assertEquals(listOf("index_ventes_client_id_created_at_total_montant_paye"), indexes)
             assertEquals(1, sql.count("ventes", "client_id = 7 AND total - montant_paye = 3000.0 AND updated_at = 1000"))
+        } finally {
+            sql.close()
+        }
+    }
+
+    /** 63 -> 64 adds quartiers, a secteur's description and a client's quartier, and keeps every row as it was. */
+    @Test
+    fun migration63To64AddsQuartiersAndKeepsRows() {
+        helper.createDatabase(TEST_DB, 63).apply {
+            execSQL("INSERT INTO secteurs (id, nom, commune_name, wilaya_name, created_at, uuid) VALUES (1, 'Centre', 'Souk Ahras', 'Souk Ahras', '2026-10-01', 'u-s-1')")
+            execSQL(
+                "INSERT INTO clients (id, name, secteur_id, secteur_name, balance, customer_type, uuid, updated_at) " +
+                    "VALUES (1, 'Épicerie Ahmed', 1, 'Centre', 1500.0, 'retail', 'u-c-1', 1000)"
+            )
+            close()
+        }
+
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 64, true, MIGRATION_63_64)
+        try {
+            assertEquals(1, sql.count("secteurs", "id = 1 AND nom = 'Centre' AND description IS NULL"))
+            assertEquals(1, sql.count("clients", "id = 1 AND secteur_id = 1 AND balance = 1500.0 AND updated_at = 1000 AND quartier_id IS NULL AND quartier_name IS NULL"))
+            assertEquals(0, sql.count("quartiers", "1"))
         } finally {
             sql.close()
         }

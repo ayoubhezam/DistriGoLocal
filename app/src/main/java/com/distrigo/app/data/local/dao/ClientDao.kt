@@ -19,6 +19,10 @@ interface ClientDao {
     @Query("SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY id DESC")
     fun observeAllClients(): Flow<List<ClientEntity>>
 
+    /** The live clients not in quartier [quartierId] (in none, or in another): what can be added to it. */
+    @Query("SELECT * FROM clients WHERE deleted_at IS NULL AND (quartier_id IS NULL OR quartier_id != :quartierId) ORDER BY id DESC")
+    fun observeClientsOutsideQuartier(quartierId: Int): Flow<List<ClientEntity>>
+
     @Query("SELECT * FROM clients WHERE id = :id AND deleted_at IS NULL")
     suspend fun getClientById(id: Int): ClientEntity?
 

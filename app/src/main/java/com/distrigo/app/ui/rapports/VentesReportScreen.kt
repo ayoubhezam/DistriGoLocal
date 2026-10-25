@@ -137,7 +137,7 @@ private fun SummaryCard(report: SalesReport) {
         title = "Chiffre d'affaires",
         amount = money.figure(report.all.total),
         caption = null,
-        info = ReportInfo("Chiffre d'affaires", "Le total des ventes de la période, au prix de vente — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n\nLes retours clients n'en sont pas déduits : « Ventes nettes » = chiffre d'affaires − retours clients de la période. Ils ne s'affichent qu'avec « Tout », un retour ne disant pas d'où venait la marchandise."),
+        info = ReportInfo("Chiffre d'affaires", "Chiffre d'affaires = somme des ventes, au prix de vente\nVentes nettes = Chiffre d'affaires − Retours clients (avec « Tout »)"),
         halves = if (returns != null && returns.count > 0) listOf(
             HeroHalf("Retours clients (${returns.count})", money.figure(returns.total, prefix = "− ")),
             HeroHalf("Ventes nettes", money.figure(report.netTotal ?: report.all.total), bold = true),
@@ -158,13 +158,13 @@ private fun KpiGrid(report: SalesReport) {
             KpiTile(
                 "Nombre de ventes", countFigure(sales), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Receipt,
-                info = ReportInfo("Nombre de ventes", "Le nombre de ventes de la période — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion."),
+                info = ReportInfo("Nombre de ventes", "Nombre de ventes de la période."),
                 accent = DsColors.Primary,
             )
             KpiTile(
                 "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.ShoppingBasket,
-                info = ReportInfo("Panier moyen", "Ce qu'une vente rapporte en moyenne sur la période : chiffre d'affaires ÷ nombre de ventes."),
+                info = ReportInfo("Panier moyen", "Panier moyen = Chiffre d'affaires ÷ Nombre de ventes"),
                 accent = DsColors.AccentTeal,
             )
         }
@@ -172,14 +172,14 @@ private fun KpiGrid(report: SalesReport) {
             KpiTile(
                 "Marge brute", money.figure(report.grossMargin), marginColor, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
-                info = ReportInfo("Marge brute", "Ventes de la période − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat du produit au moment de la vente.\n\nNi les charges ni les pertes n'en sont déduites."),
+                info = ReportInfo("Marge brute", "Marge brute = Chiffre d'affaires − Coût des ventes"),
                 accent = if (loss) DsColors.Danger else DsColors.Primary,
             )
             // The rate on the purchase price, as the Direction du Commerce counts it.
             KpiTile(
                 "Taux de marge", rateFigure(report.marginRate), marginColor, Modifier.weight(1f), null,
                 Icons.Default.Percent,
-                info = ReportInfo("Taux de marge", "Marge brute ÷ ce que les produits vendus avaient coûté × 100 — sur le prix d'achat, comme le compte la Direction du Commerce."),
+                info = ReportInfo("Taux de marge", "Taux de marge = Marge brute ÷ Coût des ventes × 100"),
                 accent = if (loss) DsColors.Danger else DsColors.Success,
             )
         }
@@ -207,11 +207,7 @@ private fun SourceSplit(report: SalesReport) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             InfoButton(
-                ReportInfo(
-                    "Dépôt et camion",
-                    "Le chiffre d'affaires de la période, partagé selon d'où sont sorties les marchandises : le dépôt (ventes au dépôt) ou le camion (ventes des tournées).\n\n" +
-                        "Au centre, le total ; à côté, pour chacun, sa part du total, son montant et son nombre de ventes. Affiché seulement avec « Tout »."
-                ),
+                ReportInfo("Dépôt et camion", "Part = Ventes du dépôt (ou du camion) ÷ Chiffre d'affaires × 100\nAvec « Tout » seulement."),
                 tint = DsColors.TextTertiary,
             )
         }

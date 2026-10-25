@@ -237,12 +237,10 @@ private val INFO_MANUAL = DsInfo(
     title = "Sauvegarde manuelle",
     icon = Icons.Default.CloudUpload,
     tint = DsColors.Primary,
-    summary = "Crée à tout moment une copie complète de vos données : produits, clients, fournisseurs, ventes, achats, " +
-        "stock, paiements, charges… et vos photos, dans un seul fichier .distrigo.",
+    summary = "Une copie complète de vos données et de vos photos, dans un fichier .distrigo.",
     toKnow = listOf(
-        "Le fichier est enregistré à l'endroit que vous choisissez.",
-        "Gardez-le hors du téléphone (Google Drive, ordinateur, WhatsApp) pour le retrouver si le téléphone est perdu ou remplacé.",
-        "Pour tout récupérer, utilisez « Restauration » avec ce fichier.",
+        "Gardez-le hors du téléphone : Google Drive, ordinateur, WhatsApp.",
+        "Pour tout récupérer : « Restauration ».",
     ),
 )
 
@@ -250,13 +248,10 @@ private val INFO_AUTO = DsInfo(
     title = "Sauvegarde automatique",
     icon = Icons.Default.History,
     tint = DsColors.AccentViolet,
-    summary = "Chaque nuit vers 3 h, DistriGo enregistre une sauvegarde complète dans le dossier choisi, seulement si " +
-        "les données ont changé depuis la dernière.",
+    summary = "Chaque nuit vers 3 h, une sauvegarde complète dans le dossier choisi, si les données ont changé.",
     toKnow = listOf(
-        "Les ${AutoBackupRunner.KEEP} dernières sauvegardes automatiques sont gardées ; les plus anciennes sont supprimées. " +
-            "Les autres fichiers du dossier ne sont jamais modifiés.",
-        "Un dossier sur le téléphone disparaît avec lui : copiez de temps en temps une sauvegarde ailleurs.",
-        "Si une nuit échoue, un message s'affiche ici, et en notification si elles sont autorisées.",
+        "Les ${AutoBackupRunner.KEEP} dernières sont gardées.",
+        "Copiez-en une hors du téléphone de temps en temps.",
     ),
 )
 
@@ -264,10 +259,8 @@ private val INFO_RESTORE = DsInfo(
     title = "Restauration",
     icon = Icons.Default.SettingsBackupRestore,
     tint = DsColors.AccentTeal,
-    summary = "Remplace toutes les données de ce téléphone par celles d'une sauvegarde .distrigo : sur un nouveau " +
-        "téléphone, ou pour revenir en arrière.",
+    summary = "Remplace toutes les données de ce téléphone par celles d'une sauvegarde .distrigo.",
     toKnow = listOf(
-        "Vous voyez le contenu de la sauvegarde avant de confirmer.",
         "Une copie de sécurité de vos données actuelles est faite d'abord.",
         "L'application redémarre ensuite.",
     ),
@@ -277,11 +270,10 @@ private val INFO_SAFETY = DsInfo(
     title = "Copies de sécurité",
     icon = Icons.Default.Storage,
     tint = DsColors.AccentViolet,
-    summary = "DistriGo en fait une automatiquement avant chaque restauration et chaque import. Restaurez-en une pour " +
-        "annuler une restauration ou un import.",
+    summary = "Faites avant chaque restauration et chaque import, pour pouvoir les annuler.",
     toKnow = listOf(
-        "Celles d'avant un import ne contiennent que les données, pas les photos.",
-        "Elles restent dans l'application : elles sont supprimées si l'application est désinstallée.",
+        "Celles d'un import n'ont pas les photos.",
+        "Supprimées si l'application est désinstallée.",
     ),
 )
 

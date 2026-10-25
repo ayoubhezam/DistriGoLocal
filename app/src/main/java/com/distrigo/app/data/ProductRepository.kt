@@ -3,6 +3,7 @@ package com.distrigo.app.data.repository
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.time.BusinessDates
 import androidx.room.withTransaction
+import androidx.sqlite.db.SimpleSQLiteQuery
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.database.LicenseWriteGate
@@ -119,7 +120,8 @@ class ProductRepository(
             secteur_id = this.secteur_id, secteur_name = this.secteur_name,
             address = this.address, note = this.note, balance = this.balance,
             customer_type = this.customer_type, image_uri = this.image_uri,
-            latitude = this.latitude, longitude = this.longitude
+            latitude = this.latitude, longitude = this.longitude,
+            quartier_id = this.quartier_id, quartier_name = this.quartier_name
         )
     }
 
@@ -1575,13 +1577,21 @@ class ProductRepository(
     fun observeClients(): Flow<List<Client>> =
         clientDao.observeAllClients().map { list -> list.map { it.toClient() } }
 
-    suspend fun addClient(client: Map<String, Any?>): Map<String, Any> {
+    /** The live clients not in quartier [quartierId]: those « Ajouter un client existant » offers it. */
+    fun observeClientsOutsideQuartier(quartierId: Int): Flow<List<Client>> =
+        clientDao.observeClientsOutsideQuartier(quartierId).map { list -> list.map { it.toClient() } }
+
+    suspend fun addClient(client: Map<String, Any?>): Map<String, Any> = db.withTransaction {
+        val secteurId = (client["secteur_id"] as? Number)?.toInt()
+        // A client created from a quartier: the quartier must still be there, in the client's secteur; its name is read here
+        val quartierId = (client["quartier_id"] as? Number)?.toInt()
+        val quartierName = quartierId?.let { quartierName(it, secteurId) }
         val entity = ClientEntity(
             name = client["name"] as? String ?: "",
             phone = client["phone"] as? String,
             wilaya_name = client["wilaya_name"] as? String,
             commune_name = client["commune_name"] as? String,
-            secteur_id = (client["secteur_id"] as? Number)?.toInt(),
+            secteur_id = secteurId,
             secteur_name = client["secteur_name"] as? String,
             address = client["address"] as? String,
             note = client["note"] as? String,
@@ -1589,15 +1599,30 @@ class ProductRepository(
             customer_type = client["customer_type"] as? String ?: "retail",
             image_uri = client["image_uri"] as? String,
             latitude = (client["latitude"] as? Number)?.toDouble(),
-            longitude = (client["longitude"] as? Number)?.toDouble()
+            longitude = (client["longitude"] as? Number)?.toDouble(),
+            quartier_id = quartierId,
+            quartier_name = quartierName,
         )
         val newId = clientDao.insertClient(entity)
-        return mapOf("id" to newId.toDouble(), "message" to "Client added successfully")
+        mapOf("id" to newId.toDouble(), "message" to "Client added successfully")
     }
 
-    suspend fun updateClient(id: Int, client: Map<String, Any?>): Map<String, Any> {
-        val existing = clientDao.getClientById(id) ?: return mapOf("error" to "Client not found")
+    suspend fun updateClient(id: Int, client: Map<String, Any?>): Map<String, Any> = db.withTransaction {
+        val existing = clientDao.getClientById(id) ?: return@withTransaction mapOf("error" to "Client not found")
+        val secteurId = if (client.containsKey("secteur_id")) (client["secteur_id"] as? Number)?.toInt() else existing.secteur_id
+        // A quartier is inside its secteur: another secteur (or none) takes the client out of it, unless the
+        // form says which quartier of the new one — then that quartier must be there, in that secteur
+        val keepsQuartier = secteurId == existing.secteur_id
+        val quartierId = if (client.containsKey("quartier_id")) (client["quartier_id"] as? Number)?.toInt()
+            else if (keepsQuartier) existing.quartier_id else null
+        val quartierName = when {
+            quartierId == null -> null
+            !client.containsKey("quartier_id") -> existing.quartier_name
+            else -> quartierName(quartierId, secteurId)
+        }
         val updatedEntity = existing.copy(
+            quartier_id = quartierId,
+            quartier_name = quartierName,
             name = client["name"] as? String ?: existing.name,
             phone = if (client.containsKey("phone")) client["phone"] as? String else existing.phone,
             wilaya_name = if (client.containsKey("wilaya_name")) client["wilaya_name"] as? String else existing.wilaya_name,
@@ -1612,8 +1637,14 @@ class ProductRepository(
             longitude = if (client.containsKey("longitude")) (client["longitude"] as? Number)?.toDouble() else existing.longitude
         )
         clientDao.updateClient(updatedEntity)
-        return mapOf("message" to "Client updated successfully")
+        mapOf("message" to "Client updated successfully")
     }
+
+    /** Quartier [quartierId]'s name, refused unless it is still there in secteur [secteurId]. Inside a transaction. */
+    private fun quartierName(quartierId: Int, secteurId: Int?): String =
+        db.query(SimpleSQLiteQuery("SELECT nom FROM quartiers WHERE id = ? AND secteur_id IS ?", arrayOf<Any?>(quartierId, secteurId)))
+            .use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            ?: throw IllegalStateException("Le quartier n'existe plus : il a peut-être été supprimé.")
 
     /** A client goes to the bin only once its account is settled: a hidden debt or advance is not one. */
     suspend fun deleteClient(id: Int): Map<String, Any> {

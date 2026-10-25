@@ -33,5 +33,9 @@ data class ClientEntity(
     /** The device that created the row; null for rows created before version 48. */
     val origin_device_id: String? = null,
     /** Null while the row is live; when it was deleted otherwise. Deleted rows are filtered out of every read. */
-    val deleted_at: Long? = null
+    val deleted_at: Long? = null,
+    /** The client's quartier, inside its secteur; null when it has none (and for rows before version 64). */
+    val quartier_id: Int? = null,
+    /** A snapshot of the quartier's name, as [secteur_name] is of the secteur's; a rename rewrites it. */
+    val quartier_name: String? = null
 )

@@ -76,37 +76,14 @@ private val ProduitsColor = DsColors.AccentViolet
 private val GroupColors = listOf(DsColors.Primary, DsColors.AccentTeal, DsColors.Warning, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 private val AbcColors = listOf(DsColors.Success, DsColors.Warning, DsColors.TextTertiary)
 
-private val INFO_TOTAL = ReportInfo(
-    "Ventes des produits",
-    "Ce que les produits ont rapporté sur la période — la somme des lignes de vente, au prix de vente — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n\n" +
-        "En dessous, la marge brute : ventes − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat qu'elle avait au moment de la vente."
-)
-private val INFO_SOLD = ReportInfo("Produits vendus", "Le nombre de produits différents vendus au moins une fois sur la période.")
-private val INFO_RATE = ReportInfo(
-    "Taux de marge",
-    "Marge brute ÷ coût d'achat des produits vendus × 100, sur le prix d'achat comme le compte la Direction du Commerce. Ni les charges ni les pertes n'en sont déduites."
-)
-private val INFO_A = ReportInfo(
-    "Classe A",
-    "Les produits qui font, à eux seuls, les premiers 80 % des ventes de la période — ceux à ne jamais laisser manquer. Le pourcentage dit quelle part de vos produits vendus ils représentent."
-)
-private val INFO_DORMANT = ReportInfo(
-    "Sans vente",
-    "Les produits en stock — au dépôt, au camion, ou les deux selon le choix — qui ne se sont pas vendus une seule fois sur la période. Le montant est ce que ce stock a coûté, au prix d'achat actuel : de l'argent immobilisé. Touchez la carte pour la liste."
-)
-private val INFO_TOP = ReportInfo(
-    "Meilleurs produits",
-    "Les produits classés par chiffre d'affaires, par marge brute ou par quantité vendue. La quantité se lit dans l'unité de chaque produit (carton, pièce, kg) : elle ne s'additionne pas d'un produit à l'autre."
-)
-private val INFO_GROUPS = ReportInfo(
-    "Répartition",
-    "Les ventes de la période réparties par catégorie, par marque ou par fournisseur, tels qu'ils sont aujourd'hui sur la fiche produit. Les cinq premiers, le reste dans « Autres »; les produits sans valeur sous « Sans … »."
-)
-private val INFO_ABC = ReportInfo(
-    "Analyse ABC",
-    "Les produits classés par ventes, du plus vendu au moins vendu :\n• A : ceux qui font les premiers 80 % des ventes ;\n• B : les 15 % suivants ;\n• C : les 5 % restants.\n\n" +
-        "D'ordinaire, peu de produits font l'essentiel : les A demandent le plus d'attention (stock, prix), les C peuvent être revus."
-)
+private val INFO_TOTAL = ReportInfo("Ventes des produits", "Ventes = somme des lignes de vente, au prix de vente\nMarge brute = Ventes − Coût des ventes")
+private val INFO_SOLD = ReportInfo("Produits vendus", "Produits vendus = produits différents vendus au moins une fois")
+private val INFO_RATE = ReportInfo("Taux de marge", "Taux de marge = Marge brute ÷ Coût des ventes × 100")
+private val INFO_A = ReportInfo("Classe A", "Classe A = produits qui font les premiers 80 % des ventes\n% = Produits A ÷ Produits vendus × 100")
+private val INFO_DORMANT = ReportInfo("Sans vente", "Sans vente = produits en stock non vendus sur la période\nMontant = Stock × Prix d'achat actuel")
+private val INFO_TOP = ReportInfo("Meilleurs produits", "Classés par chiffre d'affaires, marge brute ou quantité (dans l'unité du produit).")
+private val INFO_GROUPS = ReportInfo("Répartition", "Ventes par catégorie, marque ou fournisseur. Les 5 premiers, le reste dans « Autres ».")
+private val INFO_ABC = ReportInfo("Analyse ABC", "Produits classés par ventes :\nA : les premiers 80 % des ventes\nB : les 15 % suivants\nC : les 5 % restants")
 
 /**
  * Rapports › Produits: what sold, what earned, and what did not move — over the shared period and

@@ -120,6 +120,16 @@ class GoalWordingTest {
         assertEquals("0 DA", GoalWording.rewardValue(progress(taux, 888_000.0).reward, money))
     }
 
+    /** « Votre trajectoire »: the line under « Commission estimée », for each kind of policy. */
+    @Test
+    fun theCommissionNote() {
+        assertEquals("3 % dès l'objectif", GoalWording.commissionNote(progress(taux, 888_000.0)))
+        assertEquals("Taux actuel · 3 %", GoalWording.commissionNote(progress(taux, 1_300_000.0)))
+        assertEquals("Dès le palier 1", GoalWording.commissionNote(progress(paliers, 500_000.0)))
+        assertEquals("Taux actuel · 2,5 %", GoalWording.commissionNote(progress(paliers, 950_000.0)))
+        assertEquals("Prime forfaitaire dès l'objectif", GoalWording.commissionNote(progress(forfait, 100_000.0)))
+    }
+
     @Test
     fun periodNames() {
         assertEquals("octobre", GoalWording.periodName(october))

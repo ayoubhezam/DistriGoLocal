@@ -16,5 +16,8 @@ data class Client(
     val customer_type  : String,
     val image_uri      : String?,
     val latitude       : Double?,
-    val longitude      : Double?
+    val longitude      : Double?,
+    /** The client's quartier, inside its secteur (version 64); null when it has none. */
+    val quartier_id    : Int?    = null,
+    val quartier_name  : String? = null
 )

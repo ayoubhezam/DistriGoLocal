@@ -47,39 +47,13 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 
 private val ChargeColors = listOf(DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 
-private val INFO_NET = ReportInfo(
-    "Résultat net",
-    "Ce que la période a vraiment rapporté, une fois tout retiré :\n" +
-        "marge brute − marge des retours − charges − pertes.\n\n" +
-        "Toute l'activité, dépôt et camion ensemble : une charge n'appartient ni à l'un ni à l'autre."
-)
-private val INFO_GROSS = ReportInfo(
-    "Marge brute",
-    "Chiffre d'affaires − ce que les produits vendus avaient coûté, chaque ligne au prix d'achat qu'elle avait au moment de la vente."
-)
-private val INFO_CHARGES = ReportInfo(
-    "Charges",
-    "Les dépenses de la période — véhicule, personnel, bureau, distribution… — telles qu'enregistrées dans Charges, et leur nombre."
-)
-private val INFO_LOSSES = ReportInfo(
-    "Pertes",
-    "Ce que les pertes de la période ont coûté — casse, péremption, vol… — chaque perte au prix d'achat qu'avait le produit, et leur nombre."
-)
-private val INFO_SHARE = ReportInfo(
-    "Rentabilité",
-    "Résultat net ÷ chiffre d'affaires × 100 : pour 100 DA vendus, ce qui reste une fois les produits, les retours, les charges et les pertes payés.\n\n" +
-        "Ce n'est pas le taux de marge, qui se compte sur le prix d'achat (voir le rapport Ventes)."
-)
-private val INFO_STATEMENT = ReportInfo(
-    "Compte de résultat",
-    "Du chiffre d'affaires au résultat net, ligne par ligne. « Coût des ventes » : ce que les produits vendus avaient coûté, chaque ligne au prix d'achat de son moment.\n\n" +
-        "« Retours clients » : la marge que les retours ont annulée — ce qui a été remboursé, moins ce que valent les produits revenus, au prix d'achat actuel (une ligne de retour ne garde pas son coût). " +
-        "Les produits revenus puis jetés (périmés, défectueux) sont en plus dans les pertes : leur marge est annulée, puis la marchandise est perdue."
-)
-private val INFO_CHARGE_TYPES = ReportInfo(
-    "Charges par type",
-    "Les charges de la période réparties par type, selon leur montant. Les cinq premiers, le reste dans « Autres types »."
-)
+private val INFO_NET = ReportInfo("Résultat net", "Résultat net = Marge brute − Retours clients − Charges − Pertes")
+private val INFO_GROSS = ReportInfo("Marge brute", "Marge brute = Chiffre d'affaires − Coût des ventes")
+private val INFO_CHARGES = ReportInfo("Charges", "Charges = somme des dépenses de la période")
+private val INFO_LOSSES = ReportInfo("Pertes", "Pertes = Quantité perdue × Prix d'achat")
+private val INFO_SHARE = ReportInfo("Rentabilité", "Rentabilité (%) = Résultat net ÷ Chiffre d'affaires × 100")
+private val INFO_STATEMENT = ReportInfo("Compte de résultat", "Marge brute = Chiffre d'affaires − Coût des ventes\nRésultat net = Marge brute − Retours clients − Charges − Pertes\n\nCoût des ventes = Quantité vendue × Prix d'achat au moment de la vente\nRetours clients = Remboursé − Coût des produits revenus")
+private val INFO_CHARGE_TYPES = ReportInfo("Charges par type", "Part = Charges du type ÷ Charges × 100. Les 5 premiers, le reste dans « Autres types ».")
 
 /** Rapports › Résultat: from the chiffre d'affaires to what is left, over the shared period. */
 @Composable

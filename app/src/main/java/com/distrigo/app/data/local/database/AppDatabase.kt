@@ -34,7 +34,7 @@ import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
  * The schema version this build writes. A backup records it, and a backup from a later version is refused
  * rather than opened: Room cannot downgrade a database.
  */
-const val DATABASE_VERSION = 63
+const val DATABASE_VERSION = 64
 
 /** The app's database file, in `databases/`. */
 const val DATABASE_NAME = "distrigo"
@@ -70,6 +70,7 @@ const val DATABASE_NAME = "distrigo"
         InventoryItemEntity::class,
         StockMovementEntity::class,
         SecteurEntity::class,
+        QuartierEntity::class,
         RetourFournisseurEntity::class,
         RetourFournisseurItemEntity::class,
         RetourClientEntity::class,

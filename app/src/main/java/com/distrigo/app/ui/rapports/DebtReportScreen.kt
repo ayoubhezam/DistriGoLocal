@@ -78,38 +78,18 @@ private const val TOP_DEBTORS = 5
 private fun debtInfo(side: DebtSide, figure: String): ReportInfo {
     val clients = side == DebtSide.CLIENTS
     return when (figure) {
-        "owed" -> if (clients) ReportInfo("Reste à encaisser",
-            "Ce que vos clients vous doivent aujourd'hui : la somme de leurs soldes, quelle que soit la période choisie.\n\n" +
-                "« Moins de 30 jours » et « Plus de 90 jours » : l'âge de cette dette, d'après la date des ventes restées impayées, les plus récentes réglées en premier.")
-        else ReportInfo("Reste à payer",
-            "Ce que vous devez aujourd'hui à vos fournisseurs : la somme de leurs soldes, quelle que soit la période choisie.\n\n" +
-                "« Moins de 30 jours » et « Plus de 90 jours » : l'âge de cette dette, d'après la date des bons restés impayés, les plus récents réglés en premier.")
-        "credit" -> if (clients) ReportInfo("Crédit accordé",
-            "La part des ventes de la période qui n'a pas été payée au moment de la vente : total − payé à la vente. Cela augmente ce que les clients vous doivent.")
-        else ReportInfo("Achats à crédit",
-            "La part des bons d'achat de la période qui n'a pas été payée à leur réception : total − payé. Cela augmente ce que vous devez aux fournisseurs.")
-        "payments" -> if (clients) ReportInfo("Versements reçus",
-            "Les paiements que vos clients vous ont faits sur la période, après la vente, et leur nombre. Ils diminuent ce qu'ils vous doivent.")
-        else ReportInfo("Versements payés",
-            "Les paiements que vous avez faits à vos fournisseurs sur la période, et leur nombre. Ils diminuent ce que vous leur devez.")
-        "returns" -> if (clients) ReportInfo("Retours clients",
-            "La marchandise rendue par vos clients sur la période, au prix de vente, et le nombre de retours. Ils sont déduits de ce que les clients vous doivent.")
-        else ReportInfo("Retours fournisseurs",
-            "La marchandise que vous avez rendue à vos fournisseurs sur la période, au prix d'achat, et le nombre de retours. Ils sont déduits de ce que vous leur devez.")
-        "ages" -> if (clients) ReportInfo("Ancienneté",
-            "Ce que vos clients vous doivent aujourd'hui, réparti selon l'âge des ventes restées impayées : 0 – 30, 31 – 60, 61 – 90 et plus de 90 jours.\n\n" +
-                "Chaque versement est compté sur les ventes les plus récentes d'abord : ce qui reste dû est donc le plus ancien. " +
-                "Au centre, le total ; à côté, la part et le montant de chaque tranche. Plus la part de plus de 90 jours est grande, plus l'argent est difficile à récupérer.")
-        else ReportInfo("Ancienneté",
-            "Ce que vous devez aujourd'hui à vos fournisseurs, réparti selon l'âge des bons restés impayés : 0 – 30, 31 – 60, 61 – 90 et plus de 90 jours.\n\n" +
-                "Chaque versement est compté sur les bons les plus récents d'abord : ce qui reste dû est donc le plus ancien. " +
-                "Au centre, le total ; à côté, la part et le montant de chaque tranche.")
-        else -> if (clients) ReportInfo("Évolution du solde",
-            "Crédit accordé − versements reçus − retours clients, sur la période.\n\n" +
-                "En moins (vert, « En baisse ») : vos clients vous doivent moins qu'au début de la période. En plus (rouge, « En hausse ») : ils vous doivent davantage.")
-        else ReportInfo("Évolution du solde",
-            "Achats à crédit − versements payés − retours fournisseurs, sur la période.\n\n" +
-                "En moins (vert, « En baisse ») : vous devez moins à vos fournisseurs qu'au début de la période. En plus (rouge, « En hausse ») : vous leur devez davantage.")
+        "owed" -> if (clients) ReportInfo("Reste à encaisser", "Reste à encaisser = somme des soldes clients, aujourd'hui\n\nÂge = date des ventes impayées ; les versements règlent les plus récentes d'abord.")
+        else ReportInfo("Reste à payer", "Reste à payer = somme des soldes fournisseurs, aujourd'hui\n\nÂge = date des bons impayés ; les versements règlent les plus récents d'abord.")
+        "credit" -> if (clients) ReportInfo("Crédit accordé", "Crédit accordé = Ventes − Payé à la vente")
+        else ReportInfo("Achats à crédit", "Achats à crédit = Bons d'achat − Payé à la réception")
+        "payments" -> if (clients) ReportInfo("Versements reçus", "Versements reçus = somme des paiements des clients")
+        else ReportInfo("Versements payés", "Versements payés = somme des paiements aux fournisseurs")
+        "returns" -> if (clients) ReportInfo("Retours clients", "Retours clients = somme des retours, au prix de vente")
+        else ReportInfo("Retours fournisseurs", "Retours fournisseurs = somme des retours, au prix d'achat")
+        "ages" -> if (clients) ReportInfo("Ancienneté", "Dette d'aujourd'hui par âge des ventes impayées : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les ventes les plus récentes d'abord.")
+        else ReportInfo("Ancienneté", "Dette d'aujourd'hui par âge des bons impayés : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les bons les plus récents d'abord.")
+        else -> if (clients) ReportInfo("Évolution du solde", "Évolution = Crédit accordé − Versements reçus − Retours clients\n\nEn baisse : les clients vous doivent moins qu'au début de la période.")
+        else ReportInfo("Évolution du solde", "Évolution = Achats à crédit − Versements payés − Retours fournisseurs\n\nEn baisse : vous devez moins qu'au début de la période.")
     }
 }
 

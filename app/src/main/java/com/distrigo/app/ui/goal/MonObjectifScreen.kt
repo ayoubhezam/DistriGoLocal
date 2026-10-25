@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.goal
 
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -157,10 +159,8 @@ fun MonObjectifScreen(
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.lg),
             ) {
                 NavyCard(goal, onInfo = { info = ruleInfo(goal, state.freeGood, money) })
-                Metrics(goal)
+                TrajectoryCard(goal, state.freeGood)
                 if (state.steps.isNotEmpty()) StepsCard(goal, state.steps)
-                if (goal.pace != null) ProjectionCard(goal)
-                if (goal.showReward) CommissionCard(goal, state.freeGood)
                 PastCard(goal, state.history)
             }
         }
@@ -183,10 +183,10 @@ private fun ruleInfo(goal: GoalProgress, freeGood: String?, money: MoneyFormatte
     tint = DsColors.Primary,
     summary = GoalWording.rule(goal.rules, goal.period.type, money, goal.showReward, freeGood),
     toKnow = listOf(
-        "« Ventes facturées » : les ventes du dépôt et de la tournée de la période, moins les retours clients.",
-        "« Recouvrement » : ce qui a été payé à la vente, plus les versements.",
-        "Le pourcentage est arrondi vers le bas : 100 % seulement quand l'objectif est vraiment atteint.",
-        "Une période terminée est figée : une vente modifiée ensuite ne change plus son résultat.",
+        "Ventes facturées = Ventes (dépôt + tournée) − Retours clients",
+        "Recouvrement = Payé à la vente + Versements",
+        "% = Réalisé ÷ Objectif × 100, arrondi vers le bas",
+        "Une période terminée est figée.",
     ) + listOfNotNull(
         if (goal.policySince.isAfter(goal.period.start) && goal.policySince in goal.period)
             "Politique modifiée le ${goal.policySince.dayOfMonth}/${goal.policySince.monthValue}." else null,
@@ -386,44 +386,95 @@ private fun TierMarkers(goal: GoalProgress) {
     }
 }
 
-// ── The two metrics ──
+// ── « Votre trajectoire » (owner's design, 2026-10-22): four figures in one card, amounts in full ──
 
 @Composable
-private fun Metrics(goal: GoalProgress) {
+private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
     val money = LocalMoneyFormatter.current
     val pace = goal.pace
     val next = goal.next
-    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-        if (next != null) {
-            MetricCard(Icons.Default.Flag, DsColors.Primary, "Reste à réaliser", GoalWording.whole(next.gap, money), "pour ${GoalWording.aim(goal)}")
-        } else {
-            MetricCard(Icons.Default.EmojiEvents, GoldOnWhite, "Dépassement",
-                GoalWording.whole((goal.value - goal.target.threshold).coerceAtLeast(0.0), money), "au-delà ${GoalWording.ofAim(goal)}")
+    val target = goal.target
+    val ofAim = GoalWording.ofAim(goal)
+    val cells = buildList<@Composable RowScope.() -> Unit> {
+        add {
+            if (next != null) {
+                TrajectoryCell(Icons.Outlined.Flag, DsColors.Primary, "Reste à réaliser", GoalWording.whole(next.gap, money),
+                    "${100 - target.percent} % $ofAim")
+            } else {
+                TrajectoryCell(Icons.Default.EmojiEvents, GoldOnWhite, "Dépassé de :",
+                    GoalWording.whole((goal.value - target.threshold).coerceAtLeast(0.0), money))
+            }
         }
-        if (pace != null && next != null) {
-            // Rounded up to the thousand, as the design does: a pace to keep, not a figure to the centime
-            val perDay = ceil(pace.neededPerDay / 1_000) * 1_000
-            val sales = GoalWording.salesPerDay(goal)
-            MetricCard(Icons.Default.Speed, DsColors.Warning, "Rythme conseillé", GoalWording.whole(perDay, money),
-                "par jour" + (sales?.let { " · ≈ ${if (it <= 1) "1 vente" else "$it ventes"}" }
-                    ?: " pendant ${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour" else "jours"}"))
-        } else if (pace != null) {
-            MetricCard(Icons.Default.Speed, DsColors.AccentTeal, "Rythme actuel", GoalWording.whole(pace.perDaySoFar, money),
-                "par jour · ${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour restant" else "jours restants"}")
+        if (pace != null) add {
+            if (next != null) {
+                // Rounded up to the thousand: a pace to keep, not a figure to the centime
+                val perDay = ceil(pace.neededPerDay / 1_000) * 1_000
+                TrajectoryCell(Icons.Default.Speed, DsColors.Warning, "Rythme conseillé", "${GoalWording.whole(perDay, money)} / Jour",
+                    "Pendant ${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour" else "jours"}")
+            } else {
+                TrajectoryCell(Icons.Default.Speed, DsColors.AccentTeal, "Rythme actuel", "${GoalWording.whole(pace.perDaySoFar, money)} / Jour",
+                    "${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour restant" else "jours restants"}")
+            }
+        }
+        if (pace != null) add {
+            TrajectoryCell(Icons.Default.AutoGraph, DsColors.Success, "Projection", GoalWording.whole(pace.projection, money),
+                "${goal.rules.percentOf(pace.projection, target.threshold)} % $ofAim")
+        }
+        // Only when the policy shows the bonus (D13, D20)
+        if (goal.showReward) add {
+            TrajectoryCell(Icons.Default.WorkspacePremium, DsColors.AccentViolet, "Commission estimée",
+                GoalWording.rewardValue(goal.reward, money, freeGood), GoalWording.commissionNote(goal))
+        }
+    }
+    Column(Modifier.fillMaxWidth().clip(CardShape).background(DsColors.Surface).border(1.dp, DsColors.Border, CardShape)) {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
+            CardTitle("Votre trajectoire", "Les repères clés pour atteindre votre cap", Modifier.weight(1f))
+            Spacer(Modifier.width(DsSpacing.sm))
+            TrajectoryChip(goal)
+        }
+        cells.chunked(2).forEach { pair ->
+            HorizontalDivider(color = DsColors.Border)
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                pair[0]()
+                if (pair.size == 2) {
+                    Box(Modifier.width(1.dp).fillMaxHeight().background(DsColors.Border))
+                    pair[1]()
+                }
+            }
         }
     }
 }
 
+/** The pace as the design's green chip: an icon and words, never a colour alone. */
 @Composable
-private fun RowScope.MetricCard(icon: ImageVector, tint: Color, label: String, value: String, sub: String) {
-    Column(
-        Modifier.weight(1f).clip(CardShape).background(DsColors.Surface).border(1.dp, DsColors.Border, CardShape).padding(DsSpacing.lg),
+private fun TrajectoryChip(goal: GoalProgress) {
+    val status = goal.pace?.status
+    val (text, icon, tint) = when {
+        goal.next == null || status == PaceStatus.REACHED -> Triple("ATTEINT", Icons.Default.CheckCircle, DsColors.Success)
+        status == PaceStatus.AHEAD -> Triple("EN AVANCE", Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
+        status == PaceStatus.BEHIND -> Triple("EN RETARD", Icons.AutoMirrored.Filled.TrendingDown, DsColors.Warning)
+        else -> Triple("EN BONNE VOIE", Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
+    }
+    Row(
+        Modifier.clip(DsShapes.pill).background(tint.copy(alpha = 0.1f)).padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = tint)
+    }
+}
+
+@Composable
+private fun RowScope.TrajectoryCell(icon: ImageVector, tint: Color, label: String, value: String, sub: String? = null) {
+    Column(Modifier.weight(1f).padding(DsSpacing.lg)) {
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        }
         Spacer(Modifier.height(DsSpacing.md))
-        Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = DsColors.TextTertiary)
+        Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = DsColors.TextSecondary)
         Text(value, fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark, modifier = Modifier.padding(top = 2.dp))
-        Text(sub, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(top = 2.dp))
+        sub?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextTertiary, modifier = Modifier.padding(top = 2.dp)) }
     }
 }
 
@@ -502,7 +553,9 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
         },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(if (step.future) "—" else GoalWording.compact(step.value), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = tint)
+        // In full, as every amount (owner, 2026-10-22); « DA » left to the card's other figures, for the width
+        Text(if (step.future) "—" else GoalWording.whole(step.value, money).removeSuffix("DA").trimEnd(), fontSize = 10.sp,
+            fontWeight = FontWeight.Bold, color = tint, maxLines = 1, softWrap = false)
         Spacer(Modifier.height(6.dp))
         Box(Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).background(DsColors.SurfaceSunken), contentAlignment = Alignment.BottomCenter) {
             if (height > 0f) {
@@ -512,93 +565,6 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
         }
         Spacer(Modifier.height(6.dp))
         Text(step.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = tint)
-    }
-}
-
-// ── The projection ──
-
-@Composable
-private fun ProjectionCard(goal: GoalProgress) {
-    val money = LocalMoneyFormatter.current
-    val pace = goal.pace ?: return
-    val aim = goal.target.threshold
-    val projected = pace.projection
-    val title = when (goal.period.type) {
-        PeriodType.MONTHLY -> "Projection de fin de mois"
-        PeriodType.QUARTERLY -> "Projection de fin de trimestre"
-        PeriodType.YEARLY -> "Projection de fin d'année"
-    }
-    WhiteCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CardTitle(title, "Au rythme actuel", Modifier.weight(1f))
-            Icon(Icons.Default.AutoGraph, contentDescription = null, tint = DsColors.AccentViolet, modifier = Modifier.size(26.dp))
-        }
-        Spacer(Modifier.height(DsSpacing.lg))
-        Row(verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
-                Text(GoalWording.whole(projected, money), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
-                val above = goal.rules.reaches(projected, aim)
-                val gap = GoalWording.whole(abs(projected - aim), money)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = DsSpacing.xs)) {
-                    Icon(if (above) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, contentDescription = null,
-                        tint = if (above) DsColors.Success else DsColors.Warning, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(DsSpacing.xs))
-                    Text(
-                        if (above) "$gap au-dessus ${GoalWording.ofAim(goal)}" else "Il manquerait $gap pour ${GoalWording.aim(goal)}",
-                        fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (above) DsColors.Success else DsColors.Warning,
-                    )
-                }
-                goal.rules.tierAt(projected)?.let { tier ->
-                    Text("Fin de période au palier ${goal.rules.sortedTiers.indexOf(tier) + 1}",
-                        fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(top = 2.dp))
-                }
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(
-                "${goal.rules.percentOf(projected, aim)} %",
-                fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.ExtraBold, color = DsColors.AccentViolet,
-                modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(DsColors.AccentViolet.copy(alpha = 0.08f))
-                    .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
-            )
-        }
-    }
-}
-
-// ── The commission, only when the policy shows it ──
-
-@Composable
-private fun CommissionCard(goal: GoalProgress, freeGood: String?) {
-    val money = LocalMoneyFormatter.current
-    Column(
-        Modifier.fillMaxWidth().clip(CardShape).background(DsColors.PrimaryLight.copy(alpha = 0.7f))
-            .border(1.dp, DsColors.Primary.copy(alpha = 0.15f), CardShape).padding(DsSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(16.dp)).background(DsColors.Surface), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(24.dp))
-            }
-            Spacer(Modifier.width(DsSpacing.md))
-            Column(Modifier.weight(1f)) {
-                Text("Commission estimée", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-                Text("Selon votre politique actuelle · ${GoalWording.policyLine(goal.rules)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-            }
-            Spacer(Modifier.width(DsSpacing.sm))
-            Text(GoalWording.rewardValue(goal.reward, money, freeGood), fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary)
-        }
-        // The jump to the next milestone, the strongest motive (D13)
-        val next = goal.next
-        if (next != null && next.reward !is RewardResult.NotAchieved) {
-            HorizontalDivider(color = DsColors.Primary.copy(alpha = 0.12f))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(DsSpacing.sm))
-                Text(
-                    "${goal.target.tier?.let { "Au palier $it" } ?: "À l'objectif"} : ${GoalWording.rewardValue(next.reward, money, freeGood)}",
-                    fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Success,
-                )
-            }
-        }
     }
 }
 

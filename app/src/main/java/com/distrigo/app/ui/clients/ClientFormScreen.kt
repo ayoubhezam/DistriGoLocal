@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.distrigo.app.data.lists.ClientPlacement
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.ui.common.ImageCapture
 import kotlinx.coroutines.launch
@@ -49,14 +51,22 @@ import androidx.compose.material.icons.filled.Map
 import com.distrigo.app.data.geo.GeoRepository
 import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectSheet
+import com.distrigo.app.ui.common.QuartierPickerSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
 import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.foundation.border
+/**
+ * A new client's form, or an existing one's. Opened from a quartier, [placement] fills the wilaya, commune, secteur and
+ * quartier and locks them (owner's prototype v5, 2026-10-24), and a banner says so.
+ */
 @Composable
 fun ClientFormScreen(
     client       : Client? = null,
+    placement    : ClientPlacement? = null,
     onBack       : () -> Unit,
     onSaved      : (Int) -> Unit,
+    /** A new client saved, with its name; when set, instead of [onSaved]. */
+    onAdded      : ((Int, String) -> Unit)? = null,
     viewModel    : ClientViewModel  = hiltViewModel()
 ) {
     val isEdit = client != null
@@ -65,26 +75,34 @@ fun ClientFormScreen(
 
     var name         by remember { mutableStateOf(client?.name ?: "") }
     var phone        by remember { mutableStateOf(client?.phone ?: "") }
-    var wilayaName   by remember { mutableStateOf(client?.wilaya_name ?: "") }
-    var communeName  by remember { mutableStateOf(client?.commune_name ?: "") }
+    var wilayaName   by remember { mutableStateOf(placement?.wilaya ?: client?.wilaya_name ?: "") }
+    var communeName  by remember { mutableStateOf(placement?.commune ?: client?.commune_name ?: "") }
     var selectedWilayaCode by remember(wilayaName) {
         mutableStateOf(GeoRepository.findWilayaByFrName(wilayaName)?.wilayaCode)
     }
-    var secteurId    by remember { mutableStateOf(client?.secteur_id) }
-    var secteurName  by remember { mutableStateOf(client?.secteur_name ?: "") }
+    var secteurId    by remember { mutableStateOf(placement?.secteurId?.toInt() ?: client?.secteur_id) }
+    var secteurName  by remember { mutableStateOf(placement?.secteurName ?: client?.secteur_name ?: "") }
+    var quartierId   by remember { mutableStateOf(placement?.quartierId ?: client?.quartier_id?.toLong()) }
+    var quartierName by remember { mutableStateOf(placement?.quartierName ?: client?.quartier_name ?: "") }
+    val locked = placement != null
 
     var showWilayaSheet  by remember { mutableStateOf(false) }
     var showCommuneSheet by remember { mutableStateOf(false) }
     var showSecteurSheet by remember { mutableStateOf(false) }
+    var showQuartierSheet by remember { mutableStateOf(false) }
 
     val secteurs by viewModel.secteurs.collectAsState()
+    val quartiers by viewModel.quartiers.collectAsState()
+    LaunchedEffect(secteurId) { viewModel.loadQuartiers(secteurId) }
+    // A quartier is inside its secteur: another place empties it
+    val clearQuartier = { quartierId = null; quartierName = "" }
 
     LaunchedEffect(communeName) {
         if (communeName.isNotBlank()) viewModel.loadSecteurs(communeName)
     }
 
     LaunchedEffect(Unit) {
-        if (!isEdit && wilayaName.isBlank()) {
+        if (!isEdit && !locked && wilayaName.isBlank()) {
             viewModel.getDefaultWilaya()?.let { defaultWilaya ->
                 wilayaName         = defaultWilaya
                 selectedWilayaCode = GeoRepository.findWilayaByFrName(defaultWilaya)?.wilayaCode
@@ -142,24 +160,30 @@ fun ClientFormScreen(
             "customer_type" to customerType,
             "image_uri"     to imageBase64,
             "latitude"      to latitudeStr.trim().toDoubleOrNull(),
-            "longitude"     to longitudeStr.trim().toDoubleOrNull()
+            "longitude"     to longitudeStr.trim().toDoubleOrNull(),
+            // Read back from the quartier itself on save; null takes the client out of any
+            "quartier_id"   to quartierId
         )
+        val failed: (String) -> Unit = { message ->
+            isSaving = false
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
 
         if (isEdit) {
             viewModel.updateClient(
                 id        = client!!.id,
                 client    = data,
                 onSuccess = { onSaved(client.id) },
-                onError   = { isSaving = false }
+                onError   = failed
             )
         } else {
             viewModel.addClient(
                 client    = data,
                 onSuccess = { result ->
                     val newId = (result["id"] as? Double)?.toInt() ?: 0
-                    onSaved(newId)
+                    onAdded?.invoke(newId, name.trim()) ?: onSaved(newId)
                 },
-                onError   = { isSaving = false }
+                onError   = failed
             )
         }
     }
@@ -201,6 +225,11 @@ fun ClientFormScreen(
         ) {
 
             Spacer(Modifier.height(DsSpacing.md))
+
+            placement?.let {
+                PlacementBanner(it.quartierName)
+                Spacer(Modifier.height(DsSpacing.md))
+            }
 
             // ── Photo ──
             Box(
@@ -297,7 +326,8 @@ fun ClientFormScreen(
                     DsSelectorField(
                         label       = "Wilaya",
                         value       = wilayaName,
-                        placeholder = "Sélectionner une wilaya",
+                        placeholder = if (locked) "Non renseignée" else "Sélectionner une wilaya",
+                        locked      = locked,
                         onClick     = { showWilayaSheet = true }
                     )
                 }
@@ -306,6 +336,7 @@ fun ClientFormScreen(
                         label       = "Commune",
                         value       = communeName,
                         placeholder = "Sélectionner une commune",
+                        locked      = locked,
                         onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                     )
                 }
@@ -326,8 +357,30 @@ fun ClientFormScreen(
                     label       = null,
                     value       = secteurName,
                     placeholder = "Sélectionner un secteur",
+                    locked      = locked,
                     onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
                 )
+            }
+
+            // ── Quartier (optionnel): once a secteur is chosen; filled and locked from a quartier ──
+            if (secteurId != null) {
+                Spacer(Modifier.height(DsSpacing.md))
+                Column {
+                    Text(
+                        "Quartier (optionnel)",
+                        fontSize   = DsTextSize.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = DsColors.TextPrimary
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    DsSelectorField(
+                        label       = null,
+                        value       = quartierName,
+                        placeholder = "Sélectionner un quartier",
+                        locked      = locked,
+                        onClick     = { showQuartierSheet = true }
+                    )
+                }
             }
 
             Spacer(Modifier.height(DsSpacing.md))
@@ -442,6 +495,7 @@ fun ClientFormScreen(
                     communeName        = ""
                     secteurId          = null
                     secteurName        = ""
+                    clearQuartier()
                 }
             )
         }
@@ -459,6 +513,19 @@ fun ClientFormScreen(
                     communeName = commune.nameFr
                     secteurId   = null
                     secteurName = ""
+                    clearQuartier()
+                }
+            )
+        }
+
+        if (showQuartierSheet) {
+            QuartierPickerSheet(
+                quartiers  = quartiers,
+                selectedId = quartierId,
+                onDismiss  = { showQuartierSheet = false },
+                onSelect   = { quartier ->
+                    quartierId   = quartier?.id
+                    quartierName = quartier?.name.orEmpty()
                 }
             )
         }
@@ -470,6 +537,7 @@ fun ClientFormScreen(
                 secteurs    = secteurs,
                 onDismiss   = { showSecteurSheet = false },
                 onSelect    = { secteur ->
+                    if (secteur.id != secteurId) clearQuartier()
                     secteurId   = secteur.id
                     secteurName = secteur.nom
                 },
@@ -479,6 +547,7 @@ fun ClientFormScreen(
                         communeName = communeName,
                         wilayaName  = wilayaName.ifEmpty { null },
                         onSuccess   = { secteur ->
+                            clearQuartier()
                             secteurId   = secteur.id
                             secteurName = secteur.nom
                         },
@@ -487,6 +556,27 @@ fun ClientFormScreen(
                 }
             )
         }
+    }
+}
+
+/** « Secteur et quartier présélectionnés depuis « X ». », in the info blue of the prototype. */
+@Composable
+private fun PlacementBanner(quartierName: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.PrimaryLight)
+            .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(
+            "Secteur et quartier présélectionnés depuis « $quartierName ».",
+            fontSize = DsTextSize.body,
+            color    = DsColors.PrimaryDark
+        )
     }
 }
 

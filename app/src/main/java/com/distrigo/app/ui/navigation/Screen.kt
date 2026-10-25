@@ -29,6 +29,8 @@ sealed class Screen(val route: String) {
     data object DrillRetoursFournisseur : Drill("retours_fournisseur")
     data object DrillProduit  : Drill("produit")
     data object DrillTournee  : Drill("tournee")
+    data object DrillSecteur  : Drill("secteur")
+    data object DrillQuartier : Drill("quartier")
     data object PlusFournisseurs : Screen("plus_fournisseurs")
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")
@@ -64,6 +66,29 @@ sealed class Screen(val route: String) {
     data object SettingsTrash      : Screen("settings_trash")
     data object SettingsDiagnostics : Screen("settings_diagnostics")
     data object SettingsLists      : Screen("settings_lists")
+    data object SettingsSecteurs   : Screen("settings_secteurs")
+    data object SettingsSecteurDetail : Screen("settings_secteur/{secteurId}") {
+        fun createRoute(secteurId: Long) = "settings_secteur/$secteurId"
+    }
+    data object SettingsQuartierDetail : Screen("settings_quartier/{quartierId}") {
+        fun createRoute(quartierId: Long) = "settings_quartier/$quartierId"
+    }
+    /** The Clients list in Paramètres; `mode=select` picks clients for quartier [quartierId] (« Ajouter des clients »). */
+    data object SettingsClients : Screen("settings_clients?mode={mode}&quartierId={quartierId}") {
+        const val MODE_SELECT = "select"
+        fun select(quartierId: Long) = "settings_clients?mode=$MODE_SELECT&quartierId=$quartierId"
+    }
+    /** A new client's form opened from quartier [quartierId]: its place filled and locked. */
+    data object SettingsClientForm : Screen("settings_client_form?inQuartier={inQuartier}") {
+        fun inQuartier(quartierId: Long) = "settings_client_form?inQuartier=$quartierId"
+    }
+    data object SettingsQuartierForm : Screen("settings_quartier_form?secteurId={secteurId}&quartierId={quartierId}") {
+        fun newIn(secteurId: Long) = "settings_quartier_form?secteurId=$secteurId"
+        fun edit(quartierId: Long) = "settings_quartier_form?quartierId=$quartierId"
+    }
+    data object SettingsSecteurForm : Screen("settings_secteur_form?secteurId={secteurId}") {
+        fun createRoute(secteurId: Long? = null) = if (secteurId == null) "settings_secteur_form" else "settings_secteur_form?secteurId=$secteurId"
+    }
     /** One list of « Listes et catégories »; [parentId] and [parentName] for a category's sous-catégories or a type's sous-types. */
     data object SettingsList : Screen("settings_list/{kind}?parentId={parentId}&parentName={parentName}") {
         fun createRoute(kind: com.distrigo.app.data.lists.ListKind, parentId: Long? = null, parentName: String? = null) =

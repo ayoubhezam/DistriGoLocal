@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.data.lists.ListsRepository
+import com.distrigo.app.data.lists.QuartierSummary
+import kotlinx.coroutines.withContext
 import com.distrigo.app.ui.common.userMessage
 
 import com.distrigo.app.data.model.Client
@@ -12,6 +15,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.ClientLedgerPreview
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.model.Secteur
@@ -31,8 +35,16 @@ import kotlinx.coroutines.flow.flowOn
 
 @HiltViewModel
 class ClientViewModel @Inject constructor(
-    private val repository: ProductRepository
+    private val repository: ProductRepository,
+    private val lists: ListsRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /**
+     * Set when the list picks clients for a quartier (« Ajouter des clients »): it then lists only those not in it
+     * already, as the query reads them. Null for the Clients list itself.
+     */
+    private val outsideQuartier: Int? = savedStateHandle.get<Long>(ARG_QUARTIER_ID)?.takeIf { it > 0 }?.toInt()
 
     /** The Clients list's filter sheet. Here, not in the screen, so opening a client and coming back keeps it. */
     var listFilters by mutableStateOf(ClientListFilters())
@@ -48,7 +60,7 @@ class ClientViewModel @Inject constructor(
 
     // Room-observed single source of truth: re-emits on every write to the clients table
     // (ajout/modification/suppression, recalcul de solde après vente ou paiement…) — no manual refresh.
-    val clients: StateFlow<List<Client>> = repository.observeClients()
+    val clients: StateFlow<List<Client>> = (outsideQuartier?.let { repository.observeClientsOutsideQuartier(it) } ?: repository.observeClients())
         .onEach { _isLoading.value = false; _error.value = null }
         .catch { e -> _error.value = userMessage(e); _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -84,6 +96,18 @@ class ClientViewModel @Inject constructor(
      * [com.distrigo.app.data.local.dao.ClientDao.getMostCommonWilaya].
      */
     suspend fun getDefaultWilaya(): String? = repository.getMostCommonClientWilaya()
+
+    private val _quartiers = MutableStateFlow<List<QuartierSummary>>(emptyList())
+    val quartiers: StateFlow<List<QuartierSummary>> = _quartiers
+
+    /** The form's quartier picker: secteur [secteurId]'s quartiers; none without a secteur. */
+    fun loadQuartiers(secteurId: Int?) {
+        viewModelScope.launch {
+            _quartiers.value = if (secteurId == null) emptyList() else withContext(Dispatchers.IO) {
+                runCatching { lists.quartiers(secteurId.toLong()) }.getOrElse { emptyList() }
+            }
+        }
+    }
 
     fun loadSecteurs(communeName: String) {
         viewModelScope.launch {
@@ -241,6 +265,9 @@ class ClientViewModel @Inject constructor(
             }
         }
     }
+
+    companion object {
+        /** The quartier « Ajouter des clients » picks for (a Long route argument). */
+        const val ARG_QUARTIER_ID = "quartierId"
+    }
 }
-
-

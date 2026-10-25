@@ -160,8 +160,12 @@ class ImportRepository(
     private suspend fun updateClient(id: Int, values: ClientValues, ids: Ids) {
         val existing = db.clientDao().getClientById(id) ?: throw ImportStaleException()
         val secteur = values.secteur?.let { ids.secteur(values.commune ?: existing.commune_name!!, it) }
+        // A quartier is inside its secteur: another secteur takes the client out of it
+        val keepsQuartier = secteur == null || secteur.id == existing.secteur_id
         db.clientDao().updateClient(
             existing.copy(
+                quartier_id = if (keepsQuartier) existing.quartier_id else null,
+                quartier_name = if (keepsQuartier) existing.quartier_name else null,
                 name = values.name,
                 phone = values.phone ?: existing.phone,
                 customer_type = values.customerType ?: existing.customer_type,

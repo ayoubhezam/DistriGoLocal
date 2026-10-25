@@ -59,11 +59,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.distrigo.app.data.repository.TourneeDayClient
 
-private val INFO_TOURNEE = ReportInfo(
-    "Tournée du jour",
-    "Les clients de la tournée en cours : « Avec achat » ont une vente sur la tournée, « Sans achat » ont été marqués " +
-        "visités sans vente, « En attente » restent à visiter."
-)
+private val INFO_TOURNEE = ReportInfo("Tournée du jour", "Avec achat : une vente sur la tournée\nSans achat : visité, sans vente\nEn attente : à visiter")
 private val DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 

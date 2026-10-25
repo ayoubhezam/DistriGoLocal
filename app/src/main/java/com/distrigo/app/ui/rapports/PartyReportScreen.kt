@@ -80,46 +80,38 @@ private class PartyWords(
 
 private fun wordsFor(side: DebtSide) = if (side == DebtSide.CLIENTS) PartyWords(
     total = "Ventes aux clients",
-    totalInfo = ReportInfo("Ventes aux clients",
-        "Le total des ventes de la période, tous clients confondus, dépôt et camion. En dessous, combien de clients différents ont acheté."),
+    totalInfo = ReportInfo("Ventes aux clients", "Ventes = somme des ventes, dépôt + camion"),
     people = { plural(it, "client actif", "clients actifs") },
     documents = { plural(it, "vente", "ventes") },
     active = "Clients actifs",
-    activeInfo = ReportInfo("Clients actifs", "Le nombre de clients différents qui ont acheté au moins une fois sur la période."),
+    activeInfo = ReportInfo("Clients actifs", "Clients actifs = clients avec au moins un achat"),
     average = "Panier moyen",
-    averageInfo = ReportInfo("Panier moyen", "Ce qu'une vente rapporte en moyenne sur la période : ventes ÷ nombre de ventes."),
+    averageInfo = ReportInfo("Panier moyen", "Panier moyen = Ventes ÷ Nombre de ventes"),
     topTitle = "Meilleurs clients",
-    topInfo = ReportInfo("Meilleurs clients",
-        "Les clients classés par ce qu'ils ont acheté, par la marge brute qu'ils ont laissée — ventes − ce que les produits avaient coûté — ou par nombre de ventes."),
-    shareInfo = ReportInfo("Concentration",
-        "La part des ventes faite par vos cinq meilleurs clients. Plus elle est grande, plus l'activité dépend de peu de clients : en perdre un se sentirait."),
+    topInfo = ReportInfo("Meilleurs clients", "Classés par ventes, par marge brute (Ventes − Coût des ventes) ou par nombre de ventes."),
+    shareInfo = ReportInfo("Concentration", "Concentration = Ventes des 5 meilleurs clients ÷ Ventes × 100"),
     listTitle = "Clients de la période",
     rankings = PartyRanking.entries,
     rankingLabel = { if (it == PartyRanking.DOCUMENTS) "Ventes" else it.label },
 ) else PartyWords(
     total = "Achats aux fournisseurs",
-    totalInfo = ReportInfo("Achats aux fournisseurs",
-        "Le total des bons d'achat datés de la période, reçus ou non, tous fournisseurs confondus — comme les compte « Achats à crédit » dans Créances et dettes."),
+    totalInfo = ReportInfo("Achats aux fournisseurs", "Achats = somme des bons d'achat datés de la période, reçus ou non"),
     people = { plural(it, "fournisseur", "fournisseurs") },
     documents = { plural(it, "bon", "bons") },
     active = "Fournisseurs",
-    activeInfo = ReportInfo("Fournisseurs", "Le nombre de fournisseurs différents auprès de qui vous avez acheté sur la période."),
+    activeInfo = ReportInfo("Fournisseurs", "Fournisseurs = fournisseurs avec au moins un bon"),
     average = "Bon moyen",
-    averageInfo = ReportInfo("Bon moyen", "Ce qu'un bon d'achat coûte en moyenne sur la période : achats ÷ nombre de bons."),
+    averageInfo = ReportInfo("Bon moyen", "Bon moyen = Achats ÷ Nombre de bons"),
     topTitle = "Principaux fournisseurs",
-    topInfo = ReportInfo("Principaux fournisseurs", "Les fournisseurs classés par ce que vous leur avez acheté, ou par nombre de bons."),
-    shareInfo = ReportInfo("Concentration",
-        "La part de vos achats faite chez vos cinq premiers fournisseurs. Plus elle est grande, plus vous dépendez de peu de fournisseurs."),
+    topInfo = ReportInfo("Principaux fournisseurs", "Classés par achats ou par nombre de bons."),
+    shareInfo = ReportInfo("Concentration", "Concentration = Achats aux 5 premiers fournisseurs ÷ Achats × 100"),
     listTitle = "Fournisseurs de la période",
     rankings = listOf(PartyRanking.MONTANT, PartyRanking.DOCUMENTS),
     rankingLabel = { if (it == PartyRanking.DOCUMENTS) "Bons" else it.label },
 )
 
-private val INFO_NEW = ReportInfo("Nouveaux clients", "Les clients dont le tout premier achat a eu lieu pendant la période.")
-private val INFO_INACTIVE = ReportInfo(
-    "Clients inactifs",
-    "Les clients qui ont déjà acheté, mais plus rien depuis le début de la période — à relancer. Le montant est ce qu'ils ont acheté en tout. Touchez la carte pour la liste."
-)
+private val INFO_NEW = ReportInfo("Nouveaux clients", "Nouveaux clients = clients dont le premier achat est dans la période")
+private val INFO_INACTIVE = ReportInfo("Clients inactifs", "Clients inactifs = clients sans achat depuis le début de la période\nMontant = total de leurs achats")
 
 /** Opens a party's own page through the app's drill-down. */
 @Composable

@@ -87,25 +87,9 @@ private fun communeLabel(commune: String?) = when (commune) {
     else -> commune
 }
 
-private val INFO_DISTRIBUTION = ReportInfo(
-    "Meilleure distribution",
-    "Où sont vos clients, et lesquels ont acheté sur la période.\n\n" +
-        "• Clients : ceux enregistrés à la fin de la période — sans les clients supprimés —, dans la commune choisie s'il y en a une.\n" +
-        "• Clients servis : ceux qui ont au moins une vente sur la période — dépôt et camion, ou l'un des deux selon Tout / Dépôt / Camion.\n" +
-        "• Conversion : clients servis ÷ clients.\n\n" +
-        "Le choix d'une commune ne change que ces trois chiffres et le Top 7 secteurs ; le chiffre d'affaires et le reste du rapport restent ceux de toute l'activité."
-)
-private val INFO_TOP_SECTORS = ReportInfo(
-    "Top 7 secteurs",
-    "Les sept secteurs qui comptent le plus de clients, le plus grand en haut ; la longueur d'une barre suit son nombre de clients. " +
-        "En bleu les clients servis, en orange ceux sans vente ; le pourcentage est la conversion du secteur.\n\n" +
-        "Touchez un secteur pour voir ses clients sans vente. Les clients sans secteur n'y figurent pas."
-)
-private val INFO_COMMUNES = ReportInfo(
-    "Répartition par commune",
-    "Chaque commune : ses clients servis sur ses clients, sa conversion, et le nombre de secteurs qu'elle compte. " +
-        "« $SANS_COMMUNE » : les clients dont la fiche n'a pas de commune. Toutes les communes, quelle que soit celle choisie plus haut."
-)
+private val INFO_DISTRIBUTION = ReportInfo("Meilleure distribution", "Clients = clients enregistrés\nClients servis = clients avec au moins une vente\nConversion = Clients servis ÷ Clients × 100\n\nLa commune choisie ne filtre que ces chiffres et le Top 7 secteurs.")
+private val INFO_TOP_SECTORS = ReportInfo("Top 7 secteurs", "Les 7 secteurs avec le plus de clients. Bleu : servis ; orange : sans vente.\nConversion = Clients servis ÷ Clients × 100")
+private val INFO_COMMUNES = ReportInfo("Répartition par commune", "Par commune : Clients servis / Clients, la conversion et le nombre de secteurs.\n« $SANS_COMMUNE » : clients sans commune.")
 
 /**
  * The Ventes report's distribution, as items of its list: the commune selector, the three figures,

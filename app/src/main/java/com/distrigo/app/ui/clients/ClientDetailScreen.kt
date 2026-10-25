@@ -4,6 +4,7 @@ import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
+import com.distrigo.app.ui.navigation.ShowsRecord
 import com.distrigo.app.data.time.BusinessDates
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -15,6 +16,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -93,6 +95,7 @@ fun ClientDetailScreen(
     val currentClient = viewModel.clients.collectAsState().value
         .find { it.id == client.id } ?: client
     val drill = LocalDrillDown.current
+    ShowsRecord(DrillTarget.Client(client.id))
 
     val balanceStatus = when {
         Amount.owing(currentClient.balance)     -> "due"
@@ -696,6 +699,18 @@ fun ClientDetailScreen(
                                     value = currentClient.commune_name?.takeIf { it.isNotBlank() }
                                         ?: "Non renseignée")
                                 ClientInfoRow(
+                                    icon = Icons.Default.Place,
+                                    label = "Secteur",
+                                    value = currentClient.secteur_name?.takeIf { it.isNotBlank() }
+                                        ?: "Aucun secteur",
+                                    onClick = currentClient.secteur_id?.let { id -> { drill(DrillTarget.Secteur(id)) } })
+                                ClientInfoRow(
+                                    icon = Icons.Default.HomeWork,
+                                    label = "Quartier",
+                                    value = currentClient.quartier_name?.takeIf { it.isNotBlank() }
+                                        ?: "Aucun quartier",
+                                    onClick = currentClient.quartier_id?.let { id -> { drill(DrillTarget.Quartier(id)) } })
+                                ClientInfoRow(
                                     icon = Icons.Default.Home,
                                     label = "Adresse",
                                     value = currentClient.address?.takeIf { it.isNotBlank() }
@@ -908,8 +923,18 @@ private fun clientToUpdateMap(client: Client, newImageUri: String?) = mapOf(
 )
 
 @Composable
-private fun ClientInfoRow(icon: ImageVector, label: String, value: String) {
+private fun ClientInfoRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    /** Opens the record the row names (a secteur, a quartier), with a chevron; null leaves it as text. */
+    onClick: (() -> Unit)? = null,
+) {
     Row(
+        modifier = if (onClick == null) Modifier else Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.small)
+            .clickable(role = Role.Button, onClickLabel = "Ouvrir $label", onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {
@@ -927,7 +952,7 @@ private fun ClientInfoRow(icon: ImageVector, label: String, value: String) {
                 modifier = Modifier.size(16.dp)
             )
         }
-        Column {
+        Column(if (onClick == null) Modifier else Modifier.weight(1f)) {
             Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             Text(
                 value,
@@ -935,6 +960,9 @@ private fun ClientInfoRow(icon: ImageVector, label: String, value: String) {
                 fontWeight = FontWeight.Medium,
                 color = DsColors.TextPrimary
             )
+        }
+        if (onClick != null) {
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }

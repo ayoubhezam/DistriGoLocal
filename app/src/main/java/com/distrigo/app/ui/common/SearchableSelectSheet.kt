@@ -37,7 +37,9 @@ fun <T> SearchableSelectSheet(
     allSelected: Boolean = false,
     onSelectAll: () -> Unit = {},
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // Fully open, the list filling the sheet: half open, the list's last rows sat below the screen and could not be
+    // scrolled into view (owner, 2026-10-24: « all wilayas or communes reachable »)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         SearchableSelectList(
             title       = title,
             items       = items,
@@ -49,6 +51,7 @@ fun <T> SearchableSelectSheet(
             allSelected = allSelected,
             onSelectAll = { onSelectAll(); onDismiss() },
             modifier    = Modifier.padding(horizontal = DsSpacing.md).padding(bottom = DsSpacing.lg),
+            fillHeight  = true,
         )
     }
 }
@@ -81,6 +84,8 @@ fun <T> SearchableSelectList(
     allSelected: Boolean = false,
     onSelectAll: () -> Unit = {},
     onBack: (() -> Unit)? = null,
+    /** In a sheet of its own: the list takes the height the sheet has, rather than [LIST_MAX_HEIGHT]. */
+    fillHeight: Boolean = false,
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, items) {
@@ -112,7 +117,7 @@ fun <T> SearchableSelectList(
         )
         Spacer(Modifier.height(DsSpacing.sm))
 
-        LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+        LazyColumn(modifier = if (fillHeight) Modifier.weight(1f, fill = false) else Modifier.heightIn(max = LIST_MAX_HEIGHT)) {
             if (allLabel != null && query.isBlank()) {
                 item(key = ALL_ROW_KEY) {
                     SelectRow(allLabel, selected = allSelected, muted = true) { onSelectAll() }
@@ -133,6 +138,9 @@ fun <T> SearchableSelectList(
         }
     }
 }
+
+/** The list's height inside a filter sheet, which has its own content around it. */
+private val LIST_MAX_HEIGHT = 420.dp
 
 /** One choice: its label, and a check when it is the current one. */
 @Composable

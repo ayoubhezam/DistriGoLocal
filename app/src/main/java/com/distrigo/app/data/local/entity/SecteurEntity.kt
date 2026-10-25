@@ -20,5 +20,7 @@ data class SecteurEntity(
     @ColumnInfo(defaultValue = "1")
     val version: Int = 1,
     /** The device that created the row; null for rows created before version 48. */
-    val origin_device_id: String? = null
+    val origin_device_id: String? = null,
+    /** Free text shown under the secteur's name; null for rows created before version 64. */
+    val description: String? = null
 )
