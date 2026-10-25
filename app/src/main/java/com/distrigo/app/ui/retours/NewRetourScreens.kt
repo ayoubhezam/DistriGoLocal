@@ -91,8 +91,8 @@ import kotlinx.coroutines.launch
 /**
  * A new return: only what can come back from this client or to this supplier, the Inventaire's way —
  * search and scanner, Produits' rows with the most that may be returned on the right. A tap, or a
- * scanned code (which skips the list), opens [RetourDialog]; once saved the product leaves the list for
- * the selection the bar at the bottom opens.
+ * scanned code (which skips the list), opens [RetourDialog]; what it saves goes to the selection the bar at the
+ * bottom opens, and the list keeps the product with what is left of it (8, 2 selected: 6), until nothing is.
  */
 @Composable
 fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpenCart: () -> Unit) {
@@ -195,12 +195,12 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
         }
     }
 
+    // [r] carries what is left of it as its maximum; a line already selected is changed from the selection
     editing?.let { r ->
-        val existing = viewModel.inCart(r.product.id)
         RetourDialog(
             productName = r.product.name, unit = r.product.unit_type, max = r.maxQuantity,
-            motifs = viewModel.motifs, initialMotif = existing?.motif, initialQty = existing?.quantity,
-            onSave = { qty, motif -> viewModel.put(r, qty, motif); editing = null },
+            motifs = viewModel.motifs, initialMotif = null, initialQty = null,
+            onSave = { qty, motif -> viewModel.add(r.product.id, qty, motif); editing = null },
             onDismiss = { editing = null }
         )
     }
@@ -316,7 +316,7 @@ fun RetourDialog(
 fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNext: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val cart by viewModel.cart.collectAsState()
-    var expandedId by remember { mutableStateOf<Int?>(null) }
+    var expandedId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<RetourCartLine?>(null) }
     BackHandler(onBack = onBack)
 
@@ -331,15 +331,15 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                     contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                 ) {
-                    items(cart, key = { it.product.id }) { line ->
-                        val expanded = expandedId == line.product.id
+                    items(cart, key = { it.key }) { line ->
+                        val expanded = expandedId == line.key
                         SelectionCartCard(
                             avatarIcon      = Icons.AutoMirrored.Filled.AssignmentReturn,
                             title           = line.product.name,
                             metaLine        = "${formatQty(line.quantity)} ${line.product.unit_type} · ${line.motif}",
                             totalPriceLabel = money.da(line.quantity * viewModel.priceOf(line.product)),
                             isExpanded      = expanded,
-                            onToggleExpand  = { expandedId = if (expanded) null else line.product.id },
+                            onToggleExpand  = { expandedId = if (expanded) null else line.key },
                             statusLine      = {
                                 CartStatusLine(
                                     icon = Icons.Default.Inventory2,
@@ -349,7 +349,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                             },
                             expandedContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    TextButton(onClick = { viewModel.remove(line.product.id); expandedId = null }) {
+                                    TextButton(onClick = { viewModel.remove(line); expandedId = null }) {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
@@ -387,9 +387,10 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
 
     editing?.let { line ->
         RetourDialog(
-            productName = line.product.name, unit = line.product.unit_type, max = line.returnable.maxQuantity,
+            // At most this line and what no other line of the product takes
+            productName = line.product.name, unit = line.product.unit_type, max = viewModel.left(line.returnable, cart, except = line),
             motifs = viewModel.motifs, initialMotif = line.motif, initialQty = line.quantity,
-            onSave = { qty, motif -> viewModel.put(line.returnable, qty, motif); editing = null; expandedId = null },
+            onSave = { qty, motif -> viewModel.change(line, qty, motif); editing = null; expandedId = null },
             onDismiss = { editing = null }
         )
     }
@@ -435,7 +436,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
                     }
                 }
             }
-            items(lines, key = { it.product.id }) { line ->
+            items(lines, key = { it.key }) { line ->
                 Row(
                     Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
                     verticalAlignment = Alignment.CenterVertically

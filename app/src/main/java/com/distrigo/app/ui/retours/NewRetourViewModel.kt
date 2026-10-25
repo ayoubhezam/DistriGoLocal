@@ -32,9 +32,14 @@ import javax.inject.Inject
 /** A product that can come back, and the most of it that can: delivered or received, less what was returned. */
 data class ReturnableProduct(val product: Product, val maxQuantity: Double)
 
-/** One product in a return's selection: how much comes back, and why. */
+/**
+ * A line of a return's selection: how much of a product comes back, and why. A product may have a line per motif
+ * (2 périmés, 3 abîmés), never two with the same one.
+ */
 data class RetourCartLine(val returnable: ReturnableProduct, val quantity: Double, val motif: String) {
     val product: Product get() = returnable.product
+    /** A line's identity in the selection: its product and its motif. */
+    val key: String get() = "${product.id}|$motif"
 }
 
 /** Why a quantity cannot be returned, or null when it can: nothing, or more than [max]. */
@@ -85,31 +90,54 @@ abstract class NewRetourViewModel(
     var search by mutableStateOf("")
     var date by mutableStateOf(LocalDate.now())
 
-    /** The list on screen: eligible, not already selected, matching the search by name or code. */
+    /** What is left of [r] to select: its maximum, less its lines in [cart] — all but [except], the one being changed. */
+    fun left(r: ReturnableProduct, cart: List<RetourCartLine>, except: RetourCartLine? = null): Double =
+        Quantity.normalize(r.maxQuantity - cart.filter { it.product.id == r.product.id && it.key != except?.key }.sumOf { it.quantity })
+
+    /**
+     * The list on screen: eligible with something left to select, matching the search by name or code. Each comes
+     * with what is left as its maximum: 8 that can come back, 2 of them selected, shows 6.
+     */
     fun visible(all: List<ReturnableProduct>, cart: List<RetourCartLine>, query: String): List<ReturnableProduct> {
-        val taken = cart.map { it.product.id }.toSet()
         // Every word, in the name or a barcode — "har bl 25" — as the product lists search.
         val tokens = com.distrigo.app.ui.common.searchTokens(query)
-        return all.filter { it.product.id !in taken }
+        return all.mapNotNull { r -> left(r, cart).takeIf { it > 0 }?.let { r.copy(maxQuantity = it) } }
             .filter { r -> com.distrigo.app.ui.common.productMatchesTokens(r.product, tokens) }
             .sortedBy { it.product.name.lowercase() }
     }
 
-    /** The eligible product a scanned code names; or why not — unknown, or never sold/bought here. */
+    /**
+     * The eligible product a scanned code names, with what is left of it to select as its maximum; or why not —
+     * unknown, never sold/bought here, or all of it already selected.
+     */
     suspend fun byBarcode(code: String): Pair<ReturnableProduct?, String?> {
         val product = products.findLiveProductByBarcode(code) ?: return null to "Aucun produit trouvé pour ce code-barres"
         val match = eligible.value?.find { it.product.id == product.id }
             ?: return null to "« ${product.name} » ne peut pas être retourné par $partyPhrase"
-        return match to null
+        val left = left(match, _cart.value)
+        if (left <= 0) return null to "« ${product.name} » est déjà entièrement dans la sélection"
+        return match.copy(maxQuantity = left) to null
     }
 
-    fun inCart(productId: Int): RetourCartLine? = _cart.value.find { it.product.id == productId }
-
-    fun put(returnable: ReturnableProduct, quantity: Double, motif: String) {
-        _cart.value = _cart.value.filter { it.product.id != returnable.product.id } + RetourCartLine(returnable, quantity, motif)
+    /** Adds [quantity] of a product for [motif]: onto its line with that motif, or as a new line. */
+    fun add(productId: Int, quantity: Double, motif: String) {
+        val returnable = eligible.value?.find { it.product.id == productId } ?: return
+        val cart = _cart.value
+        val same = cart.find { it.product.id == productId && it.motif == motif }
+        _cart.value = if (same == null) cart + RetourCartLine(returnable, quantity, motif)
+                      else cart.map { if (it.key == same.key) it.copy(quantity = Quantity.normalize(it.quantity + quantity)) else it }
     }
 
-    fun remove(productId: Int) { _cart.value = _cart.value.filter { it.product.id != productId } }
+    /** Changes [line] to [quantity] and [motif]; moved to a motif another line of the product has, it joins that line. */
+    fun change(line: RetourCartLine, quantity: Double, motif: String) {
+        val cart = _cart.value
+        val same = cart.find { it.product.id == line.product.id && it.motif == motif && it.key != line.key }
+        _cart.value = if (same == null) cart.map { if (it.key == line.key) it.copy(quantity = quantity, motif = motif) else it }
+                      else cart.filter { it.key != line.key }
+                          .map { if (it.key == same.key) it.copy(quantity = Quantity.normalize(it.quantity + quantity)) else it }
+    }
+
+    fun remove(line: RetourCartLine) { _cart.value = _cart.value.filter { it.key != line.key } }
 
     fun total(lines: List<RetourCartLine>): Double = lines.sumOf { it.quantity * priceOf(it.product) }
 
