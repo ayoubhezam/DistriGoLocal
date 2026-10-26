@@ -3,6 +3,8 @@ package com.distrigo.app.ui.common
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import com.distrigo.app.data.image.ImageStore
 import kotlinx.coroutines.Dispatchers
@@ -123,11 +125,15 @@ object ImageCapture {
         val decoded = decodeDownsampled(context, uri) ?: return null
         return try {
             val scaled = scaleToFit(decoded)
+            val format = formatFor(scaled)
+            // JPEG has no alpha: a transparent PNG or WebP written as is comes out on black. Laid on white first.
+            val opaque = if (format == Bitmap.CompressFormat.JPEG && scaled.hasAlpha()) onWhite(scaled) else scaled
             try {
                 val out = ByteArrayOutputStream()
-                scaled.compress(formatFor(scaled), JPEG_QUALITY, out)   // PNG ignores the quality
+                opaque.compress(format, JPEG_QUALITY, out)   // PNG ignores the quality
                 out.toByteArray()
             } finally {
+                if (opaque !== scaled) opaque.recycle()
                 if (scaled !== decoded) scaled.recycle()
             }
         } catch (e: Exception) {
@@ -135,6 +141,16 @@ object ImageCapture {
         } finally {
             decoded.recycle()
         }
+    }
+
+    /** [bitmap] laid on white: what its transparent pixels show once it has none. */
+    internal fun onWhite(bitmap: Bitmap): Bitmap {
+        val flat = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        Canvas(flat).apply {
+            drawColor(Color.WHITE)
+            drawBitmap(bitmap, 0f, 0f, null)
+        }
+        return flat
     }
 
     /**

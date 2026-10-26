@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImagePainter
@@ -114,6 +118,7 @@ private fun ModelImage(
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context).data(model).build()
     )
+    val onWhite = remember(painter) { OnWhitePainter(painter) { painter.state is AsyncImagePainter.State.Success } }
 
     // The Image is always in the tree, even while the painter has nothing to draw. That is not a
     // detail — it is what makes the load happen at all.
@@ -133,10 +138,26 @@ private fun ModelImage(
             placeholder()
         }
         Image(
-            painter = painter,
+            painter = onWhite,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale
         )
+    }
+}
+
+/**
+ * [painter] over white: a transparent PNG or WebP shows on white, never on black or on whatever is behind it.
+ *
+ * Drawn by the painter itself rather than as a background of the Image, so the white covers exactly the image as
+ * [ContentScale] lays it out, not the margins a Fit leaves around it: the full-screen viewer keeps its dark
+ * surround. Only once [loaded]: until then the caller's placeholder shows through, as before.
+ */
+private class OnWhitePainter(private val painter: Painter, private val loaded: () -> Boolean) : Painter() {
+    override val intrinsicSize: Size get() = painter.intrinsicSize
+
+    override fun DrawScope.onDraw() {
+        if (loaded()) drawRect(Color.White)
+        with(painter) { draw(size) }
     }
 }

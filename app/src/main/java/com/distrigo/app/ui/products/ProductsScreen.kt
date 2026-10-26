@@ -905,11 +905,13 @@ fun ProductGridCard(
     ) {
         Column {
             // ── Image ──
+            // White like the card, so the margins Fit leaves beside a tall or wide photo disappear into it and
+            // the product reads large; Fit, so packaging is never cut where its name is.
             Box(
                 modifier         = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .background(DsColors.SurfaceMuted)
+                    .height(140.dp)
+                    .background(DsColors.Surface)
                     // Only this panel opens the photo. The name, the price and every other part
                     // of the card fall through to the card's own click and open the product.
                     .clickable { onImageClick() },
@@ -918,7 +920,7 @@ fun ProductGridCard(
                 EntityImage(
                     ref                = product.image_uri,
                     contentDescription = null,
-                    modifier           = Modifier.fillMaxSize().padding(10.dp),
+                    modifier           = Modifier.fillMaxSize().padding(4.dp),
                     contentScale       = androidx.compose.ui.layout.ContentScale.Fit
                 ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = DsColors.Primary.copy(alpha = 0.5f), modifier = Modifier.size(32.dp))
