@@ -36,6 +36,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import com.distrigo.app.ui.designsystem.DsTopBarRootActions
+import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.basicMarquee
@@ -60,6 +62,8 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 fun StockCamionScreen(
     onBack             : () -> Unit,
     onFullScreenChange : (Boolean) -> Unit = {},
+    onNotificationsClick : () -> Unit = {},
+    onProfileClick       : () -> Unit = {},
     productViewModel   : com.distrigo.app.ui.products.ProductViewModel =
         hiltViewModel()
 ) {
@@ -201,12 +205,16 @@ fun StockCamionScreen(
                 .fillMaxSize()
                 .background(DsColors.SurfaceMuted)
         ) {
+            // Produits' header: the large title and the global controls. A back arrow where Produits has the menu,
+            // Stock Camion being opened over a tab or a tournée.
             DsTopAppBar(
                 title   = "Stock Camion",
                 licenseBanner = true,
-                leading = DsTopBarLeading.Back(onBack)
-            )
-            Spacer(Modifier.height(DsSpacing.md))
+                leading = DsTopBarLeading.Back(onBack),
+                size    = DsTopBarSize.Large
+            ) {
+                DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
+            }
 
             // ── Search: a name, or a barcode typed or scanned ──
             DsCompactSearchField(

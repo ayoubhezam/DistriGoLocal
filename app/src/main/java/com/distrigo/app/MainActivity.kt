@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.distrigo.app.ui.navigation.switchToTab
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -219,11 +219,7 @@ class MainActivity : ComponentActivity() {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberTrackedNavController()
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-                    val isTabRoute = currentRoute == Screen.TabDashboard.route ||
-                        currentRoute == Screen.TabDepotVente.route ||
-                        currentRoute == Screen.TabTournees.route ||
-                        currentRoute == Screen.TabProduits.route ||
-                        currentRoute == Screen.TabAchats.route
+                    val isTabRoute = currentRoute in com.distrigo.app.ui.navigation.TAB_ROUTES
 
                     // The data belongs to another business than the account's (docs/license_l4_checkin.md §7): said once
                     // per start, and answered in Compte, which says it too. Not over the onboarding.
@@ -346,18 +342,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ── Bottom-tab switch: standard "multiple back stacks" pattern —
-                    // pop to the graph's start destination (saving each tab's state) before
-                    // navigating, then restore the target tab's saved state if it has any. ──
-                    fun navigateToTab(route: String) {
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    // ── Bottom-tab switch: see switchToTab (TabSwitch.kt) ──
+                    fun navigateToTab(route: String) = navController.switchToTab(route)
 
                     // Gesture detector is attached to this ancestor Box (not a separate
                     // full-screen sibling on top) so Scaffold's bottom bar and the drawer's
@@ -491,8 +477,10 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.PlusStockCamion.route) {
                                 StockCamionScreen(
-                                    onBack             = { navController.popBackStack() },
-                                    onFullScreenChange = { hideBottomBar = it }
+                                    onBack               = { navController.popBackStack() },
+                                    onFullScreenChange   = { hideBottomBar = it },
+                                    onNotificationsClick = { /* TODO: notifications */ },
+                                    onProfileClick       = { navController.navigate(Screen.Compte.route) { launchSingleTop = true } }
                                 )
                             }
 
