@@ -86,8 +86,16 @@ fun TourneesNavHost(
                 },
                 onOpenVente            = { vente -> navController.navigate(Screen.TourneesVenteDetail.createRoute(tourneeId, vente.id)) },
                 onOpenBrouillons       = { navController.navigate(Screen.TourneeVenteBrouillons.createRoute(tourneeId)) },
-                onNavigateToChargement = onNavigateToChargement
+                onNavigateToChargement = onNavigateToChargement,
+                onOpenMap              = { navController.navigate(Screen.TourneeMap.createRoute(tourneeId)) { launchSingleTop = true } }
             )
+        }
+
+        composable(
+            route     = Screen.TourneeMap.route,
+            arguments = listOf(navArgument("tourneeId") { type = NavType.IntType })
+        ) {
+            com.distrigo.app.ui.tournees.TourneeMapScreen(onBack = { navController.popBackStack() })
         }
 
         composable(

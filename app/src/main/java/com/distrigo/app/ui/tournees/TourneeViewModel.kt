@@ -236,6 +236,18 @@ class TourneeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * [loadTournees] without the spinner, when the list is shown again: its figures (clients visited, total) change on
+     * other screens — a visit marked on the tournée or from the Dashboard, a sale — none of which reload it. Once
+     * loaded, the cards stay up and update in place.
+     */
+    fun refreshTournees() {
+        if (_tournees.value.isEmpty()) return loadTournees()
+        viewModelScope.launch {
+            runCatching { repository.getTournees() }.onSuccess { _tournees.value = it; _error.value = null }
+        }
+    }
+
     fun loadTournees() {
         viewModelScope.launch {
             _isLoading.value = true

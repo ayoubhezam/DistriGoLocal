@@ -87,7 +87,12 @@ fun TourneesScreen(
     val openTournee  by viewModel.openTournee.collectAsState()
     val context      = LocalContext.current
 
-    LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
+    // Each time the list is shown — back from a tournée, back on the tab, from the Dashboard — its figures afresh:
+    // what changes them (a visit, a sale) happens on other screens
+    LaunchedEffect(Unit) {
+        viewModel.loadOpenTournee()
+        viewModel.refreshTournees()
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
     Column(
@@ -224,7 +229,9 @@ fun TourneeDetailScreen(
     onCreateVente           : (Int?, String?) -> Unit = { _, _ -> },
     onOpenVente             : (Vente) -> Unit = {},
     onOpenBrouillons        : () -> Unit = {},
-    onNavigateToChargement  : () -> Unit = {}
+    onNavigateToChargement  : () -> Unit = {},
+    /** « Carte de la tournée ». */
+    onOpenMap               : () -> Unit = {}
 ) {
     val tournee by viewModel.selectedTournee.collectAsState()
     val current = tournee
@@ -247,6 +254,8 @@ fun TourneeDetailScreen(
     var actionError             by remember { mutableStateOf("") }
     var showDeleteTourneeDialog by remember { mutableStateOf<Tournee?>(null) }
     var showTourneeMenu         by remember { mutableStateOf(false) }
+    // « Statuts de visite », from the ⋮ menu now the progress bar that carried its ⓘ is gone
+    var showStatusLegend        by remember { mutableStateOf(false) }
     var deleteTourneeError      by remember { mutableStateOf("") }
     var longPressVenteInTournee by remember { mutableStateOf<Vente?>(null) }
     var showDeleteVenteInTournee by remember { mutableStateOf(false) }
@@ -540,6 +549,9 @@ fun TourneeDetailScreen(
                     titleMarquee = current.secteurs.isNotEmpty(),
                     leading      = DsTopBarLeading.Back(onBack)
                 ) {
+                    IconButton(onClick = onOpenMap, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Map, contentDescription = "Carte de la tournée", tint = DsColors.PrimaryDark)
+                    }
                     Box {
                         IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
@@ -555,6 +567,11 @@ fun TourneeDetailScreen(
                                     onClick     = { showTourneeMenu = false; onAddClients() }
                                 )
                             }
+                            DropdownMenuItem(
+                                text        = { Text("Statuts de visite") },
+                                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary) },
+                                onClick     = { showTourneeMenu = false; showStatusLegend = true }
+                            )
                             DropdownMenuItem(
                                 text        = { Text("Modifier les informations") },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
@@ -626,16 +643,23 @@ fun TourneeDetailScreen(
                     ventes.map { it.client_id to it.client_name }.distinct().sortedBy { it.second }
                 }
 
-                // ── Fixed above the list: progress, search, clients, count ──
+                // ── Fixed above the list: search, clients, count ──
                 //
                 // None of this scrolls, and none of it is a stickyHeader any more. A sticky header
                 // pins only until the next one arrives, so making "Bons" sticky in turn would have
                 // pushed the clients out of the way exactly when the list started moving. Outside
                 // the LazyColumn the whole block simply stays, and the list is the only thing left
                 // that can scroll.
-                TourneeProgressHeader(tourneeClients = tourneeClients, clientIdsWithVente = ventes.map { it.client_id }.toSet())
+                // The visits' progress bar is gone (owner, 2026-10-26): the list's card shows it; the search comes first
+                if (showStatusLegend) {
+                    TourneeStatusLegend(
+                        tourneeClients     = tourneeClients,
+                        clientIdsWithVente = ventes.map { it.client_id }.toSet(),
+                        onDismiss          = { showStatusLegend = false }
+                    )
+                }
 
-                Spacer(Modifier.height(DsSpacing.md))
+                Spacer(Modifier.height(DsSpacing.sm))
 
                 DsCompactSearchField(
                     value         = viewModel.venteQuery,
@@ -1209,71 +1233,38 @@ private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graph
 
 private fun clientsCount(n: Int) = if (n == 1) "1 client" else "$n clients"
 
+/** « Statuts de visite »: the three colours of the clients' avatars, and how many clients wear each. */
 @Composable
-private fun TourneeProgressHeader(
+private fun TourneeStatusLegend(
     tourneeClients     : List<com.distrigo.app.data.model.TourneeClientInfo>,
     /** The clients with a sale in this tournée: what turns a visit green, as on the avatars. */
-    clientIdsWithVente : Set<Int>
+    clientIdsWithVente : Set<Int>,
+    onDismiss          : () -> Unit
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
     // How many clients wear each colour; every client not visited yet is « pas encore visité »
     val withSale = visited.count { it.client.id in clientIdsWithVente }
     val withoutSale = visited.size - withSale
     val notYet = tourneeClients.size - visited.size
-    val total   = tourneeClients.size
-    var showStatusLegend by remember { mutableStateOf(false) }
-    if (total == 0) return
-    val percent = (visited.size * 100) / total
-
-    // The three visit statuses used to sit in a permanent bar under the avatars, spending a row
-    // of the screen on something you need once — when you first meet the colours — and never
-    // again. On demand instead, from the line the circles hang under.
-    if (showStatusLegend) {
-        AlertDialog(
-            onDismissRequest = { showStatusLegend = false },
-            title = { Text("Statuts de visite", fontWeight = FontWeight.Bold) },
-            text  = {
-                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                    TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente (${clientsCount(withSale)})")
-                    TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente (${clientsCount(withoutSale)})")
-                    TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité (${clientsCount(notYet)})")
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showStatusLegend = false }) {
-                    Text("Compris", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
-        )
-    }
-
-    Column(modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
-        Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            Text("${visited.size}/$total clients visités", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("$percent%", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                IconButton(onClick = { showStatusLegend = true }, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = "Statuts de visite",
-                        tint               = DsColors.TextSecondary,
-                        modifier           = Modifier.size(16.dp)
-                    )
-                }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Statuts de visite", fontWeight = FontWeight.Bold) },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
+                TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente (${clientsCount(withSale)})")
+                TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente (${clientsCount(withoutSale)})")
+                TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité (${clientsCount(notYet)})")
             }
-        }
-        Spacer(Modifier.height(6.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill).background(DsColors.Border)) {
-            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(DsShapes.pill).background(DsColors.Primary))
-        }
-    }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Compris", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        containerColor    = DsColors.Surface,
+        titleContentColor = DsColors.TextPrimary,
+        textContentColor  = DsColors.TextSecondary
+    )
 }
 
 /**

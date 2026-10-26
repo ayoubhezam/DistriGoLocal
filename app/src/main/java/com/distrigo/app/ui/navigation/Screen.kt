@@ -324,6 +324,10 @@ sealed class Screen(val route: String) {
     data object TourneesAddClients : Screen("tournees_add_clients/{tourneeId}") {
         fun createRoute(tourneeId: Int) = "tournees_add_clients/$tourneeId"
     }
+    /** « Carte de la tournée »: its clients pinned by visit. */
+    data object TourneeMap : Screen("tournee_map/{tourneeId}") {
+        fun createRoute(tourneeId: Int) = "tournee_map/$tourneeId"
+    }
     // Same direct-entry split as VenteFormGraph above — see tourneeVenteFormGraph in
     // TourneeVenteFormNavGraph.kt.
     data object TourneeVenteFormGraph : Screen("tournee_vente_form_graph/{tourneeId}?clientId={clientId}&draftId={draftId}") {
