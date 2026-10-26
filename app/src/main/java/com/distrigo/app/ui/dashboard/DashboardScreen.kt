@@ -74,6 +74,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.local.entity.incentive.PeriodType
@@ -167,6 +171,15 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val tournee = content?.tournee
+    // « Nouvelle vente » with a tournée open: « Vente dépôt » or « Vente tournée », from where the tile sits
+    val saleDial = remember { NewSaleSpeedDialState() }
+    var saleTile by remember { mutableStateOf<Rect?>(null) }
+    var saleTileFont by remember { mutableStateOf(DsTextSize.caption) }
+    // The tournée the dial was opened for: kept while it folds away after that tournée closed
+    var dialTournee by remember { mutableStateOf<TourneeDay?>(null) }
+    LaunchedEffect(tournee) {
+        if (tournee != null) dialTournee = tournee else saleDial.close()
+    }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         // D16: the greeting and the date; the menu stays, the drawer being the only way to the other sections
@@ -218,7 +231,10 @@ fun DashboardScreen(
 
             item(key = "actions") {
                 QuickActions(
-                    onNewSale     = { license.runOrExplain { onNewSale(tournee?.id) } },
+                    // No tournée: the dépôt sale straight away. One open: the choice between the two.
+                    onNewSale     = { if (tournee == null) license.runOrExplain { onNewSale(null) } else saleDial.open() },
+                    saleClickLabel = if (tournee == null) "Nouvelle vente" else "ouvrir le choix",
+                    onSaleTile    = { bounds, font -> saleTile = bounds; saleTileFont = font },
                     onCollect     = { license.runOrExplain { collecting = true } },
                     onNewPurchase = { license.runOrExplain(onNewPurchase) },
                     onCharge      = { license.runOrExplain { addingCharge = true } },
@@ -342,6 +358,19 @@ fun DashboardScreen(
         )
     }
 
+    saleTile?.let { bounds ->
+        dialTournee?.let { t ->
+            NewSaleSpeedDial(
+                state         = saleDial,
+                tile          = bounds,
+                tileLabelSize = saleTileFont,
+                tourneeLabel  = t.label,
+                // Each behind the license, as the tile was
+                onDepot       = { license.runOrExplain { onNewSale(null) } },
+                onTournee     = { license.runOrExplain { onNewSale(t.id) } },
+            )
+        }
+    }
     if (addingCharge) NewChargeDialog(onDismiss = { addingCharge = false })
     if (collecting) {
         CollectSheet(
@@ -599,7 +628,13 @@ private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective
 
 /** The four quick actions, each behind the license (L5): Nouvelle vente, Encaissement, Nouvel achat, Charge. */
 @Composable
-private fun QuickActions(onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurchase: () -> Unit, onCharge: () -> Unit) {
+private fun QuickActions(
+    onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurchase: () -> Unit, onCharge: () -> Unit,
+    /** What a tap on « Nouvelle vente » does, said to accessibility. */
+    saleClickLabel: String = "Nouvelle vente",
+    /** Where « Nouvelle vente » sits in the window and its label's size: the speed-dial draws it again there. */
+    onSaleTile: (Rect, TextUnit) -> Unit = { _, _ -> },
+) {
     BoxWithConstraints(Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth()) {
         // One size for the four labels, small enough for the longest word to fit a tile whole (« Encaissement » on a
         // narrow phone or a large font), so no word breaks in two
@@ -617,7 +652,11 @@ private fun QuickActions(onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurc
             Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
         ) {
-            QuickAction(Icons.Default.PointOfSale, "Nouvelle vente", DsColors.PrimaryDark, fontSize, Modifier.weight(1f), onNewSale)
+            QuickAction(
+                Icons.Default.PointOfSale, "Nouvelle vente", DsColors.PrimaryDark, fontSize,
+                Modifier.weight(1f).onGloballyPositioned { onSaleTile(it.boundsInWindow(), fontSize) },
+                onNewSale, clickLabel = saleClickLabel,
+            )
             QuickAction(Icons.Default.Payments, "Encaissement", DsColors.Success, fontSize, Modifier.weight(1f), onCollect)
             QuickAction(Icons.Default.AddShoppingCart, "Nouvel achat", DsColors.Primary, fontSize, Modifier.weight(1f), onNewPurchase)
             QuickAction(Icons.Default.Receipt, "Charge", DsColors.Warning, fontSize, Modifier.weight(1f), onCharge)
@@ -627,17 +666,22 @@ private fun QuickActions(onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurc
 
 private val QUICK_ACTION_WORDS = listOf("Nouvelle", "vente", "Encaissement", "Nouvel", "achat", "Charge")
 
+/** A quick action's tile; [iconContent], when given, is drawn in its round in place of [icon] (the speed-dial's ✕). */
 @Composable
-private fun QuickAction(icon: ImageVector, label: String, accent: Color, fontSize: TextUnit, modifier: Modifier, onClick: () -> Unit) {
+internal fun QuickAction(
+    icon: ImageVector, label: String, accent: Color, fontSize: TextUnit, modifier: Modifier, onClick: () -> Unit,
+    clickLabel: String = label,
+    iconContent: (@Composable BoxScope.() -> Unit)? = null,
+) {
     Column(
         modifier.fillMaxHeight().heightIn(min = 88.dp).clip(DsShapes.large).background(DsColors.Surface)
-            .border(1.dp, DsColors.Border, DsShapes.large).clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+            .border(1.dp, DsColors.Border, DsShapes.large).clickable(role = Role.Button, onClickLabel = clickLabel, onClick = onClick)
             .padding(vertical = DsSpacing.md, horizontal = DsSpacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(Modifier.size(40.dp).clip(CircleShape).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
+            if (iconContent != null) iconContent() else Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
