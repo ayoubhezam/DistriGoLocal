@@ -14,6 +14,8 @@ data class Tournee(
     val commune_name   : String?,
     val secteurs       : List<TourneeSecteur> = emptyList(),
     val clients_count  : Int? = null,
+    /** Its clients: those on its list, and those who bought on it without being on it. Over [clients_count]: the card's progress. */
+    val clients_total  : Int? = null,
     val ventes_count   : Int? = null,
     val total_ventes   : Double? = null,
     val reste_total    : Double? = null,

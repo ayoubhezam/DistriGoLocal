@@ -66,6 +66,8 @@ class TourneeVisitsTest {
     fun theCardCountsTheClientsVisitedWithASaleOrNot() = runBlocking {
         val summary = db.tourneeDao().getAllTourneeSummaries().single()
         assertEquals(4, summary.clients_count)
+        // Its clients: the four on its list and 5, who bought on it off the list
+        assertEquals(5, summary.clients_total)
         assertEquals(4, summary.ventes_count)
         assertEquals(summary.clients_count, db.tourneeDao().getTourneeSummary(summary.tournee.id)!!.clients_count)
     }
@@ -78,5 +80,6 @@ class TourneeVisitsTest {
         ).toInt()
         db.tourneeClientDao().insertAll(listOf(TourneeClientEntity(tournee_id = empty, client_id = 1, status = "a_visiter", visited_at = null)))
         assertEquals(0, db.tourneeDao().getTourneeSummary(empty)!!.clients_count)
+        assertEquals(1, db.tourneeDao().getTourneeSummary(empty)!!.clients_total)
     }
 }

@@ -196,6 +196,7 @@ class ProductRepository(
     private fun TourneeEntity.toTournee(
         secteurs     : List<TourneeSecteurEntity>,
         clientsCount : Int,
+        clientsTotal : Int,
         ventesCount  : Int,
         totalVentes  : Double,
         resteTotal   : Double,
@@ -206,13 +207,13 @@ class ProductRepository(
         nom = this.nom, wilaya_id = null, commune_id = null,
         wilaya_name = this.wilaya_name, commune_name = this.commune_name,
         secteurs = secteurs.map { TourneeSecteur(secteurId = it.secteur_id, nom = it.secteur_name) },
-        clients_count = clientsCount, ventes_count = ventesCount,
+        clients_count = clientsCount, clients_total = clientsTotal, ventes_count = ventesCount,
         total_ventes = totalVentes, reste_total = resteTotal, ventes = ventes
     )
 
     /** A list-shaped Tournee: its four counters and no sales. See TourneeDao.getAllTourneeSummaries. */
     private fun TourneeSummaryRow.toTournee(secteurs: List<TourneeSecteurEntity>) = tournee.toTournee(
-        secteurs, clients_count, ventes_count, total_ventes, reste_total, ventes = null
+        secteurs, clients_count, clients_total, ventes_count, total_ventes, reste_total, ventes = null
     )
 
     private fun PurchaseOrderItemEntity.toItem() = PurchaseOrderItem(
@@ -1950,11 +1951,16 @@ class ProductRepository(
         val entity = db.tourneeDao().getTourneeById(id)
             ?: throw IllegalStateException("Tournée introuvable: $id")
         val rows = db.venteDao().getVentesWithDetailsForTournee(id)
+        val planned = db.tourneeClientDao().getForTournee(id)
         return entity.toTournee(
             secteurs     = db.tourneeSecteurDao().getForTournee(id),
             clientsCount = com.distrigo.app.data.local.dao.TourneeVisits.count(
-                visitedOnList = db.tourneeClientDao().getForTournee(id).filter { it.status == "visite" }.map { it.client_id },
+                visitedOnList = planned.filter { it.status == "visite" }.map { it.client_id },
                 buyers        = rows.map { it.vente.client_id },
+            ),
+            clientsTotal = com.distrigo.app.data.local.dao.TourneeVisits.total(
+                onList = planned.map { it.client_id },
+                buyers = rows.map { it.vente.client_id },
             ),
             ventesCount  = rows.size,
             totalVentes  = rows.sumOf { it.vente.total },

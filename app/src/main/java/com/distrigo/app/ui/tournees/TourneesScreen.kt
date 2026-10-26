@@ -1,5 +1,12 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.distrigo.app.ui.common.FitText
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.distrigo.app.ui.designsystem.DsFabSize
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -1388,136 +1395,105 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
     }
 }
 
+/**
+ * A tournée in the list, as the owner's prototype (« Liste des tournées »): its status, name, day, place and secteurs;
+ * then how many of its clients are visited, as a bar (green once all are), and its sales' total, centred.
+ */
 @Composable
 private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val isOpen = tournee.status == "ouverte"
-    val accentColor = if (isOpen) DsColors.Success else DsColors.TextTertiary
-    val badgeColor = if (isOpen) DsColors.Success else DsColors.TextSecondary
-    val badgeBg = if (isOpen) DsColors.SuccessLight else DsColors.SurfaceMuted
+    val statusColor = if (isOpen) DsColors.Success else DsColors.TextTertiary
+    val visited = tournee.clients_count ?: 0
+    val total = maxOf(tournee.clients_total ?: 0, visited)
+    val percent = if (total > 0) visited * 100 / total else 0
+    val done = total > 0 && visited >= total
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(DsShapes.large)
             .background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large)
             .clickable { onClick() }
+            .padding(DsSpacing.md)
     ) {
-        // Left accent bar
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(accentColor)
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(DsSpacing.md)
-        ) {
-            // Status badge row + chevron
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(DsShapes.pill)
-                            .background(accentColor)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        if (isOpen) "En cours" else "Fermée",
-                        fontSize = DsTextSize.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        color = badgeColor
-                    )
-                }
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
-            }
-
-            Spacer(Modifier.height(6.dp))
-
-            // Tournée name
+        // Status + chevron
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(7.dp).clip(DsShapes.pill).background(statusColor))
+            Spacer(Modifier.width(6.dp))
             Text(
-                tournee.nom,
-                fontSize = DsTextSize.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = DsColors.TextPrimary,
-                maxLines = 1
+                if (isOpen) "En cours" else "Fermée",
+                fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
+                color = if (isOpen) DsColors.Success else DsColors.TextSecondary,
+                modifier = Modifier.weight(1f)
             )
-
-            Spacer(Modifier.height(6.dp))
-
-            // Date + chauffeur row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    formatOrderDate(tournee.date_debut ?: ""),
-                    fontSize = DsTextSize.caption,
-                    color = DsColors.TextSecondary
-                )
-
-            }
-
-            if (tournee.wilaya_name != null || tournee.commune_name != null) {
-                Spacer(Modifier.height(4.dp))
-                val location = listOfNotNull(tournee.commune_name, tournee.wilaya_name).joinToString(", ")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(location, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                }
-            }
-
-            // Its own line rather than appended to the location above: the commune answers "where",
-            // the secteurs answer "which part of it", and the two are read separately. Tournees
-            // created before secteurs existed simply have none and keep the layout they had.
-            if (tournee.secteurs.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        tournee.secteurs.joinToString(", ") { it.nom },
-                        fontSize   = DsTextSize.caption,
-                        fontWeight = FontWeight.Medium,
-                        color      = DsColors.Primary,
-                        maxLines   = 1,
-                        overflow   = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(DsSpacing.sm))
-            HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
-            Spacer(Modifier.height(DsSpacing.sm))
-
-            // Bottom row: clients count + total
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "${tournee.clients_count ?: 0} client(s) visité(s)",
-                    fontSize = DsTextSize.caption,
-                    color = DsColors.TextSecondary
-                )
-                Text(
-                    money.da(tournee.total_ventes ?: 0.0),
-                    fontSize = DsTextSize.bodyLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = DsColors.PrimaryDark
-                )
-            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
+
+        Spacer(Modifier.height(4.dp))
+        Text(tournee.nom, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.height(DsSpacing.xs))
+
+        // « Aujourd'hui », « Hier », else the date
+        TourneeCardLine(Icons.Default.CalendarMonth, formatOrderDate(tournee.date_debut ?: ""))
+        if (tournee.wilaya_name != null || tournee.commune_name != null) {
+            TourneeCardLine(Icons.Default.LocationOn, listOfNotNull(tournee.commune_name, tournee.wilaya_name).joinToString(", "))
+        }
+        // Its own line rather than appended to the location above: the commune answers "where", the secteurs "which
+        // part of it". Tournées created before secteurs existed have none and keep the lines above.
+        if (tournee.secteurs.isNotEmpty()) {
+            TourneeCardLine(Icons.Default.Map, tournee.secteurs.joinToString(", ") { it.nom }.uppercase(), accent = true)
+        }
+
+        Spacer(Modifier.height(DsSpacing.sm))
+        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+        Spacer(Modifier.height(DsSpacing.sm))
+
+        // « 6/12 clients visités » and its share
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = DsColors.TextPrimary, fontWeight = FontWeight.Bold)) { append("$visited/$total") }
+                    append(if (total == 1) " client visité" else " clients visités")
+                },
+                fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
+            )
+            Text("$percent %", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        }
+        Spacer(Modifier.height(6.dp))
+        Box(
+            Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)
+                .semantics { contentDescription = "$percent % des clients visités" }
+        ) {
+            Box(
+                Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(DsShapes.pill)
+                    .background(if (done) DsColors.Success else DsColors.PrimaryDark)
+            )
+        }
+
+        Spacer(Modifier.height(DsSpacing.sm))
+        // The total, centred; long amounts shrink rather than break
+        FitText(
+            money.da(tournee.total_ventes ?: 0.0),
+            fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
+            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/** A line of a tournée card: its icon and what it says, the secteurs in blue. */
+@Composable
+private fun TourneeCardLine(icon: ImageVector, text: String, accent: Boolean = false) {
+    Row(Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = if (accent) DsColors.Primary else DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text, fontSize = DsTextSize.caption,
+            fontWeight = if (accent) FontWeight.Medium else FontWeight.Normal,
+            color = if (accent) DsColors.Primary else DsColors.TextSecondary,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

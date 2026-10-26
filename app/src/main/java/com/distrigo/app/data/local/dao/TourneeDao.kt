@@ -42,7 +42,12 @@ interface TourneeDao {
              + (SELECT COUNT(DISTINCT v3.client_id) FROM ventes v3
                  WHERE v3.tournee_id = t.id
                    AND v3.client_id NOT IN (SELECT tc2.client_id FROM tournee_clients tc2 WHERE tc2.tournee_id = t.id))
-                                                            AS clients_count,
+                                                            AS clients_count
+             , (SELECT COUNT(*) FROM tournee_clients tc4 WHERE tc4.tournee_id = t.id)
+             + (SELECT COUNT(DISTINCT v5.client_id) FROM ventes v5
+                 WHERE v5.tournee_id = t.id
+                   AND v5.client_id NOT IN (SELECT tc5.client_id FROM tournee_clients tc5 WHERE tc5.tournee_id = t.id))
+                                                            AS clients_total,
                COUNT(v.id)                                  AS ventes_count,
                COALESCE(SUM(v.total), 0.0)                  AS total_ventes,
                COALESCE(SUM(v.total - v.montant_paye), 0.0) AS reste_total
@@ -63,7 +68,12 @@ interface TourneeDao {
              + (SELECT COUNT(DISTINCT v3.client_id) FROM ventes v3
                  WHERE v3.tournee_id = t.id
                    AND v3.client_id NOT IN (SELECT tc2.client_id FROM tournee_clients tc2 WHERE tc2.tournee_id = t.id))
-                                                            AS clients_count,
+                                                            AS clients_count
+             , (SELECT COUNT(*) FROM tournee_clients tc4 WHERE tc4.tournee_id = t.id)
+             + (SELECT COUNT(DISTINCT v5.client_id) FROM ventes v5
+                 WHERE v5.tournee_id = t.id
+                   AND v5.client_id NOT IN (SELECT tc5.client_id FROM tournee_clients tc5 WHERE tc5.tournee_id = t.id))
+                                                            AS clients_total,
                COUNT(v.id)                                  AS ventes_count,
                COALESCE(SUM(v.total), 0.0)                  AS total_ventes,
                COALESCE(SUM(v.total - v.montant_paye), 0.0) AS reste_total
@@ -96,12 +106,16 @@ interface TourneeDao {
  */
 object TourneeVisits {
     fun count(visitedOnList: Collection<Int>, buyers: Collection<Int>): Int = (visitedOnList + buyers).toSet().size
+
+    /** The clients a tournée has, the visited ones' denominator: its list, and anyone who bought on it off the list. */
+    fun total(onList: Collection<Int>, buyers: Collection<Int>): Int = (onList + buyers).toSet().size
 }
 
 /** A tournée row with the counters [TourneeDao.getAllTourneeSummaries] computes alongside it. */
 data class TourneeSummaryRow(
     @Embedded val tournee: TourneeEntity,
     val clients_count: Int,
+    val clients_total: Int,
     val ventes_count: Int,
     val total_ventes: Double,
     val reste_total: Double

@@ -13,6 +13,11 @@ class TourneeVisitsTest {
     }
 
     @Test
+    fun theTotalIsTheListAndWhoeverBoughtOffIt() {
+        assertEquals(5, TourneeVisits.total(onList = listOf(1, 2, 3, 4), buyers = listOf(1, 3, 5, 5)))
+    }
+
+    @Test
     fun nothingVisitedNorSoldIsNone() {
         assertEquals(0, TourneeVisits.count(visitedOnList = emptyList(), buyers = emptyList()))
     }
