@@ -1952,7 +1952,10 @@ class ProductRepository(
         val rows = db.venteDao().getVentesWithDetailsForTournee(id)
         return entity.toTournee(
             secteurs     = db.tourneeSecteurDao().getForTournee(id),
-            clientsCount = rows.map { it.vente.client_id }.distinct().size,
+            clientsCount = com.distrigo.app.data.local.dao.TourneeVisits.count(
+                visitedOnList = db.tourneeClientDao().getForTournee(id).filter { it.status == "visite" }.map { it.client_id },
+                buyers        = rows.map { it.vente.client_id },
+            ),
             ventesCount  = rows.size,
             totalVentes  = rows.sumOf { it.vente.total },
             resteTotal   = rows.sumOf { it.vente.total - it.vente.montant_paye },

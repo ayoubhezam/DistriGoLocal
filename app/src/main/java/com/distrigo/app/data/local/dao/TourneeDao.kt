@@ -29,13 +29,20 @@ interface TourneeDao {
      * queries, grown by the whole sales history, re-run whenever the hub opens and after every van
      * sale. This is one GROUP BY over the ventes(tournee_id) index, however long the history.
      *
-     * The figures are the ones that Kotlin path computed: distinct clients among the sales, the
-     * number of sales, their total, and what is still unpaid on them. LEFT JOIN, so a tournée with
-     * no sales comes back with zeros rather than not at all. Same order as [getAllTournees].
+     * The figures: the clients visited (see [TourneeVisits] — not only those who bought), the number
+     * of sales, their total, and what is still unpaid on them. LEFT JOIN, so a tournée with no sales
+     * comes back with zeros rather than not at all. Same order as [getAllTournees].
      */
     @Query("""
         SELECT t.*,
-               COUNT(DISTINCT v.client_id)                  AS clients_count,
+               (SELECT COUNT(*) FROM tournee_clients tc
+                 WHERE tc.tournee_id = t.id
+                   AND (tc.status = 'visite'
+                        OR tc.client_id IN (SELECT v2.client_id FROM ventes v2 WHERE v2.tournee_id = t.id)))
+             + (SELECT COUNT(DISTINCT v3.client_id) FROM ventes v3
+                 WHERE v3.tournee_id = t.id
+                   AND v3.client_id NOT IN (SELECT tc2.client_id FROM tournee_clients tc2 WHERE tc2.tournee_id = t.id))
+                                                            AS clients_count,
                COUNT(v.id)                                  AS ventes_count,
                COALESCE(SUM(v.total), 0.0)                  AS total_ventes,
                COALESCE(SUM(v.total - v.montant_paye), 0.0) AS reste_total
@@ -49,7 +56,14 @@ interface TourneeDao {
     /** [getAllTourneeSummaries] for one tournée — the open-tournée banner needs no sales either. */
     @Query("""
         SELECT t.*,
-               COUNT(DISTINCT v.client_id)                  AS clients_count,
+               (SELECT COUNT(*) FROM tournee_clients tc
+                 WHERE tc.tournee_id = t.id
+                   AND (tc.status = 'visite'
+                        OR tc.client_id IN (SELECT v2.client_id FROM ventes v2 WHERE v2.tournee_id = t.id)))
+             + (SELECT COUNT(DISTINCT v3.client_id) FROM ventes v3
+                 WHERE v3.tournee_id = t.id
+                   AND v3.client_id NOT IN (SELECT tc2.client_id FROM tournee_clients tc2 WHERE tc2.tournee_id = t.id))
+                                                            AS clients_count,
                COUNT(v.id)                                  AS ventes_count,
                COALESCE(SUM(v.total), 0.0)                  AS total_ventes,
                COALESCE(SUM(v.total - v.montant_paye), 0.0) AS reste_total
@@ -74,6 +88,14 @@ interface TourneeDao {
 
     @Query("DELETE FROM tournees WHERE id = :id")
     suspend fun deleteTourneeById(id: Int)
+}
+
+/**
+ * A tournée's « client(s) visité(s) », as the Dashboard counts them: a client is visited once marked « visite » or
+ * once they bought on the tournée, so a visit without a purchase counts. It used to be the clients who bought.
+ */
+object TourneeVisits {
+    fun count(visitedOnList: Collection<Int>, buyers: Collection<Int>): Int = (visitedOnList + buyers).toSet().size
 }
 
 /** A tournée row with the counters [TourneeDao.getAllTourneeSummaries] computes alongside it. */
