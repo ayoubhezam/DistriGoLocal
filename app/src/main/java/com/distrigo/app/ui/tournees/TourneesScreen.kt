@@ -79,12 +79,15 @@ fun TourneesScreen(
     onNotificationsClick : () -> Unit = {},
     onProfileClick       : () -> Unit = {},
     onAddTournee   : () -> Unit = {},
-    onTourneeClick : (Int) -> Unit = {}
+    onTourneeClick : (Int) -> Unit = {},
+    /** « Carte de la tournée », from a card's mini map. */
+    onOpenMap      : (Int) -> Unit = {}
 ) {
     val tournees     by viewModel.tournees.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
     val error        by viewModel.error.collectAsState()
     val openTournee  by viewModel.openTournee.collectAsState()
+    val pins         by viewModel.pins.collectAsState()
     val context      = LocalContext.current
 
     // Each time the list is shown — back from a tournée, back on the tab, from the Dashboard — its figures afresh:
@@ -185,8 +188,10 @@ fun TourneesScreen(
                 ) {
                     items(tournees, key = { it.id }) { tournee ->
                         TourneeCard(
-                            tournee = tournee,
-                            onClick = { onTourneeClick(tournee.id) }
+                            tournee   = tournee,
+                            pins      = pins[tournee.id].orEmpty(),
+                            onClick   = { onTourneeClick(tournee.id) },
+                            onOpenMap = { onOpenMap(tournee.id) }
                         )
                     }
                 }
@@ -1391,7 +1396,7 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
  * then how many of its clients are visited, as a bar (green once all are), and its sales' total, centred.
  */
 @Composable
-private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
+private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () -> Unit, onOpenMap: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val isOpen = tournee.status == "ouverte"
     val statusColor = if (isOpen) DsColors.Success else DsColors.TextTertiary
@@ -1435,6 +1440,11 @@ private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
         // part of it". Tournées created before secteurs existed have none and keep the lines above.
         if (tournee.secteurs.isNotEmpty()) {
             TourneeCardLine(Icons.Default.Map, tournee.secteurs.joinToString(", ") { it.nom }.uppercase(), accent = true)
+        }
+        // Its clients on a small map, when any has a position; a tap opens the full one
+        if (pins.isNotEmpty()) {
+            Spacer(Modifier.height(DsSpacing.sm))
+            TourneeMiniMap(pins = pins, onOpen = onOpenMap)
         }
 
         Spacer(Modifier.height(DsSpacing.sm))

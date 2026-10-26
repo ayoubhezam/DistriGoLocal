@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -86,6 +88,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -141,9 +144,9 @@ fun tourneeMapClients(onList: List<TourneeClientInfo>, offListBuyers: List<Clien
 }
 
 /** How the map names and colours a visit: its chip, its pill on the client's sheet. */
-private data class VisitStyle(val chip: String, val pill: String, val color: Color, val pillBg: Color, val pillText: Color)
+internal data class VisitStyle(val chip: String, val pill: String, val color: Color, val pillBg: Color, val pillText: Color)
 
-private fun styleOf(state: VisitState) = when (state) {
+internal fun styleOf(state: VisitState) = when (state) {
     VisitState.WITH_SALE -> VisitStyle("Avec achat", "Visité · achat", DsColors.Success, DsColors.SuccessLight, DsColors.SuccessDark)
     VisitState.WITHOUT_SALE -> VisitStyle("Sans achat", "Visité · sans achat", DsColors.Warning, DsColors.WarningLight, DsColors.Warning)
     // Grey, as everywhere in the app a client still to visit is (owner's choice, not the prototype's red)
@@ -406,7 +409,7 @@ private fun PickedClient(
  * The pins, one per visit and per picked or not: a drop in the visit's colour, white-edged, with a check (bought), a
  * dash (no sale) or a dot (to visit); picked, a quarter larger. Drawn once as bitmaps, [density] being the screen's.
  */
-private fun pinIcons(density: Float): Map<Pair<VisitState, Boolean>, BitmapDescriptor> =
+internal fun pinIcons(density: Float): Map<Pair<VisitState, Boolean>, BitmapDescriptor> =
     StateOrder.flatMap { state -> listOf(false, true).map { selected -> (state to selected) } }
         .associateWith { (state, selected) -> BitmapDescriptorFactory.fromBitmap(pinBitmap(state, selected, density)) }
 
@@ -532,6 +535,111 @@ private fun ClientSheet(client: TourneeMapClient, onOpen: () -> Unit, onNavigate
             Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
             Text("Naviguer", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ── The list's mini map (phase 3) ──
+
+/** A pin of a tournée's mini map: where, and how the visit went. */
+data class TourneePin(val latitude: Double, val longitude: Double, val state: VisitState)
+
+/**
+ * The rows of [com.distrigo.app.data.local.dao.TourneeDao.getTourneePins] per tournée, read with the map's rule: bought,
+ * else marked « visité », else to visit. A position at 0,0 or out of range (a field once saved empty) is left out.
+ */
+fun tourneePins(rows: List<com.distrigo.app.data.local.dao.TourneePinRow>): Map<Int, List<TourneePin>> =
+    rows.filter { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 && !(it.latitude == 0.0 && it.longitude == 0.0) }
+        .groupBy({ it.tournee_id }) { row ->
+            TourneePin(row.latitude, row.longitude, when {
+                row.bought -> VisitState.WITH_SALE
+                row.status == "visite" -> VisitState.WITHOUT_SALE
+                else -> VisitState.PENDING
+            })
+        }
+
+/**
+ * The area a mini map fits: its clients, widened north for a pin rising above its point and a little the other ways. Lite mode leaves the map's padding out of a fit, so the room is
+ * made in the area itself.
+ */
+internal fun miniMapBounds(pins: List<TourneePin>): LatLngBounds {
+    val south = pins.minOf { it.latitude }; val north = pins.maxOf { it.latitude }
+    val west = pins.minOf { it.longitude }; val east = pins.maxOf { it.longitude }
+    val lat = maxOf(north - south, 0.002); val lng = maxOf(east - west, 0.002)
+    return LatLngBounds(LatLng(south - lat * 0.2, west - lng * 0.15), LatLng(north + lat * 0.45, east + lng * 0.15))
+}
+
+/**
+ * A tournée's clients on a small map in its card, from the owner's prototype: Google's lite mode, a still picture of
+ * the map with its pins, light in a scrolling list. A tap anywhere on it opens « Carte de la tournée ».
+ */
+@Composable
+fun TourneeMiniMap(pins: List<TourneePin>, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    val camera = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(
+            LatLng(pins.sumOf { it.latitude } / pins.size, pins.sumOf { it.longitude } / pins.size),
+            if (pins.size == 1) 14f else 12f
+        )
+    }
+    var loaded by remember { mutableStateOf(false) }
+    // Several clients: fitted once the map has its size, which their bounds need
+    LaunchedEffect(loaded, pins) {
+        if (loaded && pins.size > 1) {
+            runCatching { camera.move(CameraUpdateFactory.newLatLngBounds(miniMapBounds(pins), with(density) { 8.dp.roundToPx() })) }
+        }
+    }
+    Column(modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(124.dp)
+                .clip(DsShapes.medium)
+                .border(1.dp, DsColors.Border, DsShapes.medium)
+                .semantics { contentDescription = "Ouvrir la carte de la tournée" }
+        ) {
+            GoogleMap(
+                modifier                = Modifier.fillMaxSize(),
+                cameraPositionState     = camera,
+                googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
+                properties              = MapProperties(isBuildingEnabled = false, isIndoorEnabled = false),
+                uiSettings              = MapUiSettings(mapToolbarEnabled = false, zoomControlsEnabled = false),
+                onMapLoaded             = { loaded = true },
+                // In lite mode a tap would open Google Maps; it opens the tournée's own map instead
+                onMapClick              = { onOpen() },
+            ) {
+                val icons = remember(density) { pinIcons(density.density * 0.7f) }
+                pins.forEach { pin ->
+                    Marker(
+                        state   = remember(pin) { MarkerState(LatLng(pin.latitude, pin.longitude)) },
+                        icon    = icons.getValue(pin.state to false),
+                        onClick = { onOpen(); true },
+                    )
+                }
+            }
+            // « Plein écran »
+            Box(
+                Modifier.align(Alignment.BottomEnd).padding(DsSpacing.sm).size(30.dp)
+                    .clip(DsShapes.pill).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.pill)
+                    .clickable(role = Role.Button, onClickLabel = "Ouvrir la carte", onClick = onOpen),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.OpenInFull, contentDescription = null, tint = DsColors.PrimaryDark, modifier = Modifier.size(15.dp))
+            }
+        }
+        // The colours' legend, under the map: over it, it hid the pins and Google's logo
+        Row(
+            Modifier.padding(top = 6.dp, start = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf(VisitState.WITH_SALE to "Achat", VisitState.WITHOUT_SALE to "Sans achat", VisitState.PENDING to "À visiter").forEach { (state, label) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(7.dp).clip(DsShapes.pill).background(styleOf(state).color))
+                    Spacer(Modifier.width(4.dp))
+                    Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary, maxLines = 1)
+                }
+            }
         }
     }
 }

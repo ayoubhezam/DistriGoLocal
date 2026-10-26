@@ -42,6 +42,14 @@ class TourneeViewModel @Inject constructor(
     private val _tournees = MutableStateFlow<List<Tournee>>(emptyList())
     val tournees: StateFlow<List<Tournee>> = _tournees
 
+    /** Each tournée's clients with a position, for its card's mini map. */
+    private val _pins = MutableStateFlow<Map<Int, List<TourneePin>>>(emptyMap())
+    val pins: StateFlow<Map<Int, List<TourneePin>>> = _pins
+
+    private suspend fun loadPins() {
+        runCatching { repository.getTourneePins() }.onSuccess { _pins.value = tourneePins(it) }
+    }
+
     private val _selectedTournee = MutableStateFlow<Tournee?>(null)
     val selectedTournee: StateFlow<Tournee?> = _selectedTournee
 
@@ -245,6 +253,7 @@ class TourneeViewModel @Inject constructor(
         if (_tournees.value.isEmpty()) return loadTournees()
         viewModelScope.launch {
             runCatching { repository.getTournees() }.onSuccess { _tournees.value = it; _error.value = null }
+            loadPins()
         }
     }
 
@@ -254,6 +263,7 @@ class TourneeViewModel @Inject constructor(
             try {
                 _tournees.value = repository.getTournees()
                 _error.value = null
+                loadPins()
             } catch (e: Exception) {
                 _error.value = extractErrorMessage(e)
             } finally {

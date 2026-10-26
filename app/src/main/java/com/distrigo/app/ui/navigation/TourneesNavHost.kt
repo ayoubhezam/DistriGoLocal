@@ -56,7 +56,8 @@ fun TourneesNavHost(
                 onNotificationsClick = onNotificationsClick,
                 onProfileClick       = onProfileClick,
                 onAddTournee   = license.guarded { navController.navigate(Screen.TourneeForm.createRoute()) },
-                onTourneeClick = { tourneeId -> navController.navigate(Screen.TourneesDetail.createRoute(tourneeId)) }
+                onTourneeClick = { tourneeId -> navController.navigate(Screen.TourneesDetail.createRoute(tourneeId)) },
+                onOpenMap      = { tourneeId -> navController.navigate(Screen.TourneeMap.createRoute(tourneeId)) { launchSingleTop = true } }
             )
         }
 

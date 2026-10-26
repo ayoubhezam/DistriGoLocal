@@ -84,6 +84,28 @@ interface TourneeDao {
     """)
     suspend fun getTourneeSummary(id: Int): TourneeSummaryRow?
 
+    /**
+     * Every tournée's clients that have a position, for the list's mini maps, in one query whatever the number of
+     * tournées: those on its list with their visit and whether they bought on it, then those who bought on it without
+     * being on its list.
+     */
+    @Query("""
+        SELECT tc.tournee_id AS tournee_id, c.id AS client_id, c.latitude AS latitude, c.longitude AS longitude,
+               tc.status AS status,
+               EXISTS (SELECT 1 FROM ventes v WHERE v.tournee_id = tc.tournee_id AND v.client_id = c.id) AS bought
+        FROM tournee_clients tc
+        JOIN clients c ON c.id = tc.client_id
+        WHERE c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+        UNION
+        SELECT v.tournee_id AS tournee_id, c.id AS client_id, c.latitude AS latitude, c.longitude AS longitude,
+               'visite' AS status, 1 AS bought
+        FROM ventes v
+        JOIN clients c ON c.id = v.client_id
+        WHERE v.tournee_id IS NOT NULL AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM tournee_clients tc2 WHERE tc2.tournee_id = v.tournee_id AND tc2.client_id = c.id)
+    """)
+    suspend fun getTourneePins(): List<TourneePinRow>
+
     @Query("UPDATE tournees SET status = :status, date_fin = :dateFin WHERE id = :id")
     suspend fun updateTourneeStatus(id: Int, status: String, dateFin: String?)
 
@@ -110,6 +132,16 @@ object TourneeVisits {
     /** The clients a tournée has, the visited ones' denominator: its list, and anyone who bought on it off the list. */
     fun total(onList: Collection<Int>, buyers: Collection<Int>): Int = (onList + buyers).toSet().size
 }
+
+/** A tournée's client with a position, as [TourneeDao.getTourneePins] reads it. */
+data class TourneePinRow(
+    val tournee_id: Int,
+    val client_id: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val status: String,
+    val bought: Boolean,
+)
 
 /** A tournée row with the counters [TourneeDao.getAllTourneeSummaries] computes alongside it. */
 data class TourneeSummaryRow(

@@ -73,6 +73,16 @@ class TourneeVisitsTest {
     }
 
     @Test
+    fun theMiniMapGetsTheClientsWithAPositionAndWhetherTheyBought() = runBlocking {
+        // 1, 2 and 4 on the list have a position, 3 has none; 5, off the list, bought and has one
+        listOf(1, 2, 4, 5).forEach { sql.execSQL("UPDATE clients SET latitude = 36.2$it, longitude = 7.9$it WHERE id = $it") }
+        val pins = db.tourneeDao().getTourneePins().sortedBy { it.client_id }
+        assertEquals(listOf(1, 2, 4, 5), pins.map { it.client_id })
+        assertEquals(listOf(true, false, false, true), pins.map { it.bought })
+        assertEquals(listOf("visite", "visite", "a_visiter", "visite"), pins.map { it.status })
+    }
+
+    @Test
     fun aTourneeWithNothingVisitedCountsNone() = runBlocking {
         val empty = db.tourneeDao().insertTournee(
             TourneeEntity(status = "en_cours", date_debut = "2026-10-26", date_fin = null, note = null, nom = "Guelma",
