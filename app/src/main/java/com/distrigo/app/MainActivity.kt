@@ -627,7 +627,9 @@ class MainActivity : ComponentActivity() {
                 // and take ~48dp from the little room a form has left.
                 @OptIn(ExperimentalLayoutApi::class)
                 val imeVisible = WindowInsets.isImeVisible
-                if (isTabRoute && !hideBottomBar && !imeVisible) {
+                // Also on Stock Camion: opened from Plus or a tournée, it is a place of its own, no tab's page
+                val showsBottomBar = isTabRoute || currentRoute == Screen.PlusStockCamion.route
+                if (showsBottomBar && !hideBottomBar && !imeVisible) {
                     ShiftingBottomNavBar(
                         currentRoute = currentRoute,
                         onNavigate   = { route -> navigateToTab(route) },

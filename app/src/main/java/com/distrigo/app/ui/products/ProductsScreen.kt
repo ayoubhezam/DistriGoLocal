@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.ProductUnit
@@ -711,14 +712,11 @@ fun ProductsScreen(
             }
         }
 
-        FloatingActionButton(
-            onClick        = { onAddProduct() },
-            containerColor = DsColors.PrimaryDark,
-            contentColor   = Color.White,
-            modifier       = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Ajouter un produit")
-        }
+        DsFab(
+            contentDescription = "Ajouter un produit",
+            onClick            = { onAddProduct() },
+            modifier           = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
+        )
 
         // Last sibling in the Box: siblings stack in emission order, so the viewer has to be
         // emitted after the list and the FAB to draw over them.

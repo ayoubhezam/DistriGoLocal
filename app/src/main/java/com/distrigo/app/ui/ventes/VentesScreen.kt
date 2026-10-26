@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import kotlinx.coroutines.launch
@@ -642,22 +643,19 @@ fun VentesScreen(
             }
         }
 
-        FloatingActionButton(
+        DsFab(
             // The resume decision is made here, before the form graph is entered — which is what
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
-            onClick        = { if (drafts.isEmpty()) onAddVente() else showDraftsSheet = true },
-            containerColor = DsColors.PrimaryDark,
-            contentColor   = Color.White,
-            modifier       = Modifier
+            contentDescription = "Nouvelle vente",
+            onClick            = { if (drafts.isEmpty()) onAddVente() else showDraftsSheet = true },
+            modifier           = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(
                     end = DsSpacing.lg,
                     bottom = DsSpacing.fabBottomClearance
                 )
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Nouvelle vente")
-        }
+        )
 
         SnackbarHost(
             hostState = swipeSnackbar,

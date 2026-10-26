@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.common.formatQty
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -366,18 +367,15 @@ fun StockCamionScreen(
         // With Brouillons waiting, the FAB opens them rather than starting a fifth one straight
         // over the top — the same rule Achats and Dépôt Vente follow. With none, it does what it
         // always did.
-        FloatingActionButton(
-            onClick         = {
+        DsFab(
+            contentDescription = "Ajouter des produits",
+            onClick            = {
                 if (drafts.isNotEmpty()) showDraftsSheet = true else showNewChargement = true
             },
-            containerColor  = DsColors.PrimaryDark,
-            contentColor    = Color.White,
-            modifier        = Modifier
+            modifier           = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Ajouter des produits")
-        }
+        )
 
         if (showDraftsSheet) {
             ChargementBrouillonsSheet(

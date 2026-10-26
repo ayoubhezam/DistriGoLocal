@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.designsystem.DsFabSize
+import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import kotlinx.coroutines.launch
@@ -80,39 +82,21 @@ fun TourneesScreen(
 
     LaunchedEffect(Unit) { viewModel.loadOpenTournee() }
 
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(DsColors.SurfaceMuted)
     ) {
         // ── Header ──
-        // The « Tournées » tab's root: the menu and the global controls beside « + ». Opened on a
-        // tournée (a drill-down), a back arrow instead.
+        // The « Tournées » tab's root: the menu and the global controls. Opened on a tournée (a
+        // drill-down), a back arrow instead.
         DsTopAppBar(
             title   = "Tournées",
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
         ) {
-            FloatingActionButton(
-                // Only one tournée is open at a time (the repository refuses a second): said here,
-                // before a whole form is filled in for nothing.
-                onClick        = {
-                    val open = openTournee
-                    if (open != null) {
-                        // Short on purpose: a toast shows two lines and cuts the rest.
-                        toast(context, "« ${open.nom} » est en cours : clôturez-la d'abord.")
-                    } else {
-                        onAddTournee()
-                    }
-                },
-                containerColor = DsColors.PrimaryDark,
-                contentColor   = Color.White,
-                modifier       = Modifier.size(40.dp),
-                shape          = DsShapes.pill
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nouvelle tournée")
-            }
             if (onOpenMenu != null) {
                 DsTopBarRootActions(onNotificationsClick = onNotificationsClick, onProfileClick = onProfileClick)
             }
@@ -183,7 +167,8 @@ fun TourneesScreen(
             }
             else -> {
                 LazyColumn(
-                    contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                    // The last card clears the bottom bar and the « + » over it
+                    contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.fabBottomClearance + DsFabSize),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
                     items(tournees, key = { it.id }) { tournee ->
@@ -195,6 +180,24 @@ fun TourneesScreen(
                 }
             }
         }
+    }
+
+    // « Nouvelle tournée », at the bottom right as the other lists' « + »
+    DsFab(
+        contentDescription = "Nouvelle tournée",
+        // Only one tournée is open at a time (the repository refuses a second): said here,
+        // before a whole form is filled in for nothing.
+        onClick            = {
+            val open = openTournee
+            if (open != null) {
+                // Short on purpose: a toast shows two lines and cuts the rest.
+                toast(context, "« ${open.nom} » est en cours : clôturez-la d'abord.")
+            } else {
+                onAddTournee()
+            }
+        },
+        modifier           = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
+    )
     }
 }
 

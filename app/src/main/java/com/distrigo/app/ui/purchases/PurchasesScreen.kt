@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import kotlinx.coroutines.launch
@@ -685,19 +686,16 @@ fun PurchasesScreen(
             }
         }
 
-        FloatingActionButton(
+        DsFab(
             // The resume decision is made here, before the form graph is entered — which is what
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
-            onClick        = { if (drafts.isEmpty()) onAddOrder() else showDraftsSheet = true },
-            containerColor = DsColors.PrimaryDark,
-            contentColor   = Color.White,
-            modifier       = Modifier
+            contentDescription = "Nouveau bon",
+            onClick            = { if (drafts.isEmpty()) onAddOrder() else showDraftsSheet = true },
+            modifier           = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Nouveau bon")
-        }
+        )
 
         SnackbarHost(
             hostState = swipeSnackbar,
