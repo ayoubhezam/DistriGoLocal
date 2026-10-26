@@ -623,7 +623,7 @@ fun TourneeDetailScreen(
                 // pushed the clients out of the way exactly when the list started moving. Outside
                 // the LazyColumn the whole block simply stays, and the list is the only thing left
                 // that can scroll.
-                TourneeProgressHeader(tourneeClients = tourneeClients)
+                TourneeProgressHeader(tourneeClients = tourneeClients, clientIdsWithVente = ventes.map { it.client_id }.toSet())
 
                 Spacer(Modifier.height(DsSpacing.md))
 
@@ -1197,11 +1197,19 @@ private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graph
     }
 }
 
+private fun clientsCount(n: Int) = if (n == 1) "1 client" else "$n clients"
+
 @Composable
 private fun TourneeProgressHeader(
-    tourneeClients : List<com.distrigo.app.data.model.TourneeClientInfo>
+    tourneeClients     : List<com.distrigo.app.data.model.TourneeClientInfo>,
+    /** The clients with a sale in this tournée: what turns a visit green, as on the avatars. */
+    clientIdsWithVente : Set<Int>
 ) {
     val visited = tourneeClients.filter { it.status == "visite" }
+    // How many clients wear each colour; every client not visited yet is « pas encore visité »
+    val withSale = visited.count { it.client.id in clientIdsWithVente }
+    val withoutSale = visited.size - withSale
+    val notYet = tourneeClients.size - visited.size
     val total   = tourneeClients.size
     var showStatusLegend by remember { mutableStateOf(false) }
     if (total == 0) return
@@ -1216,9 +1224,9 @@ private fun TourneeProgressHeader(
             title = { Text("Statuts de visite", fontWeight = FontWeight.Bold) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                    TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente")
-                    TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente")
-                    TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité")
+                    TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente (${clientsCount(withSale)})")
+                    TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente (${clientsCount(withoutSale)})")
+                    TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité (${clientsCount(notYet)})")
                 }
             },
             confirmButton = {
