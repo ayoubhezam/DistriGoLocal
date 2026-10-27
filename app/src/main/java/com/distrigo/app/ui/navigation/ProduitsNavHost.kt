@@ -240,6 +240,10 @@ fun ProduitsNavHost(
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsMovementsGraph.route) }
                 val movementsViewModel: StockMovementViewModel = hiltViewModel(parentEntry)
                 val movementId = entry.arguments!!.getInt("movementId")
+                // Its movement gone — its perte, sale, bon… deleted from the record « Voir … » opened — it leaves rather
+                // than spin on a movement that will never load
+                val goneId by movementsViewModel.goneMovementId.collectAsState()
+                if (goneId == movementId) LeaveWhenGone(navController, entry)
                 MovementDetailView(
                     movementId = movementId,
                     viewModel  = movementsViewModel,

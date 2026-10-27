@@ -111,12 +111,20 @@ class StockMovementViewModel @Inject constructor(
     /** The record the movement came from, to open — see ProductRepository.movementDocument. */
     val selectedDocument: StateFlow<Pair<String, Int>?> = _selectedDocument
 
+    /**
+     * The movement a detail screen found gone: its record was deleted from the detail it opened (a perte deleted from
+     * « Voir la perte » takes its movement with it). Per id, so the next movement opened is not taken for gone.
+     */
+    private val _goneMovementId = MutableStateFlow<Int?>(null)
+    val goneMovementId: StateFlow<Int?> = _goneMovementId
+
     fun loadMovementDetail(id: Int) {
         viewModelScope.launch {
             val movement = repository.getMovementById(id)
             _selectedSourceNumber.value = movement?.let { repository.documentLabel(it.source_type, it.source_id) }
             _selectedDocument.value = movement?.let { repository.movementDocument(it.source_type, it.source_id) }
             _selectedMovement.value = movement
+            _goneMovementId.value = if (movement == null) id else null
         }
     }
 }
