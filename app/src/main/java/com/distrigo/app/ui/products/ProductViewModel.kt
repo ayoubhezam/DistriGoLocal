@@ -54,6 +54,28 @@ class ProductViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    /**
+     * « Décharger le camion »: everything the truck holds of [product] back to the dépôt. It is the chargement form's
+     * unload — a chargement whose one line goes `vers_depot` — so the stock moves through the same ledger and guard,
+     * the total unchanged, and it stays allowed whatever the license (D4). The quantity is read afresh, not taken from
+     * the list's copy. [onDone] gets what was unloaded, 0 when the truck held none of it.
+     */
+    fun unloadFromTruck(product: Product, onDone: (Double) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val quantity = repository.getLiveProduct(product.id)?.camion_stock ?: product.camion_stock
+                if (quantity <= 0.0) return@launch onDone(0.0)
+                repository.createChargement(
+                    note  = null,
+                    items = listOf(mapOf("product_id" to product.id, "quantity" to quantity, "direction" to "vers_depot"))
+                )
+                onDone(quantity)
+            } catch (e: Exception) {
+                onError(userMessage(e, "Le déchargement a échoué."))
+            }
+        }
+    }
+
     // No whole-catalogue flow any more. Every screen reads what it shows: a page (pagedProducts,
     // PagedProductList), one product (observeProduct), a few by id, or a sum.
 

@@ -2,6 +2,7 @@ package com.distrigo.app.ui.tournees
 
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.common.formatQty
+import com.distrigo.app.data.model.ProductUnit
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -84,6 +85,10 @@ fun StockCamionScreen(
 
     var showNewChargement by remember { mutableStateOf(false) }
     var editingProduct    by remember { mutableStateOf<Product?>(null) }
+    // « Décharger le camion »: the product whose unload is being confirmed, then nothing while it runs
+    var unloadingProduct  by remember { mutableStateOf<Product?>(null) }
+    var unloadBusy        by remember { mutableStateOf(false) }
+    val unloadContext = androidx.compose.ui.platform.LocalContext.current
     var longPressProduct  by remember { mutableStateOf<Product?>(null) }
     var showDraftsSheet   by remember { mutableStateOf(false) }
     var showBrouillons    by remember { mutableStateOf(false) }
@@ -173,27 +178,92 @@ fun StockCamionScreen(
             shape = DsShapes.medium,
             containerColor = DsColors.Surface,
             text = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(DsShapes.medium)
-                        .background(DsColors.PrimaryLight)
-                        .combinedClickable(
-                            onClick = {
-                                editingProduct  = product
-                                longPressProduct = null
-                            }
-                        )
-                        .padding(DsSpacing.md),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                    Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.PrimaryLight)
+                            .combinedClickable(
+                                onClick = {
+                                    editingProduct  = product
+                                    longPressProduct = null
+                                }
+                            )
+                            .padding(DsSpacing.md),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                        Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                    }
+                    // Everything the truck holds of it, back to the dépôt, once confirmed
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(DsShapes.medium)
+                            .background(DsColors.WarningLight)
+                            .combinedClickable(
+                                onClick = {
+                                    unloadingProduct = product
+                                    longPressProduct = null
+                                }
+                            )
+                            .padding(DsSpacing.md),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
+                    ) {
+                        Icon(Icons.Default.Warehouse, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(20.dp))
+                        Text("Décharger le camion", fontSize = DsTextSize.body, color = DsColors.Warning, fontWeight = FontWeight.Medium)
+                    }
                 }
             },
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary
+        )
+    }
+
+    // ── « Décharger le camion », confirmed ──
+    unloadingProduct?.let { product ->
+        AlertDialog(
+            onDismissRequest = { if (!unloadBusy) unloadingProduct = null },
+            icon             = { Icon(Icons.Default.Warehouse, contentDescription = null, tint = DsColors.Warning) },
+            title            = { Text("Décharger le camion") },
+            text             = {
+                Text(
+                    "Voulez-vous décharger ce produit du camion ?\n\n" +
+                        "${formatQty(product.camion_stock)} ${ProductUnit.plural(product.unit_type, product.camion_stock)} de « ${product.name} » " +
+                        "retourneront au dépôt."
+                )
+            },
+            confirmButton    = {
+                TextButton(
+                    enabled = !unloadBusy,
+                    onClick = {
+                        unloadBusy = true
+                        productViewModel.unloadFromTruck(
+                            product,
+                            onDone  = { quantity ->
+                                unloadBusy = false
+                                unloadingProduct = null
+                                if (quantity > 0.0) android.widget.Toast.makeText(
+                                    unloadContext,
+                                    "« ${product.name} » déchargé : ${formatQty(quantity)} ${ProductUnit.plural(product.unit_type, quantity)} au dépôt",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            onError = { message ->
+                                unloadBusy = false
+                                unloadingProduct = null
+                                android.widget.Toast.makeText(unloadContext, message, android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    }
+                ) { Text("Décharger", color = DsColors.Warning, fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton    = { TextButton(enabled = !unloadBusy, onClick = { unloadingProduct = null }) { Text("Annuler") } },
+            containerColor   = DsColors.Surface
         )
     }
 
