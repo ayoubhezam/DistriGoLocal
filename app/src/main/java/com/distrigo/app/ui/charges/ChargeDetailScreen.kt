@@ -33,6 +33,7 @@ import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.Notes
 
 /**
  * An expense, read-only. Tapping one in its list used to open the edit form straight away, where a
@@ -118,7 +119,7 @@ fun ChargeDetailScreen(
                 DetailRow(Icons.Default.Event, "Date", at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
                 DetailRow(Icons.Default.Schedule, "Heure", at?.format(TIME) ?: "—")
                 charge.fournisseur?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Storefront, "Fournisseur / Station", it) }
-                charge.note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Notes, "Note", it) }
+                charge.note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Note", it) }
                 runCatching { Instant.parse(charge.created_at).atZone(ZoneId.systemDefault()) }.getOrNull()?.let { created ->
                     DetailRow(Icons.Default.History, "Enregistrée le", "${created.format(DAY)} à ${created.format(TIME)}")
                 }

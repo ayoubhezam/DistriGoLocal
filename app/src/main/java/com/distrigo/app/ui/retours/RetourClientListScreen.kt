@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AssignmentReturn
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -50,6 +49,7 @@ import com.distrigo.app.ui.common.FitText
 import androidx.compose.ui.text.style.TextAlign
 import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 
 @Composable
 fun RetourClientListScreen(
@@ -185,7 +185,7 @@ fun RetourRow(retour: RetourClient, onClick: (() -> Unit)? = null) {
                 modifier         = Modifier.size(42.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Filled.AssignmentReturn, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {

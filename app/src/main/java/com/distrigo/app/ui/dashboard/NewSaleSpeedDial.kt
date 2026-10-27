@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -125,7 +128,9 @@ fun NewSaleSpeedDial(
         }
         val p = progress.value
         val density = LocalDensity.current
-        Box(Modifier.fillMaxSize()) {
+        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+        // [tile] is in window pixels from the left in either direction: everything here is placed from the left
+        Box(Modifier.fillMaxSize(), contentAlignment = AbsoluteAlignment.TopLeft) {
             // The scrim: in over the first half of the opening; out over the last half of the closing, once the
             // actions are nearly back in the tile
             Box(
@@ -138,7 +143,7 @@ fun NewSaleSpeedDial(
             // The tile, lit above the scrim, its icon turning to ✕
             Box(
                 Modifier
-                    .offset { IntOffset(tile.left.roundToInt(), tile.top.roundToInt()) }
+                    .absoluteOffset { IntOffset(tile.left.roundToInt(), tile.top.roundToInt()) }
                     .size(with(density) { tile.width.toDp() }, with(density) { tile.height.toDp() })
             ) {
                 QuickAction(
@@ -155,9 +160,11 @@ fun NewSaleSpeedDial(
                 )
             }
 
-            // The two actions, out of the tile's centre to its right: up for the dépôt, down for the tournée
+            // The two actions, out of the tile's centre to its end (right in French, left in Arabic, towards the
+            // screen's middle either way): up for the dépôt, down for the tournée
             val from = tile.center
-            val x = with(density) { tile.right + DsSpacing.lg.toPx() + ActionSize.toPx() / 2 }
+            val gap = with(density) { DsSpacing.lg.toPx() + ActionSize.toPx() / 2 }
+            val x = if (isRtl) tile.left - gap else tile.right + gap
             val dy = with(density) { (ActionSize / 2 + DsSpacing.sm).toPx() }
             SpeedDialAction(
                 icon = Icons.Default.Storefront, label = "Vente dépôt", description = "Vente dépôt",
@@ -193,19 +200,26 @@ private fun SpeedDialAction(
     if (progress <= 0f) return
     val density = LocalDensity.current
     var rowHeight by remember { mutableStateOf(0) }
+    var rowWidth by remember { mutableStateOf(0) }
+    // In Arabic the row flips: its circle is at the right end, the label to its left
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val half = with(density) { ActionSize.toPx() / 2 }
     val cx = lerp(from.x, to.x, progress)
     val cy = lerp(from.y, to.y, progress)
     Row(
         modifier = Modifier
-            .offset { IntOffset((cx - half).roundToInt(), (cy - rowHeight / 2f).roundToInt()) }
-            .onSizeChanged { rowHeight = it.height }
+            .absoluteOffset {
+                val left = if (isRtl) cx + half - rowWidth else cx - half
+                IntOffset(left.roundToInt(), (cy - rowHeight / 2f).roundToInt())
+            }
+            .onSizeChanged { rowHeight = it.height; rowWidth = it.width }
             .graphicsLayer {
                 alpha = progress
                 val s = lerp(0.4f, 1f, progress)
                 scaleX = s; scaleY = s
                 // Grows out of its circle's centre, not the row's
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(half / size.width.coerceAtLeast(1f), 0.5f)
+                val circleX = if (isRtl) size.width - half else half
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(circleX / size.width.coerceAtLeast(1f), 0.5f)
             }
             .clip(DsShapes.pill)
             .clickable(role = Role.Button, onClick = onClick)

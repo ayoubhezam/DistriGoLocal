@@ -71,6 +71,9 @@ import com.distrigo.app.ui.retours.RetourFournisseurRow
 import com.distrigo.app.ui.retours.RetourFournisseurViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.data.model.Amount
+import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Notes
 
 @OptIn(ExperimentalFoundationApi::class)
 /** How many of the latest transactions the supplier's card shows before « Voir tout ». */
@@ -562,7 +565,7 @@ fun SupplierDetailScreen(
                     }
                     item {
                         QuickActionButton(
-                            icon = Icons.Default.AssignmentReturn,
+                            icon = Icons.AutoMirrored.Filled.AssignmentReturn,
                             label = "Retour"
                         )  {
                             onRetourForm()
@@ -643,7 +646,7 @@ fun SupplierDetailScreen(
                                     value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
                                 )
                                 if (!currentSupplier.note.isNullOrBlank()) {
-                                    SupplierInfoRow(icon = Icons.Default.Notes, label = "Note", value = currentSupplier.note)
+                                    SupplierInfoRow(icon = Icons.AutoMirrored.Filled.Notes, label = "Note", value = currentSupplier.note)
                                 }
                             }
                         }
@@ -683,7 +686,7 @@ fun SupplierDetailScreen(
                                             color = DsColors.Primary
                                         )
                                         Icon(
-                                            Icons.Default.ChevronRight,
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                             contentDescription = null,
                                             tint = DsColors.Primary,
                                             modifier = Modifier.size(16.dp)
@@ -751,7 +754,7 @@ fun SupplierDetailScreen(
                                             color = DsColors.Primary
                                         )
                                         Icon(
-                                            Icons.Default.ChevronRight,
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                             contentDescription = null,
                                             tint = DsColors.Primary,
                                             modifier = Modifier.size(16.dp)
@@ -765,7 +768,7 @@ fun SupplierDetailScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
+                                            Icon(Icons.AutoMirrored.Filled.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
                                             Spacer(Modifier.height(DsSpacing.sm))
                                             Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                                         }

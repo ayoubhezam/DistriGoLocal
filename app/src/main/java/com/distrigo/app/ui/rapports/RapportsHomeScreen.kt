@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PieChart
@@ -43,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 
 /** One report of the list. [onOpen] is null for a report not built yet, shown as "Bientôt". */
 private class ReportEntry(
@@ -108,7 +108,7 @@ private fun EntryRow(entry: ReportEntry) {
             Text(entry.subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         if (open != null) {
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(14.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(14.dp))
         } else {
             Text(
                 "Bientôt", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,

@@ -56,6 +56,7 @@ import com.distrigo.app.ui.common.EntityAvatar
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -504,6 +505,6 @@ private fun ClientCard(
 
         Spacer(Modifier.width(8.dp))
 
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(16.dp))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(16.dp))
     }
 }

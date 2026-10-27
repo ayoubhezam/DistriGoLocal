@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -305,17 +308,21 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
         }
         Spacer(Modifier.height(DsSpacing.md))
 
+        // In Arabic time runs right to left (D4): the bars are drawn mirrored and a tap is read from the right,
+        // matching the date labels' row, which flips by itself
+        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
         Canvas(
             Modifier
                 .fillMaxWidth()
                 .height(150.dp)
-                .pointerInput(buckets) {
+                .pointerInput(buckets, isRtl) {
                     detectTapGestures { offset ->
-                        val index = (offset.x / (size.width.toFloat() / buckets.size)).toInt().coerceIn(0, buckets.size - 1)
+                        val slotIndex = (offset.x / (size.width.toFloat() / buckets.size)).toInt().coerceIn(0, buckets.size - 1)
+                        val index = if (isRtl) buckets.size - 1 - slotIndex else slotIndex
                         selected = if (selected == index) null else index
                     }
                 }
-        ) {
+        ) { scale(scaleX = if (isRtl) -1f else 1f, scaleY = 1f) {
             val slot = size.width / buckets.size
             // A day's two bars touch and the days stand apart, so each pair reads as one day.
             val group = (slot * 0.7f).coerceAtLeast(1f)
@@ -342,7 +349,7 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
                     bar(if (b.camion.total > 0) CamionColor else primary, x, shares.getOrElse(i) { 0f }, alpha)
                 }
             }
-        }
+        } }
 
         Spacer(Modifier.height(DsSpacing.xs))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

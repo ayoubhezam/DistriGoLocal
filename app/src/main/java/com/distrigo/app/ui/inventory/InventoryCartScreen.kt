@@ -20,8 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +57,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import kotlin.math.abs
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 
 /**
  * The count's selection, laid out as the Ventes and Achats carts are: one card per product counted —
@@ -102,9 +102,9 @@ fun InventoryCartScreen(
                         val item = items[index] ?: return@items
                         val expanded = expandedId == item.id
                         val (tone, icon, status) = when {
-                            item.ecart < 0 -> Triple(CartStatusTone.DANGER, Icons.Default.TrendingDown,
+                            item.ecart < 0 -> Triple(CartStatusTone.DANGER, Icons.AutoMirrored.Filled.TrendingDown,
                                 "Manque ${formatQty(abs(item.ecart))} · ${money.da(abs(item.valeur_ecart))}")
-                            item.ecart > 0 -> Triple(CartStatusTone.WARNING, Icons.Default.TrendingUp,
+                            item.ecart > 0 -> Triple(CartStatusTone.WARNING, Icons.AutoMirrored.Filled.TrendingUp,
                                 "Surplus ${formatQty(item.ecart)} · ${money.da(item.valeur_ecart)}")
                             else -> Triple(CartStatusTone.OK, Icons.Default.CheckCircle, "Aucun écart")
                         }

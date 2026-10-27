@@ -2,6 +2,7 @@ package com.distrigo.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
@@ -33,6 +34,20 @@ private fun TextStyle.brand(lineHeight: TextUnit = 1.4.em, letterSpacing: TextUn
         textDirection = TextDirection.ContentOrLtr,
     )
 
+/**
+ * The same roles on a right-to-left screen (docs/i18n_rtl_plan.md, "Mixed Arabic and French text"):
+ * - Every line hugs the right edge, the screen's start. Compose would otherwise align a line by its own direction, so a
+ *   French product name or an amount in a full-width column would sit at the left, away from the Arabic around it.
+ *   A call site's own `textAlign` (Center, End) still wins.
+ * - No letter spacing: it pulls Arabic's joined letters apart.
+ * - A little more line height ([RtlLeading]): Arabic letters reach higher and lower than Latin ones.
+ */
+private fun TextStyle.rtl() = copy(
+    textAlign = TextAlign.Right, letterSpacing = 0.sp,
+    lineHeight = (lineHeight.value + RtlLeading).em,
+)
+
+private const val RtlLeading = 0.1f
 private val BodyTracking = 0.15.sp
 private val LabelTracking = 0.1.sp
 
@@ -53,5 +68,26 @@ val Typography = Typography().run {
         labelLarge     = labelLarge.brand(letterSpacing = LabelTracking),
         labelMedium    = labelMedium.brand(letterSpacing = LabelTracking),
         labelSmall     = labelSmall.brand(letterSpacing = LabelTracking),
+    )
+}
+
+/** [Typography] for a right-to-left screen: see [rtl]. Built once, chosen by the theme from the layout direction. */
+val RtlTypography = Typography.run {
+    copy(
+        displayLarge   = displayLarge.rtl(),
+        displayMedium  = displayMedium.rtl(),
+        displaySmall   = displaySmall.rtl(),
+        headlineLarge  = headlineLarge.rtl(),
+        headlineMedium = headlineMedium.rtl(),
+        headlineSmall  = headlineSmall.rtl(),
+        titleLarge     = titleLarge.rtl(),
+        titleMedium    = titleMedium.rtl(),
+        titleSmall     = titleSmall.rtl(),
+        bodyLarge      = bodyLarge.rtl(),
+        bodyMedium     = bodyMedium.rtl(),
+        bodySmall      = bodySmall.rtl(),
+        labelLarge     = labelLarge.rtl(),
+        labelMedium    = labelMedium.rtl(),
+        labelSmall     = labelSmall.rtl(),
     )
 }

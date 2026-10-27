@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -32,6 +31,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.Sort
 
 // How a list is sorted, the same everywhere: the "Trier" chip of Produits' controls row and its
 // "Trier par" sheet, taken out of Produits so every list that sorts looks and behaves the same.
@@ -50,7 +50,7 @@ fun ListSortChip(active: Boolean, onClick: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Sort,
+                Icons.AutoMirrored.Filled.Sort,
                 contentDescription = "Trier",
                 tint = if (active) DsColors.PrimaryDark else DsColors.TextSecondary,
                 modifier = Modifier.size(16.dp)

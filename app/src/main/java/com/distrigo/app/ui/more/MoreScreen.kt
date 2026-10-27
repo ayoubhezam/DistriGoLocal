@@ -22,6 +22,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarSize
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 private data class MoreMenuEntry(
     val icon       : ImageVector,
     val title      : String,
@@ -106,6 +107,6 @@ private fun MoreMenuItem(
             Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
 
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
     }
 }

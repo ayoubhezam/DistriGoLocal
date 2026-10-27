@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.material.icons.automirrored.filled.Notes
 @Composable
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
@@ -394,7 +395,7 @@ fun PurchaseOrderDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                                Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                                 Text(note, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                             }
                         }

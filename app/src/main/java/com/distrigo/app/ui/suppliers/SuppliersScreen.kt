@@ -40,6 +40,7 @@ import com.distrigo.app.ui.common.RemovableFilterChips
 import com.distrigo.app.ui.common.SupplierListFilters
 import com.distrigo.app.ui.common.placesOf
 import com.distrigo.app.data.model.Amount
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -244,7 +245,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.width(DsSpacing.sm))
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
             }
         }
     }

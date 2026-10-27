@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 /**
  * One draft reduced to what a card needs to render it.
@@ -167,7 +167,7 @@ fun DraftRow(
 
         if (trailing != null) trailing()
         else Icon(
-            Icons.Default.KeyboardArrowRight,
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = DsColors.TextTertiary,
             modifier = Modifier.size(20.dp)

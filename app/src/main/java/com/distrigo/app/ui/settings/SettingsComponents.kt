@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -34,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 /** What a row not built yet says, in place of its subtitle (owner, 2026-10-21). */
 const val SOON = "Bientôt disponible"
@@ -110,7 +110,7 @@ fun SettingsRow(
         when {
             !enabled -> Unit
             trailing != null -> { Spacer(Modifier.width(DsSpacing.sm)); trailing() }
-            onClick != null -> Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
+            onClick != null -> Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
         }
     }
 }

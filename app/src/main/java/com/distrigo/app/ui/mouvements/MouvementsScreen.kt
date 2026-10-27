@@ -47,6 +47,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 
 
 @Composable
@@ -262,8 +263,8 @@ fun movementTypeDisplay(type: String): Pair<ImageVector, String> = when (type) {
     "chargement" -> Icons.Default.LocalShipping to "Chargement"
     "perte"      -> Icons.Default.Warning to "Perte"
     "ajustement" -> Icons.Default.Tune to "Ajustement"
-    "retour_client"      -> Icons.Default.AssignmentReturn to "Retour client"
-    "retour_fournisseur" -> Icons.Default.AssignmentReturn to "Retour fournisseur"
+    "retour_client"      -> Icons.AutoMirrored.Filled.AssignmentReturn to "Retour client"
+    "retour_fournisseur" -> Icons.AutoMirrored.Filled.AssignmentReturn to "Retour fournisseur"
     else         -> Icons.Default.SwapVert to type
 }
 

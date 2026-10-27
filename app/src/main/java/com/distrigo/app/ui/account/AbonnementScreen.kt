@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.ui.common.layoutEnd
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -19,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HeadsetMic
@@ -73,6 +73,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.material.icons.automirrored.outlined.Chat
 
 /**
  * « Abonnement » (docs/license_l5_enforcement.md §8.2): what the subscription's state is, a code to renew it, and
@@ -233,7 +234,7 @@ private fun SupportCard() {
         BrandCardHeader(Icons.Outlined.HeadsetMic, "Besoin d'aide ?")
         SupportRow(Icons.Outlined.Phone, "Téléphone", SUPPORT_PHONE) { open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$SUPPORT_PHONE"))) }
         BrandRowDivider()
-        SupportRow(Icons.Outlined.Chat, "WhatsApp", SUPPORT_PHONE) { open(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_WHATSAPP))) }
+        SupportRow(Icons.AutoMirrored.Outlined.Chat, "WhatsApp", SUPPORT_PHONE) { open(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_WHATSAPP))) }
         BrandRowDivider()
         SupportRow(Icons.Outlined.Email, "E-mail", SUPPORT_EMAIL) { open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$SUPPORT_EMAIL"))) }
         BrandRowDivider()
@@ -260,7 +261,7 @@ private fun SupportRow(icon: ImageVector, label: String, value: String, onClick:
             fontWeight = FontWeight.Bold,
             fontSize   = BrandSize.Body,
             color      = if (onClick != null) DsBrand.Blue else DsBrand.Ink,
-            textAlign  = TextAlign.End,
+            textAlign  = layoutEnd(),
             modifier   = Modifier.weight(1f)
         )
         if (onClick != null) {

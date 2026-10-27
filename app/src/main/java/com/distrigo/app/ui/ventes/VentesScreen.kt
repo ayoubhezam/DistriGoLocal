@@ -65,6 +65,7 @@ import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectList
 import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.material.icons.automirrored.filled.Notes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -992,7 +993,7 @@ fun VenteDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                                Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                                 Text(
                                     note,
                                     fontSize  = DsTextSize.caption,

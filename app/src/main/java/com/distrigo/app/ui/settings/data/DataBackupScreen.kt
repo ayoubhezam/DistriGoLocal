@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.data
 
+import com.distrigo.app.ui.common.layoutEnd
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -29,7 +30,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestorePage
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.material.icons.filled.Schedule
@@ -71,6 +71,7 @@ import kotlinx.coroutines.delay
 import java.time.Instant
 import com.distrigo.app.data.backup.RestoreBusiness
 import com.distrigo.app.data.backup.RestoreStockRule
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 /**
  * Paramètres → Sauvegarde et restauration: save all the data to a file, and replace it with a file saved before.
@@ -432,7 +433,7 @@ private fun AutoBackupCard(
                     color = if (!folder.chosen) DsColors.Primary else DsColors.TextPrimary
                 )
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary)
         }
 
         // Where the nights stand, once they run
@@ -667,8 +668,8 @@ private fun CountsTable(preview: BackupPreview) {
     Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)) {
         Row(Modifier.fillMaxWidth().background(DsColors.SurfaceSunken).padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)) {
             Text("", Modifier.weight(1.4f))
-            Text("Sauvegarde", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.End)
-            Text("Actuellement", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.End)
+            Text("Sauvegarde", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
+            Text("Actuellement", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
         }
         preview.headline.forEach { (table, counts) ->
             val (inBackup, now) = counts
@@ -676,9 +677,9 @@ private fun CountsTable(preview: BackupPreview) {
             Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)) {
                 Text(DataBackupFormatting.tableLabel(table), Modifier.weight(1.4f), fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
                 Text(inBackup.toString(), Modifier.weight(1f), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
-                    color = DsColors.TextPrimary, textAlign = TextAlign.End)
+                    color = DsColors.TextPrimary, textAlign = layoutEnd())
                 Text(now.toString(), Modifier.weight(1f), fontSize = DsTextSize.bodySmall,
-                    color = if (now > inBackup) DsColors.Danger else DsColors.TextSecondary, textAlign = TextAlign.End)
+                    color = if (now > inBackup) DsColors.Danger else DsColors.TextSecondary, textAlign = layoutEnd())
             }
         }
     }
@@ -851,7 +852,7 @@ private fun RestartingScreen() {
 private fun DetailLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth()) {
         Text(label, Modifier.padding(end = DsSpacing.md), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
-        Text(value, Modifier.weight(1f), fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, textAlign = TextAlign.End)
+        Text(value, Modifier.weight(1f), fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, textAlign = layoutEnd())
     }
 }
 

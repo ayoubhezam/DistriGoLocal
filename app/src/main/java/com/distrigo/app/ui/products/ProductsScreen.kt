@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.common.layoutEnd
 import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -64,6 +65,8 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.DsCompactSearchAction
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ViewList
 
 enum class SortOption(val label: String) {
     NAME_ASC   ("Nom (A → Z)"),
@@ -875,13 +878,13 @@ fun ProductCard(
                 fontSize   = DsTextSize.caption,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                 color      = if (isLow) DsColors.Danger else DsColors.TextSecondary,
-                textAlign  = androidx.compose.ui.text.style.TextAlign.End,
+                textAlign  = layoutEnd(),
                 maxLines   = 1,
                 softWrap   = false
             )
 
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -1009,7 +1012,7 @@ internal fun ProductListControls(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.ViewList,
+                        Icons.AutoMirrored.Filled.ViewList,
                         contentDescription = "Liste",
                         tint = if (!isGrid) Color.White else DsColors.TextSecondary,
                         modifier = Modifier.size(18.dp)

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.designsystem
 
+import com.distrigo.app.ui.common.layoutEnd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -50,6 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
@@ -160,7 +163,10 @@ fun BrandWave(modifier: Modifier) {
             lineTo(0f, h)
             close()
         }
-        drawPath(wave, Brush.linearGradient(listOf(DsBrand.Blue, DsBrand.Ink), start = Offset(0f, 0f), end = Offset(w, h)))
+        // Placed at the start edge, so in Arabic it is mirrored: its tall end stays against the screen's edge
+        scale(scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f, scaleY = 1f) {
+            drawPath(wave, Brush.linearGradient(listOf(DsBrand.Blue, DsBrand.Ink), start = Offset(0f, 0f), end = Offset(w, h)))
+        }
     }
 }
 
@@ -238,7 +244,7 @@ fun BrandInfoRow(
                 fontSize   = BrandSize.Body,
                 lineHeight = BrandSize.BodyLine,
                 color      = if (value != null) DsBrand.Ink else DsBrand.Blue,
-                textAlign  = TextAlign.End,
+                textAlign  = layoutEnd(),
                 maxLines   = 2,
                 overflow   = TextOverflow.Ellipsis,
                 modifier   = Modifier.weight(1f)

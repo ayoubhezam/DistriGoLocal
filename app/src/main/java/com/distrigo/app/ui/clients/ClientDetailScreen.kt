@@ -78,6 +78,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.IntOffset
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.data.model.Amount
+import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Notes
 @OptIn(ExperimentalFoundationApi::class)
 /** How many of the latest transactions the client's card shows before « Voir tout ». */
 private const val FACTURE_PREVIEW = 3
@@ -612,7 +615,7 @@ fun ClientDetailScreen(
                     }
                     item {
                         QuickActionButton(
-                            icon = Icons.Default.AssignmentReturn,
+                            icon = Icons.AutoMirrored.Filled.AssignmentReturn,
                             label = "Retour"
                         ) {
                             onRetourForm()
@@ -720,7 +723,7 @@ fun ClientDetailScreen(
                                         ?: "Non renseignée")
                                 if (!currentClient.note.isNullOrBlank()) {
                                     ClientInfoRow(
-                                        icon = Icons.Default.Notes,
+                                        icon = Icons.AutoMirrored.Filled.Notes,
                                         label = "Note",
                                         value = currentClient.note
                                     )
@@ -768,7 +771,7 @@ fun ClientDetailScreen(
                                             color = DsColors.Primary
                                         )
                                         Icon(
-                                            Icons.Default.ChevronRight,
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                             contentDescription = null,
                                             tint = DsColors.Primary,
                                             modifier = Modifier.size(16.dp)
@@ -847,7 +850,7 @@ fun ClientDetailScreen(
                                             color = DsColors.Primary
                                         )
                                         Icon(
-                                            Icons.Default.ChevronRight,
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                             contentDescription = null,
                                             tint = DsColors.Primary,
                                             modifier = Modifier.size(16.dp)
@@ -864,7 +867,7 @@ fun ClientDetailScreen(
                                     ) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Icon(
-                                                Icons.Default.AssignmentReturn,
+                                                Icons.AutoMirrored.Filled.AssignmentReturn,
                                                 contentDescription = null,
                                                 tint = DsColors.TextTertiary,
                                                 modifier = Modifier.size(48.dp)
@@ -965,7 +968,7 @@ private fun ClientInfoRow(
             )
         }
         if (onClick != null) {
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }

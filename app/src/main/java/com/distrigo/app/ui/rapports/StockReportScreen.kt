@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.RemoveShoppingCart
-import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -59,6 +58,7 @@ import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 
 /** How many lost products and products to restock the report itself lists. */
 private const val TOP_LOST = 5
@@ -158,7 +158,7 @@ private fun Tiles(report: StockReport) {
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile("Pertes", money.figure(report.lossValue), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.lossCount, "perte", "pertes"), Icons.Default.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
+                plural(report.lossCount, "perte", "pertes"), Icons.AutoMirrored.Filled.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
             KpiTile("Taux de perte", rateFigure(report.lossRate), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Percent, INFO_RATE, accent = DsColors.Primary)
         }

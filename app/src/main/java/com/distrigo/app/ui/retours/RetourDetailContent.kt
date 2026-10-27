@@ -33,6 +33,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.automirrored.filled.Notes
 
 /** One returned product, as the details list it. */
 internal data class RetourLine(
@@ -99,7 +102,7 @@ internal fun RetourDetailContent(
                     modifier         = Modifier.size(64.dp).clip(DsShapes.large).background(DsColors.PrimaryLight),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.AssignmentReturn, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
+                    Icon(Icons.AutoMirrored.Filled.AssignmentReturn, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
                 }
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(partyName, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
@@ -116,12 +119,12 @@ internal fun RetourDetailContent(
                 DetailRow(Icons.Default.Person, partyLabel, partyName)
                 // A return's lines can each have their own motif: then it is "Selon le produit", and each line says its own.
                 val lineMotifs = lines?.mapNotNull { it.motif }?.distinct().orEmpty()
-                DetailRow(Icons.Default.Label, "Motif", when {
+                DetailRow(Icons.AutoMirrored.Filled.Label, "Motif", when {
                     lineMotifs.size > 1 -> "Selon le produit"
                     else -> (motif ?: lineMotifs.firstOrNull())?.takeIf { it.isNotBlank() } ?: "—"
                 })
                 DetailRow(Icons.Default.Inventory2, "Effet sur le stock", stockEffect)
-                note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Notes, "Note", it) }
+                note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Note", it) }
                 instant(createdAt)?.let { DetailRow(Icons.Default.History, "Enregistré le", "${it.format(DAY)} à ${it.format(TIME)}") }
             }
 

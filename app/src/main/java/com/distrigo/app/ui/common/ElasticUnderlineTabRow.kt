@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,8 +17,10 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp as lerpFloat
 import com.distrigo.app.ui.designsystem.DsColors
@@ -37,6 +40,7 @@ fun ElasticUnderlineTabRow(
     modifier   : Modifier = Modifier
 ) {
     val density         = LocalDensity.current
+    val isRtl           = LocalLayoutDirection.current == LayoutDirection.Rtl
     val coroutineScope  = rememberCoroutineScope()
     val tabOffsetsPx    = remember(tabs.size) { mutableStateListOf<Float>().apply { repeat(tabs.size) { add(0f) } } }
     val tabWidthsPx     = remember(tabs.size) { mutableStateListOf<Float>().apply { repeat(tabs.size) { add(0f) } } }
@@ -82,18 +86,20 @@ fun ElasticUnderlineTabRow(
                 } else {
                     val easeIn  = localT * localT
                     val easeOut = 1f - (1f - localT) * (1f - localT)
-                    indicatorLeftPx  = lerpFloat(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], easeIn)
+                    // The edge in the direction of travel leads: the right one in French, the left one in Arabic
+                    indicatorLeftPx  = lerpFloat(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], if (isRtl) easeOut else easeIn)
                     indicatorRightPx = lerpFloat(
                         tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex],
                         tabOffsetsPx[rightIndex] + tabWidthsPx[rightIndex],
-                        easeOut
+                        if (isRtl) easeIn else easeOut
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .offset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
+                        // positionInParent is measured from the left in either direction, so place it from the left
+                        .align(AbsoluteAlignment.BottomLeft)
+                        .absoluteOffset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
                         .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
                         .height(2.5.dp)
                         .clip(DsShapes.pill)

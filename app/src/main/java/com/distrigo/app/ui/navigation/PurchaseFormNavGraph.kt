@@ -89,6 +89,7 @@ import com.distrigo.app.ui.common.avatarColor
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
 // (back + dynamic title + step badge). Kept identical across the 3 destinations that had it —
@@ -441,7 +442,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 if (formSupplier?.id == supplier.id) {
                                     Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                                 } else {
-                                    Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                                 }
                             }
                         }

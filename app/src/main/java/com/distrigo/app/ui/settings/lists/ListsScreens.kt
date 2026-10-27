@@ -24,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
@@ -69,6 +68,7 @@ import com.distrigo.app.data.lists.ListsRepository
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.SearchableSelectSheet
 import com.distrigo.app.ui.common.matchesAllTokens
+import com.distrigo.app.ui.common.mirrorInRtl
 import com.distrigo.app.ui.common.searchTokens
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -81,6 +81,7 @@ import com.distrigo.app.ui.designsystem.LocalLicense
 import com.distrigo.app.ui.settings.SettingsDivider
 import com.distrigo.app.ui.settings.SettingsRow
 import com.distrigo.app.ui.settings.SettingsSection
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 /** « 1 catégorie », « 12 catégories ». */
 private fun count(n: Int, singular: String, plural: String) = "$n ${if (n == 1) singular else plural}"
@@ -300,7 +301,7 @@ private fun EntryRow(kind: ListKind, entry: ListEntry, onClick: () -> Unit) {
             BuiltInPill()
         }
         Spacer(Modifier.width(DsSpacing.xs))
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -342,7 +343,7 @@ private fun EntryActions(
             Spacer(Modifier.height(DsSpacing.md))
             val child = kind.children
             if (onChildren != null && child != null) {
-                ActionRow(Icons.Outlined.SubdirectoryArrowRight, DsColors.Primary, child.label, count(entry.children, child.singular, child.plural), onClick = onChildren)
+                ActionRow(Icons.Outlined.SubdirectoryArrowRight, DsColors.Primary, child.label, count(entry.children, child.singular, child.plural), mirrored = true, onClick = onChildren)
             }
             ActionRow(Icons.Outlined.Edit, DsColors.Primary, "Renommer", "Partout où ${if (kind.feminine) "elle" else "il"} est utilisé${if (kind.feminine) "e" else ""}", onClick = onRename)
             val blocked = when {
@@ -377,6 +378,8 @@ private fun ActionRow(
     subtitle: String,
     enabled: Boolean = true,
     danger: Boolean = false,
+    /** The icon points along the reading direction and has no AutoMirrored version. */
+    mirrored: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
@@ -387,14 +390,14 @@ private fun ActionRow(
     ) {
         val shade = if (enabled) tint else DsColors.TextTertiary
         Box(Modifier.size(40.dp).clip(DsShapes.medium).background(shade.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = shade, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, tint = shade, modifier = Modifier.size(20.dp).then(if (mirrored) Modifier.mirrorInRtl() else Modifier))
         }
         Column(Modifier.weight(1f)) {
             Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
                 color = when { !enabled -> DsColors.TextTertiary; danger -> DsColors.Danger; else -> DsColors.TextPrimary })
             Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
-        if (enabled) Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
+        if (enabled) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(20.dp))
     }
 }
 

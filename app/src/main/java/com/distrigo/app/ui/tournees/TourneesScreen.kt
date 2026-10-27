@@ -68,6 +68,7 @@ import com.distrigo.app.ui.common.FilterSheet
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -1115,7 +1116,7 @@ private fun TourneeClientActionRow(
             Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         Icon(
-            Icons.Default.ChevronRight,
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint     = DsColors.TextTertiary,
             modifier = Modifier.size(18.dp)
@@ -1425,7 +1426,7 @@ private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () ->
                 color = if (isOpen) DsColors.Success else DsColors.TextSecondary,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
 
         Spacer(Modifier.height(4.dp))

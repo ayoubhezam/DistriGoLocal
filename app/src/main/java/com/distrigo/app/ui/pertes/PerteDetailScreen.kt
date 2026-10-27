@@ -36,6 +36,7 @@ import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.Notes
 
 /**
  * A perte, read-only — the same flow as an expense's details (ChargeDetailScreen). Tapping one in its
@@ -142,7 +143,7 @@ fun PerteDetailScreen(
                 DetailRow(Icons.Default.Event, "Date", at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
                 DetailRow(Icons.Default.Warehouse, "Source du stock", if (perte.source == "camion") "Camion" else "Dépôt")
                 DetailRow(Icons.Default.Sell, "Prix d'achat unitaire", money.da(perte.purchase_price_snapshot))
-                perte.motif?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Notes, "Motif", it) }
+                perte.motif?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Motif", it) }
                 runCatching { Instant.parse(perte.created_at).atZone(ZoneId.systemDefault()) }.getOrNull()?.let { created ->
                     DetailRow(Icons.Default.History, "Enregistrée le", "${created.format(DAY)} à ${created.format(TIME)}")
                 }

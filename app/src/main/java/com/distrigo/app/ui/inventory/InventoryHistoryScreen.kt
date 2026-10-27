@@ -38,6 +38,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 @Composable
 
 fun InventoryHistoryScreen(
@@ -175,7 +176,7 @@ private fun InventoryHistoryRow(entry: InventorySessionHistory, onClick: () -> U
                     LocalMoneyFormatter.current.da(entry.summary.total_value_ecarts),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = statusColor
                 )
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(12.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(12.dp))
             }
         }
     }

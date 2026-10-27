@@ -56,6 +56,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.AbsoluteAlignment
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.draw.shadow
 import kotlin.math.roundToInt
 import com.distrigo.app.ui.common.EntityImage
@@ -624,6 +627,7 @@ fun ProductFormScreen(
 
 // ── Tabs (pill segmented control, elastic indicator) ──
         val density      = LocalDensity.current
+        val isRtl        = LocalLayoutDirection.current == LayoutDirection.Rtl
         val tabOffsetsPx = remember { mutableStateListOf(0f, 0f) }
         val tabWidthsPx  = remember { mutableStateListOf(0f, 0f) }
         var tabHeightPx  by remember { mutableStateOf(0f) }
@@ -654,17 +658,20 @@ fun ProductFormScreen(
                     // حافة تتأخر ثم تلحق بسرعة (ease-in) وحافة تتقدم بسرعة ثم تتباطأ (ease-out) = تمدد مرن
                     val easeIn  = localT * localT
                     val easeOut = 1f - (1f - localT) * (1f - localT)
-                    indicatorLeftPx  = androidx.compose.ui.util.lerp(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], easeIn)
+                    // The edge in the direction of travel leads: the right one in French, the left one in Arabic
+                    indicatorLeftPx  = androidx.compose.ui.util.lerp(tabOffsetsPx[leftIndex], tabOffsetsPx[rightIndex], if (isRtl) easeOut else easeIn)
                     indicatorRightPx = androidx.compose.ui.util.lerp(
                         tabOffsetsPx[leftIndex] + tabWidthsPx[leftIndex],
                         tabOffsetsPx[rightIndex] + tabWidthsPx[rightIndex],
-                        easeOut
+                        if (isRtl) easeIn else easeOut
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .offset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
+                        // positionInParent is measured from the left in either direction, so place it from the left
+                        .align(AbsoluteAlignment.TopLeft)
+                        .absoluteOffset { IntOffset(indicatorLeftPx.roundToInt(), 0) }
                         .width(with(density) { (indicatorRightPx - indicatorLeftPx).toDp() })
                         .height(with(density) { tabHeightPx.toDp() })
                         .shadow(2.dp, DsShapes.large)

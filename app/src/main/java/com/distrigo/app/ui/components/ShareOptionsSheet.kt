@@ -11,7 +11,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
@@ -28,6 +27,7 @@ import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.data.model.Amount
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,7 +128,7 @@ private fun ShareOptionRow(
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(subtitle, fontSize = 12.sp, color = DsColors.TextSecondary)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(16.dp))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(16.dp))
     }
 }
 

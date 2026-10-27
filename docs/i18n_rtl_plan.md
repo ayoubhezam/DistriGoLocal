@@ -1,10 +1,10 @@
 # DistriGo: plan for French + Arabic and right-to-left layout
 
-**Date:** 2026-10-27 · **Status:** plan only, awaiting the owner's decisions (D1–D10). Nothing has been implemented.
+**Date:** 2026-10-27 · **Status:** D1–D10 decided; Phase 1 pushed (66949ea); Phase 2 implemented, awaiting the owner's review.
 **Based on:** a read-only inspection of commit `1c59385` (562 Kotlin files, ~100k lines).
 
-> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phase 1 is done; Phase 2 (RTL structure) is next,
-> after the owner's go. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
+> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phases 1 and 2 are done; Phase 3 (shared text) is
+> next, after the owner's go. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
 > Chargements form graphs are stable: only their text and icons change, never their flow. Paths below start at
 > `app/src/main/java/com/distrigo/app/` unless they begin with `app/`.
 
@@ -77,7 +77,23 @@
 
 Phase 0 done: the glossary (`docs/i18n_glossary.md`) was approved on 2026-10-27.
 
-**Phase 1 done 2026-10-27 (not committed):**
+**Phase 2 done 2026-10-27 (RTL structure):**
+- Screen and onboarding-step transitions slide by Start/End (`NavTransitions`, `CodePages`, `SignUpPages`).
+- Tab underline (`ElasticUnderlineTabRow`) and the product form's pill: measured and placed from the left in either
+  direction; the leading edge of the stretch follows the direction of travel.
+- « Nouvelle vente » speed dial: placed from the left; its actions open toward the screen's middle (left of the tile
+  in Arabic), circle beside the tile.
+- Ventes bar chart mirrored in RTL with its tap index (D4). `BrandWave` mirrored.
+- Icons: 48 uses moved to `Icons.AutoMirrored` (`ChevronRight` → `KeyboardArrowRight`); `SouthEast`/`NorthEast`
+  (price history) and `SubdirectoryArrowRight` use `Modifier.mirrorInRtl()` (`ui/common/MirrorInRtl.kt`).
+- `RtlTypography` (`ui/theme/Type.kt`), chosen by `DistriGoTheme` from the layout direction: right-aligned lines, no
+  letter spacing, +0.1em line height. French screens keep `Typography` unchanged.
+- `layoutEnd()` replaces the 9 `TextAlign.End` uses.
+- Phones, codes and amounts on their own already read left to right through `ContentOrLtr`; inside Arabic sentences
+  they take `ltrIsolate()` when their text moves (Phase 4). The « → » inside French text needs no code: the Arabic
+  translation writes its own « ← ».
+
+**Phase 1 done 2026-10-27 (pushed 66949ea):**
 - `core/locale/AppLanguage.kt`, French pinned at first launch (D1). Android 13+ uses the system's per-app language;
   older versions use a preference applied in `MainActivity.attachBaseContext`.
 - `res/xml/locales_config.xml`; `values/strings*.xml` (`tools:locale="fr"`) with their `values-ar` twins.
@@ -445,4 +461,4 @@ absence of AppCompat, WebView and `configChanges`, the tests that check French t
   `CodesAdminClient`'s message paths.
 
 ## Next step
-The owner answers D1–D10 (or approves the recommendations). Then Phase 0 (the glossary), then Phase 1.
+Phase 3 (shared text), after the owner's go.

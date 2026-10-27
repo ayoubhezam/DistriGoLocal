@@ -7,8 +7,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -166,7 +165,9 @@ internal fun CodePages(
         targetState    = step,
         transitionSpec = {
             val forward = targetState > initialState
-            slideInHorizontally { if (forward) it else -it } togetherWith slideOutHorizontally { if (forward) -it else it }
+            // Start/End: forward comes in from the end edge, the left one in Arabic
+            val towards = if (forward) AnimatedContentTransitionScope.SlideDirection.Start else AnimatedContentTransitionScope.SlideDirection.End
+            slideIntoContainer(towards) togetherWith slideOutOfContainer(towards)
         },
         label          = "code step"
     ) { shown ->

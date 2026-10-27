@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
@@ -44,6 +43,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 /**
  * "Reçus et impression" — what the receipt says, and how it comes out.
@@ -411,7 +411,7 @@ private fun PrinterRow(selectedName: String?, onClick: () -> Unit) {
             modifier   = Modifier.weight(1f),
         )
         Icon(
-            Icons.Default.ChevronRight,
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint     = DsColors.TextTertiary,
             modifier = Modifier.size(18.dp),

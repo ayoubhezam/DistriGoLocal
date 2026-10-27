@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.ui.common.layoutEnd
 import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -54,6 +55,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.distrigo.app.ui.common.mirrorInRtl
 
 /** The margin's colour: neither the purchase price's green nor the selling price's blue. */
 private val MarginColor = DsColors.AccentViolet
@@ -465,7 +468,7 @@ private fun CardLink(label: String, onClick: () -> Unit, chevron: Boolean = fals
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
-        if (chevron) Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
+        if (chevron) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -491,7 +494,7 @@ private fun InfoValue(text: String?) {
         fontSize   = DsTextSize.body,
         fontWeight = FontWeight.SemiBold,
         color      = if (text == null) DsColors.TextTertiary else DsColors.TextPrimary,
-        textAlign  = TextAlign.End,
+        textAlign  = layoutEnd(),
         modifier   = Modifier.widthIn(max = 200.dp)
     )
 }
@@ -616,7 +619,8 @@ private fun PriceHistoryRow(movement: PriceMovement) {
     HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(32.dp).clip(DsShapes.pill).background(background), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+            // ↗/↘ read along time, which runs right to left in Arabic (D4)
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp).mirrorInRtl())
         }
         Spacer(Modifier.width(DsSpacing.sm))
         Column(Modifier.weight(1f)) {
@@ -727,7 +731,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
                 "${formatQty(product.min_stock)} ${pluralUnit(product.min_stock, product.unit_type)}",
                 fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = "Modifier le seuil", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Modifier le seuil", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
         if (product.has_expiry == 1) ExpiryLine(product.expiry_date)
     }
@@ -833,7 +837,7 @@ private fun RecentMovementsCard(
                     modifier = Modifier.padding(horizontal = DsSpacing.sm)
                 )
                 Text(displayDay(movement.created_at), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(18.dp))
             }
         }
     }
