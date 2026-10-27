@@ -1,0 +1,5 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <!-- Words every section uses (docs/i18n_glossary.md, section 8) -->
+    <string name="common_error_unknown">Erreur inconnue</string>
+    <string name="common_action_close">Fermer</string>
+</resources>

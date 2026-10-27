@@ -48,6 +48,11 @@ android {
     }
 
     buildTypes {
+        // Pseudo-locales (Settings › Languages, developer options): ar-XB mirrors the layout and reverses the
+        // resource strings, so a string still written in the code stands out unmirrored.
+        getByName("debug") {
+            isPseudoLocalesEnabled = true
+        }
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
             // R8: unused code and resources removed, the rest optimized — not renamed (-dontobfuscate in
@@ -94,6 +99,15 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    // The app's languages, French the default (docs/i18n_rtl_plan.md): libraries' other translations are left out, so a
+    // Material dialog never speaks a third language. en-XA and ar-XB are the debug build's pseudo-locales.
+    androidResources {
+        localeFilters += listOf("fr", "ar", "en-rXA", "ar-rXB")
+    }
+    // Arabic arrives screen by screen (Phases 4–5): until it is complete a missing translation warns, it does not fail.
+    lint {
+        warning += "MissingTranslation"
     }
     buildFeatures {
         compose = true

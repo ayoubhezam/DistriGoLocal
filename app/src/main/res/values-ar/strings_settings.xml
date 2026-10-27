@@ -1,0 +1,5 @@
+<resources>
+    <string name="settings_language_title">اللغة</string>
+    <string name="settings_language_dialog_title">لغة التطبيق</string>
+    <string name="settings_language_dialog_note">على هذا الهاتف فقط. تبقى الوصولات وملفات PDF والتصدير بالفرنسية.</string>
+</resources>

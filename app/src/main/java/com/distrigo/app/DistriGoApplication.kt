@@ -46,7 +46,9 @@ class DistriGoApplication : Application(), Configuration.Provider {
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
-        // Digits 0–9 whatever the phone's language, before anything formats one (WesternDigits)
+        // French until the user picks another language (AppLanguage, D1), then digits 0–9 whatever the language,
+        // before anything formats one (WesternDigits)
+        com.distrigo.app.core.locale.AppLanguage.pinDefault(this)
         WesternDigits.applyToDefaultLocale()
         // First, so a crash in anything after is written up (every build), and StrictMode sees all of
         // startup (debug builds only). See the diagnostics package and Paramètres → Diagnostic.

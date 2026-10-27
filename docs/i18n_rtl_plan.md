@@ -3,8 +3,8 @@
 **Date:** 2026-10-27 · **Status:** plan only, awaiting the owner's decisions (D1–D10). Nothing has been implemented.
 **Based on:** a read-only inspection of commit `1c59385` (562 Kotlin files, ~100k lines).
 
-> **For agents picking this up:** do not start Phase 1 until the owner has answered D1–D10 (or approved the
-> recommendations). Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
+> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phase 1 is done; Phase 2 (RTL structure) is next,
+> after the owner's go. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
 > Chargements form graphs are stable: only their text and icons change, never their flow. Paths below start at
 > `app/src/main/java/com/distrigo/app/` unless they begin with `app/`.
 
@@ -73,7 +73,23 @@
 
 ---
 
-## Decisions awaiting the owner
+## Decisions (D1 and D3–D10 approved by the owner as recommended, 2026-10-27)
+
+Phase 0 done: the glossary (`docs/i18n_glossary.md`) was approved on 2026-10-27.
+
+**Phase 1 done 2026-10-27 (not committed):**
+- `core/locale/AppLanguage.kt`, French pinned at first launch (D1). Android 13+ uses the system's per-app language;
+  older versions use a preference applied in `MainActivity.attachBaseContext`.
+- `res/xml/locales_config.xml`; `values/strings*.xml` (`tools:locale="fr"`) with their `values-ar` twins.
+- `localeFilters` (fr, ar), debug pseudo-locales, and `MissingTranslation` as a warning.
+- `core/text/UiText.kt` with `UserFacingException`, `userText()` and `UiText.asString()`.
+- `core/format/AppDates.kt` and `ltrIsolate()`.
+- The ratchet `HardcodedTextGuardTest` (baseline 1371).
+- A debug-only « Langue » row in Paramètres.
+- Moved to later phases: the screens' date formatters and the notifications' `AppLanguage.localized()` move with
+  their text (Phases 3–4); the welcome screen's language choice waits for the Arabic onboarding text (Phase 5).
+- Lint reports 19 errors that predate this work (navigation back-stack calls, notification permissions…); none
+  is from i18n.
 
 | # | Question | Recommendation |
 |---|---|---|

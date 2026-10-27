@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
+import com.distrigo.app.core.text.UserFacingException
 import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.ui.designsystem.LicenseRefusals
 
@@ -41,3 +44,17 @@ suspend fun caughtAsError(block: suspend () -> Map<String, Any>): Map<String, An
     } catch (e: Exception) {
         mapOf("error" to userMessage(e))
     }
+
+/**
+ * [userMessage] as [UiText], for a screen that writes it in the app's language (UiText.asString): a refusal a
+ * repository threw as a UserFacingException in its own words, the license gate's sentence, or [fallback]. Until a
+ * repository's French sentences have moved to resources (Phase 3), its message passes through as it is.
+ */
+fun userText(e: Throwable, fallback: UiText = UiText.Res(R.string.common_error_unknown)): UiText = when {
+    e is UserFacingException -> e.text
+    LicenseWriteGate.isRefusal(e) -> {
+        LicenseRefusals.report()
+        UiText.Raw(LicenseWriteGate.MESSAGE)
+    }
+    else -> e.message?.let { UiText.Raw(it) } ?: fallback
+}

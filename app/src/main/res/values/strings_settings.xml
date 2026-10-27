@@ -1,0 +1,5 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="settings_language_title">Langue</string>
+    <string name="settings_language_dialog_title">Langue de l\'application</string>
+    <string name="settings_language_dialog_note">Sur ce téléphone seulement. Les reçus, les PDF et les exports restent en français.</string>
+</resources>

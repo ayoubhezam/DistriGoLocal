@@ -134,15 +134,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Digits 0–9 whatever the phone's language (WesternDigits): the default locale for what formats with it (the date
-     * picker's days, String.format), and this activity's own locales for what reads them (the date picker's header).
-     * Only the digits change: the language, the text direction and the resources stay the phone's. fontScale 0 leaves
-     * the phone's text size alone, which an override configuration would otherwise reset on older Android versions.
+     * The app's language (AppLanguage: before Android 13 the one chosen here, from 13 the system's per-app language)
+     * with digits 0–9 whatever it is (WesternDigits): the default locale for what formats with it (the date picker's
+     * days, String.format), and this activity's own locales for its resources, its direction and what reads them (the
+     * date picker's header). fontScale 0 leaves the phone's text size alone, which an override configuration would
+     * otherwise reset on older Android versions.
      */
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase)
-        com.distrigo.app.core.format.WesternDigits.applyToDefaultLocale()
-        val locales = newBase.resources.configuration.locales
+        val locales = com.distrigo.app.core.locale.AppLanguage.localesFor(newBase, newBase.resources.configuration)
+        java.util.Locale.setDefault(com.distrigo.app.core.format.WesternDigits.latin(locales[0]))
         applyOverrideConfiguration(android.content.res.Configuration().apply {
             fontScale = 0f
             setLocales(android.os.LocaleList(*Array(locales.size()) { com.distrigo.app.core.format.WesternDigits.latin(locales[it]) }))

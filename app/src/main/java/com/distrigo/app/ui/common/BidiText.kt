@@ -19,3 +19,15 @@ package com.distrigo.app.ui.common
  * anyway is harmless, and cheaper than deciding case by case at each call site.
  */
 fun bidiIsolate(text: String): String = "\u2068$text\u2069"
+
+/**
+ * Keeps [text] left to right inside a sentence of either direction: an amount, a phone number, a document number or
+ * a code put into an Arabic sentence through a string's `%1$s`. A minus sign, a `+213` or space-separated digit groups
+ * would otherwise be reordered by the Arabic around them. The marks (`U+2066` LEFT-TO-RIGHT ISOLATE / `U+2069` POP
+ * DIRECTIONAL ISOLATE) are zero-width. A number standing alone needs none: the theme already reads it left to right.
+ */
+fun ltrIsolate(text: String): String = "$LTR_ISOLATE$text$POP_ISOLATE"
+
+// Built from their code points: written into a string, they read as a spoofing attempt to lint (BidiSpoofing)
+private val LTR_ISOLATE = Char(0x2066)
+private val POP_ISOLATE = Char(0x2069)

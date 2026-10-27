@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Payments
@@ -29,6 +30,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.BuildConfig
+import com.distrigo.app.R
+import com.distrigo.app.core.locale.AppLanguage
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.core.format.MoneyFormatter
 import com.distrigo.app.ui.designsystem.DsColors
@@ -93,6 +98,11 @@ fun ParametresScreen(
 
             SettingsSection("Préférences") {
                 MoneyFormatRow()
+                // Offered in debug builds until the Arabic text is complete (docs/i18n_rtl_plan.md, Phase 5)
+                if (BuildConfig.DEBUG) {
+                    SettingsDivider()
+                    LanguageRow()
+                }
                 SettingsDivider()
                 SettingsRow(Icons.Outlined.MonetizationOn, DsColors.Success, "Devise principale", enabled = false)
                 SettingsDivider()
@@ -230,6 +240,64 @@ private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewMod
                 }
             },
             confirmButton = { TextButton(onClick = { choosing = false }) { Text("Fermer") } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+}
+
+/**
+ * « Langue »: French or Arabic on this phone (AppLanguage). Choosing one rebuilds the screens in it; each language is
+ * named in itself, so it reads whatever the app is in.
+ */
+@Composable
+private fun LanguageRow() {
+    val context = LocalContext.current
+    val current = remember { AppLanguage.current(context) }
+    var choosing by remember { mutableStateOf(false) }
+
+    SettingsRow(
+        icon     = Icons.Outlined.Language,
+        tint     = DsColors.AccentSky,
+        title    = stringResource(R.string.settings_language_title),
+        subtitle = current.endonym,
+        onClick  = { choosing = true },
+    )
+
+    if (choosing) {
+        AlertDialog(
+            onDismissRequest = { choosing = false },
+            title = { Text(stringResource(R.string.settings_language_dialog_title)) },
+            text  = {
+                Column {
+                    Text(stringResource(R.string.settings_language_dialog_note), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    AppLanguage.entries.forEach { language ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .clickable {
+                                    choosing = false
+                                    if (language != current) (context as? android.app.Activity)?.let { AppLanguage.set(it, language) }
+                                }
+                                .padding(vertical = DsSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = language == current, onClick = null)
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text(
+                                language.endonym,
+                                fontSize   = DsTextSize.body,
+                                fontWeight = if (language == current) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = DsColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosing = false }) { Text(stringResource(R.string.common_action_close)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary

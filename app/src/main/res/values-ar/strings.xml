@@ -1,0 +1,11 @@
+<resources>
+    <!-- Arabic, from docs/i18n_glossary.md (approved 2026-10-27) -->
+    <string name="nav_dashboard">لوحة القيادة</string>
+    <string name="nav_depot_vente">بيع المستودع</string>
+    <string name="nav_tournees">الجولات</string>
+    <string name="nav_produits">المنتجات</string>
+    <string name="nav_achats">المشتريات</string>
+    <string name="client_picker_title">اختيار زبون</string>
+    <string name="client_picker_search_placeholder">البحث عن زبون</string>
+    <string name="client_picker_add_new">زبون جديد</string>
+</resources>
