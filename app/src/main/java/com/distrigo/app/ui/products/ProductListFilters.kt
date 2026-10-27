@@ -72,7 +72,8 @@ fun sortProducts(products: List<Product>, sort: SortOption): List<Product> = whe
  * Moved here unchanged from ProductsScreen, where the product filter was its only user.
  */
 internal fun isExpiringSoon(expiryDate: String?, withinDays: Int = 30): Boolean {
-    val date = expiryDate?.let { runCatching { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(it) }.getOrNull() } ?: return false
+    // A date once written in Arabic-Indic digits (the phone's locale used to write it) still reads
+    val date = expiryDate?.let { runCatching { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT).parse(com.distrigo.app.core.format.westernDigits(it)) }.getOrNull() } ?: return false
     val diffDays = (date.time - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)
     return diffDays in 0..withinDays
 }

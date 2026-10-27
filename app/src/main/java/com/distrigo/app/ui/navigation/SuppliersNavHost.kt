@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.compose.runtime.mutableIntStateOf
@@ -369,7 +370,7 @@ fun SuppliersNavHost(
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                             OutlinedTextField(
                                 value = editPaymentAmount,
-                                onValueChange = { editPaymentAmount = it; editError = "" },
+                                onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
                                 label = { Text("Montant (DA)") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.fillMaxWidth(),

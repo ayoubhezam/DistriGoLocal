@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.common.DsCompactSearchField
+import com.distrigo.app.ui.common.numberFieldInput
 import androidx.compose.foundation.border
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.format.AmountInputDisplay
@@ -586,7 +587,7 @@ private fun DsFormField(
         Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
         OutlinedTextField(
             value = value,
-            onValueChange = { onValueChange(if (amount) Amount.sanitizeInput(it) else it) },
+            onValueChange = { onValueChange(if (amount) Amount.sanitizeInput(it) else numberFieldInput(it, keyboardType)) },
             // The example reads like what will be typed: « Ex: 20 000 », not « Ex: 20000 »
             placeholder = {
                 Text(

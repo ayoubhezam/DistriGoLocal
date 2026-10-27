@@ -3,6 +3,8 @@ package com.distrigo.app.ui.products
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.ProductUnit
+import com.distrigo.app.core.format.westernDigits
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.repository.ProductDuplicate
@@ -370,7 +372,8 @@ fun ProductFormScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                        // Locale.ROOT: the stored date is always yyyy-MM-dd in 0–9, whatever the phone's language
+                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
                         expiryDate = sdf.format(java.util.Date(millis))
                     }
                     showDatePicker = false
@@ -432,7 +435,7 @@ fun ProductFormScreen(
                     )
                     OutlinedTextField(
                         value         = newSupplierPhone,
-                        onValueChange = { newSupplierPhone = it },
+                        onValueChange = { newSupplierPhone = westernDigits(it) },
                         placeholder   = { Text("Téléphone") },
                         singleLine    = true,
                         shape         = DsShapes.medium,
@@ -744,7 +747,7 @@ fun ProductFormScreen(
                             FormField(
                                 label         = "Code-barres *",
                                 value         = barcode,
-                                onValueChange = { barcode = it; barcodeError = "" },
+                                onValueChange = { barcode = westernDigits(it); barcodeError = "" },
                                 error         = barcodeError,
                                 placeholder   = "EAN-13"
                             )
@@ -1302,7 +1305,8 @@ fun FormField(
         Text(label, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         OutlinedTextField(
             value           = value,
-            onValueChange   = onValueChange,
+            // A number field keeps 0–9, an Arabic keyboard's digits included (westernNumber)
+            onValueChange   = { onValueChange(if (isNumber || isDecimal) westernNumber(it) else it) },
             placeholder     = { Text(placeholder, fontSize = DsTextSize.body) },
             singleLine      = true,
             isError         = error.isNotEmpty(),

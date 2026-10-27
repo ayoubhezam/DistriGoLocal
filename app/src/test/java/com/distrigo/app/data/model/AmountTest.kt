@@ -19,6 +19,17 @@ class AmountTest {
     }
 
     @Test
+    fun anArabicKeyboardsDigitsAreReadAsLatin() {
+        // What the field keeps, and so shows: 0–9 and a '.'
+        assertEquals("1250.5", Amount.sanitizeInput("١٢٥٠٫٥"))
+        assertEquals("12500", Amount.sanitizeInput("١٢٬٥٠٠"))
+        assertEquals("3.5", Amount.sanitizeInput("٣,٥"))
+        assertEquals(1250.5, Amount.parse("١٢٥٠٫٥")!!, 0.0)
+        assertEquals(12500.0, Amount.parse("١٢٬٥٠٠")!!, 0.0)
+        assertEquals(3500.5, Amount.parse("۳۵۰۰,۵")!!, 0.0)
+    }
+
+    @Test
     fun aSavedAmountSeedsItsFieldAsPlainDigits() {
         assertEquals("10000000", Amount.inputText(1.0E7))
         assertEquals("100000", Amount.inputText(100000.0))

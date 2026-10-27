@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.ProductUnit
@@ -555,7 +556,7 @@ private fun ProductInfoCard(product: Product) {
             PriceLine(Icons.Default.LocalOffer, "Prix de vente", money.da(product.selling_price), DsColors.Primary)
             PriceLine(
                 Icons.Default.Percent, "Marge",
-                money.da(marginAmount) + (marginPercent?.let { " (${String.format(java.util.Locale.FRANCE, "%.1f", it)} %)" } ?: ""),
+                money.da(marginAmount) + (marginPercent?.let { " (${percentText(String.format(java.util.Locale.FRANCE, "%.1f", it))})" } ?: ""),
                 if (marginAmount < 0) DsColors.Danger else MarginColor
             )
         }

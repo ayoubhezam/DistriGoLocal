@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.core.format.percentText
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
@@ -1460,7 +1461,7 @@ private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () ->
                 },
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
             )
-            Text("$percent %", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(percentText("$percent"), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         }
         Spacer(Modifier.height(6.dp))
         Box(

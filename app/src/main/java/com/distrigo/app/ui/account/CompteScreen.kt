@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.core.format.westernDigits
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -524,7 +525,7 @@ private fun BusinessCard(
                 val edit = { field: ProfileField -> if (profile.canEdit) ({ onEdit(field) }) else null }
                 BrandInfoRow(Icons.Outlined.Storefront, "Nom de l'entreprise", profile.name, edit(ProfileField.NAME), enabled = idle)
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.Phone, "Téléphone", profile.contactPhone, edit(ProfileField.PHONE), enabled = idle)
+                BrandInfoRow(Icons.Outlined.Phone, "Téléphone", profile.contactPhone?.let(::westernDigits), edit(ProfileField.PHONE), enabled = idle)
                 BrandRowDivider()
                 BrandInfoRow(Icons.Outlined.WorkOutline, "Type d'activité", activityLabel(profile.activity), edit(ProfileField.ACTIVITY), enabled = idle)
                 BrandRowDivider()

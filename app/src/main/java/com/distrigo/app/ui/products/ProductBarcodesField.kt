@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.core.format.westernDigits
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -76,7 +77,7 @@ fun OtherBarcodesField(
                 value           = newCode,
                 onValueChange   = {
                     added = null
-                    onNewCode(it)
+                    onNewCode(westernDigits(it))
                 },
                 // One line: beside the scan, « + » and the list, the field is narrow
                 placeholder     = { Text("Ajouter un code", fontSize = DsTextSize.body, maxLines = 1, overflow = TextOverflow.Ellipsis) },

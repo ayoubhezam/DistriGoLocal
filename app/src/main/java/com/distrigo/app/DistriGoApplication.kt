@@ -1,6 +1,7 @@
 package com.distrigo.app
 
 import com.distrigo.app.data.backup.RestoreStartup
+import com.distrigo.app.core.format.WesternDigits
 import android.os.Looper
 import android.os.Handler
 import android.app.Application
@@ -45,6 +46,8 @@ class DistriGoApplication : Application(), Configuration.Provider {
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
+        // Digits 0–9 whatever the phone's language, before anything formats one (WesternDigits)
+        WesternDigits.applyToDefaultLocale()
         // First, so a crash in anything after is written up (every build), and StrictMode sees all of
         // startup (debug builds only). See the diagnostics package and Paramètres → Diagnostic.
         CrashReporter.install(this)
@@ -88,6 +91,12 @@ class DistriGoApplication : Application(), Configuration.Provider {
                 Log.w("DistriGoApplication", "could not read the account or the license", e)
             }
         }, "account-restore").start()
+    }
+
+    /** Android has just set the default locale again from the phone's settings: Latin digits again (WesternDigits). */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        WesternDigits.applyToDefaultLocale()
     }
 
     /**

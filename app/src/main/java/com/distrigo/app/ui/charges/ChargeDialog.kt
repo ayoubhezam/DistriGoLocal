@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import com.distrigo.app.core.format.westernNumber
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -199,7 +200,7 @@ fun ChargeDialog(
 
             OutlinedTextField(
                 value = montant,
-                onValueChange = { v -> montant = v.filter { it.isDigit() || it == ',' || it == '.' } },
+                onValueChange = { v -> montant = westernNumber(v).filter { it.isDigit() || it == ',' || it == '.' } },
                 label = { Text("Montant") },
                 suffix = { Text("DA") },
                 singleLine = true,

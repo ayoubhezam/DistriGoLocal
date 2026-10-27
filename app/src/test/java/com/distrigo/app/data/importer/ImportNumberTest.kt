@@ -101,6 +101,15 @@ class ImportNumberTest {
     }
 
     @Test
+    fun arabicIndicDigitsReadAsLatin() {
+        assertReads(3450.0, "٣٤٥٠")
+        assertReads(1250.5, "١٢٥٠٫٥")
+        assertReads(12500.0, "١٢٬٥٠٠")
+        assertReads(3450.5, "٣ ٤٥٠,٥")
+        assertReads(-12.0, "-۱۲")
+    }
+
+    @Test
     fun whatTheAppItselfExportsReadsBackOrIsRefused() {
         // CsvWriter writes amounts ungrouped, with a decimal comma: always two decimals, never ambiguous.
         assertReads(3450.0, "3450,00")

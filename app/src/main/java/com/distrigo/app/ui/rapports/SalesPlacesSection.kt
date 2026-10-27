@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import com.distrigo.app.core.format.percentText
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,7 +108,7 @@ private val INFO_PLACES = ReportInfo(
         "Touchez une part pour l'ouvrir, le centre pour remonter.",
 )
 
-private fun slicePercent(share: Double) = String.format(Locale.FRENCH, "%.0f %%", share * 100)
+private fun slicePercent(share: Double) = percentText(String.format(Locale.FRENCH, "%.0f", share * 100))
 
 /**
  * « Répartition des ventes » (owner's prototype, 2026-10-25): the period's sales by wilaya › commune › secteur ›
@@ -368,7 +370,8 @@ private fun PlaceRing(
     var shownSlices by remember { mutableStateOf(slices) }
     var moves by remember { mutableStateOf<List<Move>>(emptyList()) }
     val measurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    // A share on the ring, « 45 % »: left to right on a right-to-left screen too (Type.kt)
+    val labelStyle = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White, textDirection = TextDirection.ContentOrLtr)
     val pickedIndex = picked?.let { holder(slices, it) } ?: -1
 
     // A new place, or new figures for it: the parts move from where they were

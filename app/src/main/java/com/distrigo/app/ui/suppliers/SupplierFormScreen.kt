@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import android.widget.Toast
@@ -45,7 +46,7 @@ import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.foundation.border
 
 fun formatPhone(phone: String): String {
-    val digits = phone.filter { it.isDigit() }
+    val digits = westernDigits(phone).filter { it.isDigit() }
     return digits.chunked(2).joinToString(" ")
 }
 

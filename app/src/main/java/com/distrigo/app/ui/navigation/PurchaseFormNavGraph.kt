@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.ProductUnit
@@ -319,7 +320,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             )
                             OutlinedTextField(
                                 value         = newSupplierPhone,
-                                onValueChange = { newSupplierPhone = it },
+                                onValueChange = { newSupplierPhone = westernDigits(it) },
                                 placeholder   = { Text("Téléphone (optionnel)") },
                                 singleLine    = true,
                                 shape         = DsShapes.medium,
@@ -434,7 +435,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Icon(Icons.Default.Phone, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(11.dp))
-                                        Text(supplier.phone ?: "", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                                        Text(westernDigits(supplier.phone ?: ""), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                                     }
                                 }
                                 if (formSupplier?.id == supplier.id) {
@@ -901,7 +902,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         OutlinedTextField(
                                             value         = uniteParColisStr,
                                             onValueChange = { raw ->
-                                                val digits = raw.filter { it.isDigit() }
+                                                val digits = westernDigits(raw).filter { it.isDigit() }
                                                 uniteParColisStr = digits
                                                 val upe = digits.toIntOrNull()
                                                 if (upe != null && upe >= 1) {

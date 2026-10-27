@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.goal
 
+import com.distrigo.app.core.format.percentText
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.activity.compose.BackHandler
@@ -83,6 +84,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -331,7 +333,7 @@ private fun Ring(goal: GoalProgress) {
     val sweep by animateFloatAsState(fraction, tween(700), label = "ring")
     val color = ringColor(target.state)
     Box(
-        Modifier.size(112.dp).clearAndSetSemantics { contentDescription = "${target.percent} % ${GoalWording.ofAim(goal)}" },
+        Modifier.size(112.dp).clearAndSetSemantics { contentDescription = "${percentText("${target.percent}")} ${GoalWording.ofAim(goal)}" },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
@@ -342,7 +344,7 @@ private fun Ring(goal: GoalProgress) {
             if (sweep > 0f) drawArc(color, -90f, 360f * sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${target.percent} %", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            Text(percentText("${target.percent}"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
             Text(target.tier?.let { "du palier $it" } ?: "atteint", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = OnNavyFaint)
         }
     }
@@ -399,7 +401,7 @@ private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
         add {
             if (next != null) {
                 TrajectoryCell(Icons.Outlined.Flag, DsColors.Primary, "Reste à réaliser", GoalWording.whole(next.gap, money),
-                    "${100 - target.percent} % $ofAim")
+                    "${percentText("${100 - target.percent}")} $ofAim")
             } else {
                 TrajectoryCell(Icons.Default.EmojiEvents, GoldOnWhite, "Dépassé de :",
                     GoalWording.whole((goal.value - target.threshold).coerceAtLeast(0.0), money))
@@ -418,7 +420,7 @@ private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
         }
         if (pace != null) add {
             TrajectoryCell(Icons.Default.AutoGraph, DsColors.Success, "Projection", GoalWording.whole(pace.projection, money),
-                "${goal.rules.percentOf(pace.projection, target.threshold)} % $ofAim")
+                "${percentText("${goal.rules.percentOf(pace.projection, target.threshold)}")} $ofAim")
         }
         // Only when the policy shows the bonus (D13, D20)
         if (goal.showReward) add {
@@ -511,7 +513,7 @@ private fun StepsCard(goal: GoalProgress, steps: List<GoalStep>) {
             when {
                 gap != null -> {
                     val up = gap >= 0
-                    val text = (if (up) "+" else "−") + "${abs(gap) / 10},${abs(gap) % 10} %"
+                    val text = (if (up) "+" else "−") + percentText("${abs(gap) / 10},${abs(gap) % 10}")
                     Badge(text, if (up) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                         if (up) DsColors.Success else DsColors.Warning, if (up) DsColors.SuccessLight else DsColors.WarningLight,
                         spoken = if (up) "$text d'avance sur le cap prévu" else "$text de retard sur le cap prévu")
@@ -593,7 +595,7 @@ private fun PastCard(goal: GoalProgress, history: List<CommissionPeriodEntity>) 
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(Modifier.weight(1f)) {
                     Text(name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-                    Text("${period.achieved_percent} % · ${GoalWording.whole(period.achieved_value, money)}",
+                    Text("${percentText("${period.achieved_percent}")} · ${GoalWording.whole(period.achieved_value, money)}",
                         fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
                 Text(
@@ -664,7 +666,7 @@ private fun ObjectiveSheet(
                     singleLine = true,
                     visualTransformation = AmountVisualTransformation(money.format),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark),
+                    textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark, textDirection = TextDirection.ContentOrLtr),
                     cursorBrush = SolidColor(DsColors.Primary),
                     modifier = Modifier.weight(1f).semantics { contentDescription = "Objectif en dinars" },
                 )

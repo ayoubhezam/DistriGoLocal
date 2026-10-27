@@ -62,6 +62,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDirection
+import com.distrigo.app.ui.common.numberFieldInput
+import com.distrigo.app.core.format.westernDigits
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.R
@@ -80,7 +83,7 @@ internal fun isEmail(text: String) = text.trim().matches(EMAIL)
 /** An Algerian number: 0 then 8 or 9 digits, or +213 / 00213 then 9; spaces and dashes don't count. */
 internal fun isPhone(text: String): Boolean {
     val trimmed = text.trim()
-    val digits  = trimmed.filter { it.isDigit() }
+    val digits  = westernDigits(trimmed).filter { it.isDigit() }
     return when {
         trimmed.startsWith("+213") -> digits.length == 12
         trimmed.startsWith("00213") -> digits.length == 14
@@ -184,9 +187,10 @@ internal fun BrandTextField(
     Column(Modifier.fillMaxWidth()) {
         BasicTextField(
             value                = value,
-            onValueChange        = onValueChange,
+            onValueChange        = { onValueChange(numberFieldInput(it, keyboardType)) },
             singleLine           = true,
-            textStyle            = TextStyle(fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DsBrand.Ink),
+            // ContentOrLtr: a phone number keeps its order on a right-to-left screen (Type.kt)
+            textStyle            = TextStyle(fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DsBrand.Ink, textDirection = TextDirection.ContentOrLtr),
             cursorBrush          = SolidColor(DsBrand.Blue),
             keyboardOptions      = KeyboardOptions(
                 capitalization = capitalization,

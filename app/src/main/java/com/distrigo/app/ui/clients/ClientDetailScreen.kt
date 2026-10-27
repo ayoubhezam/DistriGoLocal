@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.core.format.westernNumber
+import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.navigation.DrillTarget
@@ -256,7 +258,7 @@ fun ClientDetailScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value = editPaymentAmount,
-                        onValueChange = { editPaymentAmount = it; editError = "" },
+                        onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
                         label = { Text("Montant (DA)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
@@ -448,7 +450,7 @@ fun ClientDetailScreen(
                                 Spacer(Modifier.height(4.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                                    Text(currentClient.phone, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                                    Text(westernDigits(currentClient.phone), fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f))
                                 }
                             }
                             if (!currentClient.commune_name.isNullOrBlank() || !currentClient.wilaya_name.isNullOrBlank()) {
@@ -562,7 +564,7 @@ fun ClientDetailScreen(
                     item {
                         QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = DsColors.WhatsApp) {
                             if (hasPhone) {
-                                val digits = currentClient.phone!!.filter { it.isDigit() }
+                                val digits = westernDigits(currentClient.phone!!).filter { it.isDigit() }
                                 try {
                                     context.startActivity(
                                         Intent(

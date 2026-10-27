@@ -1,5 +1,7 @@
 package com.distrigo.app.data.importer
 
+import com.distrigo.app.core.format.westernNumber
+
 /**
  * A number typed as text in a workbook cell, read whatever the separators of whoever typed it.
  *
@@ -14,7 +16,7 @@ package com.distrigo.app.data.importer
  * guessed at.
  *
  * It does not depend on the app's own display format: a file comes from another phone, another computer,
- * another person.
+ * another person. Digits typed in Arabic (`١٢٥٠٫٥`) read as 0–9, with `٫` the decimal mark and `٬` the thousands one.
  */
 internal object ImportNumber {
 
@@ -29,7 +31,7 @@ internal object ImportNumber {
     private val SPACES = setOf(' ', '\u00A0', '\u202F', '\u2009')
 
     fun read(typed: String): Reading {
-        var body = typed.trim { it.isWhitespace() || it in SPACES }
+        var body = westernNumber(typed).trim { it.isWhitespace() || it in SPACES }
         val negative = body.startsWith('-')
         if (negative || body.startsWith('+')) body = body.substring(1)
         if (body.isEmpty()) return Reading.NotANumber

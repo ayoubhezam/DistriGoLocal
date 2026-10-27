@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.lists.ClientPlacement
 import com.distrigo.app.data.model.Client
 import com.distrigo.app.ui.common.ImageCapture
+import com.distrigo.app.ui.common.numberFieldInput
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
@@ -601,7 +602,7 @@ private fun DsFormField(
         )
         OutlinedTextField(
             value           = value,
-            onValueChange   = onValueChange,
+            onValueChange   = { onValueChange(numberFieldInput(it, keyboardType)) },
             placeholder     = { Text(placeholder, fontSize = DsTextSize.body) },
             singleLine      = minLines == 1 && maxLines == 1,
             minLines        = minLines,

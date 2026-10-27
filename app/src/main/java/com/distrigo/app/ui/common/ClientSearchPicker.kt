@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.core.format.westernDigits
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -139,7 +140,7 @@ private fun ClientPickerRow(client: Client, isSelected: Boolean, showBalance: Bo
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(client.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary, maxLines = 1)
-            Text(client.phone ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(client.phone?.let(::westernDigits) ?: "—", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         if (showBalance) {
             Spacer(Modifier.width(8.dp))

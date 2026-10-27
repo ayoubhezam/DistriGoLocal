@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.data.model.ProductUnit
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -284,7 +285,7 @@ private fun PriceBoundField(
         value           = value,
         // Digits and one decimal point: the value is read back with toDoubleOrNull().
         onValueChange   = { raw ->
-            val filtered = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+            val filtered = westernNumber(raw).replace(',', '.').filter { it.isDigit() || it == '.' }
             if (filtered.count { it == '.' } <= 1) onValueChange(filtered)
         },
         placeholder     = { Text(placeholder) },

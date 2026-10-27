@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.print
 
+import com.distrigo.app.core.format.westernDigits
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -234,7 +235,7 @@ fun ReceiptAndPrintSettingsScreen(
             FieldLabel("Téléphone")
             OutlinedTextField(
                 value           = phone,
-                onValueChange   = { phone = it },
+                onValueChange   = { phone = westernDigits(it) },
                 placeholder     = { Text("Ex: 0555 12 34 56", fontSize = DsTextSize.body) },
                 singleLine      = true,
                 modifier        = Modifier.fillMaxWidth(),

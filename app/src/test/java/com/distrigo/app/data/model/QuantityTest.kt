@@ -58,6 +58,15 @@ class QuantityTest {
     }
 
     @Test
+    fun anArabicKeyboardsDigitsAreReadAsLatin() {
+        assertEquals("3.75", Quantity.sanitizeInput("٣٫٧٥"))
+        assertEquals("12", Quantity.sanitizeInput("١٢", allowFractions = false))
+        assertEquals(2.5, Quantity.parse("٢٫٥")!!, 0.0)
+        assertEquals(-3.0, Quantity.parse("-٣")!!, 0.0)
+        assertEquals(12.0, Quantity.parse("۱۲")!!, 0.0)
+    }
+
+    @Test
     fun comparisonsAllowRounding() {
         assertTrue(Quantity.isZero(0.1 + 0.2 - 0.3))
         assertFalse(Quantity.isZero(0.001))

@@ -65,6 +65,8 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import com.distrigo.app.core.format.westernDigits
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.designsystem.DsBrand
@@ -273,13 +275,19 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
         fontSize      = 22.sp,
         letterSpacing = 2.5.sp,
         textAlign     = TextAlign.Center,
+        // Always read left to right, on a right-to-left screen too
+        textDirection = TextDirection.Ltr,
         color         = DsBrand.Ink
     )
     Column(Modifier.fillMaxWidth()) {
         BasicTextField(
             value                = code,
             // More than a code's length at once is a paste: the message it came in, whole; the code is in it
-            onValueChange        = { typed -> change(extractCode(typed)?.takeIf { typed.length > CODE_LENGTH + 2 } ?: typed) },
+            onValueChange        = { raw ->
+                // A code is Latin letters and 0–9: Arabic digits in a pasted message read as theirs
+                val typed = westernDigits(raw)
+                change(extractCode(typed)?.takeIf { typed.length > CODE_LENGTH + 2 } ?: typed)
+            },
             enabled              = enabled,
             singleLine           = true,
             textStyle            = codeStyle,

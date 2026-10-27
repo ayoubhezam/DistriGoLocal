@@ -1,5 +1,6 @@
 package com.distrigo.app.data.model
 
+import com.distrigo.app.core.format.westernNumber
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -35,9 +36,12 @@ object Amount {
     /** Settled: within half a centime of zero. */
     fun settled(balance: Double): Boolean = !owing(balance) && !inAdvance(balance)
 
-    /** What an amount field keeps of what was typed: digits and one '.', a ',' turned into '.', 2 decimals at most. */
+    /**
+     * What an amount field keeps of what was typed: digits 0–9 (an Arabic keyboard's ٠–٩ and its `٫` read as theirs,
+     * westernNumber) and one '.', a ',' turned into '.', 2 decimals at most.
+     */
     fun sanitizeInput(raw: String): String {
-        val kept = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+        val kept = westernNumber(raw).replace(',', '.').filter { it.isDigit() || it == '.' }
         val dot = kept.indexOf('.')
         val single = if (dot < 0) kept else kept.substring(0, dot + 1) + kept.substring(dot + 1).replace(".", "")
         val d = single.indexOf('.')
@@ -56,9 +60,9 @@ object Amount {
     fun inputText(value: Double): String =
         if (!value.isFinite()) "" else BigDecimal.valueOf(normalize(value)).stripTrailingZeros().toPlainString()
 
-    /** A typed amount, or null: ',' or '.', spaces ignored. */
+    /** A typed amount, or null: ',' or '.', spaces ignored, an Arabic keyboard's digits read as 0–9. */
     fun parse(text: String): Double? {
-        val cleaned = text.trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
+        val cleaned = westernNumber(text).trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
         if (cleaned.isEmpty() || cleaned.count { it == '.' } > 1 || !cleaned.all { it.isDigit() || it == '.' }) return null
         return cleaned.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::normalize)
     }

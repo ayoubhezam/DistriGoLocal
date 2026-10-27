@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.admin
 
+import com.distrigo.app.core.format.westernDigits
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -174,7 +175,7 @@ private fun ClientDialog(business: ClientBusiness, state: AdminUiState, viewMode
             BrandPill(look.first, look.second, look.third)
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
                 Detail("Compte", who(business) ?: "—")
-                business.contactPhone?.let { Detail("Téléphone", it) }
+                business.contactPhone?.let { Detail("Téléphone", westernDigits(it)) }
                 Detail("Abonnement", subscription(business))
                 Detail("Téléphones actifs", "${business.phones}")
                 business.lastSeen?.let { Detail("Dernière connexion", day(it.atZone(ZoneId.systemDefault()).toLocalDate())) }

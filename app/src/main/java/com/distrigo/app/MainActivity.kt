@@ -133,6 +133,22 @@ class MainActivity : ComponentActivity() {
         flow { emitAll(businessSettings.get().observeMoneyFormat()) }.flowOn(Dispatchers.IO)
     }
 
+    /**
+     * Digits 0–9 whatever the phone's language (WesternDigits): the default locale for what formats with it (the date
+     * picker's days, String.format), and this activity's own locales for what reads them (the date picker's header).
+     * Only the digits change: the language, the text direction and the resources stay the phone's. fontScale 0 leaves
+     * the phone's text size alone, which an override configuration would otherwise reset on older Android versions.
+     */
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase)
+        com.distrigo.app.core.format.WesternDigits.applyToDefaultLocale()
+        val locales = newBase.resources.configuration.locales
+        applyOverrideConfiguration(android.content.res.Configuration().apply {
+            fontScale = 0f
+            setLocales(android.os.LocaleList(*Array(locales.size()) { com.distrigo.app.core.format.WesternDigits.latin(locales[it]) }))
+        })
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Declared, not inherited. From API 35 the system enforces edge-to-edge whatever the
@@ -307,6 +323,9 @@ class MainActivity : ComponentActivity() {
                     // must read route state through rememberUpdatedState rather than closing over
                     // isTabRoute directly, or it would keep seeing stale values.
                     val latestIsTabRoute = rememberUpdatedState(isTabRoute)
+                    // Arabic: the drawer opens from the right edge, as the menu button sits there (start/end mirrored)
+                    val isRtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+                    val latestIsRtl = rememberUpdatedState(isRtl)
 
                     fun openDrawer() {
                         scope.launch { drawerOffset.animateTo(maxDrawerWidthPx, tween(PlusDrawerAnimationDurationMs)) }
@@ -355,6 +374,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .plusDrawerDragGestures(
                                 isEligibleToOpen = { latestIsTabRoute.value },
+                                isRtl            = { latestIsRtl.value },
                                 currentOffsetPx  = { drawerOffset.value },
                                 onDrag           = { deltaPx -> drawerDragEvents.trySend(PlusDrawerDragEvent.Move(deltaPx)) },
                                 onDragEnd        = { velocityPxPerSec -> drawerDragEvents.trySend(PlusDrawerDragEvent.End(velocityPxPerSec)) }
@@ -625,7 +645,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // ── Plus drawer overlay: hugs the left edge, max 80% width, 1:1 drag-tracked ──
+                // ── Plus drawer overlay: hugs the start edge (the right one in Arabic), max 80% width, 1:1 drag-tracked ──
                 val openFraction = if (maxDrawerWidthPx > 0f) {
                     (drawerOffset.value / maxDrawerWidthPx).coerceIn(0f, 1f)
                 } else 0f
@@ -647,7 +667,9 @@ class MainActivity : ComponentActivity() {
                         .fillMaxWidth(PlusDrawerMaxWidthFraction)
                         .align(Alignment.CenterStart)
                         .navigationBarsPadding()
-                        .graphicsLayer { translationX = drawerOffset.value - maxDrawerWidthPx }
+                        // translationX is in screen pixels, not mirrored: closed, the sheet sits wholly past the
+                        // start edge — the left one, or the right one in Arabic
+                        .graphicsLayer { translationX = if (isRtl) maxDrawerWidthPx - drawerOffset.value else drawerOffset.value - maxDrawerWidthPx }
                 ) {
                     ModalDrawerSheet(modifier = Modifier.fillMaxSize()) {
                         MoreScreen(onNavigate = { route ->
@@ -695,7 +717,7 @@ class MainActivity : ComponentActivity() {
         } } }
     }
 
-        // Gesture-nav devices reserve roughly this same band on the left screen edge for the
+        // Gesture-nav devices reserve roughly this same band on the start screen edge for the
         // system's own back gesture, which otherwise swallows our edge-swipe touches before
         // Compose ever sees them. Excluding it hands that band back to the app.
         reservePlusDrawerEdgeFromSystemGestures()
@@ -745,11 +767,14 @@ class MainActivity : ComponentActivity() {
             PlusDrawerEdgeZone.toPx()
         }.toInt()
 
+        // The band at the start edge, where the drawer is swiped open: the right one in Arabic
         fun updateExclusionRects() {
             val height = decorView.height
+            val width = decorView.width
             if (height <= 0) return
+            val rtl = decorView.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL
             decorView.systemGestureExclusionRects = listOf(
-                Rect(0, 0, exclusionWidthPx, height)
+                if (rtl) Rect(width - exclusionWidthPx, 0, width, height) else Rect(0, 0, exclusionWidthPx, height)
             )
         }
 
@@ -914,9 +939,9 @@ private fun RowScope.BottomNavItem(
     }
 }
 
-// ── Plus drawer: hugs the left edge, capped at 80% screen width, dragged 1:1 with the finger,
+// ── Plus drawer: hugs the start edge (right in Arabic), capped at 80% screen width, dragged 1:1 with the finger,
 // scrim synced to open-fraction, snaps open/closed on release by position or fling velocity. ──
-private val PlusDrawerEdgeZone              : Dp = 28.dp  // how close to the left edge a touch must start when closed (spec: ~24–32dp)
+private val PlusDrawerEdgeZone              : Dp = 28.dp  // how close to the start edge a touch must start when closed (spec: ~24–32dp)
 private val PlusDrawerVerticalBailThreshold : Dp = 32.dp  // vertical travel beyond which we assume a scroll and back off
 private val PlusDrawerMinDragDistance       : Dp = 16.dp  // below this, treat it as a tap and let the scrim's own tap-to-close handle it instead
 private val PlusDrawerFlingVelocity         : Dp = 800.dp // per second — fast enough swipe forces open/closed regardless of position
@@ -932,6 +957,7 @@ private sealed class PlusDrawerDragEvent {
 
 private fun Modifier.plusDrawerDragGestures(
     isEligibleToOpen : () -> Boolean,
+    isRtl            : () -> Boolean,
     currentOffsetPx  : () -> Float,
     onDrag           : (deltaPx: Float) -> Unit,
     onDragEnd        : (velocityPxPerSec: Float) -> Unit
@@ -943,14 +969,18 @@ private fun Modifier.plusDrawerDragGestures(
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         val offsetAtStart = currentOffsetPx()
+        // Measured from the start edge, and positive toward the end, whichever side the start is: in Arabic the
+        // drawer opens from the right, so x and every horizontal move are mirrored
+        val rtl = isRtl()
+        val downX = if (rtl) size.width - down.position.x else down.position.x
 
         // Closed: only an edge-starting touch may begin opening it. Already open/partial: any
         // touch on the visible drawer sheet itself (x < current offset) is left alone so its own
         // clickable menu rows still work; only touches on the exposed scrim continue the drag.
         val eligible = if (offsetAtStart <= 0f) {
-            isEligibleToOpen() && down.position.x <= edgeZonePx
+            isEligibleToOpen() && downX <= edgeZonePx
         } else {
-            down.position.x >= offsetAtStart
+            downX >= offsetAtStart
         }
         if (!eligible) return@awaitEachGesture
 
@@ -968,7 +998,8 @@ private fun Modifier.plusDrawerDragGestures(
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
             val delta = change.positionChange()
-            totalDx += delta.x
+            val dx = if (rtl) -delta.x else delta.x
+            totalDx += dx
             totalDy += delta.y
             velocityTracker.addPosition(change.uptimeMillis, change.position)
 
@@ -999,7 +1030,7 @@ private fun Modifier.plusDrawerDragGestures(
                 }
             } else {
                 change.consume()
-                onDrag(delta.x)
+                onDrag(dx)
             }
 
             if (!change.pressed) break
@@ -1010,6 +1041,9 @@ private fun Modifier.plusDrawerDragGestures(
         // committed from their very first pixel, so a tap's near-zero movement would still send
         // an End event whose position-based decision trivially reaffirms "stay open," racing
         // against and sometimes overriding the scrim's explicit close.
-        if (committed && abs(totalDx) > minDragPx) onDragEnd(velocityTracker.calculateVelocity().x)
+        if (committed && abs(totalDx) > minDragPx) {
+            val vx = velocityTracker.calculateVelocity().x
+            onDragEnd(if (rtl) -vx else vx)
+        }
     }
 }

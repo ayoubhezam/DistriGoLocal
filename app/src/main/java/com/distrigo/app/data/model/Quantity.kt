@@ -1,5 +1,6 @@
 package com.distrigo.app.data.model
 
+import com.distrigo.app.core.format.westernNumber
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
@@ -46,21 +47,21 @@ object Quantity {
     /**
      * A typed quantity, or null if it is not one. Accepts ',' or '.' as the decimal separator — the French
      * keyboard's decimal key types ',' — and ignores spaces, including the narrow no-break space French
-     * number formatting puts between thousands.
+     * number formatting puts between thousands. An Arabic keyboard's digits and `٫` read as 0–9 and '.'.
      */
     fun parse(text: String): Double? {
-        val cleaned = text.trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
+        val cleaned = westernNumber(text).trim().filterNot { it == ' ' || it == ' ' || it == ' ' }.replace(',', '.')
         if (cleaned.isEmpty() || cleaned.count { it == '.' } > 1) return null
         if (!cleaned.all { it.isDigit() || it == '.' || it == '-' }) return null
         return cleaned.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::normalize)
     }
 
     /**
-     * What a quantity field keeps of what was typed: digits and one separator, a ',' turned into '.'.
-     * Without fractions ([allowFractions] false: a pièce product), digits only.
+     * What a quantity field keeps of what was typed: digits 0–9 (an Arabic keyboard's included, westernNumber) and one
+     * separator, a ',' turned into '.'. Without fractions ([allowFractions] false: a pièce product), digits only.
      */
     fun sanitizeInput(raw: String, allowFractions: Boolean = true): String {
-        val kept = raw.replace(',', '.').filter { it.isDigit() || (allowFractions && it == '.') }
+        val kept = westernNumber(raw).replace(',', '.').filter { it.isDigit() || (allowFractions && it == '.') }
         val firstDot = kept.indexOf('.')
         val single = if (firstDot < 0) kept else kept.substring(0, firstDot + 1) + kept.substring(firstDot + 1).replace(".", "")
         // No more than 3 decimals can be typed.

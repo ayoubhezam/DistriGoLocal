@@ -1,5 +1,6 @@
 ﻿package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
@@ -365,7 +366,7 @@ internal fun Step3Validation(
                     Spacer(Modifier.height(DsSpacing.xs))
                     OutlinedTextField(
                         value           = montantPaye,
-                        onValueChange   = { raw -> onMontantPayeChange(raw.filter { it.isDigit() || it == '.' }) },
+                        onValueChange   = { raw -> onMontantPayeChange(westernNumber(raw).filter { it.isDigit() || it == '.' }) },
                         placeholder     = { Text("0.00", fontSize = DsTextSize.body) },
                         modifier        = Modifier.fillMaxWidth(),
                         shape           = DsShapes.small,

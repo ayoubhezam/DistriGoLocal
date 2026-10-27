@@ -2,6 +2,7 @@ package com.distrigo.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -19,9 +20,18 @@ import com.distrigo.app.ui.designsystem.DsBrand
  * Material's fixed line heights and tracking were drawn for Roboto at its role's size, so the screens' smaller
  * Jakarta text (13–14 sp, given at the call site) wrapped onto loose, airy second lines. Headings keep a tighter
  * 1.25× and their own (zero or negative) tracking.
+ *
+ * Text with no letter of its own — an amount's figures, a time, a percentage, a phone number — reads left to right on
+ * a right-to-left screen too (ContentOrLtr, the owner's rule of 2026-10-27): `75 %` stays `75 %` rather than
+ * `% 75`, `05 55 12 34 56` keeps its pairs in order, `-3` its sign before the digit. A line's first letter still
+ * decides the rest: Arabic reads right to left, French left to right. On a left-to-right screen this is what Compose
+ * already does, so nothing there changes.
  */
 private fun TextStyle.brand(lineHeight: TextUnit = 1.4.em, letterSpacing: TextUnit = this.letterSpacing) =
-    copy(fontFamily = DsBrand.Font, fontFeatureSettings = "tnum", lineHeight = lineHeight, letterSpacing = letterSpacing)
+    copy(
+        fontFamily = DsBrand.Font, fontFeatureSettings = "tnum", lineHeight = lineHeight, letterSpacing = letterSpacing,
+        textDirection = TextDirection.ContentOrLtr,
+    )
 
 private val BodyTracking = 0.15.sp
 private val LabelTracking = 0.1.sp

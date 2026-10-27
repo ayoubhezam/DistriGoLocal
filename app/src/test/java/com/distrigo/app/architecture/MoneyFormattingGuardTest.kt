@@ -99,6 +99,20 @@ class MoneyFormattingGuardTest {
         )
     }
 
+    /**
+     * Digits are 0–9 whatever the phone's language (WesternDigits, 2026-10-27): no whole number, date or number format
+     * takes the phone's locale, whose digits may be Arabic-Indic (`٠٩:٠٥`). java.time and MoneyFormatter already
+     * write 0–9; String.format, SimpleDateFormat and NumberFormat need a Locale given to them.
+     */
+    @Test
+    fun noNumberOrDateIsWrittenInThePhonesLocale() {
+        val noLocale = Regex("""SimpleDateFormat\([^)]*Locale\.getDefault|SimpleDateFormat\("[^"]*"\s*\)|NumberFormat\.get\w*Instance\(\s*\)|String\.format\(\s*"|"%0?\d*d"\.format\((?!\s*(java\.util\.)?Locale\.)""")
+        assertNone(
+            "A number or a date formatted in the phone's locale (pass Locale.ROOT or Locale.FRENCH, so its digits stay 0–9):",
+            violations(kotlinFiles(), noLocale),
+        )
+    }
+
     @Test
     fun theOldMoneyHelpersStayGone() {
         assertNone(

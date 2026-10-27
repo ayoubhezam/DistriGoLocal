@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.core.format.westernNumber
+import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.time.BusinessDates
@@ -232,7 +234,7 @@ fun SupplierDetailScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value = editPaymentAmount,
-                        onValueChange = { editPaymentAmount = it; editError = "" },
+                        onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
                         label = { Text("Montant (DA)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
@@ -524,7 +526,7 @@ fun SupplierDetailScreen(
                     item {
                         QuickActionButton(icon = WhatsAppIcon, label = "WhatsApp", tint = Color.White, bg = DsColors.WhatsApp) {
                             if (hasPhone) {
-                                val digits = currentSupplier.phone!!.filter { it.isDigit() }
+                                val digits = westernDigits(currentSupplier.phone!!).filter { it.isDigit() }
                                 try {
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")).apply { setPackage("com.whatsapp") }

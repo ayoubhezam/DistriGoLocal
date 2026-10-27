@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -494,7 +495,7 @@ fun ProductsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value           = viewModel.filterPriceMin,
-                        onValueChange   = { viewModel.filterPriceMin = it },
+                        onValueChange   = { viewModel.filterPriceMin = westernNumber(it) },
                         placeholder     = { Text("Min") },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),
@@ -507,7 +508,7 @@ fun ProductsScreen(
                     )
                     OutlinedTextField(
                         value           = viewModel.filterPriceMax,
-                        onValueChange   = { viewModel.filterPriceMax = it },
+                        onValueChange   = { viewModel.filterPriceMax = westernNumber(it) },
                         placeholder     = { Text("Max") },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),

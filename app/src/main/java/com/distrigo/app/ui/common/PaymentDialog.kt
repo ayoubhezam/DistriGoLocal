@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.core.format.westernNumber
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -69,7 +70,7 @@ fun PaymentDialog(
 
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it; error = "" },
+                    onValueChange = { amount = westernNumber(it); error = "" },
                     label = { Text("Montant (DA)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),

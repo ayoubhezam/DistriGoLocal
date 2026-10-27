@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.print
 
+import com.distrigo.app.core.format.westernDigits
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.provider.Settings
@@ -693,7 +694,7 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
                 Spacer(Modifier.height(DsSpacing.md))
                 OutlinedTextField(
                     value         = host,
-                    onValueChange = { host = it },
+                    onValueChange = { host = westernDigits(it) },
                     label         = { Text("Adresse IP") },
                     placeholder   = { Text("192.168.1.50") },
                     singleLine    = true,
@@ -703,7 +704,7 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
                 Spacer(Modifier.height(DsSpacing.sm))
                 OutlinedTextField(
                     value         = port,
-                    onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                    onValueChange = { port = westernDigits(it).filter(Char::isDigit).take(5) },
                     label         = { Text("Port") },
                     singleLine    = true,
                     shape         = DsShapes.medium,

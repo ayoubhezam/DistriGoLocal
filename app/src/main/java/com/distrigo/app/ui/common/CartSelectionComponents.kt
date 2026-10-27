@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.common
 
+import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.data.model.Quantity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -520,7 +521,7 @@ fun PriceFieldWithHistory(
             OutlinedTextField(
                 value         = priceStr,
                 onValueChange = { raw ->
-                    val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                    val filtered = westernNumber(raw).filter { it.isDigit() || it == '.' }.let { s ->
                         val dot = s.indexOf('.')
                         if (dot < 0) s
                         else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }

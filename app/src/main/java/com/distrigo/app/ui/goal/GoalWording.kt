@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.goal
 
+import com.distrigo.app.core.format.percentText
 import com.distrigo.app.core.format.MoneyFormatter
 import com.distrigo.app.data.local.entity.incentive.CalculationSource
 import com.distrigo.app.data.local.entity.incentive.IncentiveType
@@ -65,7 +66,7 @@ object GoalWording {
 
     /** 3 → « 3 % », 2.5 → « 2,5 % ». */
     fun rate(value: Double): String =
-        if (value == floor(value)) "${value.toLong()} %" else String.format(FR, "%.1f %%", value).replace('.', ',')
+        percentText(if (value == floor(value)) "${value.toLong()}" else String.format(FR, "%.1f", value).replace('.', ','))
 
     /** What a tier pays: « 2,5 % de vos ventes facturées » or « une prime de 20 000 DA ». */
     private fun pays(tier: TierRule, source: CalculationSource, money: MoneyFormatter): String =

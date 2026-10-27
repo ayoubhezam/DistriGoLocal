@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.dashboard
 
+import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.skeleton
 import com.distrigo.app.ui.designsystem.SkeletonOnColor
 import com.distrigo.app.ui.designsystem.SkeletonBar
@@ -587,14 +588,14 @@ private fun HeroGoal(goal: GoalProgress, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("${target.percent} %", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = color)
+            Text(percentText("${target.percent}"), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = color)
         }
         Spacer(Modifier.height(DsSpacing.xs))
         val fraction = if (target.threshold > 0) (goal.value / target.threshold).coerceIn(0.0, 1.0).toFloat() else 0f
         Box(
             Modifier.fillMaxWidth().height(8.dp).clip(DsShapes.pill).background(white.copy(alpha = 0.25f))
                 .semantics {
-                    contentDescription = target.tier?.let { "${target.percent} % du palier $it" } ?: "${target.percent} % de l'objectif"
+                    contentDescription = target.tier?.let { "${percentText("${target.percent}")} du palier $it" } ?: "${percentText("${target.percent}")} de l'objectif"
                 }
         ) {
             Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).clip(DsShapes.pill).background(color))

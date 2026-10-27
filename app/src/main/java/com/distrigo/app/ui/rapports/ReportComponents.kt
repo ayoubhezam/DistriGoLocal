@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Size
@@ -276,7 +277,7 @@ fun ReportMessage(text: String) {
 fun plural(count: Int, one: String, many: String) = "$count ${if (count <= 1) one else many}"
 
 /** A rate as a French percentage with one decimal: `16,7 %`. */
-fun percent(rate: Double): String = String.format(Locale.FRENCH, "%.1f %%", rate * 100)
+fun percent(rate: Double): String = percentText(String.format(Locale.FRENCH, "%.1f", rate * 100))
 
 /** [part] as a share of [whole], or null when there is no whole to share. */
 fun percentOf(part: Double, whole: Double): String? = if (whole > 0) percent(part / whole) else null

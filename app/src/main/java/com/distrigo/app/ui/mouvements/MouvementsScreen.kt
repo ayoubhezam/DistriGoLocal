@@ -419,5 +419,5 @@ private fun DetailInfoRow(label: String, value: String) {
 fun formatMovementDateTime(iso: String): String = runCatching {
     val instant = java.time.Instant.parse(iso)
     val local   = instant.atZone(java.time.ZoneId.systemDefault())
-    "${local.toLocalDate()} à ${"%02d".format(local.hour)}:${"%02d".format(local.minute)}"
+    "${local.toLocalDate()} à ${"%02d".format(java.util.Locale.ROOT, local.hour)}:${"%02d".format(java.util.Locale.ROOT, local.minute)}"
 }.getOrDefault(iso)

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import com.distrigo.app.core.format.westernDigits
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -220,7 +221,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
                     Text(supplier.name, fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
                         Icon(Icons.Default.Phone, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(11.dp))
-                        Text(supplier.phone?:"", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                        Text(westernDigits(supplier.phone ?: ""), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
                 Spacer(Modifier.width(DsSpacing.sm))
