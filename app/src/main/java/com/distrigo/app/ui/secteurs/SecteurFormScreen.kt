@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.ui.common.shownName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -163,7 +164,7 @@ fun SecteurFormScreen(
         SearchableSelectSheet(
             title      = "Wilaya",
             items      = remember { GeoRepository.getWilayas().sortedBy { it.wilayaCode } },
-            itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+            itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
             itemKey    = { it.wilayaCode },
             isSelected = { it.nameFr == state.fields.wilaya },
             onDismiss  = { choosingWilaya = false },
@@ -180,7 +181,7 @@ fun SecteurFormScreen(
         SearchableSelectSheet(
             title      = "Commune · Wilaya de ${wilaya.nameFr}",
             items      = communes,
-            itemLabel  = { it.nameFr },
+            itemLabel  = { it.shownName() },
             itemKey    = { it.id },
             isSelected = { it.nameFr == state.fields.commune },
             onDismiss  = { choosingCommune = false },

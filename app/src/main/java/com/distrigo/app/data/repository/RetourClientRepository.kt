@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.core.text.refuse
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.ProductEntity
@@ -12,6 +13,7 @@ import com.distrigo.app.data.model.RetourClientMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
 import com.distrigo.app.data.model.numberLabel
+import com.distrigo.app.R
 
 class RetourClientRepository(
     private val db: AppDatabase
@@ -86,7 +88,7 @@ class RetourClientRepository(
 
     suspend fun getRetour(id: Int): RetourClient {
         val entity = retourDao.getRetourById(id)
-            ?: throw IllegalStateException("Retour introuvable: $id")
+            ?: refuse(R.string.error_return_not_found, id)
         val items = retourDao.getItemsForRetour(id).map { it.toItem() }
         return entity.toRetour(items)
     }
@@ -114,7 +116,7 @@ class RetourClientRepository(
 
         db.withTransaction {
             val client = clientDao.getClientById(clientId)
-                ?: throw IllegalStateException("Client introuvable: $clientId")
+                ?: refuse(R.string.error_client_not_found, clientId)
             val now = java.time.Instant.now().toString()
 
             // Each line with its own motif — what decides its stock effect and its linked perte — or,
@@ -123,7 +125,7 @@ class RetourClientRepository(
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity  = map.lineQuantity()
                 val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    ?: refuse(R.string.error_product_not_found, productId)
                 Triple(product, quantity, (map["motif"] as? String) ?: motif)
             }
             // The return's own motif: its lines' when they share one, none when they differ.

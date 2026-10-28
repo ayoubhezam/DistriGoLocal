@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.dao.*
 import com.distrigo.app.data.model.*
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.distrigo.app.data.model.UnsettledBalanceException
+import com.distrigo.app.R
 class ProductRepository(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
@@ -372,7 +374,7 @@ class ProductRepository(
         if (name.isNotBlank() && productDao.findLiveByName(name, excludeId) != null) {
             throw IllegalStateException(ProductDuplicate.NAME.message)
         }
-        takenBarcode(barcodes, excludeId)?.let { throw IllegalStateException("Le code-barres $it est déjà enregistré.") }
+        takenBarcode(barcodes, excludeId)?.let { refuse(R.string.error_barcode_taken, it) }
     }
 
     // -- Barcodes ----------------------------------------------------------------
@@ -901,7 +903,7 @@ class ProductRepository(
 
     suspend fun getPurchaseOrder(id: Int): PurchaseOrder {
         val order = db.purchaseDao().getOrderById(id)
-            ?: throw IllegalStateException("Bon introuvable: $id")
+            ?: refuse(R.string.error_bon_not_found, id)
         return order.withItems()
     }
 
@@ -951,7 +953,7 @@ class ProductRepository(
                 val quantity = map.lineQuantity()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    ?: refuse(R.string.error_product_not_found, productId)
                 requireFitsUnit(product.name, product.unit_type, quantity)
 
                 itemEntities.add(
@@ -983,7 +985,7 @@ class ProductRepository(
     suspend fun receivePurchaseOrder(id: Int, userName: String? = null): Map<String, Any> {
         db.withTransaction {
             val order = db.purchaseDao().getOrderById(id)
-                ?: throw IllegalStateException("Bon introuvable: $id")
+                ?: refuse(R.string.error_bon_not_found, id)
             if (order.status == "received") return@withTransaction
 
             val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
@@ -996,7 +998,7 @@ class ProductRepository(
                 // and comes back with the product. Only a product that no longer exists at all stops the receipt,
                 // rather than marking the bon received with its goods never counted.
                 val product = productDao.getProductByIdIncludingBin(item.product_id)
-                    ?: throw IllegalStateException("Produit introuvable pour « ${item.product_name} » : le bon ne peut pas être reçu.")
+                    ?: refuse(R.string.error_bon_product_missing, item.product_name)
 
                 // ── Date d'expiration : on garde toujours la plus proche (la plus urgente à vendre) ──
                 val shouldUpdateExpiry = item.has_expiry && item.expiry_date != null && (
@@ -1047,7 +1049,7 @@ class ProductRepository(
             val itemsList = order["items"] as List<Map<String, Any?>>
 
             val existing = db.purchaseDao().getOrderById(id)
-                ?: throw IllegalStateException("Bon introuvable: $id")
+                ?: refuse(R.string.error_bon_not_found, id)
             val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
             val total = itemsList.sumOf { it.lineQuantity() * (it["unit_cost"] as Number).toDouble() }
@@ -1063,7 +1065,7 @@ class ProductRepository(
                 val quantity = map.lineQuantity()
                 val unitCost = (map["unit_cost"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    ?: refuse(R.string.error_product_not_found, productId)
                 requireFitsUnit(product.name, product.unit_type, quantity)
 
                 itemEntities.add(
@@ -1105,7 +1107,7 @@ class ProductRepository(
     suspend fun undoReceivePurchaseOrder(id: Int): Map<String, Any> {
         db.withTransaction {
             val order = db.purchaseDao().getOrderById(id)
-                ?: throw IllegalStateException("Bon introuvable: $id")
+                ?: refuse(R.string.error_bon_not_found, id)
             if (order.status != "received") return@withTransaction
             db.purchaseDao().updateOrderStatus(id, "pending")
             db.stockMovementDao().deleteBySource("purchase_order", id)
@@ -1116,7 +1118,7 @@ class ProductRepository(
     suspend fun reopenPurchaseOrder(id: Int): Map<String, Any> {
         depotGuard.guard(purchaseProductIds(id)) {
             val order = db.purchaseDao().getOrderById(id)
-                ?: throw IllegalStateException("Bon introuvable: $id")
+                ?: refuse(R.string.error_bon_not_found, id)
             if (order.status != "received") return@guard
 
             db.purchaseDao().updateOrderStatus(id, "pending")
@@ -1129,7 +1131,7 @@ class ProductRepository(
     suspend fun deletePurchaseOrder(id: Int): Map<String, Any> {
         depotGuard.guard(purchaseProductIds(id)) {
             val order = db.purchaseDao().getOrderById(id)
-                ?: throw IllegalStateException("Bon introuvable: $id")
+                ?: refuse(R.string.error_bon_not_found, id)
 
             // A pending bon has no movements; a received one's take their quantities back out of stock.
             db.stockMovementDao().deleteBySource("purchase_order", id)
@@ -1202,7 +1204,7 @@ class ProductRepository(
 
     suspend fun getVente(id: Int): Vente {
         val entity = db.venteDao().getVenteById(id)
-            ?: throw IllegalStateException("Vente introuvable: $id")
+            ?: refuse(R.string.error_vente_not_found, id)
         val items = db.venteDao().getItemsForVente(id).map { it.toItem() }
         return entity.toVente(items)
     }
@@ -1238,7 +1240,7 @@ class ProductRepository(
             .mapValues { (_, lines) -> lines.sumOf { it.lineQuantity() } }
         for ((productId, quantity) in wanted) {
             val product = productDao.getProductByIdIncludingBin(productId)
-                ?: throw IllegalStateException("Produit introuvable: $productId")
+                ?: refuse(R.string.error_product_not_found, productId)
             requireFitsUnit(product.name, product.unit_type, quantity)
             if (quantity > product.camion_stock + AMOUNT_EPSILON) {
                 throw IllegalStateException(
@@ -1256,14 +1258,14 @@ class ProductRepository(
         for (line in items) {
             val quantity = line.lineQuantity()
             val price = (line[priceKey] as Number).toDouble()
-            if (!(quantity > 0)) throw IllegalStateException("La quantité doit être supérieure à zéro.")
-            if (!(price >= 0)) throw IllegalStateException("Le prix ne peut pas être négatif.")
+            if (!(quantity > 0)) refuse(R.string.error_quantity_positive)
+            if (!(price >= 0)) refuse(R.string.error_price_negative)
         }
-        if (!(montantPaye >= 0)) throw IllegalStateException("Le montant payé ne peut pas être négatif.")
+        if (!(montantPaye >= 0)) refuse(R.string.error_paid_negative)
     }
 
     private fun requirePayment(amount: Double) {
-        if (!(amount > 0)) throw IllegalStateException("Le montant doit être supérieur à zéro.")
+        if (!(amount > 0)) refuse(R.string.error_amount_positive)
     }
 
     suspend fun createVente(
@@ -1303,7 +1305,7 @@ class ProductRepository(
                 val quantity = map.lineQuantity()
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    ?: refuse(R.string.error_product_not_found, productId)
                 requireFitsUnit(product.name, product.unit_type, quantity)
 
                 movementEntities += StockMovementEntity(
@@ -1356,7 +1358,7 @@ class ProductRepository(
         // Only the new lines can lower the dépôt: a product taken off the sale gets its stock back.
         depotGuard.guard(productIdsOf(items)) {
             val existing = db.venteDao().getVenteById(id)
-                ?: throw IllegalStateException("Vente introuvable: $id")
+                ?: refuse(R.string.error_vente_not_found, id)
 
             // عكس تأثير العناصر القديمة على المخزون — removing the sale's movements puts their
             // quantities back, so the camion check below sees the stock as it was before this sale.
@@ -1380,7 +1382,7 @@ class ProductRepository(
                 val unitPrice = (map["unit_price"] as Number).toDouble()
                 // The sale already names the product: it stays editable after the product went to the bin.
                 val product = productDao.getProductByIdIncludingBin(productId)
-                    ?: throw IllegalStateException("Produit introuvable: $productId")
+                    ?: refuse(R.string.error_product_not_found, productId)
                 requireFitsUnit(product.name, product.unit_type, quantity)
 
                 movementEntities += StockMovementEntity(
@@ -1432,7 +1434,7 @@ class ProductRepository(
     suspend fun deleteVente(id: Int): Map<String, Any> {
         db.withTransaction {
             val existing = db.venteDao().getVenteById(id)
-                ?: throw IllegalStateException("Vente introuvable: $id")
+                ?: refuse(R.string.error_vente_not_found, id)
             // Removing the sale's movements puts its quantities back in stock.
             db.stockMovementDao().deleteBySource("vente", id)
             db.venteDao().deleteItemsForVente(id)
@@ -1645,7 +1647,7 @@ class ProductRepository(
     private fun quartierName(quartierId: Int, secteurId: Int?): String =
         db.query(SimpleSQLiteQuery("SELECT nom FROM quartiers WHERE id = ? AND secteur_id IS ?", arrayOf<Any?>(quartierId, secteurId)))
             .use { c -> if (c.moveToFirst()) c.getString(0) else null }
-            ?: throw IllegalStateException("Le quartier n'existe plus : il a peut-être été supprimé.")
+            ?: refuse(R.string.error_quartier_gone)
 
     /** A client goes to the bin only once its account is settled: a hidden debt or advance is not one. */
     suspend fun deleteClient(id: Int): Map<String, Any> {
@@ -1696,7 +1698,7 @@ class ProductRepository(
                     val direction = map["direction"] as String
 
                     val product = productDao.getProductById(productId)
-                        ?: throw IllegalStateException("Produit introuvable: $productId")
+                        ?: refuse(R.string.error_product_not_found, productId)
 
                     requireFitsUnit(product.name, product.unit_type, quantity)
 
@@ -1949,7 +1951,7 @@ class ProductRepository(
     // counters come from those same rows, computed exactly as they were before.
     suspend fun getTournee(id: Int): Tournee {
         val entity = db.tourneeDao().getTourneeById(id)
-            ?: throw IllegalStateException("Tournée introuvable: $id")
+            ?: refuse(R.string.error_tournee_not_found, id)
         val rows = db.venteDao().getVentesWithDetailsForTournee(id)
         val planned = db.tourneeClientDao().getForTournee(id)
         return entity.toTournee(
@@ -2011,7 +2013,7 @@ class ProductRepository(
     private suspend fun requireNoOtherOpenTournee(except: Int?) {
         val open = db.tourneeDao().getOpenTournee() ?: return
         if (open.id == except) return
-        throw IllegalStateException("Une tournée est déjà ouverte (« ${open.nom} ») : clôturez-la avant d'en ouvrir une autre.")
+        refuse(R.string.error_tournee_already_open, open.nom)
     }
 
     /** Allowed even when the license is read-only (D4, docs/license_l5_enforcement.md §3). */

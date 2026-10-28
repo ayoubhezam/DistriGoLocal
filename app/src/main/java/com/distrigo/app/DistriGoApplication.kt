@@ -49,6 +49,8 @@ class DistriGoApplication : Application(), Configuration.Provider {
         // French until the user picks another language (AppLanguage, D1), then digits 0–9 whatever the language,
         // before anything formats one (WesternDigits)
         com.distrigo.app.core.locale.AppLanguage.pinDefault(this)
+        // So a repository's refusal (UserFacingException) reads in the app's language wherever its message is shown
+        com.distrigo.app.core.text.AppStrings.install(this)
         WesternDigits.applyToDefaultLocale()
         // First, so a crash in anything after is written up (every build), and StrictMode sees all of
         // startup (debug builds only). See the diagnostics package and Paramètres → Diagnostic.

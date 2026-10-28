@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
@@ -11,6 +12,7 @@ import com.distrigo.app.data.model.PerteType
 import com.distrigo.app.data.local.entity.mouvement.StockMovementEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.distrigo.app.R
 class PerteRepository(
     private val db: AppDatabase
 ) {
@@ -113,9 +115,9 @@ class PerteRepository(
 
     suspend fun deletePerteType(id: Int) {
         val type = perteDao.getPerteTypeById(id) ?: return
-        if (type.is_default) throw IllegalStateException("Impossible de supprimer un type par défaut")
+        if (type.is_default) refuse(R.string.error_default_type_undeletable)
         val pertes = perteDao.getPertesForType(id)
-        if (pertes.isNotEmpty()) throw IllegalStateException("Impossible de supprimer : des pertes existent déjà sous ce type")
+        if (pertes.isNotEmpty()) refuse(R.string.error_perte_type_in_use)
         perteDao.softDeletePerteTypeById(id)
     }
 
@@ -236,7 +238,7 @@ class PerteRepository(
     suspend fun deletePerte(id: Int): Map<String, Any> {
         val perte = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
         if (perte.source_type != null) {
-            throw IllegalStateException("Cette perte est liée à un retour fournisseur — supprimez le retour concerné")
+            refuse(R.string.error_perte_linked_to_return)
         }
         db.withTransaction {
             // Removing the perte's movement puts its quantity back in stock.
@@ -270,11 +272,11 @@ class PerteRepository(
 
                 // 2) إعادة جلب المنتج الجديد (بعد الاستعادة، مهم لو كان نفس المنتج)
                 val product = productDao.getProductById(productId)
-                    ?: throw IllegalStateException("Produit introuvable")
+                    ?: refuse(R.string.error_product_missing)
                 requireFitsUnit(product.name, product.unit_type, qty)   // reported as an error below
 
                 if (source == "camion" && qty > product.camion_stock) {
-                    throw IllegalStateException("Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")
+                    refuse(R.string.error_truck_stock_insufficient, Quantity.format(product.camion_stock), Quantity.format(qty))
                 }
 
                 val valeurTotale = product.purchase_price * qty

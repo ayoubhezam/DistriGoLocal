@@ -1,5 +1,7 @@
 package com.distrigo.app.core.format
 
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -31,3 +33,16 @@ fun approximateLength(days: Int): String {
 }
 
 private fun dayCount(days: Int) = if (days == 1) "1 jour" else "$days jours"
+
+/**
+ * [approximateLength] in the app's language, for the screens: « 6 mois », « 6 أشهر ». The French functions above stay
+ * for Administration (D10) and until the onboarding's text moves (docs/i18n_rtl_plan.md, Phase 4).
+ */
+fun approximateLengthText(days: Int): UiText {
+    val years = (days / 365.25).roundToInt()
+    return when {
+        days < 60 -> UiText.Plural(R.plurals.common_duration_days, days)
+        years >= 1 && abs(days - years * 365.25) <= 35 -> UiText.Plural(R.plurals.common_duration_years, years)
+        else -> (days / 30.44).roundToInt().let { UiText.Plural(R.plurals.common_duration_months, it) }
+    }
+}

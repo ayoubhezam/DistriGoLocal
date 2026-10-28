@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import com.distrigo.app.ui.common.shownName
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import android.widget.Toast
@@ -488,7 +489,7 @@ fun ClientFormScreen(
             SearchableSelectSheet(
                 title      = "Sélectionner une wilaya",
                 items      = GeoRepository.getWilayas(),
-                itemLabel  = { "${it.wilayaCode}-${it.nameFr}" },
+                itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
                 onDismiss  = { showWilayaSheet = false },
                 onSelect   = { wilaya ->
                     wilayaName         = wilaya.nameFr
@@ -508,7 +509,7 @@ fun ClientFormScreen(
             SearchableSelectSheet(
                 title      = "Sélectionner une commune",
                 items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
-                itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.nameFr}" },
+                itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.shownName()}" },
                 onDismiss  = { showCommuneSheet = false },
                 onSelect   = { (_, commune) ->
                     communeName = commune.nameFr

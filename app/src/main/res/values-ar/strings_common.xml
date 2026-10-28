@@ -240,4 +240,52 @@
     <string name="common_kind_supplier_return">مرتجع إلى المورد</string>
     <string name="common_kind_loss">خسارة</string>
     <string name="common_kind_adjustment">تسوية</string>
+    <plurals name="common_qty_carton">
+        <item quantity="zero">%1$s كرتونة</item>
+        <item quantity="one">%1$s كرتونة</item>
+        <item quantity="two">%1$s كرتونتان</item>
+        <item quantity="few">%1$s كراتين</item>
+        <item quantity="many">%1$s كرتونة</item>
+        <item quantity="other">%1$s كرتونة</item>
+    </plurals>
+    <plurals name="common_qty_piece">
+        <item quantity="zero">%1$s قطعة</item>
+        <item quantity="one">%1$s قطعة</item>
+        <item quantity="two">%1$s قطعتان</item>
+        <item quantity="few">%1$s قطع</item>
+        <item quantity="many">%1$s قطعة</item>
+        <item quantity="other">%1$s قطعة</item>
+    </plurals>
+    <plurals name="common_qty_kg">
+        <item quantity="zero">%1$s كغ</item>
+        <item quantity="one">%1$s كغ</item>
+        <item quantity="two">%1$s كغ</item>
+        <item quantity="few">%1$s كغ</item>
+        <item quantity="many">%1$s كغ</item>
+        <item quantity="other">%1$s كغ</item>
+    </plurals>
+    <plurals name="common_duration_days">
+        <item quantity="zero">%1$d يوم</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <plurals name="common_duration_months">
+        <item quantity="zero">%1$d شهر</item>
+        <item quantity="one">شهر واحد</item>
+        <item quantity="two">شهران</item>
+        <item quantity="few">%1$d أشهر</item>
+        <item quantity="many">%1$d شهرًا</item>
+        <item quantity="other">%1$d شهر</item>
+    </plurals>
+    <plurals name="common_duration_years">
+        <item quantity="zero">%1$d سنة</item>
+        <item quantity="one">سنة واحدة</item>
+        <item quantity="two">سنتان</item>
+        <item quantity="few">%1$d سنوات</item>
+        <item quantity="many">%1$d سنة</item>
+        <item quantity="other">%1$d سنة</item>
+    </plurals>
 </resources>

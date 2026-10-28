@@ -4,6 +4,8 @@ import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.dao.DepotStockRow
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * Strict stock: with "Autoriser le stock négatif" off, no write may leave a product's dépôt stock
@@ -37,7 +39,7 @@ internal class DepotStockGuard(private val db: AppDatabase) {
             val was = before[row.id] ?: 0.0
             Quantity.isBelow(row.depot, 0.0) && Quantity.isBelow(row.depot, was)
         }
-        if (broken.isNotEmpty()) throw DepotStockException(message(broken))
+        if (broken.isNotEmpty()) throw DepotStockException(text(broken))
         result
     }
 
@@ -49,20 +51,20 @@ internal class DepotStockGuard(private val db: AppDatabase) {
         try {
             guard(productIds, block)
         } catch (e: DepotStockException) {
-            mapOf("error" to (e.message ?: "Stock dépôt insuffisant"))
+            mapOf("error" to e.message)
         }
 
     // SQLite takes at most 999 bound parameters.
     private suspend fun depots(ids: List<Int>): List<DepotStockRow> =
         ids.chunked(900).flatMap { db.productDao().getDepotStocks(it) }
 
-    private fun message(broken: List<DepotStockRow>): String {
+    private fun text(broken: List<DepotStockRow>): UiText {
         val first = broken.first()
-        val others = if (broken.size > 1) " (et ${broken.size - 1} autre(s) produit(s))" else ""
-        return "Stock dépôt insuffisant pour « ${first.name} »$others : l'opération le laisserait à " +
-            "${Quantity.format(first.depot)} ${first.unit_type}. Le stock négatif est désactivé dans Paramètres."
+        val left = Quantity.format(first.depot)
+        return if (broken.size > 1) UiText.Res(R.string.error_depot_stock_insufficient_more, first.name, broken.size - 1, left, first.unit_type)
+        else UiText.Res(R.string.error_depot_stock_insufficient, first.name, left, first.unit_type)
     }
 }
 
 /** A write refused by strict stock. An IllegalStateException, so the forms show its message as they show any other. */
-class DepotStockException(message: String) : IllegalStateException(message)
+class DepotStockException(text: UiText) : com.distrigo.app.core.text.UserFacingException(text)

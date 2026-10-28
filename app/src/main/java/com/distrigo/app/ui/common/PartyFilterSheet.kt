@@ -179,7 +179,7 @@ internal fun PartyFilterSheet(
                 options  = wilayas,
                 selected = wilaya,
                 keyOf    = { it },
-                nameOf   = { it },
+                nameOf   = { wilayaShownName(it) ?: it },
                 onSelect = { onWilaya(it) }
             )
             FilterDropdown(
@@ -188,7 +188,7 @@ internal fun PartyFilterSheet(
                 options  = communes,
                 selected = commune,
                 keyOf    = { it },
-                nameOf   = { it },
+                nameOf   = { communeShownName(wilaya, it) ?: it },
                 enabled  = wilaya != null,
                 onSelect = { onCommune(it) }
             )

@@ -1,0 +1,30 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="error_barcode_taken">Le code-barres %1$s est déjà enregistré.</string>
+    <string name="error_bon_not_found">Bon introuvable: %1$s</string>
+    <string name="error_product_not_found">Produit introuvable: %1$s</string>
+    <string name="error_bon_product_missing">Produit introuvable pour « %1$s » : le bon ne peut pas être reçu.</string>
+    <string name="error_vente_not_found">Vente introuvable: %1$s</string>
+    <string name="error_quantity_positive">La quantité doit être supérieure à zéro.</string>
+    <string name="error_price_negative">Le prix ne peut pas être négatif.</string>
+    <string name="error_paid_negative">Le montant payé ne peut pas être négatif.</string>
+    <string name="error_amount_positive">Le montant doit être supérieur à zéro.</string>
+    <string name="error_quartier_gone">Le quartier n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="error_tournee_not_found">Tournée introuvable: %1$s</string>
+    <string name="error_tournee_already_open">Une tournée est déjà ouverte (« %1$s ») : clôturez-la avant d\'en ouvrir une autre.</string>
+    <string name="error_default_type_undeletable">Impossible de supprimer un type par défaut</string>
+    <string name="error_charge_type_in_use">Impossible de supprimer : des dépenses existent déjà sous ce type</string>
+    <string name="error_default_subtype_undeletable">Impossible de supprimer un sous-type par défaut</string>
+    <string name="error_charge_subtype_in_use">Impossible de supprimer : %1$d dépense(s) enregistrée(s) sous ce sous-type</string>
+    <string name="error_subtype_not_found">Sous-type introuvable: %1$s</string>
+    <string name="error_type_not_found">Type introuvable: %1$s</string>
+    <string name="error_charge_not_found">Dépense introuvable: %1$s</string>
+    <string name="error_perte_type_in_use">Impossible de supprimer : des pertes existent déjà sous ce type</string>
+    <string name="error_perte_linked_to_return">Cette perte est liée à un retour fournisseur — supprimez le retour concerné</string>
+    <string name="error_product_missing">Produit introuvable</string>
+    <string name="error_truck_stock_insufficient">Stock camion insuffisant : disponible %1$s, demandé %2$s</string>
+    <string name="error_return_not_found">Retour introuvable: %1$s</string>
+    <string name="error_client_not_found">Client introuvable: %1$s</string>
+    <string name="error_supplier_not_found">Fournisseur introuvable: %1$s</string>
+    <string name="error_depot_stock_insufficient">Stock dépôt insuffisant pour « %1$s » : l\'opération le laisserait à %2$s %3$s. Le stock négatif est désactivé dans Paramètres.</string>
+    <string name="error_depot_stock_insufficient_more">Stock dépôt insuffisant pour « %1$s » (et %2$d autre(s) produit(s)) : l\'opération le laisserait à %3$s %4$s. Le stock négatif est désactivé dans Paramètres.</string>
+</resources>

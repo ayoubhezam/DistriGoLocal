@@ -39,6 +39,10 @@ sealed interface UiText {
 
 /**
  * A refusal the user is told about, in the app's words: what a repository throws instead of a French sentence. The
- * screens read it through userText (ui/common/ErrorMessage.kt).
+ * screens read it through userText (ui/common/ErrorMessage.kt); anything that reads its [message] gets it written in
+ * the app's language at that moment ([AppStrings]). An IllegalStateException, as the French sentences it replaces
+ * were, so every `catch` that handled those still does.
  */
-class UserFacingException(val text: UiText, cause: Throwable? = null) : RuntimeException(text.toString(), cause)
+open class UserFacingException(val text: UiText, cause: Throwable? = null) : IllegalStateException(null as String?, cause) {
+    override val message: String get() = AppStrings.write(text)
+}

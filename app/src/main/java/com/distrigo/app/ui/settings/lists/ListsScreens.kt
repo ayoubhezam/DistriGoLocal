@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.lists
 
+import com.distrigo.app.ui.common.shownName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -456,7 +457,7 @@ private fun NameDialog(
                     }
                 }
                 if (needsPlace) {
-                    PlaceField("Wilaya", wilaya?.let { "${it.wilayaCode}-${it.nameFr}" }) { choosingWilaya = true }
+                    PlaceField("Wilaya", wilaya?.let { "${it.wilayaCode}-${it.shownName()}" }) { choosingWilaya = true }
                     PlaceField("Commune", commune, enabled = wilaya != null) { choosingCommune = true }
                 }
                 note?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
@@ -484,7 +485,7 @@ private fun NameDialog(
         SearchableSelectSheet(
             title     = "Sélectionner une wilaya",
             items     = GeoRepository.getWilayas(),
-            itemLabel = { "${it.wilayaCode}-${it.nameFr}" },
+            itemLabel = { "${it.wilayaCode}-${it.shownName()}" },
             onDismiss = { choosingWilaya = false },
             onSelect  = { wilaya = it; commune = null },
         )
@@ -495,7 +496,7 @@ private fun NameDialog(
         SearchableSelectSheet(
             title     = "Sélectionner une commune",
             items     = communes,
-            itemLabel = { it.nameFr },
+            itemLabel = { it.shownName() },
             onDismiss = { choosingCommune = false },
             onSelect  = { commune = it.nameFr },
         )

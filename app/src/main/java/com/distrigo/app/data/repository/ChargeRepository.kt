@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.local.database.AppDatabase
 import androidx.room.withTransaction
 import com.distrigo.app.data.model.defaultChargeSubTypeUuid
@@ -13,6 +14,7 @@ import com.distrigo.app.data.model.ChargeSubType
 import com.distrigo.app.data.model.ChargeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.distrigo.app.R
 
 class ChargeRepository(
     private val chargeDao: ChargeDao,
@@ -42,44 +44,47 @@ class ChargeRepository(
     // ── Seed Data (فئات افتراضية) ──
     // Each built-in type and subtype has a stable key, from which every phone derives the same uuid
     // (see defaultTypeUuid). Never change a key: it is that type's identity.
-    private data class SeedSubType(val key: String, val name: String, val icon: String, val hasFournisseur: Boolean)
-    private data class SeedType(val key: String, val name: String, val icon: String, val colorHex: String, val subtypes: List<SeedSubType>)
+    companion object {
+        // Read by BuiltInNames too, to show a built-in type in the app's language (D7)
+        internal data class SeedSubType(val key: String, val name: String, val icon: String, val hasFournisseur: Boolean)
+        internal data class SeedType(val key: String, val name: String, val icon: String, val colorHex: String, val subtypes: List<SeedSubType>)
 
-    private val DEFAULT_CHARGE_TYPES = listOf(
-        SeedType("vehicule", "Véhicule", "directions_car", "#3F51B5", listOf(
-            SeedSubType("carburant", "Carburant", "local_gas_station", true),
-            SeedSubType("pneus", "Pneus", "trip_origin", true),
-            SeedSubType("reparation", "Réparation", "build", true),
-            SeedSubType("vidange", "Vidange", "oil_barrel", true),
-            SeedSubType("assurance", "Assurance", "shield", true)
-        )),
-        SeedType("personnel", "Personnel", "people", "#4CAF50", listOf(
-            SeedSubType("salaire", "Salaire", "payments", false),
-            SeedSubType("prime", "Prime", "card_giftcard", false),
-            SeedSubType("formation", "Formation", "school", false)
-        )),
-        SeedType("bureau", "Bureau", "apartment", "#FF9800", listOf(
-            SeedSubType("loyer", "Loyer", "home", false),
-            SeedSubType("electricite", "Électricité", "bolt", false),
-            SeedSubType("internet", "Internet", "wifi", false),
-            SeedSubType("fournitures", "Fournitures", "inventory", false)
-        )),
-        SeedType("distribution", "Distribution", "local_shipping", "#009688", listOf(
-            SeedSubType("peage", "Péage", "toll", false),
-            SeedSubType("parking", "Parking", "local_parking", false),
-            SeedSubType("livraison", "Livraison", "local_shipping", false),
-            SeedSubType("emballage", "Emballage", "inventory_2", false)
-        )),
-        SeedType("achats", "Achats", "shopping_cart", "#F44336", listOf(
-            SeedSubType("materiel", "Matériel", "build", false),
-            SeedSubType("nettoyage", "Nettoyage", "cleaning_services", false),
-            SeedSubType("divers", "Divers", "category", false)
-        )),
-        SeedType("divers", "Divers", "more_horiz", "#9E9E9E", listOf(
-            SeedSubType("imprevu", "Imprévu", "warning", false),
-            SeedSubType("autre", "Autre", "more_horiz", false)
-        ))
-    )
+        internal val DEFAULT_CHARGE_TYPES = listOf(
+            SeedType("vehicule", "Véhicule", "directions_car", "#3F51B5", listOf(
+                SeedSubType("carburant", "Carburant", "local_gas_station", true),
+                SeedSubType("pneus", "Pneus", "trip_origin", true),
+                SeedSubType("reparation", "Réparation", "build", true),
+                SeedSubType("vidange", "Vidange", "oil_barrel", true),
+                SeedSubType("assurance", "Assurance", "shield", true)
+            )),
+            SeedType("personnel", "Personnel", "people", "#4CAF50", listOf(
+                SeedSubType("salaire", "Salaire", "payments", false),
+                SeedSubType("prime", "Prime", "card_giftcard", false),
+                SeedSubType("formation", "Formation", "school", false)
+            )),
+            SeedType("bureau", "Bureau", "apartment", "#FF9800", listOf(
+                SeedSubType("loyer", "Loyer", "home", false),
+                SeedSubType("electricite", "Électricité", "bolt", false),
+                SeedSubType("internet", "Internet", "wifi", false),
+                SeedSubType("fournitures", "Fournitures", "inventory", false)
+            )),
+            SeedType("distribution", "Distribution", "local_shipping", "#009688", listOf(
+                SeedSubType("peage", "Péage", "toll", false),
+                SeedSubType("parking", "Parking", "local_parking", false),
+                SeedSubType("livraison", "Livraison", "local_shipping", false),
+                SeedSubType("emballage", "Emballage", "inventory_2", false)
+            )),
+            SeedType("achats", "Achats", "shopping_cart", "#F44336", listOf(
+                SeedSubType("materiel", "Matériel", "build", false),
+                SeedSubType("nettoyage", "Nettoyage", "cleaning_services", false),
+                SeedSubType("divers", "Divers", "category", false)
+            )),
+            SeedType("divers", "Divers", "more_horiz", "#9E9E9E", listOf(
+                SeedSubType("imprevu", "Imprévu", "warning", false),
+                SeedSubType("autre", "Autre", "more_horiz", false)
+            ))
+        )
+    }
 
     /** Seeds once; the check and the inserts are one transaction, so two first callers cannot both seed. */
     suspend fun seedDefaultChargeTypesIfNeeded() = db.withTransaction {
@@ -131,12 +136,12 @@ class ChargeRepository(
 
     suspend fun deleteChargeType(id: Int) = db.withTransaction {
         val type = chargeDao.getChargeTypeById(id) ?: return@withTransaction
-        if (type.is_default) throw IllegalStateException("Impossible de supprimer un type par défaut")
+        if (type.is_default) refuse(R.string.error_default_type_undeletable)
 
         val subtypes = chargeDao.getSubTypesForType(id)
         val hasCharges = subtypes.any { chargeDao.getChargesForSubType(it.id).isNotEmpty() }
         if (hasCharges) {
-            throw IllegalStateException("Impossible de supprimer : des dépenses existent déjà sous ce type")
+            refuse(R.string.error_charge_type_in_use)
         }
 
         subtypes.forEach { chargeDao.softDeleteSubTypeById(it.id) }
@@ -194,11 +199,11 @@ class ChargeRepository(
 
     suspend fun deleteSubType(id: Int) {
         val sub = chargeDao.getSubTypeById(id) ?: return
-        if (sub.is_default) throw IllegalStateException("Impossible de supprimer un sous-type par défaut")
+        if (sub.is_default) refuse(R.string.error_default_subtype_undeletable)
 
         val charges = chargeDao.getChargesForSubType(id)
         if (charges.isNotEmpty()) {
-            throw IllegalStateException("Impossible de supprimer : ${charges.size} dépense(s) enregistrée(s) sous ce sous-type")
+            refuse(R.string.error_charge_subtype_in_use, charges.size)
         }
         chargeDao.softDeleteSubTypeById(id)
     }
@@ -236,9 +241,9 @@ class ChargeRepository(
         fournisseur: String?, note: String?
     ): Int {
         val subType = chargeDao.getSubTypeById(subtypeId)
-            ?: throw IllegalStateException("Sous-type introuvable: $subtypeId")
+            ?: refuse(R.string.error_subtype_not_found, subtypeId)
         val type = chargeDao.getChargeTypeById(subType.type_id)
-            ?: throw IllegalStateException("Type introuvable: ${subType.type_id}")
+            ?: refuse(R.string.error_type_not_found, subType.type_id)
 
         return chargeDao.insertCharge(
             ChargeEntity(
@@ -258,7 +263,7 @@ class ChargeRepository(
         subtypeId: Int? = null,
     ): Map<String, Any> {
         val existing = chargeDao.getChargeById(id)
-            ?: throw IllegalStateException("Dépense introuvable: $id")
+            ?: refuse(R.string.error_charge_not_found, id)
         val subType = chargeDao.getSubTypeById(subtypeId ?: existing.subtype_id)
         val type = subType?.let { chargeDao.getChargeTypeById(it.type_id) }
         chargeDao.updateCharge(

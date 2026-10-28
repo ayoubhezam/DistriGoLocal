@@ -1,10 +1,10 @@
 # DistriGo: plan for French + Arabic and right-to-left layout
 
-**Date:** 2026-10-27 · **Status:** D1–D10 decided; Phases 1–2 pushed (66949ea, da68052); Phase 3 in progress (first half done).
+**Date:** 2026-10-27 · **Status:** D1–D10 decided; Phases 1–2 pushed (66949ea, da68052); Phase 3a pushed (5282992); Phase 3b done, awaiting device tests.
 **Based on:** a read-only inspection of commit `1c59385` (562 Kotlin files, ~100k lines).
 
-> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phases 1 and 2 are pushed; Phase 3 (shared text) is
-> half done — see "Phase 3 progress" below for what remains. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
+> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phases 1–3 are done (see "Phase 3 progress");
+> Phase 4 (screens by section) is next, after the owner's go. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
 > Chargements form graphs are stable: only their text and icons change, never their flow. Paths below start at
 > `app/src/main/java/com/distrigo/app/` unless they begin with `app/`.
 
@@ -91,13 +91,26 @@ Phase 0 done: the glossary (`docs/i18n_glossary.md`) was approved on 2026-10-27.
   - `refusalText()` returns `UiText`; `productFilterChips` takes `Resources`; `ProductUnit.labelRes()` (screens) beside
     `label()` (documents, D3).
   - Guard baseline 1371 → 964.
-- Left for Phase 3:
-  - Error plumbing: repositories still throw French (`throw IllegalStateException("…")` ×~45, `Refused("…")` ×39,
-    `ImportPlanner`, `TrashRepository`, `ListsRepository`, `LicensePolicy`, `AuthApi`). Needs a way for
-    `UserFacingException` to be read as text outside a composable (`userMessage`, `e.message`, 86 + 35 call sites).
-  - `ListKind` / `TrashKind` (labels used in sentences), units after quantities (`ProductUnit.plural`), `Durations`.
-  - Built-in perte/charge types and retour motifs shown by key (D7); wilaya and commune `nameAr` (D8).
-  - `formatRelativeFr` stays for Paramètres' backup lines until that section moves (Phase 4).
+- Phase 3b (2026-10-28):
+  - **Errors in the app's language:** `core/text/AppStrings.kt`, installed by DistriGoApplication. `UserFacingException`
+    (now an open `IllegalStateException`) writes its `message` in the app's language when read, so the ~120 places
+    that show `e.message` / `userMessage(e)` are unchanged. Repositories refuse with `refuse(R.string.error_…)`
+    (`strings_errors.xml`): ProductRepository, Charge, Perte, both Retours, and `DepotStockException`. In a JVM unit
+    test nothing is installed and such a message reads as the UiText's `toString()`; device tests run the real
+    Application and read French.
+  - `quantityText()` (« 3 cartons » with Arabic's plural forms; fractions read as French did) and
+    `approximateLengthText()`, for the screens in Phase 4.
+  - D8: `ui/common/PlaceNames.kt`: `Wilaya.shownName()`, `wilayaShownName()`, `communeShownName()`; the wilaya and
+    commune pickers (clients, suppliers, tournée, secteur, Listes) and the party filter use them. Stored names stay
+    `nameFr`.
+  - D7: `ui/common/BuiltInNames.kt`: `type(uuid, name)` and `motif()`, translated only while a type keeps its seeded
+    name (`strings_builtin.xml`). ChargeRepository's seeds moved to its companion so both read the same list.
+- Moved to Phase 4, with their section's text:
+  - The data-layer messages of import (`ImportPlanner`, `Refused`), Listes et catégories (`ListsRepository`,
+    `ListKind`), Corbeille (`TrashKind`), the license (`LicensePolicy`, `AuthApi`) and the ViewModels' `onError("…")`.
+  - Calling `quantityText`, `BuiltInNames` and the place-name helpers wherever a screen shows a quantity, a type, a
+    motif or a stored wilaya (Pertes, Charges, Retours, reports' « Répartition des ventes », client pages).
+  - `formatRelativeFr`, `approximateLength` (onboarding) and `subscriptionLength` (Administration stays French, D10).
 
 **Phase 2 done 2026-10-27 (RTL structure):**
 - Screen and onboarding-step transitions slide by Start/End (`NavTransitions`, `CodePages`, `SignUpPages`).
@@ -483,4 +496,4 @@ absence of AppCompat, WebView and `configChanges`, the tests that check French t
   `CodesAdminClient`'s message paths.
 
 ## Next step
-Phase 3 (shared text), after the owner's go.
+Phase 4 (screens by section), after the owner's go.
