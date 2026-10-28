@@ -1,0 +1,14 @@
+<resources>
+    <string name="ventes_draft_edit_title">تعديل · عملية البيع %1$s</string>
+    <string name="ventes_draft_blocked_deleted">عملية البيع محذوفة</string>
+    <string name="ventes_drafts_sheet_subtitle">تابع مسودة أو ابدأ عملية بيع جديدة.</string>
+    <string name="ventes_drafts_sheet_start_new">بدء عملية بيع جديدة</string>
+    <string name="ventes_draft_changed_title">تغيّرت عملية البيع %1$s</string>
+    <string name="ventes_draft_changed_body">عُدّلت عملية البيع %1$s منذ أن بدأت هذا التعديل. لم تُحفظ تغييراتك بعد.</string>
+    <string name="ventes_draft_use_committed">البدء من عملية البيع الحالية</string>
+    <string name="ventes_draft_blocked_title">عملية البيع غير قابلة للتعديل</string>
+    <string name="ventes_draft_blocked_body">لم تعد عملية البيع %1$s تقبل هذا التعديل.</string>
+    <string name="ventes_draft_view_record">عرض عملية البيع</string>
+    <string name="ventes_draft_deleted_title">عملية البيع غير موجودة</string>
+    <string name="ventes_draft_deleted_body">حُذفت عملية البيع %1$s. لم يعد هناك ما يُعدَّل.</string>
+</resources>

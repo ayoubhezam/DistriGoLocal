@@ -41,6 +41,8 @@ import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.distrigo.app.ui.designsystem.DsColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The receipt, exactly as it will come out of the printer.
@@ -219,7 +221,7 @@ fun ReceiptPreviewSheet(
                     TextButton(onClick = {
                         printViewModel.clear()
                         printViewModel.print(receipt)
-                    }) { Text("Réessayer") }
+                    }) { Text(stringResource(R.string.common_action_retry)) }
                 }
             },
             dismissButton = {

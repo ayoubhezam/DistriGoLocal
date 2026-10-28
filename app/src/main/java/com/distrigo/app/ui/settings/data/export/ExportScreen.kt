@@ -40,6 +40,8 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Paramètres → Exporter les données: choose data, a format and a period, then save the file or share it. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -121,13 +123,13 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
 
                 // ── Période ──
                 if (state.usesPeriod) {
-                    Text("Période", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                         PeriodPreset.entries.forEach { preset ->
                             FilterChip(
                                 selected = state.preset == preset,
                                 onClick = { viewModel.choosePreset(preset) },
-                                label = { Text(preset.label) },
+                                label = { Text(stringResource(preset.label)) },
                                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DsColors.PrimaryLight, selectedLabelColor = DsColors.Primary)
                             )
                         }
@@ -188,7 +190,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Enregistrer", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Text(stringResource(R.string.common_action_save), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
                 OutlinedButton(
                     onClick = viewModel::share,
@@ -234,7 +236,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                         }
                     }
                 },
-                confirmButton = { TextButton(onClick = viewModel::dismissResult) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+                confirmButton = { TextButton(onClick = viewModel::dismissResult) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
                 containerColor = DsColors.Surface,
                 titleContentColor = DsColors.TextPrimary,
                 textContentColor = DsColors.TextSecondary
@@ -244,7 +246,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger) },
                 title = { Text("Export impossible") },
                 text = { Text(result.message) },
-                confirmButton = { TextButton(onClick = viewModel::dismissResult) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+                confirmButton = { TextButton(onClick = viewModel::dismissResult) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
                 containerColor = DsColors.Surface,
                 titleContentColor = DsColors.TextPrimary,
                 textContentColor = DsColors.TextSecondary
@@ -266,9 +268,9 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     val day = pickerState.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
                     if (which == "from") viewModel.chooseFrom(day) else viewModel.chooseTo(day)
                     picking = null
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { picking = null }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { picking = null }) { Text(stringResource(R.string.common_action_cancel)) } }
         ) { DatePicker(state = pickerState) }
     }
 }

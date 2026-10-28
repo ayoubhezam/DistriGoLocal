@@ -43,6 +43,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // The app's one search bar.
 //
@@ -104,7 +106,7 @@ fun DsCompactSearchField(
                 if (value.isNotEmpty()) {
                     DsCompactSearchAction(
                         icon               = Icons.Default.Close,
-                        contentDescription = "Effacer",
+                        contentDescription = stringResource(R.string.common_action_clear),
                         tint               = DsColors.TextSecondary,
                         iconSize           = 18.dp,
                         onClick            = { onValueChange("") }
@@ -149,7 +151,7 @@ fun DsCompactSearchTrigger(
         if (text != null && onClear != null && enabled) {
             DsCompactSearchAction(
                 icon               = Icons.Default.Close,
-                contentDescription = "Effacer",
+                contentDescription = stringResource(R.string.common_action_clear),
                 tint               = DsColors.TextSecondary,
                 iconSize           = 18.dp,
                 onClick            = onClear

@@ -81,6 +81,8 @@ import com.distrigo.app.data.model.Amount
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @OptIn(ExperimentalFoundationApi::class)
 /** How many of the latest transactions the client's card shows before « Voir tout ». */
 private const val FACTURE_PREVIEW = 3
@@ -198,18 +200,18 @@ fun ClientDetailScreen(
         val payment = longPressPayment!!
         AlertDialog(
             onDismissRequest = { longPressPayment = null },
-            title = { Text("Options du paiement", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.common_payment_options), fontWeight = FontWeight.Bold) },
             confirmButton = {
                 TextButton(onClick = {
                     editPaymentAmount = (payment.amount ?: 0.0).toString()
                     showEditPayment = true
                 }) {
-                    Text("Modifier le montant", color = DsColors.Primary)
+                    Text(stringResource(R.string.common_payment_edit_amount), color = DsColors.Primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeletePayment = true }) {
-                    Text("Supprimer", color = DsColors.Danger)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger)
                 }
             },
             containerColor    = DsColors.Surface,
@@ -223,8 +225,8 @@ fun ClientDetailScreen(
         val payment = longPressPayment!!
         AlertDialog(
             onDismissRequest = { showDeletePayment = false; longPressPayment = null },
-            title = { Text("Supprimer le paiement", fontWeight = FontWeight.Bold) },
-            text = { Text("Êtes-vous sûr de vouloir supprimer ce paiement ?") },
+            title = { Text(stringResource(R.string.common_payment_delete), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.common_payment_delete_dialog_body)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -237,12 +239,12 @@ fun ClientDetailScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                 ) {
-                    Text("Supprimer", color = Color.White)
+                    Text(stringResource(R.string.common_action_delete), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeletePayment = false; longPressPayment = null }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -256,13 +258,13 @@ fun ClientDetailScreen(
         val payment = longPressPayment!!
         AlertDialog(
             onDismissRequest = { showEditPayment = false; longPressPayment = null; editError = "" },
-            title = { Text("Modifier le paiement", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.common_payment_edit), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value = editPaymentAmount,
                         onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
-                        label = { Text("Montant (DA)") },
+                        label = { Text(stringResource(R.string.common_label_amount_da)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -298,14 +300,14 @@ fun ClientDetailScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Confirmer", color = Color.White)
+                    Text(stringResource(R.string.common_action_confirm), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showEditPayment = false; longPressPayment = null; editError = ""
                 }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -343,14 +345,14 @@ fun ClientDetailScreen(
                 onClick  = onDelete,
                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.DangerLight)
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_action_delete), tint = DsColors.Danger, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(DsSpacing.sm))
             IconButton(
                 onClick  = onEdit,
                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight)
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.common_action_edit), tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
             // These are 40dp tinted squares rather than 48dp icon buttons, so they make up the
             // difference to the bar's standard end margin themselves.

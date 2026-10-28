@@ -28,6 +28,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * What the Mouvements list is narrowed by, as a bottom sheet — the same shape as the price history's,
@@ -97,7 +99,7 @@ fun MovementFiltersSheet(
                 itemLabel   = { it.name },
                 itemKey     = { it.id },
                 isSelected  = { it.id == draft.partyId },
-                allLabel    = "Tous les ${party.label.lowercase()}s",
+                allLabel    = stringResource(if (party == MovementParty.CLIENT) R.string.common_all_clients else R.string.common_all_suppliers),
                 allSelected = draft.partyId == null,
                 onSelectAll = { draft = draft.copy(partyId = null); partyPicker = false },
                 onSelect    = { draft = draft.copy(partyId = it.id); partyPicker = false },
@@ -112,9 +114,9 @@ fun MovementFiltersSheet(
                 .padding(bottom = DsSpacing.lg)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = MovementFilters() }) {
-                    Text("Réinitialiser", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_reset), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -142,7 +144,7 @@ fun MovementFiltersSheet(
             FilterGroupWrapped("Type de mouvement") {
                 FilterPill("Tous", draft.types.isEmpty()) { draft = draft.copy(types = emptySet()) }
                 MovementType.entries.forEach { type ->
-                    FilterPill(type.label, type in draft.types) {
+                    FilterPill(stringResource(type.label), type in draft.types) {
                         // Several kinds at once: a ledger question is usually "achats et retours",
                         // not one kind alone.
                         val next = if (type in draft.types) draft.types - type else draft.types + type
@@ -162,7 +164,7 @@ fun MovementFiltersSheet(
             FilterGroupWrapped("Avec") {
                 FilterPill("Tous", draft.party == null) { draft = draft.copy(party = null, partyId = null) }
                 MovementParty.entries.forEach { party ->
-                    FilterPill(party.label, draft.party == party) {
+                    FilterPill(stringResource(party.label), draft.party == party) {
                         // The chosen party goes with the kind: a client's id means nothing among suppliers.
                         draft = draft.copy(party = party, partyId = null)
                     }
@@ -173,7 +175,7 @@ fun MovementFiltersSheet(
                 val options = if (party == MovementParty.CLIENT) clients else suppliers
                 val chosen  = options.firstOrNull { it.id == draft.partyId }
                 val empty   = if (party == MovementParty.CLIENT) "Aucun client pour ce produit" else "Aucun fournisseur pour ce produit"
-                val all   = "Tous les ${party.label.lowercase()}s"
+                val all   = stringResource(if (party == MovementParty.CLIENT) R.string.common_all_clients else R.string.common_all_suppliers)
                 Box(Modifier.fillMaxWidth().padding(top = DsSpacing.xs)) {
                     FieldBox(
                         text    = chosen?.name ?: if (options.isEmpty()) empty else all,
@@ -307,9 +309,9 @@ private fun DayPickerDialog(day: String?, onPicked: (String) -> Unit, onDismiss:
                 state.selectedDateMillis?.let { millis ->
                     onPicked(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString())
                 } ?: onDismiss()
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.common_action_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } }
     ) { DatePicker(state = state) }
 }
 

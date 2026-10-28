@@ -36,6 +36,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Paramètres → Corbeille: what was deleted, to put back or, when nothing uses it, delete for good. */
 @Composable
@@ -102,10 +104,10 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
             text = { Text("« ${prompt.item.name} » sera supprimé pour de bon. Cette action est irréversible.") },
             confirmButton = {
                 TextButton(onClick = { viewModel.deleteForGood(prompt.item) }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = viewModel::dismissPrompt) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = viewModel::dismissPrompt) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor = DsColors.TextSecondary
@@ -114,7 +116,7 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
             onDismissRequest = viewModel::dismissPrompt,
             title = { Text(prompt.title) },
             text = { Text(prompt.reason) },
-            confirmButton = { TextButton(onClick = viewModel::dismissPrompt) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+            confirmButton = { TextButton(onClick = viewModel::dismissPrompt) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
             containerColor = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor = DsColors.TextSecondary
@@ -138,7 +140,7 @@ private fun TrashRow(item: TrashItem, onRestore: () -> Unit, onDelete: () -> Uni
         TextButton(onClick = onRestore) {
             Icon(Icons.Default.Restore, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.xs))
-            Text("Restaurer", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_action_restore), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
         }
         Box {
             IconButton(onClick = { menu = true }) {

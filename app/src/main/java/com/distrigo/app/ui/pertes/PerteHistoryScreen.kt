@@ -80,6 +80,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The periods the history can be narrowed to; null is all time. */
 private val PERIODS: List<Pair<String, ReportPeriod?>> = listOf(
@@ -258,15 +260,15 @@ private fun PerteFiltersSheet(
     ) {
         Column(Modifier.padding(horizontal = DsSpacing.lg).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
-                TextButton(onClick = { draft = PerteHistoryFilters() }) { Text("Réinitialiser") }
+                Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
+                TextButton(onClick = { draft = PerteHistoryFilters() }) { Text(stringResource(R.string.common_action_reset)) }
             }
             Text("Type de perte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Chip("Tous", draft.typeId == null) { draft = draft.copy(typeId = null) }
                 types.forEach { t -> Chip(t.name, draft.typeId == t.id) { draft = draft.copy(typeId = t.id) } }
             }
-            Text("Période", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 PERIODS.forEach { (label, p) -> Chip(label, draft.period == p) { draft = draft.copy(period = p) } }
             }

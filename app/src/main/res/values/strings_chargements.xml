@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <plurals name="chargements_draft_title">
+        <item quantity="one">Mouvement · %1$d produit</item>
+        <item quantity="other">Mouvement · %1$d produits</item>
+    </plurals>
+    <string name="chargements_drafts_sheet_subtitle">Reprenez un brouillon ou commencez un nouveau mouvement.</string>
+    <string name="chargements_drafts_sheet_start_new">Commencer un nouveau mouvement</string>
+</resources>

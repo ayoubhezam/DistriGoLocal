@@ -44,6 +44,8 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.settings.receipt.BusinessSettingsViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * "Reçus et impression" — what the receipt says, and how it comes out.
@@ -191,7 +193,7 @@ fun ReceiptAndPrintSettingsScreen(
                     ) {
                         Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(DsSpacing.xs))
-                        Text("Changer", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+                        Text(stringResource(R.string.common_action_change), fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
                     }
                     OutlinedButton(
                         onClick  = {
@@ -206,7 +208,7 @@ fun ReceiptAndPrintSettingsScreen(
                     ) {
                         Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(DsSpacing.xs))
-                        Text("Supprimer", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                        Text(stringResource(R.string.common_action_delete), fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                     }
                 }
             }
@@ -344,8 +346,7 @@ fun ReceiptAndPrintSettingsScreen(
                 if (isSaving) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 } else {
-                    Text(
-                        "Enregistrer",
+                    Text(stringResource(R.string.common_action_save),
                         fontSize   = DsTextSize.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color      = Color.White

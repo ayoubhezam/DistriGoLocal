@@ -44,6 +44,8 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.products.ProductViewModel
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
@@ -130,7 +132,7 @@ fun ChargementNavHost(
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 ) {
                     com.distrigo.app.ui.common.DsCompactSearchAction(
-                        icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                        icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                         tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                     )
                 }
@@ -209,7 +211,7 @@ fun ChargementNavHost(
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Ajouter", fontSize = DsTextSize.caption)
+                                    Text(stringResource(R.string.common_action_add), fontSize = DsTextSize.caption)
                                 }
                             } else {
                                 Box(
@@ -335,7 +337,7 @@ fun ChargementNavHost(
                 ) {
                     if (cartItems.isNotEmpty()) {
                         TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
-                            Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                            Text(stringResource(R.string.common_action_empty), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
                     // TextButton brings its own inset; this makes up the standard end margin.
@@ -356,13 +358,13 @@ fun ChargementNavHost(
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(Modifier.height(DsSpacing.md))
-                            Text("Sélection vide", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.common_cart_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(DsSpacing.sm))
                             Button(
                                 onClick = { navController.popBackStack() },
                                 shape   = DsShapes.medium,
                                 colors  = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                            ) { Text("Parcourir les produits") }
+                            ) { Text(stringResource(R.string.common_action_browse_products)) }
                         }
                     }
                 } else {
@@ -391,7 +393,7 @@ fun ChargementNavHost(
                             OutlinedTextField(
                                 value         = note,
                                 onValueChange = { session.setFormNote(it) },
-                                placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
+                                placeholder   = { Text(stringResource(R.string.common_label_note_optional), fontSize = DsTextSize.body) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 shape         = DsShapes.medium,
                                 minLines      = 2,

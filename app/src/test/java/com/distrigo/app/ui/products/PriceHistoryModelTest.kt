@@ -48,7 +48,7 @@ class PriceHistoryModelTest {
 
     @Test
     fun `a movement is measured against the one before it of its own kind`() {
-        val deltas = history.associate { it.kind.label + " " + it.date.take(10) to it.delta }
+        val deltas = history.associate { it.kind.name.lowercase().replaceFirstChar { c -> c.uppercase() } + " " + it.date.take(10) to it.delta }
         // 85 follows the 80 bought on the 15th — not the 95 sold on the 16th.
         assertEquals(5.0, deltas.getValue("Achat 2026-09-18")!!, 0.0)
         assertEquals(-2.0, deltas.getValue("Achat 2026-09-15")!!, 0.0)

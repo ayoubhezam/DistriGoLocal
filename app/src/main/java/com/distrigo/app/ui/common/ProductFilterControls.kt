@@ -43,6 +43,8 @@ import com.distrigo.app.ui.purchases.ProductListFilters
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // Step 02's filtering controls, shared by Achats, Dépôt Vente and Tournée Vente so the three read as
 // one tool: the count / Filtres row, and a removable chip per criterion applied.
@@ -118,7 +120,7 @@ internal fun ProductCountAndFilters(
     onOpenFilters : () -> Unit,
     modifier      : Modifier = Modifier,
     /** What the count is of — "produit(s)", or the inventory's "à inventorier". */
-    countLabel    : String = "produit(s)",
+    countLabel    : String? = null,
     trailing      : @Composable () -> Unit = {},
 ) {
     Row(
@@ -128,7 +130,8 @@ internal fun ProductCountAndFilters(
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             Step2Chip(
                 icon      = Icons.Default.Inventory2,
-                label     = "${count?.toString() ?: "…"} $countLabel",
+                label     = countLabel?.let { "${count?.toString() ?: "…"} $it" }
+                    ?: stringResource(R.string.common_products_count_short, count?.toString() ?: "…"),
                 container = DsColors.SurfaceSunken,
                 content   = DsColors.TextSecondary
             )
@@ -136,7 +139,7 @@ internal fun ProductCountAndFilters(
         Spacer(Modifier.width(DsSpacing.sm))
         Step2Chip(
             icon      = Icons.Default.FilterList,
-            label     = "Filtres",
+            label     = stringResource(R.string.common_label_filters),
             // Blue with a dot once it narrows anything, as the Produits button is. Not "Filtres · 2":
             // a count in the label widens the chip the moment a filter is set and squeezes the
             // product count beside it into an ellipsis — the one figure a user filters in order to
@@ -152,6 +155,7 @@ internal fun ProductCountAndFilters(
 
 /** One removable chip per active criterion, each carrying the filters without it. */
 internal fun productFilterChips(
+    res            : android.content.res.Resources,
     filters        : ProductListFilters,
     categories     : List<Category>,
     sousCategories : List<SousCategorie>,
@@ -161,25 +165,25 @@ internal fun productFilterChips(
     money          : MoneyFormatter,
 ): List<Pair<String, ProductListFilters>> = buildList {
     filters.categoryId?.let { id ->
-        add("Catégorie : ${categories.find { it.id == id }?.name ?: "—"}" to filters.copy(categoryId = null, sousCategorieId = null))
+        add(res.getString(R.string.common_chip_category, categories.find { it.id == id }?.name ?: "—") to filters.copy(categoryId = null, sousCategorieId = null))
     }
     filters.sousCategorieId?.let { id ->
-        add("Sous-catégorie : ${sousCategories.find { it.id == id }?.name ?: "—"}" to filters.copy(sousCategorieId = null))
+        add(res.getString(R.string.common_chip_subcategory, sousCategories.find { it.id == id }?.name ?: "—") to filters.copy(sousCategorieId = null))
     }
     filters.marqueId?.let { id ->
-        add("Marque : ${marques.find { it.id == id }?.name ?: "—"}" to filters.copy(marqueId = null))
+        add(res.getString(R.string.common_chip_brand, marques.find { it.id == id }?.name ?: "—") to filters.copy(marqueId = null))
     }
     filters.supplierId?.let { id ->
-        add("Fournisseur : ${suppliers.find { it.id == id }?.name ?: "—"}" to filters.copy(supplierId = null))
+        add(res.getString(R.string.common_chip_supplier, suppliers.find { it.id == id }?.name ?: "—") to filters.copy(supplierId = null))
     }
     filters.unitType?.let { unit ->
-        add(ProductUnit.label(unit) to filters.copy(unitType = null))
+        add(res.getString(ProductUnit.labelRes(unit)) to filters.copy(unitType = null))
     }
     filters.stockLevel?.let { level ->
         val label = when (level) {
-            "in_stock"  -> "En stock"
-            "low_stock" -> "Stock faible"
-            else        -> "Rupture de stock"
+            "in_stock"  -> res.getString(R.string.common_stock_in)
+            "low_stock" -> res.getString(R.string.common_stock_low)
+            else        -> res.getString(R.string.common_stock_out)
         }
         add(label to filters.copy(stockLevel = null))
     }
@@ -191,9 +195,9 @@ internal fun productFilterChips(
             priceMin != null                     -> "≥ ${money.da(priceMin)}"
             else                                 -> "≤ ${money.da(priceMax!!)}"
         }
-        add("$priceLabel : $range" to filters.copy(priceMin = "", priceMax = ""))
+add(res.getString(R.string.common_chip_value, priceLabel, range) to filters.copy(priceMin = "", priceMax = ""))
     }
-    if (filters.expiringSoon) add("Bientôt périmé" to filters.copy(expiringSoon = false))
+if (filters.expiringSoon) add(res.getString(R.string.common_chip_expiring_soon) to filters.copy(expiringSoon = false))
 }
 
 /** What is narrowing the list, each removable on its own — the whole chip is the target, not a 14dp cross. */
@@ -225,7 +229,7 @@ internal fun ActiveProductFilterChips(
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
             ) {
                 Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, maxLines = 1)
-                Icon(Icons.Default.Close, contentDescription = "Retirer", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_remove), tint = DsColors.Primary, modifier = Modifier.size(14.dp))
             }
         }
         item(key = "clear-all") {
@@ -237,7 +241,7 @@ internal fun ActiveProductFilterChips(
                     .padding(horizontal = DsSpacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Tout effacer", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                Text(stringResource(R.string.common_action_clear_all), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
             }
         }
     }

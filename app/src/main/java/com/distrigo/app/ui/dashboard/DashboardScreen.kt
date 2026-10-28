@@ -127,6 +127,8 @@ import com.distrigo.app.data.repository.VisitState
 import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.tournees.TourneeClientActionsSheet
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 internal val FR: Locale = Locale.FRENCH
 private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
@@ -318,7 +320,7 @@ fun DashboardScreen(
                     Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmSale = null }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { confirmSale = null }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary
@@ -349,10 +351,10 @@ fun DashboardScreen(
                         onError   = { removeError = it },
                     )
                 }) {
-                    Text("Retirer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmRemove = null; removeError = "" }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { confirmRemove = null; removeError = "" }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary

@@ -40,6 +40,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Shared between ClientDetailScreen and SupplierDetailScreen so the two
@@ -158,12 +160,12 @@ private fun StatCell(label: String, value: Double, icon: ImageVector, color: Col
 /** The "Total facturé" tile. */
 @Composable
 fun BilledCell(value: Double, modifier: Modifier = Modifier) =
-    StatCell("Total facturé", value, Icons.Outlined.Description, DsColors.Primary, DsColors.PrimaryLight, modifier)
+    StatCell(stringResource(R.string.common_label_total_billed), value, Icons.Outlined.Description, DsColors.Primary, DsColors.PrimaryLight, modifier)
 
 /** The "Total payé" tile. */
 @Composable
 fun PaidCell(value: Double, modifier: Modifier = Modifier) =
-    StatCell("Total payé", value, Icons.Outlined.Payments, DsColors.SuccessDark, DsColors.SuccessLight, modifier)
+    StatCell(stringResource(R.string.common_label_total_paid), value, Icons.Outlined.Payments, DsColors.SuccessDark, DsColors.SuccessLight, modifier)
 
 /**
  * The party's solde, from its stored [balance]: what it still owes in red, nothing in grey, or — when it has paid
@@ -181,12 +183,12 @@ fun SoldeCell(balance: Double, modifier: Modifier = Modifier) {
         else -> DsColors.TextSecondary to DsColors.SurfaceMuted
     }
     val icon = if (advance) Icons.Outlined.AccountBalanceWallet else Icons.Outlined.Schedule
-    StatTile(icon, "Solde", color, background, modifier) {
+    StatTile(icon, stringResource(R.string.common_label_balance), color, background, modifier) {
         // "(AVANCÉ)" gets its own line rather than share one that may shrink or be cut — it is the word that says
         // which way the solde goes.
         Column {
             FitText(money.da(kotlin.math.abs(balance)), fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = color)
-            if (advance) Text("(AVANCÉ)", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color)
+            if (advance) Text(stringResource(R.string.common_label_in_advance), fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = color)
         }
     }
 }
@@ -220,8 +222,8 @@ fun BalanceAdjustments(
     val hasReturns = kotlin.math.abs(returns) >= 0.005
     if (!hasInitial && !hasReturns) return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-        if (hasInitial) AdjustmentRow(Icons.Outlined.AccountBalanceWallet, "Solde initial", money.signedDa(initialBalance), onClick = null)
-        if (hasReturns) AdjustmentRow(Icons.Outlined.Autorenew, "Retours", money.signedDa(-returns), onReturns)
+        if (hasInitial) AdjustmentRow(Icons.Outlined.AccountBalanceWallet, stringResource(R.string.common_label_initial_balance), money.signedDa(initialBalance), onClick = null)
+        if (hasReturns) AdjustmentRow(Icons.Outlined.Autorenew, stringResource(R.string.common_label_returns), money.signedDa(-returns), onReturns)
     }
 }
 

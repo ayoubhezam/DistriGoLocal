@@ -53,6 +53,8 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Why a quantity cannot be recorded as lost, or null when it can: nothing, or more than [cap] — the
@@ -142,7 +144,7 @@ fun PerteDialog(
                     OutlinedButton(
                         onClick = { newType = null; newTypeError = "" }, enabled = !addingType,
                         modifier = Modifier.weight(1f), shape = DsShapes.medium
-                    ) { Text("Annuler") }
+                    ) { Text(stringResource(R.string.common_action_cancel)) }
                     Button(
                         onClick = {
                             addingType = true
@@ -224,7 +226,7 @@ fun PerteDialog(
 
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 OutlinedButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
                 Button(
                     onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }) },
@@ -233,7 +235,7 @@ fun PerteDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
-                    else Text("Enregistrer", fontWeight = FontWeight.SemiBold)
+                    else Text(stringResource(R.string.common_action_save), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

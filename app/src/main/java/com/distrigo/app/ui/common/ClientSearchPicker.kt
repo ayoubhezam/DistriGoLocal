@@ -148,7 +148,7 @@ private fun ClientPickerRow(client: Client, isSelected: Boolean, showBalance: Bo
                 if (Amount.owing(client.balance)) {
                     Text(money.da(client.balance), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                 } else {
-                    Text("✓ Soldé", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
+                    Text(stringResource(R.string.common_status_settled_check), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                 }
             }
         }

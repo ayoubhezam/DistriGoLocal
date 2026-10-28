@@ -1,22 +1,24 @@
 package com.distrigo.app.ui.mouvements
 
+import com.distrigo.app.R
+
 /** Whether a movement was with a client or with a supplier. */
-enum class MovementParty(val key: String, val label: String) {
-    CLIENT("client", "Client"),
-    FOURNISSEUR("fournisseur", "Fournisseur"),
+enum class MovementParty(val key: String, @androidx.annotation.StringRes val label: Int) {
+    CLIENT("client", R.string.common_label_client),
+    FOURNISSEUR("fournisseur", R.string.common_label_supplier),
 }
 
 /** A client or a supplier the filter can narrow to. */
 data class PartyOption(val id: Int, val name: String)
 
 /** The kinds of movement a product's ledger holds, in the words the screen uses. */
-enum class MovementType(val key: String, val label: String) {
-    ACHAT("achat", "Achat"),
-    VENTE("vente", "Vente"),
-    RETOUR_CLIENT("retour_client", "Retour client"),
-    RETOUR_FOURNISSEUR("retour_fournisseur", "Retour fournisseur"),
-    PERTE("perte", "Perte"),
-    AJUSTEMENT("ajustement", "Ajustement"),
+enum class MovementType(val key: String, @androidx.annotation.StringRes val label: Int) {
+    ACHAT("achat", R.string.common_kind_purchase),
+    VENTE("vente", R.string.common_kind_sale),
+    RETOUR_CLIENT("retour_client", R.string.common_kind_client_return),
+    RETOUR_FOURNISSEUR("retour_fournisseur", R.string.common_kind_supplier_return),
+    PERTE("perte", R.string.common_kind_loss),
+    AJUSTEMENT("ajustement", R.string.common_kind_adjustment),
 }
 
 /**

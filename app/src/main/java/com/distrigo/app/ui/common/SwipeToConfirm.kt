@@ -111,8 +111,8 @@ fun SwipeToConfirm(
  * "Vente V-12 marquée comme livrée — Annuler" after a swipe: the swipe acts at once, so an
  * accidental one is a tap to take back. [undo] runs only if "Annuler" is tapped.
  */
-suspend fun SnackbarHostState.showUndo(message: String, undo: () -> Unit) {
-    if (showSnackbar(message, actionLabel = "Annuler", duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
+suspend fun SnackbarHostState.showUndo(message: String, actionLabel: String, undo: () -> Unit) {
+    if (showSnackbar(message, actionLabel = actionLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
 }
 
 /** How far, as a share of the row's width, a swipe has to go before it counts. */

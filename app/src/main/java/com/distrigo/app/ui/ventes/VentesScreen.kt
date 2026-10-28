@@ -66,6 +66,8 @@ import com.distrigo.app.ui.common.SearchableSelectList
 import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,10 +198,10 @@ fun VentesScreen(
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateFromPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDateFromPicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDateFromPicker = false }) { Text(stringResource(R.string.common_action_cancel)) }
             }
         ) { DatePicker(state = dateFromState) }
     }
@@ -214,10 +216,10 @@ fun VentesScreen(
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateToPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDateToPicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDateToPicker = false }) { Text(stringResource(R.string.common_action_cancel)) }
             }
         ) { DatePicker(state = dateToState) }
     }
@@ -259,9 +261,9 @@ fun VentesScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.common_label_filters_advanced), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                     IconButton(onClick = { showFilterSheet = false }) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                     }
                 }
                 Spacer(Modifier.height(DsSpacing.md))
@@ -340,7 +342,7 @@ fun VentesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── التاريخ ──
-                Text("Période", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value         = viewModel.filterDateFrom ?: "",
@@ -404,7 +406,7 @@ fun VentesScreen(
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                         border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                     }
                     Button(
                         onClick  = { showFilterSheet = false },
@@ -424,6 +426,7 @@ fun VentesScreen(
 
     // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
     val swipeSnackbar = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.common_action_cancel)
     val swipeScope    = rememberCoroutineScope()
 
     Box(
@@ -516,13 +519,12 @@ fun VentesScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.FilterList,
-                                contentDescription = "Filtres",
+                                contentDescription = stringResource(R.string.common_label_filters),
                                 tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Filtres",
+                            Text(stringResource(R.string.common_label_filters),
                                 fontSize = DsTextSize.caption,
                                 color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
                             )
@@ -620,7 +622,7 @@ fun VentesScreen(
                                         id        = vente.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée") {
+                                                swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée", undoLabel) {
                                                     viewModel.undeliverVente(vente.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }
@@ -810,7 +812,7 @@ fun VenteDetailScreen(
                 ) {
                     onEdit?.let { edit ->
                         DropdownMenuItem(
-                            text        = { Text("Modifier") },
+                            text        = { Text(stringResource(R.string.common_action_edit)) },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                             onClick     = {
                                 overflowMenuExpanded = false
@@ -819,7 +821,7 @@ fun VenteDetailScreen(
                         )
                     }
                     DropdownMenuItem(
-                        text        = { Text("Supprimer", color = DsColors.Danger) },
+                        text        = { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                         onClick     = {
                             overflowMenuExpanded = false
@@ -972,7 +974,7 @@ fun VenteDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text(stringResource(R.string.common_label_remaining), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                                 Text(money.da(reste), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             }
                         } else {

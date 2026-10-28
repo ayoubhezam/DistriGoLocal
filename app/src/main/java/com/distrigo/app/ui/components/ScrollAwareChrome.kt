@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * زر دائري عائم يتحرك بين وضعين: أعلى الشريط السفلي (عند الظهور)، أو ملاصقًا لأسفل الشاشة (عند الطي).
@@ -44,6 +46,6 @@ fun ScrollAwareFab(
         containerColor = containerColor,
         shape          = CircleShape
     ) {
-        Icon(Icons.Default.Add, contentDescription = "Ajouter", tint = Color.White)
+        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_action_add), tint = Color.White)
     }
 }

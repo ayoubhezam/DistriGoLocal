@@ -16,6 +16,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 /**
  * Bottom sheet عام لاختيار عنصر واحد من قائمة مع بحث نصي.
  * قابل لإعادة الاستخدام: الولاية، البلدية، ولاحقًا القطاع (Secteur).
@@ -97,7 +99,7 @@ fun <T> SearchableSelectList(
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.TextPrimary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_action_back), tint = DsColors.TextPrimary)
                 }
             }
             Text(
@@ -112,7 +114,7 @@ fun <T> SearchableSelectList(
         DsCompactSearchField(
             value         = query,
             onValueChange = { query = it },
-            placeholder   = "Rechercher",
+            placeholder   = stringResource(R.string.common_action_search),
             modifier      = Modifier
         )
         Spacer(Modifier.height(DsSpacing.sm))
@@ -129,7 +131,7 @@ fun <T> SearchableSelectList(
             if (filtered.isEmpty()) {
                 item {
                     Text(
-                        "Aucun résultat",
+                        stringResource(R.string.common_no_result),
                         color    = DsColors.TextSecondary,
                         modifier = Modifier.padding(DsSpacing.md)
                     )
@@ -164,7 +166,7 @@ private fun SelectRow(label: String, selected: Boolean, muted: Boolean = false, 
             modifier   = Modifier.weight(1f)
         )
         if (selected) {
-            Icon(Icons.Default.Check, contentDescription = "Sélectionné", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_cd_selected), tint = DsColors.Primary, modifier = Modifier.size(18.dp))
         }
     }
     HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)

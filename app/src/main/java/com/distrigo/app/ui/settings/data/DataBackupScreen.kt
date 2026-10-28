@@ -72,6 +72,8 @@ import java.time.Instant
 import com.distrigo.app.data.backup.RestoreBusiness
 import com.distrigo.app.data.backup.RestoreStockRule
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Paramètres → Sauvegarde et restauration: save all the data to a file, and replace it with a file saved before.
@@ -544,7 +546,7 @@ private fun SafetyBackupsCard(backups: List<SafetyBackup>, enabled: Boolean, onI
                         ),
                         shape = DsShapes.medium,
                     ) {
-                        Text("Restaurer", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.common_action_restore), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -571,7 +573,7 @@ private fun RestoreResultBanner(result: RestoreResult, onDismiss: () -> Unit) {
                 Text("Sauvegarde du ${DataBackupFormatting.dateTime(it)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
-        TextButton(onClick = onDismiss) { Text("OK", color = tint, fontWeight = FontWeight.SemiBold) }
+        TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_ok), color = tint, fontWeight = FontWeight.SemiBold) }
     }
 }
 
@@ -647,10 +649,10 @@ private fun RestorePreviewScreen(
                 shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
             ) {
-                Text("Restaurer", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+                Text(stringResource(R.string.common_action_restore), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
             TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                Text("Annuler", color = DsColors.TextSecondary)
+                Text(stringResource(R.string.common_action_cancel), color = DsColors.TextSecondary)
             }
         }
     }
@@ -708,10 +710,10 @@ private fun TypedConfirmationDialog(onDismiss: () -> Unit, onConfirmed: () -> Un
         },
         confirmButton = {
             TextButton(onClick = onConfirmed, enabled = matches) {
-                Text("Restaurer", color = if (matches) DsColors.Danger else DsColors.TextTertiary, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_restore), color = if (matches) DsColors.Danger else DsColors.TextTertiary, fontWeight = FontWeight.SemiBold)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor = DsColors.TextSecondary
@@ -776,7 +778,7 @@ private fun BackupSavedDialog(result: BackupJobResult.Saved, toFolder: Boolean, 
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
         containerColor = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor = DsColors.TextSecondary
@@ -800,8 +802,8 @@ private fun RestoreWarningDialog(rule: RestoreStockRule, otherBusiness: RestoreB
                 if (rule.worthTelling) rule.lines().forEach { Text(it, fontSize = DsTextSize.bodySmall) }
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Restaurer", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Annuler") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.common_action_restore), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor = DsColors.TextSecondary
@@ -815,7 +817,7 @@ private fun FailedDialog(message: String, onDismiss: () -> Unit) {
         icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger) },
         title = { Text("Opération impossible") },
         text = { Text(message) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
         containerColor = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor = DsColors.TextSecondary

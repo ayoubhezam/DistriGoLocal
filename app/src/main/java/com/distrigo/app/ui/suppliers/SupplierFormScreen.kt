@@ -44,6 +44,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 fun formatPhone(phone: String): String {
     val digits = westernDigits(phone).filter { it.isDigit() }
@@ -325,7 +327,7 @@ fun SupplierFormScreen(
             Spacer(Modifier.height(12.dp))
 
             // ── Note ──
-            Text("Note (optionnel)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+            Text(stringResource(R.string.common_label_note_optional), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
             OutlinedTextField(
                 value         = note,
                 onValueChange = { note = it },

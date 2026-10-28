@@ -34,6 +34,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * An expense, read-only. Tapping one in its list used to open the edit form straight away, where a
@@ -146,7 +148,7 @@ fun ChargeDetailScreen(
             ) {
                 Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Supprimer", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_delete), fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick  = license.guarded { confirmEdit = true },
@@ -157,7 +159,7 @@ fun ChargeDetailScreen(
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Modifier", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_edit), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -168,8 +170,8 @@ fun ChargeDetailScreen(
             onDismissRequest = { confirmEdit = false },
             title            = { Text("Modifier la dépense") },
             text             = { Text("Voulez-vous modifier cette dépense ?") },
-            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text("Modifier") } },
-            dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text("Annuler") } },
+            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text(stringResource(R.string.common_action_edit)) } },
+            dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }
@@ -191,10 +193,10 @@ fun ChargeDetailScreen(
             text             = { Text(deleteQuestion(charge, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton    = { TextButton(onClick = { confirmDelete = false }) { Text("Annuler") } },
+            dismissButton    = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }

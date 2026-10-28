@@ -1,9 +1,11 @@
 package com.distrigo.app.data.model
 
+import com.distrigo.app.R
+
 /** Which side of the trade a price came from. */
-enum class PriceMovementKind(val label: String) {
-    ACHAT("Achat"),
-    VENTE("Vente");
+enum class PriceMovementKind(@androidx.annotation.StringRes val label: Int) {
+    ACHAT(R.string.common_kind_purchase),
+    VENTE(R.string.common_kind_sale);
 
     val sourceType: String get() = if (this == ACHAT) "purchase_order" else "vente"
 }

@@ -30,6 +30,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTER MODEL
@@ -40,17 +42,17 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Whether a draft creates a new record or edits an existing one. */
-enum class DraftTypeFilter(val label: String) {
-    ALL ("Tous"),
-    NEW ("Nouveaux"),
-    EDIT("Modifications")
+enum class DraftTypeFilter(@androidx.annotation.StringRes val label: Int) {
+    ALL (R.string.common_filter_all),
+    NEW (R.string.common_draft_filter_new),
+    EDIT(R.string.common_draft_filter_edit)
 }
 
 /** Whether the record a draft edits can still receive it. */
-enum class DraftStateFilter(val label: String) {
-    ALL     ("Tous"),
-    ACTIVE  ("Actifs"),
-    BLOCKED ("Obsolètes")
+enum class DraftStateFilter(@androidx.annotation.StringRes val label: Int) {
+    ALL     (R.string.common_filter_all),
+    ACTIVE  (R.string.common_draft_filter_active),
+    BLOCKED (R.string.common_draft_filter_blocked)
 }
 
 /**
@@ -122,9 +124,9 @@ data class DraftFilterState(
 /** The words that differ per flow. */
 data class DraftFilterCopy(
     /** "Fournisseur" / "Client". */
-    val partyLabel: String,
+    val partyLabel: com.distrigo.app.core.text.UiText,
     /** "Tous les fournisseurs" / "Tous les clients". */
-    val partyAll  : String
+    val partyAll  : com.distrigo.app.core.text.UiText
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,9 +169,9 @@ fun DraftFilterBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val tint = if (filter.isActive) DsColors.Primary else DsColors.TextSecondary
-                Icon(Icons.Default.FilterList, "Filtres", tint = tint, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.FilterList, stringResource(R.string.common_label_filters), tint = tint, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Filtres", fontSize = DsTextSize.caption, color = tint)
+                Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.caption, color = tint)
                 Icon(Icons.Default.KeyboardArrowDown, null, tint = tint, modifier = Modifier.size(14.dp))
             }
             if (filter.isActive) {
@@ -186,14 +188,13 @@ fun DraftFilterBar(
         // Says what the filter did, so a short list never reads as "the drafts are gone".
         if (filter.isActive) {
             Text(
-                "$shownCount sur $totalCount",
+                stringResource(R.string.common_shown_of_total, shownCount, totalCount),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                "Réinitialiser",
+            Text(stringResource(R.string.common_action_reset),
                 fontSize   = DsTextSize.caption,
                 fontWeight = FontWeight.SemiBold,
                 color      = DsColors.Primary,
@@ -268,30 +269,29 @@ fun DraftFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text(
-                    "Filtres avancés",
+                Text(stringResource(R.string.common_label_filters_advanced),
                     fontWeight = FontWeight.Bold,
                     fontSize   = DsTextSize.bodyLarge,
                     color      = DsColors.PrimaryDark
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, "Fermer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Default.Close, stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                 }
             }
             Spacer(Modifier.height(DsSpacing.md))
 
             if (showRecordAxes) {
-                FilterFieldLabel("Type de brouillon")
+                FilterFieldLabel(stringResource(R.string.common_draft_filter_type))
                 SegmentedRow(
-                    options  = DraftTypeFilter.entries.map { it to it.label },
+                    options  = DraftTypeFilter.entries.map { it to stringResource(it.label) },
                     selected = filter.type,
                     onSelect = { onChange(filter.copy(type = it)) }
                 )
                 Spacer(Modifier.height(DsSpacing.md))
 
-                FilterFieldLabel("État")
+                FilterFieldLabel(stringResource(R.string.common_draft_filter_state))
                 SegmentedRow(
-                    options  = DraftStateFilter.entries.map { it to it.label },
+                    options  = DraftStateFilter.entries.map { it to stringResource(it.label) },
                     selected = filter.state,
                     onSelect = { onChange(filter.copy(state = it)) }
                 )
@@ -300,13 +300,13 @@ fun DraftFilterSheet(
 
             // Only the names actually present among the drafts are offered — a picker listing every
             // supplier in the database would be mostly dead options that filter to nothing.
-            FilterFieldLabel(copy.partyLabel)
+            FilterFieldLabel(copy.partyLabel.asString())
             ExposedDropdownMenuBox(
                 expanded         = partyExpanded,
                 onExpandedChange = { partyExpanded = it }
             ) {
                 OutlinedTextField(
-                    value         = filter.partyName ?: copy.partyAll,
+                    value         = filter.partyName ?: copy.partyAll.asString(),
                     onValueChange = {},
                     readOnly      = true,
                     singleLine    = true,
@@ -327,7 +327,7 @@ fun DraftFilterSheet(
                     onDismissRequest = { partyExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text    = { Text(copy.partyAll, color = DsColors.TextSecondary) },
+                        text    = { Text(copy.partyAll.asString(), color = DsColors.TextSecondary) },
                         onClick = { onChange(filter.copy(partyName = null)); partyExpanded = false }
                     )
                     partyNames.forEach { name ->
@@ -348,7 +348,7 @@ fun DraftFilterSheet(
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                     border   = BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick  = onDismiss,
@@ -358,7 +358,7 @@ fun DraftFilterSheet(
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     Text(
-                        "Appliquer ($matchCount)",
+                        stringResource(R.string.common_action_apply_count, matchCount),
                         fontSize   = DsTextSize.body,
                         fontWeight = FontWeight.SemiBold,
                         color      = Color.White, maxLines = 1, softWrap = false

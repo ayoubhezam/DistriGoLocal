@@ -65,6 +65,8 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.rememberPhotoPicker
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -380,10 +382,10 @@ fun ProductFormScreen(
                         expiryDate = sdf.format(java.util.Date(millis))
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.common_action_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -464,14 +466,14 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+                }) { Text(stringResource(R.string.common_action_add), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showAddSupplierDialog = false
                     newSupplierName  = ""
                     newSupplierPhone = ""
-                }) { Text("Annuler") }
+                }) { Text(stringResource(R.string.common_action_cancel)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -511,11 +513,11 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+                }) { Text(stringResource(R.string.common_action_add), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false; newCategoryName = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -556,11 +558,11 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+                }) { Text(stringResource(R.string.common_action_add), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = { showAddSousCategorieDialog = false; newSousCategorieName = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -600,11 +602,11 @@ fun ProductFormScreen(
                             }
                         )
                     }
-                }) { Text("Ajouter", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
+                }) { Text(stringResource(R.string.common_action_add), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = { showAddMarqueDialog = false; newMarqueName = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -767,7 +769,7 @@ fun ProductFormScreen(
                             colors         = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode), modifier = Modifier.size(18.dp))
                                 Text("Scanner", fontSize = DsTextSize.caption, color = DsColors.Primary)
                             }
                         }
@@ -1046,7 +1048,7 @@ fun ProductFormScreen(
                                         .background(Color.Black.copy(alpha = 0.5f))
                                         .clickable { photoPicker.choose() }
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) { Text("Changer", fontSize = DsTextSize.caption, color = Color.White) }
+                                ) { Text(stringResource(R.string.common_action_change), fontSize = DsTextSize.caption, color = Color.White) }
                             }
                         } else {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1237,7 +1239,7 @@ fun ProductFormScreen(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Date d'expiration", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
+                                    Text(stringResource(R.string.common_label_expiry_date), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                                     Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                                 Switch(

@@ -8,19 +8,20 @@ import com.distrigo.app.data.time.BusinessDates
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import com.distrigo.app.R
 
 /** Whose accounts a Créances et dettes report reads: what clients owe, or what is owed to suppliers. */
-enum class DebtSide(val label: String) {
-    CLIENTS("Clients"),
-    FOURNISSEURS("Fournisseurs"),
+enum class DebtSide(@androidx.annotation.StringRes val label: Int) {
+    CLIENTS(R.string.common_label_clients),
+    FOURNISSEURS(R.string.common_label_suppliers),
 }
 
 /** How old an unpaid amount is, by the date of the document that left it unpaid. */
-enum class AgeBand(val label: String) {
-    RECENT("0 – 30 jours"),
-    MONTH("31 – 60 jours"),
-    TWO_MONTHS("61 – 90 jours"),
-    OLD("Plus de 90 jours"),
+enum class AgeBand(@androidx.annotation.StringRes val label: Int) {
+    RECENT(R.string.common_age_0_30),
+    MONTH(R.string.common_age_31_60),
+    TWO_MONTHS(R.string.common_age_61_90),
+    OLD(R.string.common_age_over_90),
 }
 
 /** One party's balance, its parts by age, and when it last paid ([lastPayment] null if never). */

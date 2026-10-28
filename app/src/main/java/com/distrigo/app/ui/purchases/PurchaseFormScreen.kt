@@ -38,6 +38,8 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.avatarColor
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 data class CartItem(
     val product       : Product,
@@ -154,7 +156,7 @@ internal fun Step1Fournisseur(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape    = DsShapes.medium
                             ) {
-                                Text("Changer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.common_action_change), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -173,7 +175,7 @@ internal fun Step1Fournisseur(
             shape  = DsShapes.large,
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
-            Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -315,7 +317,7 @@ internal fun Step3Validation(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                        Text(stringResource(R.string.common_label_total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                         Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                     }
                 }
@@ -371,7 +373,7 @@ internal fun Step3Validation(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Reste", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                            Text(stringResource(R.string.common_label_remaining), fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                             Text(
                                 money.da(reste),
                                 fontSize   = DsTextSize.body,
@@ -405,7 +407,7 @@ internal fun Step3Validation(
                 OutlinedTextField(
                     value         = note,
                     onValueChange = onNoteChange,
-                    placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
+                    placeholder   = { Text(stringResource(R.string.common_label_note_optional), fontSize = DsTextSize.body) },
                     modifier      = Modifier.fillMaxWidth().background(DsColors.Surface, DsShapes.medium),
                     shape         = DsShapes.medium,
                     minLines      = 2,

@@ -1,6 +1,7 @@
 package com.distrigo.app.data.repository
 
 import java.time.ZonedDateTime
+import com.distrigo.app.R
 
 /**
  * The sales over a stretch of time, both places together: how many, what they came to, what was paid
@@ -41,10 +42,10 @@ data class DashboardBalances(val clientsOwe: Double, val owedToSuppliers: Double
 enum class PaymentState { PAID, PARTIAL, UNPAID }
 
 /** « Activité récente »'s filter (D11). */
-enum class ActivityFilter(val label: String) {
-    ALL("Tous"),
-    PAID("Payées"),
-    CREDIT("À crédit"),
+enum class ActivityFilter(@androidx.annotation.StringRes val label: Int) {
+    ALL(R.string.common_filter_all),
+    PAID(R.string.common_filter_paid_f),
+    CREDIT(R.string.common_filter_on_credit),
 }
 
 /** A recent sale, dépôt or tournée, as the Dashboard lists it. */

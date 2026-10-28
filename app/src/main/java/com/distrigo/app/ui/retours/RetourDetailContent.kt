@@ -36,6 +36,8 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** One returned product, as the details list it. */
 internal data class RetourLine(
@@ -188,10 +190,10 @@ internal fun RetourDetailContent(
             },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; onDismissError(); onDelete() }, enabled = !deleting) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton    = { TextButton(onClick = { confirmDelete = false; onDismissError() }) { Text("Annuler") } },
+            dismissButton    = { TextButton(onClick = { confirmDelete = false; onDismissError() }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }

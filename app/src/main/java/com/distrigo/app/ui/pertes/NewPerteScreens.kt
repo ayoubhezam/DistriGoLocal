@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.activity.compose.BackHandler
@@ -84,6 +85,8 @@ import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The dépôt's share of a product's stock: what a dépôt perte is taken from. */
 private val Product.depotStock: Double get() = stock - camion_stock
@@ -143,13 +146,13 @@ fun NewPerteListScreen(
             modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
         ) {
             DsCompactSearchAction(
-                icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                 tint = DsColors.PrimaryDark, onClick = { showScanner = true }
             )
         }
         ProductCountAndFilters(count = count, filtersActive = viewModel.filters.isActive, onOpenFilters = { showFilters = true })
         ActiveProductFilterChips(
-            productFilterChips(viewModel.filters, categories, sousCategories, marques, suppliers, "Prix de vente", money),
+            productFilterChips(LocalContext.current.resources, viewModel.filters, categories, sousCategories, marques, suppliers, stringResource(R.string.common_label_sale_price), money),
             onChange = { viewModel.filters = it }
         )
         if (message.isNotEmpty()) {
@@ -265,7 +268,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                                     TextButton(onClick = { viewModel.remove(line.product.id); expandedId = null }) {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                                        Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                                     }
                                     Spacer(Modifier.weight(1f))
                                     Button(
@@ -274,7 +277,7 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                                     ) {
                                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(DsSpacing.xs))
-                                        Text("Modifier")
+                                        Text(stringResource(R.string.common_action_edit))
                                     }
                                 }
                             }
@@ -290,13 +293,13 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_back), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick = onNext, enabled = cart.isNotEmpty(),
                 modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-            ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }
 

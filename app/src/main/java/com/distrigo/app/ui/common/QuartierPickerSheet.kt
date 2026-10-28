@@ -16,6 +16,9 @@ import com.distrigo.app.data.lists.QuartierSummary
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 /** Past this many quartiers, the sheet gets a search (owner's prototype v5). */
 private const val SEARCH_FROM = 6
@@ -45,26 +48,26 @@ fun QuartierPickerSheet(
                 .padding(horizontal = DsSpacing.md)
                 .padding(bottom = DsSpacing.lg)
         ) {
-            Text("Quartier", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.common_label_quartier), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(DsSpacing.sm))
             if (quartiers.size > SEARCH_FROM) {
-                DsCompactSearchField(value = query, onValueChange = { query = it }, placeholder = "Rechercher un quartier")
+                DsCompactSearchField(value = query, onValueChange = { query = it }, placeholder = stringResource(R.string.common_search_quartier))
                 Spacer(Modifier.height(DsSpacing.sm))
             }
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 item(key = "none") {
-                    QuartierRow("Aucun quartier", sub = null, selected = selectedId == null, muted = true) { pick(null) }
+                    QuartierRow(stringResource(R.string.common_no_quartier), sub = null, selected = selectedId == null, muted = true) { pick(null) }
                 }
                 items(shown, key = { it.id }) { quartier ->
                     QuartierRow(
                         quartier.name,
-                        sub = if (quartier.clients > 1) "${quartier.clients} clients" else "${quartier.clients} client",
+                        sub = pluralStringResource(R.plurals.common_clients_count, quartier.clients, quartier.clients),
                         selected = quartier.id == selectedId,
                     ) { pick(quartier) }
                 }
                 when {
-                    quartiers.isEmpty() -> item(key = "empty") { Note("Ce secteur n'a pas encore de quartier.") }
-                    shown.isEmpty() -> item(key = "no-match") { Note("Aucun quartier ne correspond à « $query ».") }
+                    quartiers.isEmpty() -> item(key = "empty") { Note(stringResource(R.string.common_secteur_no_quartier)) }
+                    shown.isEmpty() -> item(key = "no-match") { Note(stringResource(R.string.common_no_quartier_matches, query)) }
                 }
             }
         }
@@ -89,7 +92,7 @@ private fun QuartierRow(name: String, sub: String?, selected: Boolean, muted: Bo
             )
             sub?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
         }
-        if (selected) Icon(Icons.Default.Check, contentDescription = "Sélectionné", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+        if (selected) Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_cd_selected), tint = DsColors.Primary, modifier = Modifier.size(20.dp))
     }
     HorizontalDivider(color = DsColors.Border, thickness = 0.5.dp)
 }

@@ -52,6 +52,8 @@ import com.distrigo.app.ui.format.AmountInputDisplay
 import com.distrigo.app.ui.format.AmountVisualTransformation
 import com.distrigo.app.data.model.Amount
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** شريحة تحرير محلية للـ UI فقط — تُحوَّل إلى PolicyTierEntity عند الحفظ */
 private data class TierDraft(
@@ -296,8 +298,7 @@ fun CommissionPolicyScreen(
                                 color = DsColors.TextPrimary,
                                 modifier = Modifier.weight(1f).padding(start = DsSpacing.sm)
                             )
-                            Text(
-                                "Changer",
+                            Text(stringResource(R.string.common_action_change),
                                 fontSize = DsTextSize.caption,
                                 color = DsColors.Primary,
                                 fontWeight = FontWeight.SemiBold,
@@ -316,7 +317,7 @@ fun CommissionPolicyScreen(
                         ) {
                             com.distrigo.app.ui.common.DsCompactSearchAction(
                                 icon = androidx.compose.material.icons.Icons.Default.QrCodeScanner,
-                                contentDescription = "Scanner un code-barres",
+                                contentDescription = stringResource(R.string.common_cd_scan_barcode),
                                 tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                             )
                         }
@@ -513,7 +514,7 @@ private fun TiersEditor(
                     )
                     if (tiers.size > 1) {
                         IconButton(onClick = { onTiersChange(tiers.filterNot { it.id == tier.id }) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_action_delete), tint = DsColors.Danger, modifier = Modifier.size(18.dp))
                         }
                     }
                 }

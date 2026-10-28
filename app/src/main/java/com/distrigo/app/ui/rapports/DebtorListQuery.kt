@@ -4,13 +4,14 @@ import com.distrigo.app.data.repository.DebtorLine
 import com.distrigo.app.ui.common.searchTokens
 import java.text.Collator
 import java.util.Locale
+import com.distrigo.app.R
 
 /** How the full debtor list is ordered. The biggest debt first is the default, as in the report. */
-enum class DebtorSort(val label: String) {
-    DETTE_DESC("Dette (décroissant)"),
-    DETTE_ASC("Dette (croissant)"),
-    NOM_AZ("Nom (A-Z)"),
-    NOM_ZA("Nom (Z-A)"),
+enum class DebtorSort(@androidx.annotation.StringRes val label: Int) {
+    DETTE_DESC(R.string.rapports_debtor_sort_debt_desc),
+    DETTE_ASC(R.string.rapports_debtor_sort_debt_asc),
+    NOM_AZ(R.string.rapports_debtor_sort_name_az),
+    NOM_ZA(R.string.rapports_debtor_sort_name_za),
 }
 
 /**

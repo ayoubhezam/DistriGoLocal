@@ -25,9 +25,13 @@ sealed interface UiText {
     /** A count's sentence, in the form the language takes for [count] (Arabic has six). */
     data class Plural(@PluralsRes val id: Int, val count: Int, val args: List<Any> = listOf(count)) : UiText
 
+    /** "SARL Benali · 5 produits · il y a 3 h": [parts] written one after the other, [separator] between them. */
+    data class Joined(val parts: List<UiText>, val separator: String = " · ") : UiText
+
     /** Written in [context]'s language: for what is not a screen (a notification, a Toast). */
     fun resolve(context: Context): String = when (this) {
         is Raw -> text
+        is Joined -> parts.joinToString(separator) { it.resolve(context) }
         is Res -> context.getString(id, *args.map { (it as? UiText)?.resolve(context) ?: it }.toTypedArray())
         is Plural -> context.resources.getQuantityString(id, count, *args.map { (it as? UiText)?.resolve(context) ?: it }.toTypedArray())
     }

@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * What an ⓘ explains: a [summary] paragraph, then [toKnow] as the « À savoir » points. Screens keep their own text
@@ -42,7 +44,7 @@ class DsInfo(val title: String, val icon: ImageVector, val tint: Color, val summ
 @Composable
 fun DsInfoButton(about: String, onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = "En savoir plus sur « $about »", tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.common_cd_learn_more, about), tint = DsColors.TextSecondary, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -69,7 +71,7 @@ fun DsInfoSheet(info: DsInfo, onDismiss: () -> Unit) {
                 Spacer(Modifier.width(DsSpacing.md))
                 Text(info.title, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                 }
             }
             Text(info.summary, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
@@ -81,7 +83,7 @@ fun DsInfoSheet(info: DsInfo, onDismiss: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(DsSpacing.sm))
-                        Text("À savoir", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                        Text(stringResource(R.string.common_info_to_know), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                     }
                     info.toKnow.forEach { point ->
                         Row {
@@ -97,7 +99,7 @@ fun DsInfoSheet(info: DsInfo, onDismiss: () -> Unit) {
                 shape    = DsShapes.medium,
                 colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
             ) {
-                Text("Compris", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+                Text(stringResource(R.string.common_action_got_it), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         }
     }

@@ -82,6 +82,8 @@ import com.distrigo.app.ui.settings.SettingsDivider
 import com.distrigo.app.ui.settings.SettingsRow
 import com.distrigo.app.ui.settings.SettingsSection
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** « 1 catégorie », « 12 catégories ». */
 private fun count(n: Int, singular: String, plural: String) = "$n ${if (n == 1) singular else plural}"
@@ -364,7 +366,7 @@ private fun EntryActions(
                 shape    = DsShapes.large,
                 border   = BorderStroke(1.5.dp, DsColors.Border),
             ) {
-                Text("Annuler", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                Text(stringResource(R.string.common_action_cancel), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
             }
         }
     }
@@ -472,7 +474,7 @@ private fun NameDialog(
                 },
             ) { Text(confirm, fontWeight = FontWeight.SemiBold) }
         },
-        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor    = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor  = DsColors.TextSecondary,
@@ -543,9 +545,9 @@ private fun DeleteDialog(kind: ListKind, entry: ListEntry, onDelete: (done: (Str
             TextButton(enabled = !deleting, onClick = {
                 deleting = true
                 onDelete { reason -> deleting = false; if (reason == null) onDismiss() else error = reason }
-            }) { Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold) }
+            }) { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold) }
         },
-        dismissButton = { TextButton(enabled = !deleting, onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(enabled = !deleting, onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor    = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,
         textContentColor  = DsColors.TextSecondary,

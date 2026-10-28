@@ -25,6 +25,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 
 data class ChargementCartItem(
@@ -227,7 +229,7 @@ internal fun ChargementCartRow(
                     TextButton(onClick = onRemove) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                        Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                     }
                 }
             }

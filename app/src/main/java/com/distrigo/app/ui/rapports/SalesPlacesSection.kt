@@ -88,6 +88,8 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The ring's colours, the largest part first (owner's prototype); « Autres » is grey. */
 private val SliceColors = listOf(
@@ -243,7 +245,7 @@ private fun Breadcrumb(trail: List<PlaceNode>, picked: PlaceNode?, canUp: Boolea
                 .then(if (canUp) Modifier.border(1.dp, DsColors.Border, CircleShape).clickable(role = Role.Button, onClickLabel = "Retour", onClick = onUp) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            if (canUp) Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
+            if (canUp) Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_action_back), tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
         }
         Spacer(Modifier.width(DsSpacing.xs))
         Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically) {

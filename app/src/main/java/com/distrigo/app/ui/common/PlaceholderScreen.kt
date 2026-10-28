@@ -19,11 +19,13 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @Composable
 fun PlaceholderScreen(
     title    : String,
-    subtitle : String = "Cette fonctionnalité arrive bientôt.",
+    subtitle : String = stringResource(R.string.common_coming_soon),
     icon     : ImageVector = Icons.Default.Construction,
     onBack   : (() -> Unit)? = null
 ) {

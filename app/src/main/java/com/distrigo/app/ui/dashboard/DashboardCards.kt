@@ -58,6 +58,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.distrigo.app.data.repository.TourneeDayClient
+import androidx.compose.ui.res.stringResource
 
 private val INFO_TOURNEE = ReportInfo("Tournée du jour", "Avec achat : une vente sur la tournée\nSans achat : visité, sans vente\nEn attente : à visiter")
 private val DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM")
@@ -197,7 +198,7 @@ internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter)
                         .clickable(role = Role.Tab, onClick = { onSelect(filter) }),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(filter.label, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
+                    Text(stringResource(filter.label), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
                         color = if (on) Color.White else DsColors.TextSecondary)
                 }
             }

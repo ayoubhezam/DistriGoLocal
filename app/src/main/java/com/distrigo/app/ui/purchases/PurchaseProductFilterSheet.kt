@@ -29,6 +29,8 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Step 02's filter sheet — Achats, Dépôt Vente and Tournée Vente — laid out like the Produits one so
@@ -71,9 +73,9 @@ internal fun PurchaseProductFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Filtres", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.common_label_filters), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                 }
             }
             Spacer(Modifier.height(DsSpacing.sm))
@@ -201,7 +203,7 @@ internal fun PurchaseProductFilterSheet(
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                     border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick  = onDismiss,

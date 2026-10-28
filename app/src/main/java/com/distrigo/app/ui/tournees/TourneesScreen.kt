@@ -69,6 +69,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -307,7 +309,7 @@ fun TourneeDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCloseDialog = null; actionError = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -341,12 +343,12 @@ fun TourneeDetailScreen(
                         onError   = { removeClientError = it }
                     )
                 }) {
-                    Text("Retirer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmRemoveClient = null; removeClientError = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -384,7 +386,7 @@ fun TourneeDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmReopenSaleClient = null }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -417,12 +419,12 @@ fun TourneeDetailScreen(
                         onError = { error -> deleteTourneeError = error }
                     )
                 }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteTourneeDialog = null; deleteTourneeError = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -464,7 +466,7 @@ fun TourneeDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showReopenDialog = null; actionError = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -475,6 +477,7 @@ fun TourneeDetailScreen(
 
     // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
     val swipeSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val undoLabel = stringResource(R.string.common_action_cancel)
     val swipeScope    = rememberCoroutineScope()
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -755,13 +758,12 @@ fun TourneeDetailScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.FilterList,
-                                contentDescription = "Filtres",
+                                contentDescription = stringResource(R.string.common_label_filters),
                                 tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Filtres",
+                            Text(stringResource(R.string.common_label_filters),
                                 fontSize = DsTextSize.caption,
                                 color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
                             )
@@ -869,7 +871,7 @@ fun TourneeDetailScreen(
                                             onSuccess = {
                                                 reload()
                                                 swipeScope.launch {
-                                                    swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée") {
+                                                    swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée", undoLabel) {
                                                         venteViewModel.undeliverVente(
                                                             id        = vente.id,
                                                             onSuccess = { reload() },
@@ -1072,7 +1074,7 @@ internal fun TourneeClientActionsSheet(
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.Primary),
                 border   = androidx.compose.foundation.BorderStroke(1.5.dp, DsColors.Border)
             ) {
-                Text("Annuler", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_cancel), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -1265,7 +1267,7 @@ private fun TourneeStatusLegend(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Compris", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_got_it), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
             }
         },
         containerColor    = DsColors.Surface,
@@ -1590,9 +1592,9 @@ private fun TourneeVenteFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.common_label_filters_advanced), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                 }
             }
             Spacer(Modifier.height(DsSpacing.md))
@@ -1631,7 +1633,7 @@ private fun TourneeVenteFilterSheet(
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                     border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick  = onDismiss,

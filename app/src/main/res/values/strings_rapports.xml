@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="rapports_debtor_sort_debt_desc">Dette (décroissant)</string>
+    <string name="rapports_debtor_sort_debt_asc">Dette (croissant)</string>
+    <string name="rapports_debtor_sort_name_az">Nom (A-Z)</string>
+    <string name="rapports_debtor_sort_name_za">Nom (Z-A)</string>
+    <string name="rapports_rank_sales">Ventes</string>
+    <string name="rapports_rank_bons">Bons</string>
+</resources>

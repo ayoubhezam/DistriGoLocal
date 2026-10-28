@@ -51,6 +51,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Room left under a list for the floating action drawn over it: the button, plus a gap. */
 private val FloatingActionClearance = 88.dp
@@ -65,7 +67,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
     filters: List<Filter>,
     selectedFilter: Filter,
     onFilterSelected: (Filter) -> Unit,
-    filterLabel: (Filter) -> String,
+    filterLabel: @Composable (Filter) -> String,
     pagingItems: LazyPagingItems<T>,
     itemKey: (T) -> Any,
     onBack: () -> Unit,
@@ -149,12 +151,12 @@ fun <Filter, T : Any> PagedHistoryScreen(
             refreshState is LoadState.Error && pagingItems.itemCount == 0 -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Erreur de chargement", fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                        Text(stringResource(R.string.common_load_error), fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
                         Spacer(Modifier.height(DsSpacing.sm))
                         Button(
                             onClick = { pagingItems.retry() },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                        ) { Text("Réessayer", color = Color.White) }
+                        ) { Text(stringResource(R.string.common_action_retry), color = Color.White) }
                     }
                 }
             }
@@ -163,9 +165,9 @@ fun <Filter, T : Any> PagedHistoryScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.Search, contentDescription = null, tint = DsColors.TextTertiary)
                         Spacer(Modifier.height(DsSpacing.sm))
-                        Text("Aucun résultat", fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
+                        Text(stringResource(R.string.common_no_result), fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary)
                         Text(
-                            "Essayez un autre mot-clé ou un autre filtre",
+                            stringResource(R.string.common_no_result_hint),
                             fontSize = DsTextSize.bodySmall,
                             color = DsColors.TextSecondary
                         )
@@ -222,7 +224,7 @@ fun <Filter, T : Any> PagedHistoryScreen(
                         item {
                             Row(Modifier.fillMaxWidth().padding(DsSpacing.lg), horizontalArrangement = Arrangement.Center) {
                                 TextButton(onClick = { pagingItems.retry() }) {
-                                    Text("Réessayer le chargement", color = DsColors.Primary)
+                                    Text(stringResource(R.string.common_action_retry_load), color = DsColors.Primary)
                                 }
                             }
                         }

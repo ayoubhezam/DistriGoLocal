@@ -30,6 +30,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Where a product photo comes from: the camera, or the gallery.
@@ -74,6 +76,9 @@ fun rememberPhotoPicker(
 ): PhotoPicker {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
+    val unreadable    = stringResource(R.string.common_photo_unreadable)
+    val noCamera      = stringResource(R.string.common_photo_no_camera)
+    val cameraRefused = stringResource(R.string.common_photo_camera_refused)
     var sheetOpen by remember { mutableStateOf(false) }
 
     /** Reads the picked image into the store, then tells the caller. */
@@ -81,7 +86,7 @@ fun rememberPhotoPicker(
         scope.launch {
             val ref = ImageCapture.captureToStore(context, uri)
             thenDelete?.delete()
-            if (ref == null) onError("Image illisible") else onPicked(ref)
+            if (ref == null) onError(unreadable) else onPicked(ref)
         }
     }
 
@@ -109,13 +114,13 @@ fun rememberPhotoPicker(
             .onFailure {
                 pending = null
                 file.delete()
-                onError("Aucune application appareil photo n'est disponible.")
+                onError(noCamera)
             }
     }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) launchCamera()
-        else onError("L'accès à l'appareil photo a été refusé. Vous pouvez l'autoriser dans les paramètres du téléphone.")
+        else onError(cameraRefused)
     }
 
     if (sheetOpen) {
@@ -152,12 +157,12 @@ private fun PhotoSourceSheet(onCamera: () -> Unit, onGallery: () -> Unit, onDism
                 .padding(bottom = DsSpacing.lg)
         ) {
             Text(
-                "Ajouter une photo",
+                stringResource(R.string.common_photo_add),
                 fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
                 modifier = Modifier.padding(bottom = DsSpacing.sm)
             )
-            SourceRow(Icons.Default.PhotoCamera, "Prendre une photo", "Avec l'appareil photo", onCamera)
-            SourceRow(Icons.Default.PhotoLibrary, "Choisir depuis la galerie", "Parmi les images du téléphone", onGallery)
+            SourceRow(Icons.Default.PhotoCamera, stringResource(R.string.common_photo_take), stringResource(R.string.common_photo_take_sub), onCamera)
+            SourceRow(Icons.Default.PhotoLibrary, stringResource(R.string.common_photo_gallery), stringResource(R.string.common_photo_gallery_sub), onGallery)
         }
     }
 }

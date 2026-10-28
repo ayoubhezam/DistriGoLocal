@@ -42,6 +42,8 @@ import kotlinx.coroutines.withContext
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Paramètres → Diagnostic: the reports the app wrote about its own trouble — crashes, freezes (ANR), native
@@ -119,7 +121,7 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
                     scope.launch { val d = dir(); withContext(Dispatchers.IO) { DiagnosticReports.clear(d) }; reload() }
                 }) { Text("Effacer", color = DsColors.Danger) }
             },
-            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.common_action_cancel)) } },
         )
     }
 }
@@ -158,7 +160,7 @@ private fun ReportDetail(report: DiagnosticReport, onBack: () -> Unit, onShare: 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = report.kind.label, leading = DsTopBarLeading.Back(onBack)) {
             IconButton(onClick = onShare) { Icon(Icons.Default.Share, contentDescription = "Partager", tint = DsColors.Primary) }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, contentDescription = "Supprimer", tint = DsColors.Danger) }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.common_action_delete), tint = DsColors.Danger) }
         }
         val text = lines
         if (text == null) {
@@ -203,7 +205,7 @@ private fun DebugTriggers() {
                     else Thread.sleep(30_000)
                 }) { Text("Continuer", color = DsColors.Danger) }
             },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.common_action_cancel)) } },
         )
     }
 }

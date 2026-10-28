@@ -19,6 +19,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Records a payment against what a client owes, or against what is owed to a supplier.
@@ -43,9 +45,10 @@ fun PaymentDialog(
         onDismiss()
     }
 
+    val invalidAmount = stringResource(R.string.common_payment_invalid_amount)
     AlertDialog(
         onDismissRequest = { close() },
-        title = { Text("Enregistrer un paiement", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.common_payment_record), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Row(
@@ -60,7 +63,7 @@ fun PaymentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Solde restant", fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                        Text(stringResource(R.string.common_label_remaining_balance), fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
                         Text(
                             money.da(balance),
                             fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger
@@ -71,7 +74,7 @@ fun PaymentDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = westernNumber(it); error = "" },
-                    label = { Text("Montant (DA)") },
+                    label = { Text(stringResource(R.string.common_label_amount_da)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -86,7 +89,7 @@ fun PaymentDialog(
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Note (optionnel)") },
+                    label = { Text(stringResource(R.string.common_label_note_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = DsShapes.medium,
@@ -116,7 +119,7 @@ fun PaymentDialog(
                         shape = DsShapes.small,
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                     ) {
-                        Text("Tout régler", fontSize = DsTextSize.caption)
+                        Text(stringResource(R.string.common_payment_settle_all), fontSize = DsTextSize.caption)
                     }
                 }
 
@@ -130,18 +133,18 @@ fun PaymentDialog(
                 onClick = {
                     val value = amount.toDoubleOrNull()
                     if (value == null || value <= 0) {
-                        error = "Montant invalide"
+                        error = invalidAmount
                         return@Button
                     }
                     onSubmit(value, note.ifEmpty { null }, { error = it }, { close() })
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
             ) {
-                Text("Confirmer", color = Color.White)
+                Text(stringResource(R.string.common_action_confirm), color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = { close() }) { Text("Annuler") }
+            TextButton(onClick = { close() }) { Text(stringResource(R.string.common_action_cancel)) }
         },
         containerColor    = DsColors.Surface,
         titleContentColor = DsColors.TextPrimary,

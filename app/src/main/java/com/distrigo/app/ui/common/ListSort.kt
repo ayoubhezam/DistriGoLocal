@@ -32,6 +32,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // How a list is sorted, the same everywhere: the "Trier" chip of Produits' controls row and its
 // "Trier par" sheet, taken out of Produits so every list that sorts looks and behaves the same.
@@ -51,13 +53,13 @@ fun ListSortChip(active: Boolean, onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.AutoMirrored.Filled.Sort,
-                contentDescription = "Trier",
+                contentDescription = stringResource(R.string.common_action_sort),
                 tint = if (active) DsColors.PrimaryDark else DsColors.TextSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                "Trier",
+                stringResource(R.string.common_action_sort),
                 fontSize = DsTextSize.caption,
                 color = if (active) DsColors.PrimaryDark else DsColors.TextSecondary
             )
@@ -71,7 +73,7 @@ fun ListSortChip(active: Boolean, onClick: () -> Unit) {
 fun <T> SortOptionsSheet(
     options   : List<T>,
     selected  : T,
-    label     : (T) -> String,
+    label     : @Composable (T) -> String,
     onSelect  : (T) -> Unit,
     onDismiss : () -> Unit,
 ) {
@@ -81,7 +83,7 @@ fun <T> SortOptionsSheet(
         containerColor   = DsColors.Surface
     ) {
         Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-            Text("Trier par", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.common_sort_by), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(DsSpacing.md))
             options.forEach { option ->
                 Row(

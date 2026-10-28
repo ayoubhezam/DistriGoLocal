@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @Composable
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
@@ -80,7 +82,7 @@ fun PurchaseOrderDetailScreen(
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
             title            = { Text(title) },
             text             = { Text(message, fontSize = DsTextSize.bodySmall) },
-            confirmButton    = { TextButton(onClick = { actionError = null }) { Text("OK") } },
+            confirmButton    = { TextButton(onClick = { actionError = null }) { Text(stringResource(R.string.common_action_ok)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary
@@ -118,7 +120,7 @@ fun PurchaseOrderDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showReopenDialog = false }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -153,12 +155,12 @@ fun PurchaseOrderDetailScreen(
                         }
                     )
                 }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false; deleteError = "" }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -235,7 +237,7 @@ fun PurchaseOrderDetailScreen(
                         )
                     } else {
                         DropdownMenuItem(
-                            text = { Text("Modifier", color = DsColors.Primary) },
+                            text = { Text(stringResource(R.string.common_action_edit), color = DsColors.Primary) },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                             onClick = {
                                 overflowMenuExpanded = false
@@ -244,7 +246,7 @@ fun PurchaseOrderDetailScreen(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Supprimer", color = DsColors.Danger) },
+                        text = { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                         onClick = {
                             overflowMenuExpanded = false
@@ -374,7 +376,7 @@ fun PurchaseOrderDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Reste", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                Text(stringResource(R.string.common_label_remaining), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                                 Text(money.da(reste), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             }
                         } else {
@@ -518,10 +520,10 @@ fun PurchaseOrderDetailScreen(
                             )
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.Success)
-                    ) { Text("Confirmer") }
+                    ) { Text(stringResource(R.string.common_action_confirm)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showReceiveDialog = false }) { Text("Annuler") }
+                    TextButton(onClick = { showReceiveDialog = false }) { Text(stringResource(R.string.common_action_cancel)) }
                 },
                 containerColor    = DsColors.Surface,
                 titleContentColor = DsColors.TextPrimary,

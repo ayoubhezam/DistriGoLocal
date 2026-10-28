@@ -48,6 +48,8 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 
 @Composable
@@ -102,7 +104,7 @@ fun MouvementsScreen(
                 IconButton(onClick = { filtersOpen = true }) {
                     Icon(
                         Icons.Default.FilterList,
-                        contentDescription = "Filtres",
+                        contentDescription = stringResource(R.string.common_label_filters),
                         tint = if (filters.activeCount > 0) DsColors.PrimaryDark else DsColors.TextSecondary
                     )
                 }

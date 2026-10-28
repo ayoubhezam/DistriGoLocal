@@ -41,6 +41,8 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @Composable
 fun BarcodeScannerScreen(
@@ -196,7 +198,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
                 .clip(DsShapes.pill)
                 .background(Color.Black.copy(alpha = 0.4f))
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)
+            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = Color.White)
         }
 
         // ── Status dot indicator (red → green on successful scan) ──
@@ -232,7 +234,7 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
                 shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
-                Text("Réessayer")
+                Text(stringResource(R.string.common_action_retry))
             }
         }
 
@@ -245,7 +247,7 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
                 .clip(DsShapes.pill)
                 .background(Color.White.copy(alpha = 0.15f))
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)
+            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = Color.White)
         }
     }
 }

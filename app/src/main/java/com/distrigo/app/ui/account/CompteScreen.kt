@@ -116,6 +116,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The account, this phone's subscription and the business, laid out as the owner's mockup in the app's new
@@ -543,7 +545,7 @@ private fun BusinessCard(
                     modifier   = Modifier.fillMaxWidth()
                 )
                 TextButton(onClick = onRetry, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Réessayer", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
+                    Text(stringResource(R.string.common_action_retry), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
                 }
             }
             else -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xl), contentAlignment = Alignment.Center) {

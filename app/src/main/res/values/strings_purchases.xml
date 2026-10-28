@@ -1,0 +1,15 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="purchases_draft_edit_title">Modification · bon %1$s</string>
+    <string name="purchases_draft_supplier_not_chosen">Fournisseur non choisi</string>
+    <string name="purchases_draft_blocked_received">Bon déjà réceptionné</string>
+    <string name="purchases_draft_blocked_deleted">Bon supprimé</string>
+    <string name="purchases_drafts_sheet_subtitle">Reprenez un brouillon ou commencez un nouveau bon.</string>
+    <string name="purchases_drafts_sheet_start_new">Commencer un nouveau bon</string>
+    <string name="purchases_draft_changed_title">Le bon %1$s a changé</string>
+    <string name="purchases_draft_changed_body">Ce bon %1$s a été modifié depuis que vous avez commencé cette modification. Vos changements n\'ont pas encore été enregistrés.</string>
+    <string name="purchases_draft_use_committed">Repartir du bon actuel</string>
+    <string name="purchases_draft_blocked_body">Le bon %1$s a été réceptionné et le stock a déjà été mis à jour. Cette modification ne peut plus être appliquée.</string>
+    <string name="purchases_draft_view_record">Voir le bon</string>
+    <string name="purchases_draft_deleted_title">Bon introuvable</string>
+    <string name="purchases_draft_deleted_body">Le bon %1$s a été supprimé. Il n\'y a plus rien à modifier.</string>
+</resources>

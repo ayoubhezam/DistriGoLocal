@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.common.productRowSkeletons
@@ -64,6 +65,8 @@ import com.distrigo.app.ui.common.productFilterChips
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -264,7 +267,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             ) {
                                 DsCompactSearchAction(
                                     icon               = Icons.Default.QrCodeScanner,
-                                    contentDescription = "Scanner un code-barres",
+                                    contentDescription = stringResource(R.string.common_cd_scan_barcode),
                                     tint               = DsColors.PrimaryDark,
                                     onClick            = { showScanner = true }
                                 )
@@ -277,7 +280,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 onOpenFilters = { showFilterSheet = true }
                             )
                             ActiveProductFilterChips(
-                                productFilterChips(filters, categories, sousCategories, marques, filterSuppliers, "Prix de vente", money),
+                                productFilterChips(LocalContext.current.resources, filters, categories, sousCategories, marques, filterSuppliers, stringResource(R.string.common_label_sale_price), money),
                                 onChange = { picker.filters = it }
                             )
                             if (showFilterSheet) {
@@ -463,7 +466,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 ) {
                     if (cartItems.isNotEmpty()) {
                         TextButton(onClick = { session.setFormCartItems(emptyList()) }) {
-                            Text("Vider", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                            Text(stringResource(R.string.common_action_empty), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                         }
                     }
                     // TextButton brings its own inset; this makes up the standard end margin.
@@ -485,13 +488,13 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(Modifier.height(DsSpacing.md))
-                            Text("Sélection vide", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.common_cart_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(DsSpacing.sm))
                             Button(
                                 onClick = { navController.popBackStack() },
                                 shape   = DsShapes.medium,
                                 colors  = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                            ) { Text("Parcourir les produits") }
+                            ) { Text(stringResource(R.string.common_action_browse_products)) }
                         }
                     }
                 } else {
@@ -540,7 +543,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                                Text(stringResource(R.string.common_label_total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                                 Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                             }
                         }
@@ -560,7 +563,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(DsSpacing.sm))
-                            Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_action_back), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }
 
                         Button(
@@ -570,7 +573,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             shape    = DsShapes.medium,
                             colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                         ) {
-                            Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

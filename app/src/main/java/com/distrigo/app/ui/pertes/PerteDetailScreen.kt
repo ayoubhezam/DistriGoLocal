@@ -37,6 +37,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * A perte, read-only — the same flow as an expense's details (ChargeDetailScreen). Tapping one in its
@@ -178,7 +180,7 @@ fun PerteDetailScreen(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Supprimer", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), fontWeight = FontWeight.SemiBold)
                 }
                 Button(
                     onClick  = { confirmEdit = true },
@@ -189,7 +191,7 @@ fun PerteDetailScreen(
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Modifier", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_edit), fontWeight = FontWeight.SemiBold)
                 }
             }
         } else {
@@ -203,8 +205,8 @@ fun PerteDetailScreen(
             onDismissRequest = { confirmEdit = false },
             title            = { Text("Modifier la perte") },
             text             = { Text("Voulez-vous modifier cette perte ?") },
-            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text("Modifier") } },
-            dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text("Annuler") } },
+            confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text(stringResource(R.string.common_action_edit)) } },
+            dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }
@@ -228,10 +230,10 @@ fun PerteDetailScreen(
             text             = { Text(deletePerteQuestion(perte, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton    = { TextButton(onClick = { confirmDelete = false }) { Text("Annuler") } },
+            dismissButton    = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }

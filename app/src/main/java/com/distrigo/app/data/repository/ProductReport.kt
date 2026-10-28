@@ -1,6 +1,7 @@
 package com.distrigo.app.data.repository
 
 import com.distrigo.app.data.model.report.ReportRange
+import com.distrigo.app.R
 
 /**
  * One product's sales over a report's period: its quantity in its own unit — quantities are never
@@ -27,10 +28,10 @@ data class ProductSales(
 data class DormantProduct(val productId: Int, val name: String, val unit: String, val imageUri: String?, val stock: Double, val value: Double)
 
 /** How a report's products are ranked. */
-enum class ProductRanking(val label: String) { CA("CA"), MARGE("Marge"), QUANTITE("Quantité") }
+enum class ProductRanking(@androidx.annotation.StringRes val label: Int) { CA(R.string.common_rank_turnover), MARGE(R.string.common_rank_margin), QUANTITE(R.string.common_rank_quantity) }
 
 /** What sales are grouped by. */
-enum class ProductGrouping(val label: String) { CATEGORIE("Catégorie"), MARQUE("Marque"), FOURNISSEUR("Fournisseur") }
+enum class ProductGrouping(@androidx.annotation.StringRes val label: Int) { CATEGORIE(R.string.common_label_category), MARQUE(R.string.common_label_brand), FOURNISSEUR(R.string.common_label_supplier) }
 
 /** One group's share of the sales: a category, a brand or a supplier — or none, for products without one. */
 data class GroupShare(val name: String, val total: Double, val products: Int)

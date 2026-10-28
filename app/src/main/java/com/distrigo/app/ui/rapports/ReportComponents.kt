@@ -50,6 +50,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // The pieces every report screen is built from, so they all read alike: the blue summary card, the
 // figure tiles, the section titles, the empty message, and how counts and shares are written.
@@ -72,7 +74,7 @@ fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier, ico
         onDismissRequest = { open = false },
         title = { Text(info.title, fontWeight = FontWeight.Bold) },
         text = { Text(info.text, fontSize = DsTextSize.body, color = DsColors.TextSecondary) },
-        confirmButton = { TextButton(onClick = { open = false }) { Text("Compris") } },
+        confirmButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.common_action_got_it)) } },
         containerColor = DsColors.Surface,
     )
 }

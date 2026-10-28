@@ -24,6 +24,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Moving one product between the dépôt and the camion, on one screen.
@@ -162,7 +164,7 @@ fun ChargementProduitScreen(
                 // Named for what it does to the *back*, not to the edit: this button is how you
                 // stay and carry on.
                 TextButton(onClick = { showDiscard = false }) {
-                    Text("Annuler", color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.common_action_cancel), color = DsColors.TextSecondary)
                 }
             }
         )
@@ -198,7 +200,7 @@ fun ChargementProduitScreen(
             OutlinedTextField(
                 value         = note,
                 onValueChange = { note = it },
-                placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
+                placeholder   = { Text(stringResource(R.string.common_label_note_optional), fontSize = DsTextSize.body) },
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = DsShapes.medium,
                 minLines      = 2,

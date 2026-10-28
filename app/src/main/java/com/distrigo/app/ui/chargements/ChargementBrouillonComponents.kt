@@ -6,7 +6,9 @@ import com.distrigo.app.data.model.ChargementDraft
 import com.distrigo.app.ui.common.DraftCardUi
 import com.distrigo.app.ui.common.DraftSheetCopy
 import com.distrigo.app.ui.common.DraftsSheet
-import com.distrigo.app.ui.common.formatRelativeFr
+import com.distrigo.app.ui.common.relativeTime
+import com.distrigo.app.core.text.UiText
+import com.distrigo.app.R
 
 // Everything that draws a Brouillon lives in ui/common/DraftComponents.kt and is shared with the
 // other three form flows. What stays here is only what is specific to a stock movement.
@@ -18,11 +20,10 @@ import com.distrigo.app.ui.common.formatRelativeFr
  * nothing that distinguishes two drafts but their contents. The count is therefore the title, and
  * the meta line carries the age.
  */
-internal fun ChargementDraft.cardTitle(): String =
-    if (itemCount <= 1) "Mouvement · $itemCount produit" else "Mouvement · $itemCount produits"
+internal fun ChargementDraft.cardTitle(): UiText = UiText.Plural(R.plurals.chargements_draft_title, itemCount)
 
 /** "il y a 12 min". */
-internal fun ChargementDraft.cardMeta(): String = formatRelativeFr(updatedAt) ?: "Brouillon"
+internal fun ChargementDraft.cardMeta(): UiText = relativeTime(updatedAt) ?: UiText.Res(R.string.common_draft)
 
 /**
  * How a chargement draft renders as a card.
@@ -73,8 +74,8 @@ internal fun ChargementBrouillonsSheet(
 )
 
 private val SHEET_COPY = DraftSheetCopy(
-    titleOne  = "Brouillon en cours",
-    titleMany = "Brouillons en cours",
-    subtitle  = "Reprenez un brouillon ou commencez un nouveau mouvement.",
-    startNew  = "Commencer un nouveau mouvement"
+    titleOne  = UiText.Res(R.string.common_drafts_sheet_title_one),
+    titleMany = UiText.Res(R.string.common_drafts_sheet_title_many),
+    subtitle  = UiText.Res(R.string.chargements_drafts_sheet_subtitle),
+    startNew  = UiText.Res(R.string.chargements_drafts_sheet_start_new)
 )

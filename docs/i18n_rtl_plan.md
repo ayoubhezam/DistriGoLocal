@@ -1,10 +1,10 @@
 # DistriGo: plan for French + Arabic and right-to-left layout
 
-**Date:** 2026-10-27 · **Status:** D1–D10 decided; Phase 1 pushed (66949ea); Phase 2 implemented, awaiting the owner's review.
+**Date:** 2026-10-27 · **Status:** D1–D10 decided; Phases 1–2 pushed (66949ea, da68052); Phase 3 in progress (first half done).
 **Based on:** a read-only inspection of commit `1c59385` (562 Kotlin files, ~100k lines).
 
-> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phases 1 and 2 are done; Phase 3 (shared text) is
-> next, after the owner's go. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
+> **For agents picking this up:** D1–D10 are decided (2026-10-27). Phases 1 and 2 are pushed; Phase 3 (shared text) is
+> half done — see "Phase 3 progress" below for what remains. Follow `CLAUDE.md` throughout. In particular, the Ventes, Achats, Tournée ventes and
 > Chargements form graphs are stable: only their text and icons change, never their flow. Paths below start at
 > `app/src/main/java/com/distrigo/app/` unless they begin with `app/`.
 
@@ -76,6 +76,28 @@
 ## Decisions (D1 and D3–D10 approved by the owner as recommended, 2026-10-27)
 
 Phase 0 done: the glossary (`docs/i18n_glossary.md`) was approved on 2026-10-27.
+
+**Phase 3 progress (2026-10-28):** French and Arabic written together, from the glossary.
+- Done:
+  - Shared words (`strings_common.xml`): ~35 words used everywhere (« Annuler » ×82…), swapped wherever they are a
+    whole `Text("…")` or `contentDescription`.
+  - `ui/common` and `ui/designsystem` text, plus the paged history screen: cart, filters, payment dialog, photo picker,
+    secteur and quartier pickers, top bar, info sheet, license banner, sort sheet.
+  - Drafts: `DraftCardUi`, `DraftSheetCopy`, `DraftConflictCopy`, `DraftFilterCopy` hold `UiText`; the card builders of
+    Ventes, Achats, Tournée ventes and Chargements build it. `relativeTime()` returns `UiText`. `UiText.Joined` added.
+  - 16 display enums now carry `@StringRes label` (report period and source, debt side, age bands, rankings,
+    groupings, activity/achat/facture filters, price movement kind, movement type and party, product sort, debtor
+    sort, export period). `ReportSegmented`, `SortOptionsSheet` and `PagedHistoryScreen` take `@Composable` labels.
+  - `refusalText()` returns `UiText`; `productFilterChips` takes `Resources`; `ProductUnit.labelRes()` (screens) beside
+    `label()` (documents, D3).
+  - Guard baseline 1371 → 964.
+- Left for Phase 3:
+  - Error plumbing: repositories still throw French (`throw IllegalStateException("…")` ×~45, `Refused("…")` ×39,
+    `ImportPlanner`, `TrashRepository`, `ListsRepository`, `LicensePolicy`, `AuthApi`). Needs a way for
+    `UserFacingException` to be read as text outside a composable (`userMessage`, `e.message`, 86 + 35 call sites).
+  - `ListKind` / `TrashKind` (labels used in sentences), units after quantities (`ProductUnit.plural`), `Durations`.
+  - Built-in perte/charge types and retour motifs shown by key (D7); wilaya and commune `nameAr` (D8).
+  - `formatRelativeFr` stays for Paramètres' backup lines until that section moves (Phase 4).
 
 **Phase 2 done 2026-10-27 (RTL structure):**
 - Screen and onboarding-step transitions slide by Start/End (`NavTransitions`, `CodePages`, `SignUpPages`).

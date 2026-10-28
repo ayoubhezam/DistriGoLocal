@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * يراقب توفر اتصال إنترنت حقيقي (مُتحقق منه من طرف النظام، وليس مجرد اتصال
@@ -87,6 +89,6 @@ fun OfflineMapBadge(modifier: Modifier = Modifier) {
     ) {
         Icon(Icons.Default.CloudOff, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(4.dp))
-        Text("Mode hors ligne", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Warning)
+        Text(stringResource(R.string.common_offline_mode), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Warning)
     }
 }

@@ -90,6 +90,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The periods the history can be narrowed to; null is all time. */
 private val PERIODS: List<Pair<String, ReportPeriod?>> = listOf(
@@ -362,8 +364,8 @@ private fun ChargeFiltersSheet(
     ) {
         Column(Modifier.padding(horizontal = DsSpacing.lg).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Filtres", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
-                TextButton(onClick = { draft = ChargeHistoryFilters() }) { Text("Réinitialiser") }
+                Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
+                TextButton(onClick = { draft = ChargeHistoryFilters() }) { Text(stringResource(R.string.common_action_reset)) }
             }
             Text("Type", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -378,7 +380,7 @@ private fun ChargeFiltersSheet(
                     subTypes.filter { it.type_id == typeId }.forEach { s -> Chip(s.name, draft.subtypeId == s.id) { draft = draft.copy(subtypeId = s.id) } }
                 }
             }
-            Text("Période", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 PERIODS.forEach { (label, p) -> Chip(label, draft.period == p) { draft = draft.copy(period = p) } }
             }

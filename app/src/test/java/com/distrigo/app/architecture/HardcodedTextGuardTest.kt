@@ -64,7 +64,7 @@ class HardcodedTextGuardTest {
     }
 
     private companion object {
-        /** 2026-10-27, Phase 1: before any screen's text moved to resources. Lowered as Phases 3–4 move them. */
-        const val BASELINE = 1371
+        /** 1371 at Phase 1 (2026-10-27); lowered as Phases 3–4 move the text out. */
+        const val BASELINE = 964
     }
 }

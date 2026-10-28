@@ -1,0 +1,8 @@
+<resources>
+    <string name="products_sort_name_asc">الاسم (أ ← ي)</string>
+    <string name="products_sort_name_desc">الاسم (ي ← أ)</string>
+    <string name="products_sort_stock_asc">المخزون (تصاعدي)</string>
+    <string name="products_sort_stock_desc">المخزون (تنازلي)</string>
+    <string name="products_sort_price_asc">السعر (تصاعدي)</string>
+    <string name="products_sort_price_desc">السعر (تنازلي)</string>
+</resources>

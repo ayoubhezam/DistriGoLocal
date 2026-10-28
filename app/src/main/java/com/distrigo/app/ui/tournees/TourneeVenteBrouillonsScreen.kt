@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.core.text.UiText
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +37,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * What a draft reports to the filter.
@@ -51,8 +54,8 @@ private fun TourneeVenteDraft.filterFacts() = DraftFilterFacts(
 )
 
 private val FILTER_COPY = DraftFilterCopy(
-    partyLabel = "Client",
-    partyAll   = "Tous les clients"
+    partyLabel = UiText.Res(R.string.common_label_client),
+    partyAll   = UiText.Res(R.string.common_all_clients)
 )
 
 /**
@@ -181,7 +184,7 @@ fun TourneeVenteBrouillonsScreen(
                                     IconButton(onClick = { pendingDelete = draft }) {
                                         Icon(
                                             Icons.Default.DeleteOutline,
-                                            contentDescription = "Supprimer le brouillon",
+                                            contentDescription = stringResource(R.string.common_draft_delete),
                                             tint = DsColors.TextTertiary,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -234,7 +237,7 @@ fun TourneeVenteBrouillonsScreen(
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             containerColor   = DsColors.Surface,
-            title = { Text("Supprimer ce brouillon ?", fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
+            title = { Text(stringResource(R.string.common_draft_delete_dialog_title), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
             text  = {
                 Text(
                     "« ${draft.cardTitle()} » sera définitivement perdu. Cette action est irréversible.",
@@ -244,12 +247,12 @@ fun TourneeVenteBrouillonsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.deleteVenteDraft(draft.id); pendingDelete = null }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
-                    Text("Annuler", color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.common_action_cancel), color = DsColors.TextSecondary)
                 }
             }
         )

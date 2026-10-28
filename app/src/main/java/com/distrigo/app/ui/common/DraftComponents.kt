@@ -32,6 +32,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * One draft reduced to what a card needs to render it.
@@ -44,11 +46,11 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
  * longer receive it, and the card says so instead of showing a time.
  */
 data class DraftCardUi(
-    val title        : String,
-    val meta         : String,
+    val title        : com.distrigo.app.core.text.UiText,
+    val meta         : com.distrigo.app.core.text.UiText,
     val total        : Double,
     val isEdit       : Boolean,
-    val blockedReason: String? = null
+    val blockedReason: com.distrigo.app.core.text.UiText? = null
 ) {
     val blocked: Boolean get() = blockedReason != null
 }
@@ -105,7 +107,7 @@ fun DraftRow(
                 null  -> Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
                 true  -> Icon(
                     Icons.Default.Check,
-                    contentDescription = "Sélectionné",
+                    contentDescription = stringResource(R.string.common_cd_selected),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -121,7 +123,7 @@ fun DraftRow(
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    card.title,
+                    card.title.asString(),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.TextPrimary,
@@ -154,7 +156,7 @@ fun DraftRow(
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                card.blockedReason ?: card.meta,
+                (card.blockedReason ?: card.meta).asString(),
                 fontSize   = DsTextSize.caption,
                 // Carries the blocked state on its own now: bold and in the danger tone, and saying
                 // *why* rather than merely that something is wrong.
@@ -177,10 +179,10 @@ fun DraftRow(
 
 /** The words a flow puts on its "resume or start fresh" sheet. */
 data class DraftSheetCopy(
-    val titleOne : String,
-    val titleMany: String,
-    val subtitle : String,
-    val startNew : String
+    val titleOne : com.distrigo.app.core.text.UiText,
+    val titleMany: com.distrigo.app.core.text.UiText,
+    val subtitle : com.distrigo.app.core.text.UiText,
+    val startNew : com.distrigo.app.core.text.UiText
 )
 
 /**
@@ -233,14 +235,14 @@ fun <D> DraftsSheet(
                 )
         ) {
             Text(
-                if (drafts.size > 1) copy.titleMany else copy.titleOne,
+                (if (drafts.size > 1) copy.titleMany else copy.titleOne).asString(),
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.TextPrimary
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                copy.subtitle,
+                copy.subtitle.asString(),
                 fontSize = DsTextSize.bodySmall,
                 color    = DsColors.TextSecondary
             )
@@ -254,7 +256,7 @@ fun <D> DraftsSheet(
             if (drafts.size > shown.size) {
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
                 Text(
-                    "Voir tout (${drafts.size}) →",
+                    stringResource(R.string.common_action_see_all_count, drafts.size),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.Primary,
@@ -281,7 +283,7 @@ fun <D> DraftsSheet(
                 border   = androidx.compose.foundation.BorderStroke(1.5.dp, DsColors.Primary)
             ) {
                 Text(
-                    copy.startNew,
+                    copy.startNew.asString(),
                     fontSize   = DsTextSize.body,
                     fontWeight = FontWeight.SemiBold,
                     // Centres the second line too, once there is one.
@@ -302,15 +304,15 @@ private const val MAX_SHEET_ROWS = 4
  * effects has no such state and never reaches that branch.
  */
 data class DraftConflictCopy(
-    val changedTitle: String,
-    val changedBody : String,
-    val resumeMine  : String,
-    val useCommitted: String,
-    val blockedTitle: String,
-    val blockedBody : String,
-    val viewRecord  : String,
-    val deletedTitle: String,
-    val deletedBody : String
+    val changedTitle: com.distrigo.app.core.text.UiText,
+    val changedBody : com.distrigo.app.core.text.UiText,
+    val resumeMine  : com.distrigo.app.core.text.UiText,
+    val useCommitted: com.distrigo.app.core.text.UiText,
+    val blockedTitle: com.distrigo.app.core.text.UiText,
+    val blockedBody : com.distrigo.app.core.text.UiText,
+    val viewRecord  : com.distrigo.app.core.text.UiText,
+    val deletedTitle: com.distrigo.app.core.text.UiText,
+    val deletedBody : com.distrigo.app.core.text.UiText
 )
 
 /**
@@ -334,16 +336,16 @@ fun DraftConflictDialog(
         DraftBaseState.CHANGED -> AlertDialog(
             onDismissRequest = onDismiss,
             containerColor   = DsColors.Surface,
-            title = { Text(copy.changedTitle, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
-            text  = { Text(copy.changedBody, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
+            title = { Text(copy.changedTitle.asString(), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
+            text  = { Text(copy.changedBody.asString(), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
             confirmButton = {
                 TextButton(onClick = onResume) {
-                    Text(copy.resumeMine, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(copy.resumeMine.asString(), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = onUseCommitted) {
-                    Text(copy.useCommitted, color = DsColors.TextSecondary)
+                    Text(copy.useCommitted.asString(), color = DsColors.TextSecondary)
                 }
             }
         )
@@ -351,16 +353,16 @@ fun DraftConflictDialog(
         DraftBaseState.RECEIVED -> AlertDialog(
             onDismissRequest = onDismiss,
             containerColor   = DsColors.Surface,
-            title = { Text(copy.blockedTitle, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
-            text  = { Text(copy.blockedBody, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
+            title = { Text(copy.blockedTitle.asString(), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
+            text  = { Text(copy.blockedBody.asString(), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
             confirmButton = {
                 TextButton(onClick = onViewRecord) {
-                    Text(copy.viewRecord, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(copy.viewRecord.asString(), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDelete) {
-                    Text("Supprimer le brouillon", color = DsColors.Danger)
+                    Text(stringResource(R.string.common_draft_delete), color = DsColors.Danger)
                 }
             }
         )
@@ -368,15 +370,15 @@ fun DraftConflictDialog(
         DraftBaseState.DELETED -> AlertDialog(
             onDismissRequest = onDismiss,
             containerColor   = DsColors.Surface,
-            title = { Text(copy.deletedTitle, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
-            text  = { Text(copy.deletedBody, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
+            title = { Text(copy.deletedTitle.asString(), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
+            text  = { Text(copy.deletedBody.asString(), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) },
             confirmButton = {
                 TextButton(onClick = onDelete) {
-                    Text("Supprimer le brouillon", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_draft_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) { Text("Annuler", color = DsColors.TextSecondary) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel), color = DsColors.TextSecondary) }
             }
         )
 

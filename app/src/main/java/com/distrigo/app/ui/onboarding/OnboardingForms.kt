@@ -72,6 +72,7 @@ import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
+import androidx.compose.ui.res.stringResource
 
 /** The same rule as the account's own forms (ui/account/SignInScreens.kt). */
 internal const val MIN_PASSWORD = 8
@@ -103,7 +104,7 @@ internal val FormGutter = DsSpacing.xl
 internal fun FormTopBar(onBack: () -> Unit, step: Int? = null, stepCount: Int = 2) {
     Box(Modifier.fillMaxWidth().height(48.dp).padding(start = DsSpacing.xs, end = FormGutter)) {
         IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsBrand.Ink)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_action_back), tint = DsBrand.Ink)
         }
         if (step != null) {
             PageDots(

@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="products_sort_name_asc">Nom (A → Z)</string>
+    <string name="products_sort_name_desc">Nom (Z → A)</string>
+    <string name="products_sort_stock_asc">Stock (croissant)</string>
+    <string name="products_sort_stock_desc">Stock (décroissant)</string>
+    <string name="products_sort_price_asc">Prix (croissant)</string>
+    <string name="products_sort_price_desc">Prix (décroissant)</string>
+</resources>

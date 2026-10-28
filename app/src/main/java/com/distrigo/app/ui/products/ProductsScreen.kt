@@ -67,14 +67,16 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
-enum class SortOption(val label: String) {
-    NAME_ASC   ("Nom (A → Z)"),
-    NAME_DESC  ("Nom (Z → A)"),
-    STOCK_ASC  ("Stock (croissant)"),
-    STOCK_DESC ("Stock (décroissant)"),
-    PRICE_ASC  ("Prix (croissant)"),
-    PRICE_DESC ("Prix (décroissant)")
+enum class SortOption(@androidx.annotation.StringRes val label: Int) {
+    NAME_ASC   (R.string.products_sort_name_asc),
+    NAME_DESC  (R.string.products_sort_name_desc),
+    STOCK_ASC  (R.string.products_sort_stock_asc),
+    STOCK_DESC (R.string.products_sort_stock_desc),
+    PRICE_ASC  (R.string.products_sort_price_asc),
+    PRICE_DESC (R.string.products_sort_price_desc)
 }
 
 private data class ActiveFilterEntry(val label: String, val onClear: () -> Unit)
@@ -197,10 +199,10 @@ fun ProductsScreen(
                 TextButton(onClick = {
                     viewModel.deleteProduct(product.id)
                     showDeleteDialog = null
-                }) { Text("Supprimer", color = DsColors.Danger) }
+                }) { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = null }) { Text(stringResource(R.string.common_action_cancel)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -232,7 +234,7 @@ fun ProductsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                        Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_edit), fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                     }
                     Row(
                         modifier = Modifier
@@ -248,7 +250,7 @@ fun ProductsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                        Text("Supprimer", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_delete), fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                     }
                 }
             },
@@ -287,9 +289,9 @@ fun ProductsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.common_label_filters_advanced), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                     IconButton(onClick = { showFilterSheet = false }) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                     }
                 }
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -550,7 +552,7 @@ fun ProductsScreen(
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                         border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                     }
                     Button(
                         onClick  = { showFilterSheet = false },
@@ -623,7 +625,7 @@ fun ProductsScreen(
                             Spacer(Modifier.width(6.dp))
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Retirer",
+                                contentDescription = stringResource(R.string.common_action_remove),
                                 tint = DsColors.Primary,
                                 modifier = Modifier.size(14.dp).clickable { entry.onClear() }
                             )
@@ -763,7 +765,7 @@ private fun ProductSearchField(viewModel: ProductViewModel, onScan: () -> Unit, 
     ) {
         DsCompactSearchAction(
             icon               = Icons.Default.QrCodeScanner,
-            contentDescription = "Scanner un code-barres",
+            contentDescription = stringResource(R.string.common_cd_scan_barcode),
             tint               = DsColors.PrimaryDark,
             onClick            = onScan
         )
@@ -1050,13 +1052,12 @@ internal fun ProductListControls(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.FilterList,
-                            contentDescription = "Filtres",
+                            contentDescription = stringResource(R.string.common_label_filters),
                             tint = if (filtersActive) DsColors.Primary else DsColors.TextSecondary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(
-                            "Filtres",
+                        Text(stringResource(R.string.common_label_filters),
                             fontSize = DsTextSize.caption,
                             color = if (filtersActive) DsColors.Primary else DsColors.TextSecondary
                         )
@@ -1082,4 +1083,4 @@ internal fun ProductSortSheet(
     selected  : SortOption,
     onSelect  : (SortOption) -> Unit,
     onDismiss : () -> Unit,
-) = SortOptionsSheet(SortOption.entries, selected, { it.label }, onSelect, onDismiss)
+) = SortOptionsSheet(SortOption.entries, selected, { stringResource(it.label) }, onSelect, onDismiss)

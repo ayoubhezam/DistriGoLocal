@@ -173,7 +173,7 @@ private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()
                 )
             },
             confirmButton = { TextButton(onClick = { viewModel.confirmStrict() }) { Text("Désactiver") } },
-            dismissButton = { TextButton(onClick = { viewModel.cancelStrict() }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { viewModel.cancelStrict() }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary
@@ -239,7 +239,7 @@ private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewMod
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { choosing = false }) { Text("Fermer") } },
+            confirmButton = { TextButton(onClick = { choosing = false }) { Text(stringResource(R.string.common_action_close)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor  = DsColors.TextSecondary

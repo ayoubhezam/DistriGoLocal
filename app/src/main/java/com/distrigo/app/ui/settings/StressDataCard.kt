@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Where a stress-data run has got to. */
 sealed interface StressDataState {
@@ -163,7 +165,7 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
                 TextButton(onClick = { confirmingSectors = false; viewModel.spreadClientsOverSectors() }) { Text("Répartir") }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingSectors = false }) { Text("Annuler") }
+                TextButton(onClick = { confirmingSectors = false }) { Text(stringResource(R.string.common_action_cancel)) }
             },
         )
     }
@@ -182,7 +184,7 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
                 TextButton(onClick = { confirmingInventories = false; viewModel.generateInventories() }) { Text("Générer") }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingInventories = false }) { Text("Annuler") }
+                TextButton(onClick = { confirmingInventories = false }) { Text(stringResource(R.string.common_action_cancel)) }
             },
         )
     }
@@ -201,7 +203,7 @@ fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
                 TextButton(onClick = { confirming = false; viewModel.generate() }) { Text("Générer") }
             },
             dismissButton = {
-                TextButton(onClick = { confirming = false }) { Text("Annuler") }
+                TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.common_action_cancel)) }
             },
         )
     }

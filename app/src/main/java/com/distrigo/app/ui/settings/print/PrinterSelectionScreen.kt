@@ -49,6 +49,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Choosing a printer.
@@ -273,7 +275,7 @@ fun PrinterSelectionScreen(
             onDismissRequest = viewModel::dismissNotice,
             title   = { Text("Imprimante") },
             text    = { Text(text) },
-            confirmButton = { TextButton(onClick = viewModel::dismissNotice) { Text("OK") } },
+            confirmButton = { TextButton(onClick = viewModel::dismissNotice) { Text(stringResource(R.string.common_action_ok)) } },
         )
     }
 }
@@ -714,10 +716,10 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
         },
         confirmButton = {
             TextButton(enabled = valid, onClick = { onConfirm(host, parsedPort ?: NetworkAddress.DEFAULT_PORT) }) {
-                Text("Ajouter")
+                Text(stringResource(R.string.common_action_add))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
     )
 }
 
@@ -736,7 +738,7 @@ private fun RenameDialog(initial: String, onConfirm: (String) -> Unit, onDismiss
                 modifier      = Modifier.fillMaxWidth(),
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text("Enregistrer") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text(stringResource(R.string.common_action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
     )
 }

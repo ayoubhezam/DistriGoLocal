@@ -1,5 +1,7 @@
 package com.distrigo.app.data.model
 
+import com.distrigo.app.R
+
 /**
  * The units a product is counted in — `products.unit_type` — written once.
  *
@@ -26,6 +28,14 @@ object ProductUnit {
         PIECE -> "Pièce"
         KG    -> "Kg"
         else  -> "Carton"
+    }
+
+/** [label] as the app's language writes it on a screen; [label] itself stays French for documents and exports (D3). */
+    @androidx.annotation.StringRes
+    fun labelRes(unit: String?): Int = when (unit) {
+        PIECE -> com.distrigo.app.R.string.common_unit_piece
+        KG    -> com.distrigo.app.R.string.common_unit_kg
+        else  -> com.distrigo.app.R.string.common_unit_carton
     }
 
     /** The unit after a quantity: "1 carton", "3 cartons", "1.25 kg" — kg does not take an "s". */

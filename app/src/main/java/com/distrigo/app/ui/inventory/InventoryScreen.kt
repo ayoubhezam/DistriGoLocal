@@ -33,6 +33,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -75,7 +77,7 @@ fun ColumnScope.InventorySummaryStep(
             IconButton(onClick = onBack, enabled = !isConfirmed) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Retour",
+                    contentDescription = stringResource(R.string.common_action_back),
                     tint = if (isConfirmed) DsColors.TextTertiary else DsColors.TextPrimary
                 )
             }
@@ -238,9 +240,9 @@ internal fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange:
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { onDateChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
                     picking = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { picking = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.common_action_cancel)) } }
         ) { DatePicker(state = state) }
     }
 }

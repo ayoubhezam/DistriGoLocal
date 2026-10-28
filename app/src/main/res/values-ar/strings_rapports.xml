@@ -1,0 +1,8 @@
+<resources>
+    <string name="rapports_debtor_sort_debt_desc">الدَّين (تنازلي)</string>
+    <string name="rapports_debtor_sort_debt_asc">الدَّين (تصاعدي)</string>
+    <string name="rapports_debtor_sort_name_az">الاسم (أ-ي)</string>
+    <string name="rapports_debtor_sort_name_za">الاسم (ي-أ)</string>
+    <string name="rapports_rank_sales">المبيعات</string>
+    <string name="rapports_rank_bons">الوصولات</string>
+</resources>

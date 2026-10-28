@@ -9,6 +9,7 @@ import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Supplier
 import com.distrigo.app.data.model.Vente
 import com.distrigo.app.data.model.Amount
+import com.distrigo.app.R
 
 // ── List search, filtering and grouping, as plain functions ──────────────────────────────────────
 //
@@ -78,8 +79,8 @@ fun filterClients(
  * Where a party's account stands, as the solde cell reads it: owing from half a centime up, in
  * advance from half a centime down, settled between.
  */
-enum class BalanceFilter(val label: String) {
-    OWING("Avec dettes"), SETTLED("Soldés"), ADVANCE("En avance");
+enum class BalanceFilter(@androidx.annotation.StringRes val label: Int) {
+    OWING(R.string.common_balance_owing), SETTLED(R.string.common_balance_settled), ADVANCE(R.string.common_balance_advance);
 
     fun matches(balance: Double): Boolean = when (this) {
         OWING   -> Amount.owing(balance)

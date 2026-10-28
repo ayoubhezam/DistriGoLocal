@@ -82,6 +82,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // The owner's « Administration » (docs/activation_codes.md, step C4), in the design language of Compte
 // (ui/designsystem/BrandComponents.kt): the batches, a new batch, its codes shown once, one code checked.
@@ -125,7 +127,7 @@ fun AdminHomeScreen(viewModel: AdminViewModel, onBack: () -> Unit, onNewBatch: (
                 batches == null && state.problem != null -> BrandCardBody {
                     Body(state.problem!!, center = true)
                     TextButton(onClick = viewModel::refresh, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                        Text("Réessayer", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
+                        Text(stringResource(R.string.common_action_retry), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
                     }
                 }
                 batches == null -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xl), contentAlignment = Alignment.Center) {

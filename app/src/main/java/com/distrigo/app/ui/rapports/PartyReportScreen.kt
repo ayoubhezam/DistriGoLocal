@@ -62,6 +62,8 @@ import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** How many parties the report itself ranks, and how many the concentration ring names. */
 private const val TOP_PARTIES = 10
@@ -75,7 +77,7 @@ private class PartyWords(
     val total: String, val totalInfo: ReportInfo, val people: (Int) -> String, val documents: (Int) -> String,
     val active: String, val activeInfo: ReportInfo, val average: String, val averageInfo: ReportInfo,
     val topTitle: String, val topInfo: ReportInfo, val shareInfo: ReportInfo, val listTitle: String,
-    val rankings: List<PartyRanking>, val rankingLabel: (PartyRanking) -> String,
+    val rankings: List<PartyRanking>, val rankingLabel: (PartyRanking) -> Int,
 )
 
 private fun wordsFor(side: DebtSide) = if (side == DebtSide.CLIENTS) PartyWords(
@@ -92,7 +94,7 @@ private fun wordsFor(side: DebtSide) = if (side == DebtSide.CLIENTS) PartyWords(
     shareInfo = ReportInfo("Concentration", "Concentration = Ventes des 5 meilleurs clients ÷ Ventes × 100"),
     listTitle = "Clients de la période",
     rankings = PartyRanking.entries,
-    rankingLabel = { if (it == PartyRanking.DOCUMENTS) "Ventes" else it.label },
+    rankingLabel = { if (it == PartyRanking.DOCUMENTS) R.string.rapports_rank_sales else it.label },
 ) else PartyWords(
     total = "Achats aux fournisseurs",
     totalInfo = ReportInfo("Achats aux fournisseurs", "Achats = somme des bons d'achat datés de la période, reçus ou non"),
@@ -107,7 +109,7 @@ private fun wordsFor(side: DebtSide) = if (side == DebtSide.CLIENTS) PartyWords(
     shareInfo = ReportInfo("Concentration", "Concentration = Achats aux 5 premiers fournisseurs ÷ Achats × 100"),
     listTitle = "Fournisseurs de la période",
     rankings = listOf(PartyRanking.MONTANT, PartyRanking.DOCUMENTS),
-    rankingLabel = { if (it == PartyRanking.DOCUMENTS) "Bons" else it.label },
+    rankingLabel = { if (it == PartyRanking.DOCUMENTS) R.string.rapports_rank_bons else it.label },
 )
 
 private val INFO_NEW = ReportInfo("Nouveaux clients", "Nouveaux clients = clients dont le premier achat est dans la période")
@@ -142,7 +144,7 @@ fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -
         ) {
             item { ReportFilterBar(state.filter, viewModel::setFilter, showSource = false) }
             item {
-                ReportSegmented(DebtSide.entries, state.side, { it.label }, viewModel::setSide, Modifier.padding(horizontal = DsSpacing.lg))
+                ReportSegmented(DebtSide.entries, state.side, { stringResource(it.label) }, viewModel::setSide, Modifier.padding(horizontal = DsSpacing.lg))
             }
             val report = state.report
             when {
@@ -158,7 +160,7 @@ fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -
                     if (report.parties.isNotEmpty()) {
                         item { TitleWithInfo(words.topTitle, words.topInfo, action = "Voir tout", onAction = onSeeAll) }
                         item {
-                            ReportSegmented(words.rankings, ranking, words.rankingLabel, { viewModel.ranking.value = it },
+                            ReportSegmented(words.rankings, ranking, { stringResource(words.rankingLabel(it)) }, { viewModel.ranking.value = it },
                                 Modifier.padding(horizontal = DsSpacing.lg))
                         }
                         itemsIndexed(report.ranked(ranking).take(TOP_PARTIES), key = { _, p -> "top_${p.id}" }) { i, p ->
@@ -300,7 +302,7 @@ fun PartiesScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
                 placeholder = if (state.side == DebtSide.CLIENTS) "Rechercher un client" else "Rechercher un fournisseur",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(8.dp))
-            ReportSegmented(words.rankings, ranking, words.rankingLabel, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
+            ReportSegmented(words.rankings, ranking, { stringResource(words.rankingLabel(it)) }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(6.dp))
             Text(if (query.isBlank()) words.people(ranked.size) else "${shown.size} sur ${ranked.size}",
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))

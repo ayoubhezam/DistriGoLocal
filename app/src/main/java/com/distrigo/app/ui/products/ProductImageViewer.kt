@@ -61,6 +61,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import com.distrigo.app.ui.designsystem.DsBrand
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The viewer's ground. Near-black rather than pure black, matching the app's ink. */
 private val ViewerBackground = DsBrand.Navy
@@ -309,7 +311,7 @@ fun ProductImageViewer(
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Color.White)
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = Color.White)
             }
         }
 

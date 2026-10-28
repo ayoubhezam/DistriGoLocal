@@ -60,6 +60,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // The app's new design language, first drawn for Compte (docs/activation_codes.md, step C5): Plus Jakarta Sans,
 // navy and blue on white cards with a hairline border, over the light Mist page. New screens are built from these
@@ -133,7 +135,7 @@ fun BrandTopBar(title: String, onBack: () -> Unit, divided: Boolean = false, act
     Column(Modifier.fillMaxWidth().background(DsBrand.Mist)) {
         Row(Modifier.fillMaxWidth().height(52.dp).padding(start = DsSpacing.xs, end = DsSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = DsBrand.Ink)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_action_back), tint = DsBrand.Ink)
             }
             Text(
                 title,
@@ -225,7 +227,7 @@ fun BrandInfoRow(
     Row(
         modifier          = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClickLabel = "Modifier $label", onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClickLabel = stringResource(R.string.common_cd_edit_field, label), onClick = onClick) else Modifier)
             .padding(start = DsSpacing.lg, end = if (onClick != null) DsSpacing.md else DsSpacing.lg, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -238,7 +240,7 @@ fun BrandInfoRow(
             badge()
         } else {
             Text(
-                value ?: if (onClick != null) "Ajouter" else "—",
+                value ?: if (onClick != null) stringResource(R.string.common_action_add) else "—",
                 fontFamily = DsBrand.Font,
                 fontWeight = if (value != null) FontWeight.Bold else FontWeight.SemiBold,
                 fontSize   = BrandSize.Body,

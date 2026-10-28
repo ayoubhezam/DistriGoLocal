@@ -87,6 +87,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 /**
  * Shared "Ma sélection" cart-item card, used identically by Achat, Vente (Dépôt)
  * and Vente (Tournée). See docs/design/distrigo_ma_selection_unifiee.html for the
@@ -370,7 +372,7 @@ fun QuantityStepper(
                 enabled  = canDecrement,
                 modifier = Modifier.size(44.dp).alpha(if (canDecrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
-                Icon(Icons.Default.Remove, contentDescription = "Diminuer", tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.common_cd_decrease), tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
             }
 
             OutlinedTextField(
@@ -412,7 +414,7 @@ fun QuantityStepper(
                 enabled  = canIncrement,
                 modifier = Modifier.size(44.dp).alpha(if (canIncrement) 1f else 0.4f).clip(DsShapes.medium).background(DsColors.SurfaceSunken)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Augmenter", tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_cd_increase), tint = DsColors.TextPrimary, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -451,7 +453,7 @@ fun CompactQuantityStepper(
         IconButton(
             onClick  = { if (Quantity.isBelow(value - 1.0, min)) onRemove() else onValueChange(inRange(value - 1.0)) },
             modifier = Modifier.size(32.dp).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-        ) { Icon(Icons.Default.Remove, contentDescription = "Diminuer", tint = tint, modifier = Modifier.size(15.dp)) }
+        ) { Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.common_cd_decrease), tint = tint, modifier = Modifier.size(15.dp)) }
         BasicTextField(
             value         = text,
             onValueChange = { raw ->
@@ -479,7 +481,7 @@ fun CompactQuantityStepper(
             onClick  = { onValueChange(inRange(value + 1.0)) },
             enabled  = !atMax,
             modifier = Modifier.size(32.dp).alpha(if (atMax) 0.4f else 1f).clip(DsShapes.pill).background(DsColors.SurfaceMuted)
-        ) { Icon(Icons.Default.Add, contentDescription = "Augmenter", tint = tint, modifier = Modifier.size(15.dp)) }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_cd_increase), tint = tint, modifier = Modifier.size(15.dp)) }
     }
 }
 
@@ -511,7 +513,7 @@ fun PriceFieldWithHistory(
     val belowCost = floorPrice != null && isBelowCost(price, floorPrice)
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("Prix unitaire (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Text(stringResource(R.string.common_label_unit_price_da), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
         Spacer(Modifier.height(6.dp))
         Row(
             modifier              = Modifier.fillMaxWidth(),
@@ -548,7 +550,7 @@ fun PriceFieldWithHistory(
                     ) {
                         Icon(
                             Icons.Default.History,
-                            contentDescription = "Historique des prix",
+                            contentDescription = stringResource(R.string.common_cd_price_history),
                             tint     = DsColors.Primary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -559,7 +561,7 @@ fun PriceFieldWithHistory(
                         modifier         = Modifier.background(DsColors.Surface)
                     ) {
                         Text(
-                            "DERNIERS PRIX",
+                            stringResource(R.string.common_cart_last_prices),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.Bold,
                             color      = DsColors.TextSecondary,
@@ -592,7 +594,7 @@ fun PriceFieldWithHistory(
                 Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(DsSpacing.xs))
                 Text(
-                    "Prix inférieur au prix d'achat (${money.da(floorPrice!!)}) : vente à perte",
+                    stringResource(R.string.common_cart_below_cost, money.da(floorPrice!!)),
                     fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Warning
                 )
             }
@@ -628,9 +630,9 @@ fun ExpiryToggleField(
                         onExpiryDateChange(date)
                     }
                     showExpiryPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showExpiryPicker = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { showExpiryPicker = false }) { Text(stringResource(R.string.common_action_cancel)) } }
         ) { DatePicker(state = expiryDateState) }
     }
 
@@ -649,8 +651,8 @@ fun ExpiryToggleField(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                 Column {
-                    Text("Date d'expiration", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                    Text("Le produit a une date d'expiration", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.common_label_expiry_date), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                    Text(stringResource(R.string.common_label_has_expiry), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
             }
             Switch(
@@ -666,7 +668,7 @@ fun ExpiryToggleField(
                     value         = expiryDate ?: "",
                     onValueChange = {},
                     readOnly      = true,
-                    label         = { Text("Date d'expiration", fontSize = DsTextSize.caption) },
+                    label         = { Text(stringResource(R.string.common_label_expiry_date), fontSize = DsTextSize.caption) },
                     trailingIcon  = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
                     modifier      = Modifier.fillMaxWidth().clickable { showExpiryPicker = true },
                     shape         = DsShapes.medium,

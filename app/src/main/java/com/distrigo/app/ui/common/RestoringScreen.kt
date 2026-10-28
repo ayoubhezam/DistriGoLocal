@@ -15,6 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Shown while a restore scheduled before the restart is being installed, instead of a frozen first frame. */
 @Composable
@@ -26,12 +28,12 @@ fun RestoringScreen() {
     ) {
         CircularProgressIndicator(color = DsColors.Primary)
         Text(
-            "Restauration en cours…",
+            stringResource(R.string.common_restoring_title),
             modifier = Modifier.padding(top = DsSpacing.lg),
             fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center
         )
         Text(
-            "Vos données sont remises en place. L'application s'ouvre dès que c'est terminé.",
+            stringResource(R.string.common_restoring_body),
             modifier = Modifier.padding(top = DsSpacing.sm),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center
         )

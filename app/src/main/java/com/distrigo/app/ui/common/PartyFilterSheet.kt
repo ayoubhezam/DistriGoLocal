@@ -43,6 +43,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.FilterDropdown
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 // The Clients and Fournisseurs lists' filtering: a count with a "Filtres" button, a removable chip
 // per criterion applied, and the sheet. The two lists differ only in which sections they show.
@@ -61,7 +63,7 @@ internal fun CountAndFiltersRow(
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
         Step2Chip(
             icon      = Icons.Default.FilterList,
-            label     = "Filtres",
+            label     = stringResource(R.string.common_label_filters),
             container = DsColors.Surface,
             content   = if (filtersActive) DsColors.Primary else DsColors.TextSecondary,
             dot       = filtersActive,
@@ -99,7 +101,7 @@ internal fun RemovableFilterChips(
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs)
             ) {
                 Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, maxLines = 1)
-                Icon(Icons.Default.Close, contentDescription = "Retirer", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_remove), tint = DsColors.Primary, modifier = Modifier.size(14.dp))
             }
         }
         item(key = "clear-all") {
@@ -111,7 +113,7 @@ internal fun RemovableFilterChips(
                     .padding(horizontal = DsSpacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Tout effacer", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                Text(stringResource(R.string.common_action_clear_all), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
             }
         }
     }
@@ -158,22 +160,22 @@ internal fun PartyFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Filtres", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.common_label_filters), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                 }
             }
             Spacer(Modifier.height(DsSpacing.sm))
 
             if (types != null) {
-                Segments("Type de client", listOf<Pair<String?, String>>(null to "Tous") + types, type, onType)
+                Segments(stringResource(R.string.common_label_client_type), listOf<Pair<String?, String>>(null to stringResource(R.string.common_filter_all)) + types, type, onType)
             }
 
-            Segments("Solde", listOf<Pair<BalanceFilter?, String>>(null to "Tous") + BalanceFilter.entries.map { it to it.label }, balance, onBalance)
+            Segments(stringResource(R.string.common_label_balance), listOf<Pair<BalanceFilter?, String>>(null to stringResource(R.string.common_filter_all)) + BalanceFilter.entries.map { it to stringResource(it.label) }, balance, onBalance)
 
             FilterDropdown(
-                label    = "Wilaya",
-                allLabel = "Toutes les wilayas",
+                label    = stringResource(R.string.common_label_wilaya),
+                allLabel = stringResource(R.string.common_all_wilayas),
                 options  = wilayas,
                 selected = wilaya,
                 keyOf    = { it },
@@ -181,8 +183,8 @@ internal fun PartyFilterSheet(
                 onSelect = { onWilaya(it) }
             )
             FilterDropdown(
-                label    = "Commune",
-                allLabel = "Toutes les communes",
+                label    = stringResource(R.string.common_label_commune),
+                allLabel = stringResource(R.string.common_all_communes),
                 options  = communes,
                 selected = commune,
                 keyOf    = { it },
@@ -192,8 +194,8 @@ internal fun PartyFilterSheet(
             )
             if (secteurs != null) {
                 FilterDropdown(
-                    label    = "Secteur",
-                    allLabel = "Tous les secteurs",
+                    label    = stringResource(R.string.common_label_secteur),
+                    allLabel = stringResource(R.string.common_all_secteurs),
                     options  = secteurs,
                     selected = secteur,
                     keyOf    = { it },
@@ -211,7 +213,7 @@ internal fun PartyFilterSheet(
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                     border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                 ) {
-                    Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick  = onDismiss,
@@ -220,7 +222,7 @@ internal fun PartyFilterSheet(
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.common_action_apply_count, resultCount), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                 }
             }
         }

@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 class TicketShape(
     private val cornerRadius: Dp = 8.dp,
@@ -66,7 +68,7 @@ class TicketShape(
 }
 
 @Composable
-fun PaidStamp(modifier: Modifier = Modifier, text: String = "PAYÉ") {
+fun PaidStamp(modifier: Modifier = Modifier, text: String = stringResource(R.string.common_stamp_paid)) {
     Box(
         modifier = modifier
             .rotate(-3f)

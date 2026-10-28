@@ -22,6 +22,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The one confirmation for deleting a sale — from the Dépôt Vente list, a tournée's list, or a
@@ -62,11 +64,11 @@ internal fun VenteDeleteDialog(
                 if (deleting) {
                     CircularProgressIndicator(color = DsColors.Danger, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             }
         },
-        dismissButton    = { TextButton(onClick = onDismiss, enabled = !deleting) { Text("Annuler") } },
+        dismissButton    = { TextButton(onClick = onDismiss, enabled = !deleting) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor   = DsColors.Surface
     )
 }

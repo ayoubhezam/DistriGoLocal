@@ -59,6 +59,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** How many lost products and products to restock the report itself lists. */
 private const val TOP_LOST = 5
@@ -273,7 +275,7 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
-                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                     tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                 )
             }

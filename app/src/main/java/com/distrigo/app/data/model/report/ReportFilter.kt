@@ -3,6 +3,7 @@ package com.distrigo.app.data.model.report
 import com.distrigo.app.data.time.BusinessDates
 import java.time.LocalDate
 import java.time.ZoneId
+import com.distrigo.app.R
 
 /**
  * The period a report covers, as the user picks it. Each preset is resolved against a given day, so
@@ -11,21 +12,21 @@ import java.time.ZoneId
  * A rolling "7 derniers jours" rather than a calendar week: the business's week starts on Sunday,
  * a phone's calendar often on Monday, and a rolling week needs neither.
  */
-enum class ReportPeriod(val label: String) {
-    AUJOURDHUI("Aujourd'hui"),
-    HIER("Hier"),
-    SEPT_JOURS("7 derniers jours"),
-    CE_MOIS("Ce mois"),
-    MOIS_DERNIER("Mois dernier"),
-    CETTE_ANNEE("Cette année"),
-    PERSONNALISE("Personnalisé"),
+enum class ReportPeriod(@androidx.annotation.StringRes val label: Int) {
+    AUJOURDHUI(R.string.common_period_today),
+    HIER(R.string.common_period_yesterday),
+    SEPT_JOURS(R.string.common_period_last_7_days),
+    CE_MOIS(R.string.common_period_this_month),
+    MOIS_DERNIER(R.string.common_period_last_month),
+    CETTE_ANNEE(R.string.common_period_this_year),
+    PERSONNALISE(R.string.common_period_custom),
 }
 
 /** Where the sales of a report were made: everywhere, the dépôt counter, or the camion. */
-enum class ReportSource(val label: String, val key: String?) {
-    TOUT("Tout", null),
-    DEPOT("Dépôt", "depot"),
-    CAMION("Camion", "camion"),
+enum class ReportSource(@androidx.annotation.StringRes val label: Int, val key: String?) {
+    TOUT(R.string.common_source_all, null),
+    DEPOT(R.string.common_source_depot, "depot"),
+    CAMION(R.string.common_source_truck, "camion"),
 }
 
 /**

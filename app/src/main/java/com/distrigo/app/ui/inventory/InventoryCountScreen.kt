@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.inventory
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +71,8 @@ import com.distrigo.app.ui.products.ProductCard
 import com.distrigo.app.ui.purchases.ProductListFilters
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Inventaire: the products still to count, the way the Ventes and Achats product steps list theirs —
@@ -113,7 +116,7 @@ fun InventoryCountScreen(
         ) {
             DsCompactSearchAction(
                 icon               = Icons.Default.QrCodeScanner,
-                contentDescription = "Scanner un code-barres",
+                contentDescription = stringResource(R.string.common_cd_scan_barcode),
                 tint               = DsColors.PrimaryDark,
                 onClick            = onScan
             )
@@ -126,7 +129,7 @@ fun InventoryCountScreen(
             countLabel    = "à inventorier",
         )
         ActiveProductFilterChips(
-            productFilterChips(filters, categories, sousCategories, marques, suppliers, "Prix de vente", money),
+            productFilterChips(LocalContext.current.resources, filters, categories, sousCategories, marques, suppliers, stringResource(R.string.common_label_sale_price), money),
             onChange = onFiltersChange
         )
 
@@ -267,7 +270,7 @@ fun InventoryCountDialog(
                 OutlinedButton(
                     onClick = onDismiss, enabled = !isSaving,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium
-                ) { Text("Annuler") }
+                ) { Text(stringResource(R.string.common_action_cancel)) }
                 Button(
                     onClick = {
                         val qte = Quantity.parse(text)
@@ -278,7 +281,7 @@ fun InventoryCountDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
-                    else Text("Enregistrer", fontWeight = FontWeight.SemiBold)
+                    else Text(stringResource(R.string.common_action_save), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

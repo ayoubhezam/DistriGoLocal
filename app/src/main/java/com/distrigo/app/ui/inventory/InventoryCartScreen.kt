@@ -59,6 +59,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import kotlin.math.abs
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The count's selection, laid out as the Ventes and Achats carts are: one card per product counted —
@@ -133,7 +135,7 @@ fun InventoryCartScreen(
                                     TextButton(onClick = { deleting = item }) {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                                        Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                                     }
                                     Spacer(Modifier.weight(1f))
                                     val parsed = Quantity.parse(text)
@@ -142,7 +144,7 @@ fun InventoryCartScreen(
                                         enabled = parsed != null && parsed >= 0 && parsed != item.qte_physique,
                                         shape = DsShapes.medium,
                                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                                    ) { Text("Enregistrer") }
+                                    ) { Text(stringResource(R.string.common_action_save)) }
                                 }
                             }
                         )
@@ -158,7 +160,7 @@ fun InventoryCartScreen(
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_back), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick  = onNext,
@@ -166,7 +168,7 @@ fun InventoryCartScreen(
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape    = DsShapes.medium,
                 colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-            ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }
 
@@ -175,8 +177,8 @@ fun InventoryCartScreen(
             onDismissRequest = { deleting = null },
             title = { Text("Retirer « ${item.product_name} » ?") },
             text  = { Text("Son ajustement est annulé et le produit revient dans la liste à inventorier.") },
-            confirmButton = { TextButton(onClick = { onDelete(item); deleting = null }) { Text("Retirer", color = DsColors.Danger) } },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Annuler") } },
+            confirmButton = { TextButton(onClick = { onDelete(item); deleting = null }) { Text(stringResource(R.string.common_action_remove), color = DsColors.Danger) } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
             textContentColor = DsColors.TextSecondary

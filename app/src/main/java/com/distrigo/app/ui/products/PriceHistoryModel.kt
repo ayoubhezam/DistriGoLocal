@@ -39,6 +39,8 @@ fun List<PriceMovement>.narrow(
     filters     : PriceHistoryFilters,
     today       : LocalDate = LocalDate.now(),
     includeKind : Boolean = true,
+    /** The kind as the screen names it, so a search for « achat » (or « شراء ») finds purchases. */
+    kindLabel   : (PriceMovementKind) -> String = { it.name.lowercase() },
 ): List<PriceMovement> {
     val tokens = filters.query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
     val days = filters.period.days(today)
@@ -47,7 +49,7 @@ fun List<PriceMovement>.narrow(
         if (includeKind && filters.kind != null && movement.kind != filters.kind) return@filter false
         if (movement.day() !in days) return@filter false
         if (tokens.isNotEmpty()) {
-            val haystack = (movement.party + " " + movement.kind.label + " " + movement.documentLabel).lowercase()
+            val haystack = (movement.party + " " + kindLabel(movement.kind) + " " + movement.documentLabel).lowercase()
             if (!tokens.all { haystack.contains(it) }) return@filter false
         }
         true

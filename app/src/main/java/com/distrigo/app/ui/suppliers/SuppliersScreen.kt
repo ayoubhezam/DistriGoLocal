@@ -41,6 +41,8 @@ import com.distrigo.app.ui.common.SupplierListFilters
 import com.distrigo.app.ui.common.placesOf
 import com.distrigo.app.data.model.Amount
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -69,7 +71,7 @@ fun SuppliersScreen(
         placesOf(suppliers.filter { it.wilaya_name?.trim().equals(filters.wilaya, ignoreCase = true) }.map { it.commune_name })
     }
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
-        filters.balance?.let { b -> add(b.label to { viewModel.listFilters = filters.copy(balance = null) }) }
+        filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
         filters.wilaya?.let { w -> add("Wilaya : $w" to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
         filters.commune?.let { c -> add("Commune : $c" to { viewModel.listFilters = filters.copy(commune = null) }) }
     }
@@ -114,7 +116,7 @@ fun SuppliersScreen(
                 modifier       = Modifier.size(40.dp),
                 shape          = DsShapes.pill
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_action_add))
             }
         }
 

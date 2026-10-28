@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.data.license.LicensePolicy
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The license on the screens (docs/license_l5_enforcement.md §2): one per app, provided at the root as
@@ -181,7 +183,7 @@ fun DsLicenseBanner(license: LicenseUi = LocalLicense.current) {
                 Modifier.size(32.dp).clip(CircleShape).clickable { license.dismiss(banner) },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Fermer pour aujourd'hui", tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_cd_close_for_today), tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -194,7 +196,7 @@ fun DsLicenseBanner(license: LicenseUi = LocalLicense.current) {
  */
 @Composable
 fun DsUnloadOnlyNote(
-    text: String = "Consultation seule : vous pouvez encore décharger le camion vers le dépôt, pas le charger.",
+    text: String = stringResource(R.string.common_license_unload_only),
     license: LicenseUi = LocalLicense.current,
 ) {
     if (!license.unloadOnly) return
@@ -272,7 +274,7 @@ fun LicenseBlockSheet(license: LicenseUi = LocalLicense.current) {
                 Icon(Icons.Outlined.Lock, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(24.dp))
             }
             Text(
-                "Consultation seule",
+                stringResource(R.string.common_license_read_only),
                 fontFamily = DsBrand.Font,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize   = BrandSize.DialogTitle,
@@ -305,7 +307,7 @@ fun LicenseBlockSheet(license: LicenseUi = LocalLicense.current) {
                 license.act(block.action)
             }
             TextButton(onClick = license::closeSheet, modifier = Modifier.fillMaxWidth()) {
-                Text("Fermer", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Slate)
+                Text(stringResource(R.string.common_action_close), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Slate)
             }
         }
     }

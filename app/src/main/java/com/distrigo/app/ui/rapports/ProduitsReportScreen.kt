@@ -65,6 +65,8 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** How many products the report itself ranks; "Voir tout" ranks them all. */
 private const val TOP_PRODUCTS = 10
@@ -125,7 +127,7 @@ fun ProduitsReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onSansVente: 
                     } else {
                         item { TitleWithInfo("Meilleurs produits", INFO_TOP, action = "Voir tout", onAction = onSeeAll) }
                         item {
-                            ReportSegmented(ProductRanking.entries, ranking, { it.label }, { viewModel.ranking.value = it },
+                            ReportSegmented(ProductRanking.entries, ranking, { stringResource(it.label) }, { viewModel.ranking.value = it },
                                 Modifier.padding(horizontal = DsSpacing.lg))
                         }
                         val top = report.ranked(ranking).take(TOP_PRODUCTS)
@@ -267,7 +269,7 @@ private fun GroupsCard(report: ProductReport, by: ProductGrouping, onGrouping: (
     CardColumn {
         CardTitle("Répartition", INFO_GROUPS)
         Spacer(Modifier.height(DsSpacing.md))
-        ReportSegmented(ProductGrouping.entries, by, { it.label }, onGrouping)
+        ReportSegmented(ProductGrouping.entries, by, { stringResource(it.label) }, onGrouping)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ShareRing(slices.mapIndexed { i, (_, v) -> v to GroupColors[i % GroupColors.size] }, report.total, "Total", Modifier.weight(1f))
@@ -370,14 +372,14 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
-                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                     tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                 )
             }
             if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
-            ReportSegmented(ProductRanking.entries, ranking, { it.label }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
+            ReportSegmented(ProductRanking.entries, ranking, { stringResource(it.label) }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(6.dp))
             Text(if (query.isBlank()) plural(ranked.size, "produit", "produits") else "${shown.size} sur ${ranked.size}",
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
@@ -426,7 +428,7 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
-                    icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                    icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                     tint = DsColors.PrimaryDark, onClick = { showScanner = true }
                 )
             }

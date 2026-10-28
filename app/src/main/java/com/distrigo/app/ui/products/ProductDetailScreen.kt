@@ -57,6 +57,8 @@ import kotlin.math.abs
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.distrigo.app.ui.common.mirrorInRtl
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The margin's colour: neither the purchase price's green nor the selling price's blue. */
 private val MarginColor = DsColors.AccentViolet
@@ -140,12 +142,12 @@ fun ProductDetailScreen(
                     showDeleteDialog = false
                     onDelete()
                 }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -158,7 +160,7 @@ fun ProductDetailScreen(
         AlertDialog(
             onDismissRequest = { showStockInfo = false },
             confirmButton = {
-                TextButton(onClick = { showStockInfo = false }) { Text("Compris") }
+                TextButton(onClick = { showStockInfo = false }) { Text(stringResource(R.string.common_action_got_it)) }
             },
             title = { Text("Informations de stock", fontWeight = FontWeight.Bold) },
             text  = {
@@ -194,7 +196,7 @@ fun ProductDetailScreen(
                     .clip(DsShapes.medium)
                     .background(DsColors.DangerLight)
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = DsColors.Danger)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_action_delete), tint = DsColors.Danger)
             }
             Spacer(Modifier.width(DsSpacing.sm))
             IconButton(
@@ -203,7 +205,7 @@ fun ProductDetailScreen(
                     .clip(DsShapes.medium)
                     .background(DsColors.PrimaryLight)
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = DsColors.Primary)
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.common_action_edit), tint = DsColors.Primary)
             }
             // The tinted square is the button's full 48dp, so it needs the difference to the
             // bar's standard end margin — matching the client and supplier details.
@@ -352,11 +354,11 @@ fun ProductDetailScreen(
                     if (images.size <= 1) viewerIndex = null
                     pendingDelete = null
                 }) {
-                    Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Annuler") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_action_cancel)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -370,7 +372,7 @@ fun ProductDetailScreen(
             title   = { Text("Photo non ajoutée") },
             text    = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { galleryError = null }) { Text("OK") }
+                TextButton(onClick = { galleryError = null }) { Text(stringResource(R.string.common_action_ok)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -627,7 +629,7 @@ private fun PriceHistoryRow(movement: PriceMovement) {
             Text(movement.party, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row {
                 Text(
-                    movement.kind.label,
+                    stringResource(movement.kind.label),
                     fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
                     color = if (achat) DsColors.Success else DsColors.Primary
                 )
@@ -777,7 +779,7 @@ private fun ExpiryLine(expiryDate: String?) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CalendarToday, contentDescription = null, tint = if (expired || soon) color else DsColors.Primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.sm))
-        Text("Date d'expiration", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.common_label_expiry_date), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
         if (expired || soon) {
             Text(
                 if (expired) "Expiré" else "Expire bientôt",

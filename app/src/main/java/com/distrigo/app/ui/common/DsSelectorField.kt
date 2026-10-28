@@ -19,6 +19,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @Composable
 fun DsSelectorField(
@@ -57,7 +59,7 @@ fun DsSelectorField(
             )
             Icon(
                 if (locked) Icons.Outlined.Lock else Icons.Default.ArrowDropDown,
-                contentDescription = if (locked) "Verrouillé" else null,
+                contentDescription = if (locked) stringResource(R.string.common_cd_locked) else null,
                 tint = DsColors.TextSecondary,
                 modifier = if (locked) Modifier.size(20.dp) else Modifier,
             )

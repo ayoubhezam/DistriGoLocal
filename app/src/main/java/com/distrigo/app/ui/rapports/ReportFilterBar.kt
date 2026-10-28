@@ -53,6 +53,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 private val DAY_SHORT = DateTimeFormatter.ofPattern("dd/MM")
@@ -81,7 +83,7 @@ fun ReportFilterBar(
     var sheet by remember { mutableStateOf(false) }
 
     Column(modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-        ReportSelectorField(Icons.Default.CalendarMonth, filter.period.label, filter.daysText(), "Changer la période") { sheet = true }
+        ReportSelectorField(Icons.Default.CalendarMonth, stringResource(filter.period.label), filter.daysText(), "Changer la période") { sheet = true }
 
         if (showSource) {
             SourceSelector(filter.source) { onChange(filter.copy(source = it)) }
@@ -132,14 +134,14 @@ fun ReportSelectorField(
 /** Tout · Dépôt · Camion, as one segmented control. */
 @Composable
 private fun SourceSelector(selected: ReportSource, onSelect: (ReportSource) -> Unit) =
-    ReportSegmented(ReportSource.entries, selected, { it.label }, onSelect)
+    ReportSegmented(ReportSource.entries, selected, { stringResource(it.label) }, onSelect)
 
 /**
  * A row of mutually exclusive choices in a grey pill, the chosen one raised in white — the control a
  * report uses to switch what it looks at (Tout · Dépôt · Camion, Clients · Fournisseurs).
  */
 @Composable
-fun <T> ReportSegmented(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
+fun <T> ReportSegmented(options: List<T>, selected: T, label: @Composable (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier
             .fillMaxWidth()
@@ -201,7 +203,7 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 .padding(horizontal = DsSpacing.lg)
                 .navigationBarsPadding()
         ) {
-            Text("Période", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(DsSpacing.md))
 
             ReportPeriod.entries.forEach { period ->
@@ -223,7 +225,7 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            period.label, fontSize = DsTextSize.body,
+                            stringResource(period.label), fontSize = DsTextSize.body,
                             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (on) DsColors.Primary else DsColors.TextPrimary,
                         )
@@ -283,8 +285,8 @@ private fun DayPickerDialog(day: LocalDate, onPicked: (LocalDate) -> Unit, onDis
         confirmButton = {
             TextButton(onClick = {
                 state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) } ?: onDismiss()
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.common_action_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
     ) { DatePicker(state = state) }
 }

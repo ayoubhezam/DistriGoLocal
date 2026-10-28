@@ -1,0 +1,14 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="ventes_draft_edit_title">Modification · vente %1$s</string>
+    <string name="ventes_draft_blocked_deleted">Vente supprimée</string>
+    <string name="ventes_drafts_sheet_subtitle">Reprenez un brouillon ou commencez une nouvelle vente.</string>
+    <string name="ventes_drafts_sheet_start_new">Commencer une nouvelle vente</string>
+    <string name="ventes_draft_changed_title">La vente %1$s a changé</string>
+    <string name="ventes_draft_changed_body">Cette vente %1$s a été modifiée depuis que vous avez commencé cette modification. Vos changements n\'ont pas encore été enregistrés.</string>
+    <string name="ventes_draft_use_committed">Repartir de la vente actuelle</string>
+    <string name="ventes_draft_blocked_title">Vente non modifiable</string>
+    <string name="ventes_draft_blocked_body">La vente %1$s ne peut plus recevoir cette modification.</string>
+    <string name="ventes_draft_view_record">Voir la vente</string>
+    <string name="ventes_draft_deleted_title">Vente introuvable</string>
+    <string name="ventes_draft_deleted_body">La vente %1$s a été supprimée. Il n\'y a plus rien à modifier.</string>
+</resources>

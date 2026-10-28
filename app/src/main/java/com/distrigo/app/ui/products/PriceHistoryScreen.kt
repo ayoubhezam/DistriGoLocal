@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.common.formatQty
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -45,6 +46,7 @@ import com.distrigo.app.ui.rapports.ReportFilterBar
 import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.res.stringResource
 
 /**
  * Every price a product changed hands at: what was paid for it and what it sold for, side by side.
@@ -66,8 +68,10 @@ fun PriceHistoryScreen(
 ) {
     // Counted with every filter but the segment itself, so the counts beside each segment say what
     // that segment would show.
-    val overall = remember(movements, filters) { movements.narrow(filters, includeKind = false) }
-    val shown   = remember(movements, filters) { movements.narrow(filters) }
+    val res     = LocalContext.current.resources
+    val kindLabel = { kind: PriceMovementKind -> res.getString(kind.label) }
+    val overall = remember(movements, filters) { movements.narrow(filters, includeKind = false, kindLabel = kindLabel) }
+    val shown   = remember(movements, filters) { movements.narrow(filters, kindLabel = kindLabel) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -176,8 +180,9 @@ fun PriceMovementsScreen(
     onBack      : () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val res   = LocalContext.current.resources
     val all   = remember(movements, filters) { movements.narrow(filters.copy(query = "")) }
-    val shown = remember(movements, filters, query) { movements.narrow(filters.copy(query = query)) }
+    val shown = remember(movements, filters, query) { movements.narrow(filters.copy(query = query)) { res.getString(it.label) } }
     // A new search starts at the top of what it found.
     val listState = rememberLazyListState()
     LaunchedEffect(query) { listState.scrollToItem(0) }
@@ -374,7 +379,7 @@ private fun MovementRow(movement: PriceMovement) {
         Column(Modifier.weight(1f)) {
             Text(movement.party, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row {
-                Text(movement.kind.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = colour)
+                Text(stringResource(movement.kind.label), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = colour)
                 Text(
                     " · ${DateTimeFormatter.ofPattern("dd/MM/yyyy").format(movement.day())} · qté ${formatQty(movement.quantity)}",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis

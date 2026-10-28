@@ -60,6 +60,7 @@ import com.distrigo.app.ui.navigation.DrillTarget
 import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
 
 /** Each age band's colour: green while recent, to red past 90 days. */
 private val AgeColors = mapOf(
@@ -159,7 +160,7 @@ fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtRe
             item { ReportFilterBar(state.filter, viewModel::setFilter, showSource = false) }
             item {
                 ReportSegmented(
-                    DebtSide.entries, state.side, { it.label }, viewModel::setSide,
+                    DebtSide.entries, state.side, { stringResource(it.label) }, viewModel::setSide,
                     Modifier.padding(horizontal = DsSpacing.lg),
                 )
             }
@@ -286,7 +287,7 @@ private fun AgeCard(report: DebtReport) {
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 // One line: "Plus de 90 jours" shrinks a little rather than wrap under its share.
-                                FitText(band.label, fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, modifier = Modifier.weight(1f), minScale = 0.8f)
+                                FitText(stringResource(band.label), fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary, modifier = Modifier.weight(1f), minScale = 0.8f)
                                 Spacer(Modifier.width(DsSpacing.xs))
                                 Text(
                                     percentOf(amount, total) ?: percent(0.0),
@@ -343,7 +344,7 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
             FitText(money.da(line.balance), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Spacer(Modifier.height(2.dp))
             Text(
-                line.oldest.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color,
+                stringResource(line.oldest.label), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color,
                 modifier = Modifier.clip(DsShapes.pill).background(color.copy(alpha = 0.12f)).padding(horizontal = DsSpacing.sm, vertical = 2.dp),
             )
         }
@@ -426,7 +427,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
         SortOptionsSheet(
             options   = DebtorSort.entries,
             selected  = sort,
-            label     = { it.label },
+            label     = { stringResource(it.label) },
             onSelect  = viewModel::setDebtorSort,
             onDismiss = { sortSheet = false },
         )

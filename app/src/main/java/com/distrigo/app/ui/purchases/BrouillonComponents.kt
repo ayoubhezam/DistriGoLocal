@@ -9,7 +9,9 @@ import com.distrigo.app.ui.common.DraftConflictCopy
 import com.distrigo.app.ui.common.DraftSheetCopy
 import com.distrigo.app.ui.common.DraftsSheet
 import com.distrigo.app.ui.common.bidiIsolate
-import com.distrigo.app.ui.common.formatRelativeFr
+import com.distrigo.app.ui.common.relativeTime
+import com.distrigo.app.core.text.UiText
+import com.distrigo.app.R
 import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
 
 // Everything that draws a Brouillon lives in ui/common/DraftComponents.kt and is shared with the
@@ -22,10 +24,10 @@ import com.distrigo.app.ui.common.draftResumeAction as genericDraftResumeAction
  * Edit drafts lead with the bon number, because that is the thing that tells two of them apart —
  * the supplier moves to the meta line rather than the other way round.
  */
-internal fun PurchaseDraft.cardTitle(): String = when {
-    sourceOrderId != null -> "Modification · bon ${sourceNumber ?: "#$sourceOrderId"}"
-    supplierName != null  -> bidiIsolate(supplierName)
-    else                  -> "Fournisseur non choisi"
+internal fun PurchaseDraft.cardTitle(): UiText = when {
+    sourceOrderId != null -> UiText.Res(R.string.purchases_draft_edit_title, sourceNumber ?: "#$sourceOrderId")
+    supplierName != null  -> UiText.Raw(bidiIsolate(supplierName))
+    else                  -> UiText.Res(R.string.purchases_draft_supplier_not_chosen)
 }
 
 /**
@@ -34,18 +36,17 @@ internal fun PurchaseDraft.cardTitle(): String = when {
  * The supplier name is bidi-isolated because it is joined to French text here — see
  * [bidiIsolate] for what an Arabic name does to the separators around it otherwise.
  */
-internal fun PurchaseDraft.cardMeta(): String {
-    val parts = buildList {
-        if (sourceOrderId != null && supplierName != null) add(bidiIsolate(supplierName))
-        add(if (itemCount <= 1) "$itemCount produit" else "$itemCount produits")
-        formatRelativeFr(updatedAt)?.let { add(it) }
+internal fun PurchaseDraft.cardMeta(): UiText = UiText.Joined(
+    buildList {
+        if (sourceOrderId != null && supplierName != null) add(UiText.Raw(bidiIsolate(supplierName)))
+        add(UiText.Plural(R.plurals.common_products_count, itemCount))
+        relativeTime(updatedAt)?.let { add(it) }
     }
-    return parts.joinToString(" · ")
-}
+)
 
-private fun PurchaseDraft.blockedReason(): String? = when (blockState) {
-    DraftBlock.RECEIVED -> "Bon déjà réceptionné"
-    DraftBlock.DELETED  -> "Bon supprimé"
+private fun PurchaseDraft.blockedReason(): UiText? = when (blockState) {
+    DraftBlock.RECEIVED -> UiText.Res(R.string.purchases_draft_blocked_received)
+    DraftBlock.DELETED  -> UiText.Res(R.string.purchases_draft_blocked_deleted)
     DraftBlock.NONE     -> null
 }
 
@@ -93,26 +94,24 @@ internal fun BrouillonsSheet(
 )
 
 private val SHEET_COPY = DraftSheetCopy(
-    titleOne  = "Brouillon en cours",
-    titleMany = "Brouillons en cours",
-    subtitle  = "Reprenez un brouillon ou commencez un nouveau bon.",
-    startNew  = "Commencer un nouveau bon"
+    titleOne  = UiText.Res(R.string.common_drafts_sheet_title_one),
+    titleMany = UiText.Res(R.string.common_drafts_sheet_title_many),
+    subtitle  = UiText.Res(R.string.purchases_drafts_sheet_subtitle),
+    startNew  = UiText.Res(R.string.purchases_drafts_sheet_start_new)
 )
 
 private fun conflictCopy(draft: PurchaseDraft): DraftConflictCopy {
-    val bon = draft.sourceOrderId?.let { "bon ${draft.sourceNumber ?: "#$it"}" } ?: "bon"
+    val number = draft.sourceOrderId?.let { draft.sourceNumber ?: "#$it" } ?: ""
     return DraftConflictCopy(
-        changedTitle = "Le $bon a changé",
-        changedBody  = "Ce $bon a été modifié depuis que vous avez commencé cette modification. " +
-                       "Vos changements n'ont pas encore été enregistrés.",
-        resumeMine   = "Reprendre mes modifications",
-        useCommitted = "Repartir du bon actuel",
-        blockedTitle = "Bon déjà réceptionné",
-        blockedBody  = "Le $bon a été réceptionné et le stock a déjà été mis à jour. " +
-                       "Cette modification ne peut plus être appliquée.",
-        viewRecord   = "Voir le bon",
-        deletedTitle = "Bon introuvable",
-        deletedBody  = "Le $bon a été supprimé. Il n'y a plus rien à modifier."
+        changedTitle = UiText.Res(R.string.purchases_draft_changed_title, number),
+        changedBody  = UiText.Res(R.string.purchases_draft_changed_body, number),
+        resumeMine   = UiText.Res(R.string.common_draft_resume_mine),
+        useCommitted = UiText.Res(R.string.purchases_draft_use_committed),
+        blockedTitle = UiText.Res(R.string.purchases_draft_blocked_received),
+        blockedBody  = UiText.Res(R.string.purchases_draft_blocked_body, number),
+        viewRecord   = UiText.Res(R.string.purchases_draft_view_record),
+        deletedTitle = UiText.Res(R.string.purchases_draft_deleted_title),
+        deletedBody  = UiText.Res(R.string.purchases_draft_deleted_body, number)
     )
 }
 

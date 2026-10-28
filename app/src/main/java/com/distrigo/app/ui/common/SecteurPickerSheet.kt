@@ -18,6 +18,8 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The commune's secteurs, with an inline "add a new one" field.
@@ -58,7 +60,7 @@ fun SecteurPickerSheet(
                 .padding(bottom = DsSpacing.lg)
         ) {
             Text(
-                "Secteurs disponibles à $communeName",
+                stringResource(R.string.common_secteurs_in_commune, communeName),
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.PrimaryDark
@@ -66,8 +68,8 @@ fun SecteurPickerSheet(
             if (isMultiSelect) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    if (selectedIds!!.isEmpty()) "Touchez pour en sélectionner un ou plusieurs"
-                    else "${selectedIds.size} secteur(s) sélectionné(s)",
+                    if (selectedIds!!.isEmpty()) stringResource(R.string.common_secteurs_tap_to_select)
+                    else stringResource(R.string.common_secteurs_selected, selectedIds.size),
                     fontSize = DsTextSize.bodySmall,
                     color    = if (selectedIds.isEmpty()) DsColors.TextSecondary else DsColors.Primary
                 )
@@ -108,7 +110,7 @@ fun SecteurPickerSheet(
                 if (secteurs.isEmpty()) {
                     item {
                         Text(
-                            "Aucun secteur pour cette commune",
+                            stringResource(R.string.common_secteurs_none_in_commune),
                             color    = DsColors.TextSecondary,
                             modifier = Modifier.padding(vertical = DsSpacing.md)
                         )
@@ -122,7 +124,7 @@ fun SecteurPickerSheet(
                 OutlinedTextField(
                     value         = newName,
                     onValueChange = { newName = it },
-                    placeholder   = { Text("Nom du secteur") },
+                    placeholder   = { Text(stringResource(R.string.common_secteur_name)) },
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth()
@@ -132,7 +134,7 @@ fun SecteurPickerSheet(
                     OutlinedButton(
                         onClick  = { showAddField = false; newName = "" },
                         modifier = Modifier.weight(1f)
-                    ) { Text("Annuler") }
+                    ) { Text(stringResource(R.string.common_action_cancel)) }
                     Button(
                         onClick = {
                             if (newName.isNotBlank()) {
@@ -144,7 +146,7 @@ fun SecteurPickerSheet(
                         },
                         modifier = Modifier.weight(1f),
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                    ) { Text("Ajouter") }
+                    ) { Text(stringResource(R.string.common_action_add)) }
                 }
             } else {
                 OutlinedButton(
@@ -154,7 +156,7 @@ fun SecteurPickerSheet(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Ajouter un nouveau secteur", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_secteur_add), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -165,7 +167,7 @@ fun SecteurPickerSheet(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                ) { Text("Terminé", fontWeight = FontWeight.SemiBold) }
+                ) { Text(stringResource(R.string.common_action_done), fontWeight = FontWeight.SemiBold) }
             }
         }
     }

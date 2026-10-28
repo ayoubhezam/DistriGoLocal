@@ -87,6 +87,8 @@ import com.distrigo.app.ui.inventory.InventoryDateField
 import com.distrigo.app.ui.products.ProductCard
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * A new return: only what can come back from this client or to this supplier, the Inventaire's way —
@@ -134,7 +136,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
             modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
         ) {
             DsCompactSearchAction(
-                icon = Icons.Default.QrCodeScanner, contentDescription = "Scanner un code-barres",
+                icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
                 tint = DsColors.PrimaryDark, onClick = { showScanner = true }
             )
         }
@@ -299,13 +301,13 @@ fun RetourDialog(
             problem?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.Danger) }
 
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium) { Text("Annuler") }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium) { Text(stringResource(R.string.common_action_cancel)) }
                 Button(
                     onClick = { val m = motif; if (m != null && quantity != null) onSave(quantity, m) },
                     enabled = motif != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                ) { Text("Enregistrer", fontWeight = FontWeight.SemiBold) }
+                ) { Text(stringResource(R.string.common_action_save), fontWeight = FontWeight.SemiBold) }
             }
         }
     }
@@ -352,14 +354,14 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                                     TextButton(onClick = { viewModel.remove(line); expandedId = null }) {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                                        Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                                     }
                                     Spacer(Modifier.weight(1f))
                                     Button(onClick = { editing = line }, shape = DsShapes.medium,
                                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
                                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(DsSpacing.xs))
-                                        Text("Modifier")
+                                        Text(stringResource(R.string.common_action_edit))
                                     }
                                 }
                             }
@@ -375,13 +377,13 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Retour", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_back), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick = onNext, enabled = cart.isNotEmpty(),
                 modifier = Modifier.weight(1f).height(52.dp), shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-            ) { Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold) }
         }
     }
 

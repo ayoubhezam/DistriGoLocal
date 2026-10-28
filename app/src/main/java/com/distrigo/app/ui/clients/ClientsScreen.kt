@@ -41,7 +41,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.common.clientsInDebt
 import com.distrigo.app.ui.format.LocalMoneyFormatter
-import com.distrigo.app.ui.common.refusalMessage
+import com.distrigo.app.ui.common.refusalText
 import com.distrigo.app.ui.common.PartyFilterSheet
 import com.distrigo.app.ui.common.CountAndFiltersRow
 import com.distrigo.app.ui.common.RemovableFilterChips
@@ -57,6 +57,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
@@ -105,6 +107,7 @@ fun ClientsScreen(
     // ── Delete confirmation ──
     showDeleteDialog?.let { client ->
         var deleteError by remember { mutableStateOf("") }
+        val refusalContext = androidx.compose.ui.platform.LocalContext.current
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Supprimer le client") },
@@ -122,12 +125,12 @@ fun ClientsScreen(
                     viewModel.deleteClient(
                         id        = client.id,
                         onSuccess = { showDeleteDialog = null },
-                        onError   = { deleteError = refusalMessage(it, money) }
+                        onError   = { deleteError = refusalText(it, money).resolve(refusalContext) }
                     )
-                }) { Text("Supprimer", color = DsColors.Danger) }
+                }) { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = null }) { Text(stringResource(R.string.common_action_cancel)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -160,7 +163,7 @@ fun ClientsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                        Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_edit), fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                     }
                     Row(
                         modifier = Modifier
@@ -176,7 +179,7 @@ fun ClientsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                        Text("Supprimer", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_delete), fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                     }
                 }
             },
@@ -194,7 +197,7 @@ fun ClientsScreen(
     val typeNames = listOf("retail" to "Détail", "wholesale" to "Gros", "business" to "Société")
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
         filters.type?.let { t -> add((typeNames.toMap()[t] ?: t) to { viewModel.listFilters = filters.copy(type = null) }) }
-        filters.balance?.let { b -> add(b.label to { viewModel.listFilters = filters.copy(balance = null) }) }
+        filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
         filters.wilaya?.let { w -> add("Wilaya : $w" to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
         filters.commune?.let { c -> add("Commune : $c" to { viewModel.listFilters = filters.copy(commune = null) }) }
         filters.secteur?.let { s -> add("Secteur : $s" to { viewModel.listFilters = filters.copy(secteur = null) }) }
@@ -260,7 +263,7 @@ fun ClientsScreen(
                 modifier       = Modifier.size(40.dp),
                 shape          = DsShapes.pill
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_action_add))
             }
             if (!selecting) DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
         }

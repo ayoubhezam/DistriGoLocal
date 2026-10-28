@@ -2,6 +2,7 @@ package com.distrigo.app.data.repository
 
 import com.distrigo.app.data.model.report.ReportRange
 import java.time.LocalDate
+import com.distrigo.app.R
 
 /**
  * One client or supplier over a report's period: how many documents — sales, or bons d'achat — what
@@ -23,7 +24,7 @@ data class PartyFigures(
 data class InactiveClient(val id: Int, val name: String, val imageUri: String?, val lastSale: LocalDate, val total: Double)
 
 /** How a report's parties are ranked. */
-enum class PartyRanking(val label: String) { MONTANT("Montant"), MARGE("Marge"), DOCUMENTS("Nombre") }
+enum class PartyRanking(@androidx.annotation.StringRes val label: Int) { MONTANT(R.string.common_rank_amount), MARGE(R.string.common_rank_margin), DOCUMENTS(R.string.common_rank_count) }
 
 /**
  * The Clients et fournisseurs report for one side: [parties] are the period's clients and their sales, or

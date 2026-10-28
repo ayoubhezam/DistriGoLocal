@@ -5,14 +5,15 @@ import com.distrigo.app.data.export.ExportFormat
 import com.distrigo.app.data.export.ExportPeriod
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.distrigo.app.R
 
 /** The periods offered, most used first. */
-enum class PeriodPreset(val label: String) {
-    THIS_MONTH("Ce mois-ci"),
-    LAST_MONTH("Mois dernier"),
-    THIS_YEAR("Cette année"),
-    ALL("Tout"),
-    CUSTOM("Choisir les dates"),
+enum class PeriodPreset(@androidx.annotation.StringRes val label: Int) {
+    THIS_MONTH(R.string.settings_export_period_this_month),
+    LAST_MONTH(R.string.common_period_last_month),
+    THIS_YEAR(R.string.common_period_this_year),
+    ALL(R.string.common_source_all),
+    CUSTOM(R.string.settings_export_period_custom),
 }
 
 /** What the export screen works out from the user's choices: the period, how it reads, and the file's name and type. */

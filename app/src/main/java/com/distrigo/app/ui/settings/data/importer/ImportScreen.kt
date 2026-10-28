@@ -40,6 +40,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Produits or Clients → Importer: pick a workbook, see what importing its [sheet] would do, row by row, then confirm.
@@ -187,7 +189,7 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
         HorizontalDivider(color = DsColors.Border)
         Row(Modifier.padding(DsSpacing.lg), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium) {
-                Text("Annuler", color = DsColors.TextPrimary)
+                Text(stringResource(R.string.common_action_cancel), color = DsColors.TextPrimary)
             }
             Button(
                 onClick = onConfirm,

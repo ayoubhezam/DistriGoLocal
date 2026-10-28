@@ -38,6 +38,8 @@ import com.distrigo.app.ui.navigation.navExitTransition
 import com.distrigo.app.ui.navigation.navPopEnterTransition
 import com.distrigo.app.ui.navigation.navPopExitTransition
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** What the onboarding hands over: its screens only collect, [OnboardingViewModel] does the rest. */
 class OnboardingActions(
@@ -212,7 +214,7 @@ private fun TransferDialog(models: List<String>, busy: Boolean, onConfirm: () ->
         },
         dismissButton    = {
             TextButton(onClick = onCancel, enabled = !busy) {
-                Text("Annuler", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, color = DsBrand.Slate)
+                Text(stringResource(R.string.common_action_cancel), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, color = DsBrand.Slate)
             }
         }
     )

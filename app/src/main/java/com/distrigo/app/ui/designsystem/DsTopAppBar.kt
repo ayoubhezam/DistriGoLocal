@@ -44,6 +44,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * What occupies the bar's leading slot.
@@ -153,9 +155,9 @@ fun DsTopAppBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         when (leading) {
-            is DsTopBarLeading.Back   -> DsTopBarIcon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", leading.onClick)
-            is DsTopBarLeading.Menu   -> DsTopBarIcon(Icons.Default.Menu,  "Menu",   leading.onClick)
-            is DsTopBarLeading.Close  -> DsTopBarIcon(Icons.Default.Close, "Fermer", leading.onClick)
+            is DsTopBarLeading.Back   -> DsTopBarIcon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_action_back), leading.onClick)
+            is DsTopBarLeading.Menu   -> DsTopBarIcon(Icons.Default.Menu,  stringResource(R.string.common_cd_menu),   leading.onClick)
+            is DsTopBarLeading.Close  -> DsTopBarIcon(Icons.Default.Close, stringResource(R.string.common_action_close), leading.onClick)
             is DsTopBarLeading.Custom -> leading.content()
             DsTopBarLeading.None      -> Unit
         }
@@ -224,7 +226,7 @@ fun DsStepBadge(
             .padding(horizontal = DsSpacing.sm, vertical = DsSpacing.xs)
     ) {
         Text(
-            "$label · $currentStep/$totalSteps",
+            stringResource(R.string.common_step_badge, label, currentStep, totalSteps),
             fontSize   = DsTextSize.caption,
             fontWeight = FontWeight.Bold,
             color      = DsColors.Primary
@@ -287,7 +289,7 @@ fun DsTopBarNotificationButton(
     ) {
         Icon(
             Icons.Default.Notifications,
-            contentDescription = "Notifications",
+            contentDescription = stringResource(R.string.common_cd_notifications),
             tint     = DsColors.PrimaryDark,
             modifier = Modifier.size(20.dp)
         )
@@ -338,7 +340,7 @@ fun DsTopBarAvatar(
         if (initials.isNullOrBlank()) {
             Icon(
                 if (byCode) Icons.Default.Key else Icons.Default.Person,
-                contentDescription = "Profil",
+                contentDescription = stringResource(R.string.common_cd_profile),
                 tint     = DsColors.Primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -389,7 +391,7 @@ fun DsTopBarOverflowMenu(vararg items: Pair<String, () -> Unit>) {
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_cd_more_options), tint = DsColors.TextSecondary)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = DsColors.Surface) {
             items.forEach { (label, action) ->

@@ -25,6 +25,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The section of clients without a secteur; always listed last. */
 internal const val SANS_SECTEUR = "Sans secteur"
@@ -62,7 +64,7 @@ internal fun SecteurHeader(
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                name.uppercase(),
+                (if (name == SANS_SECTEUR) stringResource(R.string.common_no_secteur) else name).uppercase(),
                 fontSize   = DsTextSize.caption,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.PrimaryDark,
@@ -80,7 +82,7 @@ internal fun SecteurHeader(
         Spacer(Modifier.width(DsSpacing.sm))
         Icon(
             Icons.Default.KeyboardArrowDown,
-            contentDescription = if (expanded) "Replier" else "Déplier",
+            contentDescription = stringResource(if (expanded) R.string.common_cd_collapse else R.string.common_cd_expand),
             tint     = DsColors.PrimaryDark,
             modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
         )

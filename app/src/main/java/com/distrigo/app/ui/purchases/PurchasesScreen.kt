@@ -60,6 +60,8 @@ import com.distrigo.app.ui.common.DsSelectorField
 import com.distrigo.app.ui.common.SearchableSelectList
 import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,14 +140,14 @@ fun PurchasesScreen(
                             onError = { err -> deleteError = err }
                         )
                     }) {
-                        Text("Supprimer", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = {
                         showDeleteDialog = false; longPressOrder = null; deleteError = ""
                     }) {
-                        Text("Annuler")
+                        Text(stringResource(R.string.common_action_cancel))
                     }
                 },
                 containerColor    = DsColors.Surface,
@@ -234,10 +236,10 @@ fun PurchasesScreen(
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateFromPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDateFromPicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDateFromPicker = false }) { Text(stringResource(R.string.common_action_cancel)) }
             }
         ) { DatePicker(state = dateFromState) }
     }
@@ -252,10 +254,10 @@ fun PurchasesScreen(
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDateToPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDateToPicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDateToPicker = false }) { Text(stringResource(R.string.common_action_cancel)) }
             }
         ) { DatePicker(state = dateToState) }
     }
@@ -297,9 +299,9 @@ fun PurchasesScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("Filtres avancés", fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.common_label_filters_advanced), fontWeight = FontWeight.Bold, fontSize = DsTextSize.bodyLarge, color = DsColors.PrimaryDark)
                     IconButton(onClick = { showFilterSheet = false }) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = DsColors.TextSecondary)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_action_close), tint = DsColors.TextSecondary)
                     }
                 }
                 Spacer(Modifier.height(DsSpacing.md))
@@ -378,7 +380,7 @@ fun PurchasesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── التاريخ ──
-                Text("Période", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedTextField(
                         value         = viewModel.filterDateFrom ?: "",
@@ -442,7 +444,7 @@ fun PurchasesScreen(
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DsColors.TextPrimary),
                         border   = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
-                        Text("Réinitialiser", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_reset), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium)
                     }
                     Button(
                         onClick  = { showFilterSheet = false },
@@ -462,6 +464,7 @@ fun PurchasesScreen(
 
     // Swipe-to-receive: the "Annuler" snackbar, and a scope that outlives the swiped row.
     val swipeSnackbar = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.common_action_cancel)
     val swipeScope    = rememberCoroutineScope()
 
     Box(
@@ -557,13 +560,12 @@ fun PurchasesScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.FilterList,
-                                contentDescription = "Filtres",
+                                contentDescription = stringResource(R.string.common_label_filters),
                                 tint     = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Filtres",
+                            Text(stringResource(R.string.common_label_filters),
                                 fontSize = DsTextSize.caption,
                                 color    = if (hasActiveFilters) DsColors.Primary else DsColors.TextSecondary
                             )
@@ -659,7 +661,7 @@ fun PurchasesScreen(
                                         id        = order.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("${order.numberLabel} marqué comme reçu") {
+                                                swipeSnackbar.showUndo("${order.numberLabel} marqué comme reçu", undoLabel) {
                                                     viewModel.undoReceive(order.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }

@@ -7,7 +7,9 @@ import com.distrigo.app.ui.common.DraftCardUi
 import com.distrigo.app.ui.common.DraftSheetCopy
 import com.distrigo.app.ui.common.DraftsSheet
 import com.distrigo.app.ui.common.bidiIsolate
-import com.distrigo.app.ui.common.formatRelativeFr
+import com.distrigo.app.ui.common.relativeTime
+import com.distrigo.app.core.text.UiText
+import com.distrigo.app.R
 
 // Everything that draws a Brouillon lives in ui/common/DraftComponents.kt and is shared with the
 // other two form flows. What stays here is only what is specific to a van sale: which field leads
@@ -21,17 +23,16 @@ import com.distrigo.app.ui.common.formatRelativeFr
  * write. Isolated because most client names in this catalogue are Arabic and this string is
  * interpolated into French sentences elsewhere; see [bidiIsolate].
  */
-internal fun TourneeVenteDraft.cardTitle(): String =
-    clientName?.let { bidiIsolate(it) } ?: "Client non choisi"
+internal fun TourneeVenteDraft.cardTitle(): UiText =
+    clientName?.let { UiText.Raw(bidiIsolate(it)) } ?: UiText.Res(R.string.common_draft_client_not_chosen)
 
 /** "3 produits · il y a 12 min" */
-internal fun TourneeVenteDraft.cardMeta(): String {
-    val parts = buildList {
-        add(if (itemCount <= 1) "$itemCount produit" else "$itemCount produits")
-        formatRelativeFr(updatedAt)?.let { add(it) }
+internal fun TourneeVenteDraft.cardMeta(): UiText = UiText.Joined(
+    buildList {
+        add(UiText.Plural(R.plurals.common_products_count, itemCount))
+        relativeTime(updatedAt)?.let { add(it) }
     }
-    return parts.joinToString(" · ")
-}
+)
 
 /**
  * How a van-sale draft renders as a card.
@@ -83,10 +84,10 @@ internal fun TourneeVenteBrouillonsSheet(
 )
 
 private val SHEET_COPY = DraftSheetCopy(
-    titleOne  = "Brouillon en cours",
-    titleMany = "Brouillons en cours",
-    subtitle  = "Reprenez un brouillon ou commencez une nouvelle vente.",
-    startNew  = "Commencer une nouvelle vente"
+    titleOne  = UiText.Res(R.string.common_drafts_sheet_title_one),
+    titleMany = UiText.Res(R.string.common_drafts_sheet_title_many),
+    subtitle  = UiText.Res(R.string.ventes_drafts_sheet_subtitle),
+    startNew  = UiText.Res(R.string.ventes_drafts_sheet_start_new)
 )
 
 /**

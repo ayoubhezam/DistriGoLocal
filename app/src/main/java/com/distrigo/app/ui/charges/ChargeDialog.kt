@@ -57,6 +57,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.inventory.InventoryDateField
 import java.time.LocalDate
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** What the dialog saves: the sub-type, the amount, the supplier (only where the sub-type asks for one), the day and the note. */
 data class ChargeInput(val subtypeId: Int, val montant: Double, val fournisseur: String?, val date: LocalDate, val note: String?)
@@ -145,7 +147,7 @@ fun ChargeDialog(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     OutlinedButton(onClick = { newName = null; newError = "" }, enabled = !adding, modifier = Modifier.weight(1f), shape = DsShapes.medium) {
-                        Text("Annuler")
+                        Text(stringResource(R.string.common_action_cancel))
                     }
                     Button(
                         onClick = {
@@ -160,7 +162,7 @@ fun ChargeDialog(
                         enabled = !adding && typing.isNotBlank(),
                         modifier = Modifier.weight(1f), shape = DsShapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                    ) { Text("Ajouter", fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.common_action_add), fontWeight = FontWeight.SemiBold) }
                 }
             } else Box {
                 Field(
@@ -223,7 +225,7 @@ fun ChargeDialog(
             InventoryDateField(date = date, enabled = !isSaving, onDateChange = { date = it })
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
-                label = { Text("Note (optionnel)") }, singleLine = true, shape = DsShapes.medium,
+                label = { Text(stringResource(R.string.common_label_note_optional)) }, singleLine = true, shape = DsShapes.medium,
                 colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -231,7 +233,7 @@ fun ChargeDialog(
 
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 OutlinedButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.common_action_cancel))
                 }
                 Button(
                     onClick = {
@@ -247,7 +249,7 @@ fun ChargeDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
-                    else Text("Enregistrer", fontWeight = FontWeight.SemiBold)
+                    else Text(stringResource(R.string.common_action_save), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

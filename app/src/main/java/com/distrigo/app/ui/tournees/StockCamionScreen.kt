@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.ProductUnit
@@ -58,6 +59,8 @@ import com.distrigo.app.ui.products.ProductSortSheet
 import com.distrigo.app.ui.products.SortOption
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockCamionScreen(
@@ -195,7 +198,7 @@ fun StockCamionScreen(
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                        Text("Modifier", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_edit), fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                     }
                     // Everything the truck holds of it, back to the dépôt, once confirmed
                     Spacer(Modifier.height(DsSpacing.sm))
@@ -262,7 +265,7 @@ fun StockCamionScreen(
                     }
                 ) { Text("Décharger", color = DsColors.Warning, fontWeight = FontWeight.SemiBold) }
             },
-            dismissButton    = { TextButton(enabled = !unloadBusy, onClick = { unloadingProduct = null }) { Text("Annuler") } },
+            dismissButton    = { TextButton(enabled = !unloadBusy, onClick = { unloadingProduct = null }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
         )
     }
@@ -295,7 +298,7 @@ fun StockCamionScreen(
             ) {
                 DsCompactSearchAction(
                     icon               = Icons.Default.QrCodeScanner,
-                    contentDescription = "Scanner un code-barres",
+                    contentDescription = stringResource(R.string.common_cd_scan_barcode),
                     tint               = DsColors.PrimaryDark,
                     onClick            = { showScanner = true }
                 )
@@ -343,7 +346,7 @@ fun StockCamionScreen(
             )
             Spacer(Modifier.height(DsSpacing.sm))
             ActiveProductFilterChips(
-                productFilterChips(filters, categories, sousCategories, marques, suppliers, "Prix de vente", money),
+                productFilterChips(LocalContext.current.resources, filters, categories, sousCategories, marques, suppliers, stringResource(R.string.common_label_sale_price), money),
                 onChange = { productViewModel.camionFilters = it }
             )
 

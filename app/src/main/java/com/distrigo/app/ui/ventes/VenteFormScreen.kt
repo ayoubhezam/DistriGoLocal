@@ -45,6 +45,8 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.designsystem.DsStepBadge
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 data class VenteCartItem(
     val product   : Product,
@@ -171,7 +173,7 @@ internal fun Step1Client(
                         modifier = Modifier.fillMaxWidth(),
                         shape    = DsShapes.medium
                     ) {
-                        Text("Changer", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_action_change), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -187,7 +189,7 @@ internal fun Step1Client(
             shape  = DsShapes.medium,
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
-            Text("Suivant →", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_action_next), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -335,7 +337,7 @@ internal fun Step3Validation(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Total", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                        Text(stringResource(R.string.common_label_total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                         Text(money.da(total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                     }
                 }
@@ -387,7 +389,7 @@ internal fun Step3Validation(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Reste", fontSize = DsTextSize.caption, color = DsColors.Danger)
+                            Text(stringResource(R.string.common_label_remaining), fontSize = DsTextSize.caption, color = DsColors.Danger)
                             Text(money.da(reste), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                         }
                     } else if (paye >= total && total > 0) {
@@ -415,7 +417,7 @@ internal fun Step3Validation(
                 OutlinedTextField(
                     value         = note,
                     onValueChange = onNoteChange,
-                    placeholder   = { Text("Note (optionnel)", fontSize = DsTextSize.body) },
+                    placeholder   = { Text(stringResource(R.string.common_label_note_optional), fontSize = DsTextSize.body) },
                     modifier      = Modifier.fillMaxWidth(),
                     shape         = DsShapes.medium,
                     minLines      = 2,
@@ -597,7 +599,7 @@ internal fun VenteCartRow(
                 TextButton(onClick = onRemove) {
                     Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(15.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Retirer", color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
+                    Text(stringResource(R.string.common_action_remove), color = DsColors.Danger, fontSize = DsTextSize.bodySmall)
                 }
             }
         }

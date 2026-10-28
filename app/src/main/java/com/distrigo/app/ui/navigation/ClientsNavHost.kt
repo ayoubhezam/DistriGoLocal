@@ -41,8 +41,10 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.retours.RetourClientListScreen
 import com.distrigo.app.ui.retours.RetourClientViewModel
-import com.distrigo.app.ui.common.refusalMessage
+import com.distrigo.app.ui.common.refusalText
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The Clients section. [openClientId] opens it on that client's page instead of the list — a
@@ -149,6 +151,7 @@ fun ClientsNavHost(
                     )
                     if (showDeleteConfirm) {
                         var deleteError by remember { mutableStateOf("") }
+                        val refusalContext = androidx.compose.ui.platform.LocalContext.current
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
                             title = { Text("Supprimer le client") },
@@ -166,11 +169,11 @@ fun ClientsNavHost(
                                     viewModel.deleteClient(
                                         id        = clientId,
                                         onSuccess = { showDeleteConfirm = false; leave() },
-                                        onError   = { deleteError = refusalMessage(it, money) }
+                                        onError   = { deleteError = refusalText(it, money).resolve(refusalContext) }
                                     )
-                                }) { Text("Supprimer", color = DsColors.Danger) }
+                                }) { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) }
                             },
-                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Annuler") } },
+                            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_action_cancel)) } },
                             containerColor    = DsColors.Surface,
                             titleContentColor = DsColors.TextPrimary,
                             textContentColor  = DsColors.TextSecondary
@@ -275,7 +278,7 @@ fun ClientsNavHost(
                 filters           = FactureFilter.entries,
                 selectedFilter    = historyFilter,
                 onFilterSelected  = controller::onFilterChange,
-                filterLabel       = { it.label },
+                filterLabel       = { stringResource(it.label) },
                 pagingItems       = pagingItems,
                 itemKey           = { "${it.type}_${it.id}" },
                 onBack            = { navController.popBackStack() },
@@ -325,15 +328,15 @@ fun ClientsNavHost(
                 val payment = longPressPayment!!
                 AlertDialog(
                     onDismissRequest = { longPressPayment = null },
-                    title = { Text("Options du paiement", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.common_payment_options), fontWeight = FontWeight.Bold) },
                     confirmButton = {
                         TextButton(onClick = {
                             editPaymentAmount = (payment.amount ?: 0.0).toString()
                             showEditPayment = true
-                        }) { Text("Modifier le montant", color = DsColors.Primary) }
+                        }) { Text(stringResource(R.string.common_payment_edit_amount), color = DsColors.Primary) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeletePayment = true }) { Text("Supprimer", color = DsColors.Danger) }
+                        TextButton(onClick = { showDeletePayment = true }) { Text(stringResource(R.string.common_action_delete), color = DsColors.Danger) }
                     },
                     containerColor    = DsColors.Surface,
                     titleContentColor = DsColors.TextPrimary,
@@ -344,12 +347,12 @@ fun ClientsNavHost(
                 val payment = longPressPayment!!
                 AlertDialog(
                     onDismissRequest = { showDeletePayment = false; longPressPayment = null; deleteError = "" },
-                    title = { Text("Supprimer le paiement", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.common_payment_delete), fontWeight = FontWeight.Bold) },
                     // A refusal is said here, in the dialog it came from: it used to be dropped (onError = {}),
                     // leaving a button that did nothing.
                     text  = {
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                            Text("Êtes-vous sûr de vouloir supprimer ce paiement ?")
+                            Text(stringResource(R.string.common_payment_delete_dialog_body))
                             if (deleteError.isNotEmpty()) {
                                 Text(deleteError, color = DsColors.Danger, fontSize = DsTextSize.caption)
                             }
@@ -366,9 +369,9 @@ fun ClientsNavHost(
                                 )
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
-                        ) { Text("Supprimer", color = androidx.compose.ui.graphics.Color.White) }
+                        ) { Text(stringResource(R.string.common_action_delete), color = androidx.compose.ui.graphics.Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null; deleteError = "" }) { Text("Annuler") } },
+                    dismissButton = { TextButton(onClick = { showDeletePayment = false; longPressPayment = null; deleteError = "" }) { Text(stringResource(R.string.common_action_cancel)) } },
                     containerColor    = DsColors.Surface,
                     titleContentColor = DsColors.TextPrimary,
                     textContentColor  = DsColors.TextSecondary
@@ -378,13 +381,13 @@ fun ClientsNavHost(
                 val payment = longPressPayment!!
                 AlertDialog(
                     onDismissRequest = { showEditPayment = false; longPressPayment = null; editError = "" },
-                    title = { Text("Modifier le paiement", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.common_payment_edit), fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                             OutlinedTextField(
                                 value = editPaymentAmount,
                                 onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
-                                label = { Text("Montant (DA)") },
+                                label = { Text(stringResource(R.string.common_label_amount_da)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -414,9 +417,9 @@ fun ClientsNavHost(
                                 )
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                        ) { Text("Confirmer", color = androidx.compose.ui.graphics.Color.White) }
+                        ) { Text(stringResource(R.string.common_action_confirm), color = androidx.compose.ui.graphics.Color.White) }
                     },
-                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text("Annuler") } },
+                    dismissButton = { TextButton(onClick = { showEditPayment = false; longPressPayment = null; editError = "" }) { Text(stringResource(R.string.common_action_cancel)) } },
                     containerColor    = DsColors.Surface,
                     titleContentColor = DsColors.TextPrimary,
                     textContentColor  = DsColors.TextSecondary

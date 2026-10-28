@@ -23,6 +23,8 @@ import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.core.format.MoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** One line of the edited sale, as the form holds it. */
 internal data class EditedLine(val productId: Int, val name: String, val unit: String, val quantity: Double)
@@ -62,10 +64,10 @@ internal fun VenteEditConfirmDialog(
         },
         confirmButton    = {
             TextButton(onClick = onConfirm) {
-                Text("Enregistrer", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.common_action_save), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
             }
         },
-        dismissButton    = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton    = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_cancel)) } },
         containerColor   = DsColors.Surface
     )
 }

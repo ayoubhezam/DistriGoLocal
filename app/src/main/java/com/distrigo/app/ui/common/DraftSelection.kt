@@ -22,6 +22,9 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Survives rotation and process death, so a selection built up over a long list is not lost to a
@@ -72,7 +75,7 @@ fun DraftSelectionBar(
                     shape   = DsShapes.medium
                 ) {
                     Text(
-                        if (allSelected) "Tout désélectionner" else "Tout sélectionner",
+                        stringResource(if (allSelected) R.string.common_action_deselect_all else R.string.common_action_select_all),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.Primary
@@ -99,7 +102,7 @@ fun DraftSelectionBar(
                     )
                     Spacer(Modifier.width(DsSpacing.xs))
                     Text(
-                        if (selectedCount > 0) "Supprimer ($selectedCount)" else "Supprimer",
+                        if (selectedCount > 0) stringResource(R.string.common_action_delete_count, selectedCount) else stringResource(R.string.common_action_delete),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = if (selectedCount > 0) Color.White else DsColors.TextTertiary
@@ -156,7 +159,6 @@ fun DraftBulkDeleteDialog(
     onDismiss  : () -> Unit
 ) {
     val deletingAll = count >= totalCount && totalCount > 0
-    val noun        = if (count == 1) "brouillon" else "brouillons"
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -181,8 +183,8 @@ fun DraftBulkDeleteDialog(
         },
         title = {
             Text(
-                if (deletingAll) "Supprimer tous les brouillons ?"
-                else             "Supprimer $count $noun ?",
+                if (deletingAll) stringResource(R.string.common_drafts_delete_all_title)
+                else             pluralStringResource(R.plurals.common_drafts_delete_title, count, count),
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.TextPrimary
             )
@@ -190,10 +192,9 @@ fun DraftBulkDeleteDialog(
         text = {
             Text(
                 if (deletingAll)
-                    "Les $count $noun de cette liste seront définitivement perdus, y compris le " +
-                    "travail non terminé qu'ils contiennent. Cette action est irréversible."
+                    pluralStringResource(R.plurals.common_drafts_delete_all_body, count, count)
                 else
-                    "Ces $count $noun seront définitivement perdus. Cette action est irréversible.",
+                    pluralStringResource(R.plurals.common_drafts_delete_body, count, count),
                 fontSize = DsTextSize.bodySmall,
                 color    = DsColors.TextSecondary
             )
@@ -201,7 +202,7 @@ fun DraftBulkDeleteDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    if (deletingAll) "Tout supprimer" else "Supprimer",
+                    stringResource(if (deletingAll) R.string.common_action_delete_all else R.string.common_action_delete),
                     color      = DsColors.Danger,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -209,7 +210,7 @@ fun DraftBulkDeleteDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler", color = DsColors.TextSecondary)
+                Text(stringResource(R.string.common_action_cancel), color = DsColors.TextSecondary)
             }
         }
     )
