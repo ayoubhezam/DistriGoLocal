@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.dashboard
 
+import kotlin.math.roundToInt
 import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.skeleton
 import com.distrigo.app.ui.designsystem.SkeletonOnColor
@@ -131,10 +132,12 @@ import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
 
 internal val FR: Locale = Locale.FRENCH
-private val TODAY = DateTimeFormatter.ofPattern("EEEE d MMMM", FR)
 
-private val INFO_TODAY = ReportInfo("Ventes du jour", "Ventes du jour = ventes d'aujourd'hui, dépôt + tournée\nCrédit = Ventes du jour − Payé à la vente\n\nUn versement encaissé plus tard ne change pas ces chiffres.")
-private val INFO_ALERTS = ReportInfo("Alertes", "Ruptures : stock ≤ 0\nStock bas : stock < stock minimum\nPlus de 90 jours : dette des ventes impayées depuis plus de 90 jours")
+@Composable
+private fun infoToday() = ReportInfo(stringResource(R.string.dashboard_today_sales), stringResource(R.string.dashboard_today_info))
+
+@Composable
+private fun infoAlerts() = ReportInfo(stringResource(R.string.dashboard_alerts), stringResource(R.string.dashboard_alerts_info))
 
 /**
  * The Dashboard (docs/design/dashboard_objectif_plan.md, Part 1): today's sales against « hier », the objective, the
@@ -187,9 +190,9 @@ fun DashboardScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         // D16: the greeting and the date; the menu stays, the drawer being the only way to the other sections
         DsTopAppBar(
-            title         = content?.firstName?.let { "Bonjour, $it" } ?: "Bonjour",
+            title         = content?.firstName?.let { stringResource(R.string.dashboard_hello_name, it) } ?: stringResource(R.string.dashboard_hello),
             // From the clock, not from the sales: waiting for them, the line arrived late and the bar grew
-            subtitle      = LocalDate.now().format(TODAY).replaceFirstChar { it.uppercase() },
+            subtitle      = LocalDate.now().format(com.distrigo.app.core.format.AppDates.formatter("EEEE d MMMM")).replaceFirstChar { it.uppercase() },
             licenseBanner = true,
             leading       = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size          = DsTopBarSize.Large
@@ -236,7 +239,7 @@ fun DashboardScreen(
                 QuickActions(
                     // No tournée: the dépôt sale straight away. One open: the choice between the two.
                     onNewSale     = { if (tournee == null) license.runOrExplain { onNewSale(null) } else saleDial.open() },
-                    saleClickLabel = if (tournee == null) "Nouvelle vente" else "ouvrir le choix",
+                    saleClickLabel = stringResource(if (tournee == null) R.string.dashboard_new_sale else R.string.dashboard_cd_open_choice),
                     onSaleTile    = { bounds, font -> saleTile = bounds; saleTileFont = font },
                     onCollect     = { license.runOrExplain { collecting = true } },
                     onNewPurchase = { license.runOrExplain(onNewPurchase) },
@@ -310,14 +313,14 @@ fun DashboardScreen(
     confirmSale?.let { sheet ->
         AlertDialog(
             onDismissRequest = { confirmSale = null },
-            title = { Text("Créer une vente ?") },
-            text  = { Text("Voulez-vous effectuer une vente pour ${sheet.info.client.name} ?") },
+            title = { Text(stringResource(R.string.dashboard_create_sale_title)) },
+            text  = { Text(stringResource(R.string.dashboard_create_sale_body, sheet.info.client.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmSale = null
                     license.runOrExplain { onTourneeClientSale(sheet.tourneeId, sheet.info.client.id, sheet.info.client.name) }
                 }) {
-                    Text("Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+Text(stringResource(R.string.common_yes), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmSale = null }) { Text(stringResource(R.string.common_action_cancel)) } },
@@ -329,12 +332,11 @@ fun DashboardScreen(
     confirmRemove?.let { sheet ->
         AlertDialog(
             onDismissRequest = { confirmRemove = null; removeError = "" },
-            title = { Text("Retirer ce client ?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.dashboard_remove_client_title), fontWeight = FontWeight.Bold) },
             text  = {
                 Column {
                     Text(
-                        "« ${bidiIsolate(sheet.info.client.name)} » sera retiré de la liste de cette " +
-                        "tournée. Les ventes déjà enregistrées pour ce client ne sont pas supprimées."
+                        stringResource(R.string.dashboard_remove_client_body, bidiIsolate(sheet.info.client.name))
                     )
                     if (removeError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -410,7 +412,8 @@ private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
         Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(DsSpacing.xs))
         Text(
-            "Tournée en cours · ${tournee.label}",
+            stringResource(R.string.dashboard_tournee_open, tournee.label),
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
             fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
@@ -438,9 +441,10 @@ private val TODAY_CARD_HEIGHT = 219.dp
  */
 @Composable
 private fun DashboardSkeleton(withTournee: Boolean) {
+    val loadingDescription = stringResource(R.string.dashboard_cd_loading)
     DsShimmer {
         Column(
-            Modifier.fillMaxSize().padding(top = DsSpacing.sm).semantics { contentDescription = "Chargement du tableau de bord" },
+            Modifier.fillMaxSize().padding(top = DsSpacing.sm).semantics { contentDescription = loadingDescription },
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
             // The chip shares the card's item, as on the loaded Dashboard
@@ -529,11 +533,14 @@ private fun TodayCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Ventes du jour", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = white.copy(alpha = 0.9f))
-            InfoButton(INFO_TODAY, tint = white.copy(alpha = 0.75f))
+            Text(stringResource(R.string.dashboard_today_sales), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = white.copy(alpha = 0.9f),
+                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui)
+            InfoButton(infoToday(), tint = white.copy(alpha = 0.75f))
         }
-        AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
-            color = white, textAlign = TextAlign.Center)
+        com.distrigo.app.ui.designsystem.ArabicTrialDisplay {
+            AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
+                color = white, textAlign = TextAlign.Center)
+        }
 
         Spacer(Modifier.height(DsSpacing.md))
         if (goal != null) HeroGoal(goal, onGoal) else HeroMonth(sales, onMonth, onSetObjective)
@@ -542,7 +549,7 @@ private fun TodayCard(
         HorizontalDivider(color = white.copy(alpha = 0.25f))
         Spacer(Modifier.height(DsSpacing.md))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-            listOf("Payé à la vente" to sales.today.paid, "Crédit" to sales.today.credit).forEach { (label, value) ->
+listOf(stringResource(R.string.dashboard_paid_at_sale) to sales.today.paid, stringResource(R.string.dashboard_credit) to sales.today.credit).forEach { (label, value) ->
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(label, fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f), textAlign = TextAlign.Center)
                     AnimatedFigure(money.figure(value), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
@@ -553,11 +560,14 @@ private fun TodayCard(
     }
 }
 
-private fun GoalProgress.title(): String = when (period.type) {
-    PeriodType.MONTHLY -> "Objectif du mois"
-    PeriodType.QUARTERLY -> "Objectif du trimestre"
-    PeriodType.YEARLY -> "Objectif de l'année"
-}
+@Composable
+private fun GoalProgress.title(): String = stringResource(
+    when (period.type) {
+        PeriodType.MONTHLY -> R.string.dashboard_goal_month
+        PeriodType.QUARTERLY -> R.string.dashboard_goal_quarter
+        PeriodType.YEARLY -> R.string.dashboard_goal_year
+    }
+)
 
 // The goal's colour on the card's blue (owner, 2026-10-20): white on the way, green once reached, gold beyond. Both
 // are light tints, readable on the blue where the app's own green would not be.
@@ -580,7 +590,7 @@ private fun HeroGoal(goal: GoalProgress, onClick: () -> Unit) {
     }
     Column(Modifier.fillMaxWidth().clip(DsShapes.medium).clickable(role = Role.Button, onClick = onClick).padding(vertical = DsSpacing.xs)) {
         Text(
-            listOfNotNull(goal.title(), target.tier?.let { "Palier $it" }).joinToString(" · "),
+            listOfNotNull(goal.title(), target.tier?.let { stringResource(R.string.dashboard_goal_tier, it) }).joinToString(" · "),
             fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -594,10 +604,12 @@ private fun HeroGoal(goal: GoalProgress, onClick: () -> Unit) {
         }
         Spacer(Modifier.height(DsSpacing.xs))
         val fraction = if (target.threshold > 0) (goal.value / target.threshold).coerceIn(0.0, 1.0).toFloat() else 0f
+        val goalDescription = target.tier?.let { stringResource(R.string.dashboard_cd_goal_tier, percentText("${target.percent}"), it) }
+            ?: stringResource(R.string.dashboard_cd_goal, percentText("${target.percent}"))
         Box(
             Modifier.fillMaxWidth().height(8.dp).clip(DsShapes.pill).background(white.copy(alpha = 0.25f))
                 .semantics {
-                    contentDescription = target.tier?.let { "${percentText("${target.percent}")} du palier $it" } ?: "${percentText("${target.percent}")} de l'objectif"
+                    contentDescription = goalDescription
                 }
         ) {
             Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).clip(DsShapes.pill).background(color))
@@ -612,7 +624,7 @@ private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective
     val white = Color.White
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clip(DsShapes.medium).clickable(role = Role.Button, onClick = onClick).padding(vertical = DsSpacing.xs)) {
-            Text("Ventes du mois", fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f))
+            Text(stringResource(R.string.dashboard_month_sales), fontSize = DsTextSize.caption, color = white.copy(alpha = 0.75f))
             Text(money.da(sales.month.total), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = white,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -624,7 +636,8 @@ private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective
         ) {
             Icon(Icons.Default.Add, contentDescription = null, tint = white, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Fixez un objectif", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = white)
+            Text(stringResource(R.string.dashboard_set_goal), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = white,
+                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui)
         }
     }
 }
@@ -634,7 +647,7 @@ private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective
 private fun QuickActions(
     onNewSale: () -> Unit, onCollect: () -> Unit, onNewPurchase: () -> Unit, onCharge: () -> Unit,
     /** What a tap on « Nouvelle vente » does, said to accessibility. */
-    saleClickLabel: String = "Nouvelle vente",
+    saleClickLabel: String = stringResource(R.string.dashboard_new_sale),
     /** Where « Nouvelle vente » sits in the window and its label's size: the speed-dial draws it again there. */
     onSaleTile: (Rect, TextUnit) -> Unit = { _, _ -> },
 ) {
@@ -645,8 +658,11 @@ private fun QuickActions(
         val density = LocalDensity.current
         val tile = (maxWidth - DsSpacing.sm * 3) / 4 - DsSpacing.xs * 2
         val labelStyle = LocalTextStyle.current.merge(TextStyle(fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold))
-        val longest = remember(measurer) {
-            QUICK_ACTION_WORDS.maxOf { measurer.measure(it, labelStyle, softWrap = false).size.width }
+        val labels = listOf(R.string.dashboard_new_sale, R.string.dashboard_collect, R.string.dashboard_new_purchase, R.string.dashboard_charge)
+            .map { stringResource(it) }
+        // Every word of the four labels, in the app's language
+        val longest = remember(measurer, labels) {
+            labels.flatMap { it.split(' ') }.maxOf { measurer.measure(it, labelStyle, softWrap = false).size.width }
         }
         val fontSize = with(density) {
             if (longest <= tile.toPx()) DsTextSize.caption else DsTextSize.caption * (tile.toPx() / longest)
@@ -656,18 +672,16 @@ private fun QuickActions(
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
         ) {
             QuickAction(
-                Icons.Default.PointOfSale, "Nouvelle vente", DsColors.PrimaryDark, fontSize,
+                Icons.Default.PointOfSale, labels[0], DsColors.PrimaryDark, fontSize,
                 Modifier.weight(1f).onGloballyPositioned { onSaleTile(it.boundsInWindow(), fontSize) },
                 onNewSale, clickLabel = saleClickLabel,
             )
-            QuickAction(Icons.Default.Payments, "Encaissement", DsColors.Success, fontSize, Modifier.weight(1f), onCollect)
-            QuickAction(Icons.Default.AddShoppingCart, "Nouvel achat", DsColors.Primary, fontSize, Modifier.weight(1f), onNewPurchase)
-            QuickAction(Icons.Default.Receipt, "Charge", DsColors.Warning, fontSize, Modifier.weight(1f), onCharge)
+            QuickAction(Icons.Default.Payments, labels[1], DsColors.Success, fontSize, Modifier.weight(1f), onCollect)
+            QuickAction(Icons.Default.AddShoppingCart, labels[2], DsColors.Primary, fontSize, Modifier.weight(1f), onNewPurchase)
+            QuickAction(Icons.Default.Receipt, labels[3], DsColors.Warning, fontSize, Modifier.weight(1f), onCharge)
         }
     }
 }
-
-private val QUICK_ACTION_WORDS = listOf("Nouvelle", "vente", "Encaissement", "Nouvel", "achat", "Charge")
 
 /** A quick action's tile; [iconContent], when given, is drawn in its round in place of [icon] (the speed-dial's ✕). */
 @Composable
@@ -688,7 +702,8 @@ internal fun QuickAction(
         }
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
-            label, fontSize = fontSize, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+            label, fontSize = fontSize, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
             textAlign = TextAlign.Center, maxLines = 2, lineHeight = DsTextSize.bodySmall,
         )
     }
@@ -699,16 +714,21 @@ internal fun QuickAction(
 private fun AlertsCard(alerts: DashboardAlerts, onOpen: (DashboardLink) -> Unit) {
     val money = LocalMoneyFormatter.current
     CardColumn {
-        CardTitle("Alertes", INFO_ALERTS)
+        val res = androidx.compose.ui.platform.LocalContext.current.resources
+        CardTitle(stringResource(R.string.dashboard_alerts), infoAlerts())
         Spacer(Modifier.height(DsSpacing.sm))
-        if (alerts.outOfStock > 0) AlertLine(Icons.Default.RemoveShoppingCart, DsColors.Danger, "Ruptures", "stock à zéro",
-            countFigure(alerts.outOfStock, "produit", "produits")) { onOpen(DashboardLink.RESTOCK) }
-        if (alerts.lowStock > 0) AlertLine(Icons.Default.Inventory2, DsColors.Warning, "Stock bas", "sous le minimum",
-            countFigure(alerts.lowStock, "produit", "produits")) { onOpen(DashboardLink.RESTOCK) }
-        if (alerts.oldClientDebt > 0.005) AlertLine(Icons.Default.HourglassBottom, DsColors.Danger, "Créances", "de plus de 90 jours",
+        if (alerts.outOfStock > 0) AlertLine(Icons.Default.RemoveShoppingCart, DsColors.Danger, stringResource(R.string.dashboard_alert_out), stringResource(R.string.dashboard_alert_out_sub),
+            productCount(res, alerts.outOfStock)) { onOpen(DashboardLink.RESTOCK) }
+        if (alerts.lowStock > 0) AlertLine(Icons.Default.Inventory2, DsColors.Warning, stringResource(R.string.dashboard_alert_low), stringResource(R.string.dashboard_alert_low_sub),
+            productCount(res, alerts.lowStock)) { onOpen(DashboardLink.RESTOCK) }
+        if (alerts.oldClientDebt > 0.005) AlertLine(Icons.Default.HourglassBottom, DsColors.Danger, stringResource(R.string.dashboard_alert_debts), stringResource(R.string.dashboard_alert_debts_sub),
             money.figure(alerts.oldClientDebt)) { onOpen(DashboardLink.CLIENT_DEBTS) }
     }
 }
+
+/** « 12 produits », whole at every step of the count. */
+private fun productCount(res: android.content.res.Resources, count: Int) =
+    com.distrigo.app.ui.rapports.Figure(count.toDouble()) { res.getQuantityString(R.plurals.common_products_count, it.roundToInt(), it.roundToInt()) }
 
 /** An alert: its icon, a short [label] and what it means under it — short, so a large amount beside it never cuts it. */
 @Composable
@@ -755,10 +775,10 @@ private fun CollectSheet(load: suspend () -> List<Client>, onPick: (Client) -> U
         containerColor   = DsColors.Surface,
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg)) {
-            Text("Encaissement", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-            Text("Choisissez le client qui verse", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.dashboard_collect), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.dashboard_collect_choose), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
             Spacer(Modifier.height(DsSpacing.md))
-            DsCompactSearchField(value = query, onValueChange = { query = it }, placeholder = "Rechercher un client")
+            DsCompactSearchField(value = query, onValueChange = { query = it }, placeholder = stringResource(R.string.common_search_client))
             Spacer(Modifier.height(DsSpacing.sm))
         }
         when {
@@ -766,7 +786,7 @@ private fun CollectSheet(load: suspend () -> List<Client>, onPick: (Client) -> U
                 CircularProgressIndicator(color = DsColors.PrimaryDark)
             }
             shown.isEmpty() -> Text(
-                if (clients.orEmpty().isEmpty()) "Aucun client ne doit d'argent." else "Aucun client ne correspond.",
+                stringResource(if (clients.orEmpty().isEmpty()) R.string.dashboard_collect_nobody_owes else R.string.common_no_client_matches),
                 fontSize = DsTextSize.body, color = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xl),
             )

@@ -61,6 +61,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The whole speed-dial, open to closed, in ms; the second action starts this much after the first. */
 private const val SpeedDialMs = 220
@@ -147,9 +149,9 @@ fun NewSaleSpeedDial(
                     .size(with(density) { tile.width.toDp() }, with(density) { tile.height.toDp() })
             ) {
                 QuickAction(
-                    icon = Icons.Default.PointOfSale, label = "Nouvelle vente", accent = DsColors.PrimaryDark,
+                    icon = Icons.Default.PointOfSale, label = stringResource(R.string.dashboard_new_sale), accent = DsColors.PrimaryDark,
                     fontSize = tileLabelSize, modifier = Modifier.fillMaxSize(),
-                    clickLabel = "fermer le choix",
+                    clickLabel = stringResource(R.string.dashboard_cd_close_choice),
                     iconContent = {
                         Icon(Icons.Default.PointOfSale, contentDescription = null, tint = DsColors.PrimaryDark,
                             modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = 90f * p; alpha = 1f - p })
@@ -167,12 +169,12 @@ fun NewSaleSpeedDial(
             val x = if (isRtl) tile.left - gap else tile.right + gap
             val dy = with(density) { (ActionSize / 2 + DsSpacing.sm).toPx() }
             SpeedDialAction(
-                icon = Icons.Default.Storefront, label = "Vente dépôt", description = "Vente dépôt",
+                icon = Icons.Default.Storefront, label = stringResource(R.string.dashboard_sale_depot), description = stringResource(R.string.dashboard_sale_depot),
                 progress = stagger(p, 0), from = from, to = androidx.compose.ui.geometry.Offset(x, from.y - dy),
                 onClick = { start(onDepot) },
             )
             SpeedDialAction(
-                icon = Icons.Default.LocalShipping, label = "Vente tournée", description = "Vente tournée — $tourneeLabel",
+                icon = Icons.Default.LocalShipping, label = stringResource(R.string.dashboard_sale_tournee), description = stringResource(R.string.dashboard_cd_sale_tournee, tourneeLabel),
                 progress = stagger(p, 1), from = from, to = androidx.compose.ui.geometry.Offset(x, from.y + dy),
                 onClick = { start(onTournee) },
             )
@@ -238,6 +240,7 @@ private fun SpeedDialAction(
             modifier = Modifier.shadow(2.dp, DsShapes.pill).clip(DsShapes.pill).background(DsColors.Surface)
                 .padding(horizontal = DsSpacing.md, vertical = 6.dp),
             color = DsColors.PrimaryDark, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
         )
     }
 }

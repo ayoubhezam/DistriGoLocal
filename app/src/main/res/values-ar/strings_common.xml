@@ -288,4 +288,13 @@
         <item quantity="many">%1$d سنة</item>
         <item quantity="other">%1$d سنة</item>
     </plurals>
+    <string name="common_yes">نعم</string>
+    <string name="common_no">لا</string>
+    <string name="common_status_paid">مدفوع</string>
+    <string name="common_status_partial">جزئي</string>
+    <string name="common_status_unpaid">غير مدفوع</string>
+    <string name="common_source_tournee">الجولة</string>
+    <string name="common_action_see_all">عرض الكل</string>
+    <string name="common_search_client">البحث عن زبون</string>
+    <string name="common_no_client_matches">لا يوجد زبون مطابق.</string>
 </resources>

@@ -56,26 +56,29 @@ fun DashboardNavHost(
         popExitTransition  = navPopExitTransition
     ) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen(
-                onOpenReport         = onOpenReport,
-                onOpenMenu           = onOpenMenu,
-                onNotificationsClick = onNotificationsClick,
-                onProfileClick       = onProfileClick,
-                onNewSale            = { tourneeId ->
-                    if (tourneeId != null) navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
-                    else navController.navigate(Screen.VenteFormGraph.createRoute())
-                },
-                onNewPurchase        = { navController.navigate(Screen.PurchaseFormGraph.createRoute()) },
-                onAddTourneeClients  = { tournee ->
-                    addingTo = tournee
-                    navController.navigate(DASHBOARD_ADD_CLIENTS) { launchSingleTop = true }
-                },
-                onSetObjective       = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
-                onOpenGoal           = { navController.navigate(DASHBOARD_MON_OBJECTIF) { launchSingleTop = true } },
-                onTourneeClientSale  = { tourneeId, clientId, clientName ->
-                    navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
-                },
-            )
+            // The owner's Arabic font trial (2026-10-28): the Dashboard only, and only in Arabic
+            com.distrigo.app.ui.designsystem.ProvideArabicTrialFonts {
+                DashboardScreen(
+                    onOpenReport         = onOpenReport,
+                    onOpenMenu           = onOpenMenu,
+                    onNotificationsClick = onNotificationsClick,
+                    onProfileClick       = onProfileClick,
+                    onNewSale            = { tourneeId ->
+                        if (tourneeId != null) navController.navigate(Screen.TourneeVenteFormGraph.createRoute(tourneeId))
+                        else navController.navigate(Screen.VenteFormGraph.createRoute())
+                    },
+                    onNewPurchase        = { navController.navigate(Screen.PurchaseFormGraph.createRoute()) },
+                    onAddTourneeClients  = { tournee ->
+                        addingTo = tournee
+                        navController.navigate(DASHBOARD_ADD_CLIENTS) { launchSingleTop = true }
+                    },
+                    onSetObjective       = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
+                    onOpenGoal           = { navController.navigate(DASHBOARD_MON_OBJECTIF) { launchSingleTop = true } },
+                    onTourneeClientSale  = { tourneeId, clientId, clientName ->
+                        navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
+                    },
+                )
+            }
         }
 
         // D14: Dépôt Vente when no tournée is open

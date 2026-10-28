@@ -271,14 +271,13 @@ class MainActivity : ComponentActivity() {
                         onboarding == null && currentRoute != Screen.Compte.route
                     ) {
                         com.distrigo.app.ui.designsystem.BrandDialog(
-                            title   = "Ces données appartiennent à une autre entreprise",
-                            text    = "Les données de ce téléphone ont été enregistrées pour une autre entreprise que celle du compte " +
-                                "connecté. Dans Compte, gardez-les pour votre entreprise, ou déconnectez-vous.",
-                            confirm = "Ouvrir Compte" to {
+                            title   = stringResource(R.string.shell_other_business_title),
+                            text    = stringResource(R.string.shell_other_business_body),
+                            confirm = stringResource(R.string.shell_open_account) to {
                                 otherBusinessTold = true
                                 navController.navigate(Screen.Compte.route) { launchSingleTop = true }
                             },
-                            dismiss = "Plus tard" to { otherBusinessTold = true },
+                            dismiss = stringResource(R.string.shell_later) to { otherBusinessTold = true },
                         )
                     }
 
@@ -347,15 +346,15 @@ class MainActivity : ComponentActivity() {
                     if (confirmExit) {
                         AlertDialog(
                             onDismissRequest = { confirmExit = false },
-                            text = { Text("Voulez-vous quitter l'application DistriGo ?", fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary) },
+                            text = { Text(stringResource(R.string.shell_exit_question), fontSize = DsTextSize.bodyLarge, color = DsColors.TextPrimary) },
                             confirmButton = {
                                 TextButton(onClick = { confirmExit = false; finish() }) {
-                                    Text("Oui", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.common_yes), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { confirmExit = false }) {
-                                    Text("Non", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.common_no), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                                 }
                             },
                             containerColor = DsColors.Surface
@@ -754,7 +753,7 @@ class MainActivity : ComponentActivity() {
                 navController.navigate(Screen.Compte.route) { launchSingleTop = true }
             com.distrigo.app.data.license.LicensePolicy.Action.RETRY -> {
                 lifecycleScope.launch(Dispatchers.IO) { licenseCheckInScheduler.get().checkInNow() }
-                android.widget.Toast.makeText(this, "Vérification de l'abonnement…", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this, getString(R.string.shell_checking_subscription), android.widget.Toast.LENGTH_SHORT).show()
             }
             com.distrigo.app.data.license.LicensePolicy.Action.DATE_SETTINGS ->
                 runCatching { startActivity(android.content.Intent(android.provider.Settings.ACTION_DATE_SETTINGS)) }

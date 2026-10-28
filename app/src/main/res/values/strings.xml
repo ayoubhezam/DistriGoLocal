@@ -9,4 +9,10 @@
     <string name="client_picker_title">Choisir un client</string>
     <string name="client_picker_search_placeholder">Rechercher un client</string>
     <string name="client_picker_add_new">Nouveau client</string>
+    <string name="shell_other_business_title">Ces données appartiennent à une autre entreprise</string>
+    <string name="shell_other_business_body">Les données de ce téléphone ont été enregistrées pour une autre entreprise que celle du compte connecté. Dans Compte, gardez-les pour votre entreprise, ou déconnectez-vous.</string>
+    <string name="shell_open_account">Ouvrir Compte</string>
+    <string name="shell_later">Plus tard</string>
+    <string name="shell_exit_question">Voulez-vous quitter l\'application DistriGo ?</string>
+    <string name="shell_checking_subscription">Vérification de l\'abonnement…</string>
 </resources>

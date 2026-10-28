@@ -253,7 +253,8 @@ internal fun CardColumn(content: @Composable () -> Unit) {
 @Composable
 internal fun CardTitle(text: String, info: ReportInfo) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        Text(text, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui)
         InfoButton(info, tint = DsColors.TextTertiary)
     }
 }

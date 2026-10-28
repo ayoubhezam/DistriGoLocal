@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="more_title">Plus</string>
+    <string name="more_clients">Clients</string>
+    <string name="more_clients_sub">Gérer vos clients et leurs comptes</string>
+    <string name="more_suppliers">Fournisseurs</string>
+    <string name="more_suppliers_sub">Gérer vos fournisseurs</string>
+    <string name="more_reports">Rapports</string>
+    <string name="more_reports_sub">Statistiques et performances</string>
+    <string name="more_settings">Paramètres</string>
+    <string name="more_settings_sub">Configuration de l\'application</string>
+    <string name="more_charges">Charges</string>
+    <string name="more_charges_sub">Suivi des dépenses de l\'activité</string>
+    <string name="more_pertes">Pertes</string>
+    <string name="more_pertes_sub">Suivi des pertes et casses</string>
+    <string name="more_inventory">Inventaire</string>
+    <string name="more_inventory_sub">Comptage physique du stock par scan</string>
+    <string name="more_truck_stock">Stock Camion</string>
+    <string name="more_truck_stock_sub">Le stock et les produits disponibles dans le camion</string>
+</resources>

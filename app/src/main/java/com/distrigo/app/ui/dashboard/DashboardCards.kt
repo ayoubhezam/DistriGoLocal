@@ -59,8 +59,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.distrigo.app.data.repository.TourneeDayClient
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.designsystem.LocalArabicTrialFonts
+import com.distrigo.app.R
 
-private val INFO_TOURNEE = ReportInfo("Tournée du jour", "Avec achat : une vente sur la tournée\nSans achat : visité, sans vente\nEn attente : à visiter")
+@Composable
+private fun infoTournee() = ReportInfo(stringResource(R.string.dashboard_tournee_title), stringResource(R.string.dashboard_tournee_info))
 private val DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 
@@ -81,25 +84,27 @@ internal fun TourneeCard(tournee: TourneeDay, onClick: () -> Unit) {
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large).clickable(role = Role.Button, onClick = onClick).padding(DsSpacing.lg),
     ) {
-        CardTitle("Tournée du jour", INFO_TOURNEE)
+        CardTitle(stringResource(R.string.dashboard_tournee_title), infoTournee())
         Text(tournee.label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+        val visitedDescription = stringResource(R.string.dashboard_tournee_visited_cd, tournee.visited, tournee.total)
         Spacer(Modifier.height(DsSpacing.md))
         Text(
-            "${tournee.visited} sur ${tournee.total} clients visités",
+            stringResource(R.string.dashboard_tournee_visited, tournee.visited, tournee.total),
             fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
         )
         Spacer(Modifier.height(DsSpacing.xs))
         Box(
             Modifier.fillMaxWidth().height(8.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)
-                .semantics { contentDescription = "${tournee.visited} clients visités sur ${tournee.total}" }
+                .semantics { contentDescription = visitedDescription }
         ) {
             Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).clip(DsShapes.pill).background(DsColors.PrimaryDark))
         }
         Spacer(Modifier.height(DsSpacing.md))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            VisitCount("Avec achat", tournee.withSale, VisitState.WITH_SALE.color, Modifier.weight(1f))
-            VisitCount("Sans achat", tournee.withoutSale, VisitState.WITHOUT_SALE.color, Modifier.weight(1f))
-            VisitCount("En attente", tournee.pending, DsColors.TextSecondary, Modifier.weight(1f))
+            VisitCount(stringResource(R.string.dashboard_visit_with_sale), tournee.withSale, VisitState.WITH_SALE.color, Modifier.weight(1f))
+            VisitCount(stringResource(R.string.dashboard_visit_without_sale), tournee.withoutSale, VisitState.WITHOUT_SALE.color, Modifier.weight(1f))
+            VisitCount(stringResource(R.string.dashboard_visit_pending), tournee.pending, DsColors.TextSecondary, Modifier.weight(1f))
         }
     }
 }
@@ -107,7 +112,8 @@ internal fun TourneeCard(tournee: TourneeDay, onClick: () -> Unit) {
 @Composable
 private fun VisitCount(label: String, count: Int, color: Color, modifier: Modifier) {
     Column(modifier.clip(DsShapes.medium).background(color.copy(alpha = 0.08f)).padding(DsSpacing.sm)) {
-        Text("$count", fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = color)
+        Text("$count", fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = color,
+            fontFamily = LocalArabicTrialFonts.current?.ui)
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -122,7 +128,8 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
     val clients = tournee.clients.sortedWith { a, b -> collator.compare(a.name.trim(), b.name.trim()) }
     Column {
         Text(
-            "Clients du jour", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
+            stringResource(R.string.dashboard_clients_of_day), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
+            fontFamily = LocalArabicTrialFonts.current?.ui,
             modifier = Modifier.padding(horizontal = DsSpacing.lg),
         )
         Spacer(Modifier.height(DsSpacing.sm))
@@ -131,7 +138,7 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
             item(key = "add") {
-                RoundAction("Ajouter", Icons.Default.Add, DsColors.PrimaryDark, onAdd)
+                RoundAction(stringResource(R.string.common_action_add), Icons.Default.Add, DsColors.PrimaryDark, onAdd)
             }
             items(clients, key = { it.clientId }) { client ->
                 Column(
@@ -155,7 +162,7 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
                 }
             }
             item(key = "all") {
-                RoundAction("Voir tout", Icons.AutoMirrored.Filled.ArrowForward, DsColors.TextSecondary, onSeeAll)
+                RoundAction(stringResource(R.string.common_action_see_all), Icons.AutoMirrored.Filled.ArrowForward, DsColors.TextSecondary, onSeeAll)
             }
         }
     }
@@ -174,7 +181,8 @@ private fun RoundAction(label: String, icon: ImageVector, color: Color, onClick:
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, textAlign = TextAlign.Center)
+        Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, textAlign = TextAlign.Center,
+            fontFamily = LocalArabicTrialFonts.current?.ui)
     }
 }
 
@@ -184,7 +192,8 @@ private fun RoundAction(label: String, icon: ImageVector, color: Color, onClick:
 @Composable
 internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter) -> Unit) {
     Column(Modifier.padding(horizontal = DsSpacing.lg)) {
-        Text("Activité récente", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.dashboard_recent_activity), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
+            fontFamily = LocalArabicTrialFonts.current?.ui)
         Spacer(Modifier.height(DsSpacing.sm))
         Row(
             Modifier.fillMaxWidth().clip(DsShapes.pill).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.pill).padding(4.dp),
@@ -199,6 +208,7 @@ internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter)
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(stringResource(filter.label), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
+                        fontFamily = LocalArabicTrialFonts.current?.ui,
                         color = if (on) Color.White else DsColors.TextSecondary)
                 }
             }
@@ -210,9 +220,9 @@ internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter)
 internal fun ActivityEmpty(filter: ActivityFilter) {
     Text(
         when (filter) {
-            ActivityFilter.ALL -> "Aucune vente pour le moment."
-            ActivityFilter.PAID -> "Aucune vente payée récente."
-            ActivityFilter.CREDIT -> "Aucune vente à crédit récente."
+            ActivityFilter.ALL -> stringResource(R.string.dashboard_activity_empty_all)
+            ActivityFilter.PAID -> stringResource(R.string.dashboard_activity_empty_paid)
+            ActivityFilter.CREDIT -> stringResource(R.string.dashboard_activity_empty_credit)
         },
         fontSize = DsTextSize.body, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.lg),
@@ -259,9 +269,9 @@ internal fun RecentSaleRowSkeleton() {
 internal fun RecentSaleRow(sale: RecentSale, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val (pill, color) = when (sale.state) {
-        PaymentState.PAID -> "Payé" to DsColors.Success
-        PaymentState.PARTIAL -> "Partiel" to DsColors.Warning
-        PaymentState.UNPAID -> "Impayé" to DsColors.Danger
+        PaymentState.PAID -> stringResource(R.string.common_status_paid) to DsColors.Success
+        PaymentState.PARTIAL -> stringResource(R.string.common_status_partial) to DsColors.Warning
+        PaymentState.UNPAID -> stringResource(R.string.common_status_unpaid) to DsColors.Danger
     }
     Row(
         Modifier.padding(horizontal = DsSpacing.lg).fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface)
@@ -272,9 +282,9 @@ internal fun RecentSaleRow(sale: RecentSale, onClick: () -> Unit) {
         EntityAvatar(name = sale.clientName ?: "?", imageUri = sale.clientImage, size = 40.dp)
         Spacer(Modifier.width(DsSpacing.md))
         Column(Modifier.weight(1f)) {
-            Text(sale.clientName ?: "Client", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
+            Text(sale.clientName ?: stringResource(R.string.common_label_client), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val where = if (sale.source == "camion") "Tournée" else "Dépôt"
+            val where = stringResource(if (sale.source == "camion") R.string.common_source_tournee else R.string.common_source_depot)
             // The time first: a long number is what the ellipsis may cut, not when the sale was made
             Text(
                 listOfNotNull(saleTime(sale.createdAt).takeIf { it.isNotEmpty() }, where, sale.numero).joinToString(" · "),

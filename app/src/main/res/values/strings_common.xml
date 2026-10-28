@@ -241,4 +241,13 @@
         <item quantity="one">%1$d an</item>
         <item quantity="other">%1$d ans</item>
     </plurals>
+    <string name="common_yes">Oui</string>
+    <string name="common_no">Non</string>
+    <string name="common_status_paid">Payé</string>
+    <string name="common_status_partial">Partiel</string>
+    <string name="common_status_unpaid">Impayé</string>
+    <string name="common_source_tournee">Tournée</string>
+    <string name="common_action_see_all">Voir tout</string>
+    <string name="common_search_client">Rechercher un client</string>
+    <string name="common_no_client_matches">Aucun client ne correspond.</string>
 </resources>

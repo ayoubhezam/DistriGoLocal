@@ -1,0 +1,19 @@
+<resources>
+    <string name="more_title">المزيد</string>
+    <string name="more_clients">الزبائن</string>
+    <string name="more_clients_sub">إدارة زبائنك وحساباتهم</string>
+    <string name="more_suppliers">الموردون</string>
+    <string name="more_suppliers_sub">إدارة مورديك</string>
+    <string name="more_reports">التقارير</string>
+    <string name="more_reports_sub">الإحصائيات والأداء</string>
+    <string name="more_settings">الإعدادات</string>
+    <string name="more_settings_sub">إعداد التطبيق</string>
+    <string name="more_charges">المصاريف</string>
+    <string name="more_charges_sub">متابعة مصاريف النشاط</string>
+    <string name="more_pertes">الخسائر</string>
+    <string name="more_pertes_sub">متابعة الخسائر والكسر</string>
+    <string name="more_inventory">الجرد</string>
+    <string name="more_inventory_sub">العدّ الفعلي للمخزون بالمسح</string>
+    <string name="more_truck_stock">مخزون الشاحنة</string>
+    <string name="more_truck_stock_sub">المخزون والمنتجات في الشاحنة</string>
+</resources>
