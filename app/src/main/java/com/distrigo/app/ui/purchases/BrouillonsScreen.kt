@@ -39,6 +39,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
 import com.distrigo.app.R
 
 /** What a draft reports to the filter. */
@@ -236,7 +237,7 @@ fun BrouillonsScreen(
             title = { Text(stringResource(R.string.common_draft_delete_dialog_title), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary) },
             text  = {
                 Text(
-                    "« ${draft.cardTitle()} » sera définitivement perdu. Cette action est irréversible.",
+                    stringResource(R.string.common_draft_delete_one_body, draft.cardTitle().asString()),
                     fontSize = DsTextSize.bodySmall,
                     color    = DsColors.TextSecondary
                 )

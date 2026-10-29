@@ -285,14 +285,14 @@ fun NavGraphBuilder.venteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title         = if (venteId != null) (documentLabel("vente", venteId, session::documentLabel)?.let { "Modifier $it" } ?: "Modifier la vente") else "Vente dépôt",
+                    title         = if (venteId != null) (documentLabel("vente", venteId, session::documentLabel)?.let { stringResource(R.string.ventes_edit_title_with_number, it) } ?: stringResource(R.string.ventes_edit_sale)) else stringResource(R.string.dashboard_sale_depot),
                     // The name passed with the route until the client itself is read: right on frame 1.
-                    subtitle      = formClient?.name ?: clientNameArg ?: "Choisir un client",
+                    subtitle      = formClient?.name ?: clientNameArg ?: stringResource(R.string.common_choose_client),
                     // Blue once a client is chosen, grey while the step is still open.
                     subtitleColor = if (formClient != null || clientNameArg != null) DsColors.Primary else DsColors.TextSecondary,
                     leading       = DsTopBarLeading.Back({ if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack() })
                 ) {
-                    DsStepBadge("Produits", 2, 3)
+                    DsStepBadge(stringResource(R.string.common_step_products), 2, 3)
                     Spacer(Modifier.width(DsSpacing.xs))
                 }
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
@@ -303,7 +303,7 @@ fun NavGraphBuilder.venteFormGraph(
                             DsCompactSearchField(
                                 value         = search,
                                 onValueChange = { picker.search = it },
-                                placeholder   = "Rechercher un produit",
+                                placeholder   = stringResource(R.string.common_search_product),
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
                                 DsCompactSearchAction(
@@ -334,7 +334,7 @@ fun NavGraphBuilder.venteFormGraph(
                                     resultCount    = productCount ?: 0,
                                     onChange       = { picker.filters = it },
                                     onDismiss      = { showFilterSheet = false },
-                                    priceLabel     = "Prix de vente",
+                                    priceLabel     = stringResource(R.string.common_label_sale_price),
                                 )
                             }
 
@@ -407,12 +407,12 @@ fun NavGraphBuilder.venteFormGraph(
                                             )
                                             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                                                 Text(
-                                                    if (depotEmpty && !isInCart) "Rupture · Dépôt: ${formatQty(product.stock - product.camion_stock)}"
-                                                    else "Dépôt: ${formatQty(product.stock - product.camion_stock)}",
+                                                    if (depotEmpty && !isInCart) stringResource(R.string.ventes_stock_depot_out, formatQty(product.stock - product.camion_stock))
+                                                    else stringResource(R.string.ventes_stock_depot, formatQty(product.stock - product.camion_stock)),
                                                     fontSize = DsTextSize.caption,
                                                     color    = if (depotEmpty && !isInCart) DsColors.Danger else DsColors.TextSecondary
                                                 )
-                                                Text("Camion: ${formatQty(product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                                Text(stringResource(R.string.ventes_stock_truck, formatQty(product.camion_stock)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                             }
                                         }
 
@@ -438,7 +438,7 @@ fun NavGraphBuilder.venteFormGraph(
                                             ) {
                                                 Icon(
                                                     Icons.Default.AddShoppingCart,
-                                                    contentDescription = if (depotEmpty) "Rupture de stock" else "Ajouter au panier",
+                                                    contentDescription = stringResource(if (depotEmpty) R.string.common_stock_out else R.string.common_cd_add_to_cart),
                                                     tint     = if (depotEmpty) DsColors.TextTertiary else Color.White,
                                                     modifier = Modifier.size(20.dp)
                                                 )
@@ -448,7 +448,7 @@ fun NavGraphBuilder.venteFormGraph(
                                                 onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                             ) {
-                                                Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_cd_added), tint = DsColors.Success, modifier = Modifier.size(20.dp))
                                             }
                                         }
                                     }
@@ -483,7 +483,7 @@ fun NavGraphBuilder.venteFormGraph(
                                 Text("${cartItems.size}", color = if (cartItems.isNotEmpty()) DsColors.PrimaryDark else Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                             }
                             Text(
-                                "Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                             )
                             Spacer(Modifier.weight(1f))
@@ -516,8 +516,8 @@ fun NavGraphBuilder.venteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title    = "Ma sélection",
-                    subtitle = "${cartItems.size} article(s)",
+                    title    = stringResource(R.string.common_my_selection),
+                    subtitle = stringResource(R.string.common_items_count_short, cartItems.size),
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
@@ -676,7 +676,7 @@ fun NavGraphBuilder.venteFormGraph(
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
             // Edit mode: the saved sale and what saving over it changes, while the user decides.
-            var editConfirm by remember { mutableStateOf<Pair<com.distrigo.app.data.model.Vente, List<String>>?>(null) }
+            var editConfirm by remember { mutableStateOf<Pair<com.distrigo.app.data.model.Vente, List<com.distrigo.app.core.text.UiText>>?>(null) }
             val total = cartItems.sumOf { it.quantity * it.unitPrice }
             // Strict stock: a line the dépôt can no longer cover, marked in the cart. A camion sale
             // being edited is checked against the camion by the repository instead.

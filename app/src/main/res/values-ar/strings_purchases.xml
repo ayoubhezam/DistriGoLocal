@@ -1,15 +1,15 @@
 <resources>
-    <string name="purchases_draft_edit_title">تعديل · وصل الشراء %1$s</string>
+    <string name="purchases_draft_edit_title">تعديل · وصل الشراء \u2068%1$s\u2069</string>
     <string name="purchases_draft_supplier_not_chosen">لم يُختر المورد</string>
     <string name="purchases_draft_blocked_received">وصل الشراء مستلَم مسبقًا</string>
     <string name="purchases_draft_blocked_deleted">وصل الشراء محذوف</string>
     <string name="purchases_drafts_sheet_subtitle">تابع مسودة أو ابدأ وصل شراء جديدًا.</string>
     <string name="purchases_drafts_sheet_start_new">بدء وصل شراء جديد</string>
-    <string name="purchases_draft_changed_title">تغيّر وصل الشراء %1$s</string>
-    <string name="purchases_draft_changed_body">عُدّل وصل الشراء %1$s منذ أن بدأت هذا التعديل. لم تُحفظ تغييراتك بعد.</string>
+    <string name="purchases_draft_changed_title">تغيّر وصل الشراء \u2068%1$s\u2069</string>
+    <string name="purchases_draft_changed_body">عُدّل وصل الشراء \u2068%1$s\u2069 منذ أن بدأت هذا التعديل. لم تُحفظ تغييراتك بعد.</string>
     <string name="purchases_draft_use_committed">البدء من وصل الشراء الحالي</string>
-    <string name="purchases_draft_blocked_body">استُلم وصل الشراء %1$s وحُدّث المخزون. لم يعد ممكنًا تطبيق هذا التعديل.</string>
+    <string name="purchases_draft_blocked_body">استُلم وصل الشراء \u2068%1$s\u2069 وحُدّث المخزون. لم يعد ممكنًا تطبيق هذا التعديل.</string>
     <string name="purchases_draft_view_record">عرض وصل الشراء</string>
     <string name="purchases_draft_deleted_title">وصل الشراء غير موجود</string>
-    <string name="purchases_draft_deleted_body">حُذف وصل الشراء %1$s. لم يعد هناك ما يُعدَّل.</string>
+    <string name="purchases_draft_deleted_body">حُذف وصل الشراء \u2068%1$s\u2069. لم يعد هناك ما يُعدَّل.</string>
 </resources>

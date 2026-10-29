@@ -862,6 +862,8 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
 @Composable
 fun CornerRibbon(label: String, color: Color, modifier: Modifier = Modifier) {
     val edgeReach = 40.dp
+    // TopEnd is the top-left corner in Arabic: the strip slants the other way to lie across it
+    val tilt = if (androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl) -45f else 45f
     Box(modifier = modifier.size(edgeReach), contentAlignment = Alignment.Center) {
         Text(
             text       = label,
@@ -872,7 +874,7 @@ fun CornerRibbon(label: String, color: Color, modifier: Modifier = Modifier) {
             textAlign  = TextAlign.Center,
             modifier   = Modifier
                 .wrapContentSize(unbounded = true)
-                .graphicsLayer { rotationZ = 45f }
+                .graphicsLayer { rotationZ = tilt }
                 .width(90.dp)
                 .background(color)
                 .padding(vertical = 2.dp)
@@ -884,22 +886,21 @@ fun CornerRibbon(label: String, color: Color, modifier: Modifier = Modifier) {
  * "Aujourd'hui", "Hier", or the day in full. Takes a calendar date or a stored instant; an instant
  * is read in the local zone, so a sale at 00:30 is today's, not yesterday's.
  */
-fun formatOrderDate(dateStr: String, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String {
+fun formatOrderDate(dateStr: String, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String =
+    com.distrigo.app.core.text.AppStrings.write(orderDateText(dateStr, zone))
+
+/** [formatOrderDate] before it is written: « Aujourd'hui » and « Hier » in the app's language, else the day in full in it. */
+fun orderDateText(dateStr: String, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): com.distrigo.app.core.text.UiText {
     return try {
         val date      = java.time.LocalDate.parse(BusinessDates.localDay(dateStr, zone))
         val today     = java.time.LocalDate.now(zone)
         val yesterday = today.minusDays(1)
         when (date) {
-            today     -> "Aujourd'hui"
-            yesterday -> "Hier"
-            else      -> date.format(
-                java.time.format.DateTimeFormatter.ofPattern(
-                    "EEEE, d MMMM yyyy",
-                    java.util.Locale.FRENCH
-                )
-            )
+            today     -> com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.common_period_today)
+            yesterday -> com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.common_period_yesterday)
+            else      -> com.distrigo.app.core.text.UiText.Raw(date.format(com.distrigo.app.core.format.AppDates.formatter("EEEE, d MMMM yyyy")))
         }
-    } catch (e: Exception) { dateStr }
+    } catch (e: Exception) { com.distrigo.app.core.text.UiText.Raw(dateStr) }
 }
 
 fun formatOrderTime(createdAt: String?): String {

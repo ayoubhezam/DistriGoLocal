@@ -23,6 +23,8 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.core.text.UiText
+import com.distrigo.app.ui.common.asString
 import com.distrigo.app.R
 
 /**
@@ -42,18 +44,18 @@ internal fun VenteDeleteDialog(
     AlertDialog(
         onDismissRequest = { if (!deleting) onDismiss() },
         icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
-        title            = { Text("Supprimer la vente") },
+        title            = { Text(stringResource(R.string.ventes_delete_title)) },
         text             = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Text(
-                    "Êtes-vous sûr de vouloir supprimer ${vente.numberLabel} de ${money.da(vente.total)} ?",
+                    stringResource(R.string.ventes_delete_question, vente.numberLabel, money.da(vente.total)),
                     color = DsColors.TextPrimary
                 )
-                Text("La suppression annulera ses mouvements de stock et mettra à jour le solde :", color = DsColors.TextSecondary)
+                Text(stringResource(R.string.ventes_delete_explain), color = DsColors.TextSecondary)
                 venteDeleteEffects(vente, money).forEach { effect ->
                     Row {
                         Text("•  ", color = DsColors.TextSecondary)
-                        Text(effect, color = DsColors.TextSecondary)
+                        Text(effect.asString(), color = DsColors.TextSecondary)
                     }
                 }
                 error?.takeIf { it.isNotBlank() }?.let { Text(it, color = DsColors.Danger, fontSize = DsTextSize.bodySmall) }
@@ -78,23 +80,22 @@ internal fun VenteDeleteDialog(
  * they were sold from), and the client's solde loses the sale's total and what was paid with it
  * (ClientDao.recomputeBalance counts a sale as total − montant_paye).
  */
-internal fun venteDeleteEffects(vente: Vente, money: MoneyFormatter): List<String> {
-    val place = if (vente.source == "camion") "le stock camion" else "le stock dépôt"
+internal fun venteDeleteEffects(vente: Vente, money: MoneyFormatter): List<UiText> {
+    val place = UiText.Res(if (vente.source == "camion") R.string.common_stock_truck_name else R.string.common_stock_depot_name)
     val count = vente.items_count ?: vente.items?.size
     val paid  = vente.montant_paye ?: 0.0
     val rest  = vente.total - paid
-    val client = "« ${vente.client_name} »"
+    val client = vente.client_name.orEmpty()
     return listOfNotNull(
         when (count) {
-            1    -> "Stock : le produit vendu sera remis dans $place."
-            null -> "Stock : les produits vendus seront remis dans $place."
-            else -> "Stock : les $count produits vendus seront remis dans $place."
+            null -> UiText.Res(R.string.ventes_delete_stock_unknown, place)
+            else -> UiText.Plural(R.plurals.ventes_delete_stock, count, listOf(count, place))
         },
         when {
-            rest > 0.005  -> "Solde : ce que doit le client $client baissera de ${money.da(rest)} (le reste à payer de cette vente)."
-            rest < -0.005 -> "Solde : ce que doit le client $client augmentera de ${money.da(-rest)} (l'avance payée avec cette vente)."
-            else          -> "Solde : inchangé pour le client $client, la vente était entièrement payée."
+            rest > 0.005  -> UiText.Res(R.string.ventes_delete_balance_down, client, money.da(rest))
+            rest < -0.005 -> UiText.Res(R.string.ventes_delete_balance_up, client, money.da(-rest))
+            else          -> UiText.Res(R.string.ventes_delete_balance_same, client)
         },
-        "Paiement : les ${money.da(paid)} encaissés avec cette vente seront effacés avec elle.".takeIf { paid > 0.005 }
+        UiText.Res(R.string.ventes_delete_payment, money.da(paid)).takeIf { paid > 0.005 }
     )
 }

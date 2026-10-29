@@ -2,7 +2,7 @@ package com.distrigo.app.ui.common
 
 import com.distrigo.app.data.model.PurchaseOrder
 import com.distrigo.app.data.model.Vente
-import com.distrigo.app.ui.purchases.formatOrderDate
+import com.distrigo.app.ui.purchases.orderDateText
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -47,7 +47,7 @@ class ListFiltersLocalDayTest {
     fun `a sale made after local midnight today reads Aujourd'hui`() {
         val today = LocalDate.now(algiers)
         val justAfterMidnight = today.atStartOfDay(algiers).plusMinutes(30).toInstant().toString()
-        assertEquals("Aujourd'hui", formatOrderDate(justAfterMidnight, algiers))
-        assertEquals("Hier", formatOrderDate(today.minusDays(1).toString(), algiers))
+        assertEquals("Aujourd'hui", com.distrigo.app.testing.FrenchText.write(orderDateText(justAfterMidnight, algiers)))
+        assertEquals("Hier", com.distrigo.app.testing.FrenchText.write(orderDateText(today.minusDays(1).toString(), algiers)))
     }
 }

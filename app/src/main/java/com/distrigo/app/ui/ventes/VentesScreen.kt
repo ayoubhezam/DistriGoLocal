@@ -67,7 +67,10 @@ import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -164,7 +167,7 @@ fun VentesScreen(
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
-                            Text("Modifier la vente", fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.ventes_edit_sale), fontSize = DsTextSize.body, color = DsColors.Primary, fontWeight = FontWeight.Medium)
                         }
                         Row(
                             modifier = Modifier
@@ -177,7 +180,7 @@ fun VentesScreen(
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                            Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.ventes_delete_title), fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                         }
                     }
                 },
@@ -239,12 +242,12 @@ fun VentesScreen(
             // sheet is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters'
             // scroll is kept outside the switch, so coming back finds them where they were.
             if (clientPicker) SearchableSelectList(
-                title       = "Sélectionner un client",
+                title       = stringResource(R.string.common_select_client),
                 items       = clients,
                 itemLabel   = { it.second },
                 itemKey     = { it.first },
                 isSelected  = { it.first == viewModel.filterClientId },
-                allLabel    = "Tous les clients",
+                allLabel    = stringResource(R.string.common_all_clients),
                 allSelected = viewModel.filterClientId == null,
                 onSelectAll = { viewModel.filterClientId = null; clientPicker = false },
                 onSelect    = { viewModel.filterClientId = it.first; clientPicker = false },
@@ -269,12 +272,12 @@ fun VentesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── حالة الوصل ──
-                Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.ventes_filter_delivery_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     listOf<Pair<String?, String>>(
-                        null to "Tous",
-                        "pending" to "En attente",
-                        "delivered" to "Livré"
+                        null to stringResource(R.string.common_filter_all),
+                        "pending" to stringResource(R.string.ventes_status_pending),
+                        "delivered" to stringResource(R.string.ventes_status_delivered)
                     ).forEach { (value, label) ->
                         val active = viewModel.filterStatus == value
                         Box(
@@ -299,13 +302,13 @@ fun VentesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── حالة الدفع ──
-                Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.ventes_filter_payment_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     listOf<Pair<String?, String>>(
-                        null to "Tous",
-                        "paye" to "Payé",
-                        "impaye" to "Impayé",
-                        "partiel" to "Partiel"
+                        null to stringResource(R.string.common_filter_all),
+                        "paye" to stringResource(R.string.common_status_paid),
+                        "impaye" to stringResource(R.string.common_status_unpaid),
+                        "partiel" to stringResource(R.string.common_status_partial)
                     ).forEach { (value, label) ->
                         val active = viewModel.filterPaymentStatus == value
                         Box(
@@ -330,13 +333,13 @@ fun VentesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── العميل ──
-                Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.common_label_client), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 // A searchable list, not a dropdown: a dropdown builds every client with a sale the
                 // moment it opens — a 300 ms freeze for ~1,500 of them in a release build.
                 DsSelectorField(
                     label       = null,
                     value       = clients.find { it.first == viewModel.filterClientId }?.second.orEmpty(),
-                    placeholder = "Tous les clients",
+                    placeholder = stringResource(R.string.common_all_clients),
                     onClick     = { clientPicker = true }
                 )
                 Spacer(Modifier.height(DsSpacing.md))
@@ -417,7 +420,7 @@ fun VentesScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
-                        Text("Appliquer (${venteCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                        Text(stringResource(R.string.common_action_apply_count, venteCount ?: 0), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -427,6 +430,7 @@ fun VentesScreen(
     // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
     val swipeSnackbar = remember { SnackbarHostState() }
     val undoLabel = stringResource(R.string.common_action_cancel)
+    val swipeRes = androidx.compose.ui.platform.LocalContext.current.resources
     val swipeScope    = rememberCoroutineScope()
 
     Box(
@@ -438,7 +442,7 @@ fun VentesScreen(
             // The « Dépôt vente » tab's root: the menu and the global controls. Opened on a sale
             // (a drill-down), a back arrow instead.
             DsTopAppBar(
-                title   = "Dépôt Vente",
+                title   = stringResource(R.string.ventes_title),
                 licenseBanner = true,
                 leading = onBack?.let { DsTopBarLeading.Back(it) } ?: onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
@@ -452,7 +456,7 @@ fun VentesScreen(
             DsCompactSearchField(
                 value         = viewModel.searchQuery,
                 onValueChange = { viewModel.searchQuery = it },
-                placeholder   = "Rechercher une vente",
+                placeholder   = stringResource(R.string.ventes_search),
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
@@ -476,7 +480,7 @@ fun VentesScreen(
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                     Text(
-                        "${venteCount?.toString() ?: "…"} ventes",
+                        venteCount?.let { pluralStringResource(R.plurals.ventes_count, it, it) } ?: stringResource(R.string.ventes_count_loading),
                         fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary
@@ -498,7 +502,7 @@ fun VentesScreen(
                     ) {
                         Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                         Text(
-                            "Brouillons (${drafts.size})",
+                            stringResource(R.string.common_drafts_count, drafts.size),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.Primary
@@ -557,7 +561,7 @@ fun VentesScreen(
                 }
             } else if (pagedVentes.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
+                    Text(refresh.error.message ?: stringResource(R.string.common_load_error), color = DsColors.Danger)
                 }
             } else if (pagedVentes.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -569,9 +573,9 @@ fun VentesScreen(
                             modifier = Modifier.size(56.dp)
                         )
                         Spacer(Modifier.height(DsSpacing.md))
-                        Text("Aucune vente", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.ventes_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(4.dp))
-                        Text("Appuyez sur + pour créer", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.common_tap_plus_to_create), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                 }
             } else {
@@ -613,7 +617,7 @@ fun VentesScreen(
                             )
                             is VentesListItem.Sale -> SwipeToConfirm(
                                 enabled     = row.vente.status != "delivered",
-                                label       = "Livré",
+                                label       = stringResource(R.string.ventes_status_delivered),
                                 icon        = Icons.Default.LocalShipping,
                                 onConfirmed = delivered@{
                                     if (license.refuses()) return@delivered
@@ -622,7 +626,7 @@ fun VentesScreen(
                                         id        = vente.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée", undoLabel) {
+                                                swipeSnackbar.showUndo(swipeRes.getString(R.string.ventes_marked_delivered, vente.numberLabel), undoLabel) {
                                                     viewModel.undeliverVente(vente.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }
@@ -650,7 +654,7 @@ fun VentesScreen(
             // The resume decision is made here, before the form graph is entered — which is what
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
-            contentDescription = "Nouvelle vente",
+            contentDescription = stringResource(R.string.dashboard_new_sale),
             onClick            = { if (drafts.isEmpty()) onAddVente() else showDraftsSheet = true },
             modifier           = Modifier
                 .align(Alignment.BottomEnd)
@@ -794,7 +798,7 @@ fun VenteDetailScreen(
                     .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
-                    if (isDelivered) "Livré" else "En attente",
+                    stringResource(if (isDelivered) R.string.ventes_status_delivered else R.string.ventes_status_pending),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = if (isDelivered) DsColors.TextSecondary else DsColors.Warning
@@ -804,7 +808,7 @@ fun VenteDetailScreen(
 
             Box {
                 IconButton(onClick = { overflowMenuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_cd_options))
                 }
                 DropdownMenu(
                     expanded         = overflowMenuExpanded,
@@ -874,7 +878,7 @@ fun VenteDetailScreen(
                         Spacer(Modifier.height(DsSpacing.md))
 
                         Text(
-                            "ARTICLES (${displayVente.items?.size ?: displayVente.items_count ?: 0})",
+                            stringResource(R.string.ventes_detail_items, displayVente.items?.size ?: displayVente.items_count ?: 0),
                             fontSize      = DsTextSize.caption,
                             fontWeight    = FontWeight.Bold,
                             color         = DsColors.TextSecondary,
@@ -908,7 +912,7 @@ fun VenteDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                         Text(
-                                            "${formatQty(item.quantity)} ${item.unit_type} × ${money.da(item.unit_price)}",
+                                            stringResource(R.string.common_qty_times_price, quantityText(item.quantity, item.unit_type).asString(), money.da(item.unit_price)),
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
@@ -937,7 +941,7 @@ fun VenteDetailScreen(
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
                             Text(
-                                "TOTAL",
+                                stringResource(R.string.ventes_detail_total),
                                 fontSize      = DsTextSize.caption,
                                 fontWeight    = FontWeight.Bold,
                                 color         = if (isDelivered) DsColors.TextPrimary else DsColors.Primary,
@@ -962,7 +966,7 @@ fun VenteDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text(stringResource(R.string.ventes_amount_paid), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                             Text(money.da(montantPaye), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
 
@@ -1031,7 +1035,7 @@ fun VenteDetailScreen(
                 Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Aperçu & Imprimer",
+                    stringResource(R.string.common_action_preview_print),
                     fontSize   = DsTextSize.bodySmall,
                     color      = DsColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
@@ -1054,7 +1058,7 @@ fun VenteDetailScreen(
                 Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Partager",
+                    stringResource(R.string.common_action_share),
                     fontSize   = DsTextSize.bodySmall,
                     color      = DsColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
@@ -1090,7 +1094,7 @@ fun VenteDetailScreen(
                 } else {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Marquer comme livré", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ventes_mark_delivered), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             }
         } else {
@@ -1103,7 +1107,7 @@ fun VenteDetailScreen(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Vente livrée et enregistrée", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.ventes_delivered_saved), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             }
         }
     }
@@ -1137,11 +1141,11 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val isDelivered = vente.status == "delivered"
     val (ribbonLabel, ribbonColor) =
-        if (isDelivered) "LIVRÉ" to DsColors.Success else "EN ATTENTE" to DsColors.Warning
+        if (isDelivered) stringResource(R.string.ventes_ribbon_delivered) to DsColors.Success else stringResource(R.string.ventes_ribbon_pending) to DsColors.Warning
     val (statut, statusColor, statusColorLight) = when (paymentStatusOf(vente)) {
-        "paye"    -> Triple("Payé",    DsColors.Success, DsColors.SuccessLight)
-        "partiel" -> Triple("Partiel", DsColors.Warning, DsColors.WarningLight)
-        else      -> Triple("Impayé",  DsColors.Danger,  DsColors.DangerLight)
+        "paye"    -> Triple(stringResource(R.string.common_status_paid),    DsColors.Success, DsColors.SuccessLight)
+        "partiel" -> Triple(stringResource(R.string.common_status_partial), DsColors.Warning, DsColors.WarningLight)
+        else      -> Triple(stringResource(R.string.common_status_unpaid),  DsColors.Danger,  DsColors.DangerLight)
     }
 
     Box(
@@ -1184,7 +1188,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     overflow   = TextOverflow.Ellipsis
                 )
                 Text(
-                    "${vente.items_count ?: vente.items?.size ?: 0} article(s) · ${formatOrderTime(vente.created_at)}",
+                    stringResource(R.string.ventes_card_items_time, vente.items_count ?: vente.items?.size ?: 0, formatOrderTime(vente.created_at)),
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextSecondary
                 )

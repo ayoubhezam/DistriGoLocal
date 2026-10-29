@@ -65,6 +65,6 @@ class HardcodedTextGuardTest {
 
     private companion object {
         /** 1371 at Phase 1 (2026-10-27); lowered as Phases 3–4 move the text out. */
-        const val BASELINE = 942
+        const val BASELINE = 900
     }
 }

@@ -11,4 +11,76 @@
     <string name="ventes_draft_view_record">Voir la vente</string>
     <string name="ventes_draft_deleted_title">Vente introuvable</string>
     <string name="ventes_draft_deleted_body">La vente %1$s a été supprimée. Il n\'y a plus rien à modifier.</string>
+    <string name="ventes_edit_title">Enregistrer les modifications</string>
+    <string name="ventes_edit_question">Voulez-vous modifier %1$s ?</string>
+    <string name="ventes_edit_what_changes">Ce qui va changer :</string>
+    <plurals name="ventes_effect_added">
+        <item quantity="one">« %1$s » ajouté : %2$s sortira du %3$s.</item>
+        <item quantity="other">« %1$s » ajouté : %2$s sortiront du %3$s.</item>
+    </plurals>
+    <plurals name="ventes_effect_removed">
+        <item quantity="one">« %1$s » retiré : %2$s sera remis dans le %3$s.</item>
+        <item quantity="other">« %1$s » retiré : %2$s seront remis dans le %3$s.</item>
+    </plurals>
+    <plurals name="ventes_effect_more">
+        <item quantity="one">« %1$s » : %4$s → %5$s, %2$s de plus sortira du %3$s.</item>
+        <item quantity="other">« %1$s » : %4$s → %5$s, %2$s de plus sortiront du %3$s.</item>
+    </plurals>
+    <plurals name="ventes_effect_less">
+        <item quantity="one">« %1$s » : %4$s → %5$s, %2$s sera remis dans le %3$s.</item>
+        <item quantity="other">« %1$s » : %4$s → %5$s, %2$s seront remis dans le %3$s.</item>
+    </plurals>
+    <plurals name="ventes_effect_others">
+        <item quantity="one">… et %1$d autre produit modifié.</item>
+        <item quantity="other">… et %1$d autres produits modifiés.</item>
+    </plurals>
+    <string name="ventes_effect_total">Total : %1$s → %2$s.</string>
+    <string name="ventes_effect_payment_lowered">Paiement : %1$s → %2$s — %3$s encaissés seront effacés.</string>
+    <string name="ventes_effect_payment">Paiement : %1$s → %2$s encaissés.</string>
+    <string name="ventes_effect_balance_up">Solde : ce que doit le client « %1$s » augmentera de %2$s.</string>
+    <string name="ventes_effect_balance_down">Solde : ce que doit le client « %1$s » baissera de %2$s.</string>
+    <string name="ventes_effect_balance_same">Solde : inchangé pour le client « %1$s ».</string>
+    <string name="ventes_delete_title">Supprimer la vente</string>
+    <string name="ventes_delete_question">Êtes-vous sûr de vouloir supprimer %1$s de %2$s ?</string>
+    <string name="ventes_delete_explain">La suppression annulera ses mouvements de stock et mettra à jour le solde :</string>
+    <string name="ventes_delete_stock_unknown">Stock : les produits vendus seront remis dans le %1$s.</string>
+    <plurals name="ventes_delete_stock">
+        <item quantity="one">Stock : le produit vendu sera remis dans le %2$s.</item>
+        <item quantity="other">Stock : les %1$d produits vendus seront remis dans le %2$s.</item>
+    </plurals>
+    <string name="ventes_delete_balance_down">Solde : ce que doit le client « %1$s » baissera de %2$s (le reste à payer de cette vente).</string>
+    <string name="ventes_delete_balance_up">Solde : ce que doit le client « %1$s » augmentera de %2$s (l\'avance payée avec cette vente).</string>
+    <string name="ventes_delete_balance_same">Solde : inchangé pour le client « %1$s », la vente était entièrement payée.</string>
+    <string name="ventes_delete_payment">Paiement : les %1$s encaissés avec cette vente seront effacés avec elle.</string>
+    <string name="ventes_edit_sale">Modifier la vente</string>
+    <string name="ventes_filter_delivery_status">Statut du bon</string>
+    <string name="ventes_status_pending">En attente</string>
+    <string name="ventes_status_delivered">Livré</string>
+    <string name="ventes_filter_payment_status">Statut du paiement</string>
+    <string name="ventes_title">Dépôt Vente</string>
+    <string name="ventes_search">Rechercher une vente</string>
+    <plurals name="ventes_count">
+        <item quantity="one">%1$d vente</item>
+        <item quantity="other">%1$d ventes</item>
+    </plurals>
+    <string name="ventes_count_loading">… ventes</string>
+    <string name="ventes_empty">Aucune vente</string>
+    <string name="ventes_marked_delivered">%1$s marquée comme livrée</string>
+    <string name="ventes_detail_items">ARTICLES (%1$d)</string>
+    <string name="ventes_detail_total">TOTAL</string>
+    <string name="ventes_amount_paid">Montant payé</string>
+    <string name="ventes_mark_delivered">Marquer comme livré</string>
+    <string name="ventes_delivered_saved">Vente livrée et enregistrée</string>
+    <string name="ventes_ribbon_delivered">LIVRÉ</string>
+    <string name="ventes_ribbon_pending">EN ATTENTE</string>
+    <string name="ventes_card_items_time">%1$d article(s) · %2$s</string>
+    <string name="ventes_choose_client_hint">Sélectionnez le client avant d\'ajouter des produits</string>
+    <string name="ventes_banner_missing_product">Un produit de cette vente n\'existe plus dans le catalogue. Retirez sa ligne de la sélection pour pouvoir enregistrer.</string>
+    <string name="ventes_banner_over_stock">Stock dépôt insuffisant pour « %1$s ». Réduisez sa quantité dans la sélection pour pouvoir enregistrer.</string>
+    <string name="ventes_cart_at_cap">Maximum atteint — %1$s en dépôt</string>
+    <string name="ventes_edit_title_with_number">Modifier %1$s</string>
+    <string name="ventes_stock_depot">Dépôt: %1$s</string>
+    <string name="ventes_stock_depot_out">Rupture · Dépôt: %1$s</string>
+    <string name="ventes_stock_truck">Camion: %1$s</string>
+    <string name="ventes_drafts_empty_body">Une vente non terminée est enregistrée ici automatiquement, et vous pouvez la reprendre quand vous voulez.</string>
 </resources>

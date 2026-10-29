@@ -1,11 +1,11 @@
 <resources>
     <plurals name="chargements_draft_title">
-        <item quantity="zero">حركة · %1$d منتج</item>
+        <item quantity="zero">حركة · \u2068%1$d\u2069 منتج</item>
         <item quantity="one">حركة · منتج واحد</item>
         <item quantity="two">حركة · منتجان</item>
-        <item quantity="few">حركة · %1$d منتجات</item>
-        <item quantity="many">حركة · %1$d منتجًا</item>
-        <item quantity="other">حركة · %1$d منتج</item>
+        <item quantity="few">حركة · \u2068%1$d\u2069 منتجات</item>
+        <item quantity="many">حركة · \u2068%1$d\u2069 منتجًا</item>
+        <item quantity="other">حركة · \u2068%1$d\u2069 منتج</item>
     </plurals>
     <string name="chargements_drafts_sheet_subtitle">تابع مسودة أو ابدأ حركة جديدة.</string>
     <string name="chargements_drafts_sheet_start_new">بدء حركة جديدة</string>
