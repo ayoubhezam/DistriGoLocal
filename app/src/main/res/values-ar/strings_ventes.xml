@@ -94,14 +94,12 @@
     <string name="ventes_count_loading">… عمليات بيع</string>
     <string name="ventes_empty">لا توجد مبيعات</string>
     <string name="ventes_marked_delivered">\u2068%1$s\u2069 مُعلَّمة كمُسلَّمة</string>
-    <string name="ventes_detail_items">المواد (\u2068%1$d\u2069)</string>
     <string name="ventes_detail_total">المجموع</string>
     <string name="ventes_amount_paid">المبلغ المدفوع</string>
     <string name="ventes_mark_delivered">تعليم كمُسلَّم</string>
     <string name="ventes_delivered_saved">عملية البيع مُسلَّمة ومسجَّلة</string>
     <string name="ventes_ribbon_delivered">مُسلَّم</string>
     <string name="ventes_ribbon_pending">في الانتظار</string>
-    <string name="ventes_card_items_time">\u2068%1$d\u2069 مادة · \u2068%2$s\u2069</string>
     <string name="ventes_choose_client_hint">اختر الزبون قبل إضافة المنتجات</string>
     <string name="ventes_banner_missing_product">لم يعد أحد منتجات هذه العملية في الكتالوج. أزل سطره من الاختيار لتتمكن من الحفظ.</string>
     <string name="ventes_banner_over_stock">مخزون المستودع غير كافٍ لـ« \u2068%1$s\u2069 ». قلّل كميته في الاختيار لتتمكن من الحفظ.</string>
@@ -111,4 +109,20 @@
     <string name="ventes_stock_depot_out">نفاد · المستودع: \u2068%1$s\u2069</string>
     <string name="ventes_stock_truck">الشاحنة: \u2068%1$s\u2069</string>
     <string name="ventes_drafts_empty_body">تُحفظ هنا تلقائيًا كل عملية بيع غير مكتملة، ويمكنك متابعتها متى شئت.</string>
+    <plurals name="ventes_detail_items">
+        <item quantity="zero">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="one">منتج (\u2068%1$d\u2069)</item>
+        <item quantity="two">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="few">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="many">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="other">المنتجات (\u2068%1$d\u2069)</item>
+    </plurals>
+    <plurals name="ventes_card_items_time">
+        <item quantity="zero">\u2068%1$d\u2069 منتج · \u2068%2$s\u2069</item>
+        <item quantity="one">\u2068%1$d\u2069 منتج · \u2068%2$s\u2069</item>
+        <item quantity="two">\u2068%1$d\u2069 منتجان · \u2068%2$s\u2069</item>
+        <item quantity="few">\u2068%1$d\u2069 منتجات · \u2068%2$s\u2069</item>
+        <item quantity="many">\u2068%1$d\u2069 منتجًا · \u2068%2$s\u2069</item>
+        <item quantity="other">\u2068%1$d\u2069 منتج · \u2068%2$s\u2069</item>
+    </plurals>
 </resources>

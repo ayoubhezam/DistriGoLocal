@@ -240,7 +240,7 @@ private fun SpeedDialAction(
             modifier = Modifier.shadow(2.dp, DsShapes.pill).clip(DsShapes.pill).background(DsColors.Surface)
                 .padding(horizontal = DsSpacing.md, vertical = 6.dp),
             color = DsColors.PrimaryDark, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1,
-            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicFonts.current?.ui,
         )
     }
 }

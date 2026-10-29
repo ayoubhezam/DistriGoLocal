@@ -187,7 +187,7 @@
     <string name="common_stock_out">نفاد المخزون</string>
     <string name="common_label_sale_price">سعر البيع</string>
     <string name="common_label_purchase_price">سعر الشراء</string>
-    <string name="common_unit_carton">كرتونة</string>
+    <string name="common_unit_carton">علبة</string>
     <string name="common_unit_piece">قطعة</string>
     <string name="common_unit_kg">كغ</string>
     <string name="common_refusal_unsettled_balance">تعذّر الحذف: الرصيد ليس صفرًا (\u2068%1$s\u2069).</string>
@@ -241,12 +241,12 @@
     <string name="common_kind_loss">خسارة</string>
     <string name="common_kind_adjustment">تسوية</string>
     <plurals name="common_qty_carton">
-        <item quantity="zero">\u2068%1$s\u2069 كرتونة</item>
-        <item quantity="one">\u2068%1$s\u2069 كرتونة</item>
-        <item quantity="two">\u2068%1$s\u2069 كرتونتان</item>
-        <item quantity="few">\u2068%1$s\u2069 كراتين</item>
-        <item quantity="many">\u2068%1$s\u2069 كرتونة</item>
-        <item quantity="other">\u2068%1$s\u2069 كرتونة</item>
+        <item quantity="zero">\u2068%1$s\u2069 علبة</item>
+        <item quantity="one">\u2068%1$s\u2069 علبة</item>
+        <item quantity="two">\u2068%1$s\u2069 علبتان</item>
+        <item quantity="few">\u2068%1$s\u2069 علب</item>
+        <item quantity="many">\u2068%1$s\u2069 علبة</item>
+        <item quantity="other">\u2068%1$s\u2069 علبة</item>
     </plurals>
     <plurals name="common_qty_piece">
         <item quantity="zero">\u2068%1$s\u2069 قطعة</item>
@@ -311,8 +311,6 @@
     <string name="common_client_balance_value">رصيد الزبون: \u2068%1$s\u2069</string>
     <string name="common_step_validation">التأكيد</string>
     <string name="common_step_products">المنتجات</string>
-    <string name="common_items_count">المواد (\u2068%1$d\u2069)</string>
-    <string name="common_items_count_short">\u2068%1$d\u2069 مادة</string>
     <string name="common_amount_paid_da">المبلغ المدفوع (DA)</string>
     <string name="common_settled_all">تسديد الكل</string>
     <string name="common_label_status">الحالة</string>
@@ -351,4 +349,20 @@
     <string name="common_draft_delete_one_body">ستُحذف « \u2068%1$s\u2069 » نهائيًا. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="common_drafts_no_match">لا توجد مسودة تطابق هذه التصفية.</string>
     <string name="common_reset_filters">إعادة تعيين التصفية</string>
+    <plurals name="common_items_count">
+        <item quantity="zero">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="one">منتج (\u2068%1$d\u2069)</item>
+        <item quantity="two">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="few">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="many">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="other">المنتجات (\u2068%1$d\u2069)</item>
+    </plurals>
+    <plurals name="common_items_count_short">
+        <item quantity="zero">\u2068%1$d\u2069 منتج</item>
+        <item quantity="one">\u2068%1$d\u2069 منتج</item>
+        <item quantity="two">\u2068%1$d\u2069 منتجان</item>
+        <item quantity="few">\u2068%1$d\u2069 منتجات</item>
+        <item quantity="many">\u2068%1$d\u2069 منتجًا</item>
+        <item quantity="other">\u2068%1$d\u2069 منتج</item>
+    </plurals>
 </resources>

@@ -101,6 +101,6 @@ fun DistriGoTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = if (LocalLayoutDirection.current == LayoutDirection.Rtl) RtlTypography else Typography,
-        content = content
+        content = { com.distrigo.app.ui.designsystem.ProvideArabicFonts(content) }
     )
 }

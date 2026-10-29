@@ -66,14 +66,12 @@
     <string name="ventes_count_loading">… ventes</string>
     <string name="ventes_empty">Aucune vente</string>
     <string name="ventes_marked_delivered">%1$s marquée comme livrée</string>
-    <string name="ventes_detail_items">ARTICLES (%1$d)</string>
     <string name="ventes_detail_total">TOTAL</string>
     <string name="ventes_amount_paid">Montant payé</string>
     <string name="ventes_mark_delivered">Marquer comme livré</string>
     <string name="ventes_delivered_saved">Vente livrée et enregistrée</string>
     <string name="ventes_ribbon_delivered">LIVRÉ</string>
     <string name="ventes_ribbon_pending">EN ATTENTE</string>
-    <string name="ventes_card_items_time">%1$d article(s) · %2$s</string>
     <string name="ventes_choose_client_hint">Sélectionnez le client avant d\'ajouter des produits</string>
     <string name="ventes_banner_missing_product">Un produit de cette vente n\'existe plus dans le catalogue. Retirez sa ligne de la sélection pour pouvoir enregistrer.</string>
     <string name="ventes_banner_over_stock">Stock dépôt insuffisant pour « %1$s ». Réduisez sa quantité dans la sélection pour pouvoir enregistrer.</string>
@@ -83,4 +81,12 @@
     <string name="ventes_stock_depot_out">Rupture · Dépôt: %1$s</string>
     <string name="ventes_stock_truck">Camion: %1$s</string>
     <string name="ventes_drafts_empty_body">Une vente non terminée est enregistrée ici automatiquement, et vous pouvez la reprendre quand vous voulez.</string>
+    <plurals name="ventes_detail_items">
+        <item quantity="one">ARTICLES (%1$d)</item>
+        <item quantity="other">ARTICLES (%1$d)</item>
+    </plurals>
+    <plurals name="ventes_card_items_time">
+        <item quantity="one">%1$d article · %2$s</item>
+        <item quantity="other">%1$d articles · %2$s</item>
+    </plurals>
 </resources>

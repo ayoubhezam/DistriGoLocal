@@ -706,6 +706,7 @@ fun VenteDetailScreen(
     val license = LocalLicense.current
     val displayVente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
     val isDelivered  = displayVente.status == "delivered"
+    val arabic       = com.distrigo.app.ui.designsystem.LocalArabicFonts.current != null
     var isDelivering by remember { mutableStateOf(false) }
     var isDeleting   by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -878,7 +879,7 @@ fun VenteDetailScreen(
                         Spacer(Modifier.height(DsSpacing.md))
 
                         Text(
-                            stringResource(R.string.ventes_detail_items, displayVente.items?.size ?: displayVente.items_count ?: 0),
+                            (displayVente.items?.size ?: displayVente.items_count ?: 0).let { pluralStringResource(R.plurals.ventes_detail_items, it, it) },
                             fontSize      = DsTextSize.caption,
                             fontWeight    = FontWeight.Bold,
                             color         = DsColors.TextSecondary,
@@ -942,10 +943,11 @@ fun VenteDetailScreen(
                         ) {
                             Text(
                                 stringResource(R.string.ventes_detail_total),
-                                fontSize      = DsTextSize.caption,
+                                // In Arabic, « المجموع » is the size of « المبلغ المدفوع » and « الباقي » under it (the owner, 2026-10-29)
+                                fontSize      = if (arabic) DsTextSize.bodySmall else DsTextSize.caption,
                                 fontWeight    = FontWeight.Bold,
                                 color         = if (isDelivered) DsColors.TextPrimary else DsColors.Primary,
-                                letterSpacing = 1.sp
+                                letterSpacing = if (arabic) 0.sp else 1.sp
                             )
                             Text(
                                 money.da(displayVente.total),
@@ -1188,7 +1190,7 @@ fun VenteCard(vente: Vente, onClick: () -> Unit, onLongClick: () -> Unit) {
                     overflow   = TextOverflow.Ellipsis
                 )
                 Text(
-                    stringResource(R.string.ventes_card_items_time, vente.items_count ?: vente.items?.size ?: 0, formatOrderTime(vente.created_at)),
+                    (vente.items_count ?: vente.items?.size ?: 0).let { pluralStringResource(R.plurals.ventes_card_items_time, it, it, formatOrderTime(vente.created_at)) },
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextSecondary
                 )

@@ -167,9 +167,9 @@ fun DsTopAppBar(
                 .weight(1f)
                 .padding(start = if (hasLeading) DsSpacing.xs else 0.dp, end = DsSpacing.sm)
         ) {
-            val trial = LocalArabicTrialFonts.current
+            val trial = LocalArabicFonts.current
             // The Arabic font trial's main header: larger, and shrunk to fit rather than cut (never under the headline)
-            if (trial != null && isLarge && !titleMarquee) ArabicTrialDisplay {
+            if (trial != null && isLarge && !titleMarquee) ArabicDisplay {
                 com.distrigo.app.ui.common.FitText(
                     title, fontSize = trial.mainHeaderSize, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark,
                     minScale = DsTextSize.headline.value / trial.mainHeaderSize.value,

@@ -264,8 +264,6 @@
     <string name="common_client_balance_value">Solde du client : %1$s</string>
     <string name="common_step_validation">Validation</string>
     <string name="common_step_products">Produits</string>
-    <string name="common_items_count">Articles (%1$d)</string>
-    <string name="common_items_count_short">%1$d article(s)</string>
     <string name="common_amount_paid_da">Montant payé (DA)</string>
     <string name="common_settled_all">Tout réglé</string>
     <string name="common_label_status">Statut</string>
@@ -296,4 +294,12 @@
     <string name="common_draft_delete_one_body">« %1$s » sera définitivement perdu. Cette action est irréversible.</string>
     <string name="common_drafts_no_match">Aucun brouillon ne correspond à ces filtres.</string>
     <string name="common_reset_filters">Réinitialiser les filtres</string>
+    <plurals name="common_items_count">
+        <item quantity="one">Articles (%1$d)</item>
+        <item quantity="other">Articles (%1$d)</item>
+    </plurals>
+    <plurals name="common_items_count_short">
+        <item quantity="one">%1$d article</item>
+        <item quantity="other">%1$d articles</item>
+    </plurals>
 </resources>

@@ -68,6 +68,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Resolves the session that owns this pass through the form, and enters it.
@@ -517,7 +518,7 @@ fun NavGraphBuilder.venteFormGraph(
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
                     title    = stringResource(R.string.common_my_selection),
-                    subtitle = stringResource(R.string.common_items_count_short, cartItems.size),
+                    subtitle = pluralStringResource(R.plurals.common_items_count_short, cartItems.size, cartItems.size),
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {

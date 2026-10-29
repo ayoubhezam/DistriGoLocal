@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 data class VenteCartItem(
     val product   : Product,
@@ -285,7 +286,7 @@ internal fun Step3Validation(
                     }
 
                     Text(
-                        stringResource(R.string.common_items_count, cartItems.size),
+                        pluralStringResource(R.plurals.common_items_count, cartItems.size, cartItems.size),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary,

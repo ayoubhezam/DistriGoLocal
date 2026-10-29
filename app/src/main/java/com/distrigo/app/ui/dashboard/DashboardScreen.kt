@@ -413,7 +413,7 @@ private fun TourneeChip(tournee: TourneeDay, onClick: () -> Unit) {
         Spacer(Modifier.width(DsSpacing.xs))
         Text(
             stringResource(R.string.dashboard_tournee_open, tournee.label),
-            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicFonts.current?.ui,
             fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
@@ -534,10 +534,10 @@ private fun TodayCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.dashboard_today_sales), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = white.copy(alpha = 0.9f),
-                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui)
+                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicFonts.current?.ui)
             InfoButton(infoToday(), tint = white.copy(alpha = 0.75f))
         }
-        com.distrigo.app.ui.designsystem.ArabicTrialDisplay {
+        com.distrigo.app.ui.designsystem.ArabicDisplay {
             AnimatedFigure(money.figure(sales.today.total), fontSize = DsTextSize.display, fontWeight = FontWeight.ExtraBold,
                 color = white, textAlign = TextAlign.Center)
         }
@@ -637,7 +637,7 @@ private fun HeroMonth(sales: DashboardSales, onClick: () -> Unit, onSetObjective
             Icon(Icons.Default.Add, contentDescription = null, tint = white, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
             Text(stringResource(R.string.dashboard_set_goal), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = white,
-                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui)
+                fontFamily = com.distrigo.app.ui.designsystem.LocalArabicFonts.current?.ui)
         }
     }
 }
@@ -703,7 +703,7 @@ internal fun QuickAction(
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
             label, fontSize = fontSize, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary,
-            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicTrialFonts.current?.ui,
+            fontFamily = com.distrigo.app.ui.designsystem.LocalArabicFonts.current?.ui,
             textAlign = TextAlign.Center, maxLines = 2, lineHeight = DsTextSize.bodySmall,
         )
     }

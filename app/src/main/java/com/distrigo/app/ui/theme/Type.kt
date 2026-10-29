@@ -7,6 +7,8 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import com.distrigo.app.ui.designsystem.ArabicFonts
 import com.distrigo.app.ui.designsystem.DsBrand
 
 /**
@@ -30,7 +32,7 @@ import com.distrigo.app.ui.designsystem.DsBrand
  */
 private fun TextStyle.brand(lineHeight: TextUnit = 1.4.em, letterSpacing: TextUnit = this.letterSpacing) =
     copy(
-        fontFamily = DsBrand.Font, fontFeatureSettings = "tnum", lineHeight = lineHeight, letterSpacing = letterSpacing,
+        fontFamily = DsBrand.Jakarta, fontFeatureSettings = "tnum", lineHeight = lineHeight, letterSpacing = letterSpacing,
         textDirection = TextDirection.ContentOrLtr,
     )
 
@@ -41,10 +43,13 @@ private fun TextStyle.brand(lineHeight: TextUnit = 1.4.em, letterSpacing: TextUn
  *   A call site's own `textAlign` (Center, End) still wins.
  * - No letter spacing: it pulls Arabic's joined letters apart.
  * - A little more line height ([RtlLeading]): Arabic letters reach higher and lower than Latin ones.
+ * - The Arabic fonts ([ArabicFonts.text]): IBM Plex Sans Arabic Medium for text, Cairo from semi-bold up, so a title,
+ *   button or chip drawn bold is Cairo. Labels (buttons, tabs, chips, menus) are bold, text medium.
  */
-private fun TextStyle.rtl() = copy(
+private fun TextStyle.rtl(weight: FontWeight = FontWeight.Medium) = copy(
     textAlign = TextAlign.Right, letterSpacing = 0.sp,
     lineHeight = (lineHeight.value + RtlLeading).em,
+    fontFamily = ArabicFonts.text, fontWeight = weight,
 )
 
 private const val RtlLeading = 0.1f
@@ -74,20 +79,20 @@ val Typography = Typography().run {
 /** [Typography] for a right-to-left screen: see [rtl]. Built once, chosen by the theme from the layout direction. */
 val RtlTypography = Typography.run {
     copy(
-        displayLarge   = displayLarge.rtl(),
-        displayMedium  = displayMedium.rtl(),
-        displaySmall   = displaySmall.rtl(),
-        headlineLarge  = headlineLarge.rtl(),
-        headlineMedium = headlineMedium.rtl(),
-        headlineSmall  = headlineSmall.rtl(),
-        titleLarge     = titleLarge.rtl(),
-        titleMedium    = titleMedium.rtl(),
-        titleSmall     = titleSmall.rtl(),
+        displayLarge   = displayLarge.rtl(FontWeight.Bold),
+        displayMedium  = displayMedium.rtl(FontWeight.Bold),
+        displaySmall   = displaySmall.rtl(FontWeight.Bold),
+        headlineLarge  = headlineLarge.rtl(FontWeight.Bold),
+        headlineMedium = headlineMedium.rtl(FontWeight.Bold),
+        headlineSmall  = headlineSmall.rtl(FontWeight.Bold),
+        titleLarge     = titleLarge.rtl(FontWeight.Bold),
+        titleMedium    = titleMedium.rtl(FontWeight.Bold),
+        titleSmall     = titleSmall.rtl(FontWeight.Bold),
         bodyLarge      = bodyLarge.rtl(),
         bodyMedium     = bodyMedium.rtl(),
         bodySmall      = bodySmall.rtl(),
-        labelLarge     = labelLarge.rtl(),
-        labelMedium    = labelMedium.rtl(),
-        labelSmall     = labelSmall.rtl(),
+        labelLarge     = labelLarge.rtl(FontWeight.Bold),
+        labelMedium    = labelMedium.rtl(FontWeight.Bold),
+        labelSmall     = labelSmall.rtl(FontWeight.Bold),
     )
 }

@@ -59,7 +59,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.distrigo.app.data.repository.TourneeDayClient
 import androidx.compose.ui.res.stringResource
-import com.distrigo.app.ui.designsystem.LocalArabicTrialFonts
+import com.distrigo.app.ui.designsystem.LocalArabicFonts
 import com.distrigo.app.R
 
 @Composable
@@ -113,7 +113,7 @@ internal fun TourneeCard(tournee: TourneeDay, onClick: () -> Unit) {
 private fun VisitCount(label: String, count: Int, color: Color, modifier: Modifier) {
     Column(modifier.clip(DsShapes.medium).background(color.copy(alpha = 0.08f)).padding(DsSpacing.sm)) {
         Text("$count", fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = color,
-            fontFamily = LocalArabicTrialFonts.current?.ui)
+            fontFamily = LocalArabicFonts.current?.ui)
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -129,7 +129,7 @@ internal fun TourneeClientsRow(tournee: TourneeDay, onAdd: () -> Unit, onSeeAll:
     Column {
         Text(
             stringResource(R.string.dashboard_clients_of_day), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
-            fontFamily = LocalArabicTrialFonts.current?.ui,
+            fontFamily = LocalArabicFonts.current?.ui,
             modifier = Modifier.padding(horizontal = DsSpacing.lg),
         )
         Spacer(Modifier.height(DsSpacing.sm))
@@ -182,7 +182,7 @@ private fun RoundAction(label: String, icon: ImageVector, color: Color, onClick:
         }
         Spacer(Modifier.height(4.dp))
         Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, textAlign = TextAlign.Center,
-            fontFamily = LocalArabicTrialFonts.current?.ui)
+            fontFamily = LocalArabicFonts.current?.ui)
     }
 }
 
@@ -193,7 +193,7 @@ private fun RoundAction(label: String, icon: ImageVector, color: Color, onClick:
 internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter) -> Unit) {
     Column(Modifier.padding(horizontal = DsSpacing.lg)) {
         Text(stringResource(R.string.dashboard_recent_activity), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
-            fontFamily = LocalArabicTrialFonts.current?.ui)
+            fontFamily = LocalArabicFonts.current?.ui)
         Spacer(Modifier.height(DsSpacing.sm))
         Row(
             Modifier.fillMaxWidth().clip(DsShapes.pill).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.pill).padding(4.dp),
@@ -208,7 +208,7 @@ internal fun ActivityHeader(selected: ActivityFilter, onSelect: (ActivityFilter)
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(stringResource(filter.label), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
-                        fontFamily = LocalArabicTrialFonts.current?.ui,
+                        fontFamily = LocalArabicFonts.current?.ui,
                         color = if (on) Color.White else DsColors.TextSecondary)
                 }
             }

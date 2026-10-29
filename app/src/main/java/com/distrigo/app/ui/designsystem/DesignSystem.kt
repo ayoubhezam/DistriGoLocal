@@ -114,10 +114,16 @@ object DsBrand {
     val CardBorder = Color(0xFFE3EAF5)
 
     /**
+     * The brand's font for the screen's language: [Jakarta] in French, [ArabicFonts.text] in Arabic (the onboarding,
+     * Compte and every brand piece name this one). A getter, so a screen drawn after a change of language takes the new one.
+     */
+    val Font: FontFamily get() = if (ArabicFonts.active()) ArabicFonts.text else Jakarta
+
+    /**
      * Plus Jakarta Sans, one variable font file for every weight (SIL Open Font License 1.1,
      * docs/licenses/PlusJakartaSans-OFL.txt).
      */
-    val Font = FontFamily(
+    val Jakarta = FontFamily(
         // The inner screens' text is mostly regular weight: without these, it would fall to Medium
         jakarta(FontWeight.Light),
         jakarta(FontWeight.Normal),

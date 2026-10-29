@@ -1,7 +1,6 @@
 package com.distrigo.app.ui.more
 
-import com.distrigo.app.ui.designsystem.ProvideArabicTrialFonts
-import com.distrigo.app.ui.designsystem.LocalArabicTrialFonts
+import com.distrigo.app.ui.designsystem.LocalArabicFonts
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,33 +50,30 @@ private val MORE_MENU_ENTRIES = listOf(
 fun MoreScreen(
     onNavigate : (String) -> Unit
 ) {
-    // The owner's Arabic font trial (2026-10-28), with the Dashboard: Arabic only
-    ProvideArabicTrialFonts {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DsColors.Surface)
-        ) {
-            // A drawer is a sheet, white as menus and dialogs: its bar too, not the pages' Mist
-            DsTopAppBar(title = stringResource(R.string.more_title), size = DsTopBarSize.Large, containerColor = DsColors.Surface)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DsColors.Surface)
+    ) {
+        // A drawer is a sheet, white as menus and dialogs: its bar too, not the pages' Mist
+        DsTopAppBar(title = stringResource(R.string.more_title), size = DsTopBarSize.Large, containerColor = DsColors.Surface)
 
-            // The bar is pinned, so scrolling moved off the root onto the menu list below it.
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                MORE_MENU_ENTRIES.forEachIndexed { index, entry ->
-                    MoreMenuItem(
-                        icon     = entry.icon,
-                        title    = stringResource(entry.title),
-                        subtitle = stringResource(entry.subtitle),
-                        iconBg   = entry.iconBg,
-                        onClick  = { onNavigate(entry.route) }
+        // The bar is pinned, so scrolling moved off the root onto the menu list below it.
+        Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            MORE_MENU_ENTRIES.forEachIndexed { index, entry ->
+                MoreMenuItem(
+                    icon     = entry.icon,
+                    title    = stringResource(entry.title),
+                    subtitle = stringResource(entry.subtitle),
+                    iconBg   = entry.iconBg,
+                    onClick  = { onNavigate(entry.route) }
+                )
+                if (index != MORE_MENU_ENTRIES.lastIndex) {
+                    HorizontalDivider(
+                        color     = DsColors.Border,
+                        thickness = 0.5.dp,
+                        modifier  = Modifier.padding(start = DsSpacing.lg + 44.dp + DsSpacing.md)
                     )
-                    if (index != MORE_MENU_ENTRIES.lastIndex) {
-                        HorizontalDivider(
-                            color     = DsColors.Border,
-                            thickness = 0.5.dp,
-                            modifier  = Modifier.padding(start = DsSpacing.lg + 44.dp + DsSpacing.md)
-                        )
-                    }
                 }
             }
         }
@@ -112,7 +108,7 @@ private fun MoreMenuItem(
                 .padding(start = DsSpacing.md)
         ) {
             // In the Arabic trial: Cairo Bold 1 sp up for the title, Plex Medium 1 sp up for what it does
-            val trial = LocalArabicTrialFonts.current
+            val trial = LocalArabicFonts.current
             Text(
                 title, fontSize = if (trial != null) 15.sp else DsTextSize.body,
                 fontWeight = if (trial != null) FontWeight.Bold else FontWeight.SemiBold,
