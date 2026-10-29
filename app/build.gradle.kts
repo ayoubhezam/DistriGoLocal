@@ -185,7 +185,7 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
-    implementation("com.google.maps.android:maps-compose:6.5.0")
+    implementation("com.google.maps.android:maps-compose:6.5.3")
     // Barcode scanning
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("androidx.camera:camera-core:1.6.1")
