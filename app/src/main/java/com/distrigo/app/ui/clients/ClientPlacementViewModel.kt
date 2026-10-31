@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 sealed interface ClientPlacementUiState {
     data object Loading : ClientPlacementUiState
@@ -37,7 +39,7 @@ class ClientPlacementViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = withContext(Dispatchers.IO) {
                 runCatching { lists.placement(quartierId) }.fold(
-                    onSuccess = { it?.let(ClientPlacementUiState::Success) ?: ClientPlacementUiState.Error("Ce quartier n'existe plus.") },
+                    onSuccess = { it?.let(ClientPlacementUiState::Success) ?: ClientPlacementUiState.Error(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.clients_quartier_gone))) },
                     onFailure = { ClientPlacementUiState.Error(userMessage(it)) },
                 )
             }

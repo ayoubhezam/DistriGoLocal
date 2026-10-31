@@ -97,7 +97,7 @@ fun SupplierFormScreen(
             imageScope.launch {
                 val encoded = ImageCapture.captureToStore(context, it)
                 if (encoded != null) imageBase64 = encoded
-                else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                else Toast.makeText(context, context.getString(R.string.common_photo_unreadable), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -105,7 +105,7 @@ fun SupplierFormScreen(
     fun validate(): Boolean {
         var valid = true
         nameError = ""; phoneError = ""
-        if (name.isBlank()) { nameError = "Le nom est obligatoire."; valid = false }
+        if (name.isBlank()) { nameError = context.getString(R.string.products_form_name_required); valid = false }
         return valid
     }
 
@@ -183,7 +183,7 @@ fun SupplierFormScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = if (isEdit) "Modifier le fournisseur" else "Nouveau fournisseur",
+            title   = stringResource(if (isEdit) R.string.suppliers_edit else R.string.products_form_new_supplier),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -233,7 +233,7 @@ fun SupplierFormScreen(
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(4.dp))
-                        Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.common_photo_add), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
             }
@@ -241,17 +241,17 @@ fun SupplierFormScreen(
 
             // ── Nom ──
             FormField(
-                label         = "Nom du fournisseur *",
+                label         = stringResource(R.string.purchases_supplier_name_required),
                 value         = name,
                 onValueChange = { name = it; nameError = "" },
                 error         = nameError,
-                placeholder   = "Ex: Société Al Baraka"
+                placeholder   = stringResource(R.string.suppliers_form_name_example)
             )
             Spacer(Modifier.height(12.dp))
 
             // ── Téléphone ──
             FormField(
-                label         = "Numéro de téléphone",
+                label         = stringResource(R.string.suppliers_form_phone),
                 value         = phone,
                 onValueChange = { phone = it; phoneError = "" },
                 error         = phoneError,
@@ -261,7 +261,7 @@ fun SupplierFormScreen(
             Spacer(Modifier.height(12.dp))
 
             // ── Localisation ──
-            Text("Localisation", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+            Text(stringResource(R.string.suppliers_form_location), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
             OutlinedButton(
                 onClick  = { showMapPicker = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -275,7 +275,7 @@ fun SupplierFormScreen(
                     if (latitude != null && longitude != null)
                         "${"%.4f".format(java.util.Locale.ROOT, latitude)}, ${"%.4f".format(java.util.Locale.ROOT, longitude)}"
                     else
-                        "Choisir sur la carte",
+                        stringResource(R.string.common_pick_on_map),
                     fontSize = DsTextSize.body
                 )
             }
@@ -286,17 +286,17 @@ fun SupplierFormScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
-                        label       = "Wilaya",
+                        label       = stringResource(R.string.common_label_wilaya),
                         value       = wilayaName,
-                        placeholder = "Sélectionner une wilaya",
+                        placeholder = stringResource(R.string.common_select_wilaya),
                         onClick     = { showWilayaSheet = true }
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
-                        label       = "Commune",
+                        label       = stringResource(R.string.common_label_commune),
                         value       = communeName,
-                        placeholder = "Sélectionner une commune",
+                        placeholder = stringResource(R.string.common_select_commune),
                         onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                     )
                 }
@@ -305,23 +305,23 @@ fun SupplierFormScreen(
 
             // ── Adresse ──
             FormField(
-                label         = "Adresse",
+                label         = stringResource(R.string.clients_address),
                 value         = address,
                 onValueChange = { address = it },
-                placeholder   = "Rue, ville…"
+                placeholder   = stringResource(R.string.suppliers_form_address_hint)
             )
             Spacer(Modifier.height(12.dp))
 
             // ── Solde initial ──
             FormField(
-                label         = "Solde initial (DA)",
+                label         = stringResource(R.string.suppliers_form_initial_balance),
                 value         = balance,
                 onValueChange = { balance = it },
                 placeholder   = "0",
                 isNumber      = true
             )
             Text(
-                "Montant que vous devez à ce fournisseur au départ",
+                stringResource(R.string.suppliers_form_initial_balance_hint),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
@@ -332,7 +332,7 @@ fun SupplierFormScreen(
             OutlinedTextField(
                 value         = note,
                 onValueChange = { note = it },
-                placeholder   = { Text("Informations supplémentaires…", fontSize = DsTextSize.body) },
+                placeholder   = { Text(stringResource(R.string.suppliers_form_note_hint), fontSize = DsTextSize.body) },
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = DsShapes.medium,
                 minLines      = 2,
@@ -355,7 +355,7 @@ fun SupplierFormScreen(
             ) {
                 if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 else Text(
-                    if (isEdit) "Enregistrer les modifications" else "Ajouter le fournisseur",
+                    stringResource(if (isEdit) R.string.products_form_save else R.string.suppliers_form_add),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }
@@ -365,7 +365,7 @@ fun SupplierFormScreen(
 
         if (showWilayaSheet) {
             SearchableSelectSheet(
-                title      = "Sélectionner une wilaya",
+                title      = stringResource(R.string.common_select_wilaya),
                 items      = GeoRepository.getWilayas(),
                 itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
                 onDismiss  = { showWilayaSheet = false },
@@ -382,7 +382,7 @@ fun SupplierFormScreen(
                 GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
             SearchableSelectSheet(
-                title      = "Sélectionner une commune",
+                title      = stringResource(R.string.common_select_commune),
                 items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
                 itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.shownName()}" },
                 onDismiss  = { showCommuneSheet = false },

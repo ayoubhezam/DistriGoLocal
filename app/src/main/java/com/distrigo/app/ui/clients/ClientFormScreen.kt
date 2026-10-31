@@ -57,6 +57,8 @@ import com.distrigo.app.ui.common.QuartierPickerSheet
 import com.distrigo.app.ui.common.SecteurPickerSheet
 import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 /**
  * A new client's form, or an existing one's. Opened from a quartier, [placement] fills the wilaya, commune, secteur and
  * quartier and locks them (owner's prototype v5, 2026-10-24), and a banner says so.
@@ -130,7 +132,7 @@ fun ClientFormScreen(
             imageScope.launch {
                 val encoded = ImageCapture.captureToStore(context, it)
                 if (encoded != null) imageBase64 = encoded
-                else Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                else Toast.makeText(context, context.getString(R.string.common_photo_unreadable), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -144,7 +146,7 @@ fun ClientFormScreen(
 
     fun save() {
         if (name.isBlank()) {
-            nameError = "Le nom est obligatoire."
+            nameError = context.getString(R.string.products_form_name_required)
             return
         }
         nameError = ""
@@ -212,7 +214,7 @@ fun ClientFormScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = if (isEdit) "Modifier le client" else "Nouveau client",
+            title   = stringResource(if (isEdit) R.string.clients_edit else R.string.common_new_client),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -257,7 +259,7 @@ fun ClientFormScreen(
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(DsSpacing.xs))
-                        Text("Ajouter une photo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.common_photo_add), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
             }
@@ -274,9 +276,9 @@ fun ClientFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 listOf(
-                    "retail"     to "Détail",
-                    "wholesale"  to "Gros",
-                    "business"   to "Société"
+                    "retail"     to stringResource(R.string.common_client_type_retail),
+                    "wholesale"  to stringResource(R.string.common_client_type_wholesale),
+                    "business"   to stringResource(R.string.common_client_type_business)
                 ).forEach { (value, label) ->
                     val active = customerType == value
                     Box(
@@ -302,18 +304,18 @@ fun ClientFormScreen(
 
             // ── Nom ──
             DsFormField(
-                label         = "Nom du client *",
+                label         = stringResource(R.string.clients_form_name),
                 value         = name,
                 onValueChange = { name = it; nameError = "" },
                 error         = nameError,
-                placeholder   = "Ex: Ahmed Benali"
+                placeholder   = stringResource(R.string.clients_form_name_example)
             )
 
             Spacer(Modifier.height(DsSpacing.md))
 
             // ── Téléphone ──
             DsFormField(
-                label         = "Téléphone",
+                label         = stringResource(R.string.common_label_phone),
                 value         = phone,
                 onValueChange = { phone = it },
                 placeholder   = "0555 12 34 56",
@@ -326,18 +328,18 @@ fun ClientFormScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
-                        label       = "Wilaya",
+                        label       = stringResource(R.string.common_label_wilaya),
                         value       = wilayaName,
-                        placeholder = if (locked) "Non renseignée" else "Sélectionner une wilaya",
+                        placeholder = stringResource(if (locked) R.string.clients_not_set_f else R.string.common_select_wilaya),
                         locked      = locked,
                         onClick     = { showWilayaSheet = true }
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
-                        label       = "Commune",
+                        label       = stringResource(R.string.common_label_commune),
                         value       = communeName,
-                        placeholder = "Sélectionner une commune",
+                        placeholder = stringResource(R.string.common_select_commune),
                         locked      = locked,
                         onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
                     )
@@ -349,7 +351,7 @@ fun ClientFormScreen(
             // ── Secteur (optionnel) ──
             Column {
                 Text(
-                    "Secteur (optionnel)",
+                    stringResource(R.string.clients_form_secteur_optional),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.TextPrimary
@@ -358,7 +360,7 @@ fun ClientFormScreen(
                 DsSelectorField(
                     label       = null,
                     value       = secteurName,
-                    placeholder = "Sélectionner un secteur",
+                    placeholder = stringResource(R.string.clients_form_select_secteur),
                     locked      = locked,
                     onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
                 )
@@ -369,7 +371,7 @@ fun ClientFormScreen(
                 Spacer(Modifier.height(DsSpacing.md))
                 Column {
                     Text(
-                        "Quartier (optionnel)",
+                        stringResource(R.string.clients_form_quartier_optional),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextPrimary
@@ -378,7 +380,7 @@ fun ClientFormScreen(
                     DsSelectorField(
                         label       = null,
                         value       = quartierName,
-                        placeholder = "Sélectionner un quartier",
+                        placeholder = stringResource(R.string.clients_form_select_quartier),
                         locked      = locked,
                         onClick     = { showQuartierSheet = true }
                     )
@@ -388,10 +390,10 @@ fun ClientFormScreen(
             Spacer(Modifier.height(DsSpacing.md))
             // ── Adresse ──
             DsFormField(
-                label         = "Adresse",
+                label         = stringResource(R.string.clients_address),
                 value         = address,
                 onValueChange = { address = it },
-                placeholder   = "Adresse complète",
+                placeholder   = stringResource(R.string.clients_form_address_full),
                 minLines      = 2,
                 maxLines      = 2
             )
@@ -400,7 +402,7 @@ fun ClientFormScreen(
 
             // ── Localisation (pour navigation GPS) ──
             Text(
-                "Localisation (optionnel)",
+                stringResource(R.string.clients_form_location_optional),
                 fontSize   = DsTextSize.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color      = DsColors.TextSecondary
@@ -409,19 +411,19 @@ fun ClientFormScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Box(modifier = Modifier.weight(1f)) {
                     DsFormField(
-                        label         = "Latitude",
+                        label         = stringResource(R.string.clients_form_latitude),
                         value         = latitudeStr,
                         onValueChange = { latitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
-                        placeholder   = "Ex: 36.7538",
+                        placeholder   = stringResource(R.string.clients_form_example, "36.7538"),
                         keyboardType  = KeyboardType.Number
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     DsFormField(
-                        label         = "Longitude",
+                        label         = stringResource(R.string.clients_form_longitude),
                         value         = longitudeStr,
                         onValueChange = { longitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' } },
-                        placeholder   = "Ex: 3.0588",
+                        placeholder   = stringResource(R.string.clients_form_example, "3.0588"),
                         keyboardType  = KeyboardType.Number
                     )
                 }
@@ -438,7 +440,7 @@ fun ClientFormScreen(
             ) {
                 Icon(Icons.Default.Map, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Choisir sur la carte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                Text(stringResource(R.string.common_pick_on_map), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
             }
 
             if (locationError.isNotEmpty()) {
@@ -450,10 +452,10 @@ fun ClientFormScreen(
 
             // ── Note ──
             DsFormField(
-                label         = "Note (optionnel)",
+                label         = stringResource(R.string.common_label_note_optional),
                 value         = note,
                 onValueChange = { note = it },
-                placeholder   = "Remarques sur ce client",
+                placeholder   = stringResource(R.string.clients_form_note_hint),
                 minLines      = 2,
                 maxLines      = 3,
                 imeAction     = ImeAction.Done
@@ -473,7 +475,7 @@ fun ClientFormScreen(
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 } else {
                     Text(
-                        if (isEdit) "Enregistrer les modifications" else "Ajouter le client",
+                        stringResource(if (isEdit) R.string.products_form_save else R.string.clients_form_add),
                         fontSize   = DsTextSize.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color      = Color.White
@@ -487,7 +489,7 @@ fun ClientFormScreen(
         //ayoub
         if (showWilayaSheet) {
             SearchableSelectSheet(
-                title      = "Sélectionner une wilaya",
+                title      = stringResource(R.string.common_select_wilaya),
                 items      = GeoRepository.getWilayas(),
                 itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
                 onDismiss  = { showWilayaSheet = false },
@@ -507,7 +509,7 @@ fun ClientFormScreen(
                 GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
             SearchableSelectSheet(
-                title      = "Sélectionner une commune",
+                title      = stringResource(R.string.common_select_commune),
                 items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
                 itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.shownName()}" },
                 onDismiss  = { showCommuneSheet = false },
@@ -575,7 +577,7 @@ private fun PlacementBanner(quartierName: String) {
         Icon(Icons.Outlined.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
-            "Secteur et quartier présélectionnés depuis « $quartierName ».",
+            stringResource(R.string.clients_form_preselected, quartierName),
             fontSize = DsTextSize.body,
             color    = DsColors.PrimaryDark
         )

@@ -26,6 +26,8 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.purchases.formatOrderTime
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * Single row rendering for one client ledger entry (vente or paiement), shared
@@ -46,18 +48,18 @@ fun FactureRow(
             val montantPaye = transaction.montant_paye ?: 0.0
             val total = transaction.total ?: 0.0
             val statut = when {
-                montantPaye >= total && total > 0 -> "Payé"
-                montantPaye > 0 && montantPaye < total -> "Partiel"
-                else -> "Impayé"
+                montantPaye >= total && total > 0 -> "paye"
+                montantPaye > 0 && montantPaye < total -> "partiel"
+                else -> "impaye"
             }
             val statusColor = when (statut) {
-                "Payé" -> DsColors.Success
-                "Partiel" -> DsColors.Warning
+                "paye" -> DsColors.Success
+                "partiel" -> DsColors.Warning
                 else -> DsColors.Danger
             }
             val statusColorLight = when (statut) {
-                "Payé" -> DsColors.SuccessLight
-                "Partiel" -> DsColors.WarningLight
+                "paye" -> DsColors.SuccessLight
+                "partiel" -> DsColors.WarningLight
                 else -> DsColors.DangerLight
             }
             Row(
@@ -82,8 +84,8 @@ fun FactureRow(
                         "${transaction.numberLabel} · ${formatOrderTime(transaction.created_at)}",
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
-                    if (statut == "Partiel") {
-                        Text("Payé: ${money.da(montantPaye)}", fontSize = DsTextSize.caption, color = DsColors.Warning)
+                    if (statut == "partiel") {
+                        Text(stringResource(R.string.clients_paid_amount, money.da(montantPaye)), fontSize = DsTextSize.caption, color = DsColors.Warning)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -92,7 +94,7 @@ fun FactureRow(
                     Box(
                         modifier = Modifier.clip(DsShapes.pill).background(statusColorLight).padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text(statut, fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor)
+                        Text(stringResource(when (statut) { "paye" -> R.string.common_status_paid; "partiel" -> R.string.common_status_partial; else -> R.string.common_status_unpaid }), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor)
                     }
                 }
             }
@@ -120,7 +122,7 @@ fun FactureRow(
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Paiement · ${formatOrderTime(transaction.created_at)}",
+                        stringResource(R.string.clients_payment_time, formatOrderTime(transaction.created_at)),
                         fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                     )
                     transaction.note?.takeIf { it.isNotBlank() }?.let {

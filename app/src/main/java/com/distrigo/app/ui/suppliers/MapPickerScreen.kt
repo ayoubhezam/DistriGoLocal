@@ -52,6 +52,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 @Composable
 fun MapPickerScreen(
     initialLat : Double = 36.1901,
@@ -88,7 +89,7 @@ fun MapPickerScreen(
                 val newMarker = OsmMarker(mv)
                 newMarker.position = GeoPoint(lat, lng)
                 newMarker.setAnchor(OsmMarker.ANCHOR_CENTER, OsmMarker.ANCHOR_BOTTOM)
-                newMarker.title = "Fournisseur"
+                newMarker.title = context.getString(R.string.common_label_supplier)
                 mv.overlays.add(newMarker)
                 mv.controller.animateTo(GeoPoint(lat, lng))
                 mv.invalidate()
@@ -101,7 +102,7 @@ fun MapPickerScreen(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasPermission) {
-            locationError = "Permission de localisation refusée."
+            locationError = context.getString(R.string.clients_loc_permission_denied)
             return
         }
         isLocating = true
@@ -115,22 +116,22 @@ fun MapPickerScreen(
                     if (location != null) {
                         applyPickedLocation(location.latitude, location.longitude)
                     } else {
-                        locationError = "Position indisponible. Activez le GPS."
+                        locationError = context.getString(R.string.clients_loc_unavailable)
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    locationError = "Impossible d'obtenir la position."
+                    locationError = context.getString(R.string.clients_loc_failed)
                 }
         } catch (e: SecurityException) {
             isLocating = false
-            locationError = "Permission de localisation refusée."
+            locationError = context.getString(R.string.clients_loc_permission_denied)
         }
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = "Permission refusée." }
+    ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = context.getString(R.string.clients_permission_denied) }
 
     // يُبقي دبوس Google Maps متزامنًا مع النقطة المختارة عند النقر على الخريطة
     LaunchedEffect(selectedLat, selectedLng) {
@@ -153,7 +154,7 @@ fun MapPickerScreen(
                     selectedLng = latLng.longitude
                 }
             ) {
-                Marker(state = markerState, title = "Fournisseur")
+                Marker(state = markerState, title = stringResource(R.string.common_label_supplier))
             }
         } else {
             AndroidView(
@@ -169,7 +170,7 @@ fun MapPickerScreen(
                         val marker = OsmMarker(this)
                         marker.position = GeoPoint(selectedLat, selectedLng)
                         marker.setAnchor(OsmMarker.ANCHOR_CENTER, OsmMarker.ANCHOR_BOTTOM)
-                        marker.title = "Fournisseur"
+                        marker.title = context.getString(R.string.common_label_supplier)
                         overlays.add(marker)
 
                         // Click listener
@@ -186,7 +187,7 @@ fun MapPickerScreen(
                                 val newMarker = OsmMarker(mapView)
                                 newMarker.position = geoPoint
                                 newMarker.setAnchor(OsmMarker.ANCHOR_CENTER, OsmMarker.ANCHOR_BOTTOM)
-                                newMarker.title = "Fournisseur"
+                                newMarker.title = context.getString(R.string.common_label_supplier)
                                 overlays.add(newMarker)
                                 invalidate()
                                 return true
@@ -219,7 +220,7 @@ fun MapPickerScreen(
 
         // Emitted before the map-type toggle below, so that toggle stays on top and clickable.
         DsTopAppBar(
-            title          = "Choisir l'emplacement",
+            title          = stringResource(R.string.suppliers_map_title),
             modifier       = Modifier.align(Alignment.TopStart).padding(horizontal = DsSpacing.sm),
             leading        = DsTopBarLeading.Back(onBack),
             containerColor = Color.Transparent
@@ -236,7 +237,7 @@ fun MapPickerScreen(
             ) {
                 Icon(
                     Icons.Default.Layers,
-                    contentDescription = if (mapType == MapType.NORMAL) "Vue satellite" else "Vue standard",
+                    contentDescription = stringResource(if (mapType == MapType.NORMAL) R.string.tournees_map_satellite else R.string.tournees_map_standard),
                     tint = DsColors.Primary
                 )
             }
@@ -262,7 +263,7 @@ fun MapPickerScreen(
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("GPS précis", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                Text(stringResource(R.string.clients_precise_gps), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             }
         }
 
@@ -280,7 +281,7 @@ fun MapPickerScreen(
         ) {
             Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Confirmer l'emplacement", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.suppliers_map_confirm), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
 
         // ── Coordinates Card ──

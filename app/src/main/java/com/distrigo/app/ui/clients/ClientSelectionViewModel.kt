@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 data class ClientSelectionState(
     /** The quartier the clients go to; null until read. */
@@ -54,7 +56,7 @@ class ClientSelectionViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val target = withContext(Dispatchers.IO) { runCatching { lists.quartier(quartierId) }.getOrNull() }
-            _state.update { it.copy(target = target, error = if (target == null) "Ce quartier n'existe plus." else null) }
+            _state.update { it.copy(target = target, error = if (target == null) com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.clients_quartier_gone)) else null) }
         }
     }
 

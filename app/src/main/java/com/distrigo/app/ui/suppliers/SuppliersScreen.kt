@@ -43,6 +43,7 @@ import com.distrigo.app.data.model.Amount
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuppliersScreen(
@@ -72,8 +73,8 @@ fun SuppliersScreen(
     }
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
         filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
-        filters.wilaya?.let { w -> add("Wilaya : $w" to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
-        filters.commune?.let { c -> add("Commune : $c" to { viewModel.listFilters = filters.copy(commune = null) }) }
+        filters.wilaya?.let { w -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_wilaya), w) to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
+        filters.commune?.let { c -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_commune), c) to { viewModel.listFilters = filters.copy(commune = null) }) }
     }
 
     if (showFilterSheet) {
@@ -104,7 +105,7 @@ fun SuppliersScreen(
         // Pushed from the Plus drawer over whichever tab was showing, so it takes a back
         // affordance; null-safe because the screen is still usable as a root.
         DsTopAppBar(
-            title   = "Fournisseurs",
+            title   = stringResource(R.string.common_label_suppliers),
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
@@ -138,7 +139,7 @@ fun SuppliersScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
-                                Text("Total des dettes", fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.suppliers_total_debt), fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                             }
                             Text(
                                 money.da(totalDebt),
@@ -162,7 +163,7 @@ fun SuppliersScreen(
                     DsCompactSearchField(
                         value         = search,
                         onValueChange = { search = it },
-                        placeholder   = "Rechercher un fournisseur",
+                        placeholder   = stringResource(R.string.purchases_search_supplier),
                         modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                     )
 
@@ -170,7 +171,7 @@ fun SuppliersScreen(
 
                     // ── Count · Filtres ── where the supplier is, and its solde.
                     CountAndFiltersRow(
-                        label         = "${filtered.size} fournisseur(s)",
+                        label         = pluralStringResource(R.plurals.suppliers_count, filtered.size, filtered.size),
                         filtersActive = filters.isActive,
                         onOpenFilters = { showFilterSheet = true }
                     )
@@ -230,7 +231,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
                 Spacer(Modifier.width(DsSpacing.sm))
                 if (isDebt) {
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("Doit", fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.suppliers_owed), fontSize = DsTextSize.caption, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                         Text(money.da(supplier.balance), fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Bold)
                     }
                 } else {
@@ -242,7 +243,7 @@ fun SupplierCard(supplier: Supplier, onClick: () -> Unit) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(11.dp))
-                            Text("Réglé", fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.suppliers_settled), fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.Medium)
                         }
                     }
                 }

@@ -57,6 +57,8 @@ import androidx.compose.material.icons.filled.Layers
 import com.google.maps.android.compose.MapType
 import androidx.activity.compose.rememberLauncherForActivityResult
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 
 /**
@@ -110,7 +112,7 @@ fun ClientLocationPickerScreen(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasPermission) {
-            locationError = "Permission de localisation refusée."
+            locationError = context.getString(R.string.clients_loc_permission_denied)
             return
         }
         isLocating = true
@@ -132,26 +134,26 @@ fun ClientLocationPickerScreen(
                             mapViewRef?.controller?.animateTo(GeoPoint(location.latitude, location.longitude))
                         }
                     } else {
-                        locationError = "Position indisponible. Activez le GPS."
+                        locationError = context.getString(R.string.clients_loc_unavailable)
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    locationError = "Impossible d'obtenir la position."
+                    locationError = context.getString(R.string.clients_loc_failed)
                 }
         } catch (e: SecurityException) {
             isLocating = false
-            locationError = "Permission de localisation refusée."
+            locationError = context.getString(R.string.clients_loc_permission_denied)
         }
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = "Permission refusée." }
+    ) { granted -> if (granted) centerOnHighAccuracyGps() else locationError = context.getString(R.string.clients_permission_denied) }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.Surface)) {
         DsTopAppBar(
-            title   = "Position du client",
+            title   = stringResource(R.string.clients_location_title),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -207,7 +209,7 @@ fun ClientLocationPickerScreen(
                 } else {
                     Icon(Icons.Default.MyLocation, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("GPS précis", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.clients_precise_gps), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -222,7 +224,7 @@ fun ClientLocationPickerScreen(
                 ) {
                     Icon(
                         Icons.Default.Layers,
-                        contentDescription = if (mapType == MapType.NORMAL) "Vue satellite" else "Vue standard",
+                        contentDescription = stringResource(if (mapType == MapType.NORMAL) R.string.tournees_map_satellite else R.string.tournees_map_standard),
                         tint = DsColors.Primary
                     )
                 }
@@ -239,7 +241,7 @@ fun ClientLocationPickerScreen(
         }
 
         Text(
-            "Faites glisser la carte pour placer le repère exactement sur la porte du commerce.",
+            stringResource(R.string.clients_location_hint),
             fontSize = DsTextSize.caption,
             color    = DsColors.TextSecondary,
             modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
@@ -262,7 +264,7 @@ fun ClientLocationPickerScreen(
         ) {
             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Enregistrer cette position", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text(stringResource(R.string.clients_location_save), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
     }
 }

@@ -409,4 +409,13 @@
     <string name="common_kind_loading">تحميل</string>
     <string name="common_date_from">من</string>
     <string name="common_date_to">إلى</string>
+    <string name="common_pick_on_map">اختيار على الخريطة</string>
+    <plurals name="common_results_count">
+        <item quantity="zero">\u2068%1$d\u2069 نتيجة</item>
+        <item quantity="one">نتيجة واحدة</item>
+        <item quantity="two">نتيجتان</item>
+        <item quantity="few">\u2068%1$d\u2069 نتائج</item>
+        <item quantity="many">\u2068%1$d\u2069 نتيجة</item>
+        <item quantity="other">\u2068%1$d\u2069 نتيجة</item>
+    </plurals>
 </resources>

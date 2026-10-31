@@ -216,7 +216,7 @@ class ClientViewModel @Inject constructor(
                 val result = repository.addClient(client)
                 onSuccess(result)
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -232,7 +232,7 @@ class ClientViewModel @Inject constructor(
                 repository.updateClient(id, client)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }

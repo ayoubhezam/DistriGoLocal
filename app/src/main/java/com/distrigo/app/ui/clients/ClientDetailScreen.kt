@@ -117,9 +117,9 @@ fun ClientDetailScreen(
         else -> DsColors.TagRetail
     }
     val typeLabel = when (currentClient.customer_type) {
-        "wholesale" -> "Gros"
-        "business" -> "Société"
-        else -> "Détail"
+        "wholesale" -> stringResource(R.string.common_client_type_wholesale)
+        "business" -> stringResource(R.string.common_client_type_business)
+        else -> stringResource(R.string.common_client_type_retail)
     }
     val initials = currentClient.name.split(" ").take(2)
         .mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
@@ -149,7 +149,7 @@ fun ClientDetailScreen(
             imageScope.launch {
                 val newImageUri = ImageCapture.captureToStore(context, it)
                 if (newImageUri == null) {
-                    Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.common_photo_unreadable), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
                 viewModel.updateClient(
@@ -285,7 +285,7 @@ fun ClientDetailScreen(
                     onClick = {
                         val amount = editPaymentAmount.toDoubleOrNull()
                         if (amount == null || amount <= 0) {
-                            editError = "Montant invalide"
+                            editError = context.getString(R.string.common_payment_invalid_amount)
                             return@Button
                         }
                         viewModel.updatePayment(
@@ -322,7 +322,7 @@ fun ClientDetailScreen(
     val pagerState = rememberPagerState(pageCount = { 3 })
     // « Retours » on the card opens its tab
     val tabScope = rememberCoroutineScope()
-    val tabTitles = listOf("Informations", "Factures & Paiements", "Retours")
+    val tabTitles = listOf(stringResource(R.string.clients_tab_info), stringResource(R.string.clients_tab_invoices), stringResource(R.string.common_label_returns))
 
     // A return opened from "Retours récents" shows over the page, as it does over its list.
     var openRetour by remember { mutableStateOf<com.distrigo.app.data.model.RetourClient?>(null) }
@@ -337,7 +337,7 @@ fun ClientDetailScreen(
         // does. A collapsing header over a pager of short tabs made flings race the header away
         // and then stop dead, and relaid the whole pager out on every frame of it.
         DsTopAppBar(
-            title          = "Client",
+            title          = stringResource(R.string.common_label_client),
             leading        = DsTopBarLeading.Back(onBack),
             containerColor = DsColors.SurfaceMuted
         ) {
@@ -411,17 +411,17 @@ fun ClientDetailScreen(
                                         ) { license.runOrExplain { showPhotoMenu = true } },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.clients_cd_photo), tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                                 }
                                 DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
                                     DropdownMenuItem(
-                                        text = { Text("Ajouter une nouvelle photo") },
+                                        text = { Text(stringResource(R.string.clients_photo_add_new)) },
                                         leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
                                         onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
                                     )
                                     if (currentClient.image_uri != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Supprimer la photo actuelle") },
+                                            text = { Text(stringResource(R.string.clients_photo_delete_current)) },
                                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                                             onClick = {
                                                 showPhotoMenu = false
@@ -508,7 +508,7 @@ fun ClientDetailScreen(
                         ) {
                             Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.clients_pay), color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -522,7 +522,7 @@ fun ClientDetailScreen(
                     contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
                     item {
-                        QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight)  {
+                        QuickActionButton(icon = Icons.Default.Call, label = stringResource(R.string.tournees_call), tint = DsColors.Success, bg = DsColors.SuccessLight)  {
                             if (hasPhone) {
                                 context.startActivity(
                                     Intent(
@@ -533,14 +533,14 @@ fun ClientDetailScreen(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Ce client n'a pas de numéro de téléphone enregistré",
+                                    context.getString(R.string.tournees_no_phone),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
                         }
                     }
                     item {
-                        QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
+                        QuickActionButton(icon = Icons.Default.Navigation, label = stringResource(R.string.clients_route)) {
                             if (hasLocation) {
                                 try {
                                     val uri =
@@ -553,14 +553,14 @@ fun ClientDetailScreen(
                                 } catch (e: ActivityNotFoundException) {
                                     Toast.makeText(
                                         context,
-                                        "Google Maps n'est pas installé sur cet appareil",
+                                        context.getString(R.string.tournees_no_maps_app),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Aucune position enregistrée pour ce client",
+                                    context.getString(R.string.tournees_no_position),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -588,7 +588,7 @@ fun ClientDetailScreen(
                                     } catch (e2: ActivityNotFoundException) {
                                         Toast.makeText(
                                             context,
-                                            "WhatsApp n'est pas installé sur cet appareil",
+                                            context.getString(R.string.clients_no_whatsapp),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -596,7 +596,7 @@ fun ClientDetailScreen(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Ce client n'a pas de numéro de téléphone enregistré",
+                                    context.getString(R.string.tournees_no_phone),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -605,20 +605,20 @@ fun ClientDetailScreen(
                     item {
                         QuickActionButton(
                             icon = Icons.Default.Receipt,
-                            label = "Nouvelle\nfacture"
+                            label = stringResource(R.string.clients_new_invoice)
                         ) {
                             onNewVente()
                         }
                     }
                     item {
-                        QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                        QuickActionButton(icon = Icons.Default.CreditCard, label = stringResource(R.string.clients_versement), tint = DsColors.Success, bg = DsColors.SuccessLight) {
                             license.runOrExplain { showPaymentDialog = true }
                         }
                     }
                     item {
                         QuickActionButton(
                             icon = Icons.AutoMirrored.Filled.AssignmentReturn,
-                            label = "Retour"
+                            label = stringResource(R.string.clients_return)
                         ) {
                             onRetourForm()
                         }
@@ -627,7 +627,7 @@ fun ClientDetailScreen(
                         Box {
                             QuickActionButton(
                                 icon = Icons.Default.MoreHoriz,
-                                label = "Plus",
+                                label = stringResource(R.string.more_title),
                                 tint = DsColors.TextSecondary,
                                 bg = DsColors.SurfaceSunken
                             ) {
@@ -637,7 +637,7 @@ fun ClientDetailScreen(
                                 expanded = showMoreMenu,
                                 onDismissRequest = { showMoreMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Modifier le client") },
+                                    text = { Text(stringResource(R.string.clients_edit)) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Default.Edit,
@@ -648,7 +648,7 @@ fun ClientDetailScreen(
                                     onClick = { showMoreMenu = false; onEdit() }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Supprimer le client") },
+                                    text = { Text(stringResource(R.string.clients_delete_title)) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Default.Delete,
@@ -694,39 +694,39 @@ fun ClientDetailScreen(
                             ) {
                                 ClientInfoRow(
                                     icon = Icons.Default.Phone,
-                                    label = "Téléphone",
-                                    value = currentClient.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné")
+                                    label = stringResource(R.string.common_label_phone),
+                                    value = currentClient.phone?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set))
                                 ClientInfoRow(
                                     icon = Icons.Default.LocationOn,
-                                    label = "Wilaya",
+                                    label = stringResource(R.string.common_label_wilaya),
                                     value = currentClient.wilaya_name?.takeIf { it.isNotBlank() }
-                                        ?: "Non renseignée")
+                                        ?: stringResource(R.string.clients_not_set_f))
                                 ClientInfoRow(
                                     icon = Icons.Default.Map,
-                                    label = "Commune",
+                                    label = stringResource(R.string.common_label_commune),
                                     value = currentClient.commune_name?.takeIf { it.isNotBlank() }
-                                        ?: "Non renseignée")
+                                        ?: stringResource(R.string.clients_not_set_f))
                                 ClientInfoRow(
                                     icon = Icons.Default.Place,
-                                    label = "Secteur",
+                                    label = stringResource(R.string.common_label_secteur),
                                     value = currentClient.secteur_name?.takeIf { it.isNotBlank() }
-                                        ?: "Aucun secteur",
+                                        ?: stringResource(R.string.clients_no_secteur),
                                     onClick = currentClient.secteur_id?.let { id -> { drill(DrillTarget.Secteur(id)) } })
                                 ClientInfoRow(
                                     icon = Icons.Default.HomeWork,
-                                    label = "Quartier",
+                                    label = stringResource(R.string.common_label_quartier),
                                     value = currentClient.quartier_name?.takeIf { it.isNotBlank() }
-                                        ?: "Aucun quartier",
+                                        ?: stringResource(R.string.common_no_quartier),
                                     onClick = currentClient.quartier_id?.let { id -> { drill(DrillTarget.Quartier(id)) } })
                                 ClientInfoRow(
                                     icon = Icons.Default.Home,
-                                    label = "Adresse",
+                                    label = stringResource(R.string.clients_address),
                                     value = currentClient.address?.takeIf { it.isNotBlank() }
-                                        ?: "Non renseignée")
+                                        ?: stringResource(R.string.clients_not_set_f))
                                 if (!currentClient.note.isNullOrBlank()) {
                                     ClientInfoRow(
                                         icon = Icons.AutoMirrored.Filled.Notes,
-                                        label = "Note",
+                                        label = stringResource(R.string.clients_note),
                                         value = currentClient.note
                                     )
                                 }
@@ -749,7 +749,7 @@ fun ClientDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "Transactions récentes",
+                                        stringResource(R.string.clients_recent_transactions),
                                         fontSize = DsTextSize.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = DsColors.TextSecondary
@@ -767,7 +767,7 @@ fun ClientDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "Voir tout",
+                                            stringResource(R.string.common_action_see_all),
                                             fontSize = DsTextSize.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DsColors.Primary
@@ -797,7 +797,7 @@ fun ClientDetailScreen(
                                             )
                                             Spacer(Modifier.height(DsSpacing.sm))
                                             Text(
-                                                "Aucune transaction",
+                                                stringResource(R.string.clients_no_transaction),
                                                 fontSize = DsTextSize.body,
                                                 color = DsColors.TextSecondary
                                             )
@@ -832,7 +832,7 @@ fun ClientDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment     = Alignment.CenterVertically
                                 ) {
-                                    Text("Retours récents", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.clients_recent_returns), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                                     // A new return starts from the « Retour » quick action; the whole
                                     // history lives on its own screen.
                                     Row(
@@ -846,7 +846,7 @@ fun ClientDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "Voir tout",
+                                            stringResource(R.string.common_action_see_all),
                                             fontSize = DsTextSize.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DsColors.Primary
@@ -876,7 +876,7 @@ fun ClientDetailScreen(
                                             )
                                             Spacer(Modifier.height(DsSpacing.sm))
                                             Text(
-                                                "Aucun retour",
+                                                stringResource(R.string.clients_no_return),
                                                 fontSize = DsTextSize.body,
                                                 color = DsColors.TextSecondary
                                             )
@@ -942,7 +942,7 @@ private fun ClientInfoRow(
         modifier = if (onClick == null) Modifier else Modifier
             .fillMaxWidth()
             .clip(DsShapes.small)
-            .clickable(role = Role.Button, onClickLabel = "Ouvrir $label", onClick = onClick),
+            .clickable(role = Role.Button, onClickLabel = stringResource(R.string.clients_cd_open, label), onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
     ) {

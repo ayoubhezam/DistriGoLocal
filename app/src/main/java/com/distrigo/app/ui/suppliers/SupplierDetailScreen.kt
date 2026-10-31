@@ -130,7 +130,7 @@ fun SupplierDetailScreen(
             imageScope.launch {
                 val newImageUri = ImageCapture.captureToStore(context, it)
                 if (newImageUri == null) {
-                    Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.common_photo_unreadable), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
                 viewModel.updateSupplier(
@@ -261,7 +261,7 @@ fun SupplierDetailScreen(
                     onClick = {
                         val amount = editPaymentAmount.toDoubleOrNull()
                         if (amount == null || amount <= 0) {
-                            editError = "Montant invalide"
+                            editError = context.getString(R.string.common_payment_invalid_amount)
                             return@Button
                         }
                         viewModel.updatePayment(
@@ -303,7 +303,7 @@ fun SupplierDetailScreen(
     val pagerState = rememberPagerState(pageCount = { 3 })
     // « Retours » on the card opens its tab
     val tabScope = rememberCoroutineScope()
-    val tabTitles = listOf("Informations", "Achats & Paiements", "Retours")
+    val tabTitles = listOf(stringResource(R.string.clients_tab_info), stringResource(R.string.suppliers_tab_purchases), stringResource(R.string.common_label_returns))
 
     // A return opened from "Retours récents" shows over the page, as it does over its list.
     var openRetour by remember { mutableStateOf<com.distrigo.app.data.model.RetourFournisseur?>(null) }
@@ -318,7 +318,7 @@ fun SupplierDetailScreen(
         // does. A collapsing header over a pager of short tabs made flings race the header away
         // and then stop dead, and relaid the whole pager out on every frame of it.
         DsTopAppBar(
-            title          = "Fournisseur",
+            title          = stringResource(R.string.common_label_supplier),
             leading        = DsTopBarLeading.Back(onBack),
             containerColor = DsColors.SurfaceMuted
         ) {
@@ -392,17 +392,17 @@ fun SupplierDetailScreen(
                                         ) { license.runOrExplain { showPhotoMenu = true } },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.PhotoCamera, contentDescription = "Photo", tint = DsColors.Primary, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.clients_cd_photo), tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                                 }
                                 DropdownMenu(expanded = showPhotoMenu, onDismissRequest = { showPhotoMenu = false }) {
                                     DropdownMenuItem(
-                                        text = { Text("Ajouter une nouvelle photo") },
+                                        text = { Text(stringResource(R.string.clients_photo_add_new)) },
                                         leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DsColors.Primary) },
                                         onClick = { showPhotoMenu = false; photoPicker.launch("image/*") }
                                     )
                                     if (currentSupplier.image_uri != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Supprimer la photo actuelle") },
+                                            text = { Text(stringResource(R.string.clients_photo_delete_current)) },
                                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                                             onClick = {
                                                 showPhotoMenu = false
@@ -484,7 +484,7 @@ fun SupplierDetailScreen(
                         ) {
                             Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Payer", color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.clients_pay), color = Color.White, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -498,7 +498,7 @@ fun SupplierDetailScreen(
                     contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
                     item {
-                        QuickActionButton(icon = Icons.Default.Call, label = "Appeler", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                        QuickActionButton(icon = Icons.Default.Call, label = stringResource(R.string.tournees_call), tint = DsColors.Success, bg = DsColors.SuccessLight) {
                             if (hasPhone) {
                                 context.startActivity(
                                     Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentSupplier.phone}"))
@@ -506,14 +506,14 @@ fun SupplierDetailScreen(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    context.getString(R.string.suppliers_no_phone),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
                         }
                     }
                     item {
-                        QuickActionButton(icon = Icons.Default.Navigation, label = "Itinéraire") {
+                        QuickActionButton(icon = Icons.Default.Navigation, label = stringResource(R.string.clients_route)) {
                             if (hasLocation) {
                                 try {
                                     val uri = Uri.parse("google.navigation:q=${currentSupplier.latitude},${currentSupplier.longitude}")
@@ -521,10 +521,10 @@ fun SupplierDetailScreen(
                                         Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
                                     )
                                 } catch (e: ActivityNotFoundException) {
-                                    Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.tournees_no_maps_app), Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Toast.makeText(context, "Aucune position enregistrée pour ce fournisseur", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.suppliers_no_position), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -540,13 +540,13 @@ fun SupplierDetailScreen(
                                     try {
                                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
                                     } catch (e2: ActivityNotFoundException) {
-                                        Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.clients_no_whatsapp), Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Ce fournisseur n'a pas de numéro de téléphone enregistré",
+                                    context.getString(R.string.suppliers_no_phone),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -555,20 +555,20 @@ fun SupplierDetailScreen(
                     item {
                         QuickActionButton(
                             icon = Icons.Default.ShoppingCart,
-                            label = "Nouvel\nachat"
+                            label = stringResource(R.string.suppliers_new_purchase)
                         ) {
                             onNewAchat()
                         }
                     }
                     item {
-                        QuickActionButton(icon = Icons.Default.CreditCard, label = "Versement", tint = DsColors.Success, bg = DsColors.SuccessLight) {
+                        QuickActionButton(icon = Icons.Default.CreditCard, label = stringResource(R.string.clients_versement), tint = DsColors.Success, bg = DsColors.SuccessLight) {
                             license.runOrExplain { showPaymentDialog = true }
                         }
                     }
                     item {
                         QuickActionButton(
                             icon = Icons.AutoMirrored.Filled.AssignmentReturn,
-                            label = "Retour"
+                            label = stringResource(R.string.clients_return)
                         )  {
                             onRetourForm()
                         }
@@ -577,7 +577,7 @@ fun SupplierDetailScreen(
                         Box {
                             QuickActionButton(
                                 icon = Icons.Default.MoreHoriz,
-                                label = "Plus",
+                                label = stringResource(R.string.more_title),
                                 tint = DsColors.TextSecondary,
                                 bg = DsColors.SurfaceSunken
                             ) {
@@ -585,12 +585,12 @@ fun SupplierDetailScreen(
                             }
                             DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Modifier le fournisseur") },
+                                    text = { Text(stringResource(R.string.suppliers_edit)) },
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                                     onClick = { showMoreMenu = false; onEdit() }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Supprimer le fournisseur") },
+                                    text = { Text(stringResource(R.string.suppliers_delete)) },
                                     leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                                     onClick = { showMoreMenu = false; onDelete() }
                                 )
@@ -629,26 +629,26 @@ fun SupplierDetailScreen(
                             ) {
                                 SupplierInfoRow(
                                     icon = Icons.Default.Phone,
-                                    label = "Téléphone",
-                                    value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: "Non renseigné"
+                                    label = stringResource(R.string.common_label_phone),
+                                    value = currentSupplier.phone?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set)
                                 )
                                 SupplierInfoRow(
                                     icon = Icons.Default.LocationOn,
-                                    label = "Wilaya",
-                                    value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                    label = stringResource(R.string.common_label_wilaya),
+                                    value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set_f)
                                 )
                                 SupplierInfoRow(
                                     icon = Icons.Default.Map,
-                                    label = "Commune",
-                                    value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                    label = stringResource(R.string.common_label_commune),
+                                    value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set_f)
                                 )
                                 SupplierInfoRow(
                                     icon = Icons.Default.Home,
-                                    label = "Adresse",
-                                    value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: "Non renseignée"
+                                    label = stringResource(R.string.clients_address),
+                                    value = currentSupplier.address?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set_f)
                                 )
                                 if (!currentSupplier.note.isNullOrBlank()) {
-                                    SupplierInfoRow(icon = Icons.AutoMirrored.Filled.Notes, label = "Note", value = currentSupplier.note)
+                                    SupplierInfoRow(icon = Icons.AutoMirrored.Filled.Notes, label = stringResource(R.string.clients_note), value = currentSupplier.note)
                                 }
                             }
                         }
@@ -668,7 +668,7 @@ fun SupplierDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Transactions récentes", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.clients_recent_transactions), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                                     // The whole history, and the button that adds to it, live on their
                                     // own screen; this card only shows the last few.
                                     Row(
@@ -682,7 +682,7 @@ fun SupplierDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "Voir tout",
+                                            stringResource(R.string.common_action_see_all),
                                             fontSize = DsTextSize.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DsColors.Primary
@@ -704,7 +704,7 @@ fun SupplierDetailScreen(
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
                                             Spacer(Modifier.height(DsSpacing.sm))
-                                            Text("Aucune transaction", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                            Text(stringResource(R.string.clients_no_transaction), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                                         }
                                     }
                                 } else {
@@ -736,7 +736,7 @@ fun SupplierDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Retours récents", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.clients_recent_returns), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                                     // A new return starts from the « Retour » quick action; the whole
                                     // history lives on its own screen.
                                     Row(
@@ -750,7 +750,7 @@ fun SupplierDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "Voir tout",
+                                            stringResource(R.string.common_action_see_all),
                                             fontSize = DsTextSize.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DsColors.Primary
@@ -772,7 +772,7 @@ fun SupplierDetailScreen(
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Icon(Icons.AutoMirrored.Filled.AssignmentReturn, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
                                             Spacer(Modifier.height(DsSpacing.sm))
-                                            Text("Aucun retour", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                                            Text(stringResource(R.string.clients_no_return), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                                         }
                                     }
                                 } else {

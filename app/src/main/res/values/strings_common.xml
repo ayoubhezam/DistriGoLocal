@@ -334,4 +334,9 @@
     <string name="common_kind_loading">Chargement</string>
     <string name="common_date_from">Du</string>
     <string name="common_date_to">Au</string>
+    <string name="common_pick_on_map">Choisir sur la carte</string>
+    <plurals name="common_results_count">
+        <item quantity="one">%1$d résultat</item>
+        <item quantity="other">%1$d résultats</item>
+    </plurals>
 </resources>

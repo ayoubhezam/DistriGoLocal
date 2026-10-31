@@ -66,7 +66,7 @@ class SupplierViewModel @Inject constructor(
                 repository.addSupplier(supplier)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -82,7 +82,7 @@ class SupplierViewModel @Inject constructor(
                 repository.updateSupplier(id, supplier)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -135,7 +135,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -152,7 +152,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -170,7 +170,7 @@ class SupplierViewModel @Inject constructor(
                 loadTransactions(supplierId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }

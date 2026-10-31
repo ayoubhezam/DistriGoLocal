@@ -45,6 +45,8 @@ import com.distrigo.app.ui.common.refusalText
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.core.text.UiText
 
 /**
  * The Clients section. [openClientId] opens it on that client's page instead of the list — a
@@ -154,10 +156,10 @@ fun ClientsNavHost(
                         val refusalContext = androidx.compose.ui.platform.LocalContext.current
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
-                            title = { Text("Supprimer le client") },
+                            title = { Text(stringResource(R.string.clients_delete_title)) },
                             text  = {
                                 Column {
-                                    Text("\"${client.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
+                                    Text(stringResource(R.string.products_delete_body, client.name))
                                     if (deleteError.isNotEmpty()) {
                                         Spacer(Modifier.height(DsSpacing.sm))
                                         Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -270,11 +272,11 @@ fun ClientsNavHost(
             val clientViewModel: ClientViewModel = hiltViewModel(parentEntry)
 
             PagedHistoryScreen(
-                title             = "Factures & Paiements",
-                countLabel        = if (historyTotalCount > 1) "$historyTotalCount résultats" else "$historyTotalCount résultat",
+                title             = stringResource(R.string.clients_tab_invoices),
+                countLabel        = pluralStringResource(R.plurals.common_results_count, historyTotalCount, historyTotalCount),
                 query             = historyQuery,
                 onQueryChange     = controller::onQueryChange,
-                searchPlaceholder = "Rechercher dans l'historique",
+                searchPlaceholder = stringResource(R.string.clients_search_history),
                 filters           = FactureFilter.entries,
                 selectedFilter    = historyFilter,
                 onFilterSelected  = controller::onFilterChange,
@@ -293,7 +295,7 @@ fun ClientsNavHost(
                         contentColor   = Color.White,
                         shape          = DsShapes.pill,
                         icon           = { Icon(Icons.Default.Add, contentDescription = null) },
-                        text           = { Text("Versement", fontWeight = FontWeight.SemiBold) }
+                        text           = { Text(stringResource(R.string.clients_versement), fontWeight = FontWeight.SemiBold) }
                     )
                 }
             ) { transaction ->
@@ -407,7 +409,7 @@ fun ClientsNavHost(
                         Button(
                             onClick = {
                                 val amount = editPaymentAmount.toDoubleOrNull()
-                                if (amount == null || amount <= 0) { editError = "Montant invalide"; return@Button }
+                                if (amount == null || amount <= 0) { editError = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_payment_invalid_amount)); return@Button }
                                 clientViewModel.updatePayment(
                                     clientId  = clientId,
                                     paymentId = payment.id,
