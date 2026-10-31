@@ -8,7 +8,6 @@ import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.common.formatQty
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.repository.ProductDuplicate
-import com.distrigo.app.data.repository.TOO_MANY_BARCODES
 import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,6 +65,8 @@ import com.distrigo.app.ui.common.rememberPhotoPicker
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -152,9 +153,13 @@ fun ProductFormScreen(
 
     val pagerState = rememberPagerState(pageCount = { 2 })
     val tabItems = listOf(
-        Triple("Essentiel", Icons.Default.Inventory2, 0),
-        Triple("Options", Icons.Default.AutoAwesome, 1)
+        Triple(stringResource(R.string.products_form_tab_essential), Icons.Default.Inventory2, 0),
+        Triple(stringResource(R.string.products_form_tab_options), Icons.Default.AutoAwesome, 1)
     )
+    // The form's words, fetched here: its checks below are plain functions
+    val res = androidx.compose.ui.platform.LocalContext.current.resources
+    val nameTaken = stringResource(R.string.error_product_name_taken)
+    val tooManyBarcodes = stringResource(R.string.error_too_many_barcodes, MAX_BARCODES_PER_PRODUCT)
 
     // Camera or gallery, the choice offered on the photo itself — see PhotoPicker.
     val photoPicker = rememberPhotoPicker(
@@ -178,9 +183,9 @@ fun ProductFormScreen(
     fun addExtraBarcode(code: String): Boolean {
         val trimmed = code.trim()
         extraBarcodeError = when {
-            trimmed.isEmpty() -> "Saisissez ou scannez un code-barres."
-            trimmed == barcode.trim() || trimmed in extraBarcodes -> "Ce code-barres est déjà dans la liste."
-            allBarcodes().size >= MAX_BARCODES_PER_PRODUCT -> TOO_MANY_BARCODES
+            trimmed.isEmpty() -> res.getString(R.string.products_form_barcode_enter)
+            trimmed == barcode.trim() || trimmed in extraBarcodes -> res.getString(R.string.products_form_barcode_in_list)
+            allBarcodes().size >= MAX_BARCODES_PER_PRODUCT -> tooManyBarcodes
             else -> ""
         }
         if (extraBarcodeError.isNotEmpty()) return false
@@ -192,32 +197,35 @@ fun ProductFormScreen(
         var valid = true
         nameError = ""; barcodeError = ""; extraBarcodeError = ""; sellingPriceError = ""; purchasePriceError = ""
         if (name.isBlank()) {
-            nameError = "Le nom est obligatoire."
+            nameError = res.getString(R.string.products_form_name_required)
             valid = false
         }
         if (barcode.isBlank()) {
-            barcodeError = "Le code-barres est obligatoire."
+            barcodeError = res.getString(R.string.products_form_barcode_required)
             valid = false
         } else if (barcode.trim() in extraBarcodes) {
-            barcodeError = "Ce code-barres est aussi dans « Autres codes-barres »."
+            barcodeError = res.getString(R.string.products_form_barcode_also_other)
             valid = false
         }
         if (sellingPrice.toDoubleOrNull() == null || sellingPrice.toDouble() <= 0)
-            { sellingPriceError = "Obligatoire."; valid = false }
+            { sellingPriceError = res.getString(R.string.common_required); valid = false }
         if (purchasePrice.toDoubleOrNull() == null || purchasePrice.toDouble() <= 0)
-            { purchasePriceError = "Obligatoire."; valid = false }
+            { purchasePriceError = res.getString(R.string.common_required); valid = false }
         return valid
     }
 
-    /** A refused save: a duplicate goes on its field, anything else is logged, as before. */
+    /**
+     * A refused save: a duplicate goes on its field, anything else is logged, as before. Told apart by what they name,
+     * not by their words, which follow the app's language: a code goes on the field that holds it.
+     */
     fun showSaveError(what: String, error: String) {
         android.util.Log.e("DISTRIGO", "$what error: $error")
         isSaving = false
         when {
-            error.contains("nom de produit") -> nameError = error
-            error.contains("codes-barres") -> extraBarcodeError = error
-            error.contains("code-barres ${barcode.trim()} ") -> barcodeError = error
-            error.contains("code-barres") -> extraBarcodeError = error
+            error == nameTaken -> nameError = error
+            error == tooManyBarcodes -> extraBarcodeError = error
+            barcode.isNotBlank() && error.contains(barcode.trim()) -> barcodeError = error
+            extraBarcodes.any { it.isNotBlank() && error.contains(it.trim()) } -> extraBarcodeError = error
         }
         if (pagerState.currentPage != 0) coroutineScope.launch { pagerState.animateScrollToPage(0) }
     }
@@ -338,11 +346,11 @@ fun ProductFormScreen(
             val codes = allBarcodes()
             val duplicate = viewModel.duplicateOf(name.trim(), codes, product?.id ?: -1)
             when (duplicate) {
-                ProductDuplicate.NAME -> nameError = duplicate.message
+                ProductDuplicate.NAME -> nameError = nameTaken
                 ProductDuplicate.BARCODE -> {
                     // Named, since the one taken may be any code in the list.
                     val taken = viewModel.takenBarcode(codes, product?.id ?: -1)
-                    val message = "Le code-barres $taken est déjà enregistré."
+                    val message = res.getString(R.string.error_barcode_taken, taken)
                     if (taken == barcode.trim()) barcodeError = message else extraBarcodeError = message
                 }
                 null -> license.runOrExplain { submit(sp, pp) }
@@ -396,22 +404,22 @@ fun ProductFormScreen(
     if (showMarginWarn) {
         AlertDialog(
             onDismissRequest = { showMarginWarn = false },
-            title = { Text("Prix d'achat ≥ Prix de vente") },
+            title = { Text(stringResource(R.string.products_form_margin_title)) },
             text  = {
                 Column {
-                    Text("Prix de vente : ${Amount.parse(sellingPrice)?.let(money::da) ?: "$sellingPrice DA"}")
-                    Text("Prix d'achat  : ${Amount.parse(purchasePrice)?.let(money::da) ?: "$purchasePrice DA"}", color = DsColors.Danger)
+                    Text(stringResource(R.string.products_form_margin_sale, Amount.parse(sellingPrice)?.let(money::da) ?: "$sellingPrice DA"))
+                    Text(stringResource(R.string.products_form_margin_purchase, Amount.parse(purchasePrice)?.let(money::da) ?: "$purchasePrice DA"), color = DsColors.Danger)
                     Spacer(Modifier.height(8.dp))
-                    Text("Voulez-vous continuer malgré la perte ?", fontSize = DsTextSize.bodySmall)
+                    Text(stringResource(R.string.products_form_margin_question), fontSize = DsTextSize.bodySmall)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showMarginWarn = false; save(forceSubmit = true) }) {
-                    Text("Continuer", color = DsColors.Danger)
+                    Text(stringResource(R.string.common_action_continue), color = DsColors.Danger)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showMarginWarn = false }) { Text("Corriger") }
+                TextButton(onClick = { showMarginWarn = false }) { Text(stringResource(R.string.common_action_fix)) }
             },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -423,13 +431,13 @@ fun ProductFormScreen(
     if (showAddSupplierDialog) {
         AlertDialog(
             onDismissRequest = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" },
-            title = { Text("Nouveau fournisseur") },
+            title = { Text(stringResource(R.string.products_form_new_supplier)) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value         = newSupplierName,
                         onValueChange = { newSupplierName = it },
-                        placeholder   = { Text("Nom du fournisseur") },
+                        placeholder   = { Text(stringResource(R.string.products_form_supplier_name)) },
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
@@ -441,7 +449,7 @@ fun ProductFormScreen(
                     OutlinedTextField(
                         value         = newSupplierPhone,
                         onValueChange = { newSupplierPhone = westernDigits(it) },
-                        placeholder   = { Text("Téléphone") },
+                        placeholder   = { Text(stringResource(R.string.common_label_phone)) },
                         singleLine    = true,
                         shape         = DsShapes.medium,
                         modifier      = Modifier.fillMaxWidth(),
@@ -486,12 +494,12 @@ fun ProductFormScreen(
     if (showAddCategoryDialog) {
         AlertDialog(
             onDismissRequest = { showAddCategoryDialog = false; newCategoryName = "" },
-            title = { Text("Nouvelle catégorie") },
+            title = { Text(stringResource(R.string.products_form_new_category)) },
             text  = {
                 OutlinedTextField(
                     value         = newCategoryName,
                     onValueChange = { newCategoryName = it },
-                    placeholder   = { Text("Ex: Boissons") },
+                    placeholder   = { Text(stringResource(R.string.products_form_category_example)) },
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
@@ -530,12 +538,12 @@ fun ProductFormScreen(
     if (showAddSousCategorieDialog && selectedCategoryId != null) {
         AlertDialog(
             onDismissRequest = { showAddSousCategorieDialog = false; newSousCategorieName = "" },
-            title = { Text("Nouvelle sous-catégorie") },
+            title = { Text(stringResource(R.string.products_form_new_subcategory)) },
             text  = {
                 OutlinedTextField(
                     value         = newSousCategorieName,
                     onValueChange = { newSousCategorieName = it },
-                    placeholder   = { Text("Ex: Sodas") },
+                    placeholder   = { Text(stringResource(R.string.products_form_subcategory_example)) },
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
@@ -575,12 +583,12 @@ fun ProductFormScreen(
     if (showAddMarqueDialog) {
         AlertDialog(
             onDismissRequest = { showAddMarqueDialog = false; newMarqueName = "" },
-            title = { Text("Nouvelle marque") },
+            title = { Text(stringResource(R.string.products_form_new_brand)) },
             text  = {
                 OutlinedTextField(
                     value         = newMarqueName,
                     onValueChange = { newMarqueName = it },
-                    placeholder   = { Text("Ex: Danone") },
+                    placeholder   = { Text(stringResource(R.string.products_form_brand_example)) },
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
@@ -622,8 +630,8 @@ fun ProductFormScreen(
     ) {
         // ── Header ──
         DsTopAppBar(
-            title    = if (isEdit) "Modifier le produit" else "Nouveau produit",
-            subtitle = if (isEdit) "Modifiez les informations du produit" else "Créez un nouveau produit facilement",
+            title    = stringResource(if (isEdit) R.string.products_form_edit_title else R.string.products_form_new_title),
+            subtitle = stringResource(if (isEdit) R.string.products_form_edit_sub else R.string.products_form_new_sub),
             leading  = DsTopBarLeading.Back(onBack)
         )
 
@@ -742,11 +750,11 @@ fun ProductFormScreen(
                 ) {
                     // ── Nom ──
                     FormField(
-                        label         = "Nom du produit *",
+                        label         = stringResource(R.string.products_form_name),
                         value         = name,
                         onValueChange = { name = it; nameError = "" },
                         error         = nameError,
-                        placeholder   = "Ex: Coca-Cola 1.5L"
+                        placeholder   = stringResource(R.string.products_form_name_example)
                     )
                     Spacer(Modifier.height(12.dp))
 
@@ -754,7 +762,7 @@ fun ProductFormScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                         Column(modifier = Modifier.weight(1f)) {
                             FormField(
-                                label         = "Code-barres *",
+                                label         = stringResource(R.string.products_form_barcode),
                                 value         = barcode,
                                 onValueChange = { barcode = westernDigits(it); barcodeError = "" },
                                 error         = barcodeError,
@@ -770,7 +778,7 @@ fun ProductFormScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode), modifier = Modifier.size(18.dp))
-                                Text("Scanner", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                                Text(stringResource(R.string.products_form_scan), fontSize = DsTextSize.caption, color = DsColors.Primary)
                             }
                         }
                         Button(
@@ -785,8 +793,8 @@ fun ProductFormScreen(
                             colors         = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Générer un code-barres", modifier = Modifier.size(18.dp))
-                                Text("Générer", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.products_form_cd_generate_barcode), modifier = Modifier.size(18.dp))
+                                Text(stringResource(R.string.products_form_generate), fontSize = DsTextSize.caption, color = DsColors.Primary)
                             }
                         }
                     }
@@ -815,7 +823,7 @@ fun ProductFormScreen(
                     Spacer(Modifier.height(12.dp))
 
                     // ── Fournisseur ──
-                    Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Text(stringResource(R.string.common_label_supplier), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment     = Alignment.CenterVertically
@@ -826,7 +834,7 @@ fun ProductFormScreen(
                             modifier         = Modifier.weight(1f)
                         ) {
                             OutlinedTextField(
-                                value         = suppliers.find { it.id == selectedSupplierId }?.name ?: "Sans fournisseur",
+                                value         = suppliers.find { it.id == selectedSupplierId }?.name ?: stringResource(R.string.products_no_supplier),
                                 onValueChange = {},
                                 readOnly      = true,
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = supplierExpanded) },
@@ -842,7 +850,7 @@ fun ProductFormScreen(
                                 onDismissRequest = { supplierExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text    = { Text("Sans fournisseur", color = DsColors.TextSecondary) },
+                                    text    = { Text(stringResource(R.string.products_no_supplier), color = DsColors.TextSecondary) },
                                     onClick = { selectedSupplierId = null; supplierExpanded = false }
                                 )
                                 suppliers.forEach { supplier ->
@@ -869,7 +877,7 @@ fun ProductFormScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
                             FormField(
-                                label         = "Prix de vente *",
+                                label         = stringResource(R.string.products_form_sale_price),
                                 value         = sellingPrice,
                                 onValueChange = { sellingPrice = it; sellingPriceError = "" },
                                 error         = sellingPriceError,
@@ -880,7 +888,7 @@ fun ProductFormScreen(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             FormField(
-                                label         = "Prix d'achat *",
+                                label         = stringResource(R.string.products_form_purchase_price),
                                 value         = purchasePrice,
                                 onValueChange = { purchasePrice = it; purchasePriceError = "" },
                                 error         = purchasePriceError,
@@ -895,7 +903,7 @@ fun ProductFormScreen(
 
                     // ── Stock minimum ──
                     FormField(
-                        label         = "Stock minimum",
+                        label         = stringResource(R.string.products_label_min_stock),
                         value         = minStock,
                         // A threshold in the product's unit: half a carton or 1.250 kg, whole pieces.
                         // Read with ',' or '.'; anything else used to be dropped for a silent 10.
@@ -916,9 +924,9 @@ fun ProductFormScreen(
                         border    = androidx.compose.foundation.BorderStroke(1.dp, DsColors.Border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Stock & conditionnement", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
+                            Text(stringResource(R.string.products_form_stock_packaging), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                             Spacer(Modifier.height(12.dp))
-                            Text("Unité de stockage", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                            Text(stringResource(R.string.products_form_storage_unit), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             Spacer(Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ProductUnit.ALL.forEach { unit ->
@@ -961,13 +969,13 @@ fun ProductFormScreen(
                             if (unitType == "pièce") {
                                 Spacer(Modifier.height(12.dp))
                                 FormField(
-                                    label         = "Unités par colis",
+                                    label         = stringResource(R.string.products_form_units_per_pack),
                                     value         = packSize,
                                     onValueChange = { raw -> packSize = raw.filter { it.isDigit() } },
                                     placeholder   = "Ex: 6",
                                     isNumber      = true,
                                     imeAction     = ImeAction.Done,
-                                    trailingText  = "pièces"
+                                    trailingText  = stringResource(R.string.products_form_pieces)
                                 )
                                 Spacer(Modifier.height(6.dp))
                             }
@@ -987,11 +995,11 @@ fun ProductFormScreen(
                                         verticalAlignment     = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            if (unitType == "pièce") "Unités totales" else "Colis en stock",
+                                            stringResource(if (unitType == "pièce") R.string.products_form_total_units else R.string.products_form_packs_in_stock),
                                             fontSize = DsTextSize.caption, color = DsColors.Primary
                                         )
                                         Text(
-                                            "$computedStock ${if (unitType == "pièce") "pièces" else "cartons"}",
+                                            quantityText(computedStock.toDouble(), unitType).asString(),
                                             fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.Primary
                                         )
                                     }
@@ -1054,7 +1062,7 @@ fun ProductFormScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
                                 Spacer(Modifier.height(6.dp))
-                                Text("Ajouter une photo", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(stringResource(R.string.common_photo_add), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                         }
                     }
@@ -1062,7 +1070,7 @@ fun ProductFormScreen(
                     Spacer(Modifier.height(16.dp))
 
                     // ── Catégorie ──
-                    Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Text(stringResource(R.string.common_label_category), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment     = Alignment.CenterVertically
@@ -1073,7 +1081,7 @@ fun ProductFormScreen(
                             modifier         = Modifier.weight(1f)
                         ) {
                             OutlinedTextField(
-                                value         = categories.find { it.id == selectedCategoryId }?.name ?: "Sans catégorie",
+                                value         = categories.find { it.id == selectedCategoryId }?.name ?: stringResource(R.string.products_no_category),
                                 onValueChange = {},
                                 readOnly      = true,
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
@@ -1089,7 +1097,7 @@ fun ProductFormScreen(
                                 onDismissRequest = { categoryExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text    = { Text("Sans catégorie", color = DsColors.TextSecondary) },
+                                    text    = { Text(stringResource(R.string.products_no_category), color = DsColors.TextSecondary) },
                                     onClick = { selectedCategoryId = null; categoryExpanded = false }
                                 )
                                 categories.forEach { category ->
@@ -1115,7 +1123,7 @@ fun ProductFormScreen(
                     // ── Sous-catégorie ──
                     val sousCategorieEnabled = selectedCategoryId != null
                     Text(
-                        "Sous-catégorie",
+                        stringResource(R.string.products_label_subcategory),
                         fontSize = DsTextSize.bodySmall,
                         color    = if (sousCategorieEnabled) DsColors.TextSecondary else DsColors.TextSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -1130,7 +1138,7 @@ fun ProductFormScreen(
                             modifier         = Modifier.weight(1f)
                         ) {
                             OutlinedTextField(
-                                value         = sousCategories.find { it.id == selectedSousCategorieId }?.name ?: "Sans sous-catégorie",
+                                value         = sousCategories.find { it.id == selectedSousCategorieId }?.name ?: stringResource(R.string.products_no_subcategory),
                                 onValueChange = {},
                                 readOnly      = true,
                                 enabled       = sousCategorieEnabled,
@@ -1149,7 +1157,7 @@ fun ProductFormScreen(
                                 onDismissRequest = { sousCategorieExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text    = { Text("Sans sous-catégorie", color = DsColors.TextSecondary) },
+                                    text    = { Text(stringResource(R.string.products_no_subcategory), color = DsColors.TextSecondary) },
                                     onClick = { selectedSousCategorieId = null; sousCategorieExpanded = false }
                                 )
                                 sousCategories.filter { it.category_id == selectedCategoryId }.forEach { sousCategorie ->
@@ -1174,7 +1182,7 @@ fun ProductFormScreen(
                     Spacer(Modifier.height(12.dp))
 
                     // ── Marque ──
-                    Text("Marque", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Text(stringResource(R.string.common_label_brand), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment     = Alignment.CenterVertically
@@ -1185,7 +1193,7 @@ fun ProductFormScreen(
                             modifier         = Modifier.weight(1f)
                         ) {
                             OutlinedTextField(
-                                value         = marques.find { it.id == selectedMarqueId }?.name ?: "Sans marque",
+                                value         = marques.find { it.id == selectedMarqueId }?.name ?: stringResource(R.string.products_no_brand),
                                 onValueChange = {},
                                 readOnly      = true,
                                 trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = marqueExpanded) },
@@ -1201,7 +1209,7 @@ fun ProductFormScreen(
                                 onDismissRequest = { marqueExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text    = { Text("Sans marque", color = DsColors.TextSecondary) },
+                                    text    = { Text(stringResource(R.string.products_no_brand), color = DsColors.TextSecondary) },
                                     onClick = { selectedMarqueId = null; marqueExpanded = false }
                                 )
                                 marques.forEach { marque ->
@@ -1240,7 +1248,7 @@ fun ProductFormScreen(
                             ) {
                                 Column {
                                     Text(stringResource(R.string.common_label_expiry_date), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
-                                    Text("Produit soumis à une date de péremption", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.products_form_has_expiry_hint), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                                 Switch(
                                     checked         = hasExpiry,
@@ -1259,7 +1267,7 @@ fun ProductFormScreen(
                                 ) {
                                     Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text(if (expiryDate.isEmpty()) "Choisir une date" else expiryDate, fontSize = DsTextSize.body)
+                                    Text(if (expiryDate.isEmpty()) stringResource(R.string.common_choose_date) else com.distrigo.app.core.format.AppDates.shownIsoDay(expiryDate), fontSize = DsTextSize.body)
                                 }
                             }
                         }
@@ -1285,7 +1293,7 @@ fun ProductFormScreen(
                     Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (isEdit) "Enregistrer les modifications" else "Ajouter le produit",
+                        stringResource(if (isEdit) R.string.products_form_save else R.string.products_form_add),
                         fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White
                     )
                 }

@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.core.text.AppStrings
 import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.local.dao.*
@@ -44,6 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.distrigo.app.data.model.UnsettledBalanceException
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 class ProductRepository(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
@@ -370,9 +372,9 @@ class ProductRepository(
         cleanCodes(codes).firstOrNull { db.productBarcodeDao().findLiveOwner(it, excludeId) != null }
 
     private suspend fun requireNoDuplicate(name: String, barcodes: List<String>, excludeId: Int) {
-        if (barcodes.size > MAX_BARCODES_PER_PRODUCT) throw IllegalStateException(TOO_MANY_BARCODES)
+        if (barcodes.size > MAX_BARCODES_PER_PRODUCT) refuse(R.string.error_too_many_barcodes, MAX_BARCODES_PER_PRODUCT)
         if (name.isNotBlank() && productDao.findLiveByName(name, excludeId) != null) {
-            throw IllegalStateException(ProductDuplicate.NAME.message)
+            refuse(ProductDuplicate.NAME.text)
         }
         takenBarcode(barcodes, excludeId)?.let { refuse(R.string.error_barcode_taken, it) }
     }
@@ -596,17 +598,17 @@ class ProductRepository(
      * reference, and a gallery showing one picture twice is never what was meant.
      */
     suspend fun addProductImage(productId: Int, ref: String): Map<String, Any> {
-        if (ref.isBlank()) return mapOf("error" to "Image invalide")
+        if (ref.isBlank()) return mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_invalid)))
         var result: Map<String, Any> = mapOf("message" to "Photo ajoutée")
         db.withTransaction {
             val dao = db.productImageDao()
             if (dao.findByRef(productId, ref) != null) {
-                result = mapOf("error" to "Cette photo est déjà dans la galerie")
+                result = mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_duplicate)))
                 return@withTransaction
             }
             val existing = dao.getForProduct(productId)
             if (existing.size >= MAX_IMAGES_PER_PRODUCT) {
-                result = mapOf("error" to "Maximum " + MAX_IMAGES_PER_PRODUCT + " photos par produit")
+                result = mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_max, MAX_IMAGES_PER_PRODUCT)))
                 return@withTransaction
             }
             dao.insert(

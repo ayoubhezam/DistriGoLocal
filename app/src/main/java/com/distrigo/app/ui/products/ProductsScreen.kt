@@ -68,6 +68,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarOverflowMenu
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 import androidx.compose.ui.res.pluralStringResource
 
@@ -155,47 +157,47 @@ fun ProductsScreen(
     val activeFilters = buildList {
         viewModel.filterCategoryId?.let { id ->
             categories.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Catégorie: ${it.name}") { viewModel.filterCategoryId = null })
+                add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.common_label_category), it.name)) { viewModel.filterCategoryId = null })
             }
         }
         viewModel.filterSousCategorieId?.let { id ->
             sousCategories.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Sous-catégorie: ${it.name}") { viewModel.filterSousCategorieId = null })
+                add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.products_label_subcategory), it.name)) { viewModel.filterSousCategorieId = null })
             }
         }
         viewModel.filterMarqueId?.let { id ->
             marques.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Marque: ${it.name}") { viewModel.filterMarqueId = null })
+                add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.common_label_brand), it.name)) { viewModel.filterMarqueId = null })
             }
         }
         viewModel.filterSupplierId?.let { id ->
             suppliers.find { it.id == id }?.let {
-                add(ActiveFilterEntry("Fournisseur: ${it.name}") { viewModel.filterSupplierId = null })
+                add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.common_label_supplier), it.name)) { viewModel.filterSupplierId = null })
             }
         }
         viewModel.filterUnitType?.let { unit ->
-            add(ActiveFilterEntry("Unité: ${ProductUnit.label(unit)}") { viewModel.filterUnitType = null })
+            add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.products_filter_unit), stringResource(ProductUnit.labelRes(unit)))) { viewModel.filterUnitType = null })
         }
         viewModel.filterStockLevel?.let { level ->
             val label = when (level) {
-                "in_stock"     -> "En stock"
-                "low_stock"    -> "Stock faible"
-                "out_of_stock" -> "Rupture de stock"
+                "in_stock"     -> stringResource(R.string.common_stock_in)
+                "low_stock"    -> stringResource(R.string.common_stock_low)
+                "out_of_stock" -> stringResource(R.string.common_stock_out)
                 else           -> level
             }
-            add(ActiveFilterEntry("Stock: $label") { viewModel.filterStockLevel = null })
+            add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.products_filter_stock), label)) { viewModel.filterStockLevel = null })
         }
-        if (viewModel.filterPriceMin.isNotBlank()) add(ActiveFilterEntry("Prix min: ${viewModel.filterPriceMin}") { viewModel.filterPriceMin = "" })
-        if (viewModel.filterPriceMax.isNotBlank()) add(ActiveFilterEntry("Prix max: ${viewModel.filterPriceMax}") { viewModel.filterPriceMax = "" })
-        if (viewModel.filterExpiringSoon) add(ActiveFilterEntry("Bientôt périmé") { viewModel.filterExpiringSoon = false })
+        if (viewModel.filterPriceMin.isNotBlank()) add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.products_filter_price_min), viewModel.filterPriceMin)) { viewModel.filterPriceMin = "" })
+        if (viewModel.filterPriceMax.isNotBlank()) add(ActiveFilterEntry(stringResource(R.string.products_filter_chip, stringResource(R.string.products_filter_price_max), viewModel.filterPriceMax)) { viewModel.filterPriceMax = "" })
+        if (viewModel.filterExpiringSoon) add(ActiveFilterEntry(stringResource(R.string.products_filter_expiring)) { viewModel.filterExpiringSoon = false })
     }
     val hasActiveFilters = activeFilters.isNotEmpty()
 
     showDeleteDialog?.let { product ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Supprimer le produit") },
-            text  = { Text("\"${product.name}\" ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.") },
+            title = { Text(stringResource(R.string.products_delete_title)) },
+            text  = { Text(stringResource(R.string.products_delete_body, product.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteProduct(product.id)
@@ -297,13 +299,13 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(DsSpacing.sm))
 
-                Text("Catégorie", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.common_label_category), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterCategoryExpanded,
                     onExpandedChange = { filterCategoryExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = categories.find { it.id == viewModel.filterCategoryId }?.name ?: "Toutes les catégories",
+                        value         = categories.find { it.id == viewModel.filterCategoryId }?.name ?: stringResource(R.string.products_all_categories),
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterCategoryExpanded) },
@@ -316,7 +318,7 @@ fun ProductsScreen(
                     )
                     ExposedDropdownMenu(expanded = filterCategoryExpanded, onDismissRequest = { filterCategoryExpanded = false }) {
                         DropdownMenuItem(
-                            text    = { Text("Toutes les catégories", color = DsColors.TextSecondary) },
+                            text    = { Text(stringResource(R.string.products_all_categories), color = DsColors.TextSecondary) },
                             onClick = { viewModel.filterCategoryId = null; filterCategoryExpanded = false }
                         )
                         categories.forEach { category ->
@@ -331,7 +333,7 @@ fun ProductsScreen(
 
                 val sousCategorieEnabled = viewModel.filterCategoryId != null
                 Text(
-                    "Sous-catégorie",
+                    stringResource(R.string.products_label_subcategory),
                     fontSize = DsTextSize.bodySmall,
                     color    = if (sousCategorieEnabled) DsColors.TextSecondary else DsColors.TextSecondary.copy(alpha = 0.5f),
                     modifier = Modifier.padding(bottom = 4.dp)
@@ -341,7 +343,7 @@ fun ProductsScreen(
                     onExpandedChange = { if (sousCategorieEnabled) filterSousCategorieExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = sousCategories.find { it.id == viewModel.filterSousCategorieId }?.name ?: "Toutes les sous-catégories",
+                        value         = sousCategories.find { it.id == viewModel.filterSousCategorieId }?.name ?: stringResource(R.string.products_all_subcategories),
                         onValueChange = {},
                         readOnly      = true,
                         enabled       = sousCategorieEnabled,
@@ -357,7 +359,7 @@ fun ProductsScreen(
                     )
                     ExposedDropdownMenu(expanded = filterSousCategorieExpanded, onDismissRequest = { filterSousCategorieExpanded = false }) {
                         DropdownMenuItem(
-                            text    = { Text("Toutes les sous-catégories", color = DsColors.TextSecondary) },
+                            text    = { Text(stringResource(R.string.products_all_subcategories), color = DsColors.TextSecondary) },
                             onClick = { viewModel.filterSousCategorieId = null; filterSousCategorieExpanded = false }
                         )
                         sousCategories.filter { it.category_id == viewModel.filterCategoryId }.forEach { sousCategorie ->
@@ -370,13 +372,13 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                Text("Marque", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.common_label_brand), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterMarqueExpanded,
                     onExpandedChange = { filterMarqueExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = marques.find { it.id == viewModel.filterMarqueId }?.name ?: "Toutes les marques",
+                        value         = marques.find { it.id == viewModel.filterMarqueId }?.name ?: stringResource(R.string.products_all_brands),
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterMarqueExpanded) },
@@ -389,7 +391,7 @@ fun ProductsScreen(
                     )
                     ExposedDropdownMenu(expanded = filterMarqueExpanded, onDismissRequest = { filterMarqueExpanded = false }) {
                         DropdownMenuItem(
-                            text    = { Text("Toutes les marques", color = DsColors.TextSecondary) },
+                            text    = { Text(stringResource(R.string.products_all_brands), color = DsColors.TextSecondary) },
                             onClick = { viewModel.filterMarqueId = null; filterMarqueExpanded = false }
                         )
                         marques.forEach { marque ->
@@ -402,13 +404,13 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.common_label_supplier), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterSupplierExpanded,
                     onExpandedChange = { filterSupplierExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value         = suppliers.find { it.id == viewModel.filterSupplierId }?.name ?: "Tous les fournisseurs",
+                        value         = suppliers.find { it.id == viewModel.filterSupplierId }?.name ?: stringResource(R.string.common_all_suppliers),
                         onValueChange = {},
                         readOnly      = true,
                         trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterSupplierExpanded) },
@@ -421,7 +423,7 @@ fun ProductsScreen(
                     )
                     ExposedDropdownMenu(expanded = filterSupplierExpanded, onDismissRequest = { filterSupplierExpanded = false }) {
                         DropdownMenuItem(
-                            text    = { Text("Tous les fournisseurs", color = DsColors.TextSecondary) },
+                            text    = { Text(stringResource(R.string.common_all_suppliers), color = DsColors.TextSecondary) },
                             onClick = { viewModel.filterSupplierId = null; filterSupplierExpanded = false }
                         )
                         suppliers.forEach { supplier ->
@@ -434,9 +436,9 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.products_form_storage_unit), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    (listOf<Pair<String?, String>>(null to "Toutes") + ProductUnit.ALL.map { it to ProductUnit.label(it) }).forEach { (value, label) ->
+                    (listOf<Pair<String?, String>>(null to stringResource(R.string.common_filter_all_f)) + ProductUnit.ALL.map { it to stringResource(ProductUnit.labelRes(it)) }).forEach { (value, label) ->
                         val active = viewModel.filterUnitType == value
                         Box(
                             modifier = Modifier
@@ -459,17 +461,17 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                Text("Niveau de stock", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.products_filter_stock_level), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 ExposedDropdownMenuBox(
                     expanded         = filterStockLevelExpanded,
                     onExpandedChange = { filterStockLevelExpanded = it }
                 ) {
                     OutlinedTextField(
                         value = when (viewModel.filterStockLevel) {
-                            "in_stock"     -> "En stock"
-                            "low_stock"    -> "Stock faible"
-                            "out_of_stock" -> "Rupture de stock"
-                            else           -> "Tous"
+                            "in_stock"     -> stringResource(R.string.common_stock_in)
+                            "low_stock"    -> stringResource(R.string.common_stock_low)
+                            "out_of_stock" -> stringResource(R.string.common_stock_out)
+                            else           -> stringResource(R.string.common_filter_all)
                         },
                         onValueChange = {},
                         readOnly      = true,
@@ -483,10 +485,10 @@ fun ProductsScreen(
                     )
                     ExposedDropdownMenu(expanded = filterStockLevelExpanded, onDismissRequest = { filterStockLevelExpanded = false }) {
                         listOf<Pair<String?, String>>(
-                            null to "Tous",
-                            "in_stock" to "En stock",
-                            "low_stock" to "Stock faible",
-                            "out_of_stock" to "Rupture de stock"
+                            null to stringResource(R.string.common_filter_all),
+                            "in_stock" to stringResource(R.string.common_stock_in),
+                            "low_stock" to stringResource(R.string.common_stock_low),
+                            "out_of_stock" to stringResource(R.string.common_stock_out)
                         ).forEach { (value, label) ->
                             DropdownMenuItem(
                                 text    = { Text(label) },
@@ -497,12 +499,12 @@ fun ProductsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                Text("Fourchette de prix", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(stringResource(R.string.products_filter_price_range), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value           = viewModel.filterPriceMin,
                         onValueChange   = { viewModel.filterPriceMin = westernNumber(it) },
-                        placeholder     = { Text("Min") },
+                        placeholder     = { Text(stringResource(R.string.products_filter_min)) },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),
                         shape           = DsShapes.medium,
@@ -515,7 +517,7 @@ fun ProductsScreen(
                     OutlinedTextField(
                         value           = viewModel.filterPriceMax,
                         onValueChange   = { viewModel.filterPriceMax = westernNumber(it) },
-                        placeholder     = { Text("Max") },
+                        placeholder     = { Text(stringResource(R.string.products_filter_max)) },
                         singleLine      = true,
                         modifier        = Modifier.weight(1f),
                         shape           = DsShapes.medium,
@@ -534,8 +536,8 @@ fun ProductsScreen(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Bientôt périmé", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                        Text("Produits expirant dans les 30 prochains jours", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.products_filter_expiring), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                        Text(stringResource(R.string.products_filter_expiring_hint), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Switch(
                         checked         = viewModel.filterExpiringSoon,
@@ -562,7 +564,7 @@ fun ProductsScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
-                        Text("Appliquer (${productCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                        Text(stringResource(R.string.common_action_apply_count, productCount ?: 0), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -578,7 +580,7 @@ fun ProductsScreen(
             // The tab roots are the only screens with no back arrow, so the menu takes the
             // leading slot and the global controls take the trailing one.
             DsTopAppBar(
-                title   = "Produits",
+                title   = stringResource(R.string.nav_produits),
                 licenseBanner = true,
                 leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
@@ -587,7 +589,7 @@ fun ProductsScreen(
                     onNotificationsClick = onNotificationsClick,
                     onProfileClick       = onProfileClick
                 )
-                DsTopBarOverflowMenu("Importer depuis Excel" to onImport)
+                DsTopBarOverflowMenu(stringResource(R.string.products_import_excel) to onImport)
             }
 
             ProductSearchField(
@@ -640,7 +642,7 @@ fun ProductsScreen(
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Tout effacer", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_action_clear_all), fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -655,7 +657,7 @@ fun ProductsScreen(
                 }
             } else if (pagedProducts.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
+                    Text(text = refresh.error.message ?: stringResource(R.string.common_load_error), color = DsColors.Danger)
                 }
             } else if (pagedProducts.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -667,7 +669,7 @@ fun ProductsScreen(
                             modifier = Modifier.size(56.dp)
                         )
                         Spacer(Modifier.height(12.dp))
-                        Text("Aucun produit trouvé", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_no_product_found), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                     }
                 }
             } else {
@@ -720,7 +722,7 @@ fun ProductsScreen(
         }
 
         DsFab(
-            contentDescription = "Ajouter un produit",
+            contentDescription = stringResource(R.string.products_cd_add),
             onClick            = { onAddProduct() },
             modifier           = Modifier.align(Alignment.BottomEnd).padding(end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance)
         )
@@ -761,7 +763,7 @@ private fun ProductSearchField(viewModel: ProductViewModel, onScan: () -> Unit, 
     DsCompactSearchField(
         value         = viewModel.searchQuery,
         onValueChange = { viewModel.searchQuery = it },
-        placeholder   = "Rechercher un produit",
+        placeholder   = stringResource(R.string.common_search_product),
         modifier      = modifier
     ) {
         DsCompactSearchAction(
@@ -877,7 +879,7 @@ fun ProductCard(
 
             // ── Stock : عمود منفصل على اليمين ──
             Text(
-                listOfNotNull(stockPrefix, "${formatQty(stock)} ${product.unit_type}").joinToString(" "),
+                listOfNotNull(stockPrefix, quantityText(stock, product.unit_type).asString()).joinToString(" "),
                 fontSize   = DsTextSize.caption,
                 fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Medium,
                 color      = if (isLow) DsColors.Danger else DsColors.TextSecondary,
@@ -959,7 +961,7 @@ fun ProductGridCard(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text(
-                        text       = "${formatQty(stock)} ${product.unit_type}",
+                        text       = quantityText(stock, product.unit_type).asString(),
                         fontSize   = DsTextSize.caption,
                         fontWeight = if (isLow) FontWeight.SemiBold else FontWeight.Normal,
                         color      = if (isLow) DsColors.Danger else DsColors.TextSecondary

@@ -48,6 +48,8 @@ import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * The product's photos: a swipeable main image, a counter, and a thumbnail strip.
@@ -120,7 +122,7 @@ fun ProductGallery(
             ) { page ->
                 EntityImage(
                     ref                = images[page].ref,
-                    contentDescription = "Photo ${page + 1} sur ${images.size}",
+                    contentDescription = stringResource(R.string.products_photo_n_of, page + 1, images.size),
                     contentScale       = ContentScale.Fit,
                     modifier           = Modifier
                         .fillMaxSize()
@@ -190,9 +192,9 @@ fun ProductGallery(
             Spacer(Modifier.height(DsSpacing.sm))
             Text(
                 text = if (images.size >= MAX_IMAGES_PER_PRODUCT)
-                    "Maximum $MAX_IMAGES_PER_PRODUCT photos atteint · appuyez sur ★ pour définir la photo principale"
+                    stringResource(R.string.products_photos_max_hint, MAX_IMAGES_PER_PRODUCT)
                 else
-                    "${images.size}/$MAX_IMAGES_PER_PRODUCT photos · appuyez sur ★ pour définir la photo principale",
+                    stringResource(R.string.products_photos_count_hint, images.size, MAX_IMAGES_PER_PRODUCT),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = DsSpacing.xs)
@@ -259,7 +261,7 @@ private fun GalleryThumbnail(
                 ) {
                     Icon(
                         Icons.Default.Star,
-                        contentDescription = "Photo principale",
+                        contentDescription = stringResource(R.string.products_photo_cover),
                         tint     = Color.White,
                         modifier = Modifier.size(10.dp)
                     )
@@ -277,7 +279,7 @@ private fun GalleryThumbnail(
                         icon = Icons.Default.Star,
                         tint = DsColors.Primary,
                         background = DsColors.PrimaryLight,
-                        description = "Définir comme photo principale",
+                        description = stringResource(R.string.products_photo_cd_make_cover),
                         onClick = onSetCover
                     )
                 }
@@ -285,7 +287,7 @@ private fun GalleryThumbnail(
                     icon = Icons.Default.Close,
                     tint = DsColors.Danger,
                     background = DsColors.DangerLight,
-                    description = "Supprimer cette photo",
+                    description = stringResource(R.string.products_photo_cd_delete),
                     onClick = onDelete
                 )
             }
@@ -329,7 +331,7 @@ private fun AddPhotoTile(onClick: () -> Unit) {
         ) {
             Icon(
                 Icons.Default.AddAPhoto,
-                contentDescription = "Ajouter une photo",
+                contentDescription = stringResource(R.string.common_photo_add),
                 tint     = DsColors.Primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -367,7 +369,7 @@ private fun GalleryEmptyState(
             )
             Spacer(Modifier.height(DsSpacing.sm))
             Text(
-                if (manageMode) "Ajouter une photo" else "Aucune photo",
+                if (manageMode) stringResource(R.string.common_photo_add) else stringResource(R.string.products_photo_none),
                 fontSize   = DsTextSize.bodySmall,
                 fontWeight = FontWeight.Medium,
                 color      = if (manageMode) DsColors.Primary else DsColors.TextSecondary
@@ -375,7 +377,7 @@ private fun GalleryEmptyState(
             if (!manageMode) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Gérer les photos pour en ajouter",
+                    stringResource(R.string.products_photo_none_hint),
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextTertiary
                 )
@@ -387,5 +389,5 @@ private fun GalleryEmptyState(
 /** A checkmark badge, used by the manage-mode toggle in the app bar. */
 @Composable
 fun GalleryModeDoneIcon() {
-    Icon(Icons.Default.Check, contentDescription = "Terminer", tint = DsColors.Primary)
+    Icon(Icons.Default.Check, contentDescription = stringResource(R.string.products_photos_done), tint = DsColors.Primary)
 }

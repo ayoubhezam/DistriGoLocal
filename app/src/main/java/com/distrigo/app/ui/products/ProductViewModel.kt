@@ -45,6 +45,8 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import com.distrigo.app.ui.purchases.toListQuery as toStep2Query
 import com.distrigo.app.data.local.paging.PriceColumn
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
@@ -71,7 +73,7 @@ class ProductViewModel @Inject constructor(
                 )
                 onDone(quantity)
             } catch (e: Exception) {
-                onError(userMessage(e, "Le déchargement a échoué."))
+                onError(userMessage(e, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.products_unload_failed))))
             }
         }
     }
@@ -131,7 +133,7 @@ class ProductViewModel @Inject constructor(
                 val result = repository.addProductImage(productId, ref)
                 (result["error"] as? String)?.let(onError)
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -141,7 +143,7 @@ class ProductViewModel @Inject constructor(
             try {
                 repository.deleteProductImage(imageId)
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -151,7 +153,7 @@ class ProductViewModel @Inject constructor(
             try {
                 repository.setPrimaryProductImage(imageId)
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -190,7 +192,7 @@ class ProductViewModel @Inject constructor(
                 val result = repository.addProduct(product)
                 onSuccess(result)
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -206,7 +208,7 @@ class ProductViewModel @Inject constructor(
                 repository.updateProduct(id, product)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -304,7 +306,7 @@ class ProductViewModel @Inject constructor(
                 repository.linkProductToSupplier(supplierId, productId, purchasePrice)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -319,7 +321,7 @@ class ProductViewModel @Inject constructor(
                 repository.unlinkProductFromAllSuppliers(productId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e))
             }
         }
     }
@@ -372,7 +374,7 @@ class ProductViewModel @Inject constructor(
                 _priceMovements.value = repository.getPriceMovements(productId)
             } catch (e: Exception) {
                 _priceMovements.value = emptyList()
-                _priceHistoryError.value = userMessage(e, "Erreur inconnue")
+                _priceHistoryError.value = userMessage(e)
             }
             _priceHistoryLoading.value = false
         }

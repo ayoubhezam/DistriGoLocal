@@ -181,7 +181,7 @@ private fun CameraPreviewContent(onBarcodeScanned: (String) -> Unit, onClose: ()
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                "Placez le code-barres dans le cadre",
+                stringResource(R.string.products_scan_hint),
                 color = Color.White,
                 fontSize = DsTextSize.bodySmall,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -223,7 +223,7 @@ private fun PermissionDeniedContent(onRetry: () -> Unit, onClose: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Autorisation caméra requise",
+                stringResource(R.string.products_scan_permission),
                 color = Color.White,
                 fontSize = DsTextSize.title,
                 fontWeight = FontWeight.SemiBold

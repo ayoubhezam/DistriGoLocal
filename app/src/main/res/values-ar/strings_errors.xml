@@ -27,4 +27,7 @@
     <string name="error_supplier_not_found">المورد غير موجود: \u2068%1$s\u2069</string>
     <string name="error_depot_stock_insufficient">مخزون المستودع غير كافٍ لـ« \u2068%1$s\u2069 »: ستتركه العملية عند \u2068%2$s\u2069 \u2068%3$s\u2069. المخزون السالب معطَّل في الإعدادات.</string>
     <string name="error_depot_stock_insufficient_more">مخزون المستودع غير كافٍ لـ« \u2068%1$s\u2069 » (و\u2068%2$d\u2069 منتجات أخرى): ستتركه العملية عند \u2068%3$s\u2069 \u2068%4$s\u2069. المخزون السالب معطَّل في الإعدادات.</string>
+    <string name="error_product_name_taken">اسم المنتج هذا مسجَّل مسبقًا.</string>
+    <string name="error_barcode_taken_generic">هذا الباركود مسجَّل مسبقًا.</string>
+    <string name="error_too_many_barcodes">لا يمكن أن يكون للمنتج أكثر من \u2068%1$d\u2069 باركود.</string>
 </resources>

@@ -316,4 +316,20 @@
     <string name="common_quit_unsaved_title">Quitter sans enregistrer ?</string>
     <string name="common_quit_unsaved_body">Les informations modifiées ne seront pas enregistrées.</string>
     <string name="common_action_quit">Quitter</string>
+    <string name="common_required">Obligatoire.</string>
+    <string name="common_label_phone">Téléphone</string>
+    <string name="common_choose_date">Choisir une date</string>
+    <plurals name="common_unit_word_carton">
+        <item quantity="one">carton</item>
+        <item quantity="other">cartons</item>
+    </plurals>
+    <plurals name="common_unit_word_piece">
+        <item quantity="one">pièce</item>
+        <item quantity="other">pièces</item>
+    </plurals>
+    <plurals name="common_unit_word_kg">
+        <item quantity="one">kg</item>
+        <item quantity="other">kg</item>
+    </plurals>
+    <string name="common_kind_loading">Chargement</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.distrigo.app.ui.common
 
 import com.distrigo.app.R
+import com.distrigo.app.core.text.AppStrings
 import com.distrigo.app.core.text.UiText
 import com.distrigo.app.core.text.UserFacingException
 import com.distrigo.app.data.local.database.LicenseWriteGate
@@ -23,7 +24,7 @@ fun extractErrorMessage(e: Exception): String = userMessage(e)
  * [extractErrorMessage] for any failure, with the screen's own [fallback]. A refusal by the license's gate also opens
  * the « Consultation seule » sheet (LicenseRefusals), so a write no screen guarded still says why.
  */
-fun userMessage(e: Throwable, fallback: String = "Erreur inconnue"): String =
+fun userMessage(e: Throwable, fallback: String = AppStrings.write(UiText.Res(R.string.common_error_unknown))): String =
     if (LicenseWriteGate.isRefusal(e)) {
         LicenseRefusals.report()
         LicenseWriteGate.MESSAGE

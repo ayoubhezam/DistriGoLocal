@@ -158,7 +158,7 @@ fun ProductImageViewer(
             ) {
                 EntityImage(
                     ref                = images[page].ref,
-                    contentDescription = "Photo ${page + 1} sur ${images.size}",
+                    contentDescription = stringResource(R.string.products_photo_n_of, page + 1, images.size),
                     contentScale       = ContentScale.Fit,
                     modifier           = Modifier
                         .fillMaxSize()
@@ -257,7 +257,7 @@ fun ProductImageViewer(
                     // because Coil does not upscale — one decode serves every surface.
                     Icon(
                         Icons.Default.ImageNotSupported,
-                        contentDescription = "Photo indisponible",
+                        contentDescription = stringResource(R.string.products_photo_unavailable),
                         tint     = Color.White.copy(alpha = 0.4f),
                         modifier = Modifier.size(56.dp)
                     )

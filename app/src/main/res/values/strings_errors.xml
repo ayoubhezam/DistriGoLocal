@@ -27,4 +27,7 @@
     <string name="error_supplier_not_found">Fournisseur introuvable: %1$s</string>
     <string name="error_depot_stock_insufficient">Stock dépôt insuffisant pour « %1$s » : l\'opération le laisserait à %2$s %3$s. Le stock négatif est désactivé dans Paramètres.</string>
     <string name="error_depot_stock_insufficient_more">Stock dépôt insuffisant pour « %1$s » (et %2$d autre(s) produit(s)) : l\'opération le laisserait à %3$s %4$s. Le stock négatif est désactivé dans Paramètres.</string>
+    <string name="error_product_name_taken">Ce nom de produit est déjà enregistré.</string>
+    <string name="error_barcode_taken_generic">Ce code-barres est déjà enregistré.</string>
+    <string name="error_too_many_barcodes">Un produit ne peut pas avoir plus de %1$d codes-barres.</string>
 </resources>

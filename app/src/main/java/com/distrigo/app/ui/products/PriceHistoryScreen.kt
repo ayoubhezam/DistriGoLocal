@@ -47,6 +47,8 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 /**
  * Every price a product changed hands at: what was paid for it and what it sold for, side by side.
@@ -75,13 +77,13 @@ fun PriceHistoryScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title    = "Historique des prix",
+            title    = stringResource(R.string.products_price_history),
             subtitle = productName,
             leading  = DsTopBarLeading.Back(onBack)
         )
 
         if (error != null) {
-            EmptyState(Icons.Default.ErrorOutline, "Chargement impossible", error, "Réessayer", onRetry)
+            EmptyState(Icons.Default.ErrorOutline, stringResource(R.string.products_price_load_failed), error, stringResource(R.string.common_action_retry), onRetry)
             return@Column
         }
         if (isLoading) {
@@ -90,8 +92,8 @@ fun PriceHistoryScreen(
         }
         if (movements.isEmpty()) {
             EmptyState(
-                Icons.Default.History, "Aucun mouvement de prix",
-                "Les prix d'achat et de vente apparaîtront ici après les premières opérations."
+                Icons.Default.History, stringResource(R.string.products_price_none),
+                stringResource(R.string.products_price_none_hint)
             )
             return@Column
         }
@@ -114,7 +116,7 @@ fun PriceHistoryScreen(
         )
 
         if (shown.isEmpty()) {
-            EmptyState(Icons.Default.FilterAltOff, "Aucun mouvement", "Aucun mouvement de prix sur cette période.")
+            EmptyState(Icons.Default.FilterAltOff, stringResource(R.string.products_price_no_movement), stringResource(R.string.products_price_none_period))
             return@Column
         }
 
@@ -142,7 +144,7 @@ fun PriceHistoryScreen(
             // The latest few; every one, searchable, is a screen of its own behind « Voir tout ».
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = DsSpacing.sm)) {
-                    Text("Mouvements", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.products_price_movements), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.PrimaryDark)
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
                         shown.size.toString(),
@@ -151,7 +153,7 @@ fun PriceHistoryScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     Text(
-                        "Voir tout", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary,
+                        stringResource(R.string.common_action_see_all), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary,
                         modifier = Modifier
                             .clip(DsShapes.pill)
                             .clickable(role = Role.Button, onClick = onSeeAll)
@@ -187,29 +189,29 @@ fun PriceMovementsScreen(
     val listState = rememberLazyListState()
     LaunchedEffect(query) { listState.scrollToItem(0) }
     // What the list covers, as chosen on Historique des prix: "Cette année · Vente".
-    val scope = listOfNotNull(filters.period.period.label, filters.kind?.label).joinToString(" · ")
+    val scope = listOfNotNull(filters.period.period.label, filters.kind?.label).joinToString(" · ") { res.getString(it) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Mouvements des prix", subtitle = productName, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.products_price_movements_title), subtitle = productName, leading = DsTopBarLeading.Back(onBack))
         // On white, as in Produits: the sunken search pill reads against white, the list's grey under it.
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(
                 value         = query,
                 onValueChange = { query = it },
-                placeholder   = "Rechercher un client ou un fournisseur",
+                placeholder   = stringResource(R.string.products_price_search),
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                (if (query.isBlank()) "${all.size} mouvement(s)" else "${shown.size} sur ${all.size}") + " · " + scope,
+                (if (query.isBlank()) pluralStringResource(R.plurals.products_price_movements_count, all.size, all.size) else stringResource(R.string.products_count_of, shown.size, all.size)) + " · " + scope,
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
         }
         if (shown.isEmpty()) {
             EmptyState(
-                Icons.Default.FilterAltOff, "Aucun résultat",
-                if (query.isBlank()) "Aucun mouvement de prix sur cette période." else "Aucun mouvement ne correspond à « ${query.trim()} »."
+                Icons.Default.FilterAltOff, stringResource(R.string.common_no_result),
+                if (query.isBlank()) stringResource(R.string.products_price_none_period) else stringResource(R.string.products_price_no_match, query.trim())
             )
             return@Column
         }
@@ -257,7 +259,7 @@ private fun KindSegments(
             .clip(DsShapes.medium).background(DsColors.SurfaceSunken).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        listOf(null to "Tous", PriceMovementKind.ACHAT to "Achat", PriceMovementKind.VENTE to "Vente").forEach { (kind, label) ->
+        listOf(null to stringResource(R.string.common_filter_all), PriceMovementKind.ACHAT to stringResource(R.string.common_kind_purchase), PriceMovementKind.VENTE to stringResource(R.string.common_kind_sale)).forEach { (kind, label) ->
             val selected = filters.kind == kind
             Row(
                 modifier = Modifier.weight(1f).clip(DsShapes.small)
@@ -302,21 +304,21 @@ private fun SummaryBlock(kind: PriceMovementKind, stats: PriceStats?, modifier: 
             }
             Spacer(Modifier.width(6.dp))
             Text(
-                if (kind == PriceMovementKind.ACHAT) "Prix d'achat" else "Prix de vente",
+                stringResource(if (kind == PriceMovementKind.ACHAT) R.string.common_label_purchase_price else R.string.common_label_sale_price),
                 fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
             )
         }
-        Text("Dernier prix", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(top = DsSpacing.sm))
+        Text(stringResource(R.string.products_price_last), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(top = DsSpacing.sm))
         Text(
             stats?.let { money.da(it.last) } ?: "—",
             fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = colour
         )
         if (stats == null) {
-            Text("Aucune donnée", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.products_price_no_data), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         } else {
-            SummaryLine("Moyen", money.da(stats.average))
-            SummaryLine("Min", money.da(stats.min))
-            SummaryLine("Max", money.da(stats.max))
+            SummaryLine(stringResource(R.string.products_price_average), money.da(stats.average))
+            SummaryLine(stringResource(R.string.products_filter_min), money.da(stats.min))
+            SummaryLine(stringResource(R.string.products_filter_max), money.da(stats.max))
         }
     }
 }
@@ -338,7 +340,7 @@ private fun MarginRow(gap: Double) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment     = Alignment.CenterVertically
     ) {
-        Text("Écart vente − achat", fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+        Text(stringResource(R.string.products_price_gap), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         Text(
             (if (gap > 0) "+" else if (gap < 0) "−" else "") + money.da(abs(gap)),
             fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
@@ -381,7 +383,7 @@ private fun MovementRow(movement: PriceMovement) {
             Row {
                 Text(stringResource(movement.kind.label), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = colour)
                 Text(
-                    " · ${com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy").format(movement.day())} · qté ${formatQty(movement.quantity)}",
+                    " " + stringResource(R.string.products_price_row_meta, com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy").format(movement.day()), formatQty(movement.quantity)),
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
@@ -407,8 +409,8 @@ private fun DeltaPill(movement: PriceMovement) {
     val delta = movement.delta
     val good  = delta != null && (if (movement.kind == PriceMovementKind.ACHAT) delta < 0 else delta > 0)
     val label = when {
-        delta == null        -> if (movement.kind == PriceMovementKind.ACHAT) "Premier achat" else "Première vente"
-        abs(delta) < 0.005   -> "Stable"
+        delta == null        -> stringResource(if (movement.kind == PriceMovementKind.ACHAT) R.string.products_first_purchase else R.string.products_first_sale)
+        abs(delta) < 0.005   -> stringResource(R.string.products_price_stable)
         delta > 0            -> "+${money.da(delta)}"
         else                 -> "−${money.da(-delta)}"
     }
@@ -459,4 +461,4 @@ private fun EmptyState(
 
 /** « Septembre 2026 », as the list groups its rows. */
 private fun LocalDate.monthLabel(): String =
-    month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.FRENCH).replaceFirstChar { it.uppercase() } + " " + year
+    month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()).replaceFirstChar { it.uppercase() } + " " + year

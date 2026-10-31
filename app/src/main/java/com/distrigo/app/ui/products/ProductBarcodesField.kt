@@ -37,6 +37,9 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 /**
  * The product form's other barcodes, under the primary one, in a single row however many there are (the owner's
@@ -68,7 +71,7 @@ fun OtherBarcodesField(
 
     Column {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
-            Text("Autres codes-barres", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.products_barcodes_other), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
             Text("${codes.size + 1} / $MAX_BARCODES_PER_PRODUCT", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         }
 
@@ -80,7 +83,7 @@ fun OtherBarcodesField(
                     onNewCode(westernDigits(it))
                 },
                 // One line: beside the scan, « + » and the list, the field is narrow
-                placeholder     = { Text("Ajouter un code", fontSize = DsTextSize.body, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder     = { Text(stringResource(R.string.products_barcodes_add_code), fontSize = DsTextSize.body, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 singleLine      = true,
                 isError         = error.isNotEmpty(),
                 modifier        = Modifier.weight(1f),
@@ -89,7 +92,7 @@ fun OtherBarcodesField(
                 keyboardActions = KeyboardActions(onDone = { onAdd() }),
                 trailingIcon    = {
                     IconButton(onClick = onScan) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner un autre code-barres", tint = DsColors.PrimaryDark)
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.products_barcodes_cd_scan), tint = DsColors.PrimaryDark)
                     }
                 },
                 colors          = dsTextFieldColors(
@@ -103,7 +106,7 @@ fun OtherBarcodesField(
                 shape    = DsShapes.medium,
                 colors   = IconButtonDefaults.filledTonalIconButtonColors(containerColor = DsColors.PrimaryDark, contentColor = DsColors.Surface)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter ce code-barres")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.products_barcodes_cd_add))
             }
             // The list beside the field, with how many codes it holds
             if (codes.isNotEmpty()) {
@@ -114,7 +117,7 @@ fun OtherBarcodesField(
                     colors   = IconButtonDefaults.filledTonalIconButtonColors(containerColor = DsColors.PrimaryLight, contentColor = DsColors.Primary)
                 ) {
                     BadgedBox(badge = { Badge(containerColor = DsColors.Primary, contentColor = DsColors.Surface) { Text("${codes.size}") } }) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = if (codes.size == 1) "Voir l'autre code-barres" else "Voir les ${codes.size} autres codes-barres")
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = pluralStringResource(R.plurals.products_barcodes_cd_see, codes.size, codes.size))
                     }
                 }
             }
@@ -122,7 +125,7 @@ fun OtherBarcodesField(
         when {
             error.isNotEmpty() -> Text(error, fontSize = DsTextSize.caption, color = DsColors.Danger, modifier = Modifier.padding(top = 4.dp))
             // Only while it is still in the list: removed or made the primary, it no longer applies
-            added != null && added in codes -> Text("« $added » ajouté.", fontSize = DsTextSize.caption, color = DsColors.Success, modifier = Modifier.padding(top = 4.dp))
+            added != null && added in codes -> Text(stringResource(R.string.products_barcodes_added, added.orEmpty()), fontSize = DsTextSize.caption, color = DsColors.Success, modifier = Modifier.padding(top = 4.dp))
         }
     }
 
@@ -158,7 +161,7 @@ private fun BarcodesSheet(
     ) {
         Column(Modifier.padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = DsSpacing.md)) {
-                Text("Codes-barres du produit", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.products_barcodes_title), fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 Text("${codes.size + 1} / $MAX_BARCODES_PER_PRODUCT", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
@@ -192,13 +195,13 @@ private fun BarcodeRow(code: String, isPrimary: Boolean, onMakePrimary: () -> Un
         if (isPrimary) {
             Icon(Icons.Default.Star, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.xs))
-            Text("Principal", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, modifier = Modifier.padding(end = DsSpacing.md))
+            Text(stringResource(R.string.products_barcodes_main), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.Primary, modifier = Modifier.padding(end = DsSpacing.md))
         } else {
             IconButton(onClick = onMakePrimary) {
-                Icon(Icons.Default.StarBorder, contentDescription = "Définir comme code principal", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.StarBorder, contentDescription = stringResource(R.string.products_barcodes_cd_make_main), tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
             IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = "Retirer ce code-barres", tint = DsColors.Danger, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.products_barcodes_cd_remove), tint = DsColors.Danger, modifier = Modifier.size(20.dp))
             }
         }
     }

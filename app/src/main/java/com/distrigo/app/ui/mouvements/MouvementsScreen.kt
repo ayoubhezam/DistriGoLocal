@@ -270,6 +270,19 @@ fun movementTypeDisplay(type: String): Pair<ImageVector, String> = when (type) {
     else         -> Icons.Default.SwapVert to type
 }
 
+/** [movementTypeDisplay]'s name in the app's language; the Mouvements screens still use the French one until they move. */
+@Composable
+fun movementTypeLabel(type: String): String = when (type) {
+    "achat"      -> stringResource(R.string.common_kind_purchase)
+    "vente"      -> stringResource(R.string.common_kind_sale)
+    "chargement" -> stringResource(R.string.common_kind_loading)
+    "perte"      -> stringResource(R.string.common_kind_loss)
+    "ajustement" -> stringResource(R.string.common_kind_adjustment)
+    "retour_client"      -> stringResource(R.string.common_kind_client_return)
+    "retour_fournisseur" -> stringResource(R.string.common_kind_supplier_return)
+    else         -> type
+}
+
 fun formatMovementDateLabel(date: String): String {
     val today     = java.time.LocalDate.now().toString()
     val yesterday = java.time.LocalDate.now().minusDays(1).toString()

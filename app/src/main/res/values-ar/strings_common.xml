@@ -379,4 +379,32 @@
     <string name="common_quit_unsaved_title">الخروج دون حفظ؟</string>
     <string name="common_quit_unsaved_body">لن تُحفظ المعلومات المعدَّلة.</string>
     <string name="common_action_quit">خروج</string>
+    <string name="common_required">إلزامي.</string>
+    <string name="common_label_phone">الهاتف</string>
+    <string name="common_choose_date">اختيار تاريخ</string>
+    <plurals name="common_unit_word_carton">
+        <item quantity="zero">علبة</item>
+        <item quantity="one">علبة</item>
+        <item quantity="two">علبتان</item>
+        <item quantity="few">علب</item>
+        <item quantity="many">علبة</item>
+        <item quantity="other">علبة</item>
+    </plurals>
+    <plurals name="common_unit_word_piece">
+        <item quantity="zero">قطعة</item>
+        <item quantity="one">قطعة</item>
+        <item quantity="two">قطعتان</item>
+        <item quantity="few">قطع</item>
+        <item quantity="many">قطعة</item>
+        <item quantity="other">قطعة</item>
+    </plurals>
+    <plurals name="common_unit_word_kg">
+        <item quantity="zero">كغ</item>
+        <item quantity="one">كغ</item>
+        <item quantity="two">كغ</item>
+        <item quantity="few">كغ</item>
+        <item quantity="many">كغ</item>
+        <item quantity="other">كغ</item>
+    </plurals>
+    <string name="common_kind_loading">تحميل</string>
 </resources>

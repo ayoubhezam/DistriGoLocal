@@ -49,7 +49,6 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
-import com.distrigo.app.ui.mouvements.movementTypeDisplay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,6 +57,9 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.distrigo.app.ui.common.mirrorInRtl
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
+import com.distrigo.app.ui.common.unitWordText
 import com.distrigo.app.R
 
 /** The margin's colour: neither the purchase price's green nor the selling price's blue. */
@@ -124,17 +126,16 @@ fun ProductDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer le produit ?") },
+            title = { Text(stringResource(R.string.products_detail_delete_title)) },
             text  = {
                 // Naming the product is the point of the confirmation, and it is what the second
                 // dialog behind this one used to contribute before it was removed as redundant.
                 // Isolated because most names in this catalogue are Arabic and this is a sentence.
                 val name = bidiIsolate(currentProduct.name)
                 if (currentProduct.supplier_name != null) {
-                    Text("« $name » est lié au fournisseur ${bidiIsolate(currentProduct.supplier_name)}. " +
-                         "Il en sera dissocié puis ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
+                    Text(stringResource(R.string.products_detail_delete_body_supplier, name, bidiIsolate(currentProduct.supplier_name)))
                 } else {
-                    Text("« $name » ira dans la corbeille (Paramètres › Corbeille), d'où vous pourrez le restaurer.")
+                    Text(stringResource(R.string.products_detail_delete_body, name))
                 }
             },
             confirmButton = {
@@ -162,13 +163,13 @@ fun ProductDetailScreen(
             confirmButton = {
                 TextButton(onClick = { showStockInfo = false }) { Text(stringResource(R.string.common_action_got_it)) }
             },
-            title = { Text("Informations de stock", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.products_stock_info), fontWeight = FontWeight.Bold) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StockInfoExplainRow("Stock total", "Quantité totale du produit, dépôt et camion confondus.")
-                    StockInfoExplainRow("Dépôt", "Quantité disponible en dépôt (stock total − stock camion).")
-                    StockInfoExplainRow("Camion", "Quantité actuellement chargée dans le camion de tournée.")
-                    StockInfoExplainRow("Seuil minimum", "En dessous de cette quantité, le produit est considéré en stock faible.")
+                    StockInfoExplainRow(stringResource(R.string.products_stock_total), stringResource(R.string.products_stock_total_desc))
+                    StockInfoExplainRow(stringResource(R.string.products_place_depot), stringResource(R.string.products_stock_depot_desc))
+                    StockInfoExplainRow(stringResource(R.string.products_place_truck), stringResource(R.string.products_stock_truck_desc))
+                    StockInfoExplainRow(stringResource(R.string.products_min_threshold), stringResource(R.string.products_min_threshold_desc))
                 }
             },
             containerColor    = DsColors.Surface,
@@ -187,7 +188,7 @@ fun ProductDetailScreen(
         // Delete and edit used to sit on a second row under the title; on the bar they ride
         // beside it, the way the client and supplier details already did.
         DsTopAppBar(
-            title   = "Détails du produit",
+            title   = stringResource(R.string.products_detail_title),
             leading = DsTopBarLeading.Back(onBack)
         ) {
             IconButton(
@@ -248,7 +249,7 @@ fun ProductDetailScreen(
                 )
                 Spacer(Modifier.width(DsSpacing.xs))
                 Text(
-                    if (manageMode) "Terminer" else "Gérer les photos",
+                    stringResource(if (manageMode) R.string.products_photos_done else R.string.products_photos_manage),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = if (manageMode) DsColors.Surface else DsColors.Primary
@@ -261,7 +262,7 @@ fun ProductDetailScreen(
         // the client and supplier details' tabs. The pager takes its current page's height, so the
         // shorter tab leaves no blank space; pages sit at the top while two share the screen.
         DetailTabs(
-            titles   = listOf("Informations produit", "Stock & mouvements"),
+            titles   = listOf(stringResource(R.string.products_tab_info), stringResource(R.string.products_tab_stock)),
             selected = pagerState.currentPage,
             position = pagerState.currentPage + pagerState.currentPageOffsetFraction,
             onSelect = { tabScope.launch { pagerState.animateScrollToPage(it) } },
@@ -317,7 +318,7 @@ fun ProductDetailScreen(
     pendingDelete?.let { image ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Supprimer cette photo ?") },
+            title = { Text(stringResource(R.string.products_photo_delete_title)) },
             text  = {
                 // The thumbnail is the point of the confirmation: a strip of near-identical
                 // product shots gives the user nothing else to check the choice against.
@@ -341,9 +342,9 @@ fun ProductDetailScreen(
                     Spacer(Modifier.height(DsSpacing.md))
                     Text(
                         if (image.isCover && images.size > 1)
-                            "C'est la photo principale. La suivante prendra sa place."
+                            stringResource(R.string.products_photo_delete_cover)
                         else
-                            "Cette photo sera retirée du produit."
+                            stringResource(R.string.products_photo_delete_body)
                     )
                 }
             },
@@ -369,7 +370,7 @@ fun ProductDetailScreen(
     galleryError?.let { message ->
         AlertDialog(
             onDismissRequest = { galleryError = null },
-            title   = { Text("Photo non ajoutée") },
+            title   = { Text(stringResource(R.string.products_photo_not_added)) },
             text    = { Text(message) },
             confirmButton = {
                 TextButton(onClick = { galleryError = null }) { Text(stringResource(R.string.common_action_ok)) }
@@ -509,15 +510,15 @@ private fun ProductInfoCard(product: Product) {
     val marginAmount  = product.selling_price - product.purchase_price
     val marginPercent = if (product.purchase_price > 0) marginAmount / product.purchase_price * 100 else null
 
-    DetailCard(icon = Icons.Default.Inventory2, title = "Informations du produit") {
+    DetailCard(icon = Icons.Default.Inventory2, title = stringResource(R.string.products_info_card)) {
         Spacer(Modifier.height(DsSpacing.xs))
-        InfoLine(Icons.Default.LocalShipping, "Fournisseur", first = true) { InfoValue(product.supplier_name) }
-        InfoLine(Icons.Default.Inventory2, "Produit") { InfoValue(product.name) }
-        InfoLine(Icons.Default.LocalOffer, "Catégorie") { InfoValue(product.category_name) }
-        InfoLine(Icons.Default.GridView, "Sous-catégorie") { InfoValue(product.sous_categorie_name) }
-        InfoLine(Icons.Default.WorkspacePremium, "Marque") { InfoValue(product.marque_name) }
+        InfoLine(Icons.Default.LocalShipping, stringResource(R.string.common_label_supplier), first = true) { InfoValue(product.supplier_name) }
+        InfoLine(Icons.Default.Inventory2, stringResource(R.string.products_label_product)) { InfoValue(product.name) }
+        InfoLine(Icons.Default.LocalOffer, stringResource(R.string.common_label_category)) { InfoValue(product.category_name) }
+        InfoLine(Icons.Default.GridView, stringResource(R.string.products_label_subcategory)) { InfoValue(product.sous_categorie_name) }
+        InfoLine(Icons.Default.WorkspacePremium, stringResource(R.string.common_label_brand)) { InfoValue(product.marque_name) }
         // The main code only (the owner, 2026-10-29): the others still scan and search, they are not listed here.
-        InfoLine(Icons.Default.QrCode, "Code-barres") { InfoValue(product.barcodes.firstOrNull()) }
+        InfoLine(Icons.Default.QrCode, stringResource(R.string.products_label_barcode)) { InfoValue(product.barcodes.firstOrNull()) }
 
         Spacer(Modifier.height(DsSpacing.sm))
         Column(
@@ -527,10 +528,10 @@ private fun ProductInfoCard(product: Product) {
                 .background(DsColors.PrimaryLight.copy(alpha = 0.6f))
                 .padding(horizontal = DsSpacing.md, vertical = DsSpacing.xs)
         ) {
-            PriceLine(Icons.Default.ShoppingCart, "Prix d'achat", money.da(product.purchase_price), DsColors.Success)
-            PriceLine(Icons.Default.LocalOffer, "Prix de vente", money.da(product.selling_price), DsColors.Primary)
+            PriceLine(Icons.Default.ShoppingCart, stringResource(R.string.common_label_purchase_price), money.da(product.purchase_price), DsColors.Success)
+            PriceLine(Icons.Default.LocalOffer, stringResource(R.string.common_label_sale_price), money.da(product.selling_price), DsColors.Primary)
             PriceLine(
-                Icons.Default.Percent, "Marge",
+                Icons.Default.Percent, stringResource(R.string.products_label_margin),
                 money.da(marginAmount) + (marginPercent?.let { " (${percentText(String.format(java.util.Locale.FRANCE, "%.1f", it))})" } ?: ""),
                 if (marginAmount < 0) DsColors.Danger else MarginColor
             )
@@ -554,13 +555,13 @@ private fun PriceLine(icon: ImageVector, label: String, value: String, color: Co
 private fun PriceHistoryCard(movements: List<PriceMovement>, onSeeAll: () -> Unit) {
     DetailCard(
         icon   = Icons.Default.History,
-        title  = "Historique des prix",
+        title  = stringResource(R.string.products_price_history),
         action = if (movements.isNotEmpty()) {
-            { CardLink("Voir tout", onClick = onSeeAll, chevron = true) }
+            { CardLink(stringResource(R.string.common_action_see_all), onClick = onSeeAll, chevron = true) }
         } else null
     ) {
         if (movements.isEmpty()) {
-            EmptyCardText("Aucun historique disponible")
+            EmptyCardText(stringResource(R.string.products_no_history))
             return@DetailCard
         }
         Spacer(Modifier.height(DsSpacing.xs))
@@ -579,8 +580,8 @@ private fun PriceHistoryRow(movement: PriceMovement) {
     val good = delta != null && (if (achat) delta < 0 else delta > 0)
     val (tint, background, icon, label) = when {
         delta == null      -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove,
-                                    if (achat) "Premier achat" else "Première vente")
-        abs(delta) < 0.005 -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove, "Stable")
+                                    stringResource(if (achat) R.string.products_first_purchase else R.string.products_first_sale))
+        abs(delta) < 0.005 -> Trend(DsColors.TextSecondary, DsColors.SurfaceSunken, Icons.Default.Remove, stringResource(R.string.products_price_stable))
         else -> Trend(
             if (good) DsColors.Success else DsColors.Danger,
             if (good) DsColors.SuccessLight else DsColors.DangerLight,
@@ -631,14 +632,14 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
 
     DetailCard(
         icon   = Icons.Default.Inventory2,
-        title  = "Stock actuel",
+        title  = stringResource(R.string.products_stock_current),
         action = {
             IconButton(onClick = onInfo, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Info, contentDescription = "Informations de stock", tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Info, contentDescription = stringResource(R.string.products_stock_info), tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             }
             if (isLow) {
                 Text(
-                    "Stock faible",
+                    stringResource(R.string.common_stock_low),
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.Danger,
@@ -658,7 +659,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
                 color      = if (isLow) DsColors.Danger else DsColors.TextPrimary
             )
             Spacer(Modifier.width(6.dp))
-            Text(pluralUnit(product.stock, product.unit_type), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+            Text(unitWordText(product.stock, product.unit_type).asString(), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
         }
 
         Spacer(Modifier.height(DsSpacing.sm))
@@ -666,7 +667,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
             StockShareBox(
                 modifier   = Modifier.weight(1f),
                 icon       = Icons.Default.LocalShipping,
-                label      = "Stock camion",
+                label      = stringResource(R.string.products_stock_truck),
                 qty        = camion,
                 unit       = product.unit_type,
                 color      = DsColors.Primary,
@@ -676,7 +677,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
             StockShareBox(
                 modifier   = Modifier.weight(1f),
                 icon       = Icons.Default.Warehouse,
-                label      = "Stock dépôt",
+                label      = stringResource(R.string.products_stock_depot),
                 qty        = depot,
                 unit       = product.unit_type,
                 color      = DsColors.Success,
@@ -686,7 +687,7 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
         Row(modifier = Modifier.padding(top = DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Le stock actuel est la somme du stock camion et du stock dépôt.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.products_stock_sum_hint), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
 
         // ── Seuil et péremption ──
@@ -698,12 +699,12 @@ private fun CurrentStockCard(product: Product, onInfo: () -> Unit, onEditMin: ()
         ) {
             Icon(Icons.Default.Shield, contentDescription = null, tint = MarginColor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Seuil minimum", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.products_min_threshold), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
             Text(
-                "${formatQty(product.min_stock)} ${pluralUnit(product.min_stock, product.unit_type)}",
+                quantityText(product.min_stock, product.unit_type).asString(),
                 fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
             )
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Modifier le seuil", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.products_cd_edit_threshold), tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
         if (product.has_expiry == 1) ExpiryLine(product.expiry_date)
     }
@@ -732,7 +733,7 @@ private fun StockShareBox(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(formatQty(qty), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = color)
             Spacer(Modifier.width(4.dp))
-            Text(pluralUnit(qty, unit), fontSize = DsTextSize.caption, color = color, modifier = Modifier.padding(bottom = 2.dp))
+            Text(unitWordText(qty, unit).asString(), fontSize = DsTextSize.caption, color = color, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
 }
@@ -752,7 +753,7 @@ private fun ExpiryLine(expiryDate: String?) {
         Text(stringResource(R.string.common_label_expiry_date), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
         if (expired || soon) {
             Text(
-                if (expired) "Expiré" else "Expire bientôt",
+                stringResource(if (expired) R.string.products_expired else R.string.products_expiring_soon),
                 fontSize   = DsTextSize.caption,
                 fontWeight = FontWeight.SemiBold,
                 color      = color,
@@ -763,7 +764,7 @@ private fun ExpiryLine(expiryDate: String?) {
             )
             Spacer(Modifier.width(DsSpacing.sm))
         }
-        Text(day?.let { displayDay(it.toString()) } ?: "Non définie", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = color)
+        Text(day?.let { displayDay(it.toString()) } ?: stringResource(R.string.products_expiry_not_set), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
 
@@ -776,11 +777,11 @@ private fun RecentMovementsCard(
 ) {
     DetailCard(
         icon   = Icons.Default.SwapVert,
-        title  = "Mouvements récents",
-        action = { CardLink("Voir tout", onClick = onSeeAll, chevron = true) }
+        title  = stringResource(R.string.products_recent_movements),
+        action = { CardLink(stringResource(R.string.common_action_see_all), onClick = onSeeAll, chevron = true) }
     ) {
         if (movements.isEmpty()) {
-            EmptyCardText("Aucun mouvement pour ce produit")
+            EmptyCardText(stringResource(R.string.products_no_movement))
             return@DetailCard
         }
         Spacer(Modifier.height(DsSpacing.xs))
@@ -797,9 +798,9 @@ private fun RecentMovementsCard(
                 }
                 Spacer(Modifier.width(DsSpacing.sm))
                 Column(Modifier.weight(1f)) {
-                    Text(movementTypeDisplay(movement.type).second, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                    Text(com.distrigo.app.ui.mouvements.movementTypeLabel(movement.type), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                     Text(
-                        listOfNotNull(movement.source_label.takeIf { it.isNotBlank() }, if (movement.emplacement == "camion") "Camion" else "Dépôt").joinToString(" · "),
+                        listOfNotNull(movement.source_label.takeIf { it.isNotBlank() }, stringResource(if (movement.emplacement == "camion") R.string.products_place_truck else R.string.products_place_depot)).joinToString(" · "),
                         fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -847,4 +848,3 @@ private fun displayDay(value: String?): String {
 }
 
 // ── Pluriel simple : 0 et 1 restent au singulier (règle du français) ──
-private fun pluralUnit(qty: Double, unit: String): String = ProductUnit.plural(unit, qty)
