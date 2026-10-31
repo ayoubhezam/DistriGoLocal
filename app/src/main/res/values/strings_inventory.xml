@@ -1,0 +1,56 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <plurals name="inventory_counted_n">
+        <item quantity="one">%1$d produit inventorié</item>
+        <item quantity="other">%1$d produits inventoriés</item>
+    </plurals>
+    <string name="inventory_none_counted">Aucun produit inventorié</string>
+    <string name="inventory_short">Manque %1$s · %2$s</string>
+    <string name="inventory_surplus">Surplus %1$s · %2$s</string>
+    <string name="inventory_no_gap">Aucun écart</string>
+    <string name="inventory_system_physical">Système %1$s → Physique %2$s</string>
+    <string name="inventory_qty_physical">Qté physique</string>
+    <string name="inventory_remove_title">Retirer « %1$s » ?</string>
+    <string name="inventory_remove_body">Son ajustement est annulé et le produit revient dans la liste à inventorier.</string>
+    <string name="inventory_to_count">à inventorier</string>
+    <string name="inventory_all_counted">Tous les produits en stock ont été inventoriés.</string>
+    <string name="inventory_no_match">Aucun produit à inventorier ne correspond.</string>
+    <string name="inventory_gaps_value">Écarts %1$s</string>
+    <string name="inventory_qty_system">Qté système</string>
+    <string name="inventory_history_title">Historique des inventaires</string>
+    <string name="inventory_add">Ajouter un inventaire</string>
+    <string name="inventory_search">Rechercher un inventaire</string>
+    <string name="inventory_history_empty">Aucun inventaire terminé pour l\'instant</string>
+    <string name="inventory_status_done">Terminé</string>
+    <plurals name="inventory_gaps_n">
+        <item quantity="one">%1$d écart</item>
+        <item quantity="other">%1$d écarts</item>
+    </plurals>
+    <string name="inventory_detail_title">Détail de l\'inventaire</string>
+    <string name="inventory_none_counted_detail">Aucun produit compté</string>
+    <string name="inventory_system_physical_colon">Système : %1$s → Physique : %2$s</string>
+    <string name="inventory_summary_title">Résumé de l\'inventaire</string>
+    <string name="inventory_stat_total">Total produits scannés</string>
+    <string name="inventory_stat_gaps">Écarts détectés</string>
+    <string name="inventory_stat_gaps_value">Valeur des écarts</string>
+    <string name="inventory_uncounted">Produits non inventoriés</string>
+    <plurals name="inventory_uncounted_body">
+        <item quantity="one">%1$d produit en stock n\'a pas été compté. Que faire de son stock ?</item>
+        <item quantity="other">%1$d produits en stock n\'ont pas été comptés. Que faire de leur stock ?</item>
+    </plurals>
+    <string name="inventory_zero">Mettre à zéro</string>
+    <string name="inventory_zero_detail">Leur stock au dépôt passe à 0. Le stock des camions n\'est pas touché.</string>
+    <string name="inventory_keep">Conserver le stock actuel</string>
+    <string name="inventory_keep_detail">Leur stock ne change pas.</string>
+    <string name="inventory_completed">Inventaire complété avec succès</string>
+    <plurals name="inventory_updated_zeroed">
+        <item quantity="one">Le stock a été mis à jour · %1$d produit mis à zéro</item>
+        <item quantity="other">Le stock a été mis à jour · %1$d produits mis à zéro</item>
+    </plurals>
+    <string name="inventory_updated">Le stock a été mis à jour</string>
+    <string name="inventory_back_to_history">Retour à l\'historique</string>
+    <string name="inventory_confirm">Confirmer l\'inventaire</string>
+    <string name="inventory_change_date">Changer la date</string>
+    <string name="inventory_date">Date</string>
+    <string name="inventory_no_session">Aucune session active</string>
+    <string name="inventory_already_counted">« %1$s » est déjà inventorié : corrigez-le dans Ma sélection.</string>
+</resources>

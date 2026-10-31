@@ -29,6 +29,8 @@ import com.distrigo.app.ui.inventory.*
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import com.distrigo.app.data.model.Product
 import com.distrigo.app.ui.products.ProductViewModel
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 @Composable
 fun InventoryNavHost(
@@ -118,7 +120,7 @@ fun InventoryNavHost(
                 fun count(product: Product) {
                     scope.launch {
                         if (viewModel.isProductAlreadyScanned(product.id)) {
-                            message = "« ${product.name} » est déjà inventorié : corrigez-le dans Ma sélection."
+                            message = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_already_counted, product.name))
                         } else {
                             message = ""; saveError = ""; counting = product
                         }
@@ -132,7 +134,7 @@ fun InventoryNavHost(
                             showScanner = false
                             scope.launch {
                                 val product = viewModel.productByBarcode(code)
-                                if (product == null) message = "Aucun produit trouvé pour ce code-barres" else count(product)
+                                if (product == null) message = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_barcode_not_found)) else count(product)
                             }
                         },
                         onClose = { showScanner = false }

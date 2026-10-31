@@ -88,7 +88,11 @@ import com.distrigo.app.ui.products.ProductCard
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * A new return: only what can come back from this client or to this supplier, the Inventaire's way —
@@ -126,13 +130,13 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
     val all = eligible
     val shown = all?.let { viewModel.visible(it, cart, viewModel.search) }
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = viewModel.title, subtitle = viewModel.partyName, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(viewModel.title), subtitle = viewModel.partyName, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         DsCompactSearchField(
             value         = viewModel.search,
             onValueChange = { viewModel.search = it },
-            placeholder   = "Rechercher un produit",
+            placeholder   = stringResource(R.string.common_search_product),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
         ) {
             DsCompactSearchAction(
@@ -141,7 +145,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
             )
         }
         Text(
-            if (shown == null) "…" else "${shown.size} produit(s) retournable(s)",
+            if (shown == null) "…" else pluralStringResource(R.plurals.retours_returnable_n, shown.size, shown.size),
             fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
             modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
         )
@@ -154,9 +158,9 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
                 shown == null -> CircularProgressIndicator(color = DsColors.Primary, modifier = Modifier.align(Alignment.Center))
                 shown.isEmpty() -> Text(
                     when {
-                        all.isNullOrEmpty() -> "Aucun produit à retourner : rien n'a été livré par ici, ou tout a déjà été retourné."
-                        viewModel.search.isNotBlank() -> "Aucun produit ne correspond."
-                        else -> "Tous les produits retournables sont dans la sélection."
+                        all.isNullOrEmpty() -> stringResource(R.string.retours_none_to_return)
+                        viewModel.search.isNotBlank() -> stringResource(R.string.pertes_no_product_match)
+                        else -> stringResource(R.string.retours_all_in_selection)
                     },
                     fontSize = DsTextSize.body, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center).padding(DsSpacing.xl)
@@ -168,7 +172,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
                     items(shown, key = { it.product.id }) { r ->
                         ProductCard(
                             product = r.product, onClick = { message = ""; editing = r },
-                            stock = r.maxQuantity, lowStock = false, stockPrefix = "max"
+                            stock = r.maxQuantity, lowStock = false, stockPrefix = stringResource(R.string.retours_max_prefix)
                         )
                     }
                 }
@@ -191,7 +195,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
             Box(Modifier.size(20.dp).clip(DsShapes.pill).background(tint), contentAlignment = Alignment.Center) {
                 Text("${cart.size}", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
             }
-            Text("Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
+            Text(stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
             Spacer(Modifier.weight(1f))
             Text(money.da(viewModel.total(cart)), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
         }
@@ -260,9 +264,9 @@ fun RetourDialog(
                         .clickable(role = Role.DropdownList) { menu = true }
                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
                 ) {
-                    Text("Motif", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.pertes_motif), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(motif ?: "Choisir un motif", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
+                        Text(motif?.let(BuiltInNames::motif) ?: stringResource(R.string.retours_choose_motif), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                             color = if (motif != null) DsColors.TextPrimary else DsColors.TextTertiary, modifier = Modifier.weight(1f))
                         Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
                     }
@@ -270,7 +274,7 @@ fun RetourDialog(
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.background(DsColors.Surface)) {
                     motifs.forEach { m ->
                         DropdownMenuItem(
-                            text = { Text(m, fontWeight = if (m == motif) FontWeight.SemiBold else FontWeight.Normal,
+                            text = { Text(BuiltInNames.motif(m), fontWeight = if (m == motif) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (m == motif) DsColors.Primary else DsColors.TextPrimary) },
                             onClick = { motif = m; menu = false }
                         )
@@ -282,15 +286,15 @@ fun RetourDialog(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Maximum retournable", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
-                Text("${formatQty(max)} $unit", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(stringResource(R.string.retours_max), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+                Text(quantityText(max, unit).asString(), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             }
 
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = Quantity.sanitizeInput(it, Quantity.allowsFractions(unit)) },
-                label = { Text("Quantité retournée") },
-                suffix = { Text(unit) },
+                label = { Text(stringResource(R.string.retours_qty_returned)) },
+                suffix = { Text(com.distrigo.app.ui.common.unitWordText(1.0, unit).asString()) },
                 singleLine = true,
                 isError = problem != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -323,11 +327,11 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Ma sélection", subtitle = "${cart.distinctBy { it.product.id }.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.common_my_selection), subtitle = cart.distinctBy { it.product.id }.size.let { pluralStringResource(R.plurals.common_products_count, it, it) }, leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (cart.isEmpty()) {
-                Text("Aucun produit", color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
+                Text(stringResource(R.string.pertes_no_product), color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
@@ -338,14 +342,14 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                         SelectionCartCard(
                             avatarIcon      = Icons.AutoMirrored.Filled.AssignmentReturn,
                             title           = line.product.name,
-                            metaLine        = "${formatQty(line.quantity)} ${line.product.unit_type} · ${line.motif}",
+                            metaLine        = quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.motif(line.motif),
                             totalPriceLabel = money.da(line.quantity * viewModel.priceOf(line.product)),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else line.key },
                             statusLine      = {
                                 CartStatusLine(
                                     icon = Icons.Default.Inventory2,
-                                    text = "Maximum retournable : ${formatQty(line.returnable.maxQuantity)} ${line.product.unit_type}",
+                                    text = stringResource(R.string.retours_max_value, quantityText(line.returnable.maxQuantity, line.product.unit_type).asString()),
                                     tone = CartStatusTone.NEUTRAL
                                 )
                             },
@@ -413,7 +417,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "Résumé du retour", subtitle = viewModel.partyName,
+            title = stringResource(R.string.retours_summary_title), subtitle = viewModel.partyName,
             leading = DsTopBarLeading.Back { if (confirmed != null) onDone() else onBack() }
         )
         LazyColumn(
@@ -424,8 +428,8 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
             item { InventoryDateField(date = viewModel.date, enabled = confirmed == null, onDateChange = { viewModel.date = it }) }
             item {
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    StatCard(Icons.Default.Inventory2, "${lines.size}", "Produits retournés", DsColors.Primary, Modifier.weight(1f))
-                    StatCard(Icons.Default.Receipt, money.da(viewModel.total(lines)), "Total du retour", DsColors.Success, Modifier.weight(1f))
+                    StatCard(Icons.Default.Inventory2, "${lines.size}", stringResource(R.string.retours_stat_products), DsColors.Primary, Modifier.weight(1f))
+                    StatCard(Icons.Default.Receipt, money.da(viewModel.total(lines)), stringResource(R.string.retours_stat_total), DsColors.Success, Modifier.weight(1f))
                 }
             }
             if (confirmed != null) item {
@@ -433,7 +437,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
                     Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
                         Spacer(Modifier.width(DsSpacing.sm))
-                        Text("Retour enregistré · stock et solde mis à jour", fontSize = DsTextSize.bodySmall,
+                        Text(stringResource(R.string.retours_saved), fontSize = DsTextSize.bodySmall,
                             fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                     }
                 }
@@ -445,7 +449,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text("${formatQty(line.quantity)} ${line.product.unit_type} · ${line.motif}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.motif(line.motif), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Text(money.da(line.quantity * viewModel.priceOf(line.product)), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                 }
@@ -466,7 +470,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (saving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            else Text(if (confirmed != null) "Terminer" else "Confirmer", fontWeight = FontWeight.SemiBold)
+            else Text(stringResource(if (confirmed != null) R.string.retours_finish else R.string.common_action_confirm), fontWeight = FontWeight.SemiBold)
         }
     }
 }

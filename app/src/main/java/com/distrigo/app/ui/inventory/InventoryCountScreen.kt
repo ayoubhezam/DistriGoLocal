@@ -72,6 +72,8 @@ import com.distrigo.app.ui.purchases.ProductListFilters
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 
 /**
@@ -105,13 +107,13 @@ fun InventoryCountScreen(
     var showFilterSheet by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Inventaire", subtitle = numero, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.more_inventory), subtitle = numero, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         DsCompactSearchField(
             value         = search,
             onValueChange = onSearchChange,
-            placeholder   = "Rechercher un produit",
+            placeholder   = stringResource(R.string.common_search_product),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
         ) {
             DsCompactSearchAction(
@@ -126,7 +128,7 @@ fun InventoryCountScreen(
             count         = remaining,
             filtersActive = filters.isActive,
             onOpenFilters = { showFilterSheet = true },
-            countLabel    = "à inventorier",
+            countLabel    = stringResource(R.string.inventory_to_count),
         )
         ActiveProductFilterChips(
             productFilterChips(LocalContext.current.resources, filters, categories, sousCategories, marques, suppliers, stringResource(R.string.common_label_sale_price), money),
@@ -143,8 +145,8 @@ fun InventoryCountScreen(
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (products.itemCount == 0) {
                 Text(
-                    if (remaining == 0 && search.isBlank() && !filters.isActive) "Tous les produits en stock ont été inventoriés."
-                    else "Aucun produit à inventorier ne correspond.",
+                    if (remaining == 0 && search.isBlank() && !filters.isActive) stringResource(R.string.inventory_all_counted)
+                    else stringResource(R.string.inventory_no_match),
                     fontSize = DsTextSize.body, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center).padding(DsSpacing.xl)
                 )
@@ -181,9 +183,9 @@ fun InventoryCountScreen(
             ) {
                 Text("$countedCount", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
             }
-            Text("Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
+            Text(stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
             Spacer(Modifier.weight(1f))
-            Text("Écarts ${money.da(ecartsValue)}", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
+            Text(stringResource(R.string.inventory_gaps_value, money.da(ecartsValue)), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
         }
     }
 
@@ -243,9 +245,9 @@ fun InventoryCountDialog(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Qté système", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.inventory_qty_system), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
                 Text(
-                    "${formatQty(product.stock)} ${product.unit_type}",
+                    quantityText(product.stock, product.unit_type).asString(),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
                 )
             }
@@ -254,8 +256,8 @@ fun InventoryCountDialog(
                 value = text,
                 // ',' or '.': the French keyboard's decimal key types ','. Whole units for a pièce product.
                 onValueChange = { text = Quantity.sanitizeInput(it, Quantity.allowsFractions(product.unit_type)); invalid = false },
-                label = { Text("Qté physique") },
-                suffix = { Text(product.unit_type) },
+                label = { Text(stringResource(R.string.inventory_qty_physical)) },
+                suffix = { Text(com.distrigo.app.ui.common.unitWordText(1.0, product.unit_type).asString()) },
                 singleLine = true,
                 isError = invalid || error.isNotEmpty(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -263,7 +265,7 @@ fun InventoryCountDialog(
                 colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)
             )
-            val shown = if (invalid) "Quantité invalide" else error
+            val shown = if (invalid) stringResource(R.string.common_invalid_quantity) else error
             if (shown.isNotEmpty()) Text(shown, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
 
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {

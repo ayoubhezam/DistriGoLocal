@@ -54,15 +54,19 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * Why a quantity cannot be recorded as lost, or null when it can: nothing, or more than [cap] — the
  * dépôt stock under strict stock ("Autoriser le stock négatif" off). A null [cap] is no limit.
  */
 fun perteQuantityError(quantity: Double?, cap: Double?, unit: String): String? = when {
-    quantity == null || quantity <= 0 -> "Quantité invalide"
-    cap != null && Quantity.exceeds(quantity, cap) -> "Stock insuffisant : ${formatQty(cap)} $unit au dépôt"
+    quantity == null || quantity <= 0 -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_invalid_quantity))
+    cap != null && Quantity.exceeds(quantity, cap) -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_stock_short, com.distrigo.app.core.text.AppStrings.write(quantityText(cap, unit))))
     else -> null
 }
 
@@ -132,7 +136,7 @@ fun PerteDialog(
                 OutlinedTextField(
                     value = typing,
                     onValueChange = { newType = it; newTypeError = "" },
-                    label = { Text("Nouveau type de perte") },
+                    label = { Text(stringResource(R.string.pertes_new_type_label)) },
                     singleLine = true,
                     isError = newTypeError.isNotEmpty(),
                     supportingText = if (newTypeError.isNotEmpty()) ({ Text(newTypeError) }) else null,
@@ -156,7 +160,7 @@ fun PerteDialog(
                         enabled = !addingType && typing.isNotBlank(),
                         modifier = Modifier.weight(1f), shape = DsShapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-                    ) { Text("Ajouter le type", fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.pertes_add_type), fontWeight = FontWeight.SemiBold) }
                 }
             } else Box {
                 Column(
@@ -167,9 +171,9 @@ fun PerteDialog(
                         .clickable(role = Role.DropdownList) { typeMenu = true }
                         .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm)
                 ) {
-                    Text("Type de perte", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.pertes_type), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(type?.name ?: "Choisir", fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
+                        Text(type?.name?.let { BuiltInNames.perteType(it) } ?: stringResource(R.string.pertes_choose), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                             color = if (type != null) DsColors.TextPrimary else DsColors.TextTertiary, modifier = Modifier.weight(1f))
                         Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
                     }
@@ -177,14 +181,14 @@ fun PerteDialog(
                 DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }, modifier = Modifier.background(DsColors.Surface)) {
                     types.forEach { t ->
                         DropdownMenuItem(
-                            text = { Text(t.name, fontWeight = if (t.id == typeId) FontWeight.SemiBold else FontWeight.Normal,
+                            text = { Text(BuiltInNames.perteType(t.name), fontWeight = if (t.id == typeId) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (t.id == typeId) DsColors.Primary else DsColors.TextPrimary) },
                             onClick = { typeId = t.id; typeMenu = false }
                         )
                     }
                     HorizontalDivider(color = DsColors.Border)
                     DropdownMenuItem(
-                        text = { Text("Nouveau type", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) },
+                        text = { Text(stringResource(R.string.pertes_new_type), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary) },
                         onClick = { typeMenu = false; newType = ""; newTypeError = "" }
                     )
@@ -195,16 +199,16 @@ fun PerteDialog(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Qté système (dépôt)", fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
-                Text("${formatQty(stock)} $unit", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.pertes_qty_system_depot), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+                Text(quantityText(stock, unit).asString(), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold,
                     color = if (stock < 0) DsColors.Danger else DsColors.TextPrimary)
             }
 
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = Quantity.sanitizeInput(it, Quantity.allowsFractions(unit)) },
-                label = { Text("Quantité perdue") },
-                suffix = { Text(unit) },
+                label = { Text(stringResource(R.string.pertes_qty_lost)) },
+                suffix = { Text(com.distrigo.app.ui.common.unitWordText(1.0, unit).asString()) },
                 singleLine = true,
                 isError = problem != null || error.isNotEmpty(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -215,7 +219,7 @@ fun PerteDialog(
             OutlinedTextField(
                 value = motif,
                 onValueChange = { motif = it },
-                label = { Text("Motif (optionnel)") },
+                label = { Text(stringResource(R.string.pertes_motif_optional)) },
                 singleLine = true,
                 shape = DsShapes.medium,
                 colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),

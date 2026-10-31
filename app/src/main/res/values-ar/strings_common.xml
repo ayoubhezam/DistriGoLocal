@@ -418,4 +418,7 @@
         <item quantity="many">\u2068%1$d\u2069 نتيجة</item>
         <item quantity="other">\u2068%1$d\u2069 نتيجة</item>
     </plurals>
+    <string name="common_invalid_quantity">كمية غير صالحة</string>
+    <string name="common_barcode_not_found">لا يوجد منتج بهذا الرمز الشريطي</string>
+    <string name="common_action_apply">تطبيق</string>
 </resources>

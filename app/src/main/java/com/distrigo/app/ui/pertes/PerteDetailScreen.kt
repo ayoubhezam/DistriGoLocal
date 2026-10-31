@@ -38,7 +38,11 @@ import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * A perte, read-only — the same flow as an expense's details (ChargeDetailScreen). Tapping one in its
@@ -68,7 +72,7 @@ fun PerteDetailScreen(
     LaunchedEffect(vm.missing) { if (vm.missing) onBack() }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Détail de la perte", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.pertes_detail_title), leading = DsTopBarLeading.Back(onBack))
 
         val perte = vm.perte
         if (perte == null) {
@@ -105,7 +109,7 @@ fun PerteDetailScreen(
                 Text(perte.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(
-                    "${formatQty(perte.quantity)} ${ProductUnit.plural(perte.unit, perte.quantity)}",
+                    quantityText(perte.quantity, perte.unit).asString(),
                     fontSize   = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color      = DsColors.TextPrimary
@@ -120,7 +124,7 @@ fun PerteDetailScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(PerteIconMapper.iconFor(vm.type?.icon ?: "category"), contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(perte.type_name, fontSize = DsTextSize.body, color = DsColors.TextSecondary)
+                    Text(BuiltInNames.perteType(perte.type_name), fontSize = DsTextSize.body, color = DsColors.TextSecondary)
                 }
             }
 
@@ -132,7 +136,7 @@ fun PerteDetailScreen(
                     Icon(Icons.Default.Link, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
                     Text(
-                        "Cette perte provient d'un ${linkedSource(perte)}. Elle se modifie ou s'annule depuis ce retour.",
+                        stringResource(if (perte.source_type == "retour_client") R.string.pertes_linked_client else R.string.pertes_linked_supplier),
                         fontSize = DsTextSize.bodySmall,
                         color    = DsColors.TextPrimary
                     )
@@ -142,17 +146,17 @@ fun PerteDetailScreen(
             // ── The rest, read-only ──
             val at = runCatching { Instant.parse(perte.date_time).atZone(ZoneId.systemDefault()) }.getOrNull()
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                DetailRow(Icons.Default.Event, "Date", at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
-                DetailRow(Icons.Default.Warehouse, "Source du stock", if (perte.source == "camion") "Camion" else "Dépôt")
-                DetailRow(Icons.Default.Sell, "Prix d'achat unitaire", money.da(perte.purchase_price_snapshot))
-                perte.motif?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Motif", it) }
+                DetailRow(Icons.Default.Event, stringResource(R.string.inventory_date), at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
+                DetailRow(Icons.Default.Warehouse, stringResource(R.string.pertes_stock_source), stringResource(if (perte.source == "camion") R.string.common_source_truck else R.string.common_source_depot))
+                DetailRow(Icons.Default.Sell, stringResource(R.string.pertes_unit_purchase_price), money.da(perte.purchase_price_snapshot))
+                perte.motif?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, stringResource(R.string.pertes_motif), it) }
                 runCatching { Instant.parse(perte.created_at).atZone(ZoneId.systemDefault()) }.getOrNull()?.let { created ->
-                    DetailRow(Icons.Default.History, "Enregistrée le", "${created.format(DAY)} à ${created.format(TIME)}")
+                    DetailRow(Icons.Default.History, stringResource(R.string.pertes_recorded_on), stringResource(R.string.pertes_day_at_time, created.format(DAY), created.format(TIME)))
                 }
                 perte.photo_path?.takeIf { it.isNotBlank() }?.let { photo ->
                     EntityImage(
                         ref                = photo,
-                        contentDescription = "Photo de la perte",
+                        contentDescription = stringResource(R.string.pertes_cd_photo),
                         modifier           = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(DsShapes.large)
                     ) {}
                 }
@@ -203,8 +207,8 @@ fun PerteDetailScreen(
     if (confirmEdit && perte != null) {
         AlertDialog(
             onDismissRequest = { confirmEdit = false },
-            title            = { Text("Modifier la perte") },
-            text             = { Text("Voulez-vous modifier cette perte ?") },
+            title            = { Text(stringResource(R.string.pertes_edit_title)) },
+            text             = { Text(stringResource(R.string.pertes_edit_question)) },
             confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text(stringResource(R.string.common_action_edit)) } },
             dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
@@ -226,7 +230,7 @@ fun PerteDetailScreen(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
-            title            = { Text("Supprimer la perte") },
+            title            = { Text(stringResource(R.string.pertes_delete_title)) },
             text             = { Text(deletePerteQuestion(perte, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
@@ -244,11 +248,8 @@ fun PerteDetailScreen(
  * au stock." — the list's long press asks the same.
  */
 internal fun deletePerteQuestion(perte: Perte, money: MoneyFormatter): String =
-    "Êtes-vous sûr de vouloir supprimer cette perte de ${formatQty(perte.quantity)} ${ProductUnit.plural(perte.unit, perte.quantity)} " +
-        "(${money.da(perte.valeur_totale)}) ? La quantité sera restaurée au stock."
+    com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_delete_body, com.distrigo.app.core.text.AppStrings.write(quantityText(perte.quantity, perte.unit)), money.da(perte.valeur_totale)))
 
-private fun linkedSource(perte: Perte): String =
-    if (perte.source_type == "retour_client") "retour client" else "retour fournisseur"
 
 @Composable
 private fun DetailRow(icon: ImageVector, label: String, value: String) {
@@ -267,6 +268,6 @@ private fun DetailRow(icon: ImageVector, label: String, value: String) {
     }
 }
 
-private val DATE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)
-private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
+private val DATE get() = com.distrigo.app.core.format.AppDates.formatter("EEEE d MMMM yyyy")
+private val DAY get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")

@@ -37,7 +37,11 @@ import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /** One returned product, as the details list it. */
 internal data class RetourLine(
@@ -84,7 +88,7 @@ internal fun RetourDetailContent(
     val license = LocalLicense.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Détail du retour", subtitle = "Retour $numberLabel", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.retours_detail_title), subtitle = stringResource(R.string.retours_number, numberLabel), leading = DsTopBarLeading.Back(onBack))
 
         Column(
             modifier            = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.lg),
@@ -117,23 +121,23 @@ internal fun RetourDetailContent(
 
             // ── The rest, read-only ──
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                DetailRow(Icons.Default.Event, "Date", dayLabel(date, createdAt))
+                DetailRow(Icons.Default.Event, stringResource(R.string.inventory_date), dayLabel(date, createdAt))
                 DetailRow(Icons.Default.Person, partyLabel, partyName)
                 // A return's lines can each have their own motif: then it is "Selon le produit", and each line says its own.
                 val lineMotifs = lines?.mapNotNull { it.motif }?.distinct().orEmpty()
-                DetailRow(Icons.AutoMirrored.Filled.Label, "Motif", when {
-                    lineMotifs.size > 1 -> "Selon le produit"
-                    else -> (motif ?: lineMotifs.firstOrNull())?.takeIf { it.isNotBlank() } ?: "—"
+                DetailRow(Icons.AutoMirrored.Filled.Label, stringResource(R.string.pertes_motif), when {
+                    lineMotifs.size > 1 -> stringResource(R.string.retours_per_product)
+                    else -> (motif ?: lineMotifs.firstOrNull())?.takeIf { it.isNotBlank() }?.let(BuiltInNames::motif) ?: "—"
                 })
-                DetailRow(Icons.Default.Inventory2, "Effet sur le stock", stockEffect)
-                note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Note", it) }
-                instant(createdAt)?.let { DetailRow(Icons.Default.History, "Enregistré le", "${it.format(DAY)} à ${it.format(TIME)}") }
+                DetailRow(Icons.Default.Inventory2, stringResource(R.string.retours_stock_effect), stockEffect)
+                note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, stringResource(R.string.clients_note), it) }
+                instant(createdAt)?.let { DetailRow(Icons.Default.History, stringResource(R.string.retours_recorded_on), stringResource(R.string.pertes_day_at_time, it.format(DAY), it.format(TIME))) }
             }
 
             // ── What came back ──
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Text(
-                    if (lines != null) "Produits (${lines.size})" else "Produits",
+                    if (lines != null) stringResource(R.string.retours_products_n, lines.size) else stringResource(R.string.common_step_products),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.TextSecondary
@@ -164,7 +168,7 @@ internal fun RetourDetailContent(
             } else {
                 Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Supprimer le retour", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.retours_delete), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -173,11 +177,11 @@ internal fun RetourDetailContent(
         AlertDialog(
             onDismissRequest = { confirmDelete = false; onDismissError() },
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
-            title            = { Text("Supprimer le retour") },
+            title            = { Text(stringResource(R.string.retours_delete)) },
             text             = {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    Text("Êtes-vous sûr de vouloir supprimer ce retour de ${money.da(total)} ?", color = DsColors.TextPrimary)
-                    Text("La suppression annulera ses mouvements de stock et mettra à jour le solde :", color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.retours_delete_question, money.da(total)), color = DsColors.TextPrimary)
+                    Text(stringResource(R.string.ventes_delete_explain), color = DsColors.TextSecondary)
                     deleteEffects.forEach { effect ->
                         Row {
                             Text("•  ", color = DsColors.TextSecondary)
@@ -209,11 +213,11 @@ private fun LineRow(line: RetourLine, showMotif: Boolean) {
         Column(Modifier.weight(1f)) {
             Text(line.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
             Text(
-                "${formatQty(line.quantity)} ${ProductUnit.plural(line.unit, line.quantity)} × ${money.da(line.unitPrice)}",
+                stringResource(R.string.common_qty_times_price, quantityText(line.quantity, line.unit).asString(), money.da(line.unitPrice)),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
-            if (showMotif) line.motif?.let {
+            if (showMotif) line.motif?.let(BuiltInNames::motif)?.let {
                 Text(it, fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = DsColors.Primary)
             }
         }
@@ -240,7 +244,8 @@ private fun DetailRow(icon: ImageVector, label: String, value: String) {
 }
 
 /** "1 produit", "3 produits" — the return lists and details. */
-internal fun productCount(count: Int): String = if (count <= 1) "$count produit" else "$count produits"
+@Composable
+internal fun productCount(count: Int): String = pluralStringResource(R.plurals.common_products_count, count, count)
 
 private fun instant(text: String) = runCatching { Instant.parse(text).atZone(ZoneId.systemDefault()) }.getOrNull()
 
@@ -250,6 +255,6 @@ private fun dayLabel(date: String, createdAt: String): String {
     return day?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—"
 }
 
-private val DATE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)
-private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
+private val DATE get() = com.distrigo.app.core.format.AppDates.formatter("EEEE d MMMM yyyy")
+private val DAY get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")

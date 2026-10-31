@@ -51,6 +51,8 @@ import kotlin.math.abs
 import kotlinx.coroutines.launch
 import com.distrigo.app.data.model.InventorySessionHistory
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
@@ -212,7 +214,7 @@ class InventoryViewModel @Inject constructor(
         onSuccess   : (qteSysteme: Double, ecart: Double, valeurEcart: Double) -> Unit,
         onError     : (String) -> Unit
     ) {
-        val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
+        val sessionId = _activeSession.value?.id ?: return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_no_session)))
         viewModelScope.launch {
             val result = countLock.withLock {
                 caughtAsError { repository.recordScan(sessionId, productId, qtePhysique, userName) }.also { result ->
@@ -245,7 +247,7 @@ class InventoryViewModel @Inject constructor(
         onSuccess     : (zeroed: Int) -> Unit,
         onError       : (String) -> Unit
     ) {
-        val sessionId = _activeSession.value?.id ?: return onError("Aucune session active")
+        val sessionId = _activeSession.value?.id ?: return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_no_session)))
         viewModelScope.launch {
             val at = date.atTime(java.time.LocalTime.now()).atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
             val result = countLock.withLock { caughtAsError { repository.finishSession(sessionId, zeroUncounted, userName, at) } }
@@ -268,7 +270,7 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        _activeSession.value ?: return onError("Aucune session active")
+        _activeSession.value ?: return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_no_session)))
         viewModelScope.launch {
             val result = countLock.withLock {
                 caughtAsError { repository.updateScan(itemId, newQtePhysique, userName) }.also { result ->
@@ -288,7 +290,7 @@ class InventoryViewModel @Inject constructor(
         }
     }
     fun deleteScan(itemId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        _activeSession.value ?: return onError("Aucune session active")
+        _activeSession.value ?: return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_no_session)))
         viewModelScope.launch {
             val result = countLock.withLock {
                 caughtAsError { repository.deleteScan(itemId) }.also { result ->

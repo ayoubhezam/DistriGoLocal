@@ -1,0 +1,42 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="pertes_new">Nouvelle perte</string>
+    <string name="pertes_new_subtitle">Produits perdus au dépôt</string>
+    <string name="pertes_no_product_match">Aucun produit ne correspond.</string>
+    <string name="pertes_no_product">Aucun produit</string>
+    <string name="pertes_depot_change">Dépôt : %1$s → %2$s</string>
+    <string name="pertes_summary_title">Résumé de la perte</string>
+    <string name="pertes_stat_products">Produits perdus</string>
+    <string name="pertes_stat_value">Valeur totale</string>
+    <string name="pertes_saved">Perte enregistrée · le stock a été mis à jour</string>
+    <string name="pertes_delete_failed">La suppression a échoué.</string>
+    <string name="pertes_detail_title">Détail de la perte</string>
+    <string name="pertes_linked_client">Cette perte provient d\'un retour client. Elle se modifie ou s\'annule depuis ce retour.</string>
+    <string name="pertes_linked_supplier">Cette perte provient d\'un retour fournisseur. Elle se modifie ou s\'annule depuis ce retour.</string>
+    <string name="pertes_stock_source">Source du stock</string>
+    <string name="pertes_unit_purchase_price">Prix d\'achat unitaire</string>
+    <string name="pertes_motif">Motif</string>
+    <string name="pertes_recorded_on">Enregistrée le</string>
+    <string name="pertes_day_at_time">%1$s à %2$s</string>
+    <string name="pertes_cd_photo">Photo de la perte</string>
+    <string name="pertes_edit_title">Modifier la perte</string>
+    <string name="pertes_edit_question">Voulez-vous modifier cette perte ?</string>
+    <string name="pertes_delete_title">Supprimer la perte</string>
+    <string name="pertes_delete_body">Êtes-vous sûr de vouloir supprimer cette perte de %1$s (%2$s) ? La quantité sera restaurée au stock.</string>
+    <string name="pertes_stock_short">Stock insuffisant : %1$s au dépôt</string>
+    <string name="pertes_new_type_label">Nouveau type de perte</string>
+    <string name="pertes_add_type">Ajouter le type</string>
+    <string name="pertes_type">Type de perte</string>
+    <string name="pertes_choose">Choisir</string>
+    <string name="pertes_new_type">Nouveau type</string>
+    <string name="pertes_qty_system_depot">Qté système (dépôt)</string>
+    <string name="pertes_qty_lost">Quantité perdue</string>
+    <string name="pertes_motif_optional">Motif (optionnel)</string>
+    <string name="pertes_history_title">Historique des pertes</string>
+    <string name="pertes_search">Rechercher une perte</string>
+    <plurals name="pertes_count">
+        <item quantity="one">%1$d perte</item>
+        <item quantity="other">%1$d pertes</item>
+    </plurals>
+    <string name="pertes_history_empty">Aucune perte enregistrée. « + » pour en ajouter une.</string>
+    <string name="pertes_no_match">Aucune perte ne correspond.</string>
+</resources>

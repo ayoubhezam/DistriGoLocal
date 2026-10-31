@@ -35,6 +35,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 fun inventoryNumero(id: Int): String = "N° " + id.toString().padStart(5, '0')
 
@@ -70,7 +71,7 @@ fun ColumnScope.InventorySummaryStep(
     val needsChoice = !isConfirmed && (uncounted ?: 0) > 0
 
     DsTopAppBar(
-        title   = "Résumé de l'inventaire",
+        title   = stringResource(R.string.inventory_summary_title),
         // Back greys out and stops responding once the session is confirmed — a state
         // DsTopBarLeading.Back has no way to express, so the button rides in Custom.
         leading = DsTopBarLeading.Custom {
@@ -91,12 +92,12 @@ fun ColumnScope.InventorySummaryStep(
         InventoryDateField(date = date, enabled = !isConfirmed, onDateChange = onDateChange)
 
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", "Total produits scannés", DsColors.Primary, Modifier.weight(1f))
-            InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", "Écarts détectés", DsColors.Warning, Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.Inventory2, "${summary.total_products}", stringResource(R.string.inventory_stat_total), DsColors.Primary, Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.Warning, "${summary.total_ecarts}", stringResource(R.string.inventory_stat_gaps), DsColors.Warning, Modifier.weight(1f))
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            InventorySummaryStatCard(Icons.Default.Receipt, money.da(summary.total_value_ecarts), "Valeur des écarts", DsColors.Danger, Modifier.weight(1f))
-            InventorySummaryStatCard(Icons.Default.HourglassEmpty, uncounted?.toString() ?: "…", "Produits non inventoriés", DsColors.TextSecondary, Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.Receipt, money.da(summary.total_value_ecarts), stringResource(R.string.inventory_stat_gaps_value), DsColors.Danger, Modifier.weight(1f))
+            InventorySummaryStatCard(Icons.Default.HourglassEmpty, uncounted?.toString() ?: "…", stringResource(R.string.inventory_uncounted), DsColors.TextSecondary, Modifier.weight(1f))
         }
 
         if (needsChoice) {
@@ -104,22 +105,22 @@ fun ColumnScope.InventorySummaryStep(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)
             ) {
-                Text("Produits non inventoriés", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.inventory_uncounted), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
                 Text(
-                    "${uncounted} produit(s) en stock n'ont pas été comptés. Que faire de leur stock ?",
+                    pluralStringResource(R.plurals.inventory_uncounted_body, uncounted ?: 0, uncounted ?: 0),
                     fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
                 )
                 Spacer(Modifier.height(DsSpacing.xs))
                 ChoiceRow(
                     selected = choice == UncountedChoice.ZERO,
-                    title    = "Mettre à zéro",
-                    detail   = "Leur stock au dépôt passe à 0. Le stock des camions n'est pas touché.",
+                    title    = stringResource(R.string.inventory_zero),
+                    detail   = stringResource(R.string.inventory_zero_detail),
                     onClick  = { onChoice(UncountedChoice.ZERO) }
                 )
                 ChoiceRow(
                     selected = choice == UncountedChoice.KEEP,
-                    title    = "Conserver le stock actuel",
-                    detail   = "Leur stock ne change pas.",
+                    title    = stringResource(R.string.inventory_keep),
+                    detail   = stringResource(R.string.inventory_keep_detail),
                     onClick  = { onChoice(UncountedChoice.KEEP) }
                 )
             }
@@ -131,9 +132,9 @@ fun ColumnScope.InventorySummaryStep(
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
                     Spacer(Modifier.width(DsSpacing.sm))
                     Column {
-                        Text("Inventaire complété avec succès", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
+                        Text(stringResource(R.string.inventory_completed), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                         Text(
-                            if (zeroed > 0) "Le stock a été mis à jour · $zeroed produit(s) mis à zéro" else "Le stock a été mis à jour",
+                            if (zeroed > 0) pluralStringResource(R.plurals.inventory_updated_zeroed, zeroed, zeroed) else stringResource(R.string.inventory_updated),
                             fontSize = DsTextSize.caption, color = DsColors.Success.copy(alpha = 0.8f)
                         )
                     }
@@ -153,7 +154,7 @@ fun ColumnScope.InventorySummaryStep(
             shape    = DsShapes.medium,
             colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
-            Text("Retour à l'historique", color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.inventory_back_to_history), color = Color.White, fontWeight = FontWeight.SemiBold)
         }
     } else {
         Button(
@@ -168,7 +169,7 @@ fun ColumnScope.InventorySummaryStep(
             else {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.xs))
-                Text("Confirmer l'inventaire", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.inventory_confirm), color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -209,16 +210,16 @@ internal fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange:
             .fillMaxWidth()
             .clip(DsShapes.medium)
             .border(1.dp, DsColors.Border, DsShapes.medium)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Changer la date") { picking = true }
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = stringResource(R.string.inventory_change_date)) { picking = true }
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.sm))
-        Text("Date", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+        Text(stringResource(R.string.inventory_date), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
-            if (date == today) "Aujourd'hui" else date.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")),
+            if (date == today) stringResource(R.string.common_period_today) else date.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
         )
         if (enabled) Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)

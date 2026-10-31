@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * One perte, read-only: what tapping it in its list opens. It moves stock, so changing it takes an
@@ -113,7 +115,7 @@ class PerteDetailViewModel @Inject constructor(
             val result = try {
                 repository.deletePerte(current.id)
             } catch (e: Exception) {
-                mapOf("error" to (userMessage(e, "La suppression a échoué.")))
+                mapOf("error" to (userMessage(e, com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_delete_failed)))))
             }
             val failure = result["error"] as? String
             if (failure != null) {

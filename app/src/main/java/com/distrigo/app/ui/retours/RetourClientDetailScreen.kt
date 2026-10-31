@@ -5,6 +5,8 @@ import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.model.RetourClientMotifs
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * A client return, read-only (RetourDetailContent). Deleting it takes back what it did: the goods it
@@ -36,24 +38,24 @@ fun RetourClientDetailScreen(
 
     RetourDetailContent(
         numberLabel   = retour.numberLabel,
-        partyLabel    = "Client",
+        partyLabel    = stringResource(R.string.common_label_client),
         partyName     = retour.client_name,
         total         = retour.total,
         date          = retour.date,
         createdAt     = retour.created_at,
         motif         = retour.motif,
         stockEffect   = when {
-            mixedEffects -> "Selon le produit : remis dans le stock camion, ou enregistré en perte"
-            asPertes     -> "Enregistré en perte — le stock camion ne change pas"
-            else         -> "Remis dans le stock camion"
+            mixedEffects -> stringResource(R.string.retours_client_effect_mixed)
+            asPertes     -> stringResource(R.string.retours_client_effect_pertes)
+            else         -> stringResource(R.string.retours_client_effect_stock)
         },
         note          = retour.note,
         lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price, it.motif ?: retour.motif) },
         deleteEffects = listOf(
-            if (mixedEffects) "Stock : les produits remis en stock en seront retirés ; les pertes liées seront supprimées."
-            else if (asPertes) "Stock : les pertes liées à ce retour seront supprimées ; le stock camion ne change pas."
-            else "Stock : les produits retournés seront retirés du stock camion.",
-            "Solde : ${money.da(retour.total)} seront rajoutés au solde du client « ${retour.client_name} »."
+            if (mixedEffects) stringResource(R.string.retours_client_delete_mixed)
+            else if (asPertes) stringResource(R.string.retours_client_delete_pertes)
+            else stringResource(R.string.retours_client_delete_stock),
+            stringResource(R.string.retours_client_delete_balance, money.da(retour.total), retour.client_name)
         ),
         deleting       = deleting,
         deleteError    = deleteError,

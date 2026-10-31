@@ -5,6 +5,8 @@ import com.distrigo.app.data.model.RetourFournisseur
 import com.distrigo.app.data.model.RetourFournisseurMotifs
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /**
  * A supplier return, read-only (RetourDetailContent). Deleting it takes back what it did: the goods
@@ -36,23 +38,23 @@ fun RetourFournisseurDetailScreen(
 
     RetourDetailContent(
         numberLabel   = retour.numberLabel,
-        partyLabel    = "Fournisseur",
+        partyLabel    = stringResource(R.string.common_label_supplier),
         partyName     = retour.supplier_name,
         total         = retour.total,
         date          = retour.date,
         createdAt     = retour.created_at,
         motif         = retour.motif,
         stockEffect   = when {
-            mixedEffects -> "Sorti du stock dépôt ; en perte selon le produit"
-            withPertes   -> "Sorti du stock dépôt, enregistré en perte"
-            else         -> "Sorti du stock dépôt"
+            mixedEffects -> stringResource(R.string.retours_supplier_effect_mixed)
+            withPertes   -> stringResource(R.string.retours_supplier_effect_pertes)
+            else         -> stringResource(R.string.retours_supplier_effect_stock)
         },
         note          = retour.note,
         lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price, it.motif ?: retour.motif) },
         deleteEffects = listOfNotNull(
-            "Stock : les produits retournés seront remis dans le stock dépôt.",
-            "Pertes : les pertes liées à ce retour seront supprimées.".takeIf { withPertes || mixedEffects },
-            "Solde : ${money.da(retour.total)} seront rajoutés à ce que vous devez au fournisseur « ${retour.supplier_name} »."
+            stringResource(R.string.retours_supplier_delete_stock),
+            stringResource(R.string.retours_supplier_delete_pertes).takeIf { withPertes || mixedEffects },
+            stringResource(R.string.retours_supplier_delete_balance, money.da(retour.total), retour.supplier_name)
         ),
         deleting       = deleting,
         deleteError    = deleteError,

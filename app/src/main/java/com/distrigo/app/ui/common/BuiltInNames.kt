@@ -41,6 +41,16 @@ object BuiltInNames {
         return written(TYPE_IDS[seeded.key]) ?: name
     }
 
+    /**
+     * A perte type's [name] where only the name is at hand (a perte row, a selection line, a type list): a built-in
+     * type still under the name it was seeded with is shown translated; any other name as written.
+     */
+    fun perteType(name: String): String {
+        if (!arabic()) return name
+        val type = DefaultPerteType.entries.find { it.seedName == name } ?: return name
+        return written(TYPE_IDS["perte_${type.key}"]) ?: name
+    }
+
     /** A retour motif, stored as its French sentence. */
     fun motif(motif: String): String =
         if (!arabic()) motif else written(MOTIF_IDS[motif]) ?: motif

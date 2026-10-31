@@ -339,4 +339,7 @@
         <item quantity="one">%1$d résultat</item>
         <item quantity="other">%1$d résultats</item>
     </plurals>
+    <string name="common_invalid_quantity">Quantité invalide</string>
+    <string name="common_barcode_not_found">Aucun produit trouvé pour ce code-barres</string>
+    <string name="common_action_apply">Appliquer</string>
 </resources>

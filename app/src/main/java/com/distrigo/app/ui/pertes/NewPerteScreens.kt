@@ -86,7 +86,12 @@ import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.core.text.UiText
 
 /** The dépôt's share of a product's stock: what a dépôt perte is taken from. */
 private val Product.depotStock: Double get() = stock - camion_stock
@@ -125,7 +130,7 @@ fun NewPerteListScreen(
                 showScanner = false
                 scope.launch {
                     val product = viewModel.productByBarcode(code)
-                    if (product == null) message = "Aucun produit trouvé pour ce code-barres"
+                    if (product == null) message = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_barcode_not_found))
                     else { message = ""; editing = product }
                 }
             },
@@ -136,13 +141,13 @@ fun NewPerteListScreen(
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Nouvelle perte", subtitle = "Produits perdus au dépôt", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.pertes_new), subtitle = stringResource(R.string.pertes_new_subtitle), leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         DsCompactSearchField(
             value         = viewModel.search,
             onValueChange = { viewModel.search = it },
-            placeholder   = "Rechercher un produit",
+            placeholder   = stringResource(R.string.common_search_product),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
         ) {
             DsCompactSearchAction(
@@ -162,7 +167,7 @@ fun NewPerteListScreen(
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (products.itemCount == 0) {
                 Text(
-                    "Aucun produit ne correspond.", fontSize = DsTextSize.body, color = DsColors.TextSecondary,
+                    stringResource(R.string.pertes_no_product_match), fontSize = DsTextSize.body, color = DsColors.TextSecondary,
                     textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center).padding(DsSpacing.xl)
                 )
             } else {
@@ -194,7 +199,7 @@ fun NewPerteListScreen(
             Box(Modifier.size(20.dp).clip(DsShapes.pill).background(tint), contentAlignment = Alignment.Center) {
                 Text("${cart.size}", color = Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
             }
-            Text("Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
+            Text(stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
             Spacer(Modifier.weight(1f))
             Text(money.da(cart.sumOf { it.value }), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = tint)
         }
@@ -217,7 +222,7 @@ fun NewPerteListScreen(
             filters = viewModel.filters, categories = categories, sousCategories = sousCategories,
             marques = marques, suppliers = suppliers, resultCount = count ?: 0,
             onChange = { viewModel.filters = it }, onDismiss = { showFilters = false },
-            priceLabel = "Prix de vente", showStockLevel = false,
+            priceLabel = stringResource(R.string.common_label_sale_price), showStockLevel = false,
         )
     }
 }
@@ -237,11 +242,11 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Ma sélection", subtitle = "${cart.size} produit(s)", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.common_my_selection), subtitle = pluralStringResource(R.plurals.common_products_count, cart.size, cart.size), leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (cart.isEmpty()) {
-                Text("Aucun produit", color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
+                Text(stringResource(R.string.pertes_no_product), color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
@@ -252,14 +257,14 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                         SelectionCartCard(
                             avatarIcon      = Icons.Default.RemoveShoppingCart,
                             title           = line.product.name,
-                            metaLine        = "${formatQty(line.quantity)} ${line.product.unit_type} · ${line.typeName}" + (line.motif?.let { " · $it" } ?: ""),
+                            metaLine        = quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.perteType(line.typeName) + (line.motif?.let { " · $it" } ?: ""),
                             totalPriceLabel = money.da(line.value),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else line.product.id },
                             statusLine      = {
                                 CartStatusLine(
                                     icon = Icons.Default.Inventory2,
-                                    text = "Dépôt : ${formatQty(line.product.depotStock)} → ${formatQty(line.product.depotStock - line.quantity)} ${line.product.unit_type}",
+                                    text = stringResource(R.string.pertes_depot_change, formatQty(line.product.depotStock), quantityText(line.product.depotStock - line.quantity, line.product.unit_type).asString()),
                                     tone = if (line.product.depotStock - line.quantity < 0) CartStatusTone.WARNING else CartStatusTone.NEUTRAL
                                 )
                             },
@@ -334,7 +339,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "Résumé de la perte",
+            title = stringResource(R.string.pertes_summary_title),
             leading = DsTopBarLeading.Back { if (confirmed != null) onDone() else onBack() }
         )
         LazyColumn(
@@ -345,8 +350,8 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
             item { InventoryDateField(date = viewModel.date, enabled = confirmed == null, onDateChange = { viewModel.date = it }) }
             item {
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    StatCard(Icons.Default.Inventory2, "${lines.size}", "Produits perdus", DsColors.Primary, Modifier.weight(1f))
-                    StatCard(Icons.Default.Receipt, money.da(lines.sumOf { it.value }), "Valeur totale", DsColors.Danger, Modifier.weight(1f))
+                    StatCard(Icons.Default.Inventory2, "${lines.size}", stringResource(R.string.pertes_stat_products), DsColors.Primary, Modifier.weight(1f))
+                    StatCard(Icons.Default.Receipt, money.da(lines.sumOf { it.value }), stringResource(R.string.pertes_stat_value), DsColors.Danger, Modifier.weight(1f))
                 }
             }
             if (confirmed != null) {
@@ -355,7 +360,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
                         Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
                             Spacer(Modifier.width(DsSpacing.sm))
-                            Text("Perte enregistrée · le stock a été mis à jour", fontSize = DsTextSize.bodySmall,
+                            Text(stringResource(R.string.pertes_saved), fontSize = DsTextSize.bodySmall,
                                 fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                         }
                     }
@@ -368,7 +373,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text("${line.typeName} · ${formatQty(line.quantity)} ${line.product.unit_type}" + (line.motif?.let { " · $it" } ?: ""), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(BuiltInNames.perteType(line.typeName) + " · " + quantityText(line.quantity, line.product.unit_type).asString() + (line.motif?.let { " · $it" } ?: ""), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Text(money.da(line.value), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
                 }
@@ -392,7 +397,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (saving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            else Text(if (confirmed != null) "Retour à l'historique" else "Confirmer", fontWeight = FontWeight.SemiBold)
+            else Text(stringResource(if (confirmed != null) R.string.inventory_back_to_history else R.string.common_action_confirm), fontWeight = FontWeight.SemiBold)
         }
     }
 }

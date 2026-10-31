@@ -61,6 +61,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * The count's selection, laid out as the Ventes and Achats carts are: one card per product counted —
@@ -83,7 +84,7 @@ fun InventoryCartScreen(
     var deleting by remember { mutableStateOf<InventoryItem?>(null) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Ma sélection", subtitle = "$count produit(s) inventorié(s)", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.common_my_selection), subtitle = pluralStringResource(R.plurals.inventory_counted_n, count, count), leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
 
         if (error.isNotEmpty()) {
@@ -95,7 +96,7 @@ fun InventoryCartScreen(
                 items.itemCount == 0 && items.loadState.refresh is LoadState.Loading ->
                     CircularProgressIndicator(color = DsColors.Primary, modifier = Modifier.align(Alignment.Center))
                 items.itemCount == 0 ->
-                    Text("Aucun produit inventorié", color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
+                    Text(stringResource(R.string.inventory_none_counted), color = DsColors.TextSecondary, modifier = Modifier.align(Alignment.Center))
                 else -> LazyColumn(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
@@ -105,15 +106,15 @@ fun InventoryCartScreen(
                         val expanded = expandedId == item.id
                         val (tone, icon, status) = when {
                             item.ecart < 0 -> Triple(CartStatusTone.DANGER, Icons.AutoMirrored.Filled.TrendingDown,
-                                "Manque ${formatQty(abs(item.ecart))} · ${money.da(abs(item.valeur_ecart))}")
+                                stringResource(R.string.inventory_short, formatQty(abs(item.ecart)), money.da(abs(item.valeur_ecart))))
                             item.ecart > 0 -> Triple(CartStatusTone.WARNING, Icons.AutoMirrored.Filled.TrendingUp,
-                                "Surplus ${formatQty(item.ecart)} · ${money.da(item.valeur_ecart)}")
-                            else -> Triple(CartStatusTone.OK, Icons.Default.CheckCircle, "Aucun écart")
+                                stringResource(R.string.inventory_surplus, formatQty(item.ecart), money.da(item.valeur_ecart)))
+                            else -> Triple(CartStatusTone.OK, Icons.Default.CheckCircle, stringResource(R.string.inventory_no_gap))
                         }
                         SelectionCartCard(
                             avatarIcon      = Icons.Default.Inventory2,
                             title           = item.product_name,
-                            metaLine        = "Système ${formatQty(item.qte_systeme)} → Physique ${formatQty(item.qte_physique)}",
+                            metaLine        = stringResource(R.string.inventory_system_physical, formatQty(item.qte_systeme), formatQty(item.qte_physique)),
                             totalPriceLabel = (if (item.ecart > 0) "+" else "") + formatQty(item.ecart),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else item.id },
@@ -123,7 +124,7 @@ fun InventoryCartScreen(
                                 OutlinedTextField(
                                     value = text,
                                     onValueChange = { text = Quantity.sanitizeInput(it) },
-                                    label = { Text("Qté physique") },
+                                    label = { Text(stringResource(R.string.inventory_qty_physical)) },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     shape = DsShapes.medium,
@@ -175,8 +176,8 @@ fun InventoryCartScreen(
     deleting?.let { item ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Retirer « ${item.product_name} » ?") },
-            text  = { Text("Son ajustement est annulé et le produit revient dans la liste à inventorier.") },
+            title = { Text(stringResource(R.string.inventory_remove_title, item.product_name)) },
+            text  = { Text(stringResource(R.string.inventory_remove_body)) },
             confirmButton = { TextButton(onClick = { onDelete(item); deleting = null }) { Text(stringResource(R.string.common_action_remove), color = DsColors.Danger) } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor = DsColors.Surface,

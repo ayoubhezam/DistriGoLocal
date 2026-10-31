@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /** A product that can come back, and the most of it that can: delivered or received, less what was returned. */
 data class ReturnableProduct(val product: Product, val maxQuantity: Double)
@@ -44,8 +46,8 @@ data class RetourCartLine(val returnable: ReturnableProduct, val quantity: Doubl
 
 /** Why a quantity cannot be returned, or null when it can: nothing, or more than [max]. */
 fun retourQuantityError(quantity: Double?, max: Double, unit: String): String? = when {
-    quantity == null || quantity <= 0 -> "Quantité invalide"
-    Quantity.exceeds(quantity, max) -> "Maximum retournable : ${com.distrigo.app.ui.common.formatQty(max)} $unit"
+    quantity == null || quantity <= 0 -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_invalid_quantity))
+    Quantity.exceeds(quantity, max) -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.retours_max_value, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.ui.common.quantityText(max, unit))))
     else -> null
 }
 
@@ -66,9 +68,9 @@ abstract class NewRetourViewModel(
 
     protected val partyId: Int = savedState.get<Int>(partyArg) ?: -1
 
-    abstract val title: String
-    /** "ce client" / "ce fournisseur", for "never sold to …". */
-    abstract val partyPhrase: String
+    @get:androidx.annotation.StringRes abstract val title: Int
+    /** « … ne peut pas être retourné par ce client / ce fournisseur », for a product never sold to or bought from them. */
+    @get:androidx.annotation.StringRes abstract val notReturnable: Int
     abstract val motifs: List<String>
     /** The price a line is valued at: selling for a client, purchase for a supplier. */
     abstract fun priceOf(product: Product): Double
@@ -111,11 +113,11 @@ abstract class NewRetourViewModel(
      * unknown, never sold/bought here, or all of it already selected.
      */
     suspend fun byBarcode(code: String): Pair<ReturnableProduct?, String?> {
-        val product = products.findLiveProductByBarcode(code) ?: return null to "Aucun produit trouvé pour ce code-barres"
+        val product = products.findLiveProductByBarcode(code) ?: return null to com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_barcode_not_found))
         val match = eligible.value?.find { it.product.id == product.id }
-            ?: return null to "« ${product.name} » ne peut pas être retourné par $partyPhrase"
+            ?: return null to com.distrigo.app.core.text.AppStrings.write(UiText.Res(notReturnable, product.name))
         val left = left(match, _cart.value)
-        if (left <= 0) return null to "« ${product.name} » est déjà entièrement dans la sélection"
+        if (left <= 0) return null to com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.retours_already_selected, product.name))
         return match.copy(maxQuantity = left) to null
     }
 
@@ -143,7 +145,7 @@ abstract class NewRetourViewModel(
 
     fun confirm(onSuccess: () -> Unit, onError: (String) -> Unit) {
         val lines = _cart.value
-        if (lines.isEmpty()) return onError("Ajoutez au moins un produit")
+        if (lines.isEmpty()) return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.retours_add_one)))
         viewModelScope.launch {
             // A failure is said on the summary, which stays open, rather than stopping the app
             val error = caughtAsError { save(date, lines)?.let { mapOf("error" to it) } ?: emptyMap() }["error"] as? String
@@ -163,8 +165,8 @@ class NewRetourClientViewModel @Inject constructor(
     private val db: AppDatabase,
     private val repository: RetourClientRepository,
 ) : NewRetourViewModel(savedState, products, "clientId") {
-    override val title = "Retour client"
-    override val partyPhrase = "ce client — il ne lui a jamais été livré"
+    override val title = R.string.common_kind_client_return
+    override val notReturnable = R.string.retours_not_returnable_client
     override val motifs = RetourClientMotifs.ALL.map { it.id }
     override fun priceOf(product: Product) = product.selling_price
 
@@ -194,8 +196,8 @@ class NewRetourFournisseurViewModel @Inject constructor(
     private val repository: RetourFournisseurRepository,
     private val businessSettings: BusinessSettingsRepository,
 ) : NewRetourViewModel(savedState, products, "supplierId") {
-    override val title = "Retour fournisseur"
-    override val partyPhrase = "ce fournisseur — il ne vous l'a jamais livré"
+    override val title = R.string.common_kind_supplier_return
+    override val notReturnable = R.string.retours_not_returnable_supplier
     override val motifs = RetourFournisseurMotifs.ALL.map { it.id }
     override fun priceOf(product: Product) = product.purchase_price
 

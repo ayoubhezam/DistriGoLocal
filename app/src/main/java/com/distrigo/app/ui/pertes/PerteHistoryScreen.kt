@@ -81,11 +81,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /** The periods the history can be narrowed to; null is all time. */
-private val PERIODS: List<Pair<String, ReportPeriod?>> = listOf(
-    "Tout" to null, "Ce mois" to ReportPeriod.CE_MOIS, "Mois dernier" to ReportPeriod.MOIS_DERNIER, "Cette année" to ReportPeriod.CETTE_ANNEE,
+private val PERIODS: List<Pair<Int, ReportPeriod?>> = listOf(
+    R.string.common_source_all to null, R.string.common_period_this_month to ReportPeriod.CE_MOIS, R.string.common_period_last_month to ReportPeriod.MOIS_DERNIER, R.string.common_period_this_year to ReportPeriod.CETTE_ANNEE,
 )
 
 /** What the history is narrowed by: a type (null for all) and a period (null for all time). */
@@ -142,12 +146,12 @@ fun PerteHistoryScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "Historique des pertes",
+            title = stringResource(R.string.pertes_history_title),
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
             DsTopBarAddButton(
-                contentDescription = "Nouvelle perte",
+                contentDescription = stringResource(R.string.pertes_new),
                 onClick            = onNew,
                 modifier           = Modifier.padding(end = DsSpacing.md)
             )
@@ -155,14 +159,14 @@ fun PerteHistoryScreen(
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(
                 value = search, onValueChange = { viewModel.search.value = it },
-                placeholder = "Rechercher une perte",
+                placeholder = stringResource(R.string.pertes_search),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-                Text("${pertes?.size?.toString() ?: "…"} perte(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+                Text(pertes?.size?.let { pluralStringResource(R.plurals.pertes_count, it, it) } ?: "…", fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
                 com.distrigo.app.ui.common.Step2Chip(
-                    icon = Icons.Default.FilterList, label = "Filtres",
+                    icon = Icons.Default.FilterList, label = stringResource(R.string.common_label_filters),
                     container = DsColors.Surface,
                     content = if (filters.isActive) DsColors.Primary else DsColors.TextSecondary,
                     dot = filters.isActive, onClick = { sheet = true }
@@ -178,7 +182,7 @@ fun PerteHistoryScreen(
         when {
             list == null -> Unit
             list.isEmpty() -> Text(
-                if (search.isBlank() && !filters.isActive) "Aucune perte enregistrée. « + » pour en ajouter une." else "Aucune perte ne correspond.",
+                stringResource(if (search.isBlank() && !filters.isActive) R.string.pertes_history_empty else R.string.pertes_no_match),
                 fontSize = DsTextSize.body, color = DsColors.TextSecondary,
                 modifier = Modifier.fillMaxWidth().padding(DsSpacing.xl)
             )
@@ -223,13 +227,13 @@ fun PerteHistoryScreen(
                         Column(Modifier.weight(1f)) {
                             Text(perte.product_name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                                 color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(perte.type_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                            Text(BuiltInNames.perteType(perte.type_name), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Spacer(Modifier.width(DsSpacing.sm))
                         // The amount in the Primary bold of the Ventes and Achats rows.
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("− ${formatQty(perte.quantity)} ${perte.unit}", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+                            Text("− " + quantityText(perte.quantity, perte.unit).asString(), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
                                 color = DsColors.Danger, maxLines = 1, softWrap = false)
                             Text(money.da(perte.valeur_totale), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)
@@ -263,20 +267,20 @@ private fun PerteFiltersSheet(
                 Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = PerteHistoryFilters() }) { Text(stringResource(R.string.common_action_reset)) }
             }
-            Text("Type de perte", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.pertes_type), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                Chip("Tous", draft.typeId == null) { draft = draft.copy(typeId = null) }
-                types.forEach { t -> Chip(t.name, draft.typeId == t.id) { draft = draft.copy(typeId = t.id) } }
+                Chip(stringResource(R.string.common_filter_all), draft.typeId == null) { draft = draft.copy(typeId = null) }
+                types.forEach { t -> Chip(BuiltInNames.perteType(t.name), draft.typeId == t.id) { draft = draft.copy(typeId = t.id) } }
             }
             Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                PERIODS.forEach { (label, p) -> Chip(label, draft.period == p) { draft = draft.copy(period = p) } }
+                PERIODS.forEach { (label, p) -> Chip(stringResource(label), draft.period == p) { draft = draft.copy(period = p) } }
             }
             Button(
                 onClick = { onApply(draft) },
                 modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-            ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_apply), fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.md))
         }
     }

@@ -1,0 +1,47 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <plurals name="retours_returnable_n">
+        <item quantity="one">%1$d produit retournable</item>
+        <item quantity="other">%1$d produits retournables</item>
+    </plurals>
+    <string name="retours_none_to_return">Aucun produit à retourner : rien n\'a été livré par ici, ou tout a déjà été retourné.</string>
+    <string name="retours_all_in_selection">Tous les produits retournables sont dans la sélection.</string>
+    <string name="retours_max_prefix">max</string>
+    <string name="retours_choose_motif">Choisir un motif</string>
+    <string name="retours_max">Maximum retournable</string>
+    <string name="retours_max_value">Maximum retournable : %1$s</string>
+    <string name="retours_qty_returned">Quantité retournée</string>
+    <string name="retours_summary_title">Résumé du retour</string>
+    <string name="retours_stat_products">Produits retournés</string>
+    <string name="retours_stat_total">Total du retour</string>
+    <string name="retours_saved">Retour enregistré · stock et solde mis à jour</string>
+    <string name="retours_finish">Terminer</string>
+    <string name="retours_not_returnable_client">« %1$s » ne peut pas être retourné par ce client — il ne lui a jamais été livré</string>
+    <string name="retours_not_returnable_supplier">« %1$s » ne peut pas être retourné par ce fournisseur — il ne vous l\'a jamais livré</string>
+    <string name="retours_already_selected">« %1$s » est déjà entièrement dans la sélection</string>
+    <string name="retours_add_one">Ajoutez au moins un produit</string>
+    <string name="retours_client_effect_mixed">Selon le produit : remis dans le stock camion, ou enregistré en perte</string>
+    <string name="retours_client_effect_pertes">Enregistré en perte — le stock camion ne change pas</string>
+    <string name="retours_client_effect_stock">Remis dans le stock camion</string>
+    <string name="retours_client_delete_mixed">Stock : les produits remis en stock en seront retirés ; les pertes liées seront supprimées.</string>
+    <string name="retours_client_delete_pertes">Stock : les pertes liées à ce retour seront supprimées ; le stock camion ne change pas.</string>
+    <string name="retours_client_delete_stock">Stock : les produits retournés seront retirés du stock camion.</string>
+    <string name="retours_client_delete_balance">Solde : %1$s seront rajoutés au solde du client « %2$s ».</string>
+    <string name="retours_supplier_effect_mixed">Sorti du stock dépôt ; en perte selon le produit</string>
+    <string name="retours_supplier_effect_pertes">Sorti du stock dépôt, enregistré en perte</string>
+    <string name="retours_supplier_effect_stock">Sorti du stock dépôt</string>
+    <string name="retours_supplier_delete_stock">Stock : les produits retournés seront remis dans le stock dépôt.</string>
+    <string name="retours_supplier_delete_pertes">Pertes : les pertes liées à ce retour seront supprimées.</string>
+    <string name="retours_supplier_delete_balance">Solde : %1$s seront rajoutés à ce que vous devez au fournisseur « %2$s ».</string>
+    <string name="retours_detail_title">Détail du retour</string>
+    <string name="retours_number">Retour %1$s</string>
+    <string name="retours_per_product">Selon le produit</string>
+    <string name="retours_stock_effect">Effet sur le stock</string>
+    <string name="retours_recorded_on">Enregistré le</string>
+    <string name="retours_products_n">Produits (%1$d)</string>
+    <string name="retours_delete">Supprimer le retour</string>
+    <string name="retours_delete_question">Êtes-vous sûr de vouloir supprimer ce retour de %1$s ?</string>
+    <string name="retours_history_subtitle">Historique des retours effectués</string>
+    <string name="retours_new">Nouveau retour</string>
+    <string name="retours_search">Rechercher un retour</string>
+    <string name="retours_number_party">Retour %1$s · %2$s</string>
+</resources>

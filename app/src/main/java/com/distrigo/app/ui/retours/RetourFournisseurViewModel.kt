@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 @HiltViewModel
 class RetourFournisseurViewModel @Inject constructor(
@@ -87,7 +89,7 @@ class RetourFournisseurViewModel @Inject constructor(
             val result = try {
                 repository.deleteRetour(id)
             } catch (e: Exception) {
-                mapOf("error" to (userMessage(e, "La suppression a échoué.")))
+                mapOf("error" to (userMessage(e, com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_delete_failed)))))
             }
             if (result.containsKey("error")) {
                 onError(result["error"] as String)

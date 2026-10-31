@@ -39,6 +39,9 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 @Composable
 
 fun InventoryHistoryScreen(
@@ -60,14 +63,14 @@ fun InventoryHistoryScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title   = "Historique des inventaires",
+            title   = stringResource(R.string.inventory_history_title),
             licenseBanner = true,
             leading = DsTopBarLeading.Back(onBack)
         ) {
             // The bar's end inset assumes a 48dp icon button; this pill is 40dp, so it supplies the
             // difference itself to land on the same margin as every other action.
             DsTopBarAddButton(
-                contentDescription = "Ajouter un inventaire",
+                contentDescription = stringResource(R.string.inventory_add),
                 onClick            = onAddNew,
                 modifier           = Modifier.padding(end = DsSpacing.md)
             )
@@ -78,7 +81,7 @@ fun InventoryHistoryScreen(
         DsCompactSearchField(
             value         = viewModel.historySearch,
             onValueChange = { viewModel.historySearch = it },
-            placeholder   = "Rechercher un inventaire",
+            placeholder   = stringResource(R.string.inventory_search),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
         Spacer(Modifier.height(DsSpacing.sm))
@@ -95,7 +98,7 @@ fun InventoryHistoryScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.History, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(DsSpacing.sm))
-                        Text("Aucun inventaire terminé pour l'instant", color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.inventory_history_empty), color = DsColors.TextSecondary)
                     }
                 }
             }
@@ -160,14 +163,14 @@ private fun InventoryHistoryRow(entry: InventorySessionHistory, onClick: () -> U
                     Spacer(Modifier.width(DsSpacing.xs))
                     Surface(shape = DsShapes.pill, color = statusColor.copy(alpha = 0.15f)) {
                         Text(
-                            if (isDraft) "En attente" else "Terminé",
+                            stringResource(if (isDraft) R.string.purchases_status_pending else R.string.inventory_status_done),
                             fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = statusColor,
                             modifier = Modifier.padding(horizontal = DsSpacing.sm, vertical = 2.dp)
                         )
                     }
                 }
                 Text(
-                    "${entry.summary.total_products} produits · ${entry.summary.total_ecarts} écarts",
+                    pluralStringResource(R.plurals.common_products_count, entry.summary.total_products, entry.summary.total_products) + " · " + pluralStringResource(R.plurals.inventory_gaps_n, entry.summary.total_ecarts, entry.summary.total_ecarts),
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary
                 )
             }
@@ -195,7 +198,7 @@ fun InventorySessionDetailScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title   = "Détail de l'inventaire",
+            title   = stringResource(R.string.inventory_detail_title),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -210,7 +213,7 @@ fun InventorySessionDetailScreen(
             }
             items.itemCount == 0 -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Aucun produit compté", color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.inventory_none_counted_detail), color = DsColors.TextSecondary)
                 }
             }
             else -> {
@@ -229,7 +232,7 @@ fun InventorySessionDetailScreen(
                             Row(Modifier.padding(DsSpacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.product_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                                    Text("Système: ${formatQty(item.qte_systeme)} → Physique: ${formatQty(item.qte_physique)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.inventory_system_physical_colon, formatQty(item.qte_systeme), formatQty(item.qte_physique)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                                 Text((if (item.ecart > 0) "+" else "") + formatQty(item.ecart), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = ecartColor)
                             }

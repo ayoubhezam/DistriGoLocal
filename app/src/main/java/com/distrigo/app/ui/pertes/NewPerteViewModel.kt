@@ -31,6 +31,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /** One product in a new perte's selection: how much was lost, and why. */
 data class PerteCartLine(val product: Product, val typeId: Int, val typeName: String, val quantity: Double, val motif: String? = null) {
@@ -115,7 +117,7 @@ class NewPerteViewModel @Inject constructor(
     /** Records every line, dated [date] at the present time of that day; all of them or none. */
     fun confirm(onSuccess: (Int) -> Unit, onError: (String) -> Unit) {
         val lines = _cart.value
-        if (lines.isEmpty()) return onError("Aucun produit")
+        if (lines.isEmpty()) return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_no_product)))
         val at = date.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant().toString()
         viewModelScope.launch {
             val result = caughtAsError { repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif) }, at) }

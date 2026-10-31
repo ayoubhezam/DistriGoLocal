@@ -1,0 +1,46 @@
+<resources>
+    <string name="pertes_new">خسارة جديدة</string>
+    <string name="pertes_new_subtitle">منتجات مفقودة في المستودع</string>
+    <string name="pertes_no_product_match">لا يوجد منتج مطابق.</string>
+    <string name="pertes_no_product">لا توجد منتجات</string>
+    <string name="pertes_depot_change">المستودع: \u2068%1$s\u2069 ← \u2068%2$s\u2069</string>
+    <string name="pertes_summary_title">ملخص الخسارة</string>
+    <string name="pertes_stat_products">المنتجات المفقودة</string>
+    <string name="pertes_stat_value">القيمة الإجمالية</string>
+    <string name="pertes_saved">سُجّلت الخسارة · تم تحديث المخزون</string>
+    <string name="pertes_delete_failed">تعذّر الحذف.</string>
+    <string name="pertes_detail_title">تفاصيل الخسارة</string>
+    <string name="pertes_linked_client">هذه الخسارة ناتجة عن مرتجع زبون، وتُعدَّل أو تُلغى من هذا المرتجع.</string>
+    <string name="pertes_linked_supplier">هذه الخسارة ناتجة عن مرتجع إلى المورد، وتُعدَّل أو تُلغى من هذا المرتجع.</string>
+    <string name="pertes_stock_source">مصدر المخزون</string>
+    <string name="pertes_unit_purchase_price">سعر الشراء للوحدة</string>
+    <string name="pertes_motif">السبب</string>
+    <string name="pertes_recorded_on">سُجّلت في</string>
+    <string name="pertes_day_at_time">\u2068%1$s\u2069 الساعة \u2068%2$s\u2069</string>
+    <string name="pertes_cd_photo">صورة الخسارة</string>
+    <string name="pertes_edit_title">تعديل الخسارة</string>
+    <string name="pertes_edit_question">هل تريد تعديل هذه الخسارة؟</string>
+    <string name="pertes_delete_title">حذف الخسارة</string>
+    <string name="pertes_delete_body">هل أنت متأكد من حذف هذه الخسارة البالغة \u2068%1$s\u2069 (\u2068%2$s\u2069)؟ ستُعاد الكمية إلى المخزون.</string>
+    <string name="pertes_stock_short">مخزون غير كافٍ: \u2068%1$s\u2069 في المستودع</string>
+    <string name="pertes_new_type_label">نوع خسارة جديد</string>
+    <string name="pertes_add_type">إضافة النوع</string>
+    <string name="pertes_type">نوع الخسارة</string>
+    <string name="pertes_choose">اختيار</string>
+    <string name="pertes_new_type">نوع جديد</string>
+    <string name="pertes_qty_system_depot">كمية النظام (المستودع)</string>
+    <string name="pertes_qty_lost">الكمية المفقودة</string>
+    <string name="pertes_motif_optional">السبب (اختياري)</string>
+    <string name="pertes_history_title">سجل الخسائر</string>
+    <string name="pertes_search">البحث عن خسارة</string>
+    <plurals name="pertes_count">
+        <item quantity="zero">\u2068%1$d\u2069 خسارة</item>
+        <item quantity="one">خسارة واحدة</item>
+        <item quantity="two">خسارتان</item>
+        <item quantity="few">\u2068%1$d\u2069 خسائر</item>
+        <item quantity="many">\u2068%1$d\u2069 خسارةً</item>
+        <item quantity="other">\u2068%1$d\u2069 خسارة</item>
+    </plurals>
+    <string name="pertes_history_empty">لا توجد خسائر مسجّلة. اضغط « + » لإضافة واحدة.</string>
+    <string name="pertes_no_match">لا توجد خسارة مطابقة.</string>
+</resources>

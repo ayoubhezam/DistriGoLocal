@@ -1,0 +1,72 @@
+<resources>
+    <plurals name="inventory_counted_n">
+        <item quantity="zero">\u2068%1$d\u2069 منتج مجرود</item>
+        <item quantity="one">منتج واحد مجرود</item>
+        <item quantity="two">منتجان مجرودان</item>
+        <item quantity="few">\u2068%1$d\u2069 منتجات مجرودة</item>
+        <item quantity="many">\u2068%1$d\u2069 منتجًا مجرودًا</item>
+        <item quantity="other">\u2068%1$d\u2069 منتج مجرود</item>
+    </plurals>
+    <string name="inventory_none_counted">لا يوجد منتج مجرود</string>
+    <string name="inventory_short">نقص \u2068%1$s\u2069 · \u2068%2$s\u2069</string>
+    <string name="inventory_surplus">فائض \u2068%1$s\u2069 · \u2068%2$s\u2069</string>
+    <string name="inventory_no_gap">لا يوجد فرق</string>
+    <string name="inventory_system_physical">النظام \u2068%1$s\u2069 ← الفعلي \u2068%2$s\u2069</string>
+    <string name="inventory_qty_physical">الكمية الفعلية</string>
+    <string name="inventory_remove_title">إزالة « \u2068%1$s\u2069 »؟</string>
+    <string name="inventory_remove_body">تُلغى تسويته ويعود المنتج إلى قائمة الجرد.</string>
+    <string name="inventory_to_count">للجرد</string>
+    <string name="inventory_all_counted">تم جرد كل المنتجات المتوفرة في المخزون.</string>
+    <string name="inventory_no_match">لا يوجد منتج للجرد مطابق.</string>
+    <string name="inventory_gaps_value">الفروق \u2068%1$s\u2069</string>
+    <string name="inventory_qty_system">كمية النظام</string>
+    <string name="inventory_history_title">سجل الجرد</string>
+    <string name="inventory_add">إضافة جرد</string>
+    <string name="inventory_search">البحث عن جرد</string>
+    <string name="inventory_history_empty">لا يوجد جرد مكتمل حاليًا</string>
+    <string name="inventory_status_done">مكتمل</string>
+    <plurals name="inventory_gaps_n">
+        <item quantity="zero">\u2068%1$d\u2069 فرق</item>
+        <item quantity="one">فرق واحد</item>
+        <item quantity="two">فرقان</item>
+        <item quantity="few">\u2068%1$d\u2069 فروق</item>
+        <item quantity="many">\u2068%1$d\u2069 فرقًا</item>
+        <item quantity="other">\u2068%1$d\u2069 فرق</item>
+    </plurals>
+    <string name="inventory_detail_title">تفاصيل الجرد</string>
+    <string name="inventory_none_counted_detail">لا يوجد منتج معدود</string>
+    <string name="inventory_system_physical_colon">النظام: \u2068%1$s\u2069 ← الفعلي: \u2068%2$s\u2069</string>
+    <string name="inventory_summary_title">ملخص الجرد</string>
+    <string name="inventory_stat_total">إجمالي المنتجات المجرودة</string>
+    <string name="inventory_stat_gaps">الفروق المكتشفة</string>
+    <string name="inventory_stat_gaps_value">قيمة الفروق</string>
+    <string name="inventory_uncounted">منتجات غير مجرودة</string>
+    <plurals name="inventory_uncounted_body">
+        <item quantity="zero">\u2068%1$d\u2069 منتج في المخزون لم يُعَدّ. ماذا نفعل بمخزونها؟</item>
+        <item quantity="one">منتج واحد في المخزون لم يُعَدّ. ماذا نفعل بمخزونه؟</item>
+        <item quantity="two">منتجان في المخزون لم يُعَدّا. ماذا نفعل بمخزونهما؟</item>
+        <item quantity="few">\u2068%1$d\u2069 منتجات في المخزون لم تُعَدّ. ماذا نفعل بمخزونها؟</item>
+        <item quantity="many">\u2068%1$d\u2069 منتجًا في المخزون لم يُعَدّ. ماذا نفعل بمخزونها؟</item>
+        <item quantity="other">\u2068%1$d\u2069 منتج في المخزون لم يُعَدّ. ماذا نفعل بمخزونها؟</item>
+    </plurals>
+    <string name="inventory_zero">تصفير</string>
+    <string name="inventory_zero_detail">يصبح مخزونها في المستودع 0، ولا يتغير مخزون الشاحنات.</string>
+    <string name="inventory_keep">الإبقاء على المخزون الحالي</string>
+    <string name="inventory_keep_detail">لا يتغير مخزونها.</string>
+    <string name="inventory_completed">اكتمل الجرد بنجاح</string>
+    <plurals name="inventory_updated_zeroed">
+        <item quantity="zero">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتج</item>
+        <item quantity="one">تم تحديث المخزون · تصفير منتج واحد</item>
+        <item quantity="two">تم تحديث المخزون · تصفير منتجين</item>
+        <item quantity="few">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتجات</item>
+        <item quantity="many">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتجًا</item>
+        <item quantity="other">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتج</item>
+    </plurals>
+    <string name="inventory_updated">تم تحديث المخزون</string>
+    <string name="inventory_back_to_history">العودة إلى السجل</string>
+    <string name="inventory_confirm">تأكيد الجرد</string>
+    <string name="inventory_change_date">تغيير التاريخ</string>
+    <string name="inventory_date">التاريخ</string>
+    <string name="inventory_no_session">لا توجد جلسة جرد نشطة</string>
+    <string name="inventory_already_counted">« \u2068%1$s\u2069 » مجرود مسبقًا: صحّحه في « اختياراتي ».</string>
+</resources>

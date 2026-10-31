@@ -49,6 +49,8 @@ import androidx.compose.ui.text.style.TextAlign
 import com.distrigo.app.ui.common.MONEY_STAT_WEIGHT
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 @Composable
 fun RetourFournisseurListScreen(
@@ -102,15 +104,15 @@ fun RetourFournisseurListScreen(
         } else {
             Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title    = "Retours",
+                    title    = stringResource(R.string.common_label_returns),
                     licenseBanner = true,
-                    subtitle = "Historique des retours effectués",
+                    subtitle = stringResource(R.string.retours_history_subtitle),
                     leading  = DsTopBarLeading.Back(onBack)
                 ) {
                     // A 40dp pill, not a 48dp icon button, so it supplies the difference to
                     // the bar's standard end margin itself.
                     DsTopBarAddButton(
-                        contentDescription = "Nouveau retour",
+                        contentDescription = stringResource(R.string.retours_new),
                         onClick            = onAddRetour,
                         modifier           = Modifier.padding(end = DsSpacing.md)
                     )
@@ -122,9 +124,9 @@ fun RetourFournisseurListScreen(
                         .background(DsColors.Primary).padding(DsSpacing.lg),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    RetourStatColumn(value = "${retours.size}", label = "Retours", modifier = Modifier.weight(1f))
-                    RetourStatColumn(value = "$totalProduits", label = "Produits", modifier = Modifier.weight(1f))
-                    RetourStatColumn(value = money.da(retours.sumOf { it.total }), label = "Valeur totale", modifier = Modifier.weight(MONEY_STAT_WEIGHT))
+                    RetourStatColumn(value = "${retours.size}", label = stringResource(R.string.common_label_returns), modifier = Modifier.weight(1f))
+                    RetourStatColumn(value = "$totalProduits", label = stringResource(R.string.common_step_products), modifier = Modifier.weight(1f))
+                    RetourStatColumn(value = money.da(retours.sumOf { it.total }), label = stringResource(R.string.pertes_stat_value), modifier = Modifier.weight(MONEY_STAT_WEIGHT))
                 }
 
                 Spacer(Modifier.height(DsSpacing.md))
@@ -132,7 +134,7 @@ fun RetourFournisseurListScreen(
                 DsCompactSearchField(
                     value         = search,
                     onValueChange = { search = it },
-                    placeholder   = "Rechercher un retour",
+                    placeholder   = stringResource(R.string.retours_search),
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
 
@@ -143,7 +145,7 @@ fun RetourFournisseurListScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Inbox, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
                             Spacer(Modifier.height(DsSpacing.sm))
-                            Text("Aucun retour", color = DsColors.TextSecondary)
+                            Text(stringResource(R.string.clients_no_return), color = DsColors.TextSecondary)
                         }
                     }
                 } else {
@@ -188,7 +190,7 @@ fun RetourFournisseurRow(retour: RetourFournisseur, onClick: () -> Unit) {
             }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("Retour ${retour.numberLabel}", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                Text(stringResource(R.string.retours_number, retour.numberLabel), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                 Text(
                     "${formatOrderDate(retour.created_at)} · ${formatOrderTime(retour.created_at)}",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary
