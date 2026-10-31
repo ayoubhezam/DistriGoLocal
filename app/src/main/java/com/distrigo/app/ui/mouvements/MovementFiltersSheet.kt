@@ -317,4 +317,4 @@ private fun DayPickerDialog(day: String?, onPicked: (String) -> Unit, onDismiss:
 
 /** `2026-09-21` as `21/09/2026`, the way every other date on this screen reads. */
 private fun readableDay(day: String): String =
-    runCatching { LocalDate.parse(day).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) }.getOrDefault(day)
+    runCatching { LocalDate.parse(day).format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")) }.getOrDefault(day)

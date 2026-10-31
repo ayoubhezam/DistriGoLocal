@@ -36,6 +36,20 @@ class SharedTextToolsTest {
     }
 
     @Test
+    fun aNumericDateReadsDayFirstInArabic() {
+        val day = java.time.LocalDate.of(2026, 10, 29)
+        val arabic = java.util.Locale.forLanguageTag("ar-DZ-u-nu-latn")
+        val rlm = Char(0x200F)
+        // A right-to-left mark after each slash: the day on the right of an Arabic line
+        assertEquals("29/${rlm}10/${rlm}2026", day.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy", arabic)))
+        assertEquals("29/${rlm}10", day.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM", arabic)))
+        // French as before
+        assertEquals("29/10/2026", day.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy", java.util.Locale.FRENCH)))
+        assertEquals("2026-10-29", com.distrigo.app.core.format.AppDates.shownIsoDay("2026-10-29", java.util.Locale.FRENCH))
+        assertEquals("29/${rlm}10/${rlm}2026", com.distrigo.app.core.format.AppDates.shownIsoDay("2026-10-29", arabic))
+    }
+
+    @Test
     fun everyBuiltInHasItsTranslation() {
         assertEquals(emptyList<String>(), BuiltInNames.untranslatedTypes())
         // 5 client motifs and 7 supplier ones, « Autre » in both

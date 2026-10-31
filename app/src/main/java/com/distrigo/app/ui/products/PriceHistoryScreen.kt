@@ -381,7 +381,7 @@ private fun MovementRow(movement: PriceMovement) {
             Row {
                 Text(stringResource(movement.kind.label), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = colour)
                 Text(
-                    " · ${DateTimeFormatter.ofPattern("dd/MM/yyyy").format(movement.day())} · qté ${formatQty(movement.quantity)}",
+                    " · ${com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy").format(movement.day())} · qté ${formatQty(movement.quantity)}",
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }

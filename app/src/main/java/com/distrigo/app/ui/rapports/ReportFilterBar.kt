@@ -56,8 +56,8 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
 
-private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-private val DAY_SHORT = DateTimeFormatter.ofPattern("dd/MM")
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
+private val DAY_SHORT: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
 
 /** The days a filter covers as of [today], as `01/10 – 02/10/2026`, or one date for a single day. */
 fun ReportFilter.daysText(today: LocalDate = LocalDate.now()): String {

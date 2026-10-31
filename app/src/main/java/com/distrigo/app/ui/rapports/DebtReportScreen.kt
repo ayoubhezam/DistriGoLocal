@@ -70,7 +70,7 @@ private val AgeColors = mapOf(
     AgeBand.OLD to DsColors.Danger,
 )
 
-private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 
 /** How many debtors the report itself lists, the biggest first. */
 private const val TOP_DEBTORS = 5

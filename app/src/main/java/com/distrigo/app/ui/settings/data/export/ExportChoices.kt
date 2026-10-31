@@ -19,7 +19,7 @@ enum class PeriodPreset(@androidx.annotation.StringRes val label: Int) {
 /** What the export screen works out from the user's choices: the period, how it reads, and the file's name and type. */
 object ExportChoices {
 
-    private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 
     /** The local days [preset] covers on [today]; [from] and [to] are used only by [PeriodPreset.CUSTOM]. */
     fun period(preset: PeriodPreset, today: LocalDate, from: LocalDate? = null, to: LocalDate? = null): ExportPeriod = when (preset) {

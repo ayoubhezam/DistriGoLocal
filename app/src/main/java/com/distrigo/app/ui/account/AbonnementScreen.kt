@@ -278,8 +278,8 @@ private fun Paragraph(text: String) {
 private fun date(millis: Long): String = DAY_YEAR.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 private fun dayMonth(millis: Long): String = DAY_MONTH.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
-private val DAY_YEAR = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-private val DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM")
+private val DAY_YEAR: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
+private val DAY_MONTH: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
 
 private const val SUPPORT_PHONE = "0697875799"
 private const val SUPPORT_WHATSAPP = "https://wa.me/213697875799"

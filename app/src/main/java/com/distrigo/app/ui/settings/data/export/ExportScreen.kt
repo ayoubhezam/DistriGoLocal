@@ -275,4 +275,4 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     }
 }
 
-private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")

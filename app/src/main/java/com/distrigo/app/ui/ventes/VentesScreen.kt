@@ -870,7 +870,7 @@ fun VenteDetailScreen(
                             Spacer(Modifier.width(DsSpacing.md))
                             Column {
                                 Text(displayVente.client_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                Text(BusinessDates.localDay(displayVente.created_at), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(com.distrigo.app.core.format.AppDates.shownIsoDay(BusinessDates.localDay(displayVente.created_at)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                         }
 

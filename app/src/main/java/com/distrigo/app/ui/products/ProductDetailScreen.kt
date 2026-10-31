@@ -516,38 +516,8 @@ private fun ProductInfoCard(product: Product) {
         InfoLine(Icons.Default.LocalOffer, "Catégorie") { InfoValue(product.category_name) }
         InfoLine(Icons.Default.GridView, "Sous-catégorie") { InfoValue(product.sous_categorie_name) }
         InfoLine(Icons.Default.WorkspacePremium, "Marque") { InfoValue(product.marque_name) }
-        InfoLine(Icons.Default.QrCode, if (product.barcodes.size > 1) "Codes-barres" else "Code-barres") {
-            if (product.barcodes.isEmpty()) {
-                InfoValue(null)
-            } else {
-                // The primary first and marked, the others under it.
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    product.barcodes.forEachIndexed { index, code ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (index == 0 && product.barcodes.size > 1) {
-                                Text(
-                                    "Principal",
-                                    fontSize   = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color      = DsColors.Primary,
-                                    modifier   = Modifier
-                                        .clip(DsShapes.pill)
-                                        .background(DsColors.PrimaryLight)
-                                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                            }
-                            Text(
-                                code,
-                                fontSize   = DsTextSize.body,
-                                fontWeight = if (index == 0) FontWeight.SemiBold else FontWeight.Normal,
-                                color      = if (index == 0) DsColors.TextPrimary else DsColors.TextSecondary
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        // The main code only (the owner, 2026-10-29): the others still scan and search, they are not listed here.
+        InfoLine(Icons.Default.QrCode, "Code-barres") { InfoValue(product.barcodes.firstOrNull()) }
 
         Spacer(Modifier.height(DsSpacing.sm))
         Column(
@@ -873,7 +843,7 @@ private data class Trend(val tint: Color, val background: Color, val icon: Image
 /** A stored instant or calendar date as the local day, `dd/MM/yyyy`. */
 private fun displayDay(value: String?): String {
     val day = BusinessDates.localDay(value)
-    return runCatching { LocalDate.parse(day).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) }.getOrDefault(day)
+    return runCatching { LocalDate.parse(day).format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")) }.getOrDefault(day)
 }
 
 // ── Pluriel simple : 0 et 1 restent au singulier (règle du français) ──

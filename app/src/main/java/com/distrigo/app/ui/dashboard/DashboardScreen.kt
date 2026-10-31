@@ -595,7 +595,7 @@ private fun HeroGoal(goal: GoalProgress, onClick: () -> Unit) {
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "${money.amount(goal.value)} / ${money.da(target.threshold)}", fontSize = DsTextSize.bodySmall,
+                stringResource(R.string.dashboard_goal_progress, money.amount(goal.value), money.da(target.threshold)), fontSize = DsTextSize.bodySmall,
                 fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )

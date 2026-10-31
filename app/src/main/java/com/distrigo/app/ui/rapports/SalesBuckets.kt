@@ -25,7 +25,7 @@ data class SalesBucket(
 const val MAX_DAILY_BUCKETS = 62
 
 private val FR = Locale.FRENCH
-private val DAY_LABEL = DateTimeFormatter.ofPattern("dd/MM", FR)
+private val DAY_LABEL: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
 private val DAY_TITLE = DateTimeFormatter.ofPattern("EEE dd/MM/yyyy", FR)
 private val MONTH_LABEL = DateTimeFormatter.ofPattern("MMM", FR)
 private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", FR)

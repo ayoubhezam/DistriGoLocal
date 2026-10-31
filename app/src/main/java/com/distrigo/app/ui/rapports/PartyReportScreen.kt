@@ -70,7 +70,7 @@ private const val TOP_PARTIES = 10
 private const val TOP_SHARE = 5
 
 private val ShareColors = listOf(DsColors.Primary, DsColors.AccentTeal, DsColors.Warning, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
-private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 
 /** The words that change with the side, and what each figure means — for its ⓘ. */
 private class PartyWords(

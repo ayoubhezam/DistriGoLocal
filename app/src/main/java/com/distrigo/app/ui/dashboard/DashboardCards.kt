@@ -64,7 +64,7 @@ import com.distrigo.app.R
 
 @Composable
 private fun infoTournee() = ReportInfo(stringResource(R.string.dashboard_tournee_title), stringResource(R.string.dashboard_tournee_info))
-private val DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM")
+private val DAY_MONTH: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 
 // ── Tournée du jour (Part 1 §6–7) ──

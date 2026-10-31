@@ -67,7 +67,7 @@ private const val TOP_LOST = 5
 private const val TOP_RESTOCK = 5
 
 private val LossColors = listOf(DsColors.Danger, DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.TextTertiary)
-private val DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 
 private val INFO_VALUE = ReportInfo("Valeur du stock", "Valeur du stock = Stock × Prix d'achat actuel, aujourd'hui\nUn stock sous zéro compte pour 0.")
 private val INFO_OUT = ReportInfo("Ruptures", "Ruptures = produits suivis avec stock ≤ 0\nSuivis : avec un minimum, ou déjà en stock.")

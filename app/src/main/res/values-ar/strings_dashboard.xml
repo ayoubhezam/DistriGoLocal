@@ -50,4 +50,5 @@
     <string name="dashboard_sale_depot">بيع من المستودع</string>
     <string name="dashboard_sale_tournee">بيع في الجولة</string>
     <string name="dashboard_cd_sale_tournee">بيع في الجولة — \u2068%1$s\u2069</string>
+    <string name="dashboard_goal_progress">\u200F\u2068%1$s\u2069 / \u2068%2$s\u2069</string>
 </resources>

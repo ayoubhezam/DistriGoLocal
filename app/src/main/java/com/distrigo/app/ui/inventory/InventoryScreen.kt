@@ -218,7 +218,7 @@ internal fun InventoryDateField(date: LocalDate, enabled: Boolean, onDateChange:
         Text("Date", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
-            if (date == today) "Aujourd'hui" else date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+            if (date == today) "Aujourd'hui" else date.format(com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
         )
         if (enabled) Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = DsColors.TextSecondary)
