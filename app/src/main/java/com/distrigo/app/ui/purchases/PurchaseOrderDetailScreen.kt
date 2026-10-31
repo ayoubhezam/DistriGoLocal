@@ -39,7 +39,10 @@ import androidx.compose.ui.unit.sp
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 @Composable
 fun PurchaseOrderDetailScreen(
     order      : PurchaseOrder,
@@ -60,6 +63,8 @@ fun PurchaseOrderDetailScreen(
     // `order` is the correct bon from the list, so the fallback is always right.
     val displayOrder  = selectedOrder?.takeIf { it.id == order.id } ?: order
     val isReceived    = displayOrder.status == "received"
+    val reopenFailed  = stringResource(R.string.purchases_reopen_failed)
+    val receiveFailed = stringResource(R.string.purchases_receive_failed)
     var isLoading     by remember { mutableStateOf(false) }
     var showReceiveDialog by remember { mutableStateOf(false) }
     var showReopenDialog  by remember { mutableStateOf(false) }
@@ -92,10 +97,10 @@ fun PurchaseOrderDetailScreen(
     if (showReopenDialog) {
         AlertDialog(
             onDismissRequest = { showReopenDialog = false },
-            title = { Text("Rouvrir le bon ?") },
+            title = { Text(stringResource(R.string.purchases_reopen_title)) },
             text  = {
                 Text(
-                    "Ce bon a déjà été reçu. Le rouvrir annulera la mise à jour du stock. Voulez-vous continuer ?",
+                    stringResource(R.string.purchases_reopen_body),
                     fontSize = DsTextSize.bodySmall
                 )
             },
@@ -111,11 +116,11 @@ fun PurchaseOrderDetailScreen(
                         },
                         onError   = { error ->
                             isLoading = false
-                            actionError = "Impossible de rouvrir le bon" to error
+                            actionError = reopenFailed to error
                         }
                     )
                 }) {
-                    Text("Rouvrir", color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.purchases_reopen), color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -132,10 +137,10 @@ fun PurchaseOrderDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false; deleteError = "" },
-            title = { Text("Supprimer le bon ?") },
+            title = { Text(stringResource(R.string.purchases_delete_title)) },
             text  = {
                 Column {
-                    Text("Voulez-vous supprimer ${displayOrder.numberLabel} ?")
+                    Text(stringResource(R.string.purchases_delete_body_short, displayOrder.numberLabel))
                     if (deleteError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -210,7 +215,7 @@ fun PurchaseOrderDetailScreen(
                     .padding(horizontal = DsSpacing.sm, vertical = 4.dp)
             ) {
                 Text(
-                    if (isReceived) "Reçu" else "En attente",
+                    stringResource(if (isReceived) R.string.purchases_status_received else R.string.purchases_status_pending),
                     fontSize   = DsTextSize.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color      = if (isReceived) DsColors.TextSecondary else DsColors.Warning
@@ -220,7 +225,7 @@ fun PurchaseOrderDetailScreen(
 
             Box {
                 IconButton(onClick = { overflowMenuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_cd_options))
                 }
                 DropdownMenu(
                     expanded = overflowMenuExpanded,
@@ -228,7 +233,7 @@ fun PurchaseOrderDetailScreen(
                 ) {
                     if (isReceived) {
                         DropdownMenuItem(
-                            text = { Text("Rouvrir le bon", color = DsColors.Warning) },
+                            text = { Text(stringResource(R.string.purchases_reopen_order), color = DsColors.Warning) },
                             leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Warning) },
                             onClick = {
                                 overflowMenuExpanded = false
@@ -283,7 +288,7 @@ fun PurchaseOrderDetailScreen(
                             Spacer(Modifier.width(DsSpacing.md))
                             Column {
                                 Text(displayOrder.supplier_name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
-                                Text(displayOrder.date, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(com.distrigo.app.core.format.AppDates.shownIsoDay(displayOrder.date), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                         }
 
@@ -292,7 +297,7 @@ fun PurchaseOrderDetailScreen(
                         Spacer(Modifier.height(DsSpacing.md))
 
                         Text(
-                            "ARTICLES (${displayOrder.items?.size ?: 0})",
+                            (displayOrder.items?.size ?: 0).let { n -> pluralStringResource(R.plurals.ventes_detail_items, n, n) },
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.Bold,
                             color      = DsColors.TextSecondary,
@@ -321,7 +326,7 @@ fun PurchaseOrderDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(item.product_name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                         Text(
-                                            "${formatQty(item.quantity)} ${item.unit_type} × ${money.da(item.unit_cost)}",
+                                            stringResource(R.string.common_qty_times_price, quantityText(item.quantity, item.unit_type).asString(), money.da(item.unit_cost)),
                                             fontSize = DsTextSize.caption,
                                             color    = DsColors.TextSecondary
                                         )
@@ -349,7 +354,7 @@ fun PurchaseOrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("TOTAL", fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
+                            Text(stringResource(R.string.ventes_detail_total), fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = if (isReceived) DsColors.TextPrimary else DsColors.Primary, letterSpacing = 1.sp)
                             Text(money.da(displayOrder.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
                         }
 
@@ -364,7 +369,7 @@ fun PurchaseOrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Montant payé", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text(stringResource(R.string.ventes_amount_paid), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                             Text(money.da(montantPaye), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
 
@@ -426,7 +431,7 @@ fun PurchaseOrderDetailScreen(
                 Icon(Icons.Default.Print, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Aperçu & Imprimer",
+                    stringResource(R.string.common_action_preview_print),
                     fontSize   = DsTextSize.bodySmall,
                     color      = DsColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
@@ -447,7 +452,7 @@ fun PurchaseOrderDetailScreen(
                 Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.TextPrimary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Partager",
+                    stringResource(R.string.common_action_share),
                     fontSize   = DsTextSize.bodySmall,
                     color      = DsColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
@@ -473,7 +478,7 @@ fun PurchaseOrderDetailScreen(
                 } else {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Marquer comme reçu", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.purchases_mark_received), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             }
         } else {
@@ -486,18 +491,18 @@ fun PurchaseOrderDetailScreen(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Achat finalisé et enregistré", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.purchases_finalized), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             }
         }
 
         if (showReceiveDialog) {
             AlertDialog(
                 onDismissRequest = { showReceiveDialog = false },
-                title = { Text("Confirmer la réception", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.purchases_confirm_receive_title), fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
                         Text(
-                            "Le stock du dépôt sera mis à jour pour tous les articles de ce bon.",
+                            stringResource(R.string.purchases_confirm_receive_body),
                             fontSize = DsTextSize.bodySmall,
                             color = DsColors.TextSecondary
                         )
@@ -515,7 +520,7 @@ fun PurchaseOrderDetailScreen(
                                 },
                                 onError   = { error ->
                                     isLoading = false
-                                    actionError = "Impossible de recevoir le bon" to error
+                                    actionError = receiveFailed to error
                                 }
                             )
                         },

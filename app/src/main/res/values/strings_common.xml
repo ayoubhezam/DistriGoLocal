@@ -332,4 +332,6 @@
         <item quantity="other">kg</item>
     </plurals>
     <string name="common_kind_loading">Chargement</string>
+    <string name="common_date_from">Du</string>
+    <string name="common_date_to">Au</string>
 </resources>

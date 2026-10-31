@@ -39,7 +39,10 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.common.avatarColor
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 data class CartItem(
     val product       : Product,
@@ -88,7 +91,7 @@ internal fun Step1Fournisseur(
             Spacer(Modifier.height(DsSpacing.xl))
 
             Text(
-                "Choisir un fournisseur",
+                stringResource(R.string.purchases_choose_supplier),
                 fontSize   = DsTextSize.title,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.PrimaryDark,
@@ -98,7 +101,7 @@ internal fun Step1Fournisseur(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                "Sélectionnez le fournisseur avant d'ajouter des produits",
+                stringResource(R.string.purchases_choose_supplier_hint),
                 fontSize  = DsTextSize.bodySmall,
                 color     = DsColors.TextSecondary,
                 textAlign = TextAlign.Center
@@ -115,7 +118,7 @@ internal fun Step1Fournisseur(
                 ) {
                     Icon(Icons.Default.Business, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Choisir un fournisseur", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.purchases_choose_supplier), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             } else {
                 // ── Selected supplier card ──
@@ -142,7 +145,7 @@ internal fun Step1Fournisseur(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(selectedSupplier.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                                 Text(
-                                    "Solde : ${money.da(selectedSupplier.balance)}",
+                                    stringResource(R.string.common_balance_value, money.da(selectedSupplier.balance)),
                                     fontSize = DsTextSize.bodySmall,
                                     color    = if (Amount.owing(selectedSupplier.balance)) DsColors.Danger else DsColors.TextSecondary
                                 )
@@ -249,7 +252,7 @@ internal fun Step3Validation(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(selectedSupplier?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
-                                "Solde du fournisseur : ${money.da(selectedSupplier?.balance ?: 0.0)}",
+                                stringResource(R.string.purchases_supplier_balance, money.da(selectedSupplier?.balance ?: 0.0)),
                                 fontSize = DsTextSize.bodySmall,
                                 color    = if (Amount.owing(selectedSupplier?.balance ?: 0.0)) DsColors.Danger else DsColors.TextSecondary
                             )
@@ -257,7 +260,7 @@ internal fun Step3Validation(
                     }
 
                     Text(
-                        "Articles (${cartItems.size})",
+                        pluralStringResource(R.plurals.common_items_count, cartItems.size, cartItems.size),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary,
@@ -267,9 +270,9 @@ internal fun Step3Validation(
                     // Articles (read-only)
                     cartItems.forEach { item ->
                         val quantityLine = if (item.product.unit_type == "pièce")
-                            "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
+                            stringResource(R.string.purchases_cart_colis_meta, formatQty(item.nbColis), item.uniteParColis, quantityText(item.quantity, item.product.unit_type).asString())
                         else
-                            "${formatQty(item.quantity)} ${ProductUnit.plural(item.product.unit_type, item.quantity)}"
+                            quantityText(item.quantity, item.product.unit_type).asString()
 
                         Row(
                             modifier          = Modifier
@@ -295,7 +298,7 @@ internal fun Step3Validation(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
                                 Text(quantityLine, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                Text("${money.da(item.unitCost)}/u", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(stringResource(R.string.purchases_unit_price, money.da(item.unitCost)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                             Spacer(Modifier.width(DsSpacing.sm))
                             Text(
@@ -338,7 +341,7 @@ internal fun Step3Validation(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Montant payé (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                        Text(stringResource(R.string.common_amount_paid_da), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         TextButton(
                             // Locale.ROOT: this string goes straight into the field that is read
                             // back with String.toDoubleOrNull(), which accepts only a '.' decimal
@@ -346,7 +349,7 @@ internal fun Step3Validation(
                             // "2880,00", which parses as 0 — "Tout réglé" would record nothing paid.
                             onClick = { onMontantPayeChange(String.format(Locale.ROOT, "%.2f", total)) }
                         ) {
-                            Text("Tout réglé", fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_settled_all), fontSize = DsTextSize.bodySmall, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                     Spacer(Modifier.height(6.dp))
@@ -388,14 +391,14 @@ internal fun Step3Validation(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Statut", fontSize = DsTextSize.bodySmall, color = DsColors.Success)
+                            Text(stringResource(R.string.common_label_status), fontSize = DsTextSize.bodySmall, color = DsColors.Success)
                             Box(
                                 modifier = Modifier
                                     .clip(DsShapes.pill)
                                     .background(DsColors.SuccessLight)
                                     .padding(horizontal = DsSpacing.sm, vertical = 3.dp)
                             ) {
-                                Text("Réglé ✓", fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.common_settled_check), fontSize = DsTextSize.bodySmall, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -425,16 +428,14 @@ internal fun Step3Validation(
         // and no account of why — the one thing the user needed in order to act.
         if (hasMissingProducts) {
             CartBlockingBanner(
-                text        = "Un produit de ce bon n'existe plus dans le catalogue. " +
-                              "Retirez sa ligne de la sélection pour pouvoir enregistrer.",
-                actionLabel = "Corriger",
+                text        = stringResource(R.string.purchases_banner_missing_product),
+                actionLabel = stringResource(R.string.common_action_fix),
                 onAction    = onFixMissing
             )
         } else if (fractionalPieces != null) {
             CartBlockingBanner(
-                text        = "« $fractionalPieces » se compte à la pièce : ses colis doivent donner " +
-                              "un nombre entier de pièces.",
-                actionLabel = "Corriger",
+                text        = stringResource(R.string.purchases_banner_fractional_pieces, fractionalPieces),
+                actionLabel = stringResource(R.string.common_action_fix),
                 onAction    = onFixMissing
             )
         }
@@ -459,8 +460,8 @@ internal fun Step3Validation(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
-                    if (isEdit) "Enregistrer · ${money.da(total)}"
-                    else        "Confirmer · ${money.da(total)}",
+                    if (isEdit) stringResource(R.string.purchases_save_amount, money.da(total))
+                    else        stringResource(R.string.common_confirm_amount, money.da(total)),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }

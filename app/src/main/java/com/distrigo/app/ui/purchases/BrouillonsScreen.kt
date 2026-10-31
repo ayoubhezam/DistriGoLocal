@@ -41,6 +41,7 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /** What a draft reports to the filter. */
 private fun PurchaseDraft.filterFacts() = DraftFilterFacts(
@@ -113,15 +114,15 @@ fun BrouillonsScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         if (selecting) {
             DsTopAppBar(
-                title    = "${effectiveSel.size} sélectionné${if (effectiveSel.size > 1) "s" else ""}",
-                subtitle = "sur ${shown.size}",
+                title    = pluralStringResource(R.plurals.common_selected_count, effectiveSel.size, effectiveSel.size),
+                subtitle = stringResource(R.string.common_of_total, shown.size),
                 leading  = DsTopBarLeading.Close { exitSelection() }
             )
         } else {
             DsTopAppBar(
-                title    = "Brouillons",
-                subtitle = if (drafts.isEmpty()) "Aucun brouillon"
-                           else "${drafts.size} ${if (drafts.size == 1) "brouillon" else "brouillons"}",
+                title    = stringResource(R.string.common_drafts),
+                subtitle = if (drafts.isEmpty()) stringResource(R.string.common_drafts_none)
+                           else pluralStringResource(R.plurals.common_drafts_n, drafts.size, drafts.size),
                 leading  = DsTopBarLeading.Back(onBack)
             )
         }
@@ -277,21 +278,21 @@ private fun NoDraftsMatchFilter(modifier: Modifier = Modifier, onClear: () -> Un
         }
         Spacer(Modifier.height(DsSpacing.lg))
         Text(
-            "Aucun résultat",
+            stringResource(R.string.common_no_result),
             fontSize   = DsTextSize.title,
             fontWeight = FontWeight.Bold,
             color      = DsColors.PrimaryDark
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Aucun brouillon ne correspond à ces filtres.",
+            stringResource(R.string.common_drafts_no_match),
             fontSize  = DsTextSize.bodySmall,
             color     = DsColors.TextSecondary,
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(DsSpacing.md))
         TextButton(onClick = onClear) {
-            Text("Réinitialiser les filtres", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_reset_filters), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -316,14 +317,14 @@ private fun EmptyBrouillons(modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(DsSpacing.lg))
         Text(
-            "Aucun brouillon",
+            stringResource(R.string.common_drafts_none),
             fontSize   = DsTextSize.title,
             fontWeight = FontWeight.Bold,
             color      = DsColors.PrimaryDark
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Un bon non terminé est enregistré ici automatiquement, et vous pouvez le reprendre quand vous voulez.",
+            stringResource(R.string.purchases_drafts_empty_body),
             fontSize  = DsTextSize.bodySmall,
             color     = DsColors.TextSecondary,
             textAlign = TextAlign.Center

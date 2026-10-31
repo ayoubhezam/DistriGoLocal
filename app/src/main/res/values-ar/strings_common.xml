@@ -407,4 +407,6 @@
         <item quantity="other">كغ</item>
     </plurals>
     <string name="common_kind_loading">تحميل</string>
+    <string name="common_date_from">من</string>
+    <string name="common_date_to">إلى</string>
 </resources>

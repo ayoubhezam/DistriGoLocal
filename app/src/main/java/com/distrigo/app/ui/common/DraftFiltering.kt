@@ -208,7 +208,7 @@ fun DraftFilterBar(
         Spacer(Modifier.weight(1f))
 
         Text(
-            "Sélectionner",
+            stringResource(R.string.common_action_select),
             fontSize   = DsTextSize.caption,
             fontWeight = FontWeight.SemiBold,
             color      = DsColors.Primary,

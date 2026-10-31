@@ -55,7 +55,7 @@ internal fun PurchaseProductFilterSheet(
     resultCount    : Int,
     onChange       : (ProductListFilters) -> Unit,
     onDismiss      : () -> Unit,
-    priceLabel     : String = "Prix d'achat",
+    priceLabel     : String = stringResource(R.string.common_label_purchase_price),
     showStockLevel : Boolean = true,
 ) {
     ModalBottomSheet(
@@ -81,8 +81,8 @@ internal fun PurchaseProductFilterSheet(
             Spacer(Modifier.height(DsSpacing.sm))
 
             FilterDropdown(
-                label    = "Catégorie",
-                allLabel = "Toutes les catégories",
+                label    = stringResource(R.string.common_label_category),
+                allLabel = stringResource(R.string.products_all_categories),
                 options  = categories,
                 selected = filters.categoryId,
                 keyOf    = { it.id },
@@ -94,8 +94,8 @@ internal fun PurchaseProductFilterSheet(
             )
 
             FilterDropdown(
-                label    = "Sous-catégorie",
-                allLabel = "Toutes les sous-catégories",
+                label    = stringResource(R.string.products_label_subcategory),
+                allLabel = stringResource(R.string.products_all_subcategories),
                 options  = sousCategories.filter { it.category_id == filters.categoryId },
                 selected = filters.sousCategorieId,
                 keyOf    = { it.id },
@@ -105,8 +105,8 @@ internal fun PurchaseProductFilterSheet(
             )
 
             FilterDropdown(
-                label    = "Marque",
-                allLabel = "Toutes les marques",
+                label    = stringResource(R.string.common_label_brand),
+                allLabel = stringResource(R.string.products_all_brands),
                 options  = marques,
                 selected = filters.marqueId,
                 keyOf    = { it.id },
@@ -115,8 +115,8 @@ internal fun PurchaseProductFilterSheet(
             )
 
             FilterDropdown(
-                label    = "Fournisseur du produit",
-                allLabel = "Tous les fournisseurs",
+                label    = stringResource(R.string.purchases_filter_product_supplier),
+                allLabel = stringResource(R.string.common_all_suppliers),
                 options  = suppliers,
                 selected = filters.supplierId,
                 keyOf    = { it.id },
@@ -124,9 +124,9 @@ internal fun PurchaseProductFilterSheet(
                 onSelect = { id -> onChange(filters.copy(supplierId = id)) }
             )
 
-            Text("Unité de stockage", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text(stringResource(R.string.products_form_storage_unit), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                (listOf<Pair<String?, String>>(null to "Toutes") + ProductUnit.ALL.map { it to ProductUnit.label(it) }).forEach { (value, label) ->
+                (listOf<Pair<String?, String>>(null to stringResource(R.string.common_filter_all_f)) + ProductUnit.ALL.map { it to stringResource(ProductUnit.labelRes(it)) }).forEach { (value, label) ->
                     val active = filters.unitType == value
                     Box(
                         modifier = Modifier
@@ -151,9 +151,9 @@ internal fun PurchaseProductFilterSheet(
 
             if (showStockLevel) {
                 FilterDropdown(
-                    label    = "Niveau de stock",
-                    allLabel = "Tous",
-                    options  = listOf("in_stock" to "En stock", "low_stock" to "Stock faible", "out_of_stock" to "Rupture de stock"),
+                    label    = stringResource(R.string.products_filter_stock_level),
+                    allLabel = stringResource(R.string.common_filter_all),
+                    options  = listOf("in_stock" to stringResource(R.string.common_stock_in), "low_stock" to stringResource(R.string.common_stock_low), "out_of_stock" to stringResource(R.string.common_stock_out)),
                     selected = filters.stockLevel,
                     keyOf    = { it.first },
                     nameOf   = { it.second },
@@ -161,17 +161,17 @@ internal fun PurchaseProductFilterSheet(
                 )
             }
 
-            Text("$priceLabel (DA)", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text(stringResource(R.string.purchases_filter_price_da, priceLabel), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 PriceBoundField(
                     value         = filters.priceMin,
-                    placeholder   = "Min",
+                    placeholder   = stringResource(R.string.products_filter_min),
                     onValueChange = { onChange(filters.copy(priceMin = it)) },
                     modifier      = Modifier.weight(1f)
                 )
                 PriceBoundField(
                     value         = filters.priceMax,
-                    placeholder   = "Max",
+                    placeholder   = stringResource(R.string.products_filter_max),
                     onValueChange = { onChange(filters.copy(priceMax = it)) },
                     modifier      = Modifier.weight(1f)
                 )
@@ -184,8 +184,8 @@ internal fun PurchaseProductFilterSheet(
                 verticalAlignment     = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bientôt périmé", fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
-                    Text("Produits expirant dans les 30 prochains jours", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Text(stringResource(R.string.products_filter_expiring), fontWeight = FontWeight.SemiBold, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                    Text(stringResource(R.string.products_filter_expiring_hint), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 }
                 Switch(
                     checked         = filters.expiringSoon,
@@ -212,7 +212,7 @@ internal fun PurchaseProductFilterSheet(
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.common_action_apply_count, resultCount), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                 }
             }
         }

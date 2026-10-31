@@ -351,7 +351,7 @@ fun VentesScreen(
                         value         = viewModel.filterDateFrom ?: "",
                         onValueChange = {},
                         readOnly      = true,
-                        placeholder   = { Text("Du", fontSize = DsTextSize.bodySmall) },
+                        placeholder   = { Text(stringResource(R.string.common_date_from), fontSize = DsTextSize.bodySmall) },
                         trailingIcon  = {
                             Icon(
                                 Icons.Default.CalendarMonth,
@@ -375,7 +375,7 @@ fun VentesScreen(
                         value         = viewModel.filterDateTo ?: "",
                         onValueChange = {},
                         readOnly      = true,
-                        placeholder   = { Text("Au", fontSize = DsTextSize.bodySmall) },
+                        placeholder   = { Text(stringResource(R.string.common_date_to), fontSize = DsTextSize.bodySmall) },
                         trailingIcon  = {
                             Icon(
                                 Icons.Default.CalendarMonth,

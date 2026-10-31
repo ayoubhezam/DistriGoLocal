@@ -92,6 +92,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 
 // The compact header shared by steps 1/2/3 in the original monolithic PurchaseFormScreen
@@ -107,8 +109,8 @@ private fun PurchaseFormHeader(
     onBackClick  : () -> Unit
 ) {
     DsTopAppBar(
-        title         = if (isEdit) (orderLabel?.let { "Modifier $it" } ?: "Modifier le bon") else "Nouveau bon",
-        subtitle      = supplierName ?: "Choisir un fournisseur",
+        title         = if (isEdit) (orderLabel?.let { stringResource(R.string.purchases_edit_title_with_label, it) } ?: stringResource(R.string.purchases_edit_title)) else stringResource(R.string.purchases_new_title),
+        subtitle      = supplierName ?: stringResource(R.string.purchases_choose_supplier),
         // Blue once a supplier is chosen, grey while the step is still open.
         subtitleColor = if (supplierName != null) DsColors.Primary else DsColors.TextSecondary,
         leading       = DsTopBarLeading.Back(onBackClick)
@@ -267,7 +269,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
-                    stepLabel    = "Fournisseur",
+                    stepLabel    = stringResource(R.string.common_label_supplier),
                     currentStep  = 1,
                     onBackClick  = onBack
                 )
@@ -307,13 +309,13 @@ fun NavGraphBuilder.purchaseFormGraph(
             if (showAddSupplierDialog) {
                 AlertDialog(
                     onDismissRequest = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" },
-                    title = { Text("Nouveau fournisseur") },
+                    title = { Text(stringResource(R.string.products_form_new_supplier)) },
                     text  = {
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                             OutlinedTextField(
                                 value         = newSupplierName,
                                 onValueChange = { newSupplierName = it },
-                                placeholder   = { Text("Nom du fournisseur *") },
+                                placeholder   = { Text(stringResource(R.string.purchases_supplier_name_required)) },
                                 singleLine    = true,
                                 shape         = DsShapes.medium,
                                 modifier      = Modifier.fillMaxWidth(),
@@ -325,7 +327,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             OutlinedTextField(
                                 value         = newSupplierPhone,
                                 onValueChange = { newSupplierPhone = westernDigits(it) },
-                                placeholder   = { Text("Téléphone (optionnel)") },
+                                placeholder   = { Text(stringResource(R.string.purchases_phone_optional)) },
                                 singleLine    = true,
                                 shape         = DsShapes.medium,
                                 modifier      = Modifier.fillMaxWidth(),
@@ -378,11 +380,11 @@ fun NavGraphBuilder.purchaseFormGraph(
                     .background(DsColors.SurfaceMuted)
             ) {
                 DsTopAppBar(
-                    title   = "Choisir un fournisseur",
+                    title   = stringResource(R.string.purchases_choose_supplier),
                     leading = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     DsTopBarAddButton(
-                        contentDescription = "Nouveau fournisseur",
+                        contentDescription = stringResource(R.string.products_form_new_supplier),
                         onClick            = { showAddSupplierDialog = true },
                         containerColor     = DsColors.PrimaryDark,
                         modifier           = Modifier.padding(end = DsSpacing.md)
@@ -391,7 +393,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                 DsCompactSearchField(
                     value         = supplierSearch,
                     onValueChange = { supplierSearch = it },
-                    placeholder   = "Rechercher un fournisseur",
+                    placeholder   = stringResource(R.string.purchases_search_supplier),
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
@@ -546,7 +548,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
-                    stepLabel    = "Produits",
+                    stepLabel    = stringResource(R.string.common_step_products),
                     currentStep  = 2,
                     onBackClick  = { if (supplierIdArg != null) onBack() else navController.popBackStack() }
                 )
@@ -559,7 +561,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     DsCompactSearchField(
                         value         = search,
                         onValueChange = { session.productSearch = it },
-                        placeholder   = "Rechercher un produit",
+                        placeholder   = stringResource(R.string.common_search_product),
                         modifier      = Modifier
                             .padding(horizontal = DsSpacing.lg)
                             .padding(top = DsSpacing.md)
@@ -583,7 +585,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         Spacer(Modifier.width(DsSpacing.sm))
                         Step2Chip(
                             icon      = Icons.Default.Add,
-                            label     = "Nouveau produit",
+                            label     = stringResource(R.string.products_form_new_title),
                             container = DsColors.PrimaryDark,
                             content   = Color.White,
                             onClick   = { showAddProductScreen = true }
@@ -675,7 +677,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             color    = DsColors.TextSecondary
                                         )
                                         Text(
-                                            "Stock : ${formatQty(product.stock)} ${product.unit_type}",
+                                            stringResource(R.string.purchases_stock_line, quantityText(product.stock, product.unit_type).asString()),
                                             fontSize = DsTextSize.caption,
                                             color    = if (isLow) DsColors.Danger else DsColors.TextSecondary
                                         )
@@ -691,14 +693,14 @@ fun NavGraphBuilder.purchaseFormGraph(
                                             },
                                             modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
                                         ) {
-                                            Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = Color.White, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.AddShoppingCart, contentDescription = stringResource(R.string.common_cd_add_to_cart), tint = Color.White, modifier = Modifier.size(20.dp))
                                         }
                                     } else {
                                         IconButton(
                                             onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                             modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                         ) {
-                                            Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_cd_added), tint = DsColors.Success, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 }
@@ -714,12 +716,12 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     modifier            = Modifier.fillMaxWidth().padding(top = DsSpacing.xxl),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("Aucun produit ne correspond", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                                    Text(stringResource(R.string.purchases_no_product_match), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                                     TextButton(onClick = {
                                         session.productSearch  = ""
                                         session.productFilters = ProductListFilters()
                                     }) {
-                                        Text("Effacer la recherche et les filtres", color = DsColors.Primary, fontSize = DsTextSize.bodySmall)
+                                        Text(stringResource(R.string.purchases_clear_search_filters), color = DsColors.Primary, fontSize = DsTextSize.bodySmall)
                                     }
                                 }
                             }
@@ -752,7 +754,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 Text("${cartItems.size}", color = if (cartItems.isNotEmpty()) DsColors.PrimaryDark else Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                             }
                             Text(
-                                "Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) Color.White else DsColors.TextSecondary
                             )
                             Spacer(Modifier.weight(1f))
@@ -787,7 +789,7 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title    = "Ma sélection",
+                    title    = stringResource(R.string.common_my_selection),
                     subtitle = formSupplier?.name ?: "",
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
@@ -842,9 +844,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 .map { it.unit_cost }
 
                             val metaLine = if (item.product.unit_type == "pièce")
-                                "${formatQty(item.nbColis)} colis × ${item.uniteParColis} = ${formatQty(item.quantity)} pièces"
+                                stringResource(R.string.purchases_cart_colis_meta, formatQty(item.nbColis), item.uniteParColis, quantityText(item.quantity, item.product.unit_type).asString())
                             else
-                                "${formatQty(item.quantity)} ${item.product.unit_type} × ${money.da(item.unitCost)}"
+                                stringResource(R.string.common_qty_times_price, quantityText(item.quantity, item.product.unit_type).asString(), money.da(item.unitCost))
 
                             // A restored draft can name a product that has since been deleted. The
                             // line stays visible, under the name the draft stored, because dropping
@@ -865,14 +867,14 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 statusLine      = {
                                     if (isMissingProduct) CartStatusLine(
                                         icon = Icons.Default.WarningAmber,
-                                        text = "Produit supprimé — retirez cette ligne pour continuer",
+                                        text = stringResource(R.string.common_cart_product_deleted),
                                         tone = CartStatusTone.DANGER,
                                         // Two lines: this one is an instruction, and at one line the
                                         // column cut it at "pour co…" — the actionable half.
                                         maxLines = 2
                                     ) else CartStatusLine(
                                         icon = Icons.Default.ArrowUpward,
-                                        text = "Stock ${formatQty(item.product.stock)} → ${formatQty(item.product.stock + item.quantity)} ${item.product.unit_type}",
+                                        text = stringResource(R.string.purchases_cart_stock_change, formatQty(item.product.stock), quantityText(item.product.stock + item.quantity, item.product.unit_type).asString()),
                                         tone = CartStatusTone.OK
                                     )
                                 },
@@ -887,7 +889,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         // pieces — but the pieces it makes must be whole: the line
                                         // says so below, and the bon cannot be confirmed until it is.
                                         QuantityStepper(
-                                            label          = "Nombre de colis",
+                                            label          = stringResource(R.string.purchases_cart_nb_colis),
                                             value          = item.nbColis,
                                             onValueChange  = { newNb ->
                                                 session.setFormCartItems(cartItems.map { ci ->
@@ -916,7 +918,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 }
                                             },
                                             modifier        = Modifier.fillMaxWidth(),
-                                            label           = { Text("Unités/colis", fontSize = DsTextSize.caption) },
+                                            label           = { Text(stringResource(R.string.purchases_cart_units_per_colis), fontSize = DsTextSize.caption) },
                                             singleLine      = true,
                                             shape           = DsShapes.medium,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -934,9 +936,9 @@ fun NavGraphBuilder.purchaseFormGraph(
                                                 .padding(horizontal = DsSpacing.md, vertical = 8.dp)
                                         ) {
                                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                                                Text("Total pièces à acheter : ", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                                                Text(stringResource(R.string.purchases_cart_total_pieces) + " ", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                                                 Text(
-                                                    "${formatQty(item.quantity)} pièces",
+                                                    quantityText(item.quantity, item.product.unit_type).asString(),
                                                     fontSize   = DsTextSize.bodySmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color      = if (Quantity.isWhole(item.quantity)) DsColors.Primary else DsColors.Danger
@@ -946,7 +948,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         if (!Quantity.isWhole(item.quantity)) {
                                             Spacer(Modifier.height(DsSpacing.xs))
                                             Text(
-                                                "Une pièce ne se coupe pas : choisissez un nombre de colis qui donne des pièces entières.",
+                                                stringResource(R.string.purchases_cart_whole_pieces),
                                                 fontSize = DsTextSize.caption,
                                                 color    = DsColors.Danger
                                             )
@@ -955,7 +957,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         // A carton product counts cartons; a kg product is bought as
                                         // one total weight (15.750), since bulk weight has no fixed colis.
                                         QuantityStepper(
-                                            label         = if (item.product.unit_type == ProductUnit.KG) "Poids total (kg)" else "Nombre de cartons",
+                                            label         = stringResource(if (item.product.unit_type == ProductUnit.KG) R.string.purchases_cart_total_weight else R.string.purchases_cart_nb_cartons),
                                             value         = item.quantity,
                                             onValueChange = { newQty ->
                                                 session.setFormCartItems(cartItems.map { ci ->
@@ -1137,7 +1139,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isEdit       = isEdit,
                     orderLabel   = documentLabel("purchase_order", orderIdArg, session::documentLabel),
                     supplierName = formSupplier?.name,
-                    stepLabel    = "Validation",
+                    stepLabel    = stringResource(R.string.common_step_validation),
                     currentStep  = 3,
                     onBackClick  = { navController.popBackStack() }
                 )

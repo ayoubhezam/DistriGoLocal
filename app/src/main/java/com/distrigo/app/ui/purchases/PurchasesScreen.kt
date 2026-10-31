@@ -62,6 +62,8 @@ import com.distrigo.app.ui.common.FilterSheet
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.core.text.UiText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,10 +120,10 @@ fun PurchasesScreen(
                 onDismissRequest = {
                     showDeleteDialog = false; longPressOrder = null; deleteError = ""
                 },
-                title = { Text("Supprimer le bon ?") },
+                title = { Text(stringResource(R.string.purchases_delete_title)) },
                 text = {
                     Column {
-                        Text("Voulez-vous supprimer ${order.numberLabel} de ${order.supplier_name} ?")
+                        Text(stringResource(R.string.purchases_delete_body, order.numberLabel, order.supplier_name))
                         if (deleteError.isNotEmpty()) {
                             Spacer(Modifier.height(DsSpacing.sm))
                             Text(deleteError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
@@ -187,7 +189,7 @@ fun PurchasesScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                "Modifier le bon",
+                                stringResource(R.string.purchases_edit_title),
                                 fontSize   = DsTextSize.body,
                                 color      = DsColors.Primary,
                                 fontWeight = FontWeight.Medium
@@ -211,7 +213,7 @@ fun PurchasesScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                "Supprimer le bon",
+                                stringResource(R.string.purchases_delete_order),
                                 fontSize   = DsTextSize.body,
                                 color      = DsColors.Danger,
                                 fontWeight = FontWeight.Medium
@@ -277,12 +279,12 @@ fun PurchasesScreen(
             // sheet is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters'
             // scroll is kept outside the switch, so coming back finds them where they were.
             if (supplierPicker) SearchableSelectList(
-                title       = "Sélectionner un fournisseur",
+                title       = stringResource(R.string.purchases_select_supplier),
                 items       = suppliers,
                 itemLabel   = { it.second },
                 itemKey     = { it.first },
                 isSelected  = { it.first == viewModel.filterSupplierId },
-                allLabel    = "Tous les fournisseurs",
+                allLabel    = stringResource(R.string.common_all_suppliers),
                 allSelected = viewModel.filterSupplierId == null,
                 onSelectAll = { viewModel.filterSupplierId = null; supplierPicker = false },
                 onSelect    = { viewModel.filterSupplierId = it.first; supplierPicker = false },
@@ -307,12 +309,12 @@ fun PurchasesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── حالة الوصل ──
-                Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.purchases_filter_order_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     listOf<Pair<String?, String>>(
-                        null to "Tous",
-                        "pending" to "En attente",
-                        "received" to "Reçu"
+                        null to stringResource(R.string.common_filter_all),
+                        "pending" to stringResource(R.string.purchases_status_pending),
+                        "received" to stringResource(R.string.purchases_status_received)
                     ).forEach { (value, label) ->
                         val active = viewModel.filterReceptionStatus == value
                         Box(
@@ -337,13 +339,13 @@ fun PurchasesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── حالة الدفع ──
-                Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.ventes_filter_payment_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     listOf<Pair<String?, String>>(
-                        null to "Tous",
-                        "paye" to "Payé",
-                        "impaye" to "Impayé",
-                        "partiel" to "Partiel"
+                        null to stringResource(R.string.common_filter_all),
+                        "paye" to stringResource(R.string.common_status_paid),
+                        "impaye" to stringResource(R.string.common_status_unpaid),
+                        "partiel" to stringResource(R.string.common_status_partial)
                     ).forEach { (value, label) ->
                         val active = viewModel.filterPaymentStatus == value
                         Box(
@@ -368,13 +370,13 @@ fun PurchasesScreen(
                 Spacer(Modifier.height(DsSpacing.md))
 
                 // ── المورد ──
-                Text("Fournisseur", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                Text(stringResource(R.string.common_label_supplier), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
                 // A searchable list, not a dropdown, which would build every supplier the moment it
                 // opens — see SearchableSelectList.
                 DsSelectorField(
                     label       = null,
                     value       = suppliers.find { it.first == viewModel.filterSupplierId }?.second.orEmpty(),
-                    placeholder = "Tous les fournisseurs",
+                    placeholder = stringResource(R.string.common_all_suppliers),
                     onClick     = { supplierPicker = true }
                 )
                 Spacer(Modifier.height(DsSpacing.md))
@@ -386,7 +388,7 @@ fun PurchasesScreen(
                         value         = viewModel.filterDateFrom ?: "",
                         onValueChange = {},
                         readOnly      = true,
-                        placeholder   = { Text("Du", fontSize = DsTextSize.bodySmall) },
+                        placeholder   = { Text(stringResource(R.string.common_date_from), fontSize = DsTextSize.bodySmall) },
                         trailingIcon  = {
                             Icon(
                                 Icons.Default.CalendarMonth,
@@ -410,7 +412,7 @@ fun PurchasesScreen(
                         value         = viewModel.filterDateTo ?: "",
                         onValueChange = {},
                         readOnly      = true,
-                        placeholder   = { Text("Au", fontSize = DsTextSize.bodySmall) },
+                        placeholder   = { Text(stringResource(R.string.common_date_to), fontSize = DsTextSize.bodySmall) },
                         trailingIcon  = {
                             Icon(
                                 Icons.Default.CalendarMonth,
@@ -455,7 +457,7 @@ fun PurchasesScreen(
                         shape    = DsShapes.medium,
                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                     ) {
-                        Text("Appliquer (${orderCount ?: 0})", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                        Text(stringResource(R.string.common_action_apply_count, orderCount ?: 0), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -476,7 +478,7 @@ fun PurchasesScreen(
             // The tab roots are the only screens with no back arrow, so the menu takes the
             // leading slot and the global controls take the trailing one.
             DsTopAppBar(
-                title   = "Achats",
+                title   = stringResource(R.string.nav_achats),
                 licenseBanner = true,
                 leading = onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
                 size    = DsTopBarSize.Large
@@ -491,7 +493,7 @@ fun PurchasesScreen(
             DsCompactSearchField(
                 value         = viewModel.searchQuery,
                 onValueChange = { viewModel.searchQuery = it },
-                placeholder   = "Rechercher un bon",
+                placeholder   = stringResource(R.string.purchases_search_order),
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             )
 
@@ -516,7 +518,7 @@ fun PurchasesScreen(
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                     Text(
-                        "${orderCount?.toString() ?: "…"} bons",
+                        orderCount?.let { pluralStringResource(R.plurals.tournees_bons_count, it, it) } ?: "…",
                         fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary
@@ -538,7 +540,7 @@ fun PurchasesScreen(
                     ) {
                         Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                         Text(
-                            "Brouillons (${drafts.size})",
+                            stringResource(R.string.common_drafts_count, drafts.size),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.Primary
@@ -600,7 +602,7 @@ fun PurchasesScreen(
                 }
             } else if (pagedOrders.itemCount == 0 && refresh is LoadState.Error) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(refresh.error.message ?: "Erreur de chargement", color = DsColors.Danger)
+                    Text(refresh.error.message ?: stringResource(R.string.common_load_error), color = DsColors.Danger)
                 }
             } else if (pagedOrders.itemCount == 0) {
                 // ── Empty State ──
@@ -614,12 +616,12 @@ fun PurchasesScreen(
                         )
                         Spacer(Modifier.height(DsSpacing.md))
                         Text(
-                            "Aucun bon de commande",
+                            stringResource(R.string.purchases_empty),
                             color      = DsColors.TextSecondary,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.height(4.dp))
-                        Text("Appuyez sur + pour créer", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.common_tap_plus_to_create), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                 }
             } else {
@@ -652,7 +654,7 @@ fun PurchasesScreen(
                             )
                             is AchatsListItem.Order -> SwipeToConfirm(
                                 enabled     = row.order.status != "received",
-                                label       = "Reçu",
+                                label       = stringResource(R.string.purchases_status_received),
                                 icon        = Icons.Default.Inventory2,
                                 onConfirmed = received@{
                                     if (license.refuses()) return@received
@@ -661,7 +663,7 @@ fun PurchasesScreen(
                                         id        = order.id,
                                         onSuccess = {
                                             swipeScope.launch {
-                                                swipeSnackbar.showUndo("${order.numberLabel} marqué comme reçu", undoLabel) {
+                                                swipeSnackbar.showUndo(com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(R.string.purchases_marked_received, order.numberLabel)), undoLabel) {
                                                     viewModel.undoReceive(order.id) { err ->
                                                         swipeScope.launch { swipeSnackbar.showSnackbar(err) }
                                                     }
@@ -692,7 +694,7 @@ fun PurchasesScreen(
             // The resume decision is made here, before the form graph is entered — which is what
             // keeps a process-death return from ever prompting, since that path re-enters the
             // graph without passing through this button.
-            contentDescription = "Nouveau bon",
+            contentDescription = stringResource(R.string.purchases_new_title),
             onClick            = { if (drafts.isEmpty()) onAddOrder() else showDraftsSheet = true },
             modifier           = Modifier
                 .align(Alignment.BottomEnd)
@@ -756,11 +758,11 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
     val money = LocalMoneyFormatter.current
     val isReceived = order.status == "received"
     val (ribbonLabel, ribbonColor) =
-        if (isReceived) "REÇU" to DsColors.Success else "EN ATTENTE" to DsColors.Warning
+        if (isReceived) stringResource(R.string.purchases_ribbon_received) to DsColors.Success else stringResource(R.string.ventes_ribbon_pending) to DsColors.Warning
     val (statut, statusColor, statusColorLight) = when (paymentStatusOf(order)) {
-        "paye"    -> Triple("Payé",    DsColors.Success, DsColors.SuccessLight)
-        "partiel" -> Triple("Partiel", DsColors.Warning, DsColors.WarningLight)
-        else      -> Triple("Impayé",  DsColors.Danger,  DsColors.DangerLight)
+        "paye"    -> Triple(stringResource(R.string.common_status_paid),    DsColors.Success, DsColors.SuccessLight)
+        "partiel" -> Triple(stringResource(R.string.common_status_partial), DsColors.Warning, DsColors.WarningLight)
+        else      -> Triple(stringResource(R.string.common_status_unpaid),  DsColors.Danger,  DsColors.DangerLight)
     }
 
     Box(
@@ -803,7 +805,7 @@ fun PurchaseOrderCard(order: PurchaseOrder, onClick: () -> Unit, onLongClick: ()
                     overflow   = TextOverflow.Ellipsis
                 )
                 Text(
-                    "${order.items_count ?: order.items?.size ?: 0} article(s) · ${formatOrderTime(order.created_at)}",
+                    (order.items_count ?: order.items?.size ?: 0).let { n -> pluralStringResource(R.plurals.ventes_card_items_time, n, n, formatOrderTime(order.created_at)) },
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextSecondary
                 )

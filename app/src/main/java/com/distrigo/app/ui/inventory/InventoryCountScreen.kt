@@ -197,7 +197,7 @@ fun InventoryCountScreen(
             resultCount    = remaining ?: 0,
             onChange       = onFiltersChange,
             onDismiss      = { showFilterSheet = false },
-            priceLabel     = "Prix de vente",
+            priceLabel     = stringResource(R.string.common_label_sale_price),
             // The list is what is in stock already; a stock band would only narrow it to nothing.
             showStockLevel = false,
         )
