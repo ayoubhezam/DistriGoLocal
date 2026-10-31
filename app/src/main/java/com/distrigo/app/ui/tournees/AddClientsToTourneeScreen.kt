@@ -36,6 +36,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.GridView
 import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -103,7 +106,7 @@ fun AddClientsToTourneeScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title    = "Ajouter des clients",
+            title    = stringResource(R.string.tournees_add_clients),
             subtitle = tourneeNom,
             leading  = DsTopBarLeading.Back(onBack)
         ) {
@@ -113,14 +116,14 @@ fun AddClientsToTourneeScreen(
                 // bar's standard end margin itself.
                 modifier = Modifier.padding(end = DsSpacing.md).size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "Nouveau client", tint = Color.White, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.common_new_client), tint = Color.White, modifier = Modifier.size(18.dp))
             }
         }
 
         DsCompactSearchField(
             value         = search,
             onValueChange = { search = it },
-            placeholder   = "Rechercher un client ou une zone",
+            placeholder   = stringResource(R.string.tournees_search_client_zone),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
 
@@ -148,7 +151,7 @@ fun AddClientsToTourneeScreen(
                         onToggle = { opened = if (secteurLabel in opened) opened - secteurLabel else opened + secteurLabel }
                     ) {
                         Text(
-                            if (allSelected) "Tout désélectionner" else "Tout sélectionner",
+                            stringResource(if (allSelected) R.string.common_action_deselect_all else R.string.common_action_select_all),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.PrimaryDark,
@@ -218,8 +221,8 @@ fun AddClientsToTourneeScreen(
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             } else {
                 Text(
-                    if (selected.isEmpty()) "Sélectionnez des clients"
-                    else "Ajouter ${selected.size} client(s) à la tournée",
+                    if (selected.isEmpty()) stringResource(R.string.tournees_select_clients)
+                    else pluralStringResource(R.plurals.tournees_add_n_clients, selected.size, selected.size),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold
                 )
             }

@@ -69,6 +69,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 enum class SortOption(@androidx.annotation.StringRes val label: Int) {
     NAME_ASC   (R.string.products_sort_name_asc),
@@ -995,7 +996,7 @@ internal fun ProductListControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("${count?.toString() ?: "…"} produit(s)", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Text(count?.let { pluralStringResource(R.plurals.common_products_count, it, it) } ?: stringResource(R.string.common_products_count_short, "…"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 modifier = Modifier
@@ -1015,7 +1016,7 @@ internal fun ProductListControls(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ViewList,
-                        contentDescription = "Liste",
+                        contentDescription = stringResource(R.string.products_cd_view_list),
                         tint = if (!isGrid) Color.White else DsColors.TextSecondary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -1030,7 +1031,7 @@ internal fun ProductListControls(
                 ) {
                     Icon(
                         Icons.Default.GridView,
-                        contentDescription = "Grille",
+                        contentDescription = stringResource(R.string.products_cd_view_grid),
                         tint = if (isGrid) Color.White else DsColors.TextSecondary,
                         modifier = Modifier.size(18.dp)
                     )

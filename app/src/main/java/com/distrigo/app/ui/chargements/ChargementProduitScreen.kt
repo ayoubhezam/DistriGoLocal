@@ -41,7 +41,7 @@ import com.distrigo.app.R
  * ### Nothing is written until the button
  *
  * The quantity and the note are local state. [ChargementViewModel.createChargement]
- * is called once, from "Enregistrer le mouvement", and only for a non-zero delta — the same rule
+ * is called once, from stringResource(R.string.chargements_save_movement), and only for a non-zero delta — the same rule
  * the cart screen applies, so a save that changes nothing writes nothing.
  *
  * ### Leaving with unsaved work
@@ -146,18 +146,18 @@ fun ChargementProduitScreen(
             onDismissRequest = { showDiscard = false },
             containerColor   = DsColors.Surface,
             title = {
-                Text("Quitter sans enregistrer ?", fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(stringResource(R.string.common_quit_unsaved_title), fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             },
             text = {
                 Text(
-                    "Les informations modifiées ne seront pas enregistrées.",
+                    stringResource(R.string.common_quit_unsaved_body),
                     fontSize = DsTextSize.bodySmall,
                     color    = DsColors.TextSecondary
                 )
             },
             confirmButton = {
                 TextButton(onClick = { discardAndLeave() }) {
-                    Text("Quitter", color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_action_quit), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -172,7 +172,7 @@ fun ChargementProduitScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title    = "Mouvement de stock",
+            title    = stringResource(R.string.chargements_movement_title),
             subtitle = product.name,
             leading  = DsTopBarLeading.Back { attemptBack() }
         )
@@ -252,7 +252,7 @@ fun ChargementProduitScreen(
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             } else {
                 Text(
-                    "Enregistrer le mouvement",
+                    stringResource(R.string.chargements_save_movement),
                     fontSize   = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color.White

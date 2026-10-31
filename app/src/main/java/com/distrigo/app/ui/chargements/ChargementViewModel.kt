@@ -132,7 +132,7 @@ class ChargementViewModel @Inject constructor(
                 repository.createChargement(note, items, userName, draftId)
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.common_error_unknown))))
             }
         }
     }

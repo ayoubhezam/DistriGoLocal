@@ -45,7 +45,10 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.data.model.Amount
 import com.distrigo.app.ui.designsystem.DsStepBadge
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 
 data class TourneeVenteCartItem(
@@ -69,11 +72,11 @@ internal fun Step1Client(
         // The flow's bar, as on its other steps and on Achats' step 1 (2026-10-19)
         DsTopAppBar(
             title         = title,
-            subtitle      = selectedClient?.name ?: "Choisir un client",
+            subtitle      = selectedClient?.name ?: stringResource(R.string.common_choose_client),
             subtitleColor = if (selectedClient != null) DsColors.Primary else DsColors.TextSecondary,
             leading       = DsTopBarLeading.Back(onBack)
         ) {
-            DsStepBadge("Client", 1, 3)
+            DsStepBadge(stringResource(R.string.common_label_client), 1, 3)
             Spacer(Modifier.width(DsSpacing.xs))
         }
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
@@ -98,7 +101,7 @@ internal fun Step1Client(
             Spacer(Modifier.height(DsSpacing.xl))
 
             Text(
-                "Choisir un client",
+                stringResource(R.string.common_choose_client),
                 fontSize   = DsTextSize.headline,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.PrimaryDark,
@@ -108,7 +111,7 @@ internal fun Step1Client(
             Spacer(Modifier.height(DsSpacing.xs))
 
             Text(
-                "Sélectionnez le client avant d'ajouter des produits",
+                stringResource(R.string.ventes_choose_client_hint),
                 fontSize  = DsTextSize.bodySmall,
                 color     = DsColors.TextSecondary,
                 textAlign = TextAlign.Center
@@ -125,7 +128,7 @@ internal fun Step1Client(
                 ) {
                     Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Choisir un client", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_choose_client), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             } else {
                 val typeColors = when (selectedClient.customer_type) {
@@ -154,7 +157,7 @@ internal fun Step1Client(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(selectedClient.name, fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
-                                "Solde : ${money.da(selectedClient.balance)}",
+                                stringResource(R.string.common_balance_value, money.da(selectedClient.balance)),
                                 fontSize = DsTextSize.bodySmall,
                                 color    = if (Amount.owing(selectedClient.balance)) DsColors.Danger else DsColors.TextSecondary
                             )
@@ -222,7 +225,7 @@ internal fun Step3Validation(
             subtitleColor = DsColors.Primary,
             leading       = DsTopBarLeading.Back(onBack)
         ) {
-            DsStepBadge("Validation", 3, 3)
+            DsStepBadge(stringResource(R.string.common_step_validation), 3, 3)
             Spacer(Modifier.width(DsSpacing.xs))
         }
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
@@ -263,7 +266,7 @@ internal fun Step3Validation(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(selectedClient?.name ?: "—", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                             Text(
-                                "Solde du client : ${money.da(selectedClient?.balance ?: 0.0)}",
+                                stringResource(R.string.common_client_balance_value, money.da(selectedClient?.balance ?: 0.0)),
                                 fontSize = DsTextSize.bodySmall,
                                 color    = if (Amount.owing(selectedClient?.balance ?: 0.0)) DsColors.Danger else DsColors.TextSecondary
                             )
@@ -271,7 +274,7 @@ internal fun Step3Validation(
                     }
 
                     Text(
-                        "Articles (${cartItems.size})",
+                        pluralStringResource(R.plurals.common_items_count, cartItems.size, cartItems.size),
                         fontSize   = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color      = DsColors.TextSecondary,
@@ -303,7 +306,7 @@ internal fun Step3Validation(
                             Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(item.product.name, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                                Text("${formatQty(item.quantity)} × ${money.da(item.unitPrice)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                Text(stringResource(R.string.common_qty_times_price, formatQty(item.quantity), money.da(item.unitPrice)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                             }
                             Spacer(Modifier.width(DsSpacing.sm))
                             Text(
@@ -346,11 +349,11 @@ internal fun Step3Validation(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
-                        Text("Montant payé (DA)", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
+                        Text(stringResource(R.string.common_amount_paid_da), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         // Locale.ROOT — see PurchaseFormScreen: the field is parsed back with
                         // String.toDoubleOrNull(), which only accepts a '.' decimal separator.
                         TextButton(onClick = { onMontantPayeChange(String.format(Locale.ROOT, "%.2f", total)) }) {
-                            Text("Tout réglé", fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_settled_all), fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                     Spacer(Modifier.height(DsSpacing.xs))
@@ -387,14 +390,14 @@ internal fun Step3Validation(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Statut", fontSize = DsTextSize.caption, color = DsColors.Success)
+                            Text(stringResource(R.string.common_label_status), fontSize = DsTextSize.caption, color = DsColors.Success)
                             Box(
                                 modifier = Modifier
                                     .clip(DsShapes.pill)
                                     .background(DsColors.SuccessLight)
                                     .padding(horizontal = DsSpacing.sm, vertical = 3.dp)
                             ) {
-                                Text("Réglé ✓", fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.common_settled_check), fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -425,7 +428,7 @@ internal fun Step3Validation(
         blockedReason?.let { reason ->
             CartBlockingBanner(
                 text        = reason,
-                actionLabel = "Corriger",
+                actionLabel = stringResource(R.string.common_action_fix),
                 onAction    = onFixBlocked
             )
         }
@@ -446,7 +449,7 @@ internal fun Step3Validation(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(
-                    "Confirmer · ${money.da(total)}",
+                    stringResource(R.string.common_confirm_amount, money.da(total)),
                     fontSize   = DsTextSize.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -483,7 +486,7 @@ fun TourneeVenteCartRow(
     SelectionCartCard(
         avatarIcon      = Icons.Default.ShoppingCart,
         title           = item.product.name,
-        metaLine        = "${formatQty(item.quantity)} ${item.product.unit_type} × ${money.da(item.unitPrice)}",
+        metaLine        = stringResource(R.string.common_qty_times_price, quantityText(item.quantity, item.product.unit_type).asString(), money.da(item.unitPrice)),
         totalPriceLabel = money.da(item.quantity * item.unitPrice),
         priceColor      = DsColors.PrimaryDark,
         imageRef        = item.product.image_uri,
@@ -496,11 +499,10 @@ fun TourneeVenteCartRow(
                 icon = if (isMissingProduct || overStock || belowCost) Icons.Default.Warning
                        else Icons.Default.LocalShipping,
                 text = when {
-                    isMissingProduct -> "Produit supprimé — retirez cette ligne pour continuer"
-                    overStock        -> "Stock camion insuffisant — disponible : " +
-                                        "${formatQty(availableStock)} ${item.product.unit_type}"
-                    belowCost        -> "Vendu à perte · prix d'achat ${money.da(item.product.purchase_price)}"
-                    else             -> "Disponible : ${formatQty(availableStock)} ${item.product.unit_type}"
+                    isMissingProduct -> stringResource(R.string.common_cart_product_deleted)
+                            overStock        -> stringResource(R.string.tournees_cart_truck_short, quantityText(availableStock, item.product.unit_type).asString())
+                    belowCost        -> stringResource(R.string.common_cart_below_cost_short, money.da(item.product.purchase_price))
+                    else             -> stringResource(R.string.tournees_cart_available, quantityText(availableStock, item.product.unit_type).asString())
                 },
                 tone = when {
                     isMissingProduct || overStock -> CartStatusTone.DANGER
@@ -514,7 +516,7 @@ fun TourneeVenteCartRow(
         },
         expandedContent = {
             QuantityStepper(
-                label         = "Quantité",
+                label         = stringResource(R.string.common_label_quantity),
                 value         = item.quantity,
                 onValueChange = onQuantityChange,
                 // No ceiling while the line is over it: clamping to the live stock would silently

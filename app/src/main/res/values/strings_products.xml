@@ -5,4 +5,6 @@
     <string name="products_sort_stock_desc">Stock (décroissant)</string>
     <string name="products_sort_price_asc">Prix (croissant)</string>
     <string name="products_sort_price_desc">Prix (décroissant)</string>
+    <string name="products_cd_view_list">Liste</string>
+    <string name="products_cd_view_grid">Grille</string>
 </resources>

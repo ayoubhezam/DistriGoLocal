@@ -302,4 +302,18 @@
         <item quantity="one">%1$d article</item>
         <item quantity="other">%1$d articles</item>
     </plurals>
+    <string name="common_action_continue">Continuer</string>
+    <string name="common_client_type_retail">Détail</string>
+    <string name="common_client_type_wholesale">Gros</string>
+    <string name="common_client_type_business">Société</string>
+    <string name="common_select_wilaya">Sélectionner une wilaya</string>
+    <string name="common_select_commune">Sélectionner une commune</string>
+    <string name="common_cd_remove_named">Retirer %1$s</string>
+    <string name="common_no_product_found">Aucun produit trouvé</string>
+    <string name="common_cd_add_products">Ajouter des produits</string>
+    <string name="common_new_client">Nouveau client</string>
+    <string name="common_action_select">Sélectionner</string>
+    <string name="common_quit_unsaved_title">Quitter sans enregistrer ?</string>
+    <string name="common_quit_unsaved_body">Les informations modifiées ne seront pas enregistrées.</string>
+    <string name="common_action_quit">Quitter</string>
 </resources>

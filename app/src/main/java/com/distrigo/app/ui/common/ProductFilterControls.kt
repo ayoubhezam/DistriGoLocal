@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 // Step 02's filtering controls, shared by Achats, Dépôt Vente and Tournée Vente so the three read as
 // one tool: the count / Filtres row, and a removable chip per criterion applied.
@@ -131,7 +132,7 @@ internal fun ProductCountAndFilters(
             Step2Chip(
                 icon      = Icons.Default.Inventory2,
                 label     = countLabel?.let { "${count?.toString() ?: "…"} $it" }
-                    ?: stringResource(R.string.common_products_count_short, count?.toString() ?: "…"),
+                    ?: count?.let { pluralStringResource(R.plurals.common_products_count, it, it) } ?: stringResource(R.string.common_products_count_short, "…"),
                 container = DsColors.SurfaceSunken,
                 content   = DsColors.TextSecondary
             )

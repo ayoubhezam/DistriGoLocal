@@ -40,6 +40,7 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * What a draft reports to the filter.
@@ -117,13 +118,13 @@ fun TourneeVenteBrouillonsScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         if (selecting) {
             DsTopAppBar(
-                title    = "${effectiveSel.size} sélectionné${if (effectiveSel.size > 1) "s" else ""}",
-                subtitle = "sur ${shown.size}",
+                title    = pluralStringResource(R.plurals.common_selected_count, effectiveSel.size, effectiveSel.size),
+                subtitle = stringResource(R.string.common_of_total, shown.size),
                 leading  = DsTopBarLeading.Close { exitSelection() }
             )
         } else {
             DsTopAppBar(
-                title    = "Brouillons",
+                title    = stringResource(R.string.common_drafts),
                 subtitle = tourneeName,
                 leading  = DsTopBarLeading.Back(onBack)
             )
@@ -280,17 +281,17 @@ private fun NoTourneeVenteDraftsMatchFilter(modifier: Modifier = Modifier, onCle
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun résultat", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.common_no_result), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Aucun brouillon ne correspond à ces filtres.",
+            stringResource(R.string.common_drafts_no_match),
             fontSize  = DsTextSize.bodySmall,
             color     = DsColors.TextSecondary,
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(DsSpacing.md))
         TextButton(onClick = onClear) {
-            Text("Réinitialiser les filtres", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_reset_filters), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -314,10 +315,10 @@ private fun EmptyTourneeVenteBrouillons(modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.common_drafts_none), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Une vente non terminée est enregistrée ici automatiquement, et vous pouvez la reprendre quand vous voulez.",
+            stringResource(R.string.ventes_drafts_empty_body),
             fontSize  = DsTextSize.bodySmall,
             color     = DsColors.TextSecondary,
             textAlign = TextAlign.Center

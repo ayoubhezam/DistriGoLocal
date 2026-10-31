@@ -898,7 +898,7 @@ fun orderDateText(dateStr: String, zone: java.time.ZoneId = java.time.ZoneId.sys
         when (date) {
             today     -> com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.common_period_today)
             yesterday -> com.distrigo.app.core.text.UiText.Res(com.distrigo.app.R.string.common_period_yesterday)
-            else      -> com.distrigo.app.core.text.UiText.Raw(date.format(com.distrigo.app.core.format.AppDates.formatter("EEEE, d MMMM yyyy")))
+            else      -> com.distrigo.app.core.text.UiText.Raw(date.format(com.distrigo.app.core.format.AppDates.fullDay()))
         }
     } catch (e: Exception) { com.distrigo.app.core.text.UiText.Raw(dateStr) }
 }

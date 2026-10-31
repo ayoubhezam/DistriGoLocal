@@ -40,6 +40,8 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.dsTextFieldColors
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 @Composable
 fun TourneeFormScreen(
     tournee      : Tournee? = null,
@@ -85,10 +87,11 @@ fun TourneeFormScreen(
 
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
+    val communeRequired = stringResource(R.string.tournees_form_commune_required)
 
     fun save() {
         if (communeName.isBlank()) {
-            communeError = "La commune est obligatoire."
+            communeError = communeRequired
             return
         }
         communeError = ""
@@ -127,7 +130,7 @@ fun TourneeFormScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = if (isEdit) "Modifier la tournée" else "Nouvelle tournée",
+            title   = stringResource(if (isEdit) R.string.tournees_form_edit_title else R.string.tournees_new),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -154,7 +157,7 @@ fun TourneeFormScreen(
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(DsSpacing.xs))
                 Text(
-                    "La tournée sera identifiée par la wilaya, la commune et le secteur (si spécifié).",
+                    stringResource(R.string.tournees_form_hint),
                     fontSize = DsTextSize.bodySmall,
                     color    = DsColors.Primary
                 )
@@ -164,9 +167,9 @@ fun TourneeFormScreen(
 
             // ── Wilaya ──
             DsSelectorField(
-                label       = "Wilaya *",
+                label       = stringResource(R.string.tournees_form_wilaya_required),
                 value       = wilayaName,
-                placeholder = "Sélectionner une wilaya",
+                placeholder = stringResource(R.string.common_select_wilaya),
                 onClick     = { showWilayaSheet = true }
             )
 
@@ -174,9 +177,9 @@ fun TourneeFormScreen(
 
             // ── Commune ──
             DsSelectorField(
-                label       = "Commune *",
+                label       = stringResource(R.string.tournees_form_commune_label),
                 value       = communeName,
-                placeholder = "Sélectionner une commune",
+                placeholder = stringResource(R.string.common_select_commune),
                 error       = communeError,
                 onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }
             )
@@ -189,12 +192,12 @@ fun TourneeFormScreen(
             // field is the "add" affordance; what has been picked is shown underneath as chips that
             // remove themselves, so the whole selection is visible before the tournee is created.
             DsSelectorField(
-                label       = "Secteurs (optionnel)",
+                label       = stringResource(R.string.tournees_form_secteurs),
                 value       = "",
                 placeholder = when {
-                    communeName.isBlank()        -> "Choisissez d'abord une commune"
-                    selectedSecteurs.isEmpty()   -> "Sélectionner un ou plusieurs secteurs"
-                    else                         -> "Ajouter un autre secteur"
+                    communeName.isBlank()        -> stringResource(R.string.tournees_form_choose_commune_first)
+                    selectedSecteurs.isEmpty()   -> stringResource(R.string.tournees_form_select_secteurs)
+                    else                         -> stringResource(R.string.tournees_form_add_secteur)
                 },
                 onClick     = { if (communeName.isNotBlank()) showSecteurSheet = true }
             )
@@ -213,10 +216,10 @@ fun TourneeFormScreen(
 
             // ── Note ──
             DsFormField(
-                label         = "Note (optionnel)",
+                label         = stringResource(R.string.common_label_note_optional),
                 value         = note,
                 onValueChange = { note = it },
-                placeholder   = "Remarques sur cette tournée",
+                placeholder   = stringResource(R.string.tournees_form_note_hint),
                 minLines      = 2,
                 maxLines      = 3,
                 imeAction     = ImeAction.Done
@@ -241,7 +244,7 @@ fun TourneeFormScreen(
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                 } else {
                     Text(
-                        if (isEdit) "Enregistrer les modifications" else "Créer la tournée",
+                        stringResource(if (isEdit) R.string.ventes_edit_title else R.string.tournees_form_create),
                         fontSize   = DsTextSize.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color      = Color.White
@@ -255,7 +258,7 @@ fun TourneeFormScreen(
         // ── Sheets ──
         if (showWilayaSheet) {
             SearchableSelectSheet(
-                title      = "Sélectionner une wilaya",
+                title      = stringResource(R.string.common_select_wilaya),
                 items      = GeoRepository.getWilayas(),
                 itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
                 onDismiss  = { showWilayaSheet = false },
@@ -274,7 +277,7 @@ fun TourneeFormScreen(
                 GeoRepository.getCommunes(selectedWilayaCode!!).sortedBy { it.id }
             }
             SearchableSelectSheet(
-                title      = "Sélectionner une commune",
+                title      = stringResource(R.string.common_select_commune),
                 items      = sortedCommunes.mapIndexed { index, commune -> (index + 1) to commune },
                 itemLabel  = { (num, commune) -> "${num.toString().padStart(2, '0')}-${commune.shownName()}" },
                 onDismiss  = { showCommuneSheet = false },
@@ -359,7 +362,7 @@ private fun SelectedSecteurChips(
                 Spacer(Modifier.width(DsSpacing.xs))
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Retirer ${secteur.nom}",
+                    contentDescription = stringResource(R.string.common_cd_remove_named, secteur.nom),
                     tint     = DsColors.Primary,
                     modifier = Modifier.size(16.dp)
                 )

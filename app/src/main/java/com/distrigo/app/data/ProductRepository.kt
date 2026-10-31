@@ -1975,9 +1975,6 @@ class ProductRepository(
 
     // The banner shows the open tournée's name and nothing else. Same selection as before — the
     // existing getOpenTournee query — then its counters, without its sales.
-    /** Every tournée's clients with a position: the list's mini maps. */
-    suspend fun getTourneePins(): List<com.distrigo.app.data.local.dao.TourneePinRow> = db.tourneeDao().getTourneePins()
-
     /** The clients who bought on tournée [id]: the Dashboard's « Avec achat ». */
     suspend fun clientIdsWithSaleOnTournee(id: Int): Set<Int> =
         db.venteDao().getVentesForTournee(id).map { it.client_id }.toSet()

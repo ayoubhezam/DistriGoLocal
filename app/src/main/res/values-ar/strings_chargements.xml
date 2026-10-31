@@ -9,4 +9,31 @@
     </plurals>
     <string name="chargements_drafts_sheet_subtitle">تابع مسودة أو ابدأ حركة جديدة.</string>
     <string name="chargements_drafts_sheet_start_new">بدء حركة جديدة</string>
+    <string name="chargements_drafts_empty_body">تُحفظ هنا تلقائيًا كل حركة غير مكتملة، ويمكنك متابعتها متى شئت.</string>
+    <string name="chargements_no_change">دون تغيير</string>
+    <string name="chargements_to_truck_short">+\u2068%1$s\u2069 نحو الشاحنة</string>
+    <string name="chargements_to_depot_short">\u2068%1$s\u2069 نحو المستودع</string>
+    <string name="chargements_qty_in_truck">الكمية الحالية في الشاحنة</string>
+    <string name="chargements_over_cap">مخزون المستودع غير كافٍ — الحد الأقصى \u2068%1$s\u2069 في الشاحنة</string>
+    <string name="chargements_all_loaded">كل مخزون المستودع محمَّل</string>
+    <plurals name="chargements_units_to_truck">
+        <item quantity="zero">\u2068%1$s\u2069 وحدة نحو الشاحنة</item>
+        <item quantity="one">\u2068%1$s\u2069 وحدة نحو الشاحنة</item>
+        <item quantity="two">\u2068%1$s\u2069 وحدتان نحو الشاحنة</item>
+        <item quantity="few">\u2068%1$s\u2069 وحدات نحو الشاحنة</item>
+        <item quantity="many">\u2068%1$s\u2069 وحدة نحو الشاحنة</item>
+        <item quantity="other">\u2068%1$s\u2069 وحدة نحو الشاحنة</item>
+    </plurals>
+    <plurals name="chargements_units_to_depot">
+        <item quantity="zero">\u2068%1$s\u2069 وحدة أُعيدت إلى المستودع</item>
+        <item quantity="one">\u2068%1$s\u2069 وحدة أُعيدت إلى المستودع</item>
+        <item quantity="two">\u2068%1$s\u2069 وحدتان أُعيدتا إلى المستودع</item>
+        <item quantity="few">\u2068%1$s\u2069 وحدات أُعيدت إلى المستودع</item>
+        <item quantity="many">\u2068%1$s\u2069 وحدة أُعيدت إلى المستودع</item>
+        <item quantity="other">\u2068%1$s\u2069 وحدة أُعيدت إلى المستودع</item>
+    </plurals>
+    <string name="chargements_movement_title">حركة مخزون</string>
+    <string name="chargements_save_movement">حفظ الحركة</string>
+    <string name="chargements_title">التحميل / التفريغ</string>
+    <string name="chargements_select_products">اختر المنتجات</string>
 </resources>

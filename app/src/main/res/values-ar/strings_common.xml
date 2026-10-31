@@ -365,4 +365,18 @@
         <item quantity="many">\u2068%1$d\u2069 منتجًا</item>
         <item quantity="other">\u2068%1$d\u2069 منتج</item>
     </plurals>
+    <string name="common_action_continue">متابعة</string>
+    <string name="common_client_type_retail">تجزئة</string>
+    <string name="common_client_type_wholesale">جملة</string>
+    <string name="common_client_type_business">مؤسسة</string>
+    <string name="common_select_wilaya">اختيار ولاية</string>
+    <string name="common_select_commune">اختيار بلدية</string>
+    <string name="common_cd_remove_named">إزالة \u2068%1$s\u2069</string>
+    <string name="common_no_product_found">لم يُعثر على منتج</string>
+    <string name="common_cd_add_products">إضافة منتجات</string>
+    <string name="common_new_client">زبون جديد</string>
+    <string name="common_action_select">تحديد</string>
+    <string name="common_quit_unsaved_title">الخروج دون حفظ؟</string>
+    <string name="common_quit_unsaved_body">لن تُحفظ المعلومات المعدَّلة.</string>
+    <string name="common_action_quit">خروج</string>
 </resources>

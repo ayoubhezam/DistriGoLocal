@@ -46,6 +46,7 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 // Self-contained NavHost, invoked as a plain composable call from StockCamionScreen's existing
 // legacy `showNewChargement`/`editingProduct` toggles — mirroring how VentesNavHost/TourneesNavHost
@@ -114,8 +115,8 @@ fun ChargementNavHost(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title         = "Chargement / Déchargement",
-                    subtitle      = if (cartItems.isNotEmpty()) "${cartItems.size} article(s)" else "Sélectionnez des produits",
+                    title         = stringResource(R.string.chargements_title),
+                    subtitle      = if (cartItems.isNotEmpty()) pluralStringResource(R.plurals.common_items_count_short, cartItems.size, cartItems.size) else stringResource(R.string.chargements_select_products),
                     // Blue once something is in the cart, grey while the step is still empty.
                     subtitleColor = if (cartItems.isNotEmpty()) DsColors.Primary else DsColors.TextSecondary,
                     leading       = DsTopBarLeading.Back(onBack)
@@ -128,7 +129,7 @@ fun ChargementNavHost(
                 DsCompactSearchField(
                     value         = search,
                     onValueChange = { session.productSearch = it },
-                    placeholder   = "Rechercher un produit",
+                    placeholder   = stringResource(R.string.common_search_product),
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 ) {
                     com.distrigo.app.ui.common.DsCompactSearchAction(
@@ -188,8 +189,8 @@ fun ChargementNavHost(
                                     maxLines   = 1
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                                    Text("Dépôt: ${formatQty(product.stock - product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                                    Text("Camion: ${formatQty(product.camion_stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.ventes_stock_depot, formatQty(product.stock - product.camion_stock)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.ventes_stock_truck, formatQty(product.camion_stock)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                             }
 
@@ -226,7 +227,7 @@ fun ChargementNavHost(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Icon(Icons.Default.Check, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(13.dp))
-                                        Text("Ajouté", fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
+                                        Text(stringResource(R.string.common_cd_added), fontSize = DsTextSize.caption, color = DsColors.Success, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
@@ -256,7 +257,7 @@ fun ChargementNavHost(
                             tint = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                         )
                         Text(
-                            if (cartItems.isEmpty()) "Sélection vide" else "Ma sélection",
+                            stringResource(if (cartItems.isEmpty()) R.string.common_cart_empty else R.string.common_my_selection),
                             color      = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -331,8 +332,8 @@ fun ChargementNavHost(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title    = "Ma sélection",
-                    subtitle = "${cartItems.size} article(s)",
+                    title    = stringResource(R.string.common_my_selection),
+                    subtitle = pluralStringResource(R.plurals.common_items_count_short, cartItems.size, cartItems.size),
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
@@ -432,7 +433,7 @@ fun ChargementNavHost(
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
                         } else {
                             Text(
-                                "Enregistrer le mouvement",
+                                stringResource(R.string.chargements_save_movement),
                                 fontSize   = DsTextSize.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = Color.White

@@ -71,6 +71,7 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 // ═══ LEVEL 1 — Tournées list (Navigation Compose destination: Screen.TourneesHome) ═══
 @Composable
@@ -84,14 +85,11 @@ fun TourneesScreen(
     onProfileClick       : () -> Unit = {},
     onAddTournee   : () -> Unit = {},
     onTourneeClick : (Int) -> Unit = {},
-    /** « Carte de la tournée », from a card's mini map. */
-    onOpenMap      : (Int) -> Unit = {}
 ) {
     val tournees     by viewModel.tournees.collectAsState()
     val isLoading    by viewModel.isLoading.collectAsState()
     val error        by viewModel.error.collectAsState()
     val openTournee  by viewModel.openTournee.collectAsState()
-    val pins         by viewModel.pins.collectAsState()
     val context      = LocalContext.current
 
     // Each time the list is shown — back from a tournée, back on the tab, from the Dashboard — its figures afresh:
@@ -111,7 +109,7 @@ fun TourneesScreen(
         // The « Tournées » tab's root: the menu and the global controls. Opened on a tournée (a
         // drill-down), a back arrow instead.
         DsTopAppBar(
-            title   = "Tournées",
+            title   = stringResource(R.string.tournees_title),
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: onOpenMenu?.let { DsTopBarLeading.Menu(it) } ?: DsTopBarLeading.None,
             size    = DsTopBarSize.Large
@@ -137,8 +135,8 @@ fun TourneesScreen(
             ) {
                 Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(28.dp))
                 Column {
-                    Text("${open.nom} — en cours", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
-                    Text("Tapez pour continuer", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                    Text(stringResource(R.string.tournees_open_banner, open.nom), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Primary)
+                    Text(stringResource(R.string.tournees_tap_to_continue), fontSize = DsTextSize.caption, color = DsColors.Primary)
                 }
             }
         }
@@ -152,7 +150,7 @@ fun TourneesScreen(
         // or secteur, which is a feature of its own rather than a cleanup.
         if (!isLoading && error == null && tournees.isNotEmpty()) {
             Text(
-                "${tournees.size} tournée(s)",
+                pluralStringResource(R.plurals.tournees_count, tournees.size, tournees.size),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg).padding(bottom = DsSpacing.sm)
@@ -180,7 +178,7 @@ fun TourneesScreen(
                             modifier = Modifier.size(56.dp)
                         )
                         Spacer(Modifier.height(DsSpacing.sm))
-                        Text("Aucune tournée", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.tournees_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -192,10 +190,8 @@ fun TourneesScreen(
                 ) {
                     items(tournees, key = { it.id }) { tournee ->
                         TourneeCard(
-                            tournee   = tournee,
-                            pins      = pins[tournee.id].orEmpty(),
-                            onClick   = { onTourneeClick(tournee.id) },
-                            onOpenMap = { onOpenMap(tournee.id) }
+                            tournee = tournee,
+                            onClick = { onTourneeClick(tournee.id) },
                         )
                     }
                 }
@@ -205,14 +201,14 @@ fun TourneesScreen(
 
     // « Nouvelle tournée », at the bottom right as the other lists' « + »
     DsFab(
-        contentDescription = "Nouvelle tournée",
+        contentDescription = stringResource(R.string.tournees_new),
         // Only one tournée is open at a time (the repository refuses a second): said here,
         // before a whole form is filled in for nothing.
         onClick            = {
             val open = openTournee
             if (open != null) {
                 // Short on purpose: a toast shows two lines and cuts the rest.
-                toast(context, "« ${open.nom} » est en cours : clôturez-la d'abord.")
+                toast(context, context.getString(R.string.tournees_close_first, open.nom))
             } else {
                 onAddTournee()
             }
@@ -280,10 +276,10 @@ fun TourneeDetailScreen(
     showCloseDialog?.let { tournee ->
         AlertDialog(
             onDismissRequest = { showCloseDialog = null; actionError = "" },
-            title = { Text("Fermer cette tournée ?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.tournees_close_title), fontWeight = FontWeight.Bold) },
             text  = {
                 Column {
-                    Text("Ceci enregistre l'heure de fin. Une vente ajoutée ensuite sera marquée « Ajouté après clôture ».")
+                    Text(stringResource(R.string.tournees_close_body))
                     if (actionError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(actionError, color = DsColors.Danger, fontSize = DsTextSize.caption)
@@ -304,7 +300,7 @@ fun TourneeDetailScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                 ) {
-                    Text("cloturé", color = Color.White)
+                    Text(stringResource(R.string.tournees_action_close), color = Color.White)
                 }
             },
             dismissButton = {
@@ -321,12 +317,11 @@ fun TourneeDetailScreen(
     confirmRemoveClient?.let { info ->
         AlertDialog(
             onDismissRequest = { confirmRemoveClient = null; removeClientError = "" },
-            title = { Text("Retirer ce client ?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.dashboard_remove_client_title), fontWeight = FontWeight.Bold) },
             text  = {
                 Column {
                     Text(
-                        "« ${bidiIsolate(info.client.name)} » sera retiré de la liste de cette " +
-                        "tournée. Les ventes déjà enregistrées pour ce client ne sont pas supprimées."
+                        stringResource(R.string.dashboard_remove_client_body, bidiIsolate(info.client.name))
                     )
                     if (removeClientError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
@@ -361,17 +356,16 @@ fun TourneeDetailScreen(
         val isClosed = current?.status == "fermée"
         AlertDialog(
             onDismissRequest = { confirmReopenSaleClient = null },
-            title = { Text(if (isClosed) "Vente de rattrapage ?" else "Créer une vente ?") },
+            title = { Text(stringResource(if (isClosed) R.string.tournees_catchup_title else R.string.dashboard_create_sale_title)) },
             text  = {
                 if (isClosed) {
                     // Correction mode: the sale joins this closed tournée, dated today and marked
                     // "Ajouté après clôture" on its list; its goods leave today's camion stock.
                     Text(
-                        "Cette tournée est clôturée. La vente pour ${info.client.name} y sera ajoutée avec la date " +
-                            "d'aujourd'hui et marquée « Ajouté après clôture ». Ses produits sortiront du stock camion actuel."
+                        stringResource(R.string.tournees_catchup_body, info.client.name)
                     )
                 } else {
-                    Text("Voulez-vous effectuer une vente pour ${info.client.name} ?")
+                    Text(stringResource(R.string.dashboard_create_sale_body, info.client.name))
                 }
             },
             confirmButton = {
@@ -381,7 +375,7 @@ fun TourneeDetailScreen(
                     confirmReopenSaleClient = null
                     onCreateVente(cid, name)
                 }) {
-                    Text(if (isClosed) "Continuer" else "Oui", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(if (isClosed) R.string.common_action_continue else R.string.common_yes), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -397,10 +391,10 @@ fun TourneeDetailScreen(
     showDeleteTourneeDialog?.let { target ->
         AlertDialog(
             onDismissRequest = { showDeleteTourneeDialog = null; deleteTourneeError = "" },
-            title = { Text("Supprimer la tournée ?") },
+            title = { Text(stringResource(R.string.tournees_delete_title)) },
             text  = {
                 Column {
-                    Text("Voulez-vous supprimer la tournée #${target.id} ? Cette action est irréversible.")
+                    Text(stringResource(R.string.tournees_delete_body, target.id))
                     if (deleteTourneeError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(deleteTourneeError, fontSize = DsTextSize.caption, color = DsColors.Danger)
@@ -437,10 +431,10 @@ fun TourneeDetailScreen(
     showReopenDialog?.let { tournee ->
         AlertDialog(
             onDismissRequest = { showReopenDialog = null; actionError = "" },
-            title = { Text("Rouvrir cette tournée ?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.tournees_reopen_title), fontWeight = FontWeight.Bold) },
             text  = {
                 Column {
-                    Text("Ceci remet la tournée en cours et permet d'y attacher de nouvelles ventes.")
+                    Text(stringResource(R.string.tournees_reopen_body))
                     if (actionError.isNotEmpty()) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Text(actionError, color = DsColors.Danger, fontSize = DsTextSize.caption)
@@ -461,7 +455,7 @@ fun TourneeDetailScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Rouvrir", color = Color.White)
+                    Text(stringResource(R.string.tournees_action_reopen), color = Color.White)
                 }
             },
             dismissButton = {
@@ -478,6 +472,7 @@ fun TourneeDetailScreen(
     // Swipe-to-deliver: the "Annuler" snackbar, and a scope that outlives the swiped row.
     val swipeSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val undoLabel = stringResource(R.string.common_action_cancel)
+    val swipeRes = androidx.compose.ui.platform.LocalContext.current.resources
     val swipeScope    = rememberCoroutineScope()
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -530,7 +525,7 @@ fun TourneeDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
-                                Text("Supprimer la vente", fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.ventes_delete_title), fontSize = DsTextSize.body, color = DsColors.Danger, fontWeight = FontWeight.Medium)
                             }
                         },
                         containerColor    = DsColors.Surface,
@@ -560,11 +555,11 @@ fun TourneeDetailScreen(
                     leading      = DsTopBarLeading.Back(onBack)
                 ) {
                     IconButton(onClick = onOpenMap, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Map, contentDescription = "Carte de la tournée", tint = DsColors.PrimaryDark)
+                        Icon(Icons.Default.Map, contentDescription = stringResource(R.string.tournees_map_title), tint = DsColors.PrimaryDark)
                     }
                     Box {
                         IconButton(onClick = { showTourneeMenu = true }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options", tint = DsColors.TextSecondary)
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_cd_more_options), tint = DsColors.TextSecondary)
                         }
                         // Both of the screen's former in-body actions live here now. The body
                         // is the list of clients and bons; adding a client and closing the tournée
@@ -572,24 +567,24 @@ fun TourneeDetailScreen(
                         DropdownMenu(expanded = showTourneeMenu, onDismissRequest = { showTourneeMenu = false }) {
                             if (current.status == "ouverte") {
                                 DropdownMenuItem(
-                                    text        = { Text("Ajouter un client") },
+                                    text        = { Text(stringResource(R.string.tournees_add_client)) },
                                     leadingIcon = { Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DsColors.Primary) },
                                     onClick     = { showTourneeMenu = false; onAddClients() }
                                 )
                             }
                             DropdownMenuItem(
-                                text        = { Text("Statuts de visite") },
+                                text        = { Text(stringResource(R.string.tournees_visit_statuses)) },
                                 leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, tint = DsColors.Primary) },
                                 onClick     = { showTourneeMenu = false; showStatusLegend = true }
                             )
                             DropdownMenuItem(
-                                text        = { Text("Modifier les informations") },
+                                text        = { Text(stringResource(R.string.tournees_edit_info)) },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DsColors.Primary) },
                                 onClick     = { showTourneeMenu = false; onEditTournee(current) }
                             )
                             if (current.status == "ouverte") {
                                 DropdownMenuItem(
-                                    text        = { Text("Clôturer la tournée") },
+                                    text        = { Text(stringResource(R.string.tournees_close_tournee)) },
                                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = DsColors.Danger) },
                                     onClick     = { showTourneeMenu = false; showCloseDialog = current }
                                 )
@@ -597,14 +592,14 @@ fun TourneeDetailScreen(
                                 // Not asked for, but it shared the block that was removed, and
                                 // dropping it would leave a closed tournée with no way to reopen.
                                 DropdownMenuItem(
-                                    text        = { Text("Rouvrir") },
+                                    text        = { Text(stringResource(R.string.tournees_action_reopen)) },
                                     leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Primary) },
                                     onClick     = { showTourneeMenu = false; license.runOrExplain { showReopenDialog = current } }
                                 )
                             }
                             if ((current.ventes_count ?: 0) == 0) {
                                 DropdownMenuItem(
-                                    text        = { Text("Supprimer la tournée") },
+                                    text        = { Text(stringResource(R.string.tournees_delete_tournee)) },
                                     leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = DsColors.Danger) },
                                     onClick     = { showTourneeMenu = false; license.runOrExplain { showDeleteTourneeDialog = current } }
                                 )
@@ -618,7 +613,7 @@ fun TourneeDetailScreen(
                 // D4: read-only, an open tournée can still be closed and the truck unloaded
                 if (current.status == "ouverte") {
                     com.distrigo.app.ui.designsystem.DsUnloadOnlyNote(
-                        "Consultation seule : vous pouvez encore clôturer la tournée (menu ⋮) et décharger le camion."
+                        stringResource(R.string.tournees_license_unload_only)
                     )
                 }
 
@@ -674,7 +669,7 @@ fun TourneeDetailScreen(
                 DsCompactSearchField(
                     value         = viewModel.venteQuery,
                     onValueChange = { viewModel.venteQuery = it },
-                    placeholder   = "Rechercher un client ou un bon",
+                    placeholder   = stringResource(R.string.tournees_search),
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
 
@@ -716,7 +711,7 @@ fun TourneeDetailScreen(
                     ) {
                         Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(14.dp))
                         Text(
-                            "${shownVentes.size} bons",
+                            pluralStringResource(R.plurals.tournees_bons_count, shownVentes.size, shownVentes.size),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.TextSecondary
@@ -738,7 +733,7 @@ fun TourneeDetailScreen(
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                             Text(
-                                "Brouillons (${venteDrafts.size})",
+                                stringResource(R.string.common_drafts_count, venteDrafts.size),
                                 fontSize   = DsTextSize.caption,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = DsColors.Primary
@@ -833,11 +828,11 @@ fun TourneeDetailScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(DsSpacing.sm))
-                                        Text("Camion vide", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
+                                        Text(stringResource(R.string.tournees_truck_empty), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.",
+                                        stringResource(R.string.tournees_truck_empty_body),
                                         fontSize = DsTextSize.caption,
                                         color    = DsColors.Danger
                                     )
@@ -848,7 +843,7 @@ fun TourneeDetailScreen(
                                         shape    = DsShapes.medium,
                                         colors   = ButtonDefaults.buttonColors(containerColor = DsColors.Danger)
                                     ) {
-                                        Text("Aller au chargement", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                        Text(stringResource(R.string.tournees_go_to_loading), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
                                     }
                                 }
                             }
@@ -860,7 +855,7 @@ fun TourneeDetailScreen(
                             Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs.div(2))) {
                                 com.distrigo.app.ui.common.SwipeToConfirm(
                                     enabled     = vente.status != "delivered",
-                                    label       = "Livré",
+                                    label       = stringResource(R.string.ventes_status_delivered),
                                     icon        = Icons.Default.LocalShipping,
                                     onConfirmed = delivered@{
                                         if (license.refuses()) return@delivered
@@ -871,7 +866,7 @@ fun TourneeDetailScreen(
                                             onSuccess = {
                                                 reload()
                                                 swipeScope.launch {
-                                                    swipeSnackbar.showUndo("${vente.numberLabel} marquée comme livrée", undoLabel) {
+                                                    swipeSnackbar.showUndo(swipeRes.getString(R.string.ventes_marked_delivered, vente.numberLabel), undoLabel) {
                                                         venteViewModel.undeliverVente(
                                                             id        = vente.id,
                                                             onSuccess = { reload() },
@@ -902,8 +897,7 @@ fun TourneeDetailScreen(
                                 Text(
                                     // Two different nothings: a tournée with no sales yet, and a
                                     // search that matched none of the sales it does have.
-                                    if (ventes.isEmpty()) "Aucune vente enregistrée dans cette tournée pour le moment."
-                                    else                  "Aucun bon ne correspond à cette recherche.",
+                                    stringResource(if (ventes.isEmpty()) R.string.tournees_no_sale_yet else R.string.tournees_no_bon_matches),
                                     fontSize  = DsTextSize.bodySmall,
                                     color     = DsColors.TextSecondary,
                                     textAlign = TextAlign.Center,
@@ -975,9 +969,9 @@ internal fun TourneeClientActionsSheet(
                     .joinToString(", ")
                     .ifEmpty {
                         when (client.customer_type) {
-                            "wholesale" -> "Gros"
-                            "business"  -> "Société"
-                            else        -> "Détail"
+                            "wholesale" -> stringResource(R.string.common_client_type_wholesale)
+                    "business"  -> stringResource(R.string.common_client_type_business)
+                    else        -> stringResource(R.string.common_client_type_retail)
                         }
                     }
                 Spacer(Modifier.height(2.dp))
@@ -990,8 +984,8 @@ internal fun TourneeClientActionsSheet(
                 icon     = Icons.Default.ShoppingCart,
                 tint     = DsColors.Primary,
                 bg       = DsColors.PrimaryLight,
-                title    = if (isOpen) "Créer une vente" else "Vente de rattrapage",
-                subtitle = if (isOpen) "Nouvelle vente pour ce client" else "Tournée clôturée : ajoutée avec la date d'aujourd'hui",
+                title    = stringResource(if (isOpen) R.string.tournees_create_sale else R.string.tournees_catchup_sale),
+                subtitle = stringResource(if (isOpen) R.string.tournees_create_sale_sub else R.string.tournees_catchup_sale_sub),
                 onClick  = onCreateSale
             )
 
@@ -999,11 +993,11 @@ internal fun TourneeClientActionsSheet(
                 icon     = Icons.Default.Navigation,
                 tint     = DsColors.Success,
                 bg       = DsColors.SuccessLight,
-                title    = "Naviguer",
-                subtitle = "Ouvrir l'itinéraire dans la carte",
+                title    = stringResource(R.string.tournees_navigate),
+                subtitle = stringResource(R.string.tournees_navigate_sub),
                 onClick  = {
                     if (!hasLocation) {
-                        toast(context, "Aucune position enregistrée pour ce client")
+                        toast(context, context.getString(R.string.tournees_no_position))
                     } else try {
                         val uri = android.net.Uri.parse("google.navigation:q=${client.latitude},${client.longitude}")
                         context.startActivity(
@@ -1011,7 +1005,7 @@ internal fun TourneeClientActionsSheet(
                                 .apply { setPackage("com.google.android.apps.maps") }
                         )
                     } catch (e: android.content.ActivityNotFoundException) {
-                        toast(context, "Google Maps n'est pas installé sur cet appareil")
+                        toast(context, context.getString(R.string.tournees_no_maps_app))
                     }
                 }
             )
@@ -1020,11 +1014,11 @@ internal fun TourneeClientActionsSheet(
                 icon     = Icons.Default.Call,
                 tint     = DsColors.Primary,
                 bg       = DsColors.PrimaryLight,
-                title    = "Appeler",
-                subtitle = "Appeler ce client",
+                title    = stringResource(R.string.tournees_call),
+                subtitle = stringResource(R.string.tournees_call_sub),
                 onClick  = {
                     if (!hasPhone) {
-                        toast(context, "Ce client n'a pas de numéro de téléphone enregistré")
+                        toast(context, context.getString(R.string.tournees_no_phone))
                     } else {
                         context.startActivity(
                             android.content.Intent(
@@ -1043,8 +1037,8 @@ internal fun TourneeClientActionsSheet(
                     icon     = Icons.Default.RemoveShoppingCart,
                     tint     = DsColors.Warning,
                     bg       = DsColors.WarningLight,
-                    title    = "Marquer sans vente",
-                    subtitle = "Visité, mais aucune vente réalisée",
+                    title    = stringResource(R.string.tournees_mark_no_sale),
+                    subtitle = stringResource(R.string.tournees_mark_no_sale_sub),
                     onClick  = onMarkVisited
                 )
             }
@@ -1054,9 +1048,9 @@ internal fun TourneeClientActionsSheet(
                     icon     = Icons.Default.Delete,
                     tint     = DsColors.Danger,
                     bg       = DsColors.DangerLight,
-                    title    = "Supprimer de la tournée",
-                    subtitle = if (hasVente) "Ses ventes restent enregistrées"
-                               else          "Retirer ce client de la liste",
+                    title    = stringResource(R.string.tournees_remove_from),
+                    subtitle = if (hasVente) stringResource(R.string.tournees_remove_from_sub_sales)
+                       else          stringResource(R.string.tournees_remove_from_sub),
                     danger   = true,
                     onClick  = onRemove
                 )
@@ -1240,7 +1234,6 @@ private fun TourneeAvatarLegendDot(color: Color, icon: androidx.compose.ui.graph
     }
 }
 
-private fun clientsCount(n: Int) = if (n == 1) "1 client" else "$n clients"
 
 /** « Statuts de visite »: the three colours of the clients' avatars, and how many clients wear each. */
 @Composable
@@ -1257,12 +1250,12 @@ private fun TourneeStatusLegend(
     val notYet = tourneeClients.size - visited.size
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Statuts de visite", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.tournees_visit_statuses), fontWeight = FontWeight.Bold) },
         text  = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = "Visité + vente (${clientsCount(withSale)})")
-                TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = "Visité, sans vente (${clientsCount(withoutSale)})")
-                TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = "Pas encore visité (${clientsCount(notYet)})")
+                TourneeAvatarLegendDot(color = DsColors.Success,      icon = Icons.Default.Check,        label = pluralStringResource(R.plurals.tournees_legend_with_sale, withSale, withSale))
+                TourneeAvatarLegendDot(color = DsColors.Warning,      icon = Icons.Default.ShoppingCart, label = pluralStringResource(R.plurals.tournees_legend_without_sale, withoutSale, withoutSale))
+                TourneeAvatarLegendDot(color = DsColors.TextTertiary, icon = Icons.Default.Schedule,     label = pluralStringResource(R.plurals.tournees_legend_not_yet, notYet, notYet))
             }
         },
         confirmButton = {
@@ -1384,7 +1377,7 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "Ajouter un client",
+            stringResource(R.string.tournees_add_client),
             fontSize   = DsTextSize.caption,
             fontWeight = FontWeight.Bold,
             color      = DsColors.PrimaryDark,
@@ -1400,7 +1393,7 @@ private fun TourneeAddClientAvatarItem(onClick: () -> Unit) {
  * then how many of its clients are visited, as a bar (green once all are), and its sales' total, centred.
  */
 @Composable
-private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () -> Unit, onOpenMap: () -> Unit) {
+private fun TourneeCard(tournee: Tournee, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
     val isOpen = tournee.status == "ouverte"
     val statusColor = if (isOpen) DsColors.Success else DsColors.TextTertiary
@@ -1423,7 +1416,7 @@ private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () ->
             Box(Modifier.size(7.dp).clip(DsShapes.pill).background(statusColor))
             Spacer(Modifier.width(6.dp))
             Text(
-                if (isOpen) "En cours" else "Fermée",
+                stringResource(if (isOpen) R.string.tournees_status_in_progress else R.string.tournees_status_closed),
                 fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold,
                 color = if (isOpen) DsColors.Success else DsColors.TextSecondary,
                 modifier = Modifier.weight(1f)
@@ -1445,22 +1438,19 @@ private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () ->
         if (tournee.secteurs.isNotEmpty()) {
             TourneeCardLine(Icons.Default.Map, tournee.secteurs.joinToString(", ") { it.nom }.uppercase(), accent = true)
         }
-        // Its clients on a small map, when any has a position; a tap opens the full one
-        if (pins.isNotEmpty()) {
-            Spacer(Modifier.height(DsSpacing.sm))
-            TourneeMiniMap(pins = pins, onOpen = onOpenMap)
-        }
 
         Spacer(Modifier.height(DsSpacing.sm))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
         Spacer(Modifier.height(DsSpacing.sm))
 
         // « 6/12 clients visités » and its share
+        val visitedSuffix = pluralStringResource(R.plurals.tournees_visited_suffix, total)
+        val visitedDescription = stringResource(R.string.tournees_cd_visited_percent, percentText("$percent"))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = DsColors.TextPrimary, fontWeight = FontWeight.Bold)) { append("$visited/$total") }
-                    append(if (total == 1) " client visité" else " clients visités")
+                    append(" "); append(visitedSuffix)
                 },
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
             )
@@ -1469,7 +1459,7 @@ private fun TourneeCard(tournee: Tournee, pins: List<TourneePin>, onClick: () ->
         Spacer(Modifier.height(6.dp))
         Box(
             Modifier.fillMaxWidth().height(6.dp).clip(DsShapes.pill).background(DsColors.SurfaceSunken)
-                .semantics { contentDescription = "$percent % des clients visités" }
+                .semantics { contentDescription = visitedDescription }
         ) {
             Box(
                 Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(DsShapes.pill)
@@ -1507,7 +1497,7 @@ private fun TourneeStatusBadge(status: String) {
     val isOpen = status == "ouverte"
     val bg     = if (isOpen) DsColors.PrimaryLight else DsColors.SuccessLight
     val fg     = if (isOpen) DsColors.Primary else DsColors.Success
-    val label  = if (isOpen) "Ouverte" else "Fermée"
+    val label  = stringResource(if (isOpen) R.string.tournees_status_open else R.string.tournees_status_closed)
 
     Box(
         modifier = Modifier
@@ -1571,12 +1561,12 @@ private fun TourneeVenteFilterSheet(
         // is a second window, ~45 ms of the opening frame (see SearchableSelectList). The filters' scroll
         // is kept outside the switch, so coming back finds them where they were.
         if (clientPicker) SearchableSelectList(
-            title       = "Sélectionner un client",
+            title       = stringResource(R.string.common_select_client),
             items       = clients,
             itemLabel   = { it.second },
             itemKey     = { it.first },
             isSelected  = { it.first == filterClientId },
-            allLabel    = "Tous les clients",
+            allLabel    = stringResource(R.string.common_all_clients),
             allSelected = filterClientId == null,
             onSelectAll = { onClient(null); clientPicker = false },
             onSelect    = { onClient(it.first); clientPicker = false },
@@ -1599,28 +1589,28 @@ private fun TourneeVenteFilterSheet(
             }
             Spacer(Modifier.height(DsSpacing.md))
 
-            Text("Statut du bon", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text(stringResource(R.string.ventes_filter_delivery_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             TourneeFilterSegments(
-                options  = listOf(null to "Tous", "pending" to "En attente", "delivered" to "Livré"),
+                options  = listOf(null to stringResource(R.string.common_filter_all), "pending" to stringResource(R.string.ventes_status_pending), "delivered" to stringResource(R.string.ventes_status_delivered)),
                 selected = filterStatus,
                 onSelect = onStatus
             )
             Spacer(Modifier.height(DsSpacing.md))
 
-            Text("Statut du paiement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text(stringResource(R.string.ventes_filter_payment_status), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             TourneeFilterSegments(
-                options  = listOf(null to "Tous", "paye" to "Payé", "impaye" to "Impayé", "partiel" to "Partiel"),
+                options  = listOf(null to stringResource(R.string.common_filter_all), "paye" to stringResource(R.string.common_status_paid), "impaye" to stringResource(R.string.common_status_unpaid), "partiel" to stringResource(R.string.common_status_partial)),
                 selected = filterPaymentStatus,
                 onSelect = onPaymentStatus
             )
             Spacer(Modifier.height(DsSpacing.md))
 
-            Text("Client", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+            Text(stringResource(R.string.common_label_client), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
             // A searchable list, not a dropdown, as in Dépôt Vente's filters — see SearchableSelectList.
             DsSelectorField(
                 label       = null,
                 value       = clients.find { it.first == filterClientId }?.second.orEmpty(),
-                placeholder = "Tous les clients",
+                placeholder = stringResource(R.string.common_all_clients),
                 onClick     = { clientPicker = true }
             )
             Spacer(Modifier.height(DsSpacing.lg))
@@ -1642,7 +1632,7 @@ private fun TourneeVenteFilterSheet(
                     shape    = DsShapes.medium,
                     colors   = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
-                    Text("Appliquer ($resultCount)", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.common_action_apply_count, resultCount), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, softWrap = false)
                 }
             }
         }
@@ -1691,28 +1681,32 @@ private fun TourneeVenteRow(
     val money = LocalMoneyFormatter.current
     val total       = vente.total
     val montantPaye = vente.montant_paye ?: 0.0
-    val statut = when {
-        montantPaye >= total && total > 0      -> "Payé"
-        montantPaye > 0 && montantPaye < total -> "Partiel"
-        else                                    -> "Impayé"
+    // The payment state by its key, its words from the language: the colour never depends on a translation
+    val paymentKey = when {
+        montantPaye >= total && total > 0      -> "paye"
+        montantPaye > 0 && montantPaye < total -> "partiel"
+        else                                    -> "impaye"
     }
-    val statusColor = when (statut) {
-        "Payé"    -> DsColors.Success
-        "Partiel" -> DsColors.Warning
+    val statut = stringResource(
+        when (paymentKey) { "paye" -> R.string.common_status_paid; "partiel" -> R.string.common_status_partial; else -> R.string.common_status_unpaid }
+    )
+    val statusColor = when (paymentKey) {
+        "paye"    -> DsColors.Success
+        "partiel" -> DsColors.Warning
         else      -> DsColors.Danger
     }
-    val statusColorLight = when (statut) {
-        "Payé"    -> DsColors.SuccessLight
-        "Partiel" -> DsColors.WarningLight
+    val statusColorLight = when (paymentKey) {
+        "paye"    -> DsColors.SuccessLight
+        "partiel" -> DsColors.WarningLight
         else      -> DsColors.DangerLight
     }
 
     // Corner ribbon shows delivery status, distinct from the payment-status pill kept below.
     val isDelivered = vente.status == "delivered"
     val (ribbonLabel, ribbonColor) = if (isDelivered) {
-        "LIVRÉ" to DsColors.Success
+        stringResource(R.string.ventes_ribbon_delivered) to DsColors.Success
     } else {
-        "EN ATTENTE" to DsColors.Warning
+        stringResource(R.string.ventes_ribbon_pending) to DsColors.Warning
     }
 
     Box(
@@ -1744,14 +1738,14 @@ private fun TourneeVenteRow(
             )
             Text(vente.client_name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
-                "${vente.items_count ?: vente.items?.size ?: 0} article(s) · ${formatOrderTime(vente.created_at)}",
+                (vente.items_count ?: vente.items?.size ?: 0).let { pluralStringResource(R.plurals.ventes_card_items_time, it, it, formatOrderTime(vente.created_at)) },
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextSecondary
             )
             if (lateEntry) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Ajouté après clôture",
+                    stringResource(R.string.tournees_added_after_close),
                     fontSize   = DsTextSize.caption,
                     fontWeight = FontWeight.SemiBold,
                     color      = DsColors.Warning,

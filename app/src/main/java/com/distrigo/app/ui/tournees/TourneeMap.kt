@@ -104,6 +104,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 // ── What the map shows ──
 
@@ -144,13 +147,13 @@ fun tourneeMapClients(onList: List<TourneeClientInfo>, offListBuyers: List<Clien
 }
 
 /** How the map names and colours a visit: its chip, its pill on the client's sheet. */
-internal data class VisitStyle(val chip: String, val pill: String, val color: Color, val pillBg: Color, val pillText: Color)
+internal data class VisitStyle(@androidx.annotation.StringRes val chip: Int, @androidx.annotation.StringRes val pill: Int, val color: Color, val pillBg: Color, val pillText: Color)
 
 internal fun styleOf(state: VisitState) = when (state) {
-    VisitState.WITH_SALE -> VisitStyle("Avec achat", "Visité · achat", DsColors.Success, DsColors.SuccessLight, DsColors.SuccessDark)
-    VisitState.WITHOUT_SALE -> VisitStyle("Sans achat", "Visité · sans achat", DsColors.Warning, DsColors.WarningLight, DsColors.Warning)
+    VisitState.WITH_SALE -> VisitStyle(R.string.tournees_visit_with_sale, R.string.tournees_visit_pill_with_sale, DsColors.Success, DsColors.SuccessLight, DsColors.SuccessDark)
+    VisitState.WITHOUT_SALE -> VisitStyle(R.string.tournees_visit_without_sale, R.string.tournees_visit_pill_without_sale, DsColors.Warning, DsColors.WarningLight, DsColors.Warning)
     // Grey, as everywhere in the app a client still to visit is (owner's choice, not the prototype's red)
-    VisitState.PENDING -> VisitStyle("À visiter", "À visiter", DsColors.TextTertiary, DsColors.SurfaceSunken, DsColors.TextSecondary)
+    VisitState.PENDING -> VisitStyle(R.string.tournees_visit_pending, R.string.tournees_visit_pending, DsColors.TextTertiary, DsColors.SurfaceSunken, DsColors.TextSecondary)
 }
 
 private val StateOrder = listOf(VisitState.WITH_SALE, VisitState.WITHOUT_SALE, VisitState.PENDING)
@@ -235,7 +238,7 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title    = "Carte de la tournée",
+            title    = stringResource(R.string.tournees_map_title),
             subtitle = data?.label?.takeIf { it.isNotBlank() },
             leading  = DsTopBarLeading.Back(onBack)
         )
@@ -282,7 +285,7 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
                     StateOrder.forEach { state ->
                         val on = state.name in shown
                         FilterChipPill(
-                            label   = styleOf(state).chip,
+                            label   = stringResource(styleOf(state).chip),
                             count   = clients.count { it.state == state },
                             color   = styleOf(state).color,
                             on      = on,
@@ -301,7 +304,7 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
                         Icon(Icons.Default.LocationOff, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(15.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            if (unplaced.size == 1) "1 client sans position" else "${unplaced.size} clients sans position",
+                            pluralStringResource(R.plurals.tournees_map_unplaced, unplaced.size, unplaced.size),
                             fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                         )
                     }
@@ -313,18 +316,18 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
                 Modifier.align(Alignment.CenterEnd).padding(end = DsSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
-                MapControl(Icons.Default.Layers, if (satellite) "Vue standard" else "Vue satellite", active = satellite) { satellite = !satellite }
-                MapControl(Icons.Default.Add, "Zoom avant") { scope.launch { camera.animate(CameraUpdateFactory.zoomIn(), 300) } }
-                MapControl(Icons.Default.Remove, "Zoom arrière") { scope.launch { camera.animate(CameraUpdateFactory.zoomOut(), 300) } }
-                MapControl(Icons.Default.CenterFocusStrong, "Recentrer sur la tournée") { selectedId = null; fitAll(animate = true) }
+                MapControl(Icons.Default.Layers, stringResource(if (satellite) R.string.tournees_map_standard else R.string.tournees_map_satellite), active = satellite) { satellite = !satellite }
+                MapControl(Icons.Default.Add, stringResource(R.string.tournees_map_zoom_in)) { scope.launch { camera.animate(CameraUpdateFactory.zoomIn(), 300) } }
+                MapControl(Icons.Default.Remove, stringResource(R.string.tournees_map_zoom_out)) { scope.launch { camera.animate(CameraUpdateFactory.zoomOut(), 300) } }
+                MapControl(Icons.Default.CenterFocusStrong, stringResource(R.string.tournees_map_recenter)) { selectedId = null; fitAll(animate = true) }
             }
 
             // What to do, until a client is picked
             if (selected == null && data != null) {
                 val hint = when {
-                    located.isEmpty() -> "Aucun client de cette tournée n'a de position"
-                    located.none { it.state.name in shown } -> "Aucun marqueur affiché. Touchez une pastille."
-                    else -> "Touchez un marqueur pour voir le client"
+                    located.isEmpty() -> stringResource(R.string.tournees_map_none_located)
+                    located.none { it.state.name in shown } -> stringResource(R.string.tournees_map_none_shown)
+                    else -> stringResource(R.string.tournees_map_tap_marker)
                 }
                 Text(
                     hint,
@@ -347,7 +350,7 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
                                 .apply { setPackage("com.google.android.apps.maps") }
                         )
                     } catch (e: ActivityNotFoundException) {
-                        Toast.makeText(context, "Google Maps n'est pas installé sur cet appareil", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.tournees_no_maps_app), Toast.LENGTH_SHORT).show()
                     }
                 },
             )
@@ -357,12 +360,12 @@ fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltVi
     if (showUnplaced) {
         ModalBottomSheet(onDismissRequest = { showUnplaced = false }, containerColor = DsColors.Surface) {
             Text(
-                "Clients sans position",
+                stringResource(R.string.tournees_map_unplaced_title),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg),
                 fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
             )
             Text(
-                "Ouvrez un client pour lui donner une position : il apparaîtra sur la carte.",
+                stringResource(R.string.tournees_map_unplaced_body),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary
             )
@@ -448,13 +451,14 @@ private fun pinBitmap(state: VisitState, selected: Boolean, density: Float): Bit
 /** A chip of the legend: the kind's dot, its name and count; off, it greys and strikes through. */
 @Composable
 private fun FilterChipPill(label: String, count: Int, color: Color, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val chipState = stringResource(if (on) R.string.tournees_map_chip_shown else R.string.tournees_map_chip_hidden)
     Row(
         modifier
             .clip(DsShapes.pill)
             .background(if (on) DsColors.Surface else DsColors.SurfaceMuted)
             .border(1.dp, DsColors.Border, DsShapes.pill)
             .clickable(role = Role.Switch, onClick = onClick)
-            .semantics { contentDescription = "$label, $count"; stateDescription = if (on) "affichés" else "masqués" }
+            .semantics { contentDescription = "$label, $count"; stateDescription = chipState }
             .padding(horizontal = DsSpacing.sm, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
@@ -492,7 +496,7 @@ private fun MapControl(icon: androidx.compose.ui.graphics.vector.ImageVector, de
 private fun StatePill(state: VisitState) {
     val style = styleOf(state)
     Text(
-        style.pill,
+        stringResource(style.pill),
         modifier = Modifier.clip(DsShapes.pill).background(style.pillBg).padding(horizontal = 10.dp, vertical = 4.dp),
         fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = style.pillText, maxLines = 1
     )
@@ -507,7 +511,7 @@ private fun ClientSheet(client: TourneeMapClient, onOpen: () -> Unit, onNavigate
             .padding(DsSpacing.md)
     ) {
         Row(
-            Modifier.fillMaxWidth().clip(DsShapes.medium).clickable(role = Role.Button, onClickLabel = "Ouvrir la fiche", onClick = onOpen),
+            Modifier.fillMaxWidth().clip(DsShapes.medium).clickable(role = Role.Button, onClickLabel = stringResource(R.string.tournees_map_open_client), onClick = onOpen),
             verticalAlignment = Alignment.CenterVertically
         ) {
             EntityAvatar(name = client.name, imageUri = client.imageUri, size = 42.dp)
@@ -534,112 +538,7 @@ private fun ClientSheet(client: TourneeMapClient, onOpen: () -> Unit, onNavigate
         ) {
             Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Naviguer", fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-// ── The list's mini map (phase 3) ──
-
-/** A pin of a tournée's mini map: where, and how the visit went. */
-data class TourneePin(val latitude: Double, val longitude: Double, val state: VisitState)
-
-/**
- * The rows of [com.distrigo.app.data.local.dao.TourneeDao.getTourneePins] per tournée, read with the map's rule: bought,
- * else marked « visité », else to visit. A position at 0,0 or out of range (a field once saved empty) is left out.
- */
-fun tourneePins(rows: List<com.distrigo.app.data.local.dao.TourneePinRow>): Map<Int, List<TourneePin>> =
-    rows.filter { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 && !(it.latitude == 0.0 && it.longitude == 0.0) }
-        .groupBy({ it.tournee_id }) { row ->
-            TourneePin(row.latitude, row.longitude, when {
-                row.bought -> VisitState.WITH_SALE
-                row.status == "visite" -> VisitState.WITHOUT_SALE
-                else -> VisitState.PENDING
-            })
-        }
-
-/**
- * The area a mini map fits: its clients, widened north for a pin rising above its point and a little the other ways. Lite mode leaves the map's padding out of a fit, so the room is
- * made in the area itself.
- */
-internal fun miniMapBounds(pins: List<TourneePin>): LatLngBounds {
-    val south = pins.minOf { it.latitude }; val north = pins.maxOf { it.latitude }
-    val west = pins.minOf { it.longitude }; val east = pins.maxOf { it.longitude }
-    val lat = maxOf(north - south, 0.002); val lng = maxOf(east - west, 0.002)
-    return LatLngBounds(LatLng(south - lat * 0.2, west - lng * 0.15), LatLng(north + lat * 0.45, east + lng * 0.15))
-}
-
-/**
- * A tournée's clients on a small map in its card, from the owner's prototype: Google's lite mode, a still picture of
- * the map with its pins, light in a scrolling list. A tap anywhere on it opens « Carte de la tournée ».
- */
-@Composable
-fun TourneeMiniMap(pins: List<TourneePin>, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    val density = LocalDensity.current
-    val camera = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(
-            LatLng(pins.sumOf { it.latitude } / pins.size, pins.sumOf { it.longitude } / pins.size),
-            if (pins.size == 1) 14f else 12f
-        )
-    }
-    var loaded by remember { mutableStateOf(false) }
-    // Several clients: fitted once the map has its size, which their bounds need
-    LaunchedEffect(loaded, pins) {
-        if (loaded && pins.size > 1) {
-            runCatching { camera.move(CameraUpdateFactory.newLatLngBounds(miniMapBounds(pins), with(density) { 8.dp.roundToPx() })) }
-        }
-    }
-    Column(modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(124.dp)
-                .clip(DsShapes.medium)
-                .border(1.dp, DsColors.Border, DsShapes.medium)
-                .semantics { contentDescription = "Ouvrir la carte de la tournée" }
-        ) {
-            GoogleMap(
-                modifier                = Modifier.fillMaxSize(),
-                cameraPositionState     = camera,
-                googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
-                properties              = MapProperties(isBuildingEnabled = false, isIndoorEnabled = false),
-                uiSettings              = MapUiSettings(mapToolbarEnabled = false, zoomControlsEnabled = false),
-                onMapLoaded             = { loaded = true },
-                // In lite mode a tap would open Google Maps; it opens the tournée's own map instead
-                onMapClick              = { onOpen() },
-            ) {
-                val icons = remember(density) { pinIcons(density.density * 0.7f) }
-                pins.forEach { pin ->
-                    Marker(
-                        state   = remember(pin) { MarkerState(LatLng(pin.latitude, pin.longitude)) },
-                        icon    = icons.getValue(pin.state to false),
-                        onClick = { onOpen(); true },
-                    )
-                }
-            }
-            // « Plein écran »
-            Box(
-                Modifier.align(Alignment.BottomEnd).padding(DsSpacing.sm).size(30.dp)
-                    .clip(DsShapes.pill).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.pill)
-                    .clickable(role = Role.Button, onClickLabel = "Ouvrir la carte", onClick = onOpen),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.OpenInFull, contentDescription = null, tint = DsColors.PrimaryDark, modifier = Modifier.size(15.dp))
-            }
-        }
-        // The colours' legend, under the map: over it, it hid the pins and Google's logo
-        Row(
-            Modifier.padding(top = 6.dp, start = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            listOf(VisitState.WITH_SALE to "Achat", VisitState.WITHOUT_SALE to "Sans achat", VisitState.PENDING to "À visiter").forEach { (state, label) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(7.dp).clip(DsShapes.pill).background(styleOf(state).color))
-                    Spacer(Modifier.width(4.dp))
-                    Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary, maxLines = 1)
-                }
-            }
+            Text(stringResource(R.string.tournees_navigate), fontWeight = FontWeight.Bold)
         }
     }
 }

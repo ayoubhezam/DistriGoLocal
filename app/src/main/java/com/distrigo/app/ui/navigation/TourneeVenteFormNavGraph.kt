@@ -67,6 +67,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 // Mirrors venteFormGraph (VenteFormNavGraph.kt): form state (client/cart/note/montantPaye) lives
 // on the outer TourneesGraph-scoped TourneeViewModel — shared with TourneesHome/TourneesDetail —
@@ -244,14 +245,14 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title         = "Tournée #$tourneeId",
+                    title         = stringResource(R.string.tournees_sale_title, tourneeId),
                     // The name passed with the route until the client itself is read: right on frame 1.
-                    subtitle      = formClient?.name ?: clientNameArg ?: "Choisir un client",
+                    subtitle      = formClient?.name ?: clientNameArg ?: stringResource(R.string.common_choose_client),
                     // Blue once a client is chosen, grey while the step is still open.
                     subtitleColor = if (formClient != null || clientNameArg != null) DsColors.Primary else DsColors.TextSecondary,
                     leading       = DsTopBarLeading.Back({ if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack() })
                 ) {
-                    DsStepBadge("Produits", 2, 3)
+                    DsStepBadge(stringResource(R.string.common_step_products), 2, 3)
                     Spacer(Modifier.width(DsSpacing.xs))
                 }
                 HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
@@ -262,7 +263,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             DsCompactSearchField(
                                 value         = search,
                                 onValueChange = { picker.search = it },
-                                placeholder   = "Rechercher un produit",
+                                placeholder   = stringResource(R.string.common_search_product),
                                 modifier      = Modifier.padding(horizontal = DsSpacing.lg).padding(top = DsSpacing.md)
                             ) {
                                 DsCompactSearchAction(
@@ -293,7 +294,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                     resultCount    = productCount ?: 0,
                                     onChange       = { picker.filters = it },
                                     onDismiss      = { showFilterSheet = false },
-                                    priceLabel     = "Prix de vente",
+                                    priceLabel     = stringResource(R.string.common_label_sale_price),
                                     // The camion's list: dépôt stock bands would say nothing here.
                                     showStockLevel = false,
                                 )
@@ -363,7 +364,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                 color    = DsColors.TextSecondary
                                             )
                                             Text(
-                                                "Camion: ${formatQty(product.camion_stock)}",
+                                                stringResource(R.string.ventes_stock_truck, formatQty(product.camion_stock)),
                                                 fontSize = DsTextSize.caption,
                                                 color    = DsColors.TextSecondary
                                             )
@@ -386,14 +387,14 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                                 },
                                                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryDark)
                                             ) {
-                                                Icon(Icons.Default.AddShoppingCart, contentDescription = "Ajouter au panier", tint = Color.White, modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.AddShoppingCart, contentDescription = stringResource(R.string.common_cd_add_to_cart), tint = Color.White, modifier = Modifier.size(20.dp))
                                             }
                                         } else {
                                             IconButton(
                                                 onClick = { session.setFormCartItems(cartItems.filter { it.product.id != product.id }) },
                                                 modifier = Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.SuccessLight)
                                             ) {
-                                                Icon(Icons.Default.Check, contentDescription = "Ajouté", tint = DsColors.Success, modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_cd_added), tint = DsColors.Success, modifier = Modifier.size(20.dp))
                                             }
                                         }
                                     }
@@ -429,7 +430,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 Text("${cartItems.size}", color = if (cartItems.isNotEmpty()) DsColors.PrimaryDark else Color.White, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold)
                             }
                             Text(
-                                "Ma sélection", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
+                                stringResource(R.string.common_my_selection), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold,
                                 color = if (cartItems.isNotEmpty()) Color.White else DsColors.TextTertiary
                             )
                             Spacer(Modifier.weight(1f))
@@ -460,8 +461,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
-                    title    = "Ma sélection",
-                    subtitle = "${cartItems.size} article(s)",
+                    title    = stringResource(R.string.common_my_selection),
+                    subtitle = pluralStringResource(R.plurals.common_items_count_short, cartItems.size, cartItems.size),
                     leading  = DsTopBarLeading.Back({ navController.popBackStack() })
                 ) {
                     if (cartItems.isNotEmpty()) {
@@ -601,11 +602,9 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             // anyway would send them the wrong way.
             val blockedReason = when {
                 missingProductIds.isNotEmpty() ->
-                    "Un produit de cette vente n'existe plus dans le catalogue. " +
-                    "Retirez sa ligne de la sélection pour pouvoir enregistrer."
+                    stringResource(R.string.tournees_banner_missing_product)
                 overStockProductIds.isNotEmpty() ->
-                    "Le stock du camion a changé depuis ce brouillon. " +
-                    "Réduisez les quantités concernées pour pouvoir enregistrer."
+                    stringResource(R.string.tournees_banner_truck_changed)
                 else -> null
             }
 
@@ -660,7 +659,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             BackHandler { navController.popBackStack() }
 
             Step3Validation(
-                title               = "Tournée #$tourneeId",
+                title               = stringResource(R.string.tournees_sale_title, tourneeId),
                 selectedClient      = formClient,
                 cartItems           = cartItems,
                 total               = total,

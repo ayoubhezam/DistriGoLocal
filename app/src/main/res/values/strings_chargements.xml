@@ -5,4 +5,23 @@
     </plurals>
     <string name="chargements_drafts_sheet_subtitle">Reprenez un brouillon ou commencez un nouveau mouvement.</string>
     <string name="chargements_drafts_sheet_start_new">Commencer un nouveau mouvement</string>
+    <string name="chargements_drafts_empty_body">Un mouvement non terminé est enregistré ici automatiquement, et vous pouvez le reprendre quand vous voulez.</string>
+    <string name="chargements_no_change">Aucun changement</string>
+    <string name="chargements_to_truck_short">+%1$s vers le camion</string>
+    <string name="chargements_to_depot_short">%1$s vers le dépôt</string>
+    <string name="chargements_qty_in_truck">Quantité actuellement dans le camion</string>
+    <string name="chargements_over_cap">Stock dépôt insuffisant — maximum %1$s dans le camion</string>
+    <string name="chargements_all_loaded">Tout le stock du dépôt est chargé</string>
+    <plurals name="chargements_units_to_truck">
+        <item quantity="one">%1$s unité envoyée vers le camion</item>
+        <item quantity="other">%1$s unités envoyées vers le camion</item>
+    </plurals>
+    <plurals name="chargements_units_to_depot">
+        <item quantity="one">%1$s unité ramenée au dépôt</item>
+        <item quantity="other">%1$s unités ramenées au dépôt</item>
+    </plurals>
+    <string name="chargements_movement_title">Mouvement de stock</string>
+    <string name="chargements_save_movement">Enregistrer le mouvement</string>
+    <string name="chargements_title">Chargement / Déchargement</string>
+    <string name="chargements_select_products">Sélectionnez des produits</string>
 </resources>

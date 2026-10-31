@@ -60,6 +60,8 @@ import com.distrigo.app.ui.products.SortOption
 import com.distrigo.app.ui.purchases.PurchaseProductFilterSheet
 import com.distrigo.app.ui.scanner.BarcodeScannerScreen
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -218,7 +220,7 @@ fun StockCamionScreen(
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                     ) {
                         Icon(Icons.Default.Warehouse, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(20.dp))
-                        Text("Décharger le camion", fontSize = DsTextSize.body, color = DsColors.Warning, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.tournees_unload_truck), fontSize = DsTextSize.body, color = DsColors.Warning, fontWeight = FontWeight.Medium)
                     }
                 }
             },
@@ -232,12 +234,10 @@ fun StockCamionScreen(
         AlertDialog(
             onDismissRequest = { if (!unloadBusy) unloadingProduct = null },
             icon             = { Icon(Icons.Default.Warehouse, contentDescription = null, tint = DsColors.Warning) },
-            title            = { Text("Décharger le camion") },
+            title            = { Text(stringResource(R.string.tournees_unload_truck)) },
             text             = {
                 Text(
-                    "Voulez-vous décharger ce produit du camion ?\n\n" +
-                        "${formatQty(product.camion_stock)} ${ProductUnit.plural(product.unit_type, product.camion_stock)} de « ${product.name} » " +
-                        "retourneront au dépôt."
+                    stringResource(R.string.tournees_unload_question, quantityText(product.camion_stock, product.unit_type).asString(), product.name)
                 )
             },
             confirmButton    = {
@@ -252,7 +252,7 @@ fun StockCamionScreen(
                                 unloadingProduct = null
                                 if (quantity > 0.0) android.widget.Toast.makeText(
                                     unloadContext,
-                                    "« ${product.name} » déchargé : ${formatQty(quantity)} ${ProductUnit.plural(product.unit_type, quantity)} au dépôt",
+                                    unloadContext.getString(R.string.tournees_unloaded, product.name, quantityText(quantity, product.unit_type).resolve(unloadContext)),
                                     android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             },
@@ -263,7 +263,7 @@ fun StockCamionScreen(
                             }
                         )
                     }
-                ) { Text("Décharger", color = DsColors.Warning, fontWeight = FontWeight.SemiBold) }
+                ) { Text(stringResource(R.string.tournees_action_unload), color = DsColors.Warning, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton    = { TextButton(enabled = !unloadBusy, onClick = { unloadingProduct = null }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
@@ -281,7 +281,7 @@ fun StockCamionScreen(
             // Produits' header: the large title and the global controls. A back arrow where Produits has the menu,
             // Stock Camion being opened over a tab or a tournée.
             DsTopAppBar(
-                title   = "Stock Camion",
+                title   = stringResource(R.string.more_truck_stock),
                 licenseBanner = true,
                 leading = DsTopBarLeading.Back(onBack),
                 size    = DsTopBarSize.Large
@@ -293,7 +293,7 @@ fun StockCamionScreen(
             DsCompactSearchField(
                 value         = search,
                 onValueChange = { productViewModel.camionSearch = it },
-                placeholder   = "Rechercher un produit",
+                placeholder   = stringResource(R.string.common_search_product),
                 modifier      = Modifier.padding(horizontal = DsSpacing.lg)
             ) {
                 DsCompactSearchAction(
@@ -323,7 +323,7 @@ fun StockCamionScreen(
                     ) {
                         Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(14.dp))
                         Text(
-                            "Brouillons (${drafts.size})",
+                            stringResource(R.string.common_drafts_count, drafts.size),
                             fontSize   = DsTextSize.caption,
                             fontWeight = FontWeight.SemiBold,
                             color      = DsColors.Primary
@@ -368,7 +368,7 @@ fun StockCamionScreen(
                             Spacer(Modifier.height(DsSpacing.sm))
                             Text(
                                 // An empty camion and a search that found nothing in it are two answers.
-                                if (search.isBlank() && !filters.isActive) "Aucun produit dans le camion" else "Aucun produit trouvé",
+                                stringResource(if (search.isBlank() && !filters.isActive) R.string.tournees_truck_no_product else R.string.common_no_product_found),
                                 color = DsColors.TextSecondary, fontWeight = FontWeight.Medium
                             )
                         }
@@ -437,7 +437,7 @@ fun StockCamionScreen(
                 resultCount    = camionCount ?: 0,
                 onChange       = { productViewModel.camionFilters = it },
                 onDismiss      = { showFilterSheet = false },
-                priceLabel     = "Prix de vente",
+                priceLabel     = stringResource(R.string.common_label_sale_price),
                 // The camion's list: dépôt stock bands would say nothing here.
                 showStockLevel = false
             )
@@ -449,7 +449,7 @@ fun StockCamionScreen(
         // over the top — the same rule Achats and Dépôt Vente follow. With none, it does what it
         // always did.
         DsFab(
-            contentDescription = "Ajouter des produits",
+            contentDescription = stringResource(R.string.common_cd_add_products),
             onClick            = {
                 if (drafts.isNotEmpty()) showDraftsSheet = true else showNewChargement = true
             },

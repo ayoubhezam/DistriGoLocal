@@ -26,7 +26,9 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import java.util.Locale
 import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.pluralCount
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 
 data class ChargementCartItem(
@@ -54,9 +56,9 @@ internal fun ChargementCartRow(
     val overCap       = camionCap != null && Quantity.exceeds(item.targetCamion, camionCap)
     val atCap         = camionCap != null && !overCap && !Quantity.isBelow(item.targetCamion, camionCap)
     val subtitle = when {
-        Quantity.isZero(delta) -> "Aucun changement"
-        delta > 0              -> "+${formatQty(delta)} vers le camion"
-        else                   -> "${formatQty(-delta)} vers le dépôt"
+        Quantity.isZero(delta) -> stringResource(R.string.chargements_no_change)
+        delta > 0              -> stringResource(R.string.chargements_to_truck_short, formatQty(delta))
+        else                   -> stringResource(R.string.chargements_to_depot_short, formatQty(-delta))
     }
 
     Column(
@@ -118,7 +120,7 @@ internal fun ChargementCartRow(
                 // Typed too: half a carton for a carton product, whole units for a pièce one. The
                 // floor is 0 — an empty camion — and strict stock caps it at the whole stock.
                 QuantityStepper(
-                    label          = "Quantité actuellement dans le camion",
+                    label          = stringResource(R.string.chargements_qty_in_truck),
                     value          = item.targetCamion,
                     onValueChange  = onQuantityChange,
                     min            = 0.0,
@@ -131,8 +133,8 @@ internal fun ChargementCartRow(
                 if (overCap || (atCap && delta > 0)) {
                     Spacer(Modifier.height(DsSpacing.xs))
                     Text(
-                        if (overCap) "Stock dépôt insuffisant — maximum ${formatQty(camionCap!!)} dans le camion"
-                        else "Tout le stock du dépôt est chargé",
+                        if (overCap) stringResource(R.string.chargements_over_cap, formatQty(camionCap!!))
+                        else stringResource(R.string.chargements_all_loaded),
                         fontSize  = DsTextSize.caption,
                         color     = if (overCap) DsColors.Danger else DsColors.Warning,
                         textAlign = TextAlign.Center,
@@ -153,7 +155,7 @@ internal fun ChargementCartRow(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Dépôt",
+                            stringResource(R.string.common_source_depot),
                             fontSize = DsTextSize.caption,
                             color    = if (depotPreview < 0) DsColors.Danger else DsColors.TextSecondary
                         )
@@ -172,7 +174,7 @@ internal fun ChargementCartRow(
                             .padding(DsSpacing.md),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Camion", fontSize = DsTextSize.caption, color = DsColors.Primary)
+                        Text(stringResource(R.string.common_source_truck), fontSize = DsTextSize.caption, color = DsColors.Primary)
                         Text(formatQty(item.targetCamion), fontSize = DsTextSize.headline, fontWeight = FontWeight.Medium, color = DsColors.Primary)
                     }
                 }
@@ -200,7 +202,7 @@ internal fun ChargementCartRow(
                             Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(DsSpacing.xs))
                             Text(
-                                "${formatQty(delta)} unité(s) envoyée(s) vers le camion",
+                                pluralStringResource(R.plurals.chargements_units_to_truck, pluralCount(delta), formatQty(delta)),
                                 fontSize = DsTextSize.bodySmall,
                                 color    = DsColors.Primary,
                                 fontWeight = FontWeight.Medium
@@ -210,14 +212,14 @@ internal fun ChargementCartRow(
                             Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = DsColors.Warning, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(DsSpacing.xs))
                             Text(
-                                "${formatQty(-delta)} unité(s) ramenée(s) au dépôt",
+                                pluralStringResource(R.plurals.chargements_units_to_depot, pluralCount(-delta), formatQty(-delta)),
                                 fontSize = DsTextSize.bodySmall,
                                 color    = DsColors.Warning,
                                 fontWeight = FontWeight.Medium
                             )
                         }
                         else -> {
-                            Text("Aucun changement", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                            Text(stringResource(R.string.chargements_no_change), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                         }
                     }
                 }

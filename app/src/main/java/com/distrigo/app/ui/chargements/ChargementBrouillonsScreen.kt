@@ -32,6 +32,7 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * The chargement Brouillons list.
@@ -76,20 +77,20 @@ fun ChargementBrouillonsScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         if (selecting) {
             DsTopAppBar(
-                title    = "${effectiveSel.size} sélectionné${if (effectiveSel.size > 1) "s" else ""}",
-                subtitle = "sur ${drafts.size}",
+                title    = pluralStringResource(R.plurals.common_selected_count, effectiveSel.size, effectiveSel.size),
+                subtitle = stringResource(R.string.common_of_total, drafts.size),
                 leading  = DsTopBarLeading.Close { exitSelection() }
             )
         } else {
             DsTopAppBar(
-                title    = "Brouillons",
-                subtitle = if (drafts.isEmpty()) "Aucun brouillon"
-                           else "${drafts.size} ${if (drafts.size == 1) "brouillon" else "brouillons"}",
+                title    = stringResource(R.string.common_drafts),
+                subtitle = if (drafts.isEmpty()) stringResource(R.string.common_drafts_none)
+                           else pluralStringResource(R.plurals.common_drafts_n, drafts.size, drafts.size),
                 leading  = DsTopBarLeading.Back(onBack)
             ) {
                 if (drafts.isNotEmpty()) {
                     TextButton(onClick = { selecting = true }) {
-                        Text("Sélectionner", color = DsColors.Primary, fontSize = DsTextSize.bodySmall)
+                        Text(stringResource(R.string.common_action_select), color = DsColors.Primary, fontSize = DsTextSize.bodySmall)
                     }
                     Spacer(Modifier.width(DsSpacing.xs))
                 }
@@ -216,10 +217,10 @@ private fun EmptyChargementBrouillons(modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Aucun brouillon", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.common_drafts_none), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Un mouvement non terminé est enregistré ici automatiquement, et vous pouvez le reprendre quand vous voulez.",
+            stringResource(R.string.chargements_drafts_empty_body),
             fontSize  = DsTextSize.bodySmall,
             color     = DsColors.TextSecondary,
             textAlign = TextAlign.Center
