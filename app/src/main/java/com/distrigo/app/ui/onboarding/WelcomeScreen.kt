@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,7 +53,7 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 
 /** The logo's tagline, set as text under it (the logo files don't carry it). */
-internal const val BRAND_TAGLINE = "GÉREZ. DISTRIBUEZ. DÉVELOPPEZ."
+internal val BRAND_TAGLINE: String get() = licText(R.string.onb_tagline)
 
 // The truck's middle in welcome_hero.webp, as a fraction of the photo's height
 private const val TRUCK_FOCUS_Y = 0.72f
@@ -151,7 +152,7 @@ private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () ->
     ) {
         Text(
             // Broken as in the mockup, not where the width happens to fall
-            "La solution complète\npour les distributeurs\net grossistes",
+            licText(R.string.onb_welcome_title),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.ExtraBold,
             fontSize   = 25.sp,
@@ -161,7 +162,7 @@ private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () ->
         )
         Spacer(Modifier.height(DsSpacing.sm + DsSpacing.xs))
         Text(
-            "Gérez votre stock, vos ventes, vos tournées et bien plus encore, en toute simplicité.",
+            licText(R.string.onb_welcome_text),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.Medium,
             fontSize   = 14.sp,
@@ -177,7 +178,7 @@ private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () ->
             // The deep end of the logo's orange: white text stays readable on it
             colors   = ButtonDefaults.buttonColors(containerColor = DsBrand.OrangeDeep, contentColor = Color.White)
         ) {
-            Text("Commencer", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(licText(R.string.onb_start), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Spacer(Modifier.width(DsSpacing.sm))
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
         }
@@ -189,14 +190,14 @@ private fun BottomPanel(onStart: () -> Unit, onSignIn: () -> Unit, onCode: () ->
             border   = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.7f)),
             colors   = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
         ) {
-            Text("J'ai déjà un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Text(licText(R.string.onb_have_account), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         }
         // Who holds a code would otherwise take « Commencer » and end up on the sign-up form
         TextButton(onClick = onCode) {
             Icon(Icons.Outlined.Key, contentDescription = null, tint = DsBrand.Orange, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
             Text(
-                "J'ai un code d'activation",
+                licText(R.string.onb_have_code),
                 fontFamily     = DsBrand.Font,
                 fontWeight     = FontWeight.SemiBold,
                 fontSize       = 14.sp,

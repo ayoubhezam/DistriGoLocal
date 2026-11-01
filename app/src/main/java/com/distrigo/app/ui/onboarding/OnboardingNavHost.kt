@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
 import android.app.Activity
 import android.os.Build
 import android.widget.Toast
@@ -196,12 +197,11 @@ private fun TransferDialog(models: List<String>, busy: Boolean, onConfirm: () ->
         onDismissRequest = onCancel,
         containerColor   = Color.White,
         title            = {
-            Text("Utiliser DistriGo sur ce téléphone ?", fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, color = DsBrand.Ink)
+            Text(licText(R.string.onb_use_here), fontFamily = DsBrand.Font, fontWeight = FontWeight.ExtraBold, color = DsBrand.Ink)
         },
         text             = {
             Text(
-                "Ce compte est actif sur ${models.joinToString(", ")}. En le transférant ici, l'autre téléphone ne " +
-                    "pourra plus l'utiliser. Vous pouvez changer de téléphone 3 fois par mois.",
+                licText(R.string.onb_seat_taken, com.distrigo.app.data.lists.ListWords.and(models)),
                 fontFamily = DsBrand.Font,
                 fontWeight = FontWeight.Medium,
                 color      = DsBrand.Slate
@@ -209,7 +209,7 @@ private fun TransferDialog(models: List<String>, busy: Boolean, onConfirm: () ->
         },
         confirmButton    = {
             TextButton(onClick = onConfirm, enabled = !busy) {
-                Text("Transférer ici", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, color = DsBrand.Blue)
+                Text(licText(R.string.acc_transfer_here), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, color = DsBrand.Blue)
             }
         },
         dismissButton    = {
@@ -264,14 +264,14 @@ fun rememberOnboardingActions(viewModel: OnboardingViewModel): OnboardingActions
             } else {
                 null
             },
-            forgotPassword       = { say("La réinitialisation du mot de passe arrive bientôt. En attendant, contactez DistriGo.") },
+            forgotPassword       = { say(licText(R.string.onb_reset_soon)) },
             createAccount        = viewModel::createAccount,
             redeemCode           = viewModel::redeemCode,
             completeBusiness     = viewModel::completeBusiness,
             resetCode            = viewModel::reset,
             confirmTransfer      = viewModel::confirmTransfer,
-            openTerms            = { say("Les conditions d'utilisation sont en cours de rédaction.") },
-            openPrivacy          = { say("La politique de confidentialité est en cours de rédaction.") },
+            openTerms            = { say(licText(R.string.onb_terms_soon)) },
+            openPrivacy          = { say(licText(R.string.onb_privacy_soon)) },
         )
     }
 }

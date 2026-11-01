@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -251,7 +252,7 @@ internal fun BrandPasswordField(
             IconButton(onClick = { visible = !visible }, modifier = Modifier.size(36.dp)) {
                 Icon(
                     if (visible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                    contentDescription = if (visible) "Masquer le mot de passe" else "Afficher le mot de passe",
+                    contentDescription = licText(if (visible) R.string.onb_hide_password else R.string.onb_show_password),
                     tint               = DsBrand.Slate
                 )
             }
@@ -365,7 +366,7 @@ internal fun CodeButton(onClick: () -> Unit) {
     ) {
         Icon(Icons.Outlined.Key, contentDescription = null, tint = DsBrand.Blue, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(DsSpacing.md))
-        Text("Activer avec un code", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Text(licText(R.string.onb_activate_with_code), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 15.sp)
     }
 }
 
@@ -374,7 +375,7 @@ internal fun OrDivider() {
     Row(Modifier.fillMaxWidth().padding(vertical = DsSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
         HorizontalDivider(Modifier.weight(1f), color = DsBrand.CardBorder)
         Text(
-            "ou",
+            licText(R.string.onb_or),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.SemiBold,
             fontSize   = 13.sp,
@@ -397,7 +398,7 @@ internal fun GoogleButton(onClick: () -> Unit) {
     ) {
         Image(painterResource(R.drawable.ic_google_g), contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.md))
-        Text("Se connecter avec Google", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(licText(R.string.onb_google), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     }
 }
 

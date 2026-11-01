@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -79,7 +80,7 @@ internal fun SignInPage(
                         )
                     }
                     Spacer(Modifier.height(DsSpacing.lg))
-                    FormTitle("Connexion", "Accédez à votre espace en toute sécurité")
+                    FormTitle(licText(R.string.acc_sign_in_title), licText(R.string.onb_sign_in_sub))
                     Spacer(Modifier.height(DsSpacing.lg))
                     SignInFields(actions, status, onCode)
                 }
@@ -87,7 +88,7 @@ internal fun SignInPage(
                 CreateAccountLine(onCreateAccount, Modifier.align(Alignment.CenterHorizontally))
                 onDiscover?.let { discover ->
                     TextButton(onClick = discover, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                        Text("Découvrir DistriGo", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = DsBrand.Slate)
+                        Text(licText(R.string.onb_discover), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = DsBrand.Slate)
                     }
                 }
                 // In the page's flow rather than pinned to the screen: when the page scrolls, it can't cover the line above
@@ -116,8 +117,8 @@ internal fun ColumnScope.SignInFields(
     var password by rememberSaveable { mutableStateOf("") }
     // Errors wait for the first try, so an untouched form isn't already red
     var tried by rememberSaveable { mutableStateOf(false) }
-    val emailError = if (tried && !isEmail(email)) "Adresse e-mail invalide" else null
-    val passwordError = if (tried && password.isEmpty()) "Saisissez votre mot de passe" else null
+    val emailError = if (tried && !isEmail(email)) licText(R.string.onb_invalid_email) else null
+    val passwordError = if (tried && password.isEmpty()) licText(R.string.onb_enter_password) else null
     val submit = {
         tried = true
         if (isEmail(email) && password.isNotEmpty() && !status.busy) signIn(email.trim(), password)
@@ -125,8 +126,8 @@ internal fun ColumnScope.SignInFields(
     BrandTextField(
         value         = email,
         onValueChange = { email = it },
-        label         = "Adresse e-mail",
-        placeholder   = "exemple@domaine.com",
+        label         = licText(R.string.acc_email),
+        placeholder   = licText(R.string.onb_email_example),
         icon          = Icons.Outlined.Email,
         error         = emailError,
         keyboardType  = KeyboardType.Email
@@ -135,14 +136,14 @@ internal fun ColumnScope.SignInFields(
     BrandPasswordField(
         value         = password,
         onValueChange = { password = it },
-        label         = "Mot de passe",
-        placeholder   = "Votre mot de passe",
+        label         = licText(R.string.acc_password),
+        placeholder   = licText(R.string.onb_your_password),
         error         = passwordError,
         onDone        = submit
     )
     TextButton(onClick = actions.forgotPassword, modifier = Modifier.align(Alignment.End)) {
         Text(
-            "Mot de passe oublié ?",
+            licText(R.string.onb_forgot),
             fontFamily     = DsBrand.Font,
             fontWeight     = FontWeight.SemiBold,
             fontSize       = 13.sp,
@@ -154,7 +155,7 @@ internal fun ColumnScope.SignInFields(
         FormError(it)
         Spacer(Modifier.height(DsSpacing.md))
     }
-    BrandButton("Se connecter", onClick = submit, busy = status.busy)
+    BrandButton(licText(R.string.onb_sign_in), onClick = submit, busy = status.busy)
     // The ways in without an e-mail and password
     OrDivider()
     CodeButton(onCode)
@@ -168,9 +169,9 @@ internal fun ColumnScope.SignInFields(
 @Composable
 internal fun CreateAccountLine(onCreateAccount: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text("Pas encore de compte ?", fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
+        Text(licText(R.string.onb_no_account), fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
         TextButton(onClick = onCreateAccount) {
-            Text("Créer un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
+            Text(licText(R.string.onb_create_account), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
         }
     }
 }

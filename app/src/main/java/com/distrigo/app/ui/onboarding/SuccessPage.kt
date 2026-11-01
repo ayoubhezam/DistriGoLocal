@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import com.distrigo.app.core.format.approximateLength
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -78,7 +80,7 @@ class ActivationSummary(
 )
 
 // As on the Compte screen: « 9 nov. 2026 »
-private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
 private const val DAY_MILLIS = 24 * 60 * 60 * 1000.0
 
 // A paler band behind the benefits, under the card
@@ -102,7 +104,7 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
                 Celebration()
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(
-                    "DistriGo est activé !",
+                    licText(R.string.onb_activated),
                     fontFamily = DsBrand.Font,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize   = 26.sp,
@@ -113,10 +115,10 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(
                     when (summary.origin) {
-                        ActivationOrigin.NEW_ACCOUNT -> "Votre compte a été créé avec succès."
+                        ActivationOrigin.NEW_ACCOUNT -> licText(R.string.onb_created)
                         // Signing in on a new phone activates it too, but creates nothing
-                        ActivationOrigin.SIGN_IN     -> "Bon retour ! Ce téléphone est activé."
-                        ActivationOrigin.CODE        -> "Votre code a été activé avec succès."
+                        ActivationOrigin.SIGN_IN     -> licText(R.string.onb_welcome_back)
+                        ActivationOrigin.CODE        -> licText(R.string.onb_code_activated)
                     },
                     fontFamily = DsBrand.Font,
                     fontWeight = FontWeight.Medium,
@@ -130,10 +132,10 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
                 Spacer(Modifier.height(DsSpacing.md))
                 Benefits()
                 Spacer(Modifier.weight(1f).heightIn(min = DsSpacing.xl))
-                BrandButton("Accéder à l'application", onClick = onContinue)
+                BrandButton(licText(R.string.onb_open_app), onClick = onContinue)
                 Spacer(Modifier.height(DsSpacing.md))
                 Text(
-                    "Merci de votre confiance !",
+                    licText(R.string.onb_thanks),
                     fontFamily = DsBrand.Font,
                     fontWeight = FontWeight.SemiBold,
                     fontSize   = 13.sp,
@@ -161,7 +163,7 @@ private fun OfferCard(summary: ActivationSummary) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (summary.trial) "Offre découverte" else "Abonnement",
+                licText(if (summary.trial) R.string.onb_offer_trial else R.string.lic_action_subscription),
                 fontFamily = DsBrand.Font,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize   = 20.sp,
@@ -171,18 +173,18 @@ private fun OfferCard(summary: ActivationSummary) {
             CrownBadge()
         }
         Spacer(Modifier.height(DsSpacing.md))
-        OfferLine(Icons.Outlined.CalendarMonth, "Durée :", approximateLength(days))
+        OfferLine(Icons.Outlined.CalendarMonth, licText(R.string.onb_duration), com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.format.approximateLengthText(days)))
         Spacer(Modifier.height(DsSpacing.sm + 2.dp))
-        OfferLine(Icons.Outlined.Event, "Commencé le :", start)
+        OfferLine(Icons.Outlined.Event, licText(R.string.onb_started), start)
         Spacer(Modifier.height(DsSpacing.sm + 2.dp))
-        OfferLine(Icons.Outlined.EventAvailable, "Expire le :", end, note = timeLeft(summary.validToMillis, System.currentTimeMillis()))
+        OfferLine(Icons.Outlined.EventAvailable, licText(R.string.onb_expires), end, note = timeLeft(summary.validToMillis, System.currentTimeMillis()))
     }
 }
 
 /** What is left until [validToMillis]: « Il reste 25 jours », « Il reste 6 mois », « Dernier jour ». */
 internal fun timeLeft(validToMillis: Long, now: Long): String {
     val days = ((validToMillis - now) / DAY_MILLIS).toInt()
-    return if (days < 1) "Dernier jour" else "Il reste ${approximateLength(days)}"
+    return if (days < 1) licText(R.string.onb_last_day) else licText(R.string.onb_time_left, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.format.approximateLengthText(days)))
 }
 
 
@@ -210,7 +212,7 @@ private fun Benefits() {
             .background(BenefitsBackground)
             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md)
     ) {
-        listOf("Accès à toutes les fonctionnalités", "Support inclus").forEachIndexed { i, benefit ->
+        listOf(licText(R.string.onb_benefit_all), licText(R.string.onb_benefit_support)).forEachIndexed { i, benefit ->
             if (i > 0) Spacer(Modifier.height(DsSpacing.sm))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))

@@ -10,6 +10,11 @@ import org.junit.Test
 /** The phone reads codes as the server does (supabase/migrations/20261014120000_activation_codes.sql). */
 class ActivationCodeTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     // Made by the live server's private.new_code() on 2026-10-14; none of them was ever stored as a code.
     private val serverCodes = listOf("V8A2NG3ZPBEQ", "61YJRGPRXDMD", "N24N6Y77QZ09", "RWHG9Z0XGDH1", "FDKRAV49QJKE", "HQJ42NQZ85MR")
     private val alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"

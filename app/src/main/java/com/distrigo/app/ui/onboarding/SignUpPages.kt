@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -61,32 +63,25 @@ data class SignUpForm(
 )
 
 /** « Type d'activité »: the trades DistriGo's distributors and wholesalers work in. */
-internal val ACTIVITIES = listOf(
-    "Alimentation générale",
-    "Boissons",
-    "Produits laitiers et frais",
-    "Hygiène et cosmétiques",
-    "Droguerie et entretien",
-    "Matériaux et quincaillerie",
-    "Pharmacie et parapharmacie",
-    "Autre",
-)
+internal val ACTIVITIES: List<String> get() = ACTIVITY_CODES.keys.toList()
 
 /** « Nombre de commerciaux », in ranges: the plan a business will need follows from it. */
-internal val SALES_REPS = listOf("1", "2 à 5", "6 à 10", "Plus de 10")
+internal val SALES_REPS: List<String> get() = SALES_REPS_CODES.keys.toList()
 
 /** What the server stores for each label (public.businesses' checks). */
-private val ACTIVITY_CODES = mapOf(
-    "Alimentation générale" to "alimentation",
-    "Boissons" to "boissons",
-    "Produits laitiers et frais" to "frais",
-    "Hygiène et cosmétiques" to "hygiene",
-    "Droguerie et entretien" to "droguerie",
-    "Matériaux et quincaillerie" to "materiaux",
-    "Pharmacie et parapharmacie" to "pharmacie",
-    "Autre" to "autre",
-)
-private val SALES_REPS_CODES = mapOf("1" to "1", "2 à 5" to "2-5", "6 à 10" to "6-10", "Plus de 10" to "10+")
+private val ACTIVITY_CODES: Map<String, String>
+    get() = linkedMapOf(
+        licText(R.string.onb_act_alimentation) to "alimentation",
+        licText(R.string.onb_act_boissons) to "boissons",
+        licText(R.string.onb_act_frais) to "frais",
+        licText(R.string.onb_act_hygiene) to "hygiene",
+        licText(R.string.onb_act_droguerie) to "droguerie",
+        licText(R.string.onb_act_materiaux) to "materiaux",
+        licText(R.string.onb_act_pharmacie) to "pharmacie",
+        licText(R.string.onb_act_autre) to "autre",
+    )
+private val SALES_REPS_CODES: Map<String, String>
+    get() = linkedMapOf("1" to "1", licText(R.string.onb_reps_2_5) to "2-5", licText(R.string.onb_reps_6_10) to "6-10", licText(R.string.onb_reps_10_plus) to "10+")
 
 /** The server's code for a label; null for anything else. */
 internal fun activityCode(label: String): String? = ACTIVITY_CODES[label]
@@ -180,79 +175,79 @@ internal fun SignUpPages(actions: OnboardingActions, status: OnboardingStatus, o
 @Composable
 private fun PersonalStep(state: SignUpState, onContinue: () -> Unit) {
     val tried = state.triedPersonal
-    FormTitle("Créer un compte", "Renseignez vos informations personnelles")
+    FormTitle(licText(R.string.onb_create_account), licText(R.string.onb_personal_info))
     Spacer(Modifier.height(DsSpacing.xl))
     BrandTextField(
         value          = state.fullName,
         onValueChange  = { state.fullName = it },
-        label          = "Nom complet",
-        placeholder    = "Ex. : Mohamed Benali",
+        label          = licText(R.string.onb_full_name),
+        placeholder    = licText(R.string.onb_name_example),
         icon           = Icons.Outlined.Person,
-        error          = if (tried && state.fullName.isBlank()) "Indiquez votre nom complet" else null,
+        error          = if (tried && state.fullName.isBlank()) licText(R.string.onb_enter_full_name) else null,
         capitalization = KeyboardCapitalization.Words
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandTextField(
         value         = state.phone,
         onValueChange = { state.phone = it },
-        label         = "Téléphone",
-        placeholder   = "Ex. : 07 12 34 56 78",
+        label         = licText(R.string.acc_phone),
+        placeholder   = licText(R.string.onb_phone_example),
         icon          = Icons.Outlined.Phone,
-        error         = if (tried && !isPhone(state.phone)) "Numéro de téléphone invalide" else null,
+        error         = if (tried && !isPhone(state.phone)) licText(R.string.onb_invalid_phone) else null,
         keyboardType  = KeyboardType.Phone
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandTextField(
         value         = state.email,
         onValueChange = { state.email = it },
-        label         = "E-mail",
-        placeholder   = "exemple@domaine.com",
+        label         = licText(R.string.onb_email_label),
+        placeholder   = licText(R.string.onb_email_example),
         icon          = Icons.Outlined.Email,
-        error         = if (tried && !isEmail(state.email)) "Adresse e-mail invalide" else null,
+        error         = if (tried && !isEmail(state.email)) licText(R.string.onb_invalid_email) else null,
         keyboardType  = KeyboardType.Email
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandPasswordField(
         value         = state.password,
         onValueChange = { state.password = it },
-        label         = "Mot de passe",
-        placeholder   = "Minimum $MIN_PASSWORD caractères",
-        error         = if (tried && state.password.length < MIN_PASSWORD) "Minimum $MIN_PASSWORD caractères" else null,
+        label         = licText(R.string.acc_password),
+        placeholder   = licText(R.string.onb_password_min, MIN_PASSWORD),
+        error         = if (tried && state.password.length < MIN_PASSWORD) licText(R.string.onb_password_min, MIN_PASSWORD) else null,
         onDone        = onContinue
     )
     Spacer(Modifier.height(DsSpacing.xxl))
-    BrandButton("Continuer", onClick = onContinue)
+    BrandButton(licText(R.string.acc_continue), onClick = onContinue)
 }
 
 @Composable
 private fun BusinessStep(state: SignUpState, actions: OnboardingActions, status: OnboardingStatus, onCreate: () -> Unit) {
     val tried = state.triedBusiness
-    FormTitle("Votre activité", "Parlez-nous de votre entreprise")
+    FormTitle(licText(R.string.onb_your_activity), licText(R.string.onb_about_business))
     Spacer(Modifier.height(DsSpacing.xl))
     BrandTextField(
         value          = state.company,
         onValueChange  = { state.company = it },
-        label          = "Nom de l'entreprise",
-        placeholder    = "Ex. : SARL ABC Distribution",
+        label          = licText(R.string.acc_business_name),
+        placeholder    = licText(R.string.acc_business_example),
         icon           = Icons.Outlined.Apartment,
-        error          = if (tried && state.company.isBlank()) "Indiquez le nom de l'entreprise" else null,
+        error          = if (tried && state.company.isBlank()) licText(R.string.onb_enter_business) else null,
         capitalization = KeyboardCapitalization.Words
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandChoiceField(
         value       = state.activity,
         onSelect    = { state.activity = it },
-        label       = "Type d'activité",
-        placeholder = "Sélectionnez votre activité",
+        label       = licText(R.string.acc_activity),
+        placeholder = licText(R.string.onb_select_activity),
         icon        = Icons.Outlined.Storefront,
         options     = ACTIVITIES,
-        error       = if (tried && state.activity.isEmpty()) "Choisissez votre activité" else null
+        error       = if (tried && state.activity.isEmpty()) licText(R.string.onb_choose_activity) else null
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandChoiceField(
         value       = state.salesReps,
         onSelect    = { state.salesReps = it },
-        label       = "Nombre de commerciaux",
+        label       = licText(R.string.acc_sales_reps),
         placeholder = SALES_REPS.first(),
         icon        = Icons.Outlined.Groups,
         options     = SALES_REPS
@@ -270,7 +265,7 @@ private fun BusinessStep(state: SignUpState, actions: OnboardingActions, status:
         FormError(it)
         Spacer(Modifier.height(DsSpacing.md))
     }
-    BrandButton("Créer mon compte", onClick = onCreate, busy = status.busy)
+    BrandButton(licText(R.string.onb_create_my_account), onClick = onCreate, busy = status.busy)
 }
 
 /** The checkbox, with the two documents as links in its sentence. */
@@ -278,10 +273,10 @@ private fun BusinessStep(state: SignUpState, actions: OnboardingActions, status:
 private fun TermsLine(accepted: Boolean, onAccept: (Boolean) -> Unit, error: Boolean, onTerms: () -> Unit, onPrivacy: () -> Unit) {
     val link = TextLinkStyles(SpanStyle(color = DsBrand.Blue, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline))
     val sentence = buildAnnotatedString {
-        append("J'accepte les ")
-        withLink(LinkAnnotation.Clickable("terms", link) { onTerms() }) { append("conditions d'utilisation") }
-        append(" et la ")
-        withLink(LinkAnnotation.Clickable("privacy", link) { onPrivacy() }) { append("politique de confidentialité") }
+        append(licText(R.string.onb_accept_1) + " ")
+        withLink(LinkAnnotation.Clickable("terms", link) { onTerms() }) { append(licText(R.string.onb_terms)) }
+        append(" " + licText(R.string.onb_accept_2) + " ")
+        withLink(LinkAnnotation.Clickable("privacy", link) { onPrivacy() }) { append(licText(R.string.onb_privacy)) }
     }
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -297,7 +292,7 @@ private fun TermsLine(accepted: Boolean, onAccept: (Boolean) -> Unit, error: Boo
         }
         if (error) {
             Text(
-                "Acceptez les conditions pour créer le compte",
+                licText(R.string.onb_accept_terms),
                 fontFamily = DsBrand.Font,
                 fontWeight = FontWeight.Medium,
                 fontSize   = 12.sp,

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -68,44 +69,44 @@ internal class FeaturePageContent(
 internal val FEATURE_PAGES = listOf(
     FeaturePageContent(
         illustration = R.drawable.onboarding_offline,
-        title        = "Travaillez sans Internet,\nmême en tournée",
-        subtitle     = "Accédez à toutes vos données et continuez à travailler, même sans connexion.",
+        title        = licText(R.string.onb_f1_title),
+        subtitle     = licText(R.string.onb_f1_sub),
         features     = listOf(
-            Feature(Icons.Filled.WifiOff, "Mode hors ligne", "Vos données toujours disponibles"),
-            Feature(Icons.Filled.PhonelinkLock, "Vos données sur votre téléphone", "Sécurité et confidentialité"),
+            Feature(Icons.Filled.WifiOff, licText(R.string.onb_f1_a), licText(R.string.onb_f1_a_sub)),
+            Feature(Icons.Filled.PhonelinkLock, licText(R.string.onb_f1_b), licText(R.string.onb_f1_b_sub)),
             // The mockup said « Optimisez vos déplacements »: the app plans no routes
-            Feature(Icons.Filled.Map, "Suivi des tournées", "Même sans réseau"),
+            Feature(Icons.Filled.Map, licText(R.string.onb_f1_c), licText(R.string.onb_f1_c_sub)),
         ),
     ),
     FeaturePageContent(
         illustration = R.drawable.onboarding_stock,
-        title        = "Gérez votre stock\net chargez vos camions",
-        subtitle     = "Gardez le contrôle de votre inventaire et préparez vos tournées en toute simplicité.",
+        title        = licText(R.string.onb_f2_title),
+        subtitle     = licText(R.string.onb_f2_sub),
         features     = listOf(
-            Feature(Icons.Filled.Inventory2, "Gestion des produits", "Catégories, marques, fournisseurs"),
-            Feature(Icons.Filled.LocalShipping, "Chargement / déchargement", "Suivi du stock camion"),
-            Feature(Icons.Filled.QrCodeScanner, "Code-barres et inventaire", "Gagnez du temps, évitez les erreurs"),
+            Feature(Icons.Filled.Inventory2, licText(R.string.onb_f2_a), licText(R.string.onb_f2_a_sub)),
+            Feature(Icons.Filled.LocalShipping, licText(R.string.onb_f2_b), licText(R.string.onb_f2_b_sub)),
+            Feature(Icons.Filled.QrCodeScanner, licText(R.string.onb_f2_c), licText(R.string.onb_f2_c_sub)),
         ),
     ),
     FeaturePageContent(
         illustration = R.drawable.onboarding_clients,
-        title        = "Suivez vos ventes\net vos clients",
-        subtitle     = "Pilotez votre activité commerciale et entretenez vos relations clients.",
+        title        = licText(R.string.onb_f3_title),
+        subtitle     = licText(R.string.onb_f3_sub),
         features     = listOf(
-            Feature(Icons.Filled.Person, "Vos clients", "Fiches, géolocalisation, historique"),
-            Feature(Icons.Filled.CreditCard, "Ventes et règlements", "Tout en un seul endroit"),
-            Feature(Icons.Filled.Alarm, "Crédits et encours", "Maîtrisez vos risques"),
+            Feature(Icons.Filled.Person, licText(R.string.onb_f3_a), licText(R.string.onb_f3_a_sub)),
+            Feature(Icons.Filled.CreditCard, licText(R.string.onb_f3_b), licText(R.string.onb_f3_b_sub)),
+            Feature(Icons.Filled.Alarm, licText(R.string.onb_f3_c), licText(R.string.onb_f3_c_sub)),
         ),
     ),
     FeaturePageContent(
         illustration = R.drawable.onboarding_pilotez,
-        title        = "Pilotez votre activité",
-        subtitle     = "Des tableaux de bord clairs et des rapports détaillés pour prendre les bonnes décisions.",
+        title        = licText(R.string.onb_f4_title),
+        subtitle     = licText(R.string.onb_f4_sub),
         features     = listOf(
-            Feature(Icons.Filled.BarChart, "Tableaux de bord", "Vue d'ensemble en temps réel"),
-            Feature(Icons.Filled.Description, "Rapports et analyses", "Des indicateurs qui comptent"),
+            Feature(Icons.Filled.BarChart, licText(R.string.onb_f4_a), licText(R.string.onb_f4_a_sub)),
+            Feature(Icons.Filled.Description, licText(R.string.onb_f4_b), licText(R.string.onb_f4_b_sub)),
             // The mockup said « Reçus et bons de livraison »: the app prints sales receipts and purchase vouchers
-            Feature(Icons.Filled.Print, "Impression Bluetooth", "Reçus de vente et bons d'achat"),
+            Feature(Icons.Filled.Print, licText(R.string.onb_f4_c), licText(R.string.onb_f4_c_sub)),
         ),
     ),
 )
@@ -223,7 +224,7 @@ private fun PageControls(page: Int, onSkip: () -> Unit, onNext: () -> Unit) {
             .padding(start = DsSpacing.sm, end = PageGutter, bottom = DsSpacing.md)
     ) {
         TextButton(onClick = onSkip, modifier = Modifier.align(Alignment.CenterStart)) {
-            Text("Passer", fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DsBrand.Ink)
+            Text(licText(R.string.onb_skip), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DsBrand.Ink)
         }
         PageDots(
             current  = page,
@@ -236,7 +237,7 @@ private fun PageControls(page: Int, onSkip: () -> Unit, onNext: () -> Unit) {
             modifier = Modifier.align(Alignment.CenterEnd).size(ControlHeight),
             colors   = IconButtonDefaults.filledIconButtonColors(containerColor = DsBrand.Ink, contentColor = Color.White)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Page suivante")
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = licText(R.string.onb_next_page))
         }
     }
 }
@@ -252,7 +253,7 @@ private fun CreateAccountButton(onClick: () -> Unit) {
         shape    = DsShapes.pill,
         colors   = ButtonDefaults.buttonColors(containerColor = DsBrand.Ink, contentColor = Color.White)
     ) {
-        Text("Créer mon compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(licText(R.string.onb_create_my_account), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(Modifier.width(DsSpacing.sm))
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
     }

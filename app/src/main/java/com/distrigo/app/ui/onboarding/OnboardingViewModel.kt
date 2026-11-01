@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.auth.AccountState
@@ -127,7 +129,7 @@ class OnboardingViewModel @Inject constructor(
         when (outcome) {
             is AuthOutcome.SignedIn -> then()
             is AuthOutcome.Failed -> fail(outcome.error.message)
-            is AuthOutcome.ConfirmEmail -> fail("Compte créé. Ouvrez le lien envoyé à ${outcome.email}, puis connectez-vous.")
+            is AuthOutcome.ConfirmEmail -> fail(licText(R.string.onb_confirm_email, outcome.email))
         }
     }
 
@@ -148,7 +150,7 @@ class OnboardingViewModel @Inject constructor(
             }
             is ActivationStep.SeatTaken -> {
                 pending = step.request
-                OnboardingStatus(seatTaken = step.holders.map { it.model ?: "un autre téléphone" })
+                OnboardingStatus(seatTaken = step.holders.map { it.model ?: licText(R.string.acc_another_phone) })
             }
             is ActivationStep.TransferLimit -> OnboardingStatus(error = transferLimit(step.nextAt))
             ActivationStep.AlreadyActivated -> activated(code = null)
@@ -163,7 +165,7 @@ class OnboardingViewModel @Inject constructor(
      */
     private fun activated(code: String?): OnboardingStatus {
         val held = license.state.value.heldLicense
-            ?: return OnboardingStatus(error = "La licence reçue n'a pas pu être lue. Réessayez.")
+            ?: return OnboardingStatus(error = licText(R.string.onb_license_unreadable))
         if (code == null && held.validTo < System.currentTimeMillis()) return OnboardingStatus(codeRequired = true)
         return OnboardingStatus(
             activation = ActivationSummary(
@@ -202,18 +204,18 @@ class OnboardingViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                fail("Une erreur est survenue. Réessayez.")
+                fail(licText(R.string.onb_error))
             }
             if (_status.value.busy) _status.value = _status.value.copy(busy = false)
         }
     }
 
     private companion object {
-        const val EXPIRED = "Le délai est dépassé. Recommencez depuis le début."
-        val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale.FRENCH)
+        val EXPIRED: String get() = licText(R.string.onb_expired)
+        val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMMM")
 
         fun transferLimit(nextAt: Instant?): String =
-            "Ce compte a déjà changé 3 fois de téléphone en 30 jours." +
-                (nextAt?.let { " Réessayez à partir du ${DAY.format(it.atZone(ZoneId.systemDefault()))}." } ?: "")
+            nextAt?.let { licText(R.string.onb_transfer_limit_next, DAY.format(it.atZone(ZoneId.systemDefault()))) }
+                ?: licText(R.string.onb_transfer_limit)
     }
 }

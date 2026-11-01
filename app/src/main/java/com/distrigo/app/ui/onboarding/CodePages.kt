@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.clickable
@@ -193,9 +195,9 @@ internal fun CodePages(
                     if (shown == 1) {
                         Spacer(Modifier.weight(1f).heightIn(min = DsSpacing.lg))
                         Row(Modifier.align(Alignment.CenterHorizontally).padding(bottom = DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Pas de code ?", fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
+                            Text(licText(R.string.onb_no_code), fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = DsBrand.Slate)
                             TextButton(onClick = onCreateAccount) {
-                                Text("Créer un compte", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
+                                Text(licText(R.string.onb_create_account), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DsBrand.Blue)
                             }
                         }
                     }
@@ -225,10 +227,10 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
         }
         Spacer(Modifier.height(DsSpacing.lg))
     }
-    FormTitle("Activer avec un code", "Saisissez le code reçu de DistriGo ou de votre revendeur.")
+    FormTitle(licText(R.string.onb_activate_with_code), licText(R.string.onb_enter_code_text))
     if (status.codeRequired) {
         Spacer(Modifier.height(DsSpacing.md))
-        Notice("L'essai gratuit a déjà été utilisé sur ce téléphone : activez DistriGo avec un code.")
+        Notice(licText(R.string.onb_trial_used))
     }
     Spacer(Modifier.height(DsSpacing.xl))
     CodeField(
@@ -237,17 +239,17 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
         enabled  = !status.busy,
         error    = when {
             status.error != null -> status.error
-            tooShort -> "Le code contient $CODE_LENGTH caractères"
-            typo -> "Ce code contient une faute de frappe. Vérifiez chaque caractère."
+            tooShort -> licText(R.string.onb_code_length, CODE_LENGTH)
+            typo -> licText(R.string.acc_typo)
             else -> null
         },
         onDone   = submit
     )
     Spacer(Modifier.height(DsSpacing.xl))
-    BrandButton("Activer", onClick = submit, busy = status.busy)
+    BrandButton(licText(R.string.acc_activate), onClick = submit, busy = status.busy)
     Spacer(Modifier.height(DsSpacing.md))
     Text(
-        "Le code active DistriGo sur ce téléphone. Gardez-le : il sert aussi à réactiver l'application sur un nouveau téléphone.",
+        licText(R.string.onb_code_keep),
         fontFamily = DsBrand.Font,
         fontWeight = FontWeight.Medium,
         fontSize   = 12.sp,
@@ -306,10 +308,10 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
             decorationBox        = { field ->
                 Column(Modifier.fieldFrame(active = focused, error = error != null).padding(vertical = DsSpacing.xs)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { FieldLabel("Code d'activation") }
+                        Box(Modifier.weight(1f)) { FieldLabel(licText(R.string.acc_activation_code)) }
                         // For whoever doesn't know the long press: the code copied from WhatsApp, an SMS, an e-mail
                         Text(
-                            "Coller",
+                            licText(R.string.onb_paste),
                             fontFamily = DsBrand.Font,
                             fontWeight = FontWeight.Bold,
                             fontSize   = 13.sp,
@@ -331,7 +333,7 @@ internal fun CodeField(code: String, onChange: (String) -> Unit, enabled: Boolea
             }
         )
         Row(Modifier.fillMaxWidth()) {
-            Box(Modifier.weight(1f)) { FieldError(error ?: "Aucun code d'activation dans le presse-papiers.".takeIf { pasteMissed }) }
+            Box(Modifier.weight(1f)) { FieldError(error ?: licText(R.string.onb_no_code_clipboard).takeIf { pasteMissed }) }
             Text(
                 "${code.length} / $CODE_LENGTH",
                 fontFamily = DsBrand.Font,
@@ -371,7 +373,7 @@ private fun CodeBusinessStep(code: String?, status: OnboardingStatus, actions: O
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DsColors.Success, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
-            "Code ${formatCode(code)} accepté",
+            licText(R.string.onb_code_accepted, formatCode(code)),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.Bold,
             fontSize   = 13.sp,
@@ -380,27 +382,27 @@ private fun CodeBusinessStep(code: String?, status: OnboardingStatus, actions: O
     }
     if (code != null) Spacer(Modifier.height(DsSpacing.lg))
     FormTitle(
-        "Votre entreprise",
-        if (code != null) "Une dernière étape : à qui appartient ce code ?" else "Une dernière étape avant d'activer DistriGo sur ce téléphone."
+        licText(R.string.acc_your_business),
+        licText(if (code != null) R.string.onb_last_step_code else R.string.onb_last_step)
     )
     Spacer(Modifier.height(DsSpacing.xl))
     BrandTextField(
         value          = company,
         onValueChange  = { company = it },
-        label          = "Nom de l'entreprise",
-        placeholder    = "Ex. : SARL ABC Distribution",
+        label          = licText(R.string.acc_business_name),
+        placeholder    = licText(R.string.acc_business_example),
         icon           = Icons.Outlined.Apartment,
-        error          = if (tried && company.isBlank()) "Indiquez le nom de l'entreprise" else null,
+        error          = if (tried && company.isBlank()) licText(R.string.onb_enter_business) else null,
         capitalization = KeyboardCapitalization.Words
     )
     Spacer(Modifier.height(DsSpacing.md))
     BrandTextField(
         value         = phone,
         onValueChange = { phone = it },
-        label         = "Téléphone",
-        placeholder   = "Ex. : 07 12 34 56 78",
+        label         = licText(R.string.acc_phone),
+        placeholder   = licText(R.string.onb_phone_example),
         icon          = Icons.Outlined.Phone,
-        error         = if (tried && !isPhone(phone)) "Numéro de téléphone invalide" else null,
+        error         = if (tried && !isPhone(phone)) licText(R.string.onb_invalid_phone) else null,
         keyboardType  = KeyboardType.Phone,
         onDone        = submit
     )
@@ -409,7 +411,7 @@ private fun CodeBusinessStep(code: String?, status: OnboardingStatus, actions: O
         FieldError(it)
     }
     Spacer(Modifier.height(DsSpacing.xxl))
-    BrandButton("Activer DistriGo", onClick = submit, busy = status.busy)
+    BrandButton(licText(R.string.onb_activate_distrigo), onClick = submit, busy = status.busy)
     Spacer(Modifier.height(DsSpacing.lg))
 }
 

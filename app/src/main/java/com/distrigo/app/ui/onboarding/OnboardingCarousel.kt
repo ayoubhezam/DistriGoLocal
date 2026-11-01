@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.onboarding
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +62,7 @@ internal fun PageDots(
     count: Int = ONBOARDING_PAGE_COUNT,
 ) {
     Row(
-        modifier              = modifier.clearAndSetSemantics { contentDescription = "Page ${current + 1} sur $count" },
+        modifier              = modifier.clearAndSetSemantics { contentDescription = licText(R.string.onb_page_of, current + 1, count) },
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
         verticalAlignment     = Alignment.CenterVertically
     ) {

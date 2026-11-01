@@ -50,6 +50,11 @@ class EntryPolicyTest {
 
 /** The success screen's « Il reste … » under « Expire le ». */
 class TimeLeftTest {
+
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
     private val day = 24 * 60 * 60 * 1000L
 
     @Test
