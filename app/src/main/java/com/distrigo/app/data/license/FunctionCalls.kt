@@ -1,5 +1,7 @@
 package com.distrigo.app.data.license
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import com.distrigo.app.data.auth.AccessToken
 import com.distrigo.app.data.auth.AuthApi
 import com.distrigo.app.data.auth.AuthError
@@ -71,7 +73,7 @@ internal class FunctionCalls(
         }
 
     companion object {
-        const val SERVER_MESSAGE = "Le service ne répond pas comme prévu. Réessayez plus tard."
+        val SERVER_MESSAGE: String get() = licText(R.string.lic_server)
 
         /** Renewing the token failed for now, not for good: an expired session needs the user. */
         private val PASSING = setOf(AuthError.NETWORK, AuthError.SERVER, AuthError.RATE_LIMITED)

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -42,16 +44,16 @@ object GoogleSignIn {
             if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 Result.Token(GoogleIdTokenCredential.createFrom(credential.data).idToken, rawNonce)
             } else {
-                Result.Failed("Google a répondu de façon inattendue. Réessayez.")
+                Result.Failed(licText(R.string.acc_google_unexpected))
             }
         } catch (e: GetCredentialCancellationException) {
             Result.Cancelled
         } catch (e: NoCredentialException) {
-            Result.Failed("Aucun compte Google n'est disponible sur ce téléphone.")
+            Result.Failed(licText(R.string.acc_google_none))
         } catch (e: GetCredentialException) {
-            Result.Failed("La connexion avec Google a échoué. Réessayez.")
+            Result.Failed(licText(R.string.acc_google_failed))
         } catch (e: GoogleIdTokenParsingException) {
-            Result.Failed("La connexion avec Google a échoué. Réessayez.")
+            Result.Failed(licText(R.string.acc_google_failed))
         }
     }
 

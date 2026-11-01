@@ -1,5 +1,6 @@
 package com.distrigo.app.data.license
 
+import com.distrigo.app.data.license.licText
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -41,11 +42,10 @@ class CheckInNotifications(private val context: Context) : CheckInAlerts {
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
             PendingIntent.getActivity(context, 0, it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         }
-        val text = "Connectez ce téléphone à Internet avant le ${DAY.format(Instant.ofEpochMilli(offlineUntil).atZone(ZoneId.systemDefault()))} " +
-            "pour continuer à enregistrer."
+        val text = licText(R.string.lic_alert_connect, DAY.format(Instant.ofEpochMilli(offlineUntil).atZone(ZoneId.systemDefault())))
         val notification = NotificationCompat.Builder(context, AutoBackupNotifications.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_license)
-            .setContentTitle("Vérification de l'abonnement")
+            .setContentTitle(licText(R.string.lic_alert_check_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
@@ -72,11 +72,10 @@ class CheckInNotifications(private val context: Context) : CheckInAlerts {
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
             PendingIntent.getActivity(context, 0, it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         }
-        val text = "Votre abonnement a expiré le ${day(validTo)}. Vous pouvez encore enregistrer jusqu'au ${day(graceUntil)} : " +
-            "saisissez un code dans Compte → Abonnement pour continuer."
+        val text = licText(R.string.lic_alert_grace, day(validTo), day(graceUntil))
         val notification = NotificationCompat.Builder(context, AutoBackupNotifications.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_license)
-            .setContentTitle("Abonnement expiré — période de grâce")
+            .setContentTitle(licText(R.string.lic_alert_grace_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
@@ -104,6 +103,6 @@ class CheckInNotifications(private val context: Context) : CheckInAlerts {
         private const val PREFS = "license_alerts"
         /** The `validTo` whose grace was announced: once per subscription end. */
         private const val KEY_GRACE_SHOWN_FOR = "grace_shown_for"
-        private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
+        private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
     }
 }

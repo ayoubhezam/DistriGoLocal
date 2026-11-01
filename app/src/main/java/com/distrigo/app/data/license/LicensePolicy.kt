@@ -1,5 +1,7 @@
 package com.distrigo.app.data.license
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -27,15 +29,17 @@ data class LicensePolicy(
     enum class Tone { WARNING, READ_ONLY }
 
     /** Where a banner's or a sheet's button leads. */
-    enum class Action(val label: String) {
+    enum class Action(@androidx.annotation.StringRes private val labelId: Int) {
         /** The « Abonnement » screen (§8.2). */
-        SUBSCRIPTION("Abonnement"),
+        SUBSCRIPTION(R.string.lic_action_subscription),
         /** Compte: sign in, keep the data, see the device. */
-        ACCOUNT("Compte"),
+        ACCOUNT(R.string.lic_action_account),
         /** A check-in now. */
-        RETRY("Réessayer"),
+        RETRY(R.string.lic_action_retry),
         /** The phone's date settings. */
-        DATE_SETTINGS("Régler la date"),
+        DATE_SETTINGS(R.string.lic_action_date);
+
+        val label: String get() = licText(labelId)
     }
 
     data class Banner(
@@ -58,14 +62,14 @@ data class LicensePolicy(
         val UNCHECKED = LicensePolicy(canRecord = false)
 
         /** What still works, under the sheet's reason. */
-        const val STILL_WORKS = "Vos données restent consultables ; sauvegarde et export disponibles."
+        val STILL_WORKS: String get() = licText(R.string.lic_still_works)
 
-        private const val REACTIVATE = "Réactiver mon abonnement"
+        private val REACTIVATE: String get() = licText(R.string.lic_reactivate)
 
         fun of(state: LicenseState, zone: ZoneId = ZoneId.systemDefault()): LicensePolicy {
             fun date(millis: Long) = DAY_YEAR.withZone(zone).format(Instant.ofEpochMilli(millis))
             fun dayMonth(millis: Long) = DAY_MONTH.withZone(zone).format(Instant.ofEpochMilli(millis))
-            val clockBanner = Banner("La date du téléphone semble en retard. Vérifiez « Date et heure automatiques ».", Tone.WARNING, Action.DATE_SETTINGS)
+            val clockBanner = Banner(licText(R.string.lic_clock_banner), Tone.WARNING, Action.DATE_SETTINGS)
 
             return when (state) {
                 LicenseState.Unchecked -> UNCHECKED
@@ -73,57 +77,57 @@ data class LicensePolicy(
                     LicensePolicy(true, clockBanner.takeIf { state.clockWarning })
                 is LicenseState.RenewSoon -> LicensePolicy(
                     true,
-                    Banner("Votre abonnement expire le ${date(state.license.validTo)}.", Tone.WARNING, Action.SUBSCRIPTION, dismissible = true),
+                    Banner(licText(R.string.lic_expires_on, date(state.license.validTo)), Tone.WARNING, Action.SUBSCRIPTION, dismissible = true),
                 )
                 is LicenseState.CheckInSoon -> LicensePolicy(
                     true,
                     Banner(
-                        "Connectez-vous à Internet avant le ${dayMonth(state.license.offlineUntil)} pour continuer à enregistrer.",
+                        licText(R.string.lic_connect_before, dayMonth(state.license.offlineUntil)),
                         Tone.WARNING, dismissible = true,
                     ),
                 )
                 is LicenseState.Grace -> LicensePolicy(
                     true,
                     Banner(
-                        "Abonnement expiré le ${dayMonth(state.license.validTo)}. Période de grâce jusqu'au ${dayMonth(state.license.graceUntil)}.",
+                        licText(R.string.lic_grace_banner, dayMonth(state.license.validTo), dayMonth(state.license.graceUntil)),
                         Tone.READ_ONLY, Action.SUBSCRIPTION,
                     ),
                 )
                 is LicenseState.Expired -> if (state.certain) {
-                    readOnly("Abonnement expiré — consultation seule. Sauvegarde et export restent disponibles.", Action.SUBSCRIPTION,
-                        "Votre abonnement a expiré le ${date(state.license.validTo)}.", REACTIVATE)
+                    readOnly(licText(R.string.lic_expired_banner), Action.SUBSCRIPTION,
+                        licText(R.string.lic_expired_on, date(state.license.validTo)), REACTIVATE)
                 } else {
                     // Only the phone's date says so, and it may be wrong (LicenseState.Expired.certain)
-                    readOnly("Abonnement expiré selon la date du téléphone : vérifiez la date ou connectez-vous à Internet.", Action.RETRY,
-                        "La date du téléphone dit que l'abonnement a expiré. Vérifiez-la, ou connectez-vous à Internet.", "Réessayer")
+                    readOnly(licText(R.string.lic_expired_by_clock_banner), Action.RETRY,
+                        licText(R.string.lic_expired_by_clock), licText(R.string.lic_action_retry))
                 }
                 is LicenseState.CheckInRequired ->
-                    readOnly("Vérification de l'abonnement nécessaire : connectez-vous à Internet.", Action.RETRY,
-                        "L'abonnement doit être vérifié : connectez-vous à Internet.", "Réessayer")
+                    readOnly(licText(R.string.lic_check_needed_banner), Action.RETRY,
+                        licText(R.string.lic_check_needed), licText(R.string.lic_action_retry))
                 // §4: its own card, since every new document would carry a wrong date whatever the license says
                 is LicenseState.ClockBehind -> LicensePolicy(
                     canRecord = false,
                     banner = Banner(
-                        "La date du téléphone est en retard", Tone.READ_ONLY, Action.DATE_SETTINGS,
-                        detail = "Activez « Date et heure automatiques », puis revenez.", card = true,
+                        licText(R.string.lic_clock_title), Tone.READ_ONLY, Action.DATE_SETTINGS,
+                        detail = licText(R.string.lic_clock_detail), card = true,
                     ),
-                    block = Block("La date du téléphone est en retard : chaque document serait mal daté.", Action.DATE_SETTINGS, "Régler la date"),
+                    block = Block(licText(R.string.lic_clock_block), Action.DATE_SETTINGS, licText(R.string.lic_action_date)),
                 )
                 LicenseState.Revoked ->
-                    readOnly("Cet appareil n'est plus associé au compte.", Action.ACCOUNT,
-                        "Cet appareil n'est plus associé au compte.", "Compte")
+                    readOnly(licText(R.string.lic_revoked), Action.ACCOUNT,
+                        licText(R.string.lic_revoked), licText(R.string.lic_action_account))
                 is LicenseState.Suspended ->
-                    readOnly("L'abonnement est suspendu. Contactez DistriGo.", Action.SUBSCRIPTION,
-                        "L'abonnement est suspendu.", REACTIVATE)
+                    readOnly(licText(R.string.lic_suspended), Action.SUBSCRIPTION,
+                        licText(R.string.lic_suspended_short), REACTIVATE)
                 is LicenseState.OtherBusiness ->
-                    readOnly("Ces données appartiennent à une autre entreprise.", Action.ACCOUNT,
-                        "Ces données appartiennent à une autre entreprise que celle du compte.", "Compte")
+                    readOnly(licText(R.string.lic_other_business_banner), Action.ACCOUNT,
+                        licText(R.string.lic_other_business), licText(R.string.lic_action_account))
                 is LicenseState.NoLicense ->
-                    readOnly("Connectez-vous à votre compte pour enregistrer.", Action.ACCOUNT,
-                        "Aucun abonnement n'est actif sur ce téléphone.", "Compte")
+                    readOnly(licText(R.string.lic_no_license_banner), Action.ACCOUNT,
+                        licText(R.string.lic_no_license), licText(R.string.lic_action_account))
                 is LicenseState.NotYetValid ->
-                    readOnly("L'abonnement commence le ${date(state.license.validFrom)}.", Action.ACCOUNT,
-                        "L'abonnement commence le ${date(state.license.validFrom)}.", "Compte")
+                    readOnly(licText(R.string.lic_starts_on, date(state.license.validFrom)), Action.ACCOUNT,
+                        licText(R.string.lic_starts_on, date(state.license.validFrom)), licText(R.string.lic_action_account))
             }
         }
 

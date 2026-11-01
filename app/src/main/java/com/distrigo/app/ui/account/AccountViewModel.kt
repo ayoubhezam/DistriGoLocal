@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.auth.AccountState
@@ -49,11 +51,13 @@ import javax.inject.Inject
 enum class AccountWork { SIGNING_IN, ACTIVATING, RENEWING, ADDING_EMAIL, SAVING_PROFILE, KEEPING_DATA, SIGNING_OUT, DELETING }
 
 /** « Informations de l'entreprise »: each row, under the name business-profile knows it by. */
-enum class ProfileField(val server: String, val title: String) {
-    NAME("name", "Nom de l'entreprise"),
-    PHONE("contact_phone", "Téléphone"),
-    ACTIVITY("activity", "Type d'activité"),
-    SALES_REPS("sales_reps", "Nombre de commerciaux"),
+enum class ProfileField(val server: String, @androidx.annotation.StringRes private val titleId: Int) {
+    NAME("name", R.string.acc_business_name),
+    PHONE("contact_phone", R.string.acc_phone),
+    ACTIVITY("activity", R.string.acc_activity),
+    SALES_REPS("sales_reps", R.string.acc_sales_reps);
+
+    val title: String get() = licText(titleId)
 }
 
 /** Where reading the business's profile stands. */
@@ -197,18 +201,18 @@ class AccountViewModel @Inject constructor(
         val text = typed.trim()
         val value: String? = when (field) {
             ProfileField.NAME -> when {
-                text.isEmpty() -> return ask(AccountDialog.EditProfile(field, "Indiquez le nom de l'entreprise."))
-                text.length > 120 -> return ask(AccountDialog.EditProfile(field, "120 caractères au plus."))
+                text.isEmpty() -> return ask(AccountDialog.EditProfile(field, licText(R.string.acc_enter_business_name)))
+                text.length > 120 -> return ask(AccountDialog.EditProfile(field, licText(R.string.acc_max_120)))
                 else -> text
             }
             // Empty clears it
             ProfileField.PHONE -> when {
                 text.isEmpty() -> null
-                !isPhone(text) -> return ask(AccountDialog.EditProfile(field, "Numéro de téléphone invalide."))
+                !isPhone(text) -> return ask(AccountDialog.EditProfile(field, licText(R.string.acc_invalid_phone)))
                 else -> text
             }
-            ProfileField.ACTIVITY -> activityCode(text) ?: return ask(AccountDialog.EditProfile(field, "Choisissez une activité."))
-            ProfileField.SALES_REPS -> salesRepsCode(text) ?: return ask(AccountDialog.EditProfile(field, "Choisissez un nombre."))
+            ProfileField.ACTIVITY -> activityCode(text) ?: return ask(AccountDialog.EditProfile(field, licText(R.string.acc_choose_activity)))
+            ProfileField.SALES_REPS -> salesRepsCode(text) ?: return ask(AccountDialog.EditProfile(field, licText(R.string.acc_choose_number)))
         }
         work(AccountWork.SAVING_PROFILE, keepDialog = true) {
             when (val answer = client.businessProfile(mapOf(field.server to value))) {
@@ -216,7 +220,7 @@ class AccountViewModel @Inject constructor(
                     withContext(Dispatchers.IO) { profiles.save(session.userId, answer.profile) }
                     local.value = local.value.copy(dialog = null, profileLoad = ProfileLoad.LOADED, profileProblem = null)
                 }
-                ProfileAnswer.NoBusiness -> ask(AccountDialog.EditProfile(field, "Ce compte n'a pas encore d'entreprise."))
+                ProfileAnswer.NoBusiness -> ask(AccountDialog.EditProfile(field, licText(R.string.acc_no_business)))
                 is ProfileAnswer.Failed -> ask(AccountDialog.EditProfile(field, answer.message))
             }
         }
@@ -239,7 +243,7 @@ class AccountViewModel @Inject constructor(
     fun keepData() = work(AccountWork.KEEPING_DATA) {
         val state = withContext(Dispatchers.IO) { license.keepData() }
         if (state !is LicenseState.OtherBusiness) {
-            local.update { it.copy(message = AccountMessage("Les données de ce téléphone sont maintenant celles de votre entreprise.", isError = false)) }
+            local.update { it.copy(message = AccountMessage(licText(R.string.acc_data_kept), isError = false)) }
         }
     }
 
@@ -253,7 +257,7 @@ class AccountViewModel @Inject constructor(
     fun renewWithCode(typed: String) {
         val code = normalizeCode(typed)
         if (!isWellFormedCode(code)) {
-            ask(AccountDialog.EnterCode(if (code.length < CODE_LENGTH) "Le code contient $CODE_LENGTH caractères." else TYPO))
+            ask(AccountDialog.EnterCode(if (code.length < CODE_LENGTH) licText(R.string.acc_code_length, CODE_LENGTH) else TYPO))
             return
         }
         work(AccountWork.RENEWING, keepDialog = true) {
@@ -270,21 +274,21 @@ class AccountViewModel @Inject constructor(
     fun addEmail(email: String, password: String) {
         val problem = when {
             !isEmail(email.trim()) -> AuthError.INVALID_EMAIL.message
-            password.length < MIN_PASSWORD -> "Le mot de passe doit contenir au moins $MIN_PASSWORD caractères."
+            password.length < MIN_PASSWORD -> licText(R.string.acc_password_min, MIN_PASSWORD)
             else -> null
         }
         if (problem != null) return ask(AccountDialog.AddEmail(problem))
         work(AccountWork.ADDING_EMAIL, keepDialog = true) {
             when (val update = auth.addEmail(email, password)) {
                 EmailUpdate.Done -> {
-                    local.value = local.value.copy(dialog = null, message = AccountMessage("Adresse e-mail ajoutée. Vous pouvez aussi vous connecter avec elle.", isError = false))
+                    local.value = local.value.copy(dialog = null, message = AccountMessage(licText(R.string.acc_email_added), isError = false))
                 }
                 is EmailUpdate.ConfirmByLink -> {
-                    local.value = local.value.copy(dialog = null, message = AccountMessage("Ouvrez le lien envoyé à ${update.email} pour confirmer l'adresse.", isError = false))
+                    local.value = local.value.copy(dialog = null, message = AccountMessage(licText(R.string.acc_open_link, update.email), isError = false))
                 }
                 is EmailUpdate.Failed -> ask(
                     AccountDialog.AddEmail(
-                        if (update.error == AuthError.EMAIL_TAKEN) "Cette adresse est déjà celle d'un autre compte." else update.error.message,
+                        if (update.error == AuthError.EMAIL_TAKEN) licText(R.string.acc_email_taken) else update.error.message,
                     ),
                 )
             }
@@ -299,14 +303,14 @@ class AccountViewModel @Inject constructor(
                 refreshProfile()
             }
             // Only an activation code asks this, and Compte sends none
-            is ActivationStep.CodeNeedsBusiness -> showError("Activez ce téléphone avec votre code depuis l'écran d'accueil.")
+            is ActivationStep.CodeNeedsBusiness -> showError(licText(R.string.acc_activate_from_home))
             is ActivationStep.NeedsBusinessName -> {
                 val suggestion = withContext(Dispatchers.IO) { runCatching { businessSettings.get().name }.getOrDefault("") }
                 ask(AccountDialog.BusinessName(step.request, suggestion))
             }
             is ActivationStep.SeatTaken -> ask(AccountDialog.Transfer(step.request, step.holders))
             is ActivationStep.TransferLimit -> ask(AccountDialog.TransferLimit(step.nextAt))
-            ActivationStep.AlreadyActivated -> local.value = local.value.copy(message = AccountMessage("Cet appareil est déjà activé.", isError = false))
+            ActivationStep.AlreadyActivated -> local.value = local.value.copy(message = AccountMessage(licText(R.string.acc_already_activated), isError = false))
             is ActivationStep.Failed -> showError(step.message)
         }
     }
@@ -320,7 +324,7 @@ class AccountViewModel @Inject constructor(
             showError(problem)
         } else {
             auth.signOut()
-            local.value = local.value.copy(message = AccountMessage("Vous êtes déconnecté.", isError = false))
+            local.value = local.value.copy(message = AccountMessage(licText(R.string.acc_signed_out), isError = false))
         }
     }
 
@@ -334,7 +338,7 @@ class AccountViewModel @Inject constructor(
             }
         }
         local.value = local.value.copy(
-            message = if (problem == null) AccountMessage("Votre compte a été supprimé.", isError = false)
+            message = if (problem == null) AccountMessage(licText(R.string.acc_deleted), isError = false)
             else AccountMessage(problem, isError = true),
         )
     }
@@ -353,4 +357,4 @@ class AccountViewModel @Inject constructor(
     }
 }
 
-private const val TYPO = "Ce code contient une faute de frappe. Vérifiez chaque caractère."
+private val TYPO: String get() = licText(R.string.acc_typo)

@@ -14,6 +14,11 @@ import org.junit.Test
 /** The screens' side of the license (docs/license_l5_enforcement.md §2, §8.1, decision 5). */
 class LicenseUiTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     private val block = Block("Votre abonnement a expiré le 31/12/2026.", Action.SUBSCRIPTION, "Réactiver mon abonnement")
     private val readOnly = LicensePolicy(false, Banner("Abonnement expiré — consultation seule.", Tone.READ_ONLY, Action.SUBSCRIPTION), block)
 

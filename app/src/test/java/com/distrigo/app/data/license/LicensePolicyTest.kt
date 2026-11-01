@@ -14,6 +14,11 @@ import java.time.ZoneOffset
 /** What each license state means for the screens: docs/license_l5_enforcement.md §1 (banners), §8.1 (the sheet), D4. */
 class LicensePolicyTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     private val issued = Instant.parse("2026-12-01T08:00:00Z").toEpochMilli()
     private val validTo = Instant.parse("2026-12-31T22:00:00Z").toEpochMilli()
     private val graceUntil = Instant.parse("2027-01-03T22:00:00Z").toEpochMilli()

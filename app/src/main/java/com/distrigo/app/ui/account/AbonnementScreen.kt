@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.data.license.licText
 import com.distrigo.app.ui.common.layoutEnd
 import android.content.Intent
 import android.net.Uri
@@ -99,9 +100,9 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     // A license still valid gets the owner's « actif » illustration; one that stopped or is about to stop, the expired one
     val valid = license is LicenseState.Active || license is LicenseState.CheckInSoon || license is LicenseState.RenewSoon
 
-    BrandScreen(title = "Abonnement", onBack = onBack) {
+    BrandScreen(title = licText(R.string.lic_action_subscription), onBack = onBack) {
         Text(
-            if (valid) "Votre abonnement DistriGo, et de l'aide si besoin" else "Accédez à nouveau à toutes les fonctionnalités",
+            if (valid) licText(R.string.acc_sub_sub_valid) else licText(R.string.acc_sub_sub_invalid),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.Medium,
             fontSize   = BrandSize.Body,
@@ -119,7 +120,7 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
         // Only DistriGo lifts a suspension (§8.2), and a code renews a license this phone holds
         if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
             BrandCard {
-                BrandCardHeader(Icons.Outlined.Key, "Code d'activation")
+                BrandCardHeader(Icons.Outlined.Key, licText(R.string.acc_activation_code))
                 BrandCardBody {
                     if (license.holdsLicense) {
                         CodeField(
@@ -133,7 +134,7 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                             onDone   = submit,
                         )
                         BrandWideButton(
-                            "Activer mon abonnement",
+                            licText(R.string.acc_activate_sub),
                             Icons.Outlined.VerifiedUser,
                             filled  = true,
                             enabled = code.length == CODE_LENGTH && state.work == null,
@@ -141,7 +142,7 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                             onClick = submit,
                         )
                     } else {
-                        Paragraph("Connectez-vous à votre compte dans Compte pour activer ce téléphone avec un code.")
+                        Paragraph(licText(R.string.acc_sign_in_first))
                     }
                 }
             }
@@ -150,7 +151,7 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
         SupportCard()
 
         Text(
-            "Votre accès sera rétabli dès la validation du code (connexion Internet nécessaire).",
+            licText(R.string.acc_access_restored),
             fontFamily = DsBrand.Font,
             fontSize   = BrandSize.Small,
             lineHeight = BrandSize.SmallLine,
@@ -171,34 +172,34 @@ private fun StateCard(license: LicenseState) {
     val trial = held?.plan == "trial"
     val (title, text, tone) = when (license) {
         is LicenseState.Expired -> Triple(
-            "Votre abonnement a expiré",
-            if (trial) "La période d'essai est terminée. Saisissez un code d'activation pour continuer à enregistrer vos ventes, achats et stocks."
-            else "Votre abonnement DistriGo Solo a pris fin le ${date(license.license.validTo)}. Saisissez un code pour le renouveler.",
+            licText(R.string.acc_sub_expired_title),
+            if (trial) licText(R.string.acc_trial_ended)
+            else licText(R.string.acc_sub_ended_on, date(license.license.validTo)),
             Tone.ENDED,
         )
         is LicenseState.Grace -> Triple(
-            "Expiré le ${dayMonth(license.license.validTo)} — période de grâce jusqu'au ${dayMonth(license.license.graceUntil)}",
-            "Vous pouvez encore enregistrer jusqu'à la fin de la grâce. Saisissez un code pour prolonger votre abonnement.",
+            licText(R.string.acc_sub_grace_title, dayMonth(license.license.validTo), dayMonth(license.license.graceUntil)),
+            licText(R.string.acc_grace_text),
             Tone.ENDED,
         )
         is LicenseState.RenewSoon -> Triple(
-            "Votre abonnement expire le ${dayMonth(license.license.validTo)}",
-            "Saisissez un code pour le prolonger sans interruption.",
+            licText(R.string.acc_sub_expires_title, dayMonth(license.license.validTo)),
+            licText(R.string.acc_extend_now),
             Tone.SOON,
         )
         is LicenseState.Suspended -> Triple(
-            "L'abonnement est suspendu",
-            "Contactez DistriGo pour le réactiver : vos données restent consultables en attendant.",
+            licText(R.string.acc_suspended_title),
+            licText(R.string.acc_suspended_text),
             Tone.ENDED,
         )
         is LicenseState.Active, is LicenseState.CheckInSoon -> Triple(
-            "Votre abonnement est actif",
-            "Valable jusqu'au ${date((license as LicenseState.Judged).license.validTo)}. Un code ajoute du temps à votre abonnement.",
+            licText(R.string.acc_active_title),
+            licText(R.string.acc_sub_valid_until, date((license as LicenseState.Judged).license.validTo)),
             Tone.ACTIVE,
         )
         else -> Triple(
-            "Abonnement",
-            LicensePolicy.of(license).block?.reason ?: "L'état de l'abonnement est en cours de lecture.",
+            licText(R.string.lic_action_subscription),
+            LicensePolicy.of(license).block?.reason ?: licText(R.string.acc_reading_state),
             Tone.ENDED,
         )
     }
@@ -231,14 +232,14 @@ private fun SupportCard() {
         runCatching { context.startActivity(intent) }
     }
     BrandCard {
-        BrandCardHeader(Icons.Outlined.HeadsetMic, "Besoin d'aide ?")
-        SupportRow(Icons.Outlined.Phone, "Téléphone", SUPPORT_PHONE) { open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$SUPPORT_PHONE"))) }
+        BrandCardHeader(Icons.Outlined.HeadsetMic, licText(R.string.acc_need_help))
+        SupportRow(Icons.Outlined.Phone, licText(R.string.acc_phone), SUPPORT_PHONE) { open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$SUPPORT_PHONE"))) }
         BrandRowDivider()
         SupportRow(Icons.AutoMirrored.Outlined.Chat, "WhatsApp", SUPPORT_PHONE) { open(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_WHATSAPP))) }
         BrandRowDivider()
-        SupportRow(Icons.Outlined.Email, "E-mail", SUPPORT_EMAIL) { open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$SUPPORT_EMAIL"))) }
+        SupportRow(Icons.Outlined.Email, licText(R.string.acc_email_short), SUPPORT_EMAIL) { open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$SUPPORT_EMAIL"))) }
         BrandRowDivider()
-        SupportRow(Icons.Outlined.Schedule, "Horaires de support", "Tous les jours, 8h - 22h", onClick = null)
+        SupportRow(Icons.Outlined.Schedule, licText(R.string.acc_support_hours), licText(R.string.acc_support_hours_value), onClick = null)
     }
 }
 

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,16 +63,16 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
             var name by rememberSaveable { mutableStateOf(dialog.suggestion) }
             val activate = { if (name.isNotBlank()) viewModel.answerBusinessName(dialog.request, name) }
             BrandDialog(
-                title   = "Votre entreprise",
-                text    = "Son nom apparaît dans votre compte. L'essai gratuit de 30 jours commence maintenant.",
-                confirm = "Activer" to activate,
-                dismiss = "Annuler" to viewModel::dismissDialog,
+                title   = licText(R.string.acc_your_business),
+                text    = licText(R.string.acc_business_text),
+                confirm = licText(R.string.acc_activate) to activate,
+                dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
             ) {
                 BrandTextField(
                     value          = name,
                     onValueChange  = { name = it },
-                    label          = "Nom de l'entreprise",
-                    placeholder    = "Ex. : SARL ABC Distribution",
+                    label          = licText(R.string.acc_business_name),
+                    placeholder    = licText(R.string.acc_business_example),
                     icon           = Icons.Outlined.Storefront,
                     capitalization = KeyboardCapitalization.Words,
                     onDone         = activate
@@ -78,36 +80,34 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
             }
         }
         is AccountDialog.Transfer -> BrandDialog(
-            title   = "Abonnement utilisé ailleurs",
-            text    = "Votre abonnement est actif sur ${holders(dialog.holders)}. Le transférer sur ce téléphone ? " +
-                "L'autre téléphone passera en consultation seule à sa prochaine connexion. 3 transferts possibles par mois.",
-            confirm = "Transférer ici" to { viewModel.confirmTransfer(dialog.request) },
-            dismiss = "Annuler" to viewModel::dismissDialog,
+            title   = licText(R.string.acc_used_elsewhere),
+            text    = licText(R.string.acc_transfer_text, holders(dialog.holders)),
+            confirm = licText(R.string.acc_transfer_here) to { viewModel.confirmTransfer(dialog.request) },
+            dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
         )
         is AccountDialog.TransferLimit -> BrandDialog(
-            title   = "Limite de transferts atteinte",
-            text    = "L'abonnement a déjà changé 3 fois de téléphone ce mois-ci." +
-                (dialog.nextAt?.let { " Prochain transfert possible le ${day(it.toEpochMilli())}." } ?: ""),
-            confirm = "Compris" to viewModel::dismissDialog,
+            title   = licText(R.string.acc_transfer_limit),
+            text    = dialog.nextAt?.let { licText(R.string.acc_transfer_limit_next, day(it.toEpochMilli())) } ?: licText(R.string.acc_transfer_limit_text),
+            confirm = licText(R.string.acc_understood) to viewModel::dismissDialog,
         )
         is AccountDialog.Activated -> BrandDialog(
-            title   = "DistriGo est activé",
+            title   = licText(R.string.acc_activated),
             text    = buildString {
-                append(if (dialog.trial == true) "Votre essai gratuit de 30 jours commence aujourd'hui." else "Cet appareil porte maintenant votre abonnement.")
+                append(licText(if (dialog.trial == true) R.string.acc_trial_starts else R.string.acc_device_holds))
                 if (dialog.reduced) {
-                    append(" Ce téléphone n'a pas pu prouver son intégrité : il devra se connecter à Internet chaque jour.")
+                    append(" " + licText(R.string.acc_reduced))
                 }
             },
-            confirm = "Continuer" to viewModel::dismissDialog,
+            confirm = licText(R.string.acc_continue) to viewModel::dismissDialog,
         )
         is AccountDialog.EnterCode -> {
             var code by rememberSaveable { mutableStateOf("") }
             val busy = state.work == AccountWork.RENEWING
             BrandDialog(
-                title   = "Saisir un code",
-                text    = "Le code reçu de DistriGo ou de votre revendeur prolonge votre abonnement.",
-                confirm = "Valider" to { viewModel.renewWithCode(code) },
-                dismiss = "Annuler" to viewModel::dismissDialog,
+                title   = licText(R.string.acc_enter_code),
+                text    = licText(R.string.acc_enter_code_text),
+                confirm = licText(R.string.acc_validate) to { viewModel.renewWithCode(code) },
+                dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                 busy    = busy,
             ) {
                 CodeField(
@@ -123,27 +123,26 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
             }
         }
         is AccountDialog.Renewed -> BrandDialog(
-            title   = "Abonnement prolongé",
-            text    = dialog.validTo?.let { "Merci ! Votre abonnement est valable jusqu'au ${day(it)}." }
-                ?: "Merci ! Le code a été ajouté à votre abonnement.",
-            confirm = "Continuer" to viewModel::dismissDialog,
+            title   = licText(R.string.acc_extended_title),
+            text    = dialog.validTo?.let { licText(R.string.acc_extended_until, day(it)) }
+                ?: licText(R.string.acc_extended),
+            confirm = licText(R.string.acc_continue) to viewModel::dismissDialog,
         )
         is AccountDialog.AddEmail -> {
             var email by rememberSaveable { mutableStateOf("") }
             var password by rememberSaveable { mutableStateOf("") }
             val add = { viewModel.addEmail(email, password) }
             BrandDialog(
-                title   = "Ajouter une adresse e-mail",
-                text    = "Vous pourrez vous connecter avec elle sur n'importe quel téléphone. " +
-                    "Votre entreprise, votre abonnement et votre code ne changent pas.",
-                confirm = "Ajouter" to add,
-                dismiss = "Annuler" to viewModel::dismissDialog,
+                title   = licText(R.string.acc_add_email),
+                text    = licText(R.string.acc_add_email_text),
+                confirm = licText(R.string.acc_add) to add,
+                dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                 busy    = state.work == AccountWork.ADDING_EMAIL,
             ) {
                 BrandTextField(
                     value         = email,
                     onValueChange = { email = it },
-                    label         = "Adresse e-mail",
+                    label         = licText(R.string.acc_email),
                     placeholder   = "exemple@email.com",
                     icon          = Icons.Outlined.Email,
                     keyboardType  = KeyboardType.Email
@@ -151,8 +150,8 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
                 BrandPasswordField(
                     value         = password,
                     onValueChange = { password = it },
-                    label         = "Mot de passe",
-                    placeholder   = "$MIN_PASSWORD caractères au moins",
+                    label         = licText(R.string.acc_password),
+                    placeholder   = licText(R.string.acc_password_hint, MIN_PASSWORD),
                     onDone        = add
                 )
                 dialog.error?.let { FormError(it) }
@@ -160,29 +159,27 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
         }
         is AccountDialog.EditProfile -> EditProfileDialog(dialog, state, viewModel)
         AccountDialog.ConfirmSignOut -> {
-            val leaving = "Ce téléphone sera libéré de l'abonnement et passera en consultation seule. " +
-                "Vos données restent sur le téléphone. Une connexion Internet est nécessaire."
+            val leaving = licText(R.string.acc_sign_out_text)
             val withoutEmail = (state.account as? AccountState.SignedIn)?.session?.isAnonymous == true
             if (!withoutEmail) {
                 BrandDialog(
-                    title   = "Se déconnecter ?",
+                    title   = licText(R.string.acc_sign_out_q),
                     text    = leaving,
-                    confirm = "Se déconnecter" to viewModel::signOut,
-                    dismiss = "Annuler" to viewModel::dismissDialog,
+                    confirm = licText(R.string.acc_sign_out) to viewModel::signOut,
+                    dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                 )
             } else {
                 // No e-mail to sign in with: the code is the only way back
                 val code = state.activationCode
                 BrandDialog(
-                    title   = "Se déconnecter ?",
+                    title   = licText(R.string.acc_sign_out_q),
                     text    = if (code != null) {
-                        "Ce compte n'a pas d'adresse e-mail : pour y revenir, il faudra ce code d'activation. Notez-le avant de continuer."
+                        licText(R.string.acc_sign_out_code)
                     } else {
-                        "Ce compte n'a pas d'adresse e-mail, et son code d'activation n'est pas enregistré sur ce téléphone : " +
-                            "sans ce code, vous ne pourrez plus y revenir. Ajoutez d'abord une adresse e-mail."
+                        licText(R.string.acc_sign_out_no_code)
                     },
-                    confirm = "Se déconnecter" to viewModel::signOut,
-                    dismiss = "Annuler" to viewModel::dismissDialog,
+                    confirm = licText(R.string.acc_sign_out) to viewModel::signOut,
+                    dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                     danger  = true,
                 ) {
                     if (code != null) {
@@ -194,7 +191,7 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
                         }
                     } else {
                         TextButton(onClick = { viewModel.ask(AccountDialog.AddEmail()) }) {
-                            Text("Ajouter une adresse e-mail", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
+                            Text(licText(R.string.acc_add_email), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.Action, color = DsBrand.Blue)
                         }
                     }
                     BrandDialogText(leaving)
@@ -202,12 +199,10 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
             }
         }
         AccountDialog.ConfirmDelete -> BrandDialog(
-            title   = "Supprimer le compte ?",
-            text    = "Le compte, l'entreprise associée et l'abonnement seront supprimés définitivement. " +
-                "Les données de ce téléphone (clients, ventes, stock) restent sur le téléphone." +
-                if (state.activationCode != null) " Votre code d'activation ne fonctionnera plus." else "",
-            confirm = "Supprimer" to viewModel::deleteAccount,
-            dismiss = "Annuler" to viewModel::dismissDialog,
+            title   = licText(R.string.acc_delete_q),
+            text    = licText(if (state.activationCode != null) R.string.acc_delete_text_code else R.string.acc_delete_text),
+            confirm = licText(R.string.acc_delete) to viewModel::deleteAccount,
+            dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
             danger  = true,
         )
     }
@@ -227,16 +222,16 @@ private fun EditProfileDialog(dialog: AccountDialog.EditProfile, state: AccountU
             val save = { viewModel.saveProfile(field, value) }
             BrandDialog(
                 title   = field.title,
-                text    = if (field == ProfileField.PHONE) "Le numéro où l'équipe DistriGo peut vous joindre. Laissez vide pour le retirer." else null,
-                confirm = "Enregistrer" to save,
-                dismiss = "Annuler" to viewModel::dismissDialog,
+                text    = if (field == ProfileField.PHONE) licText(R.string.acc_phone_text) else null,
+                confirm = licText(R.string.acc_save) to save,
+                dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                 busy    = busy,
             ) {
                 BrandTextField(
                     value          = value,
                     onValueChange  = { value = it },
                     label          = field.title,
-                    placeholder    = if (field == ProfileField.NAME) "Ex. : SARL ABC Distribution" else "Ex. : 0550 12 34 56",
+                    placeholder    = if (field == ProfileField.NAME) licText(R.string.acc_business_example) else licText(R.string.acc_phone_example),
                     icon           = if (field == ProfileField.NAME) Icons.Outlined.Storefront else Icons.Outlined.Phone,
                     error          = dialog.error,
                     keyboardType   = if (field == ProfileField.PHONE) KeyboardType.Phone else KeyboardType.Text,
@@ -252,9 +247,9 @@ private fun EditProfileDialog(dialog: AccountDialog.EditProfile, state: AccountU
             }
             BrandDialog(
                 title   = field.title,
-                text    = if (activity) null else "Combien de commerciaux vendent pour vous ?",
-                confirm = "Enregistrer" to { viewModel.saveProfile(field, choice) },
-                dismiss = "Annuler" to viewModel::dismissDialog,
+                text    = if (activity) null else licText(R.string.acc_how_many_reps),
+                confirm = licText(R.string.acc_save) to { viewModel.saveProfile(field, choice) },
+                dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
                 busy    = busy,
             ) {
                 ChoiceList(if (activity) ACTIVITIES else SALES_REPS_LABELS, choice, enabled = !busy) { choice = it }
@@ -295,7 +290,7 @@ private fun ChoiceList(options: List<String>, selected: String, enabled: Boolean
 }
 
 private fun holders(holders: List<SeatHolder>): String =
-    holders.joinToString(" et ") { holder ->
-        val seen = holder.lastSeenAt?.let { " (vu le ${moment(it.toEpochMilli())})" } ?: ""
-        "« ${holder.model ?: "un autre téléphone"} »$seen"
-    }.ifBlank { "un autre téléphone" }
+    com.distrigo.app.data.lists.ListWords.and(holders.map { holder ->
+        val model = holder.model ?: licText(R.string.acc_another_phone)
+        holder.lastSeenAt?.let { licText(R.string.acc_holder_seen, model, moment(it.toEpochMilli())) } ?: licText(R.string.acc_holder, model)
+    }).ifBlank { licText(R.string.acc_another_phone) }

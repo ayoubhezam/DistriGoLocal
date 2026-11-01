@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import com.distrigo.app.data.license.licText
 import com.distrigo.app.core.format.westernDigits
 import android.content.ClipData
 import android.content.ClipDescription
@@ -153,7 +154,7 @@ fun CompteScreen(
         }
     }
 
-    BrandScreen(title = "Compte", onBack = onBack) {
+    BrandScreen(title = licText(R.string.lic_action_account), onBack = onBack) {
         state.message?.let { BrandMessage(it.text, it.isError) }
         val account = state.account
         when {
@@ -220,17 +221,17 @@ private fun ColumnScope.SignedInCards(
         )
     }
     BrandCard {
-        BrandCardHeader(Icons.Outlined.Settings, "Gestion du compte")
+        BrandCardHeader(Icons.Outlined.Settings, licText(R.string.acc_management))
         if (session.isAnonymous) {
-            BrandActionRow(Icons.Outlined.Email, "Ajouter une adresse e-mail", enabled = idle) { viewModel.ask(AccountDialog.AddEmail()) }
+            BrandActionRow(Icons.Outlined.Email, licText(R.string.acc_add_email), enabled = idle) { viewModel.ask(AccountDialog.AddEmail()) }
             BrandRowDivider()
         }
         // DistriGo's owner only (app_metadata); codes-admin checks it again on every call
         if (session.isAdmin) {
-            BrandActionRow(Icons.Outlined.AdminPanelSettings, "Administration", enabled = idle, onClick = onOpenAdmin)
+            BrandActionRow(Icons.Outlined.AdminPanelSettings, licText(R.string.acc_admin), enabled = idle, onClick = onOpenAdmin)
             BrandRowDivider()
         }
-        BrandActionRow(Icons.AutoMirrored.Outlined.Logout, "Se déconnecter", enabled = idle, busy = state.work == AccountWork.SIGNING_OUT) {
+        BrandActionRow(Icons.AutoMirrored.Outlined.Logout, licText(R.string.acc_sign_out), enabled = idle, busy = state.work == AccountWork.SIGNING_OUT) {
             viewModel.ask(AccountDialog.ConfirmSignOut)
         }
     }
@@ -240,7 +241,7 @@ private fun ColumnScope.SignedInCards(
         modifier = Modifier.align(Alignment.CenterHorizontally)
     ) {
         Text(
-            if (state.work == AccountWork.DELETING) "Suppression…" else "Supprimer le compte",
+            if (state.work == AccountWork.DELETING) licText(R.string.acc_deleting) else licText(R.string.acc_delete_account),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.SemiBold,
             fontSize   = BrandSize.Body,
@@ -267,10 +268,10 @@ private fun SignInCard(
 ) {
     LaunchedEffect(Unit) { onShown() }
     BrandCard {
-        BrandCardHeader(Icons.AutoMirrored.Outlined.Login, "Connexion")
+        BrandCardHeader(Icons.AutoMirrored.Outlined.Login, licText(R.string.acc_sign_in_title))
         BrandCardBody {
             Text(
-                "Un compte porte votre abonnement. Vos clients, ventes et stock restent sur ce téléphone.",
+                licText(R.string.acc_sign_in_text),
                 fontFamily = DsBrand.Font,
                 fontWeight = FontWeight.Medium,
                 fontSize   = BrandSize.Small,
@@ -288,8 +289,8 @@ private fun SignInCard(
 /** Who this is: the business, its phone, and how the account signs in. */
 @Composable
 private fun IdentityCard(session: AuthSession, profile: BusinessProfile?) {
-    val title = profile?.name ?: session.displayName ?: session.email ?: if (session.isAnonymous) "Compte sans e-mail" else "Votre compte"
-    val caption = if (session.isAnonymous) "Activé avec un code" else session.email?.takeIf { it != title }
+    val title = profile?.name ?: session.displayName ?: session.email ?: if (session.isAnonymous) licText(R.string.acc_no_email_account) else licText(R.string.acc_your_account)
+    val caption = if (session.isAnonymous) licText(R.string.acc_activated_with_code) else session.email?.takeIf { it != title }
     BrandCard {
         Row(Modifier.padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
             Avatar {
@@ -352,22 +353,22 @@ private fun CodeCard(code: String, withoutEmail: Boolean) {
             Icon(Icons.Outlined.Lock, contentDescription = null, tint = DsBrand.Ink, modifier = Modifier.size(BrandSize.HeaderIcon))
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("Votre code d'activation", fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.CardTitle, color = DsBrand.Ink)
+                Text(licText(R.string.acc_your_code), fontFamily = DsBrand.Font, fontWeight = FontWeight.Bold, fontSize = BrandSize.CardTitle, color = DsBrand.Ink)
                 Spacer(Modifier.height(2.dp))
                 BrandCodeText(if (shown) formatted else formatted.take(4) + "-••••-••••", fontSize = BrandSize.Code)
             }
-            RoundAction(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (shown) "Masquer le code" else "Afficher le code") {
+            RoundAction(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (shown) licText(R.string.acc_hide_code) else licText(R.string.acc_show_code)) {
                 shown = !shown
             }
             Spacer(Modifier.width(DsSpacing.sm))
-            RoundAction(if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy, if (copied) "Code copié" else "Copier le code") {
+            RoundAction(if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy, if (copied) licText(R.string.acc_code_copied) else licText(R.string.acc_copy_code)) {
                 copyCode(context, formatted)
                 copied = true
             }
         }
         Text(
-            if (withoutEmail) "Gardez-le en lieu sûr : sans adresse e-mail, lui seul ouvre votre entreprise sur un nouveau téléphone."
-            else "Gardez-le en lieu sûr : il ouvre votre entreprise sur un nouveau téléphone.",
+            if (withoutEmail) licText(R.string.acc_keep_code_no_email)
+            else licText(R.string.acc_keep_code),
             fontFamily = DsBrand.Font,
             fontWeight = FontWeight.Medium,
             fontSize   = BrandSize.Small,
@@ -394,7 +395,7 @@ private fun RoundAction(icon: ImageVector, description: String, onClick: () -> U
 
 /** Android 13 and later keep a sensitive clip out of the clipboard preview, like a password. */
 private fun copyCode(context: Context, code: String) {
-    val clip = ClipData.newPlainText("Code d'activation", code)
+    val clip = ClipData.newPlainText(licText(R.string.acc_activation_code), code)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
     }
@@ -422,33 +423,33 @@ private fun SubscriptionCard(
     val trialUsed = held != null && held.plan == "trial" && held.validTo < held.validFrom
     BrandCard {
         // The status in its own row: next to the title, any pill pushes it onto two lines on a phone
-        BrandCardHeader(Icons.Outlined.CalendarMonth, "Informations sur l'abonnement")
-        BrandInfoRow(Icons.Outlined.VerifiedUser, "Statut", null, badge = { BrandPill(look.label, look.color, look.background) })
+        BrandCardHeader(Icons.Outlined.CalendarMonth, licText(R.string.acc_sub_info))
+        BrandInfoRow(Icons.Outlined.VerifiedUser, licText(R.string.acc_status), null, badge = { BrandPill(look.label, look.color, look.background) })
         if (held != null) {
             BrandRowDivider()
             BrandInfoRow(
                 Icons.Outlined.WorkspacePremium,
-                "Formule",
+                licText(R.string.acc_plan),
                 when {
-                    trialUsed -> "Essai déjà utilisé"
-                    held.plan == "trial" -> "Essai gratuit"
+                    trialUsed -> licText(R.string.acc_trial_used)
+                    held.plan == "trial" -> licText(R.string.acc_trial)
                     else -> "DistriGo Solo"
                 }
             )
             if (!trialUsed) {
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.Event, "Date de début", day(held.validFrom))
+                BrandInfoRow(Icons.Outlined.Event, licText(R.string.acc_start_date), day(held.validFrom))
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.EventAvailable, if (ended) "Terminé le" else "Date d'expiration", day(held.validTo))
+                BrandInfoRow(Icons.Outlined.EventAvailable, if (ended) licText(R.string.acc_ended_on) else licText(R.string.acc_expiry_date), day(held.validTo))
             }
             if (license is LicenseState.Grace) {
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.HourglassBottom, "Fin de la grâce", day(held.graceUntil))
+                BrandInfoRow(Icons.Outlined.HourglassBottom, licText(R.string.acc_grace_end), day(held.graceUntil))
             }
         }
         BrandCardBody {
             val notice = when {
-                trialUsed -> "L'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo."
+                trialUsed -> licText(R.string.acc_trial_used_text)
                 license is LicenseState.OtherBusiness -> otherBusinessNotice(dataName, accountName)
                 else -> license.notice(held)
             }
@@ -456,38 +457,37 @@ private fun SubscriptionCard(
             if (batteryHint && license.holdsLicense) {
                 // A hint, never a block (decision 6): the button opens the screen where the battery is set
                 BrandNotice(
-                    "La vérification automatique semble bloquée par l'économie de batterie. Dans les paramètres de " +
-                        "DistriGo, réglez la batterie sur « Non restreinte ».",
+                    licText(R.string.acc_battery_blocked),
                     DsColors.Warning,
                     DsColors.WarningLight,
                 )
-                BrandWideButton("Ouvrir les paramètres de DistriGo", Icons.Outlined.Settings, filled = false, enabled = true, onClick = onOpenAppSettings)
+                BrandWideButton(licText(R.string.backup_open_app_settings), Icons.Outlined.Settings, filled = false, enabled = true, onClick = onOpenAppSettings)
             }
             if (license is LicenseState.OtherBusiness) {
                 // The two answers (docs/license_l4_checkin.md §7); signing out asks first, as from « Gestion du compte »
                 BrandWideButton(
-                    accountName?.let { "Les garder pour $it" } ?: "Garder les données pour ce compte",
+                    accountName?.let { licText(R.string.acc_keep_for, it) } ?: licText(R.string.acc_keep_for_account),
                     Icons.Outlined.Check,
                     filled  = true,
                     enabled = work == null,
                     busy    = work == AccountWork.KEEPING_DATA,
                     onClick = onKeepData,
                 )
-                BrandWideButton("Se déconnecter", Icons.AutoMirrored.Outlined.Logout, filled = false, enabled = work == null, busy = work == AccountWork.SIGNING_OUT, onClick = onSignOut)
+                BrandWideButton(licText(R.string.acc_sign_out), Icons.AutoMirrored.Outlined.Logout, filled = false, enabled = work == null, busy = work == AccountWork.SIGNING_OUT, onClick = onSignOut)
             }
             if (license.holdsLicense) {
                 // A code pays for more time: the thing to do once the subscription is ending. Not while suspended:
                 // the days would be added, but only DistriGo lifts a suspension; nor before the data's business is settled
                 val ending = license is LicenseState.RenewSoon || ended
                 if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
-                    BrandWideButton("Saisir un code", Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
+                    BrandWideButton(licText(R.string.acc_enter_code), Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
                 }
                 // « Abonnement » (docs/license_l5_enforcement.md §8.2): the code, the state and DistriGo's contacts, for any
                 // license held, active included
-                BrandWideButton("Abonnement et assistance", Icons.Outlined.WorkspacePremium, filled = false, enabled = work == null, onClick = onOpenSubscription)
+                BrandWideButton(licText(R.string.acc_sub_and_help), Icons.Outlined.WorkspacePremium, filled = false, enabled = work == null, onClick = onOpenSubscription)
                 held?.let { CheckedLine(it.issuedAt) }
             } else {
-                BrandWideButton("Activer cet appareil", Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)
+                BrandWideButton(licText(R.string.acc_activate_device), Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)
             }
         }
     }
@@ -500,7 +500,7 @@ private fun SubscriptionCard(
 @Composable
 private fun CheckedLine(issuedAt: Long) {
     Text(
-        "Mis à jour le ${CHECKED.format(Instant.ofEpochMilli(issuedAt).atZone(ZoneId.systemDefault()))}",
+        Instant.ofEpochMilli(issuedAt).atZone(ZoneId.systemDefault()).let { licText(R.string.acc_updated_on, licText(R.string.backup_date_time, DAY_SHORT.format(it), TIME.format(it))) },
         fontFamily = DsBrand.Font,
         fontWeight = FontWeight.Medium,
         fontSize   = BrandSize.Small,
@@ -521,21 +521,21 @@ private fun BusinessCard(
     onRetry: () -> Unit,
 ) {
     BrandCard {
-        BrandCardHeader(Icons.Outlined.Apartment, "Informations de l'entreprise")
+        BrandCardHeader(Icons.Outlined.Apartment, licText(R.string.acc_business_info))
         when {
             profile != null -> {
                 val edit = { field: ProfileField -> if (profile.canEdit) ({ onEdit(field) }) else null }
-                BrandInfoRow(Icons.Outlined.Storefront, "Nom de l'entreprise", profile.name, edit(ProfileField.NAME), enabled = idle)
+                BrandInfoRow(Icons.Outlined.Storefront, licText(R.string.acc_business_name), profile.name, edit(ProfileField.NAME), enabled = idle)
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.Phone, "Téléphone", profile.contactPhone?.let(::westernDigits), edit(ProfileField.PHONE), enabled = idle)
+                BrandInfoRow(Icons.Outlined.Phone, licText(R.string.acc_phone), profile.contactPhone?.let(::westernDigits), edit(ProfileField.PHONE), enabled = idle)
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.WorkOutline, "Type d'activité", activityLabel(profile.activity), edit(ProfileField.ACTIVITY), enabled = idle)
+                BrandInfoRow(Icons.Outlined.WorkOutline, licText(R.string.acc_activity), activityLabel(profile.activity), edit(ProfileField.ACTIVITY), enabled = idle)
                 BrandRowDivider()
-                BrandInfoRow(Icons.Outlined.Groups, "Nombre de commerciaux", salesRepsLabel(profile.salesReps), edit(ProfileField.SALES_REPS), enabled = idle)
+                BrandInfoRow(Icons.Outlined.Groups, licText(R.string.acc_sales_reps), salesRepsLabel(profile.salesReps), edit(ProfileField.SALES_REPS), enabled = idle)
             }
             load == ProfileLoad.FAILED -> BrandCardBody {
                 Text(
-                    problem ?: "Ces informations n'ont pas pu être lues.",
+                    problem ?: licText(R.string.acc_info_unreadable),
                     fontFamily = DsBrand.Font,
                     fontWeight = FontWeight.Medium,
                     fontSize   = BrandSize.Body,
@@ -560,41 +560,41 @@ private fun BusinessCard(
 private data class Look(val label: String, val explanation: String, val color: Color, val background: Color)
 
 private fun LicenseState.look(): Look = when (this) {
-    is LicenseState.Active -> Look("Actif", "", DsColors.Success, DsColors.SuccessLight)
-    is LicenseState.RenewSoon -> Look("Expire bientôt", "Pensez à renouveler votre abonnement.", DsColors.Warning, DsColors.WarningLight)
-    is LicenseState.CheckInSoon -> Look("À vérifier", "Connectez ce téléphone à Internet dans les prochains jours.", DsColors.Warning, DsColors.WarningLight)
-    is LicenseState.Grace -> Look("Période de grâce", "L'abonnement est terminé : saisissez un code pour continuer à enregistrer.", DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.Expired -> Look("Expiré", "Consultation seule : saisissez un code pour reprendre. Sauvegarde et export restent disponibles.", DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.ClockBehind -> Look("Date incorrecte", "La date du téléphone est en retard. Activez « Date et heure automatiques ».", DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.NotYetValid -> Look("Pas encore valable", "L'abonnement commence plus tard.", DsColors.Warning, DsColors.WarningLight)
-    is LicenseState.CheckInRequired -> Look("Vérification nécessaire", "Connectez ce téléphone à Internet : la vérification se fait toute seule.", DsColors.Warning, DsColors.WarningLight)
-    LicenseState.Revoked -> Look("Appareil libéré", "Cet appareil n'est plus associé à l'abonnement. Activez-le pour le reprendre.", DsColors.TextSecondary, DsColors.SurfaceSunken)
-    is LicenseState.Suspended -> Look("Suspendu", LicenseClient.SUSPENDED_MESSAGE, DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.OtherBusiness -> Look("Autre entreprise", "Ces données appartiennent à une autre entreprise.", DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.NoLicense -> Look("Non activé", "Activez cet appareil pour commencer.", DsColors.TextSecondary, DsColors.SurfaceSunken)
-    LicenseState.Unchecked -> Look("…", "Lecture de la licence…", DsColors.TextSecondary, DsColors.SurfaceSunken)
+    is LicenseState.Active -> Look(licText(R.string.acc_look_active), "", DsColors.Success, DsColors.SuccessLight)
+    is LicenseState.RenewSoon -> Look(licText(R.string.acc_look_renew), licText(R.string.acc_look_renew_text), DsColors.Warning, DsColors.WarningLight)
+    is LicenseState.CheckInSoon -> Look(licText(R.string.acc_look_check), licText(R.string.acc_look_check_text), DsColors.Warning, DsColors.WarningLight)
+    is LicenseState.Grace -> Look(licText(R.string.acc_look_grace), licText(R.string.acc_look_grace_text), DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.Expired -> Look(licText(R.string.acc_look_expired), licText(R.string.acc_look_expired_text), DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.ClockBehind -> Look(licText(R.string.acc_look_clock), licText(R.string.acc_look_clock_text), DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.NotYetValid -> Look(licText(R.string.acc_look_not_yet), licText(R.string.acc_look_not_yet_text), DsColors.Warning, DsColors.WarningLight)
+    is LicenseState.CheckInRequired -> Look(licText(R.string.acc_look_check_needed), licText(R.string.acc_look_check_needed_text), DsColors.Warning, DsColors.WarningLight)
+    LicenseState.Revoked -> Look(licText(R.string.acc_look_revoked), licText(R.string.acc_look_revoked_text), DsColors.TextSecondary, DsColors.SurfaceSunken)
+    is LicenseState.Suspended -> Look(licText(R.string.acc_look_suspended), LicenseClient.SUSPENDED_MESSAGE, DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.OtherBusiness -> Look(licText(R.string.acc_look_other), licText(R.string.lic_other_business_banner), DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.NoLicense -> Look(licText(R.string.acc_look_none), licText(R.string.acc_look_none_text), DsColors.TextSecondary, DsColors.SurfaceSunken)
+    LicenseState.Unchecked -> Look("…", licText(R.string.acc_look_reading), DsColors.TextSecondary, DsColors.SurfaceSunken)
 }
 
 /** OtherBusiness, with the names when known: the data's (its settings) and the account's (its profile). */
 private fun otherBusinessNotice(dataName: String?, accountName: String?): String {
-    val data = dataName?.let { "Les données de ce téléphone (« $it »)" } ?: "Les données de ce téléphone"
-    val account = accountName?.let { "« $it »" } ?: "celle de ce compte"
-    return "$data appartiennent à une autre entreprise que $account. Gardez-les pour votre entreprise si elles sont " +
-        "bien à vous ; sinon, déconnectez-vous."
+    val data = dataName?.let { licText(R.string.acc_this_data_named, it) } ?: licText(R.string.acc_this_data)
+    val account = accountName?.let { licText(R.string.acc_holder, it) } ?: licText(R.string.acc_this_account)
+    return licText(R.string.acc_other_business_notice, data, account)
 }
 
 /** The note under the dates: nothing while all is well, otherwise what the state asks for, with its date. */
 private fun LicenseState.notice(held: License?): String? = when (this) {
     is LicenseState.Active -> null
-    is LicenseState.RenewSoon -> held?.let { "Votre abonnement se termine le ${day(it.validTo)} : saisissez un code pour le prolonger." } ?: look().explanation
-    is LicenseState.CheckInSoon -> held?.let { "Connectez ce téléphone à Internet avant le ${day(it.offlineUntil)} : la vérification se fait toute seule." } ?: look().explanation
+    is LicenseState.RenewSoon -> held?.let { licText(R.string.acc_notice_renew, day(it.validTo)) } ?: look().explanation
+    is LicenseState.CheckInSoon -> held?.let { licText(R.string.acc_notice_check, day(it.offlineUntil)) } ?: look().explanation
     else -> look().explanation.ifEmpty { null }
 }
 
-private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
-private val MOMENT = DateTimeFormatter.ofPattern("d MMM yyyy 'à' HH:mm", Locale.FRENCH)
-private val CHECKED = DateTimeFormatter.ofPattern("d MMM 'à' HH:mm", Locale.FRENCH)
+private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
+private val DAY_SHORT: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMM")
+private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 internal fun day(epochMillis: Long): String = DAY.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
-internal fun moment(epochMillis: Long): String = MOMENT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+internal fun moment(epochMillis: Long): String =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).let { licText(R.string.backup_date_time, DAY.format(it), TIME.format(it)) }

@@ -1,5 +1,7 @@
 package com.distrigo.app.data.license
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import com.distrigo.app.data.auth.AuthRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -48,7 +50,7 @@ class LicenseCheckIn(
             throw e
         } catch (e: Exception) {
             // The Keystore refusing to sign, say: not worth retrying within the hour; the next period tries again
-            CheckIn.Failed("La vérification a échoué sur ce téléphone (${e.javaClass.simpleName}).")
+            CheckIn.Failed(licText(R.string.lic_check_failed, e.javaClass.simpleName))
         }
         try {
             log.record(source, result, clock())

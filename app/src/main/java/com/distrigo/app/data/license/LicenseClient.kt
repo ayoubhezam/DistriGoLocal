@@ -1,5 +1,7 @@
 package com.distrigo.app.data.license
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import com.distrigo.app.data.auth.AuthRepository
 import com.distrigo.app.data.auth.Backend
 import com.google.gson.JsonArray
@@ -200,17 +202,17 @@ class LicenseClient(
             "renewed" -> when (val check = checkIn()) {
                 CheckIn.Done -> Renewal.Renewed
                 // Paid for all the same: the next check-in brings it
-                is CheckIn.Failed -> Renewal.Failed("Le code a bien été ajouté, mais la licence n'a pas pu être mise à jour : ${check.message}")
+                is CheckIn.Failed -> Renewal.Failed(licText(R.string.lic_renewed_not_updated, check.message))
                 // The days are added; the license comes with the reactivation
-                CheckIn.Suspended -> Renewal.Failed("Le code a bien été ajouté, mais l'abonnement est suspendu. Contactez DistriGo.")
-                CheckIn.Revoked, CheckIn.NotActivated -> Renewal.Failed("Le code a bien été ajouté. Activez maintenant ce téléphone.")
+                CheckIn.Suspended -> Renewal.Failed(licText(R.string.lic_renewed_suspended))
+                CheckIn.Revoked, CheckIn.NotActivated -> Renewal.Failed(licText(R.string.lic_renewed_activate))
             }
-            "bad_code" -> Renewal.Failed("Ce code n'existe pas ou n'est plus valable.")
-            "code_expired" -> Renewal.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur.")
-            "code_used" -> Renewal.Failed("Ce code a déjà été utilisé.")
+            "bad_code" -> Renewal.Failed(licText(R.string.lic_bad_code))
+            "code_expired" -> Renewal.Failed(licText(R.string.lic_code_expired))
+            "code_used" -> Renewal.Failed(licText(R.string.lic_code_used))
             "too_many_attempts" -> Renewal.Failed(tooManyAttempts(reply.text("retry_at")?.let(::instant)))
-            "no_business" -> Renewal.Failed("Ce compte n'a pas encore d'entreprise à renouveler.")
-            "choose_business" -> Renewal.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
+            "no_business" -> Renewal.Failed(licText(R.string.lic_no_business_renew))
+            "choose_business" -> Renewal.Failed(licText(R.string.lic_choose_business))
             else -> Renewal.Failed(SERVER_MESSAGE)
         }
     }
@@ -242,9 +244,9 @@ class LicenseClient(
                 )
             }
             "no_business" -> ProfileAnswer.NoBusiness
-            "not_allowed" -> ProfileAnswer.Failed("Seuls le gérant et les responsables peuvent modifier ces informations.")
-            "not_member" -> ProfileAnswer.Failed("Ce compte n'est plus membre de l'entreprise.")
-            "choose_business" -> ProfileAnswer.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
+            "not_allowed" -> ProfileAnswer.Failed(licText(R.string.lic_not_allowed))
+            "not_member" -> ProfileAnswer.Failed(licText(R.string.lic_not_member))
+            "choose_business" -> ProfileAnswer.Failed(licText(R.string.lic_choose_business))
             else -> ProfileAnswer.Failed(SERVER_MESSAGE)
         }
     }
@@ -266,25 +268,25 @@ class LicenseClient(
                             code = reply.text("code"),
                         )
                     }
-                    is LicenseCheck.Rejected -> ActivationStep.Failed("La licence reçue n'a pas pu être vérifiée (${check.why}).")
+                    is LicenseCheck.Rejected -> ActivationStep.Failed(licText(R.string.lic_not_verified, check.why))
                 }
             }
             "no_business" -> ActivationStep.NeedsBusinessName(request)
             "code_needs_business" -> ActivationStep.CodeNeedsBusiness(request)
-            "bad_code" -> ActivationStep.Failed("Ce code n'existe pas ou n'est plus valable.")
-            "code_expired" -> ActivationStep.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur.")
-            "code_used" -> ActivationStep.Failed("Ce code a déjà servi à un renouvellement.")
+            "bad_code" -> ActivationStep.Failed(licText(R.string.lic_bad_code))
+            "code_expired" -> ActivationStep.Failed(licText(R.string.lic_code_expired))
+            "code_used" -> ActivationStep.Failed(licText(R.string.lic_code_used_renewal))
             "too_many_attempts" -> ActivationStep.Failed(tooManyAttempts(reply.text("retry_at")?.let(::instant)))
             "seat_taken" -> ActivationStep.SeatTaken(request, holders(reply.getAsJsonArray("devices")))
             "transfer_limit" -> ActivationStep.TransferLimit(reply.text("next_at")?.let(::instant))
-            "choose_business" -> ActivationStep.Failed("Ce compte appartient à plusieurs entreprises : ce cas n'est pas encore pris en charge.")
-            "not_member" -> ActivationStep.Failed("Ce compte n'est plus membre de l'entreprise.")
+            "choose_business" -> ActivationStep.Failed(licText(R.string.lic_choose_business))
+            "not_member" -> ActivationStep.Failed(licText(R.string.lic_not_member))
             "refused" -> ActivationStep.Failed(
-                if (reply.text("reason") == "repackaged") "Cette copie de DistriGo n'est pas l'application officielle."
-                else "Ce téléphone n'a pas pu prouver son identité. Réessayez.",
+                if (reply.text("reason") == "repackaged") licText(R.string.lic_repackaged)
+                else licText(R.string.lic_identity_retry),
             )
             "subscription_inactive" -> ActivationStep.Failed(SUSPENDED_MESSAGE)
-            "bad_nonce" -> ActivationStep.Failed("Le délai est dépassé. Recommencez l'activation.")
+            "bad_nonce" -> ActivationStep.Failed(licText(R.string.lic_bad_nonce))
             else -> ActivationStep.Failed(SERVER_MESSAGE)
         }
     }
@@ -319,7 +321,7 @@ class LicenseClient(
                 val token = reply.text("license") ?: return CheckIn.Failed(SERVER_MESSAGE, retry = true)
                 when (val check = withContext(Dispatchers.IO) { license.install(token) }) {
                     is LicenseCheck.Valid -> CheckIn.Done
-                    is LicenseCheck.Rejected -> CheckIn.Failed("La licence reçue n'a pas pu être vérifiée (${check.why}).")
+                    is LicenseCheck.Rejected -> CheckIn.Failed(licText(R.string.lic_not_verified, check.why))
                 }
             }
             "revoked", "not_member", "unknown_device" -> {
@@ -333,7 +335,7 @@ class LicenseClient(
             // The nonce expired between the two calls: a new one will do
             "bad_nonce" -> CheckIn.Failed(SERVER_MESSAGE, retry = true)
             // The server doesn't know this phone's key: trying again won't change that
-            "bad_signature" -> CheckIn.Failed("Ce téléphone n'a pas pu prouver son identité. Contactez DistriGo.")
+            "bad_signature" -> CheckIn.Failed(licText(R.string.lic_identity_contact))
             else -> CheckIn.Failed(SERVER_MESSAGE)
         }
     }
@@ -367,7 +369,7 @@ class LicenseClient(
                 auth.forget()
                 null
             }
-            "transfer_ownership_first" -> "Confiez d'abord l'entreprise à un autre membre."
+            "transfer_ownership_first" -> licText(R.string.lic_transfer_first)
             else -> SERVER_MESSAGE
         }
     }
@@ -390,19 +392,18 @@ class LicenseClient(
     /** Too many codes refused within the hour: when the phone may try again, in its own time. */
     private fun tooManyAttempts(retryAt: Instant?): String =
         if (retryAt == null) {
-            "Trop d'essais. Réessayez dans une heure."
+            licText(R.string.lic_too_many_hour)
         } else {
-            "Trop d'essais. Réessayez après " +
-                java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(retryAt.atZone(java.time.ZoneId.systemDefault())) + "."
+            licText(R.string.lic_too_many_after, java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(retryAt.atZone(java.time.ZoneId.systemDefault())))
         }
 
     private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString
 
     companion object {
-        private const val SERVER_MESSAGE = FunctionCalls.SERVER_MESSAGE
+        private val SERVER_MESSAGE: String get() = FunctionCalls.SERVER_MESSAGE
 
         /** A suspended business, wherever the phone hears it: activation, check-in, a code. */
-        const val SUSPENDED_MESSAGE = "L'abonnement est suspendu. Contactez DistriGo."
+        val SUSPENDED_MESSAGE: String get() = licText(R.string.lic_suspended)
 
         /** What the device key signs: supabase/functions/_shared/protocol.ts, signedMessage. */
         internal fun signedMessage(purpose: String, nonce: String, installationId: String): ByteArray =

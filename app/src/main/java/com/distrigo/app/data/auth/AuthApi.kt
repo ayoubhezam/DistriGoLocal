@@ -1,5 +1,7 @@
 package com.distrigo.app.data.auth
 
+import com.distrigo.app.data.license.licText
+import com.distrigo.app.R
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
@@ -11,20 +13,22 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /** What went wrong, in the words the user reads. */
-enum class AuthError(val message: String) {
-    INVALID_CREDENTIALS("E-mail ou mot de passe incorrect."),
-    EMAIL_TAKEN("Un compte existe déjà avec cet e-mail. Connectez-vous."),
-    WEAK_PASSWORD("Mot de passe trop faible : 8 caractères au moins, lettres et chiffres."),
-    INVALID_EMAIL("Adresse e-mail invalide."),
-    EMAIL_NOT_CONFIRMED("Confirmez d'abord votre adresse e-mail : un message vous a été envoyé."),
-    SIGNUP_DISABLED("Les inscriptions sont fermées pour le moment."),
-    PROVIDER_DISABLED("Cette méthode de connexion n'est pas encore disponible."),
-    RATE_LIMITED("Trop de tentatives. Réessayez dans quelques minutes."),
-    SESSION_EXPIRED("Votre session a expiré. Reconnectez-vous."),
-    ANONYMOUS_DISABLED("L'activation par code n'est pas encore ouverte. Réessayez plus tard."),
-    NETWORK("Pas de connexion Internet. Réessayez une fois connecté."),
-    SERVER("Le service ne répond pas. Réessayez plus tard."),
+enum class AuthError(@androidx.annotation.StringRes private val messageId: Int) {
+    INVALID_CREDENTIALS(R.string.auth_invalid_credentials),
+    EMAIL_TAKEN(R.string.auth_email_taken),
+    WEAK_PASSWORD(R.string.auth_weak_password),
+    INVALID_EMAIL(R.string.auth_invalid_email),
+    EMAIL_NOT_CONFIRMED(R.string.auth_email_not_confirmed),
+    SIGNUP_DISABLED(R.string.auth_signup_disabled),
+    PROVIDER_DISABLED(R.string.auth_provider_disabled),
+    RATE_LIMITED(R.string.auth_rate_limited),
+    SESSION_EXPIRED(R.string.auth_session_expired),
+    ANONYMOUS_DISABLED(R.string.auth_anonymous_disabled),
+    NETWORK(R.string.auth_network),
+    SERVER(R.string.auth_server),
     ;
+
+    val message: String get() = licText(messageId)
 
     companion object {
         /** The error Supabase Auth answered with: its error_code (or older error field), else the HTTP status. */
