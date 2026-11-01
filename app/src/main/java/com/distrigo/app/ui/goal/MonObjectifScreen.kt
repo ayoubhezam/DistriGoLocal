@@ -62,6 +62,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import com.distrigo.app.ui.settings.settingsText
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +113,9 @@ import com.distrigo.app.ui.format.LocalMoneyFormatter
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.ceil
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.R
 
 // The navy card's own shades (GoalScreen.tsx): soft text on navy, and the goal's colours as on the Dashboard (D18)
 private val OnNavySoft = Color(0xFFCBD5E1)
@@ -180,18 +184,18 @@ fun MonObjectifScreen(
 
 /** The rule in plain French, and how it is counted, behind the navy card's ⓘ. */
 private fun ruleInfo(goal: GoalProgress, freeGood: String?, money: MoneyFormatter) = DsInfo(
-    title = "La règle",
+    title = settingsText(R.string.goal_rule_title),
     icon = Icons.Default.EmojiEvents,
     tint = DsColors.Primary,
     summary = GoalWording.rule(goal.rules, goal.period.type, money, goal.showReward, freeGood),
     toKnow = listOf(
-        "Ventes facturées = Ventes (dépôt + tournée) − Retours clients",
-        "Recouvrement = Payé à la vente + Versements",
-        "% = Réalisé ÷ Objectif × 100, arrondi vers le bas",
-        "Une période terminée est figée.",
+        settingsText(R.string.goal_rule_know_1),
+        settingsText(R.string.goal_rule_know_2),
+        settingsText(R.string.goal_rule_know_3),
+        settingsText(R.string.goal_rule_know_4),
     ) + listOfNotNull(
         if (goal.policySince.isAfter(goal.period.start) && goal.policySince in goal.period)
-            "Politique modifiée le ${goal.policySince.dayOfMonth}/${goal.policySince.monthValue}." else null,
+            settingsText(R.string.goal_policy_changed, "${goal.policySince.dayOfMonth}/${goal.policySince.monthValue}") else null,
     ),
 )
 
@@ -201,12 +205,12 @@ private fun Header(onBack: () -> Unit, onEdit: (() -> Unit)?) {
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = DsSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SquareButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", DsColors.Surface, DsColors.TextSecondary, onBack)
+        SquareButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_action_back), DsColors.Surface, DsColors.TextSecondary, onBack)
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("PERFORMANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.8.sp, color = DsColors.TextTertiary)
-            Text("Mon objectif", fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.goal_performance), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.8.sp, color = DsColors.TextTertiary)
+            Text(stringResource(R.string.goal_title), fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
         }
-        if (onEdit != null) SquareButton(Icons.Outlined.Edit, "Modifier l'objectif", DsColors.PrimaryLight, DsColors.Primary, onEdit)
+        if (onEdit != null) SquareButton(Icons.Outlined.Edit, stringResource(R.string.goal_edit), DsColors.PrimaryLight, DsColors.Primary, onEdit)
         else Spacer(Modifier.size(48.dp))
     }
 }
@@ -233,11 +237,11 @@ private fun NoPolicy(onEditPolicy: () -> Unit) {
         Box(Modifier.size(64.dp).clip(DsShapes.large).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
             Icon(Icons.Default.Flag, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
         }
-        Text("Aucun objectif pour le moment", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center)
-        Text("Fixez un objectif et la façon de calculer la prime : votre progression s'affichera ici.",
+        Text(stringResource(R.string.goal_none), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.goal_none_body),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
         OutlinedButton(onClick = onEditPolicy, shape = DsShapes.medium, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text("Fixer un objectif", fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text(stringResource(R.string.goal_set), fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }
@@ -268,7 +272,7 @@ private fun NavyCard(goal: GoalProgress, onInfo: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(GoalWording.achievedIn(goal.period), fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = OnNavySoft)
                         IconButton(onClick = onInfo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Outlined.Info, contentDescription = "En savoir plus sur la règle", tint = OnNavyFaint, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.goal_cd_rule), tint = OnNavyFaint, modifier = Modifier.size(16.dp))
                         }
                     }
                     // One unbreakable figure beside the ring: smaller as it grows, so « DA » never breaks off (2026-10-21)
@@ -280,7 +284,8 @@ private fun NavyCard(goal: GoalProgress, onInfo: () -> Unit) {
                     }
                     Text(amount, fontSize = size, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1, softWrap = false)
                     Text(
-                        "sur ${GoalWording.whole(target.threshold, money)}" + (target.tier?.let { " · palier $it" } ?: ""),
+                        target.tier?.let { stringResource(R.string.goal_of_threshold_tier, GoalWording.whole(target.threshold, money), it) }
+                            ?: stringResource(R.string.goal_of_threshold, GoalWording.whole(target.threshold, money)),
                         fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = OnNavyFaint,
                         modifier = Modifier.padding(top = DsSpacing.xs),
                     )
@@ -310,10 +315,10 @@ private fun NavyCard(goal: GoalProgress, onInfo: () -> Unit) {
 private fun StatusChip(goal: GoalProgress) {
     val status = goal.pace?.status
     val (text, icon, tint) = when {
-        goal.next == null || status == PaceStatus.REACHED -> Triple("ATTEINT", Icons.Default.CheckCircle, RingReached)
-        status == PaceStatus.AHEAD -> Triple("EN AVANCE", Icons.Default.Bolt, RingReached)
-        status == PaceStatus.BEHIND -> Triple("EN RETARD", Icons.AutoMirrored.Filled.TrendingDown, DsColors.Warning)
-        else -> Triple("EN BONNE VOIE", Icons.Default.Bolt, RingReached)
+        goal.next == null || status == PaceStatus.REACHED -> Triple(stringResource(R.string.goal_status_reached), Icons.Default.CheckCircle, RingReached)
+        status == PaceStatus.AHEAD -> Triple(stringResource(R.string.goal_status_ahead), Icons.Default.Bolt, RingReached)
+        status == PaceStatus.BEHIND -> Triple(stringResource(R.string.goal_status_behind), Icons.AutoMirrored.Filled.TrendingDown, DsColors.Warning)
+        else -> Triple(stringResource(R.string.goal_status_on_track), Icons.Default.Bolt, RingReached)
     }
     Row(
         Modifier.clip(DsShapes.pill).background(Color.White.copy(alpha = 0.1f)).padding(horizontal = DsSpacing.md, vertical = 6.dp),
@@ -333,7 +338,7 @@ private fun Ring(goal: GoalProgress) {
     val sweep by animateFloatAsState(fraction, tween(700), label = "ring")
     val color = ringColor(target.state)
     Box(
-        Modifier.size(112.dp).clearAndSetSemantics { contentDescription = "${percentText("${target.percent}")} ${GoalWording.ofAim(goal)}" },
+        Modifier.size(112.dp).clearAndSetSemantics { contentDescription = settingsText(R.string.goal_cd_percent, percentText("${target.percent}"), GoalWording.ofAim(goal)) },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
@@ -345,7 +350,7 @@ private fun Ring(goal: GoalProgress) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(percentText("${target.percent}"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-            Text(target.tier?.let { "du palier $it" } ?: "atteint", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = OnNavyFaint)
+            Text(target.tier?.let { stringResource(R.string.goal_of_aim_tier, it) } ?: stringResource(R.string.goal_ring_reached), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = OnNavyFaint)
         }
     }
 }
@@ -354,17 +359,17 @@ private fun Ring(goal: GoalProgress) {
 @Composable
 private fun TierMarkers(goal: GoalProgress) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.lg)) {
-        Text("Paliers", fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = OnNavyFaint)
+        Text(stringResource(R.string.goal_tiers), fontSize = DsTextSize.caption, fontWeight = FontWeight.Medium, color = OnNavyFaint)
         goal.tiers.forEachIndexed { index, tier ->
             val reached = tier.state == TierState.PASSED || tier.state == TierState.CURRENT
             val spoken = when (tier.state) {
-                TierState.PASSED, TierState.CURRENT -> "atteint"
-                TierState.NEXT -> "en cours"
-                TierState.LOCKED -> "à venir"
+                TierState.PASSED, TierState.CURRENT -> stringResource(R.string.goal_tier_reached)
+                TierState.NEXT -> stringResource(R.string.goal_tier_in_progress)
+                TierState.LOCKED -> stringResource(R.string.goal_tier_to_come)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clearAndSetSemantics { contentDescription = "Palier ${index + 1} $spoken" },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = settingsText(R.string.goal_cd_tier, index + 1, spoken) },
             ) {
                 Box(Modifier.size(16.dp), contentAlignment = Alignment.Center) {
                     Canvas(Modifier.fillMaxSize()) {
@@ -400,10 +405,10 @@ private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
     val cells = buildList<@Composable RowScope.() -> Unit> {
         add {
             if (next != null) {
-                TrajectoryCell(Icons.Outlined.Flag, DsColors.Primary, "Reste à réaliser", GoalWording.whole(next.gap, money),
-                    "${percentText("${100 - target.percent}")} $ofAim")
+                TrajectoryCell(Icons.Outlined.Flag, DsColors.Primary, stringResource(R.string.goal_left_to_do), GoalWording.whole(next.gap, money),
+                    stringResource(R.string.goal_percent_of, percentText("${100 - target.percent}"), ofAim))
             } else {
-                TrajectoryCell(Icons.Default.EmojiEvents, GoldOnWhite, "Dépassé de :",
+                TrajectoryCell(Icons.Default.EmojiEvents, GoldOnWhite, stringResource(R.string.goal_exceeded_by),
                     GoalWording.whole((goal.value - target.threshold).coerceAtLeast(0.0), money))
             }
         }
@@ -411,26 +416,26 @@ private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
             if (next != null) {
                 // Rounded up to the thousand: a pace to keep, not a figure to the centime
                 val perDay = ceil(pace.neededPerDay / 1_000) * 1_000
-                TrajectoryCell(Icons.Default.Speed, DsColors.Warning, "Rythme conseillé", "${GoalWording.whole(perDay, money)} / Jour",
-                    "Pendant ${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour" else "jours"}")
+                TrajectoryCell(Icons.Default.Speed, DsColors.Warning, stringResource(R.string.goal_pace_advised), stringResource(R.string.goal_per_day, GoalWording.whole(perDay, money)),
+                    pluralStringResource(R.plurals.goal_during_days, pace.daysLeft, pace.daysLeft))
             } else {
-                TrajectoryCell(Icons.Default.Speed, DsColors.AccentTeal, "Rythme actuel", "${GoalWording.whole(pace.perDaySoFar, money)} / Jour",
-                    "${pace.daysLeft} ${if (pace.daysLeft <= 1) "jour restant" else "jours restants"}")
+                TrajectoryCell(Icons.Default.Speed, DsColors.AccentTeal, stringResource(R.string.goal_pace_current), stringResource(R.string.goal_per_day, GoalWording.whole(pace.perDaySoFar, money)),
+                    pluralStringResource(R.plurals.goal_days_left, pace.daysLeft, pace.daysLeft))
             }
         }
         if (pace != null) add {
-            TrajectoryCell(Icons.Default.AutoGraph, DsColors.Success, "Projection", GoalWording.whole(pace.projection, money),
-                "${percentText("${goal.rules.percentOf(pace.projection, target.threshold)}")} $ofAim")
+            TrajectoryCell(Icons.Default.AutoGraph, DsColors.Success, stringResource(R.string.goal_projection), GoalWording.whole(pace.projection, money),
+                stringResource(R.string.goal_percent_of, percentText("${goal.rules.percentOf(pace.projection, target.threshold)}"), ofAim))
         }
         // Only when the policy shows the bonus (D13, D20)
         if (goal.showReward) add {
-            TrajectoryCell(Icons.Default.WorkspacePremium, DsColors.AccentViolet, "Commission estimée",
+            TrajectoryCell(Icons.Default.WorkspacePremium, DsColors.AccentViolet, stringResource(R.string.goal_estimated_commission),
                 GoalWording.rewardValue(goal.reward, money, freeGood), GoalWording.commissionNote(goal))
         }
     }
     Column(Modifier.fillMaxWidth().clip(CardShape).background(DsColors.Surface).border(1.dp, DsColors.Border, CardShape)) {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
-            CardTitle("Votre trajectoire", "Les repères clés pour atteindre votre cap", Modifier.weight(1f))
+            CardTitle(stringResource(R.string.goal_trajectory), stringResource(R.string.goal_trajectory_sub), Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.sm))
             TrajectoryChip(goal)
         }
@@ -452,10 +457,10 @@ private fun TrajectoryCard(goal: GoalProgress, freeGood: String?) {
 private fun TrajectoryChip(goal: GoalProgress) {
     val status = goal.pace?.status
     val (text, icon, tint) = when {
-        goal.next == null || status == PaceStatus.REACHED -> Triple("ATTEINT", Icons.Default.CheckCircle, DsColors.Success)
-        status == PaceStatus.AHEAD -> Triple("EN AVANCE", Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
-        status == PaceStatus.BEHIND -> Triple("EN RETARD", Icons.AutoMirrored.Filled.TrendingDown, DsColors.Warning)
-        else -> Triple("EN BONNE VOIE", Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
+        goal.next == null || status == PaceStatus.REACHED -> Triple(stringResource(R.string.goal_status_reached), Icons.Default.CheckCircle, DsColors.Success)
+        status == PaceStatus.AHEAD -> Triple(stringResource(R.string.goal_status_ahead), Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
+        status == PaceStatus.BEHIND -> Triple(stringResource(R.string.goal_status_behind), Icons.AutoMirrored.Filled.TrendingDown, DsColors.Warning)
+        else -> Triple(stringResource(R.string.goal_status_on_track), Icons.AutoMirrored.Filled.TrendingUp, DsColors.Success)
     }
     Row(
         Modifier.clip(DsShapes.pill).background(tint.copy(alpha = 0.1f)).padding(horizontal = 10.dp, vertical = 6.dp),
@@ -502,13 +507,13 @@ private fun CardTitle(title: String, sub: String, modifier: Modifier = Modifier)
 private fun StepsCard(goal: GoalProgress, steps: List<GoalStep>) {
     val pace = goal.pace
     val title = when (goal.period.type) {
-        PeriodType.MONTHLY -> "Rythme hebdomadaire"
-        PeriodType.QUARTERLY -> "Rythme mensuel"
-        PeriodType.YEARLY -> "Rythme trimestriel"
+        PeriodType.MONTHLY -> stringResource(R.string.goal_rhythm_weekly)
+        PeriodType.QUARTERLY -> stringResource(R.string.goal_rhythm_monthly)
+        PeriodType.YEARLY -> stringResource(R.string.goal_rhythm_quarterly)
     }
     WhiteCard {
         Row(verticalAlignment = Alignment.Top) {
-            CardTitle(title, "Progression par rapport au cap prévu", Modifier.weight(1f))
+            CardTitle(title, stringResource(R.string.goal_progress_vs_plan), Modifier.weight(1f))
             val gap = pace?.let { GoalSteps.paceGap(goal.value, goal.target.threshold, it.daysElapsed, goal.period.days) }
             when {
                 gap != null -> {
@@ -516,9 +521,9 @@ private fun StepsCard(goal: GoalProgress, steps: List<GoalStep>) {
                     val text = (if (up) "+" else "−") + percentText("${abs(gap) / 10},${abs(gap) % 10}")
                     Badge(text, if (up) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                         if (up) DsColors.Success else DsColors.Warning, if (up) DsColors.SuccessLight else DsColors.WarningLight,
-                        spoken = if (up) "$text d'avance sur le cap prévu" else "$text de retard sur le cap prévu")
+                        spoken = stringResource(if (up) R.string.goal_cd_ahead else R.string.goal_cd_behind, text))
                 }
-                goal.next == null -> Badge("Atteint", Icons.Default.CheckCircle, DsColors.Success, DsColors.SuccessLight, "Atteint")
+                goal.next == null -> Badge(stringResource(R.string.goal_badge_reached), Icons.Default.CheckCircle, DsColors.Success, DsColors.SuccessLight, stringResource(R.string.goal_badge_reached))
             }
         }
         Spacer(Modifier.height(20.dp))
@@ -550,8 +555,8 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
     val tint = if (step.current) DsColors.Primary else DsColors.TextTertiary
     Column(
         modifier.clearAndSetSemantics {
-            contentDescription = if (step.future) "${step.label} : à venir"
-            else "${step.label} : ${GoalWording.whole(step.value, money)} sur ${GoalWording.whole(step.target, money)} prévus"
+            contentDescription = if (step.future) settingsText(R.string.goal_cd_step_future, step.label)
+            else settingsText(R.string.goal_cd_step, step.label, GoalWording.whole(step.value, money), GoalWording.whole(step.target, money))
         },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -576,11 +581,11 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
 private fun PastCard(goal: GoalProgress, history: List<CommissionPeriodEntity>) {
     val money = LocalMoneyFormatter.current
     WhiteCard {
-        Text(if (goal.period.type == PeriodType.MONTHLY) "Mois précédents" else "Périodes précédentes",
+        Text(stringResource(if (goal.period.type == PeriodType.MONTHLY) R.string.goal_previous_months else R.string.goal_previous_periods),
             fontSize = DsTextSize.body, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.md))
         if (history.isEmpty()) {
-            Text("Les périodes terminées s'afficheront ici, avec leur résultat.", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.goal_previous_empty), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
         }
         history.take(3).forEachIndexed { index, period ->
             if (index > 0) HorizontalDivider(color = DsColors.Border, modifier = Modifier.padding(vertical = DsSpacing.sm))
@@ -600,10 +605,10 @@ private fun PastCard(goal: GoalProgress, history: List<CommissionPeriodEntity>) 
                 }
                 Text(
                     when {
-                        !period.reached -> "Non atteint"
+                        !period.reached -> stringResource(R.string.goal_not_reached)
                         goal.showReward && period.reward_amount != null -> GoalWording.whole(period.reward_amount, money)
-                        goal.showReward && period.free_good_quantity != null -> "${period.free_good_quantity} offerts"
-                        else -> "Atteint"
+                        goal.showReward && period.free_good_quantity != null -> stringResource(R.string.goal_n_given, period.free_good_quantity)
+                        else -> stringResource(R.string.goal_badge_reached)
                     },
                     fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
                     color = if (period.reached) DsColors.Success else DsColors.TextSecondary,
@@ -647,14 +652,14 @@ private fun ObjectiveSheet(
         Column(Modifier.fillMaxWidth().imePadding().padding(start = 20.dp, end = 20.dp, bottom = 28.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text("Ajuster mon objectif", fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
-                    Text("Définissez un cap motivant et réaliste.", fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary,
+                    Text(stringResource(R.string.goal_adjust), fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.goal_adjust_sub), fontSize = DsTextSize.bodySmall, color = DsColors.TextTertiary,
                         modifier = Modifier.padding(top = DsSpacing.xs))
                 }
-                SquareButton(Icons.Default.Close, "Fermer", DsColors.SurfaceSunken, DsColors.TextSecondary, onDismiss)
+                SquareButton(Icons.Default.Close, stringResource(R.string.goal_close), DsColors.SurfaceSunken, DsColors.TextSecondary, onDismiss)
             }
             Spacer(Modifier.height(20.dp))
-            SheetLabel("Objectif")
+            SheetLabel(stringResource(R.string.goal_objective_label))
             Row(
                 Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(DsColors.PrimaryLight.copy(alpha = 0.5f))
                     .border(2.dp, DsColors.Primary.copy(alpha = 0.25f), RoundedCornerShape(16.dp)).padding(horizontal = DsSpacing.lg),
@@ -668,9 +673,9 @@ private fun ObjectiveSheet(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark, textDirection = TextDirection.ContentOrLtr),
                     cursorBrush = SolidColor(DsColors.Primary),
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "Objectif en dinars" },
+                    modifier = Modifier.weight(1f).semantics { contentDescription = settingsText(R.string.goal_cd_objective_da) },
                 )
-                Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextTertiary)
+                Text(stringResource(R.string.rapports_currency), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.TextTertiary)
             }
             Spacer(Modifier.height(DsSpacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -689,11 +694,11 @@ private fun ObjectiveSheet(
                 }
             }
             Spacer(Modifier.height(20.dp))
-            SheetLabel("Mesuré sur")
+            SheetLabel(stringResource(R.string.goal_measured_on))
             Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 listOf(
-                    Triple(CalculationSource.INVOICED_SALES, "Ventes facturées", Icons.AutoMirrored.Filled.ReceiptLong),
-                    Triple(CalculationSource.COLLECTED_CASH, "Recouvrement", Icons.Default.Payments),
+                    Triple(CalculationSource.INVOICED_SALES, stringResource(R.string.settings_source_invoiced), Icons.AutoMirrored.Filled.ReceiptLong),
+                    Triple(CalculationSource.COLLECTED_CASH, stringResource(R.string.settings_source_collected), Icons.Default.Payments),
                 ).forEach { (value, label, icon) ->
                     val selected = source == value
                     Row(
@@ -715,7 +720,7 @@ private fun ObjectiveSheet(
             Button(
                 onClick = {
                     val target = parsed
-                    if (target == null || target <= 0) { error = "Saisissez un objectif supérieur à zéro."; return@Button }
+                    if (target == null || target <= 0) { error = settingsText(R.string.goal_target_above_zero); return@Button }
                     saving = true
                     onSave(target, source, { saving = false; onDismiss() }, { saving = false; error = it })
                 },
@@ -724,7 +729,7 @@ private fun ObjectiveSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.Primary),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
-                Text("Enregistrer l'objectif", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.goal_save), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(DsSpacing.sm))
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
             }

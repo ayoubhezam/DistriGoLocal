@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** « Mon objectif » as the screen shows it; [loaded] false until read once. [progress] is null without a policy. */
 data class MonObjectifState(
@@ -54,7 +55,7 @@ class MonObjectifViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { incentives.saveObjective(target, source) }
                 .onSuccess { onDone() }
-                .onFailure { onError(it.message ?: "Enregistrement impossible") }
+                .onFailure { onError(it.message ?: com.distrigo.app.ui.settings.settingsText(R.string.charges_save_failed)) }
         }
     }
 

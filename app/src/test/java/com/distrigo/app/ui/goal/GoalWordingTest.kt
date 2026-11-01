@@ -17,6 +17,11 @@ import java.time.LocalDate
 /** The words of « Mon objectif » (Part 2, Steps 3–6; D20): with the bonus shown, and without. */
 class GoalWordingTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     private val money = MoneyFormatter.plain(MoneyFormat.SPACES)
     private val sales = CalculationSource.INVOICED_SALES
     private val october = CommissionPeriod.containing(PeriodType.MONTHLY, LocalDate.parse("2026-10-10"))
