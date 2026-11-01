@@ -1,0 +1,46 @@
+<resources>
+    <string name="export_period_day">ليوم \u2068%1$s\u2069</string>
+    <string name="export_period_range">من \u2068%1$s\u2069 إلى \u2068%2$s\u2069</string>
+    <string name="export_period_since">منذ \u2068%1$s\u2069</string>
+    <string name="export_period_until">حتى \u2068%1$s\u2069</string>
+    <string name="export_period_all">لكل التواريخ</string>
+    <string name="export_share_title">مشاركة الملف المُصدَّر</string>
+    <string name="export_data">البيانات</string>
+    <string name="export_select_all">تحديد الكل</string>
+    <string name="export_unselect_all">إلغاء تحديد الكل</string>
+    <string name="export_as_today">كما هي اليوم</string>
+    <string name="export_format">الصيغة</string>
+    <string name="export_format_xlsx">Excel (‎.xlsx‎)</string>
+    <string name="export_format_csv">CSV (برامج أخرى)</string>
+    <string name="export_from">من \u2068%1$s\u2069</string>
+    <string name="export_to">إلى \u2068%1$s\u2069</string>
+    <string name="export_period_sentence">يصدّر البيانات \u2068%1$s\u2069.</string>
+    <string name="export_xlsx_note">ملف Excel بورقة لكل نوع بيانات. المبالغ أرقام، والتواريخ تواريخ، والباركودات والهواتف تحتفظ بالصفر في بدايتها، على أي حاسوب.</string>
+    <string name="export_csv_note">ملف لكل نوع بيانات، للبرامج التي تقرأ CSV. في Excel: النص الذي يبدأ بـ = أو + أو - أو @ يظهر مسبوقًا بفاصلة عليا (حماية من الصيغ)، ويُحذف الصفر في بداية الباركودات والهواتف. للاحتفاظ به، استورد الملف من Excel (Données › À partir d\'un fichier texte/CSV) واضبط هذه الأعمدة على « Texte ».</string>
+    <string name="export_choose_one">اختر نوع بيانات واحدًا على الأقل.</string>
+    <string name="export_running">جارٍ التصدير…</string>
+    <string name="export_saved">حُفظ الملف المُصدَّر</string>
+    <string name="export_rows_of">\u200F\u2068%1$s\u2069: \u2068%2$s\u2069</string>
+    <plurals name="export_n_rows">
+        <item quantity="zero">%d سطر</item>
+        <item quantity="one">سطر واحد</item>
+        <item quantity="two">سطران</item>
+        <item quantity="few">%d أسطر</item>
+        <item quantity="many">%d سطرًا</item>
+        <item quantity="other">%d سطر</item>
+    </plurals>
+    <string name="export_impossible">تعذّر التصدير</string>
+    <string name="export_ds_ventes">المبيعات</string>
+    <string name="export_ds_sale_lines">أسطر البيع</string>
+    <string name="export_ds_achats">المشتريات</string>
+    <string name="export_ds_client_payments">مدفوعات الزبائن</string>
+    <string name="export_ds_supplier_payments">المدفوعات للموردين</string>
+    <string name="export_ds_clients">الزبائن</string>
+    <string name="export_ds_products">المنتجات</string>
+    <string name="export_ds_stock_movements">حركات المخزون</string>
+    <string name="export_ds_charges">المصاريف</string>
+    <string name="export_ds_pertes">الخسائر</string>
+    <string name="export_write_failed">تعذّر حفظ الملف المُصدَّر في هذا المكان. تحقّق من المساحة المتاحة أو اختر مكانًا آخر.</string>
+    <string name="export_prepare_failed">تعذّر تحضير الملف المُصدَّر. تحقّق من المساحة المتاحة في الهاتف، ثم أعد المحاولة.</string>
+    <string name="export_unexpected">منع خطأ غير متوقع التصدير.</string>
+</resources>

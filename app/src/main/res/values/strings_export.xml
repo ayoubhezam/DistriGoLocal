@@ -1,0 +1,42 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="export_period_day">du %1$s</string>
+    <string name="export_period_range">du %1$s au %2$s</string>
+    <string name="export_period_since">depuis le %1$s</string>
+    <string name="export_period_until">jusqu\'au %1$s</string>
+    <string name="export_period_all">de toutes les dates</string>
+    <string name="export_share_title">Partager l\'export</string>
+    <string name="export_data">Données</string>
+    <string name="export_select_all">Tout sélectionner</string>
+    <string name="export_unselect_all">Tout désélectionner</string>
+    <string name="export_as_today">Tels qu\'ils sont aujourd\'hui</string>
+    <string name="export_format">Format</string>
+    <string name="export_format_xlsx">Excel (.xlsx)</string>
+    <string name="export_format_csv">CSV (autres logiciels)</string>
+    <string name="export_from">Du %1$s</string>
+    <string name="export_to">Au %1$s</string>
+    <string name="export_period_sentence">Exporte les données %1$s.</string>
+    <string name="export_xlsx_note">Un fichier Excel avec une feuille par donnée. Les montants sont des nombres, les dates des dates, et les codes-barres et téléphones gardent leur 0 initial, sur n\'importe quel ordinateur.</string>
+    <string name="export_csv_note">Un fichier par donnée, pour les logiciels qui lisent le CSV. Dans Excel : un texte commençant par =, +, - ou @ s\'affiche avec une apostrophe devant (protection contre les formules), et le 0 initial des codes-barres et des téléphones est retiré. Pour les garder, importez le fichier depuis Excel (Données › À partir d\'un fichier texte/CSV) en réglant ces colonnes sur « Texte ».</string>
+    <string name="export_choose_one">Choisissez au moins une donnée.</string>
+    <string name="export_running">Export en cours…</string>
+    <string name="export_saved">Export enregistré</string>
+    <string name="export_rows_of">%1$s : %2$s</string>
+    <plurals name="export_n_rows">
+        <item quantity="one">%d ligne</item>
+        <item quantity="other">%d lignes</item>
+    </plurals>
+    <string name="export_impossible">Export impossible</string>
+    <string name="export_ds_ventes">Ventes</string>
+    <string name="export_ds_sale_lines">Lignes de vente</string>
+    <string name="export_ds_achats">Achats</string>
+    <string name="export_ds_client_payments">Paiements clients</string>
+    <string name="export_ds_supplier_payments">Paiements fournisseurs</string>
+    <string name="export_ds_clients">Clients</string>
+    <string name="export_ds_products">Produits</string>
+    <string name="export_ds_stock_movements">Mouvements de stock</string>
+    <string name="export_ds_charges">Charges</string>
+    <string name="export_ds_pertes">Pertes</string>
+    <string name="export_write_failed">Impossible d\'enregistrer l\'export à cet emplacement. Vérifiez l\'espace disponible ou choisissez un autre emplacement.</string>
+    <string name="export_prepare_failed">Impossible de préparer l\'export. Vérifiez l\'espace disponible sur le téléphone, puis réessayez.</string>
+    <string name="export_unexpected">Une erreur inattendue a empêché l\'export.</string>
+</resources>

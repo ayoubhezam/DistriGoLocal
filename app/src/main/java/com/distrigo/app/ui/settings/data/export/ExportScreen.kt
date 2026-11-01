@@ -42,6 +42,7 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /** Paramètres → Exporter les données: choose data, a format and a period, then save the file or share it. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -62,7 +63,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             putExtra(Intent.EXTRA_STREAM, ready.uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(send, "Partager l'export"))
+        context.startActivity(Intent.createChooser(send, context.getString(R.string.export_share_title)))
         viewModel.dismissResult()
     }
 
@@ -72,7 +73,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-            DsTopAppBar(title = "Exporter les données", leading = DsTopBarLeading.Back { if (!state.working) onBack() })
+            DsTopAppBar(title = stringResource(R.string.settings_export), leading = DsTopBarLeading.Back { if (!state.working) onBack() })
 
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
@@ -80,10 +81,10 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             ) {
                 // ── Données ──
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Données", Modifier.weight(1f), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                    Text(stringResource(R.string.export_data), Modifier.weight(1f), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                     val all = state.selected.size == ExportDataset.entries.size
                     TextButton(onClick = { viewModel.selectAll(!all) }) {
-                        Text(if (all) "Tout désélectionner" else "Tout sélectionner", color = DsColors.Primary)
+                        Text(stringResource(if (all) R.string.export_unselect_all else R.string.export_select_all), color = DsColors.Primary)
                     }
                 }
                 Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)) {
@@ -99,9 +100,9 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                 colors = CheckboxDefaults.colors(checkedColor = DsColors.Primary)
                             )
                             Column(Modifier.weight(1f)) {
-                                Text(dataset.label, fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                                Text(stringResource(datasetLabel(dataset)), fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                                 if (!dataset.byPeriod) {
-                                    Text("Tels qu'ils sont aujourd'hui", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                                    Text(stringResource(R.string.export_as_today), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                                 }
                             }
                         }
@@ -109,13 +110,13 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 }
 
                 // ── Format ──
-                Text("Format", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.export_format), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     ExportFormat.entries.forEach { format ->
                         FilterChip(
                             selected = state.format == format,
                             onClick = { viewModel.chooseFormat(format) },
-                            label = { Text(format.label) },
+                            label = { Text(stringResource(if (format == ExportFormat.CSV) R.string.export_format_csv else R.string.export_format_xlsx)) },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DsColors.PrimaryLight, selectedLabelColor = DsColors.Primary)
                         )
                     }
@@ -137,15 +138,15 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     if (state.preset == PeriodPreset.CUSTOM) {
                         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                             OutlinedButton(onClick = { picking = "from" }, modifier = Modifier.weight(1f), shape = DsShapes.medium) {
-                                Text("Du " + (state.customFrom?.let(DAY::format) ?: "…"), color = DsColors.TextPrimary)
+                                Text(stringResource(R.string.export_from, state.customFrom?.let(DAY::format) ?: "…"), color = DsColors.TextPrimary)
                             }
                             OutlinedButton(onClick = { picking = "to" }, modifier = Modifier.weight(1f), shape = DsShapes.medium) {
-                                Text("Au " + (state.customTo?.let(DAY::format) ?: "…"), color = DsColors.TextPrimary)
+                                Text(stringResource(R.string.export_to, state.customTo?.let(DAY::format) ?: "…"), color = DsColors.TextPrimary)
                             }
                         }
                     }
                     Text(
-                        "Exporte les données " + ExportChoices.describe(state.period) + ".",
+                        stringResource(R.string.export_period_sentence, ExportChoices.describe(state.period)),
                         fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
                     )
                 }
@@ -160,13 +161,9 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     Text(
                         when (state.format) {
                             ExportFormat.XLSX ->
-                                "Un fichier Excel avec une feuille par donnée. Les montants sont des nombres, les dates des dates, " +
-                                    "et les codes-barres et téléphones gardent leur 0 initial, sur n'importe quel ordinateur."
+                                stringResource(R.string.export_xlsx_note)
                             ExportFormat.CSV ->
-                                "Un fichier par donnée, pour les logiciels qui lisent le CSV. Dans Excel : un texte commençant par " +
-                                    "=, +, - ou @ s'affiche avec une apostrophe devant (protection contre les formules), et le 0 initial " +
-                                    "des codes-barres et des téléphones est retiré. Pour les garder, importez le fichier depuis Excel " +
-                                    "(Données › À partir d'un fichier texte/CSV) en réglant ces colonnes sur « Texte »."
+                                stringResource(R.string.export_csv_note)
                         },
                         fontSize = DsTextSize.caption, color = DsColors.TextPrimary
                     )
@@ -178,7 +175,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             Column(Modifier.fillMaxWidth().padding(DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 val ready = state.selected.isNotEmpty() && !state.working
                 Text(
-                    if (state.selected.isEmpty()) "Choisissez au moins une donnée." else state.fileName,
+                    if (state.selected.isEmpty()) stringResource(R.string.export_choose_one) else state.fileName,
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                 )
                 Button(
@@ -201,7 +198,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Partager", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+                    Text(stringResource(R.string.settings_share), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
                 }
             }
         }
@@ -218,7 +215,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.lg)
                 ) {
                     CircularProgressIndicator(color = DsColors.Primary)
-                    Text("Export en cours…", fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+                    Text(stringResource(R.string.export_running), fontSize = DsTextSize.body, color = DsColors.TextPrimary)
                 }
             }
         }
@@ -227,12 +224,12 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             is ExportResult.Saved -> AlertDialog(
                 onDismissRequest = viewModel::dismissResult,
                 icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success) },
-                title = { Text("Export enregistré") },
+                title = { Text(stringResource(R.string.export_saved)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
                         Text(result.fileName)
                         result.rows.forEach { (dataset, count) ->
-                            Text("${dataset.label} : $count ligne${if (count > 1) "s" else ""}", fontSize = DsTextSize.bodySmall)
+                            Text(stringResource(R.string.export_rows_of, stringResource(datasetLabel(dataset)), pluralStringResource(R.plurals.export_n_rows, count, count)), fontSize = DsTextSize.bodySmall)
                         }
                     }
                 },
@@ -244,7 +241,7 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             is ExportResult.Failed -> AlertDialog(
                 onDismissRequest = viewModel::dismissResult,
                 icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger) },
-                title = { Text("Export impossible") },
+                title = { Text(stringResource(R.string.export_impossible)) },
                 text = { Text(result.message) },
                 confirmButton = { TextButton(onClick = viewModel::dismissResult) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
                 containerColor = DsColors.Surface,
@@ -273,6 +270,21 @@ fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             dismissButton = { TextButton(onClick = { picking = null }) { Text(stringResource(R.string.common_action_cancel)) } }
         ) { DatePicker(state = pickerState) }
     }
+}
+
+/** A dataset's name in the app's language; the file keeps its French name. */
+@androidx.annotation.StringRes
+private fun datasetLabel(dataset: ExportDataset): Int = when (dataset) {
+    ExportDataset.VENTES -> R.string.export_ds_ventes
+    ExportDataset.LIGNES_VENTE -> R.string.export_ds_sale_lines
+    ExportDataset.ACHATS -> R.string.export_ds_achats
+    ExportDataset.PAIEMENTS_CLIENTS -> R.string.export_ds_client_payments
+    ExportDataset.PAIEMENTS_FOURNISSEURS -> R.string.export_ds_supplier_payments
+    ExportDataset.CLIENTS -> R.string.export_ds_clients
+    ExportDataset.PRODUITS -> R.string.export_ds_products
+    ExportDataset.MOUVEMENTS_STOCK -> R.string.export_ds_stock_movements
+    ExportDataset.CHARGES -> R.string.export_ds_charges
+    ExportDataset.PERTES -> R.string.export_ds_pertes
 }
 
 private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")

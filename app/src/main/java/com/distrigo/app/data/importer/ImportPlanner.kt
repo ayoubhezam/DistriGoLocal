@@ -1,5 +1,6 @@
 package com.distrigo.app.data.importer
 
+import com.distrigo.app.R
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.data.local.entity.ClientEntity
 import com.distrigo.app.data.local.entity.MAX_BARCODES_PER_PRODUCT
@@ -23,6 +24,10 @@ import java.time.format.DateTimeParseException
  * inventory or an adjustment, so the stock cells of an existing product's row are never read. A new product takes
  * its stock as an opening adjustment, as the form does; below zero only while « Autoriser le stock négatif » is on.
  */
+/** An import message in the app's language, written when the plan is made: the preview shows it as it is. */
+internal fun importText(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id, args.toList()))
+
 class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: ImportGeo) {
 
     /**
@@ -42,13 +47,13 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         if (sheets.isEmpty() && only != null) {
             val other = ImportSheet.entries.firstOrNull { other -> other != only && workbook.sheets.any { ImportSheet.named(it.name) == other } }
             throw ImportPlanException(
-                if (other != null) "Ce fichier contient des ${other.plural}, pas de ${only.plural}. Importez-le depuis l'écran ${other.title}."
-                else "Le fichier n'a pas de feuille « ${only.title} ». Téléchargez le modèle vide, ou exportez les ${only.plural} pour l'obtenir."
+                if (other != null) importText(if (other == ImportSheet.CLIENTS) R.string.import_file_has_clients else R.string.import_file_has_products)
+                else importText(if (only == ImportSheet.CLIENTS) R.string.import_no_clients_sheet else R.string.import_no_products_sheet)
             )
         }
         if (sheets.isEmpty()) {
             throw ImportPlanException(
-                "Le fichier n'a pas de feuille « Produits » ni « Clients ». Exportez d'abord les données pour obtenir le modèle."
+                importText(R.string.import_no_sheet)
             )
         }
         return ImportPlan(sheets, lookups.toCreate(), notes.distinct())
@@ -69,7 +74,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         val columns = Columns(sheet, PRODUCT_HEADERS)
         if (columns.missing("nom")) return SheetPlan(ImportSheet.PRODUITS, columns.ignored, listOf(noHeader(ImportSheet.PRODUITS, sheet)))
         if (columns.has("stock", "stock depot", "stock camion")) {
-            notes += "Le stock d'un produit existant n'est pas modifié par l'import : corrigez-le par un inventaire ou un ajustement."
+            notes += importText(R.string.import_note_stock)
         }
 
         // Every code of every product, the primary mirror included, to the products that have it.
@@ -84,7 +89,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         val rows = columns.dataRows.map { row ->
             val cells = columns.cells(row)
             outcome { planProduct(cells, byBarcode, byName, seen, seenBarcodes, lookups) }
-                .let { PlannedRow(ImportSheet.PRODUITS, row.number, cells.text("nom") ?: "(sans nom)", it) }
+                .let { PlannedRow(ImportSheet.PRODUITS, row.number, cells.text("nom") ?: importText(R.string.import_no_name), it) }
         }
         return SheetPlan(ImportSheet.PRODUITS, columns.ignored, rows)
     }
@@ -97,22 +102,22 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         seenBarcodes: MutableSet<String>,
         lookups: Lookups,
     ): RowOutcome {
-        val name = cells.text("nom") ?: return RowOutcome.Refused("Le nom est obligatoire.")
+        val name = cells.text("nom") ?: return RowOutcome.Refused(importText(R.string.import_name_required))
         // One code, or several separated by « ; » as the export writes them; the first is the primary.
         val codes = splitCodes(cells.text("code barres"))
         val barcode = codes.firstOrNull()
         val nameKey = ImportText.key(name)
 
         codes.firstOrNull { byBarcode[it].let { owners -> owners != null && owners.size > 1 } }?.let {
-            return RowOutcome.Refused("Plusieurs produits portent le code-barres $it.")
+            return RowOutcome.Refused(importText(R.string.import_barcode_shared, it))
         }
         // Which product this row is about: the one its codes belong to, else the one with its name.
         val owners = codes.flatMap { byBarcode[it].orEmpty() }.distinctBy { it.id }
         if (owners.size > 1) {
-            return RowOutcome.Refused("Ces codes-barres appartiennent à plusieurs produits (${owners.joinToString { "« ${it.name} »" }}).")
+            return RowOutcome.Refused(importText(R.string.import_barcodes_several, owners.joinToString { "« ${it.name} »" }))
         }
         val existing = owners.singleOrNull() ?: byName[nameKey]?.let { same ->
-            if (same.size > 1) return RowOutcome.Refused("Plusieurs produits portent le nom « $name » : précisez le code-barres.")
+            if (same.size > 1) return RowOutcome.Refused(importText(R.string.import_name_shared_products, name))
             same.singleOrNull()
         }
         // A name that differs only by case or accents is the same name, kept as the app spells it.
@@ -121,25 +126,25 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         // The name this row would take must not be another product's. Its codes cannot be: any code another
         // product has made that product the one this row is about.
         if (renamed || existing == null) {
-            byName[nameKey]?.firstOrNull { it.id != existing?.id }?.let { return RowOutcome.Refused("Ce nom de produit est déjà enregistré (code-barres ${it.barcode ?: "—"}).") }
+            byName[nameKey]?.firstOrNull { it.id != existing?.id }?.let { return RowOutcome.Refused(importText(R.string.import_name_taken, it.barcode ?: "—")) }
         }
         // The file's codes are added to the product's; the others it had are kept.
         val existingCodes = existing?.let(::codesOf).orEmpty()
         val allCodes = codes + (existingCodes - codes.toSet())
         if (allCodes.size > MAX_BARCODES_PER_PRODUCT) return RowOutcome.Refused(TOO_MANY_BARCODES)
         // The same product twice in one file would apply twice; only the first row that passes counts.
-        if (!seen.add(existing?.id?.toString() ?: "new:$nameKey")) return RowOutcome.Refused("« $name » est déjà sur une ligne plus haut.")
+        if (!seen.add(existing?.id?.toString() ?: "new:$nameKey")) return RowOutcome.Refused(importText(R.string.import_already_above, name))
         if (existing == null) {
-            codes.firstOrNull { !seenBarcodes.add(it) }?.let { return RowOutcome.Refused("Le code-barres $it est déjà sur une ligne plus haut.") }
+            codes.firstOrNull { !seenBarcodes.add(it) }?.let { return RowOutcome.Refused(importText(R.string.import_barcode_above, it)) }
         }
 
-        val unitType = cells.text("unite")?.let { UNITS[ImportText.key(it)] ?: return RowOutcome.Refused("L'unité « $it » n'existe pas : carton, pièce ou kg.") }
-        val packSize = cells.int("unites par colis")?.let { if (it < 0) return RowOutcome.Refused("Les unités par colis ne peuvent pas être négatives.") else it }
+        val unitType = cells.text("unite")?.let { UNITS[ImportText.key(it)] ?: return RowOutcome.Refused(importText(R.string.import_unknown_unit, it)) }
+        val packSize = cells.int("unites par colis")?.let { if (it < 0) return RowOutcome.Refused(importText(R.string.import_pack_negative)) else it }
         val purchase = cells.amount("prix d achat") ?: cells.amount("prix achat")
         val selling = cells.amount("prix de vente") ?: cells.amount("prix vente")
-        if (purchase != null && purchase < 0) return RowOutcome.Refused("Le prix d'achat ne peut pas être négatif.")
-        if (selling != null && selling < 0) return RowOutcome.Refused("Le prix de vente ne peut pas être négatif.")
-        val minStock = cells.quantity("stock minimum")?.let { if (it < 0) return RowOutcome.Refused("Le stock minimum ne peut pas être négatif.") else it }
+        if (purchase != null && purchase < 0) return RowOutcome.Refused(importText(R.string.import_purchase_negative))
+        if (selling != null && selling < 0) return RowOutcome.Refused(importText(R.string.import_selling_negative))
+        val minStock = cells.quantity("stock minimum")?.let { if (it < 0) return RowOutcome.Refused(importText(R.string.import_min_negative)) else it }
         // Read for a new product only: an existing product's stock comes from its movements, whatever the file says
         val stock = if (existing != null) null else cells.quantity("stock depot") ?: cells.quantity("stock")
         if (stock != null && stock < 0 && !snapshot.allowNegativeStock) return RowOutcome.Refused(NEGATIVE_OPENING_STOCK)
@@ -151,7 +156,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         val supplier = cells.text("fournisseur")
         // A sub-category lives under a category: the row's, or the product's own when the row leaves it.
         val categoryForSub = category ?: existing?.category_name
-        if (sousCategorie != null && categoryForSub == null) return RowOutcome.Refused("La sous-catégorie « $sousCategorie » a besoin d'une catégorie.")
+        if (sousCategorie != null && categoryForSub == null) return RowOutcome.Refused(importText(R.string.import_sub_needs_category, sousCategorie))
 
         val values = ProductValues(
             name = keptName, barcode = barcode, category = category, sousCategorie = sousCategorie, marque = marque,
@@ -172,20 +177,20 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         fun changedName(label: String, from: String?, to: String?) {
             if (to != null && ImportText.key(from ?: "") != ImportText.key(to)) changes += Change(label, from, to)
         }
-        if (renamed) changes += Change("Nom", existing.name, name)
+        if (renamed) changes += Change(importText(R.string.import_col_name), existing.name, name)
         if (codes.isNotEmpty() && allCodes != existingCodes) {
-            changes += Change("Code-barres", existingCodes.joinToString("; ").ifEmpty { null }, allCodes.joinToString("; "))
+            changes += Change(importText(R.string.import_col_barcode), existingCodes.joinToString("; ").ifEmpty { null }, allCodes.joinToString("; "))
         }
-        changedName("Catégorie", existing.category_name, category)
-        changedName("Sous-catégorie", existing.sous_categorie_name, sousCategorie)
-        changedName("Marque", existing.marque_name, marque)
-        changedName("Fournisseur", existing.supplier_name, supplier)
-        changed("Unité", existing.unit_type, unitType)
-        changed("Unités par colis", existing.pack_size.toString(), packSize?.toString())
-        changed("Prix d'achat", money(existing.purchase_price), purchase?.let(::money))
-        changed("Prix de vente", money(existing.selling_price), selling?.let(::money))
-        changed("Stock minimum", Quantity.format(existing.min_stock), minStock?.let(Quantity::format))
-        changed("Date de péremption", existing.expiry_date?.takeIf { existing.has_expiry == 1 }?.let(::day), expiry?.let { day(it.toString()) })
+        changedName(importText(R.string.import_col_category), existing.category_name, category)
+        changedName(importText(R.string.import_col_subcategory), existing.sous_categorie_name, sousCategorie)
+        changedName(importText(R.string.import_col_brand), existing.marque_name, marque)
+        changedName(importText(R.string.import_col_supplier), existing.supplier_name, supplier)
+        changed(importText(R.string.import_col_unit), existing.unit_type, unitType)
+        changed(importText(R.string.import_col_pack), existing.pack_size.toString(), packSize?.toString())
+        changed(importText(R.string.import_col_purchase), money(existing.purchase_price), purchase?.let(::money))
+        changed(importText(R.string.import_col_selling), money(existing.selling_price), selling?.let(::money))
+        changed(importText(R.string.import_col_min_stock), Quantity.format(existing.min_stock), minStock?.let(Quantity::format))
+        changed(importText(R.string.import_col_expiry), existing.expiry_date?.takeIf { existing.has_expiry == 1 }?.let(::day), expiry?.let { day(it.toString()) })
         return if (changes.isEmpty()) RowOutcome.Unchanged(existing.id) else RowOutcome.UpdateProduct(existing.id, values.copy(initialStock = null), changes)
     }
 
@@ -194,35 +199,35 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
     private fun planClients(sheet: XlsxSheet, lookups: Lookups, notes: MutableList<String>): SheetPlan {
         val columns = Columns(sheet, CLIENT_HEADERS)
         if (columns.missing("nom")) return SheetPlan(ImportSheet.CLIENTS, columns.ignored, listOf(noHeader(ImportSheet.CLIENTS, sheet)))
-        if (columns.has("solde")) notes += "Le solde d'un client vient de ses ventes et de ses paiements : l'import ne le modifie pas."
+        if (columns.has("solde")) notes += importText(R.string.import_note_balance)
 
         val byName = snapshot.clients.groupBy { ImportText.key(it.name) }
         val seen = mutableSetOf<String>()
         val rows = columns.dataRows.map { row ->
             val cells = columns.cells(row)
-            outcome { planClient(cells, byName, seen, lookups) }.let { PlannedRow(ImportSheet.CLIENTS, row.number, cells.text("nom") ?: "(sans nom)", it) }
+            outcome { planClient(cells, byName, seen, lookups) }.let { PlannedRow(ImportSheet.CLIENTS, row.number, cells.text("nom") ?: importText(R.string.import_no_name), it) }
         }
         return SheetPlan(ImportSheet.CLIENTS, columns.ignored, rows)
     }
 
     private fun planClient(cells: Cells, byName: Map<String, List<ClientEntity>>, seen: MutableSet<String>, lookups: Lookups): RowOutcome {
-        val name = cells.text("nom") ?: return RowOutcome.Refused("Le nom est obligatoire.")
+        val name = cells.text("nom") ?: return RowOutcome.Refused(importText(R.string.import_name_required))
         val key = ImportText.key(name)
         val same = byName[key].orEmpty()
-        if (same.size > 1) return RowOutcome.Refused("Plusieurs clients portent le nom « $name » : modifiez-les dans l'application.")
-        if (!seen.add(key)) return RowOutcome.Refused("« $name » est déjà sur une ligne plus haut.")
+        if (same.size > 1) return RowOutcome.Refused(importText(R.string.import_name_shared_clients, name))
+        if (!seen.add(key)) return RowOutcome.Refused(importText(R.string.import_already_above, name))
         val existing = same.singleOrNull()
 
-        val type = cells.text("type")?.let { CLIENT_TYPES[ImportText.key(it)] ?: return RowOutcome.Refused("Le type « $it » n'existe pas : Détail, Gros ou Société.") }
-        val wilaya = cells.text("wilaya")?.let { geo.wilaya(it) ?: return RowOutcome.Refused("La wilaya « $it » n'existe pas.") }
+        val type = cells.text("type")?.let { CLIENT_TYPES[ImportText.key(it)] ?: return RowOutcome.Refused(importText(R.string.import_unknown_type, it)) }
+        val wilaya = cells.text("wilaya")?.let { geo.wilaya(it) ?: return RowOutcome.Refused(importText(R.string.import_unknown_wilaya, it)) }
         val wilayaForCommune = wilaya ?: existing?.wilaya_name
         val commune = cells.text("commune")?.let { typed ->
-            if (wilayaForCommune == null) return RowOutcome.Refused("La commune « $typed » a besoin d'une wilaya.")
-            geo.commune(wilayaForCommune, typed) ?: return RowOutcome.Refused("La commune « $typed » n'est pas dans la wilaya de $wilayaForCommune.")
+            if (wilayaForCommune == null) return RowOutcome.Refused(importText(R.string.import_commune_needs_wilaya, typed))
+            geo.commune(wilayaForCommune, typed) ?: return RowOutcome.Refused(importText(R.string.import_commune_not_in_wilaya, typed, wilayaForCommune))
         }
         val communeForSecteur = commune ?: existing?.commune_name?.takeIf { wilaya == null || ImportText.key(existing.wilaya_name ?: "") == ImportText.key(wilaya) }
         val secteur = cells.text("secteur")?.let { typed ->
-            if (communeForSecteur == null) return RowOutcome.Refused("Le secteur « $typed » a besoin d'une commune.")
+            if (communeForSecteur == null) return RowOutcome.Refused(importText(R.string.import_secteur_needs_commune, typed))
             typed
         }
 
@@ -241,13 +246,13 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         fun changedName(label: String, from: String?, to: String?) {
             if (to != null && ImportText.key(from ?: "") != ImportText.key(to)) changes += Change(label, from, to)
         }
-        changed("Téléphone", existing.phone, values.phone)
-        changed("Type", existing.customer_type, type)
-        changedName("Secteur", existing.secteur_name, secteur)
-        changedName("Wilaya", existing.wilaya_name, wilaya)
-        changedName("Commune", existing.commune_name, commune)
-        changed("Adresse", existing.address, values.address)
-        changed("Note", existing.note, values.note)
+        changed(importText(R.string.import_col_phone), existing.phone, values.phone)
+        changed(importText(R.string.import_col_type), existing.customer_type, type)
+        changedName(importText(R.string.import_col_secteur), existing.secteur_name, secteur)
+        changedName(importText(R.string.import_col_wilaya), existing.wilaya_name, wilaya)
+        changedName(importText(R.string.import_col_commune), existing.commune_name, commune)
+        changed(importText(R.string.import_col_address), existing.address, values.address)
+        changed(importText(R.string.import_col_note), existing.note, values.note)
         return if (changes.isEmpty()) RowOutcome.Unchanged(existing.id) else RowOutcome.UpdateClient(existing.id, values, changes)
     }
 
@@ -255,7 +260,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
 
     private fun noHeader(sheet: ImportSheet, found: XlsxSheet) = PlannedRow(
         sheet, found.rows.firstOrNull()?.number ?: 1, sheet.title,
-        RowOutcome.Refused("La première ligne doit être l'en-tête, avec au moins une colonne « Nom »."),
+        RowOutcome.Refused(importText(R.string.import_no_header)),
     )
 
     /** The headers of a sheet, keyed as [ImportText.headerKey] makes them, and the rows under them. */
@@ -293,7 +298,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         fun quantity(field: String): Double? = number(field)?.let { BigDecimal.valueOf(it).setScale(3, java.math.RoundingMode.HALF_UP).toDouble() }
 
         fun int(field: String): Int? = number(field)?.let {
-            if (it != kotlin.math.floor(it) || it > Int.MAX_VALUE || it < Int.MIN_VALUE) throw Invalid("« ${text(field)} » n'est pas un nombre entier.")
+            if (it != kotlin.math.floor(it) || it > Int.MAX_VALUE || it < Int.MIN_VALUE) throw Invalid(importText(R.string.import_not_whole, text(field) ?: ""))
             it.toInt()
         }
 
@@ -305,15 +310,14 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
                 when (val reading = ImportNumber.read(typed)) {
                     is ImportNumber.Reading.Value -> reading.value
                     ImportNumber.Reading.Ambiguous -> throw Invalid(
-                        "« $typed » peut se lire de deux façons (décimales ou milliers) : " +
-                            "donnez à la cellule le format Nombre, ou écrivez-le sans séparateur de milliers."
+                        importText(R.string.import_ambiguous_number, typed)
                     )
-                    ImportNumber.Reading.NotANumber -> throw Invalid("« $typed » n'est pas un nombre.")
+                    ImportNumber.Reading.NotANumber -> throw Invalid(importText(R.string.import_not_a_number, typed))
                 }
             }
-            is XlsxValue.Date -> throw Invalid("Une date se trouve là où un nombre est attendu.")
-            is XlsxValue.Bool -> throw Invalid("Oui/Non se trouve là où un nombre est attendu.")
-            is XlsxValue.Error -> throw Invalid("La cellule contient une erreur de formule (${v.code}).")
+            is XlsxValue.Date -> throw Invalid(importText(R.string.import_date_for_number))
+            is XlsxValue.Bool -> throw Invalid(importText(R.string.import_bool_for_number))
+            is XlsxValue.Error -> throw Invalid(importText(R.string.import_formula_error, v.code))
         }
 
         fun date(field: String): LocalDate? = when (val v = value(field)) {
@@ -321,11 +325,11 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
             is XlsxValue.Date -> v.moment.toLocalDate()
             is XlsxValue.Text -> v.value.trim().takeIf { it.isNotEmpty() }?.let { typed ->
                 DATE_FORMATS.firstNotNullOfOrNull { format -> try { LocalDate.parse(typed, format) } catch (e: DateTimeParseException) { null } }
-                    ?: throw Invalid("« $typed » n'est pas une date (jj/mm/aaaa).")
+                    ?: throw Invalid(importText(R.string.import_not_a_date, typed))
             }
-            is XlsxValue.Number -> throw Invalid("« ${v.plain} » n'est pas une date : donnez à la cellule le format Date.")
-            is XlsxValue.Bool -> throw Invalid("Oui/Non se trouve là où une date est attendue.")
-            is XlsxValue.Error -> throw Invalid("La cellule contient une erreur de formule (${v.code}).")
+            is XlsxValue.Number -> throw Invalid(importText(R.string.import_number_for_date, v.plain))
+            is XlsxValue.Bool -> throw Invalid(importText(R.string.import_bool_for_date))
+            is XlsxValue.Error -> throw Invalid(importText(R.string.import_formula_error, v.code))
         }
     }
 
@@ -385,8 +389,8 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
 
     companion object {
         /** Header keys to field keys: the export's headers, and the ways a person might shorten them. */
-        const val NEGATIVE_OPENING_STOCK =
-            "Le stock négatif est désactivé (Paramètres → Autoriser le stock négatif) : un nouveau produit ne peut pas commencer sous zéro."
+        val NEGATIVE_OPENING_STOCK: String
+            get() = importText(R.string.import_negative_off)
 
         private val PRODUCT_HEADERS: Map<String, String> = mapOf(
             "nom" to "nom", "produit" to "nom", "designation" to "nom",
@@ -429,7 +433,7 @@ class ImportPlanner(private val snapshot: ImportSnapshot, private val geo: Impor
         private fun XlsxValue.asText(): String? = when (this) {
             is XlsxValue.Text -> value
             is XlsxValue.Number -> plain
-            is XlsxValue.Bool -> if (value) "Oui" else "Non"
+            is XlsxValue.Bool -> importText(if (value) R.string.import_yes else R.string.import_no)
             is XlsxValue.Date -> moment.toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/uuuu"))
             is XlsxValue.Error -> null
         }

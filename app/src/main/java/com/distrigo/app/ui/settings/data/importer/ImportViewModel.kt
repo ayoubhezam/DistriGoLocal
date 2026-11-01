@@ -24,10 +24,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.distrigo.app.data.importer.importText
 import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.io.IOException
 import javax.inject.Inject
+import com.distrigo.app.R
 
 sealed class ImportState {
     /** Waiting for a file to be picked. */
@@ -52,7 +54,7 @@ class ImportViewModel @Inject constructor(
     /** Reads the picked file and shows what importing its [sheet] would do. */
     fun inspect(uri: Uri, sheet: ImportSheet) {
         if (_state.value is ImportState.Working) return
-        _state.value = ImportState.Working("Lecture du fichier…")
+        _state.value = ImportState.Working(importText(R.string.import_reading))
         viewModelScope.launch {
             _state.value = try {
                 val name = displayName(uri)
@@ -67,10 +69,10 @@ class ImportViewModel @Inject constructor(
                 ImportState.Failed(e.message!!)
             } catch (e: IOException) {
                 Log.w(TAG, "file not opened", e)
-                ImportState.Failed("Impossible d'ouvrir ce fichier. Choisissez-le à nouveau.")
+                ImportState.Failed(importText(R.string.import_cannot_open))
             } catch (e: SecurityException) {
                 Log.w(TAG, "file not opened", e)
-                ImportState.Failed("Impossible d'ouvrir ce fichier. Choisissez-le à nouveau.")
+                ImportState.Failed(importText(R.string.import_cannot_open))
             }
         }
     }
@@ -78,7 +80,7 @@ class ImportViewModel @Inject constructor(
     /** Applies the plan the screen shows, after a safety backup. */
     fun apply() {
         val preview = _state.value as? ImportState.Preview ?: return
-        _state.value = ImportState.Working("Copie de sécurité, puis import…")
+        _state.value = ImportState.Working(importText(R.string.import_working))
         viewModelScope.launch {
             _state.value = try {
                 ImportState.Done(preview.fileName, importer.apply(preview.workbook, preview.plan, preview.sheet))
@@ -86,7 +88,7 @@ class ImportViewModel @Inject constructor(
                 Log.w(TAG, "no safety backup, so no import", e)
                 ImportState.Failed(BackupMessages.safetyBackupFailed(e.reason))
             } catch (e: ImportStaleException) {
-                ImportState.Failed("Les données ont changé depuis l'aperçu ; rien n'a été importé. Choisissez le fichier à nouveau pour un aperçu à jour.")
+                ImportState.Failed(importText(R.string.import_stale))
             }
         }
     }
@@ -101,13 +103,13 @@ class ImportViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     (context.contentResolver.openOutputStream(uri) ?: throw FileNotFoundException(uri.toString())).use { ImportTemplate.write(sheet, it) }
                 }
-                "Modèle enregistré : remplissez-le sur l'ordinateur, puis importez-le ici."
+                importText(R.string.import_template_saved)
             } catch (e: IOException) {
                 Log.w(TAG, "template not written", e)
-                "Impossible d'enregistrer le modèle à cet endroit. Choisissez un autre dossier."
+                importText(R.string.import_template_failed)
             } catch (e: SecurityException) {
                 Log.w(TAG, "template not written", e)
-                "Impossible d'enregistrer le modèle à cet endroit. Choisissez un autre dossier."
+                importText(R.string.import_template_failed)
             }
             onDone(message)
         }
@@ -124,15 +126,15 @@ class ImportViewModel @Inject constructor(
         }
     } catch (e: Exception) {
         null
-    } ?: uri.lastPathSegment ?: "fichier"
+    } ?: uri.lastPathSegment ?: importText(R.string.import_file)
 
     private fun message(reason: XlsxReadException.Reason): String = when (reason) {
         XlsxReadException.Reason.NOT_A_WORKBOOK ->
-            "Ce fichier n'est pas un classeur Excel (.xlsx). Exportez les produits ou les clients depuis DistriGo pour obtenir le modèle."
+            importText(R.string.import_not_xlsx)
         XlsxReadException.Reason.LEGACY_OR_PROTECTED ->
-            "Ce fichier est un ancien format Excel (.xls) ou est protégé par un mot de passe. Enregistrez-le en .xlsx, sans mot de passe."
-        XlsxReadException.Reason.TOO_LARGE -> "Ce fichier est trop volumineux pour être importé sur le téléphone."
-        XlsxReadException.Reason.DAMAGED -> "Ce fichier est endommagé ou incomplet. Enregistrez-le à nouveau depuis Excel, puis réessayez."
+            importText(R.string.import_old_or_locked)
+        XlsxReadException.Reason.TOO_LARGE -> importText(R.string.import_too_large)
+        XlsxReadException.Reason.DAMAGED -> importText(R.string.import_damaged)
     }
 
     private companion object {

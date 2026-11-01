@@ -41,7 +41,9 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.data.lists.ListWords
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Produits or Clients → Importer: pick a workbook, see what importing its [sheet] would do, row by row, then confirm.
@@ -64,7 +66,7 @@ fun ImportScreen(sheet: ImportSheet, onBack: () -> Unit, viewModel: ImportViewMo
     BackHandler { if (!working) onBack() }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Importer des ${sheet.plural}", leading = DsTopBarLeading.Back { if (!working) onBack() })
+        DsTopAppBar(title = stringResource(if (sheet == ImportSheet.PRODUITS) R.string.import_title_products else R.string.import_title_clients), leading = DsTopBarLeading.Back { if (!working) onBack() })
 
         when (val current = state) {
             ImportState.Idle -> Intro(sheet, onPick = pick, onTemplate = { templateLauncher.launch(ImportTemplate.fileName(sheet)) })
@@ -86,32 +88,26 @@ private const val XLSX = "application/vnd.openxmlformats-officedocument.spreadsh
 
 @Composable
 private fun Intro(sheet: ImportSheet, onPick: () -> Unit, onTemplate: () -> Unit) {
-    val matches = if (sheet == ImportSheet.PRODUITS) "le nom (ou le code-barres)" else "le nom"
+    val products = sheet == ImportSheet.PRODUITS
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.lg)
     ) {
         Panel {
-            Text("Ajoute ou met à jour des ${sheet.plural} depuis un classeur Excel (.xlsx), feuille « ${sheet.title} ».", fontSize = DsTextSize.body, color = DsColors.TextPrimary)
+            Text(stringResource(if (products) R.string.import_intro_products else R.string.import_intro_clients), fontSize = DsTextSize.body, color = DsColors.TextPrimary)
             Text(
-                "Partez du modèle vide ci-dessous, ou exportez les ${sheet.plural} pour modifier ceux que vous avez déjà. " +
-                    "Une ligne dont $matches existe déjà met la fiche à jour ; les autres lignes créent des fiches. " +
-                    "Une cellule vide ne change rien, donc un fichier avec seulement les colonnes à modifier suffit.",
+                stringResource(if (products) R.string.import_how_products else R.string.import_how_clients),
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
             Text(
-                "Vous verrez tout ce que l'import ferait avant de confirmer, et une copie de sécurité de vos données est faite juste avant.",
+                stringResource(R.string.import_preview_first),
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
         }
         Panel {
-            Text("Ce que l'import ne fait pas", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.import_does_not), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             Text(
-                (if (sheet == ImportSheet.PRODUITS)
-                    "• Le stock d'un produit existant ne vient jamais du fichier : il se corrige par un inventaire ou un ajustement. " +
-                        "Un nouveau produit prend son stock initial, sous zéro seulement si « Autoriser le stock négatif » est activé.\n"
-                else "• Le solde d'un client vient de ses ventes et de ses paiements.\n") +
-                    "• Rien n'est supprimé : une fiche absente du fichier reste telle quelle.",
+                stringResource(if (products) R.string.import_does_not_products else R.string.import_does_not_clients),
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
         }
@@ -123,17 +119,20 @@ private fun Intro(sheet: ImportSheet, onPick: () -> Unit, onTemplate: () -> Unit
         ) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Choisir un fichier Excel", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.import_pick_excel), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
         OutlinedButton(onClick = onTemplate, modifier = Modifier.fillMaxWidth().height(52.dp), shape = DsShapes.medium) {
             Icon(Icons.Default.FileDownload, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Télécharger un modèle vide", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text(stringResource(R.string.import_template), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }
 
-private enum class Filter(val label: String) { ALL("Tout"), NEW("Nouveaux"), UPDATED("Modifiés"), REFUSED("Refusés"), UNCHANGED("Inchangés") }
+private enum class Filter(@androidx.annotation.StringRes val label: Int) {
+    ALL(R.string.common_source_all), NEW(R.string.import_filter_new), UPDATED(R.string.import_filter_updated),
+    REFUSED(R.string.import_filter_refused), UNCHANGED(R.string.import_filter_unchanged),
+}
 
 @Composable
 private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfirm: () -> Unit) {
@@ -162,14 +161,14 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
                 Panel {
                     Text(preview.fileName, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                        Count(plan.creates, "nouveau", "nouveaux", DsColors.Success, DsColors.SuccessLight)
-                        Count(plan.updates, "modifié", "modifiés", DsColors.Primary, DsColors.PrimaryLight)
-                        Count(plan.unchanged, "inchangé", "inchangés", DsColors.TextSecondary, DsColors.SurfaceSunken)
-                        Count(plan.refused, "refusé", "refusés", DsColors.Danger, DsColors.DangerLight)
+                        Count(plan.creates, R.plurals.import_n_new, DsColors.Success, DsColors.SuccessLight)
+                        Count(plan.updates, R.plurals.import_n_updated, DsColors.Primary, DsColors.PrimaryLight)
+                        Count(plan.unchanged, R.plurals.import_n_unchanged, DsColors.TextSecondary, DsColors.SurfaceSunken)
+                        Count(plan.refused, R.plurals.import_n_refused, DsColors.Danger, DsColors.DangerLight)
                     }
                     creations(plan.toCreate)?.let { Note(it, DsColors.Success) }
                     plan.notes.forEach { Note(it, DsColors.TextSecondary) }
-                    if (!plan.hasWork) Note("Rien à importer : aucune ligne ne crée ni ne modifie de fiche.", DsColors.Warning)
+                    if (!plan.hasWork) Note(stringResource(R.string.import_nothing), DsColors.Warning)
                 }
             }
             item {
@@ -178,7 +177,7 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
                         FilterChip(
                             selected = filter == choice,
                             onClick = { filter = choice },
-                            label = { Text("${choice.label} (${counts[choice]})") },
+                            label = { Text("${stringResource(choice.label)} (${counts[choice]})") },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DsColors.PrimaryLight, selectedLabelColor = DsColors.Primary)
                         )
                     }
@@ -198,7 +197,7 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
                 shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
             ) {
-                Text("Importer (${plan.creates + plan.updates})", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.import_go, plan.creates + plan.updates), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -207,10 +206,10 @@ private fun Preview(preview: ImportState.Preview, onCancel: () -> Unit, onConfir
 @Composable
 private fun RowCard(row: PlannedRow) {
     val (label, tint, background) = when (row.outcome) {
-        is RowOutcome.CreateProduct, is RowOutcome.CreateClient -> Triple("Nouveau", DsColors.Success, DsColors.SuccessLight)
-        is RowOutcome.UpdateProduct, is RowOutcome.UpdateClient -> Triple("Modifié", DsColors.Primary, DsColors.PrimaryLight)
-        is RowOutcome.Unchanged -> Triple("Inchangé", DsColors.TextSecondary, DsColors.SurfaceSunken)
-        is RowOutcome.Refused -> Triple("Refusé", DsColors.Danger, DsColors.DangerLight)
+        is RowOutcome.CreateProduct, is RowOutcome.CreateClient -> Triple(stringResource(R.string.import_badge_new), DsColors.Success, DsColors.SuccessLight)
+        is RowOutcome.UpdateProduct, is RowOutcome.UpdateClient -> Triple(stringResource(R.string.import_badge_updated), DsColors.Primary, DsColors.PrimaryLight)
+        is RowOutcome.Unchanged -> Triple(stringResource(R.string.import_badge_unchanged), DsColors.TextSecondary, DsColors.SurfaceSunken)
+        is RowOutcome.Refused -> Triple(stringResource(R.string.import_badge_refused), DsColors.Danger, DsColors.DangerLight)
     }
     Column(
         modifier = Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large).padding(DsSpacing.md),
@@ -220,10 +219,10 @@ private fun RowCard(row: PlannedRow) {
             Text(row.name, Modifier.weight(1f), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Badge(label, tint, background)
         }
-        Text("${row.sheet.singular.replaceFirstChar { it.uppercase() }} · ligne ${row.rowNumber}", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+        Text(stringResource(if (row.sheet == ImportSheet.PRODUITS) R.string.import_row_product else R.string.import_row_client, row.rowNumber), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         when (val outcome = row.outcome) {
-            is RowOutcome.UpdateProduct -> outcome.changes.forEach { Text("${it.label} : ${it.from ?: "—"} → ${it.to}", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
-            is RowOutcome.UpdateClient -> outcome.changes.forEach { Text("${it.label} : ${it.from ?: "—"} → ${it.to}", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
+            is RowOutcome.UpdateProduct -> outcome.changes.forEach { Text(stringResource(R.string.import_change, it.label, it.from ?: "—", it.to ?: "—"), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
+            is RowOutcome.UpdateClient -> outcome.changes.forEach { Text(stringResource(R.string.import_change, it.label, it.from ?: "—", it.to ?: "—"), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
             is RowOutcome.Refused -> Text(outcome.reason, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
             else -> Unit
         }
@@ -236,22 +235,22 @@ private fun Done(done: ImportState.Done, onAnother: () -> Unit, onFinish: () -> 
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DsColors.Success)
-                Text("Import terminé", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.import_done), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             }
             Text(
-                "${done.fileName} : ${plural(done.result.created, "fiche créée", "fiches créées")}, ${plural(done.result.updated, "fiche modifiée", "fiches modifiées")}.",
+                stringResource(R.string.import_done_body, done.fileName, pluralStringResource(R.plurals.import_n_created, done.result.created, done.result.created), pluralStringResource(R.plurals.import_n_modified, done.result.updated, done.result.updated)),
                 fontSize = DsTextSize.body, color = DsColors.TextPrimary
             )
             Text(
-                "Une copie de sécurité de vos données d'avant l'import a été gardée : Paramètres › Sauvegarde et restauration › Copies de sécurité. Restaurez-la pour annuler l'import.",
+                stringResource(R.string.import_safety_kept),
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary
             )
         }
         Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
-            Text("Terminer", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.import_finish), fontWeight = FontWeight.SemiBold)
         }
         OutlinedButton(onClick = onAnother, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium) {
-            Text("Importer un autre fichier", color = DsColors.Primary)
+            Text(stringResource(R.string.import_another), color = DsColors.Primary)
         }
     }
 }
@@ -262,12 +261,12 @@ private fun Failed(message: String, onPick: () -> Unit) {
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger)
-                Text("Import impossible", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                Text(stringResource(R.string.import_impossible), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
             }
             Text(message, fontSize = DsTextSize.body, color = DsColors.TextSecondary)
         }
         Button(onClick = onPick, modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium, colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)) {
-            Text("Choisir un autre fichier", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.import_pick_another), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -284,9 +283,9 @@ private fun Panel(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun Count(count: Int, singular: String, plural: String, tint: Color, background: Color) {
+private fun Count(count: Int, @androidx.annotation.PluralsRes words: Int, tint: Color, background: Color) {
     if (count == 0) return
-    Badge("$count ${if (count == 1) singular else plural}", tint, background)
+    Badge(pluralStringResource(words, count, count), tint, background)
 }
 
 @Composable
@@ -305,18 +304,18 @@ private fun Note(text: String, tint: Color) {
     }
 }
 
-private fun plural(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
 
 /** "Seront créés : 2 catégories (Eaux, Jus), 1 marque (Ifri)", or null when nothing is. */
 private fun creations(toCreate: LookupsToCreate): String? {
     if (toCreate.isEmpty) return null
-    fun part(names: List<String>, one: String, many: String) = names.takeIf { it.isNotEmpty() }?.let { "${plural(it.size, one, many)} (${it.joinToString(", ")})" }
+    fun part(names: List<String>, @androidx.annotation.PluralsRes words: Int) =
+        names.takeIf { it.isNotEmpty() }?.let { "${ListWords.count(words, it.size)} (${it.joinToString(", ")})" }
     val parts = listOfNotNull(
-        part(toCreate.categories, "catégorie", "catégories"),
-        part(toCreate.sousCategories.values.flatten(), "sous-catégorie", "sous-catégories"),
-        part(toCreate.marques, "marque", "marques"),
-        part(toCreate.suppliers, "fournisseur", "fournisseurs"),
-        part(toCreate.secteurs.values.flatten(), "secteur", "secteurs"),
+        part(toCreate.categories, R.plurals.lists_n_categories),
+        part(toCreate.sousCategories.values.flatten(), R.plurals.lists_n_subcategories),
+        part(toCreate.marques, R.plurals.lists_n_brands),
+        part(toCreate.suppliers, R.plurals.suppliers_count),
+        part(toCreate.secteurs.values.flatten(), R.plurals.lists_n_secteurs),
     )
-    return "Seront créés : " + parts.joinToString(", ") + "."
+    return ListWords.text(R.string.import_will_create, ListWords.and(parts))
 }

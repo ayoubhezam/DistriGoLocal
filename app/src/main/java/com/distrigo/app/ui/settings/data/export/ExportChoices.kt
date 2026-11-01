@@ -6,6 +6,7 @@ import com.distrigo.app.data.export.ExportPeriod
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /** The periods offered, most used first. */
 enum class PeriodPreset(@androidx.annotation.StringRes val label: Int) {
@@ -33,15 +34,18 @@ object ExportChoices {
     }
 
     /** `du 01/09/2026 au 17/09/2026`, `depuis le 01/09/2026`, `jusqu'au 17/09/2026`, `de toutes les dates`: what follows « Exporte les données ». */
+    private fun text(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+        com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id, args.toList()))
+
     fun describe(period: ExportPeriod): String {
         val from = period.from
         val to = period.to
         return when {
-            from != null && to != null && from == to -> "du ${DAY.format(from)}"
-            from != null && to != null -> "du ${DAY.format(from)} au ${DAY.format(to)}"
-            from != null -> "depuis le ${DAY.format(from)}"
-            to != null -> "jusqu'au ${DAY.format(to)}"
-            else -> "de toutes les dates"
+            from != null && to != null && from == to -> text(R.string.export_period_day, DAY.format(from))
+            from != null && to != null -> text(R.string.export_period_range, DAY.format(from), DAY.format(to))
+            from != null -> text(R.string.export_period_since, DAY.format(from))
+            to != null -> text(R.string.export_period_until, DAY.format(to))
+            else -> text(R.string.export_period_all)
         }
     }
 

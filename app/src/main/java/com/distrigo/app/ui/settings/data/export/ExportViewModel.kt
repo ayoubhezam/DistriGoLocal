@@ -27,6 +27,7 @@ import java.io.IOException
 import java.io.OutputStream
 import java.time.LocalDate
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** What the user has chosen, and what the screen is doing with it. */
 data class ExportUiState(
@@ -88,7 +89,7 @@ class ExportViewModel @Inject constructor(
             Log.w(TAG, "export not saved", e)
             deleteQuietly(destination)
             ExportResult.Failed(
-                "Impossible d'enregistrer l'export à cet emplacement. Vérifiez l'espace disponible ou choisissez un autre emplacement."
+                com.distrigo.app.ui.settings.settingsText(R.string.export_write_failed)
             )
         }
     }
@@ -108,7 +109,7 @@ class ExportViewModel @Inject constructor(
         } catch (e: IOException) {
             Log.w(TAG, "export not written for sharing", e)
             dir.deleteRecursively()
-            ExportResult.Failed("Impossible de préparer l'export. Vérifiez l'espace disponible sur le téléphone, puis réessayez.")
+            ExportResult.Failed(com.distrigo.app.ui.settings.settingsText(R.string.export_prepare_failed))
         }
     }
 
@@ -127,7 +128,7 @@ class ExportViewModel @Inject constructor(
                 withContext(Dispatchers.IO) { block(current) }
             } catch (e: Exception) {
                 Log.e(TAG, "export failed", e)
-                ExportResult.Failed("Une erreur inattendue a empêché l'export.")
+                ExportResult.Failed(com.distrigo.app.ui.settings.settingsText(R.string.export_unexpected))
             }
             _state.update { it.copy(working = false, result = result) }
         }
