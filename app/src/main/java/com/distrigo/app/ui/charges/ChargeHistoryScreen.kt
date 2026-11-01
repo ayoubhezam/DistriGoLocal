@@ -91,11 +91,14 @@ import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.core.text.UiText
 
 /** The periods the history can be narrowed to; null is all time. */
-private val PERIODS: List<Pair<String, ReportPeriod?>> = listOf(
-    "Tout" to null, "Ce mois" to ReportPeriod.CE_MOIS, "Mois dernier" to ReportPeriod.MOIS_DERNIER, "Cette année" to ReportPeriod.CETTE_ANNEE,
+private val PERIODS: List<Pair<Int, ReportPeriod?>> = listOf(
+    R.string.common_source_all to null, R.string.common_period_this_month to ReportPeriod.CE_MOIS, R.string.common_period_last_month to ReportPeriod.MOIS_DERNIER, R.string.common_period_this_year to ReportPeriod.CETTE_ANNEE,
 )
 
 /** What the history is narrowed by: a type, one of its sub-types, a period — null for all. */
@@ -155,7 +158,7 @@ class ChargeHistoryViewModel @Inject constructor(private val repository: ChargeR
                 val id = repository.addCharge(input.subtypeId, input.montant, chargeInstant(input.date), input.fournisseur, input.note)
                 _justAdded.value = id to input.montant
                 null
-            } catch (e: Exception) { userMessage(e, "Enregistrement impossible") }
+            } catch (e: Exception) { userMessage(e, com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.charges_save_failed))) }
             onDone(error)
         }
     }
@@ -206,19 +209,19 @@ fun ChargeHistoryScreen(
 
     LaunchedEffect(justAdded) {
         val (_, amount) = justAdded ?: return@LaunchedEffect
-        val result = snackbar.showSnackbar("Dépense de ${money.da(amount)} enregistrée", actionLabel = "Annuler", duration = SnackbarDuration.Long)
+        val result = snackbar.showSnackbar(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.charges_saved_snackbar, money.da(amount))), actionLabel = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_action_cancel)), duration = SnackbarDuration.Long)
         if (result == SnackbarResult.ActionPerformed) viewModel.undoAdd() else viewModel.dismissAdded()
     }
 
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "Historique des charges",
+            title = stringResource(R.string.charges_history_title),
             licenseBanner = true,
             leading = onBack?.let { DsTopBarLeading.Back(it) } ?: DsTopBarLeading.None,
         ) {
             DsTopBarAddButton(
-                contentDescription = "Nouvelle charge",
+                contentDescription = stringResource(R.string.charges_new),
                 onClick            = { license.runOrExplain { saveError = ""; adding = true } },
                 modifier           = Modifier.padding(end = DsSpacing.md)
             )
@@ -226,19 +229,19 @@ fun ChargeHistoryScreen(
         Column(Modifier.fillMaxWidth().background(DsColors.Surface).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(
                 value = search, onValueChange = { viewModel.search.value = it },
-                placeholder = "Rechercher une charge",
+                placeholder = stringResource(R.string.charges_search),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)
             )
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
                 val list = charges
                 Text(
-                    if (list == null) "…" else "${list.size} charge(s)",
+                    if (list == null) "…" else pluralStringResource(R.plurals.charges_count, list.size, list.size),
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.weight(1f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 com.distrigo.app.ui.common.Step2Chip(
-                    icon = Icons.Default.FilterList, label = "Filtres",
+                    icon = Icons.Default.FilterList, label = stringResource(R.string.common_label_filters),
                     container = DsColors.Surface,
                     content = if (filters.isActive) DsColors.Primary else DsColors.TextSecondary,
                     dot = filters.isActive, onClick = { sheet = true }
@@ -253,7 +256,7 @@ fun ChargeHistoryScreen(
         when {
             list == null -> Unit
             list.isEmpty() -> Text(
-                if (search.isBlank() && !filters.isActive) "Aucune charge enregistrée. « + » pour en ajouter une." else "Aucune charge ne correspond.",
+                stringResource(if (search.isBlank() && !filters.isActive) R.string.charges_empty else R.string.charges_no_match),
                 fontSize = DsTextSize.body, color = DsColors.TextSecondary,
                 modifier = Modifier.fillMaxWidth().padding(DsSpacing.xl)
             )
@@ -283,7 +286,7 @@ fun ChargeHistoryScreen(
 
     if (adding) {
         ChargeDialog(
-            title = "Nouvelle charge", types = types, subTypes = subTypes, initial = null,
+            title = stringResource(R.string.charges_new), types = types, subTypes = subTypes, initial = null,
             isSaving = saving, error = saveError,
             onSave = { input ->
                 saving = true; saveError = ""
@@ -307,7 +310,7 @@ fun NewChargeDialog(onDismiss: () -> Unit, viewModel: ChargeHistoryViewModel = h
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf("") }
     ChargeDialog(
-        title = "Nouvelle charge", types = types, subTypes = subTypes, initial = null,
+        title = stringResource(R.string.charges_new), types = types, subTypes = subTypes, initial = null,
         isSaving = saving, error = saveError,
         onSave = { input ->
             saving = true; saveError = ""
@@ -337,9 +340,9 @@ private fun ChargeRow(charge: ChargeHistoryRow, amount: String, onClick: () -> U
         }
         Spacer(Modifier.width(DsSpacing.md))
         Column(Modifier.weight(1f)) {
-            Text(charge.subtype_name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
+            Text(BuiltInNames.chargeType(charge.subtype_name), fontSize = DsTextSize.body, fontWeight = FontWeight.Medium,
                 color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(charge.type_name, fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+            Text(BuiltInNames.chargeType(charge.type_name), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(DsSpacing.sm))
@@ -367,28 +370,28 @@ private fun ChargeFiltersSheet(
                 Text(stringResource(R.string.common_label_filters), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f))
                 TextButton(onClick = { draft = ChargeHistoryFilters() }) { Text(stringResource(R.string.common_action_reset)) }
             }
-            Text("Type", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.charges_type), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                Chip("Tous", draft.typeId == null) { draft = draft.copy(typeId = null, subtypeId = null) }
-                types.forEach { t -> Chip(t.name, draft.typeId == t.id) { draft = draft.copy(typeId = t.id, subtypeId = null) } }
+                Chip(stringResource(R.string.common_filter_all), draft.typeId == null) { draft = draft.copy(typeId = null, subtypeId = null) }
+                types.forEach { t -> Chip(BuiltInNames.chargeType(t.name), draft.typeId == t.id) { draft = draft.copy(typeId = t.id, subtypeId = null) } }
             }
             // A type's sub-types, once a type is chosen.
             draft.typeId?.let { typeId ->
-                Text("Sous-type", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.charges_subtype), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    Chip("Tous", draft.subtypeId == null) { draft = draft.copy(subtypeId = null) }
-                    subTypes.filter { it.type_id == typeId }.forEach { s -> Chip(s.name, draft.subtypeId == s.id) { draft = draft.copy(subtypeId = s.id) } }
+                    Chip(stringResource(R.string.common_filter_all), draft.subtypeId == null) { draft = draft.copy(subtypeId = null) }
+                    subTypes.filter { it.type_id == typeId }.forEach { s -> Chip(BuiltInNames.chargeType(s.name), draft.subtypeId == s.id) { draft = draft.copy(subtypeId = s.id) } }
                 }
             }
             Text(stringResource(R.string.common_label_period), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                PERIODS.forEach { (label, p) -> Chip(label, draft.period == p) { draft = draft.copy(period = p) } }
+                PERIODS.forEach { (label, p) -> Chip(stringResource(label), draft.period == p) { draft = draft.copy(period = p) } }
             }
             Button(
                 onClick = { onApply(draft) },
                 modifier = Modifier.fillMaxWidth().height(48.dp), shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
-            ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_apply), fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.md))
         }
     }

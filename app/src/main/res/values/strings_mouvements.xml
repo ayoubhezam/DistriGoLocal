@@ -1,0 +1,38 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="mouvements_title">Mouvements</string>
+    <string name="mouvements_detail_title">Détail du mouvement</string>
+    <string name="mouvements_stock_now">Stock actuel : %1$s</string>
+    <string name="mouvements_in">Entrées</string>
+    <string name="mouvements_out">Sorties</string>
+    <string name="mouvements_none">Aucun mouvement</string>
+    <string name="mouvements_source_inventory">Inventaire session #%1$s</string>
+    <string name="mouvements_source_initial_stock">Stock initial</string>
+    <string name="mouvements_source_manual_adjustment">Ajustement manuel</string>
+    <string name="mouvements_in_one">Entrée</string>
+    <string name="mouvements_out_one">Sortie</string>
+    <string name="mouvements_units">Pièces</string>
+    <string name="mouvements_source">Source</string>
+    <string name="mouvements_source_number">N° de source</string>
+    <string name="mouvements_unit_price">Prix unitaire</string>
+    <string name="mouvements_notes">Notes</string>
+    <string name="mouvements_note_not_counted">Non inventorié, mis à zéro</string>
+    <string name="mouvements_open_sale">Voir la vente</string>
+    <string name="mouvements_open_bon">Voir le bon d\'achat</string>
+    <string name="mouvements_open_perte">Voir la perte</string>
+    <string name="mouvements_open_inventory">Voir l\'inventaire</string>
+    <string name="mouvements_open_client_returns">Voir les retours du client</string>
+    <string name="mouvements_open_supplier_returns">Voir les retours du fournisseur</string>
+    <string name="mouvements_period_backwards">La date « Du » est après la date « Au ».</string>
+    <string name="mouvements_direction">Sens</string>
+    <string name="mouvements_type">Type de mouvement</string>
+    <string name="mouvements_place">Emplacement</string>
+    <string name="mouvements_with">Avec</string>
+    <string name="mouvements_no_client">Aucun client pour ce produit</string>
+    <string name="mouvements_no_supplier">Aucun fournisseur pour ce produit</string>
+    <string name="mouvements_period_invalid">Période invalide</string>
+    <string name="mouvements_show_all">Afficher les mouvements</string>
+    <plurals name="mouvements_show_count">
+        <item quantity="one">Afficher %d mouvement</item>
+        <item quantity="other">Afficher %d mouvements</item>
+    </plurals>
+</resources>

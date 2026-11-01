@@ -1,0 +1,42 @@
+<resources>
+    <string name="mouvements_title">الحركات</string>
+    <string name="mouvements_detail_title">تفاصيل الحركة</string>
+    <string name="mouvements_stock_now">المخزون الحالي: \u2068%1$s\u2069</string>
+    <string name="mouvements_in">دخول</string>
+    <string name="mouvements_out">خروج</string>
+    <string name="mouvements_none">لا توجد حركات</string>
+    <string name="mouvements_source_inventory">جلسة الجرد #\u2068%1$s\u2069</string>
+    <string name="mouvements_source_initial_stock">المخزون الأولي</string>
+    <string name="mouvements_source_manual_adjustment">تسوية يدوية</string>
+    <string name="mouvements_in_one">دخول</string>
+    <string name="mouvements_out_one">خروج</string>
+    <string name="mouvements_units">قطع</string>
+    <string name="mouvements_source">المصدر</string>
+    <string name="mouvements_source_number">رقم المصدر</string>
+    <string name="mouvements_unit_price">سعر الوحدة</string>
+    <string name="mouvements_notes">ملاحظات</string>
+    <string name="mouvements_note_not_counted">لم يُجرَد، صُفِّر المخزون</string>
+    <string name="mouvements_open_sale">عرض البيع</string>
+    <string name="mouvements_open_bon">عرض وصل الشراء</string>
+    <string name="mouvements_open_perte">عرض الخسارة</string>
+    <string name="mouvements_open_inventory">عرض الجرد</string>
+    <string name="mouvements_open_client_returns">عرض مرتجعات الزبون</string>
+    <string name="mouvements_open_supplier_returns">عرض المرتجعات إلى المورد</string>
+    <string name="mouvements_period_backwards">تاريخ « من » بعد تاريخ « إلى ».</string>
+    <string name="mouvements_direction">الاتجاه</string>
+    <string name="mouvements_type">نوع الحركة</string>
+    <string name="mouvements_place">المكان</string>
+    <string name="mouvements_with">مع</string>
+    <string name="mouvements_no_client">لا يوجد زبون لهذا المنتج</string>
+    <string name="mouvements_no_supplier">لا يوجد مورد لهذا المنتج</string>
+    <string name="mouvements_period_invalid">فترة غير صالحة</string>
+    <string name="mouvements_show_all">عرض الحركات</string>
+    <plurals name="mouvements_show_count">
+        <item quantity="zero">عرض %d حركة</item>
+        <item quantity="one">عرض حركة واحدة</item>
+        <item quantity="two">عرض حركتين</item>
+        <item quantity="few">عرض %d حركات</item>
+        <item quantity="many">عرض %d حركة</item>
+        <item quantity="other">عرض %d حركة</item>
+    </plurals>
+</resources>

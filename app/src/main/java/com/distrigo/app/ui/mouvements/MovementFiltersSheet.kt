@@ -30,6 +30,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * What the Mouvements list is narrowed by, as a bottom sheet — the same shape as the price history's,
@@ -94,7 +95,7 @@ fun MovementFiltersSheet(
         if (partyPicker && party != null) {
             val options = if (party == MovementParty.CLIENT) clients else suppliers
             SearchableSelectList(
-                title       = if (party == MovementParty.CLIENT) "Sélectionner un client" else "Sélectionner un fournisseur",
+                title       = stringResource(if (party == MovementParty.CLIENT) R.string.common_select_client else R.string.purchases_select_supplier),
                 items       = options,
                 itemLabel   = { it.name },
                 itemKey     = { it.id },
@@ -121,28 +122,28 @@ fun MovementFiltersSheet(
             }
 
             // ── Période ──
-            FilterGroup("Période") {
-                DayField("Du", draft.dateFrom, Modifier.weight(1f)) { showFrom = true }
-                DayField("Au", draft.dateTo, Modifier.weight(1f)) { showTo = true }
+            FilterGroup(stringResource(R.string.common_label_period)) {
+                DayField(stringResource(R.string.common_date_from), draft.dateFrom, Modifier.weight(1f)) { showFrom = true }
+                DayField(stringResource(R.string.common_date_to), draft.dateTo, Modifier.weight(1f)) { showTo = true }
             }
             if (draft.periodIsBackwards) {
                 Text(
-                    "La date « Du » est après la date « Au ».",
+                    stringResource(R.string.mouvements_period_backwards),
                     fontSize = DsTextSize.caption, color = DsColors.Danger,
                     modifier = Modifier.padding(top = DsSpacing.xs)
                 )
             }
 
             // ── Sens ──
-            FilterGroupWrapped("Sens") {
-                FilterPill("Tous", draft.direction == null) { draft = draft.copy(direction = null) }
-                FilterPill("Entrées", draft.direction == "entree") { draft = draft.copy(direction = "entree") }
-                FilterPill("Sorties", draft.direction == "sortie") { draft = draft.copy(direction = "sortie") }
+            FilterGroupWrapped(stringResource(R.string.mouvements_direction)) {
+                FilterPill(stringResource(R.string.common_filter_all), draft.direction == null) { draft = draft.copy(direction = null) }
+                FilterPill(stringResource(R.string.mouvements_in), draft.direction == "entree") { draft = draft.copy(direction = "entree") }
+                FilterPill(stringResource(R.string.mouvements_out), draft.direction == "sortie") { draft = draft.copy(direction = "sortie") }
             }
 
             // ── Type de mouvement ──
-            FilterGroupWrapped("Type de mouvement") {
-                FilterPill("Tous", draft.types.isEmpty()) { draft = draft.copy(types = emptySet()) }
+            FilterGroupWrapped(stringResource(R.string.mouvements_type)) {
+                FilterPill(stringResource(R.string.common_filter_all), draft.types.isEmpty()) { draft = draft.copy(types = emptySet()) }
                 MovementType.entries.forEach { type ->
                     FilterPill(stringResource(type.label), type in draft.types) {
                         // Several kinds at once: a ledger question is usually "achats et retours",
@@ -154,15 +155,15 @@ fun MovementFiltersSheet(
             }
 
             // ── Emplacement ──
-            FilterGroupWrapped("Emplacement") {
-                FilterPill("Tous", draft.emplacement == null) { draft = draft.copy(emplacement = null) }
-                FilterPill("Dépôt", draft.emplacement == "depot") { draft = draft.copy(emplacement = "depot") }
-                FilterPill("Camion", draft.emplacement == "camion") { draft = draft.copy(emplacement = "camion") }
+            FilterGroupWrapped(stringResource(R.string.mouvements_place)) {
+                FilterPill(stringResource(R.string.common_filter_all), draft.emplacement == null) { draft = draft.copy(emplacement = null) }
+                FilterPill(stringResource(R.string.common_source_depot), draft.emplacement == "depot") { draft = draft.copy(emplacement = "depot") }
+                FilterPill(stringResource(R.string.common_source_truck), draft.emplacement == "camion") { draft = draft.copy(emplacement = "camion") }
             }
 
             // ── Avec qui ──
-            FilterGroupWrapped("Avec") {
-                FilterPill("Tous", draft.party == null) { draft = draft.copy(party = null, partyId = null) }
+            FilterGroupWrapped(stringResource(R.string.mouvements_with)) {
+                FilterPill(stringResource(R.string.common_filter_all), draft.party == null) { draft = draft.copy(party = null, partyId = null) }
                 MovementParty.entries.forEach { party ->
                     FilterPill(stringResource(party.label), draft.party == party) {
                         // The chosen party goes with the kind: a client's id means nothing among suppliers.
@@ -174,7 +175,7 @@ fun MovementFiltersSheet(
             draft.party?.let { party ->
                 val options = if (party == MovementParty.CLIENT) clients else suppliers
                 val chosen  = options.firstOrNull { it.id == draft.partyId }
-                val empty   = if (party == MovementParty.CLIENT) "Aucun client pour ce produit" else "Aucun fournisseur pour ce produit"
+                val empty   = stringResource(if (party == MovementParty.CLIENT) R.string.mouvements_no_client else R.string.mouvements_no_supplier)
                 val all   = stringResource(if (party == MovementParty.CLIENT) R.string.common_all_clients else R.string.common_all_suppliers)
                 Box(Modifier.fillMaxWidth().padding(top = DsSpacing.xs)) {
                     FieldBox(
@@ -198,10 +199,10 @@ fun MovementFiltersSheet(
             ) {
                 Text(
                     when {
-                        draft.periodIsBackwards -> "Période invalide"
-                        count == null           -> "Afficher les mouvements"
-                        count == 0              -> "Aucun résultat"
-                        else                    -> "Afficher $count mouvement" + if (count!! > 1) "s" else ""
+                        draft.periodIsBackwards -> stringResource(R.string.mouvements_period_invalid)
+                        count == null           -> stringResource(R.string.mouvements_show_all)
+                        count == 0              -> stringResource(R.string.common_no_result)
+                        else                    -> pluralStringResource(R.plurals.mouvements_show_count, count!!, count!!)
                     },
                     fontWeight = FontWeight.SemiBold
                 )
@@ -256,7 +257,7 @@ private fun DayField(label: String, day: String?, modifier: Modifier = Modifier,
     Column(modifier) {
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = 2.dp))
         FieldBox(
-            text     = day?.let { readableDay(it) } ?: "Choisir",
+            text     = day?.let { readableDay(it) } ?: stringResource(R.string.pertes_choose),
             muted    = day == null,
             enabled  = true,
             trailing = Icons.Default.CalendarMonth,

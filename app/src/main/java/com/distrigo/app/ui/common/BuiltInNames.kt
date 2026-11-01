@@ -51,6 +51,16 @@ object BuiltInNames {
         return written(TYPE_IDS["perte_${type.key}"]) ?: name
     }
 
+    /**
+     * A charge type's or sub-type's [name] where only the name is at hand (a charge row, the type lists): a built-in
+     * one still under the name it was seeded with is shown translated; any other name as written.
+     */
+    fun chargeType(name: String): String {
+        if (!arabic()) return name
+        val seeded = types.values.find { it.key.startsWith("charge_") && it.name == name } ?: return name
+        return written(TYPE_IDS[seeded.key]) ?: name
+    }
+
     /** A retour motif, stored as its French sentence. */
     fun motif(motif: String): String =
         if (!arabic()) motif else written(MOTIF_IDS[motif]) ?: motif

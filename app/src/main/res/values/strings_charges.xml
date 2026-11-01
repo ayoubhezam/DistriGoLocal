@@ -1,0 +1,31 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="charges_detail_title">Détail de la dépense</string>
+    <string name="charges_time">Heure</string>
+    <string name="charges_recorded_on">Enregistrée le</string>
+    <string name="charges_supplier_station">Fournisseur / Station</string>
+    <string name="charges_edit_title">Modifier la dépense</string>
+    <string name="charges_edit_question">Voulez-vous modifier cette dépense ?</string>
+    <string name="charges_delete_title">Supprimer la dépense</string>
+    <string name="charges_delete_body">Êtes-vous sûr de vouloir supprimer cette dépense de %1$s ?</string>
+    <string name="charges_save_failed">Enregistrement impossible</string>
+    <string name="charges_choose_type_error">Choisissez un type</string>
+    <string name="charges_new_subtype">Nouveau sous-type</string>
+    <string name="charges_type">Type</string>
+    <string name="charges_choose_type">Choisir un type</string>
+    <string name="charges_needs_supplier">Nécessite un fournisseur / une station</string>
+    <string name="charges_charge_type">Type de charge</string>
+    <string name="charges_choose_charge_type">Choisir un type de charge</string>
+    <string name="charges_currency">DA</string>
+    <string name="charges_supplier_example">Ex: Station Naftal - Hydra</string>
+    <string name="charges_saved_snackbar">Dépense de %1$s enregistrée</string>
+    <string name="charges_history_title">Historique des charges</string>
+    <string name="charges_new">Nouvelle charge</string>
+    <string name="charges_search">Rechercher une charge</string>
+    <plurals name="charges_count">
+        <item quantity="one">%d charge</item>
+        <item quantity="other">%d charges</item>
+    </plurals>
+    <string name="charges_empty">Aucune charge enregistrée. « + » pour en ajouter une.</string>
+    <string name="charges_no_match">Aucune charge ne correspond.</string>
+    <string name="charges_subtype">Sous-type</string>
+</resources>

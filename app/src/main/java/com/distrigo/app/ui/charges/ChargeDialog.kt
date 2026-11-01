@@ -58,6 +58,7 @@ import com.distrigo.app.ui.designsystem.dsTextFieldColors
 import com.distrigo.app.ui.inventory.InventoryDateField
 import java.time.LocalDate
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.R
 
 /** What the dialog saves: the sub-type, the amount, the supplier (only where the sub-type asks for one), the day and the note. */
@@ -102,7 +103,9 @@ fun ChargeDialog(
     val subType = subTypes.find { it.id == subtypeId }
     val typeOf = { s: ChargeSubType -> types.find { it.id == s.type_id } }
     val amount = parseMontant(montant)
-    val amountError = if (montant.isNotBlank() && (amount == null || amount <= 0)) "Montant invalide" else null
+    val invalidAmount = stringResource(R.string.common_payment_invalid_amount)
+    val chooseTypeError = stringResource(R.string.charges_choose_type_error)
+    val amountError = if (montant.isNotBlank() && (amount == null || amount <= 0)) invalidAmount else null
     val needsSupplier = subType?.has_fournisseur == true
 
     Dialog(onDismissRequest = { if (!isSaving) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -123,7 +126,7 @@ fun ChargeDialog(
             if (typing != null) {
                 OutlinedTextField(
                     value = typing, onValueChange = { newName = it; newError = "" },
-                    label = { Text("Nouveau sous-type") }, singleLine = true,
+                    label = { Text(stringResource(R.string.charges_new_subtype)) }, singleLine = true,
                     isError = newError.isNotEmpty(),
                     supportingText = if (newError.isNotEmpty()) ({ Text(newError) }) else null,
                     shape = DsShapes.medium,
@@ -131,15 +134,15 @@ fun ChargeDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Box {
-                    Field("Type", types.find { it.id == newTypeId }?.name, "Choisir un type") { newTypeMenu = true }
+                    Field(stringResource(R.string.charges_type), types.find { it.id == newTypeId }?.name?.let(BuiltInNames::chargeType), stringResource(R.string.charges_choose_type)) { newTypeMenu = true }
                     DropdownMenu(expanded = newTypeMenu, onDismissRequest = { newTypeMenu = false }, modifier = Modifier.background(DsColors.Surface)) {
                         types.forEach { t ->
-                            DropdownMenuItem(text = { Text(t.name) }, onClick = { newTypeId = t.id; newTypeMenu = false; newError = "" })
+                            DropdownMenuItem(text = { Text(BuiltInNames.chargeType(t.name)) }, onClick = { newTypeId = t.id; newTypeMenu = false; newError = "" })
                         }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Nécessite un fournisseur / une station", fontSize = DsTextSize.body, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.charges_needs_supplier), fontSize = DsTextSize.body, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
                     Switch(
                         checked = newNeedsSupplier, onCheckedChange = { newNeedsSupplier = it },
                         colors = SwitchDefaults.colors(checkedTrackColor = DsColors.Primary)
@@ -152,7 +155,7 @@ fun ChargeDialog(
                     Button(
                         onClick = {
                             val t = newTypeId
-                            if (t == null) { newError = "Choisissez un type"; return@Button }
+                            if (t == null) { newError = chooseTypeError; return@Button }
                             adding = true
                             onAddSubType(t, typing, newNeedsSupplier) { created, failure ->
                                 adding = false
@@ -166,9 +169,9 @@ fun ChargeDialog(
                 }
             } else Box {
                 Field(
-                    "Type de charge",
-                    subType?.let { s -> listOfNotNull(typeOf(s)?.name, s.name).joinToString(" › ") },
-                    "Choisir un type de charge"
+                    stringResource(R.string.charges_charge_type),
+                    subType?.let { s -> listOfNotNull(typeOf(s)?.name, s.name).joinToString(" › ") { BuiltInNames.chargeType(it) } },
+                    stringResource(R.string.charges_choose_charge_type)
                 ) { menu = true }
                 // One list, grouped by type: a type's name as a header, its sub-types under it.
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.background(DsColors.Surface).heightIn(max = 420.dp)) {
@@ -176,14 +179,14 @@ fun ChargeDialog(
                         val ofType = subTypes.filter { it.type_id == t.id }
                         if (ofType.isEmpty()) return@forEach
                         Text(
-                            t.name.uppercase(), fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold,
+                            BuiltInNames.chargeType(t.name).uppercase(), fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold,
                             color = ChargeIconMapper.colorFor(t.color_hex),
                             modifier = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.sm, bottom = 2.dp)
                         )
                         ofType.forEach { s ->
                             DropdownMenuItem(
                                 text = {
-                                    Text(s.name, fontWeight = if (s.id == subtypeId) FontWeight.SemiBold else FontWeight.Normal,
+                                    Text(BuiltInNames.chargeType(s.name), fontWeight = if (s.id == subtypeId) FontWeight.SemiBold else FontWeight.Normal,
                                         color = if (s.id == subtypeId) DsColors.Primary else DsColors.TextPrimary)
                                 },
                                 leadingIcon = { Icon(ChargeIconMapper.iconFor(s.icon), contentDescription = null, tint = ChargeIconMapper.colorFor(t.color_hex), modifier = Modifier.size(18.dp)) },
@@ -193,7 +196,7 @@ fun ChargeDialog(
                     }
                     HorizontalDivider(color = DsColors.Border)
                     DropdownMenuItem(
-                        text = { Text("Nouveau sous-type", color = DsColors.Primary, fontWeight = FontWeight.SemiBold) },
+                        text = { Text(stringResource(R.string.charges_new_subtype), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary) },
                         onClick = { menu = false; newName = ""; newError = ""; newTypeId = subType?.type_id; newNeedsSupplier = false }
                     )
@@ -203,8 +206,8 @@ fun ChargeDialog(
             OutlinedTextField(
                 value = montant,
                 onValueChange = { v -> montant = westernNumber(v).filter { it.isDigit() || it == ',' || it == '.' } },
-                label = { Text("Montant") },
-                suffix = { Text("DA") },
+                label = { Text(stringResource(R.string.common_rank_amount)) },
+                suffix = { Text(stringResource(R.string.charges_currency)) },
                 singleLine = true,
                 isError = amountError != null,
                 supportingText = amountError?.let { { Text(it) } },
@@ -216,7 +219,7 @@ fun ChargeDialog(
             if (needsSupplier) {
                 OutlinedTextField(
                     value = fournisseur, onValueChange = { fournisseur = it },
-                    label = { Text("Fournisseur / Station") }, placeholder = { Text("Ex: Station Naftal - Hydra") },
+                    label = { Text(stringResource(R.string.charges_supplier_station)) }, placeholder = { Text(stringResource(R.string.charges_supplier_example)) },
                     singleLine = true, shape = DsShapes.medium,
                     colors = dsTextFieldColors(unfocusedBorderColor = DsColors.Border, focusedBorderColor = DsColors.Primary),
                     modifier = Modifier.fillMaxWidth()

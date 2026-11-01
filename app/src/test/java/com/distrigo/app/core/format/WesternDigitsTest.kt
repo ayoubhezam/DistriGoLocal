@@ -1,5 +1,8 @@
 package com.distrigo.app.core.format
 
+import com.distrigo.app.R
+import com.distrigo.app.core.text.AppStrings
+import com.distrigo.app.core.text.UiText
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.mouvements.formatMovementDateTime
 import com.distrigo.app.ui.products.isExpiringSoon
@@ -90,7 +93,11 @@ class WesternDigitsTest {
         assertEquals("27/10/2026", LocalDate.of(2026, 10, 27).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
         assertEquals("13:45", java.time.LocalTime.of(13, 45).format(DateTimeFormatter.ofPattern("HH:mm")))
         val moment = LocalDate.of(2026, 10, 27).atTime(9, 5).atZone(ZoneId.systemDefault()).toInstant()
-        assertEquals("2026-10-27 à 09:05", formatMovementDateTime(moment.toString()))
+        // The day and the time as the resource joins them ("2026-10-27 à 09:05" in French), in Latin digits
+        assertEquals(
+            AppStrings.write(UiText.Res(R.string.pertes_day_at_time, "2026-10-27", "09:05")),
+            formatMovementDateTime(moment.toString())
+        )
     }
 
     @Test

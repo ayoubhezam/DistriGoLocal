@@ -49,7 +49,11 @@ import java.util.Locale
 import com.distrigo.app.ui.format.LocalMoneyFormatter
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
+import com.distrigo.app.ui.common.asString
+import com.distrigo.app.ui.common.unitWordText
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 
 @Composable
@@ -97,7 +101,7 @@ fun MouvementsScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title   = "Mouvements",
+            title   = stringResource(R.string.mouvements_title),
             leading = DsTopBarLeading.Back(onBack)
         ) {
             Box {
@@ -135,7 +139,7 @@ fun MouvementsScreen(
             Spacer(Modifier.width(DsSpacing.sm))
             Column {
                 Text(product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary, maxLines = 1)
-                Text("Stock actuel : ${formatQty(product.stock)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.mouvements_stock_now, formatQty(product.stock)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
 
@@ -148,9 +152,9 @@ fun MouvementsScreen(
             modifier              = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            StatCard(modifier = Modifier.weight(1f), label = "Entrées",    value = formatQty(entrees),  color = DsColors.Success)
-            StatCard(modifier = Modifier.weight(1f), label = "Sorties",    value = formatQty(sorties),  color = DsColors.Danger)
-            StatCard(modifier = Modifier.weight(1f), label = "Mouvements", value = "${totals?.count ?: 0}", color = DsColors.Primary)
+            StatCard(modifier = Modifier.weight(1f), label = stringResource(R.string.mouvements_in),    value = formatQty(entrees),  color = DsColors.Success)
+            StatCard(modifier = Modifier.weight(1f), label = stringResource(R.string.mouvements_out),    value = formatQty(sorties),  color = DsColors.Danger)
+            StatCard(modifier = Modifier.weight(1f), label = stringResource(R.string.mouvements_title), value = "${totals?.count ?: 0}", color = DsColors.Primary)
         }
 
         Spacer(Modifier.height(DsSpacing.md))
@@ -167,7 +171,7 @@ fun MouvementsScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.SwapVert, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(56.dp))
                         Spacer(Modifier.height(DsSpacing.md))
-                        Text("Aucun mouvement", color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.mouvements_none), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -225,7 +229,8 @@ private fun StatCard(modifier: Modifier = Modifier, label: String, value: String
 @Composable
 private fun MovementRow(movement: StockMovement, onClick: () -> Unit) {
     val isEntree = movement.direction == "entree"
-    val (icon, typeLabel) = movementTypeDisplay(movement.type)
+    val icon = movementTypeIcon(movement.type)
+    val typeLabel = movementTypeLabel(movement.type)
 
     Row(
         modifier = Modifier
@@ -247,7 +252,7 @@ private fun MovementRow(movement: StockMovement, onClick: () -> Unit) {
         Spacer(Modifier.width(DsSpacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Text(typeLabel, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Text(movement.source_label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
+            Text(movementSourceLabel(movement.type, movement.source_label), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
         }
         Text(
             "${if (isEntree) "+" else "-"}${formatQty(movement.quantity)}",
@@ -259,18 +264,17 @@ private fun MovementRow(movement: StockMovement, onClick: () -> Unit) {
 }
 
 // ── Helpers ──
-fun movementTypeDisplay(type: String): Pair<ImageVector, String> = when (type) {
-    "achat"      -> Icons.Default.Inventory to "Achat"
-    "vente"      -> Icons.Default.PointOfSale to "Vente"
-    "chargement" -> Icons.Default.LocalShipping to "Chargement"
-    "perte"      -> Icons.Default.Warning to "Perte"
-    "ajustement" -> Icons.Default.Tune to "Ajustement"
-    "retour_client"      -> Icons.AutoMirrored.Filled.AssignmentReturn to "Retour client"
-    "retour_fournisseur" -> Icons.AutoMirrored.Filled.AssignmentReturn to "Retour fournisseur"
-    else         -> Icons.Default.SwapVert to type
+fun movementTypeIcon(type: String): ImageVector = when (type) {
+    "achat"      -> Icons.Default.Inventory
+    "vente"      -> Icons.Default.PointOfSale
+    "chargement" -> Icons.Default.LocalShipping
+    "perte"      -> Icons.Default.Warning
+    "ajustement" -> Icons.Default.Tune
+    "retour_client", "retour_fournisseur" -> Icons.AutoMirrored.Filled.AssignmentReturn
+    else         -> Icons.Default.SwapVert
 }
 
-/** [movementTypeDisplay]'s name in the app's language; the Mouvements screens still use the French one until they move. */
+/** A movement type's name in the app's language. */
 @Composable
 fun movementTypeLabel(type: String): String = when (type) {
     "achat"      -> stringResource(R.string.common_kind_purchase)
@@ -283,12 +287,30 @@ fun movementTypeLabel(type: String): String = when (type) {
     else         -> type
 }
 
+/**
+ * A movement's source as it was stored, in the app's language where the app wrote it — a stock typed over, an
+ * inventory, a perte type; a client's or supplier's name as written.
+ */
+@Composable
+fun movementSourceLabel(type: String, label: String): String {
+    INVENTORY_LABEL.matchEntire(label)?.let { return stringResource(R.string.mouvements_source_inventory, it.groupValues[1]) }
+    return when {
+        label == "Stock initial"     -> stringResource(R.string.mouvements_source_initial_stock)
+        label == "Ajustement manuel" -> stringResource(R.string.mouvements_source_manual_adjustment)
+        type == "perte"              -> BuiltInNames.perteType(label)
+        else                         -> label
+    }
+}
+
+private val INVENTORY_LABEL = Regex("""Inventaire session #(\d+)""")
+
+@Composable
 fun formatMovementDateLabel(date: String): String {
     val today     = java.time.LocalDate.now().toString()
     val yesterday = java.time.LocalDate.now().minusDays(1).toString()
     return when (date) {
-        today     -> "Aujourd'hui"
-        yesterday -> "Hier"
+        today     -> stringResource(R.string.common_period_today)
+        yesterday -> stringResource(R.string.common_period_yesterday)
         else      -> date
     }
 }
@@ -299,7 +321,8 @@ fun formatMovementDateLabel(date: String): String {
 fun MovementDetailView(
     movementId : Int,
     viewModel  : StockMovementViewModel,
-    onBack     : () -> Unit
+    onBack     : () -> Unit,
+    unit       : String? = null,
 ) {
     val money = LocalMoneyFormatter.current
     LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
@@ -316,13 +339,13 @@ fun MovementDetailView(
         return
     }
     val isEntree = currentMovement.direction == "entree"
-    val (_, typeLabel) = movementTypeDisplay(currentMovement.type)
+    val typeLabel = movementTypeLabel(currentMovement.type)
 
     BackHandler { onBack() }
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title   = "Détail du mouvement",
+            title   = stringResource(R.string.mouvements_detail_title),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -346,7 +369,7 @@ fun MovementDetailView(
                         .padding(horizontal = DsSpacing.md, vertical = 4.dp)
                 ) {
                     Text(
-                        if (isEntree) "Entrée" else "Sortie",
+                        stringResource(if (isEntree) R.string.mouvements_in_one else R.string.mouvements_out_one),
                         color      = if (isEntree) DsColors.Success else DsColors.Danger,
                         fontSize   = DsTextSize.caption,
                         fontWeight = FontWeight.SemiBold
@@ -365,14 +388,14 @@ fun MovementDetailView(
                     .padding(DsSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Quantité", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.common_label_quantity), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                 Text(
                     "${if (isEntree) "+" else "-"}${formatQty(currentMovement.quantity)}",
                     fontSize   = DsTextSize.display,
                     fontWeight = FontWeight.ExtraBold,
                     color      = if (isEntree) DsColors.Success else DsColors.Danger
                 )
-                Text("Pièces", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text(unit?.let { unitWordText(currentMovement.quantity, it).asString() } ?: stringResource(R.string.mouvements_units), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
 
             // ── Infos ──
@@ -385,25 +408,33 @@ fun MovementDetailView(
                     .padding(DsSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
-                DetailInfoRow("Produit", currentMovement.product_name)
-                DetailInfoRow("Source", currentMovement.source_label)
-                DetailInfoRow("N° de source", sourceNumber ?: "#${currentMovement.source_id}")
+                DetailInfoRow(stringResource(R.string.products_label_product), currentMovement.product_name)
+                DetailInfoRow(stringResource(R.string.mouvements_source), movementSourceLabel(currentMovement.type, currentMovement.source_label))
+                DetailInfoRow(stringResource(R.string.mouvements_source_number), sourceNumber ?: "#${currentMovement.source_id}")
                 currentMovement.unit_price?.let {
-                    DetailInfoRow("Prix unitaire", money.da(it))
+                    DetailInfoRow(stringResource(R.string.mouvements_unit_price), money.da(it))
                 }
-                DetailInfoRow("Valeur totale", money.da(currentMovement.total_value))
-                DetailInfoRow("Notes", currentMovement.note ?: "—")
+                DetailInfoRow(stringResource(R.string.pertes_stat_value), money.da(currentMovement.total_value))
+                DetailInfoRow(
+                    stringResource(R.string.mouvements_notes),
+                    // The one note the app writes itself (an inventory zeroing what was not counted), in the app's language
+                    when (val note = currentMovement.note) {
+                        null                         -> "—"
+                        "Non inventorié, mis à zéro" -> stringResource(R.string.mouvements_note_not_counted)
+                        else                         -> note
+                    }
+                )
             }
 
             // The record behind the movement: why the stock moved, one tap away.
             document?.let { (kind, id) ->
                 val (label, target) = when (kind) {
-                    "vente"               -> "Voir la vente" to DrillTarget.Vente(id)
-                    "bon"                 -> "Voir le bon d'achat" to DrillTarget.Bon(id)
-                    "perte"               -> "Voir la perte" to DrillTarget.Perte(id)
-                    "inventaire"          -> "Voir l'inventaire" to DrillTarget.Inventaire(id)
-                    "retours_client"      -> "Voir les retours du client" to DrillTarget.RetoursClient(id)
-                    else                  -> "Voir les retours du fournisseur" to DrillTarget.RetoursFournisseur(id)
+                    "vente"               -> stringResource(R.string.mouvements_open_sale) to DrillTarget.Vente(id)
+                    "bon"                 -> stringResource(R.string.mouvements_open_bon) to DrillTarget.Bon(id)
+                    "perte"               -> stringResource(R.string.mouvements_open_perte) to DrillTarget.Perte(id)
+                    "inventaire"          -> stringResource(R.string.mouvements_open_inventory) to DrillTarget.Inventaire(id)
+                    "retours_client"      -> stringResource(R.string.mouvements_open_client_returns) to DrillTarget.RetoursClient(id)
+                    else                  -> stringResource(R.string.mouvements_open_supplier_returns) to DrillTarget.RetoursFournisseur(id)
                 }
                 OutlinedButton(
                     onClick  = { drill(target) },
@@ -435,5 +466,5 @@ private fun DetailInfoRow(label: String, value: String) {
 fun formatMovementDateTime(iso: String): String = runCatching {
     val instant = java.time.Instant.parse(iso)
     val local   = instant.atZone(java.time.ZoneId.systemDefault())
-    "${local.toLocalDate()} à ${"%02d".format(java.util.Locale.ROOT, local.hour)}:${"%02d".format(java.util.Locale.ROOT, local.minute)}"
+    com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_day_at_time, local.toLocalDate().toString(), "%02d".format(java.util.Locale.ROOT, local.hour) + ":" + "%02d".format(java.util.Locale.ROOT, local.minute)))
 }.getOrDefault(iso)

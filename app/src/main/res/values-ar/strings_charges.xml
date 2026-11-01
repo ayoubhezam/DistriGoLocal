@@ -1,0 +1,35 @@
+<resources>
+    <string name="charges_detail_title">تفاصيل المصروف</string>
+    <string name="charges_time">الساعة</string>
+    <string name="charges_recorded_on">سُجّل في</string>
+    <string name="charges_supplier_station">المورد / المحطة</string>
+    <string name="charges_edit_title">تعديل المصروف</string>
+    <string name="charges_edit_question">هل تريد تعديل هذا المصروف؟</string>
+    <string name="charges_delete_title">حذف المصروف</string>
+    <string name="charges_delete_body">هل أنت متأكد من حذف هذا المصروف بقيمة \u2068%1$s\u2069؟</string>
+    <string name="charges_save_failed">تعذّر الحفظ</string>
+    <string name="charges_choose_type_error">اختر نوعًا</string>
+    <string name="charges_new_subtype">نوع فرعي جديد</string>
+    <string name="charges_type">النوع</string>
+    <string name="charges_choose_type">اختيار نوع</string>
+    <string name="charges_needs_supplier">يتطلب موردًا / محطة</string>
+    <string name="charges_charge_type">نوع المصروف</string>
+    <string name="charges_choose_charge_type">اختيار نوع المصروف</string>
+    <string name="charges_currency">DA</string>
+    <string name="charges_supplier_example">مثال: محطة نفطال - حيدرة</string>
+    <string name="charges_saved_snackbar">سُجّل مصروف بقيمة \u2068%1$s\u2069</string>
+    <string name="charges_history_title">سجل المصاريف</string>
+    <string name="charges_new">مصروف جديد</string>
+    <string name="charges_search">البحث عن مصروف</string>
+    <plurals name="charges_count">
+        <item quantity="zero">%d مصروف</item>
+        <item quantity="one">مصروف واحد</item>
+        <item quantity="two">مصروفان</item>
+        <item quantity="few">%d مصاريف</item>
+        <item quantity="many">%d مصروفًا</item>
+        <item quantity="other">%d مصروف</item>
+    </plurals>
+    <string name="charges_empty">لا توجد مصاريف مسجّلة. اضغط « + » لإضافة واحد.</string>
+    <string name="charges_no_match">لا يوجد مصروف مطابق.</string>
+    <string name="charges_subtype">النوع الفرعي</string>
+</resources>

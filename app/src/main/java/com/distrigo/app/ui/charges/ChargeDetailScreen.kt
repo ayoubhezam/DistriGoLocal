@@ -35,7 +35,9 @@ import com.distrigo.app.core.format.MoneyFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * An expense, read-only. Tapping one in its list used to open the edit form straight away, where a
@@ -61,7 +63,7 @@ fun ChargeDetailScreen(
     LaunchedEffect(vm.missing) { if (vm.missing) onBack() }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Détail de la dépense", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.charges_detail_title), leading = DsTopBarLeading.Back(onBack))
 
         val charge = vm.charge
         if (charge == null) {
@@ -101,7 +103,7 @@ fun ChargeDetailScreen(
                 )
                 Spacer(Modifier.height(DsSpacing.xs))
                 Text(
-                    "${charge.type_name} · ${charge.subtype_name}",
+                    BuiltInNames.chargeType(charge.type_name) + " · " + BuiltInNames.chargeType(charge.subtype_name),
                     fontSize = DsTextSize.body,
                     color    = DsColors.TextSecondary
                 )
@@ -118,12 +120,12 @@ fun ChargeDetailScreen(
                     .padding(vertical = DsSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
             ) {
-                DetailRow(Icons.Default.Event, "Date", at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
-                DetailRow(Icons.Default.Schedule, "Heure", at?.format(TIME) ?: "—")
-                charge.fournisseur?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Storefront, "Fournisseur / Station", it) }
-                charge.note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, "Note", it) }
+                DetailRow(Icons.Default.Event, stringResource(R.string.inventory_date), at?.format(DATE)?.replaceFirstChar { it.uppercase() } ?: "—")
+                DetailRow(Icons.Default.Schedule, stringResource(R.string.charges_time), at?.format(TIME) ?: "—")
+                charge.fournisseur?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.Storefront, stringResource(R.string.charges_supplier_station), it) }
+                charge.note?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.AutoMirrored.Filled.Notes, stringResource(R.string.clients_note), it) }
                 runCatching { Instant.parse(charge.created_at).atZone(ZoneId.systemDefault()) }.getOrNull()?.let { created ->
-                    DetailRow(Icons.Default.History, "Enregistrée le", "${created.format(DAY)} à ${created.format(TIME)}")
+                    DetailRow(Icons.Default.History, stringResource(R.string.charges_recorded_on), stringResource(R.string.pertes_day_at_time, created.format(DAY), created.format(TIME)))
                 }
             }
             Spacer(Modifier.height(DsSpacing.sm))
@@ -168,8 +170,8 @@ fun ChargeDetailScreen(
     if (confirmEdit && charge != null) {
         AlertDialog(
             onDismissRequest = { confirmEdit = false },
-            title            = { Text("Modifier la dépense") },
-            text             = { Text("Voulez-vous modifier cette dépense ?") },
+            title            = { Text(stringResource(R.string.charges_edit_title)) },
+            text             = { Text(stringResource(R.string.charges_edit_question)) },
             confirmButton    = { TextButton(onClick = { confirmEdit = false; editing = true }) { Text(stringResource(R.string.common_action_edit)) } },
             dismissButton    = { TextButton(onClick = { confirmEdit = false }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor   = DsColors.Surface
@@ -178,7 +180,7 @@ fun ChargeDetailScreen(
     // "Modifier": the dialog a new charge is entered with, filled in.
     if (editing && charge != null) {
         ChargeDialog(
-            title = "Modifier la dépense", types = vm.types, subTypes = vm.subTypes, initial = vm.input(),
+            title = stringResource(R.string.charges_edit_title), types = vm.types, subTypes = vm.subTypes, initial = vm.input(),
             isSaving = vm.saving, error = vm.saveError,
             onSave = { input -> vm.update(input) { editing = false } },
             onAddSubType = vm::addSubType,
@@ -189,7 +191,7 @@ fun ChargeDetailScreen(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
-            title            = { Text("Supprimer la dépense") },
+            title            = { Text(stringResource(R.string.charges_delete_title)) },
             text             = { Text(deleteQuestion(charge, money)) },
             confirmButton    = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) {
@@ -204,7 +206,7 @@ fun ChargeDetailScreen(
 
 /** "Êtes-vous sûr de vouloir supprimer cette dépense de 3 500,50 DA ?" — the list's long press asks the same. */
 internal fun deleteQuestion(charge: Charge, money: MoneyFormatter): String =
-    "Êtes-vous sûr de vouloir supprimer cette dépense de ${money.da(charge.montant)} ?"
+    com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.charges_delete_body, money.da(charge.montant)))
 
 @Composable
 private fun DetailRow(icon: ImageVector, label: String, value: String) {
@@ -223,6 +225,6 @@ private fun DetailRow(icon: ImageVector, label: String, value: String) {
     }
 }
 
-private val DATE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)
-private val DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
+private val DATE get() = com.distrigo.app.core.format.AppDates.formatter("EEEE d MMMM yyyy")
+private val DAY get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")

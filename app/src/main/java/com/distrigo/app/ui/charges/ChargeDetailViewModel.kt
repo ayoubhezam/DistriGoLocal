@@ -15,6 +15,8 @@ import com.distrigo.app.data.repository.ChargeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /**
  * One expense, read-only: what tapping it in its list opens. Changing it takes an explicit
@@ -61,7 +63,7 @@ class ChargeDetailViewModel @Inject constructor(
                 )
                 load(); onDone()
             } catch (e: Exception) {
-                saveError = userMessage(e, "Enregistrement impossible")
+                saveError = userMessage(e, com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.charges_save_failed)))
             }
             saving = false
         }
@@ -99,7 +101,7 @@ class ChargeDetailViewModel @Inject constructor(
                 repository.deleteCharge(current.id)
                 onDeleted()
             } catch (e: Exception) {
-                error = userMessage(e, "La suppression a échoué.")
+                error = userMessage(e, com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_delete_failed)))
                 deleting = false
             }
         }

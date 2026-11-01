@@ -800,7 +800,7 @@ private fun RecentMovementsCard(
                 Column(Modifier.weight(1f)) {
                     Text(com.distrigo.app.ui.mouvements.movementTypeLabel(movement.type), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
                     Text(
-                        listOfNotNull(movement.source_label.takeIf { it.isNotBlank() }, stringResource(if (movement.emplacement == "camion") R.string.products_place_truck else R.string.products_place_depot)).joinToString(" · "),
+                        listOfNotNull(movement.source_label.takeIf { it.isNotBlank() }?.let { com.distrigo.app.ui.mouvements.movementSourceLabel(movement.type, it) }, stringResource(if (movement.emplacement == "camion") R.string.products_place_truck else R.string.products_place_depot)).joinToString(" · "),
                         fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }

@@ -244,10 +244,17 @@ fun ProduitsNavHost(
                 // than spin on a movement that will never load
                 val goneId by movementsViewModel.goneMovementId.collectAsState()
                 if (goneId == movementId) LeaveWhenGone(navController, entry)
+                // The product's unit, so the quantity reads « 3 cartons » rather than a fixed « Pièces »
+                val productId = parentEntry.arguments!!.getInt("productId")
+                val parentProductsEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
+                val productsViewModel: ProductViewModel = hiltViewModel(parentProductsEntry)
+                val lookup by remember(productId) { productsViewModel.observeProduct(productId) }
+                    .collectAsState(initial = ProductLookup.Loading)
                 MovementDetailView(
                     movementId = movementId,
                     viewModel  = movementsViewModel,
-                    onBack     = { navController.popBackStack() }
+                    onBack     = { navController.popBackStack() },
+                    unit       = (lookup as? ProductLookup.Found)?.product?.unit_type
                 )
             }
         }
