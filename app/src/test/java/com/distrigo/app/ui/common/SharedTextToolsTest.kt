@@ -24,7 +24,16 @@ class SharedTextToolsTest {
         assertEquals(1, pluralCount(0.5))
         assertEquals(100, pluralCount(1.5))
         assertEquals(0, pluralCount(0.0))
-        assertEquals(12, pluralCount(-12.0))
+    }
+
+    @Test
+    fun aShortageReadsAsABalanceNotACount() {
+        // « -2 قطعة », not the dual « -2 قطعتان »; French « -2 pièces », « -1 pièce » as before
+        assertEquals(100, pluralCount(-2.0))
+        assertEquals(100, pluralCount(-12.0))
+        assertEquals(100, pluralCount(-2.5))
+        assertEquals(1, pluralCount(-1.0))
+        assertEquals(1, pluralCount(-0.5))
     }
 
     @Test

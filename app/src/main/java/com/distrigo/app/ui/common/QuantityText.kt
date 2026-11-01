@@ -40,10 +40,13 @@ fun unitWordText(quantity: Double, unit: String?): UiText {
 /**
  * The count a plural form is chosen by. A whole quantity is itself; a fraction reads as French does today (« 0,5
  * carton », « 1,5 cartons ») and takes Arabic's « other » form, as CLDR gives fractions: 1 up to one, else 100.
+ * A shortage (below zero) is a balance, not a number of things: from −2 on it takes the « other » form too —
+ * « -2 قطعة », not the dual « -2 قطعتان » — and French, plural from 2, reads the same.
  */
 internal fun pluralCount(quantity: Double): Int {
     val q = abs(quantity)
     return when {
+        quantity <= -2.0 -> 100
         q == floor(q) && q < 1_000_000 -> q.toInt()
         q <= 1.0 -> 1
         else -> 100
