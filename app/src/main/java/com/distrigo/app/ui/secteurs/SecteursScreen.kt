@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -58,25 +59,25 @@ fun SecteursScreen(
     val add: () -> Unit = { license.runOrExplain(onNew) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Secteurs", leading = DsTopBarLeading.Back(onBack)) {
-            DsTopBarAddButton(contentDescription = "Nouveau secteur", onClick = add)
+        DsTopAppBar(title = sectText(R.string.sect_title), leading = DsTopBarLeading.Back(onBack)) {
+            DsTopBarAddButton(contentDescription = sectText(R.string.sect_new), onClick = add)
         }
 
         when (val s = state) {
             SecteursUiState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = DsColors.PrimaryDark)
             }
-            is SecteursUiState.Error -> EmptyState(Icons.Outlined.Place, DsColors.Danger, "Impossible de lire les secteurs", s.message)
+            is SecteursUiState.Error -> EmptyState(Icons.Outlined.Place, DsColors.Danger, sectText(R.string.sect_unreadable), s.message)
             SecteursUiState.Empty -> EmptyState(
-                Icons.Outlined.Place, DsColors.Success, "Aucun secteur",
-                "Créez votre premier secteur pour organiser vos clients par zone.",
-                action = "Nouveau secteur", onAction = add,
+                Icons.Outlined.Place, DsColors.Success, sectText(R.string.sect_none),
+                sectText(R.string.sect_none_text),
+                action = sectText(R.string.sect_new), onAction = add,
             )
             is SecteursUiState.Success -> {
                 val tokens = searchTokens(query)
                 val shown = s.secteurs.filter { matchesAllTokens(tokens, it.name, it.commune) }
                 DsCompactSearchField(
-                    value = query, onValueChange = viewModel::search, placeholder = "Rechercher un secteur ou une commune",
+                    value = query, onValueChange = viewModel::search, placeholder = sectText(R.string.sect_search),
                     modifier = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.sm),
                 )
                 LazyColumn(
@@ -85,7 +86,7 @@ fun SecteursScreen(
                 ) {
                     items(shown, key = { it.id }) { secteur -> SecteurCard(secteur) { onOpen(secteur.id) } }
                     if (shown.isEmpty()) item(key = "none") {
-                        EmptyState(Icons.Outlined.Search, DsColors.Primary, "Aucun résultat", "Aucun secteur ne correspond à votre recherche.")
+                        EmptyState(Icons.Outlined.Search, DsColors.Primary, sectText(R.string.sect_no_result), sectText(R.string.sect_no_match))
                     }
                 }
             }
@@ -102,7 +103,7 @@ private fun SecteurCard(secteur: SecteurSummary, onClick: () -> Unit) {
         Spacer(Modifier.height(DsSpacing.xs))
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Meta(Icons.Outlined.Home, DsColors.Primary,
-                if (secteur.quartiers == 0) "Aucun quartier" else count(secteur.quartiers, "quartier", "quartiers"))
+                if (secteur.quartiers == 0) sectText(R.string.sect_no_quartier) else count(secteur.quartiers, "quartier", "quartiers"))
             Meta(Icons.Outlined.Group, DsColors.AccentViolet, count(secteur.clients, "client", "clients"))
         }
     }

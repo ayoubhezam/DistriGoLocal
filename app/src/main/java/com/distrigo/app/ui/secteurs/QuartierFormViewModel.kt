@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -67,7 +68,7 @@ class QuartierFormViewModel @Inject constructor(
                 }
             }
             _state.value = loaded.fold(
-                onSuccess = { it ?: QuartierFormState(SecteurFormStatus.Error(if (quartierId != null) "Ce quartier n'existe plus." else "Ce secteur n'existe plus.")) },
+                onSuccess = { it ?: QuartierFormState(SecteurFormStatus.Error(sectText(if (quartierId != null) R.string.sect_quartier_gone else R.string.sect_secteur_gone))) },
                 onFailure = { QuartierFormState(SecteurFormStatus.Error(userMessage(it))) },
             )
         }
@@ -79,7 +80,7 @@ class QuartierFormViewModel @Inject constructor(
         val s = _state.value
         if (s.saving || s.status != SecteurFormStatus.Ready) return
         if (ListsRepository.clean(s.name).isEmpty()) {
-            _state.update { it.copy(nameError = "Saisissez le nom du quartier.") }
+            _state.update { it.copy(nameError = sectText(R.string.sect_enter_quartier)) }
             return
         }
         _state.update { it.copy(saving = true) }

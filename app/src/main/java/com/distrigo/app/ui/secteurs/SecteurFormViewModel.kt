@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -81,7 +82,7 @@ class SecteurFormViewModel @Inject constructor(
         else viewModelScope.launch {
             val secteur = withContext(Dispatchers.IO) { runCatching { lists.secteur(id) } }
             secteur.fold(
-                onSuccess = { found -> if (found == null) fail("Ce secteur n'existe plus.") else load(found) },
+                onSuccess = { found -> if (found == null) fail(sectText(R.string.sect_secteur_gone)) else load(found) },
                 onFailure = { fail(userMessage(it)) },
             )
         }
@@ -119,9 +120,9 @@ class SecteurFormViewModel @Inject constructor(
         val s = _state.value
         if (s.saving || s.status != SecteurFormStatus.Ready) return
         val f = s.fields
-        val nameError = if (ListsRepository.clean(f.name).isEmpty()) "Saisissez le nom du secteur." else null
-        val wilayaError = if (f.wilaya.isNullOrBlank()) "Sélectionnez une wilaya." else null
-        val communeError = if (wilayaError == null && f.commune.isNullOrBlank()) "Sélectionnez une commune." else null
+        val nameError = if (ListsRepository.clean(f.name).isEmpty()) sectText(R.string.sect_enter_name) else null
+        val wilayaError = if (f.wilaya.isNullOrBlank()) sectText(R.string.sect_pick_wilaya) else null
+        val communeError = if (wilayaError == null && f.commune.isNullOrBlank()) sectText(R.string.sect_pick_commune) else null
         if (nameError != null || wilayaError != null || communeError != null) {
             _state.update { it.copy(nameError = nameError, wilayaError = wilayaError, communeError = communeError) }
             return

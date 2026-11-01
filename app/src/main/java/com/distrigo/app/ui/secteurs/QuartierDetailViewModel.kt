@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -42,7 +43,7 @@ class QuartierDetailViewModel @Inject constructor(
         _state.value = withContext(Dispatchers.IO) {
             runCatching { lists.quartier(quartierId)?.let { it to lists.clientsIn(quartierId) } }.fold(
                 onSuccess = { found ->
-                    if (found == null) QuartierDetailUiState.Error("Ce quartier n'existe plus.")
+                    if (found == null) QuartierDetailUiState.Error(sectText(R.string.sect_quartier_gone))
                     else QuartierDetailUiState.Success(found.first, found.second)
                 },
                 onFailure = { QuartierDetailUiState.Error(userMessage(it)) },

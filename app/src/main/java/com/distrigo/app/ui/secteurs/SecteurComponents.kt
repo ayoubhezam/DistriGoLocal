@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,10 +53,14 @@ private val EmptyTile = 52.dp
 internal val CardMinHeight = 68.dp
 
 /** « 1 quartier », « 12 quartiers ». */
-internal fun count(n: Int, singular: String, plural: String) = "$n ${if (n == 1) singular else plural}"
+internal fun count(n: Int, singular: String, plural: String) = com.distrigo.app.data.trash.Usage(singular, plural, n.toLong()).toString()
+
+/** A Secteurs text in the app's language. */
+internal fun sectText(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id, args.toList()))
 
 /** What a short tap on the blue name says: the edit is a long press. */
-internal const val EDIT_HINT = "Appui long sur le nom en bleu pour le modifier."
+internal val EDIT_HINT: String get() = sectText(R.string.sect_edit_hint)
 
 /** A white card row: [leading], the [content] column, and a chevron. */
 @Composable
@@ -163,7 +168,7 @@ internal fun EditableSubtitle(name: String, rest: String?, editLabel: String, on
         Modifier.clip(DsShapes.small)
             .combinedClickable(
                 role = Role.Button,
-                onClickLabel = "Afficher l'astuce",
+                onClickLabel = sectText(R.string.sect_show_tip),
                 onLongClickLabel = editLabel,
                 onClick = onTap,
                 onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onEdit() },

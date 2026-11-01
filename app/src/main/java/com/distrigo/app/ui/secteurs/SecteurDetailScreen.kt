@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -61,18 +62,18 @@ fun SecteurDetailScreen(
     val say: (String) -> Unit = { message ->
         scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(message) }
     }
-    val soon = { say("Bientôt disponible.") }
+    val soon = { say(sectText(R.string.sect_soon)) }
 
     Box(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         Column(Modifier.fillMaxSize()) {
             val secteur = (state as? SecteurDetailUiState.Success)?.secteur
             DsTopAppBar(
-                title   = "Détails du secteur",
+                title   = sectText(R.string.sect_details),
                 leading = DsTopBarLeading.Back(onBack),
                 subtitleContent = secteur?.let {
                     {
                         EditableSubtitle(
-                            name = it.name, rest = it.commune, editLabel = "Modifier le secteur ${it.name}",
+                            name = it.name, rest = it.commune, editLabel = sectText(R.string.sect_edit_secteur_named, it.name),
                             onEdit = { onEdit(it.id) }, onTap = { say(EDIT_HINT) },
                         )
                     }
@@ -82,7 +83,7 @@ fun SecteurDetailScreen(
                 SecteurDetailUiState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.PrimaryDark)
                 }
-                is SecteurDetailUiState.Error -> EmptyState(Icons.Outlined.Place, DsColors.Danger, "Secteur introuvable", s.message)
+                is SecteurDetailUiState.Error -> EmptyState(Icons.Outlined.Place, DsColors.Danger, sectText(R.string.sect_not_found), s.message)
                 is SecteurDetailUiState.Success -> {
                     val add = { license.runOrExplain { onAddQuartier?.invoke(s.secteur.id) ?: soon() } }
                     LazyColumn(
@@ -90,15 +91,15 @@ fun SecteurDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
                     ) {
                         item(key = "header") {
-                            SectionHeader("Quartiers", s.quartiers.size) { TonalAction("Ajouter un quartier", add) }
+                            SectionHeader(sectText(R.string.sect_quartiers), s.quartiers.size) { TonalAction(sectText(R.string.sect_add_quartier), add) }
                         }
                         items(s.quartiers, key = { it.id }) { quartier ->
                             QuartierRow(quartier) { onOpenQuartier?.invoke(quartier.id) ?: soon() }
                         }
                         if (s.quartiers.isEmpty()) item(key = "none") {
                             EmptyState(
-                                Icons.Outlined.Home, DsColors.Primary, "Aucun quartier",
-                                "Ajoutez les quartiers de ce secteur pour y rattacher vos clients.",
+                                Icons.Outlined.Home, DsColors.Primary, sectText(R.string.sect_no_quartier),
+                                sectText(R.string.sect_no_quartier_text),
                             )
                         }
                     }

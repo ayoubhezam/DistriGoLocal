@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -116,12 +117,12 @@ fun QuartierDetailScreen(
         Column(Modifier.fillMaxSize()) {
             val quartier = (state as? QuartierDetailUiState.Success)?.quartier
             DsTopAppBar(
-                title   = "Détails du quartier",
+                title   = sectText(R.string.sect_quartier_details),
                 leading = DsTopBarLeading.Back(onBack),
                 subtitleContent = quartier?.let {
                     {
                         EditableSubtitle(
-                            name = it.name, rest = it.secteurName, editLabel = "Modifier le quartier ${it.name}",
+                            name = it.name, rest = it.secteurName, editLabel = sectText(R.string.sect_edit_quartier_named, it.name),
                             onEdit = { onEdit(it.id) }, onTap = { say(EDIT_HINT) },
                         )
                     }
@@ -131,7 +132,7 @@ fun QuartierDetailScreen(
                 QuartierDetailUiState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = DsColors.PrimaryDark)
                 }
-                is QuartierDetailUiState.Error -> EmptyState(Icons.Outlined.Home, DsColors.Danger, "Quartier introuvable", s.message)
+                is QuartierDetailUiState.Error -> EmptyState(Icons.Outlined.Home, DsColors.Danger, sectText(R.string.sect_quartier_not_found), s.message)
                 is QuartierDetailUiState.Success -> {
                     val tokens = searchTokens(query)
                     val shown = s.clients.filter {
@@ -143,12 +144,12 @@ fun QuartierDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
                     ) {
                         item(key = "header") {
-                            SectionHeader("Clients", s.clients.size) {
-                                TonalAction("Ajouter un client") { license.runOrExplain { choosing = true } }
+                            SectionHeader(sectText(R.string.sect_clients), s.clients.size) {
+                                TonalAction(sectText(R.string.sect_add_client)) { license.runOrExplain { choosing = true } }
                             }
                         }
                         if (s.clients.size > SEARCH_FROM) item(key = "search") {
-                            DsCompactSearchField(value = query, onValueChange = viewModel::search, placeholder = "Rechercher un client")
+                            DsCompactSearchField(value = query, onValueChange = viewModel::search, placeholder = sectText(R.string.sect_search_client))
                         }
                         items(shown, key = { it.id }) { client ->
                             ClientRow(client, highlight = if (client.id in added) flash.value else 0f) { drill(DrillTarget.Client(client.id)) }
@@ -156,12 +157,12 @@ fun QuartierDetailScreen(
                         when {
                             s.clients.isEmpty() -> item(key = "none") {
                                 EmptyState(
-                                    Icons.Outlined.Group, DsColors.AccentViolet, "Aucun client dans ce quartier",
-                                    "Utilisez « Ajouter un client » pour choisir un client existant ou en créer un nouveau.",
+                                    Icons.Outlined.Group, DsColors.AccentViolet, sectText(R.string.sect_no_client),
+                                    sectText(R.string.sect_no_client_text),
                                 )
                             }
                             shown.isEmpty() -> item(key = "no-match") {
-                                EmptyState(Icons.Outlined.Search, DsColors.Primary, "Aucun résultat", "Aucun client ne correspond à « $query ».")
+                                EmptyState(Icons.Outlined.Search, DsColors.Primary, sectText(R.string.sect_no_result), sectText(R.string.sect_no_client_match, query))
                             }
                         }
                     }
@@ -174,8 +175,8 @@ fun QuartierDetailScreen(
     val id = viewModel.quartierId
     if (choosing) {
         AddClientSheet(
-            onExisting = { choosing = false; onAddExisting?.invoke(id) ?: say("Bientôt disponible.") },
-            onNew      = { choosing = false; onAddNew?.invoke(id) ?: say("Bientôt disponible.") },
+            onExisting = { choosing = false; onAddExisting?.invoke(id) ?: say(sectText(R.string.sect_soon)) },
+            onNew      = { choosing = false; onAddNew?.invoke(id) ?: say(sectText(R.string.sect_soon)) },
             onDismiss  = { choosing = false },
         )
     }
@@ -186,7 +187,7 @@ fun QuartierDetailScreen(
 private fun ClientRow(client: QuartierClient, highlight: Float, onClick: () -> Unit) {
     CardRow(client.name, onClick, leading = { EntityAvatar(client.name, client.imageUri, size = CardTile) }, highlight = highlight) {
         CardTitle(client.name)
-        CardLine(client.phone?.takeIf { it.isNotBlank() } ?: "Téléphone non renseigné")
+        CardLine(client.phone?.takeIf { it.isNotBlank() } ?: sectText(R.string.sect_no_phone))
     }
 }
 
@@ -203,14 +204,14 @@ private fun AddClientSheet(onExisting: () -> Unit, onNew: () -> Unit, onDismiss:
             Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, bottom = DsSpacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
         ) {
-            Text("Ajouter un client", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-            CardRow("Ajouter un client existant", onExisting, leading = { Tile(Icons.Outlined.Group, DsColors.AccentViolet) }) {
-                CardTitle("Ajouter un client existant")
-                CardLine("Choisir dans la liste de vos clients")
+            Text(sectText(R.string.sect_add_client), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            CardRow(sectText(R.string.sect_add_existing), onExisting, leading = { Tile(Icons.Outlined.Group, DsColors.AccentViolet) }) {
+                CardTitle(sectText(R.string.sect_add_existing))
+                CardLine(sectText(R.string.sect_from_list))
             }
-            CardRow("Ajouter un nouveau client", onNew, leading = { Tile(Icons.Default.Add, DsColors.Success) }) {
-                CardTitle("Ajouter un nouveau client")
-                CardLine("Créer une fiche, quartier présélectionné")
+            CardRow(sectText(R.string.sect_add_new), onNew, leading = { Tile(Icons.Default.Add, DsColors.Success) }) {
+                CardTitle(sectText(R.string.sect_add_new))
+                CardLine(sectText(R.string.sect_new_card))
             }
         }
     }

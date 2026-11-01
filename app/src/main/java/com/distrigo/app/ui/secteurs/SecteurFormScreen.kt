@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import com.distrigo.app.R
 import com.distrigo.app.ui.common.shownName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -60,7 +61,7 @@ private val SmallIcon = 16.dp
 private const val DESCRIPTION_LINES = 3
 
 /** « Sedrata · Wilaya de Souk Ahras »: a commune, and the wilaya that tells two of the same name apart. */
-private fun place(commune: String, wilaya: String?) = if (wilaya.isNullOrBlank()) commune else "$commune · Wilaya de $wilaya"
+private fun place(commune: String, wilaya: String?) = if (wilaya.isNullOrBlank()) commune else sectText(R.string.sect_place, commune, wilaya)
 
 /**
  * « Nouveau secteur » / « Modifier le secteur » (owner's prototype v5, 2026-10-24). [onSaved] after a save,
@@ -97,7 +98,7 @@ fun SecteurFormScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted).imePadding()) {
         DsTopAppBar(
-            title   = if (editing) "Modifier le secteur" else "Nouveau secteur",
+            title   = sectText(if (editing) R.string.sect_edit_secteur else R.string.sect_new),
             leading = DsTopBarLeading.Back(leave),
         )
         when (val status = state.status) {
@@ -114,45 +115,45 @@ fun SecteurFormScreen(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xl),
                 ) {
-                    Field("Nom du secteur", required = true, error = state.nameError, help = "Nom libre, indépendant des noms de quartiers.") {
-                        TextInput(f.name, viewModel::setName, "Ex : Centre-ville", isError = state.nameError != null)
+                    Field(sectText(R.string.sect_name), required = true, error = state.nameError, help = sectText(R.string.sect_name_help)) {
+                        TextInput(f.name, viewModel::setName, sectText(R.string.sect_name_example), isError = state.nameError != null)
                         val commune = f.commune
                         if (commune != null && f.name.isBlank()) Suggestion(commune, viewModel::useSuggestion)
                     }
                     val locked = state.lockedBy != null
-                    Field("Wilaya", required = true, error = state.wilayaError) {
+                    Field(sectText(R.string.sect_wilaya), required = true, error = state.wilayaError) {
                         PickField(
-                            value = f.wilaya, placeholder = "Sélectionner une wilaya", label = "Choisir la wilaya",
+                            value = f.wilaya, placeholder = sectText(R.string.sect_select_wilaya), label = sectText(R.string.sect_choose_wilaya),
                             locked = locked, isError = state.wilayaError != null, onClick = { choosingWilaya = true },
                         )
                     }
                     Field(
-                        "Commune", required = true, error = state.communeError,
-                        help = state.lockedBy?.let { "La commune ne peut pas être modifiée : le secteur est utilisé par $it." }
-                            ?: "Choisissez d'abord la wilaya.".takeIf { f.wilaya == null },
+                        sectText(R.string.sect_commune), required = true, error = state.communeError,
+                        help = state.lockedBy?.let { sectText(R.string.sect_commune_locked, it) }
+                            ?: sectText(R.string.sect_wilaya_first).takeIf { f.wilaya == null },
                     ) {
                         PickField(
-                            value = f.commune?.let { place(it, f.wilaya) }, placeholder = "Sélectionner une commune", label = "Choisir la commune",
+                            value = f.commune?.let { place(it, f.wilaya) }, placeholder = sectText(R.string.sect_select_commune), label = sectText(R.string.sect_choose_commune),
                             locked = locked, enabled = f.wilaya != null, isError = state.communeError != null,
                             onClick = { choosingCommune = true },
                         )
                     }
-                    Field("Description (optionnel)") {
-                        TextInput(f.description, viewModel::setDescription, "Ex : Zone résidentielle au nord de la ville", lines = DESCRIPTION_LINES)
+                    Field(sectText(R.string.sect_description)) {
+                        TextInput(f.description, viewModel::setDescription, sectText(R.string.sect_description_example), lines = DESCRIPTION_LINES)
                     }
                     if (editing) {
                         BrandWideButton(
-                            "Supprimer le secteur", Icons.Outlined.DeleteOutline, filled = false,
+                            sectText(R.string.sect_delete_secteur), Icons.Outlined.DeleteOutline, filled = false,
                             enabled = state.lockedBy == null && !state.saving, danger = true,
                             onClick = { license.runOrExplain { refusal = null; confirmDelete = true } },
                         )
-                        val blocked = state.lockedBy?.let { "Impossible de le supprimer : il est utilisé par $it." } ?: refusal
+                        val blocked = state.lockedBy?.let { sectText(R.string.sect_delete_blocked, it) } ?: refusal
                         blocked?.let { Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
                     }
                 }
                 Box(Modifier.fillMaxWidth().background(DsColors.Surface).padding(DsSpacing.lg)) {
                     BrandWideButton(
-                        "Enregistrer", Icons.Outlined.Check, filled = true, enabled = !state.saving, busy = state.saving,
+                        sectText(R.string.common_action_save), Icons.Outlined.Check, filled = true, enabled = !state.saving, busy = state.saving,
                         onClick = { license.runOrExplain { viewModel.save() } },
                     )
                 }
@@ -162,7 +163,7 @@ fun SecteurFormScreen(
 
     if (choosingWilaya) {
         SearchableSelectSheet(
-            title      = "Wilaya",
+            title      = sectText(R.string.sect_wilaya),
             items      = remember { GeoRepository.getWilayas().sortedBy { it.wilayaCode } },
             itemLabel  = { "${it.wilayaCode}-${it.shownName()}" },
             itemKey    = { it.wilayaCode },
@@ -179,7 +180,7 @@ fun SecteurFormScreen(
                 .sortedWith(compareBy<Commune>({ !it.nameFr.equals(wilaya.nameFr, ignoreCase = true) }, { it.id }))
         }
         SearchableSelectSheet(
-            title      = "Commune · Wilaya de ${wilaya.nameFr}",
+            title      = sectText(R.string.sect_commune_title, wilaya.shownName()),
             items      = communes,
             itemLabel  = { it.shownName() },
             itemKey    = { it.id },
@@ -190,19 +191,19 @@ fun SecteurFormScreen(
     }
     if (confirmDiscard) {
         BrandDialog(
-            title   = "Abandonner la saisie ?",
-            text    = "Les informations saisies ne seront pas enregistrées.",
-            confirm = "Abandonner" to { confirmDiscard = false; onBack() },
-            dismiss = "Continuer la saisie" to { confirmDiscard = false },
+            title   = sectText(R.string.clients_discard_title),
+            text    = sectText(R.string.sect_discard_body),
+            confirm = sectText(R.string.clients_discard) to { confirmDiscard = false; onBack() },
+            dismiss = sectText(R.string.clients_discard_continue) to { confirmDiscard = false },
             danger  = true,
         )
     }
     if (confirmDelete) {
         BrandDialog(
-            title   = "Supprimer « ${state.loaded.name} » ?",
-            text    = "Le secteur sera supprimé définitivement.",
-            confirm = "Supprimer" to { viewModel.delete() },
-            dismiss = "Annuler" to { confirmDelete = false },
+            title   = sectText(R.string.sect_delete_named, state.loaded.name),
+            text    = sectText(R.string.sect_secteur_deleted),
+            confirm = sectText(R.string.common_action_delete) to { viewModel.delete() },
+            dismiss = sectText(R.string.common_action_cancel) to { confirmDelete = false },
             danger  = true,
             busy    = state.saving,
         )
@@ -254,6 +255,6 @@ private fun Suggestion(commune: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.xs),
     ) {
         Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(SmallIcon))
-        Text("Suggestion : $commune", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+        Text(sectText(R.string.sect_suggestion, commune), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
     }
 }
