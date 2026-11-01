@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.R
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
 import android.widget.Toast
@@ -45,8 +46,8 @@ private const val RESULT_ADDED_MESSAGE = "added_client_message"
 
 /** « 3 clients ajoutés · 1 déplacé ». */
 private fun addedMessage(added: Int, moved: Int): String =
-    (if (added > 1) "$added clients ajoutés" else "$added client ajouté") +
-        (if (moved > 0) " · $moved ${if (moved > 1) "déplacés" else "déplacé"}" else "")
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Plural(R.plurals.settings_clients_added, added, listOf(added))) +
+        (if (moved > 0) " · " + com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Plural(R.plurals.settings_clients_moved, moved, listOf(moved))) else "")
 
 /**
  * Paramètres and the screens under it, each a destination: Back and the stack are the navigation's, a screen

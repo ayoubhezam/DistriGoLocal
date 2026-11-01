@@ -33,4 +33,7 @@ object AppStrings {
 }
 
 /** Refuses an operation in the app's words: the repositories' `throw IllegalStateException("…")`, translatable. */
+/** A sentence in the app's language, written now: a repository's refusal, a toast, a message built outside Compose. */
+fun appText(@StringRes id: Int, vararg args: Any): String = AppStrings.write(UiText.Res(id, args.toList()))
+
 fun refuse(@StringRes id: Int, vararg args: Any): Nothing = throw UserFacingException(UiText.Res(id, *args))

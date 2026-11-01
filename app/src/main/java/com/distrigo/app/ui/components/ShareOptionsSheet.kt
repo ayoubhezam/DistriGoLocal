@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.components
 
+import com.distrigo.app.R
 import com.distrigo.app.ui.common.formatQty
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -48,7 +49,7 @@ fun ShareOptionsSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).padding(bottom = 24.dp)) {
             Text(
-                "Partager le reçu",
+                androidx.compose.ui.res.stringResource(R.string.receipt_share),
                 fontSize   = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.TextPrimary,
@@ -59,7 +60,7 @@ fun ShareOptionsSheet(
                 iconBg   = DsColors.WhatsApp,
                 iconTint = Color.White,
                 title    = "WhatsApp",
-                subtitle = "Envoyer directement au client",
+                subtitle = androidx.compose.ui.res.stringResource(R.string.receipt_share_whatsapp),
                 icon     = { WhatsAppIcon(tint = Color.White) },
                 onClick  = {
                     shareViaWhatsApp(context, receipt)
@@ -70,8 +71,8 @@ fun ShareOptionsSheet(
             ShareOptionRow(
                 iconBg   = DsColors.DangerLight,
                 iconTint = DsColors.Danger,
-                title    = "Exporter en PDF",
-                subtitle = "Enregistrer ou envoyer le fichier",
+                title    = androidx.compose.ui.res.stringResource(R.string.receipt_export_pdf),
+                subtitle = androidx.compose.ui.res.stringResource(R.string.receipt_export_pdf_sub),
                 icon     = { Icon(Icons.Default.Description, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(20.dp)) },
                 onClick  = {
                     // The PDF now takes a moment to generate off the main thread; a second tap in
@@ -90,8 +91,8 @@ fun ShareOptionsSheet(
             ShareOptionRow(
                 iconBg   = DsColors.SurfaceSunken,
                 iconTint = DsColors.TextSecondary,
-                title    = "Copier en texte",
-                subtitle = "Coller où vous voulez",
+                title    = androidx.compose.ui.res.stringResource(R.string.receipt_copy_text),
+                subtitle = androidx.compose.ui.res.stringResource(R.string.receipt_copy_text_sub),
                 icon     = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(19.dp)) },
                 onClick  = {
                     copyReceiptAsText(context, receipt)
@@ -176,8 +177,8 @@ private fun shareViaWhatsApp(context: Context, receipt: ReceiptData) {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        context.startActivity(Intent.createChooser(fallback, "Partager via"))
-        Toast.makeText(context, "WhatsApp non installé", Toast.LENGTH_SHORT).show()
+        context.startActivity(Intent.createChooser(fallback, context.getString(R.string.receipt_share_via)))
+        Toast.makeText(context, context.getString(R.string.receipt_no_whatsapp), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -189,11 +190,11 @@ private suspend fun sharePdfFile(context: Context, receipt: ReceiptData) {
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Partager le PDF"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.receipt_share_the_pdf)))
 }
 
 private fun copyReceiptAsText(context: Context, receipt: ReceiptData) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("Reçu", receiptAsPlainText(receipt)))
-    Toast.makeText(context, "Reçu copié dans le presse-papiers", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, context.getString(R.string.receipt_copied), Toast.LENGTH_SHORT).show()
 }

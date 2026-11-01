@@ -972,7 +972,7 @@ fun ProductFormScreen(
                                     label         = stringResource(R.string.products_form_units_per_pack),
                                     value         = packSize,
                                     onValueChange = { raw -> packSize = raw.filter { it.isDigit() } },
-                                    placeholder   = "Ex: 6",
+                                    placeholder   = stringResource(R.string.products_form_pack_example),
                                     isNumber      = true,
                                     imeAction     = ImeAction.Done,
                                     trailingText  = stringResource(R.string.products_form_pieces)

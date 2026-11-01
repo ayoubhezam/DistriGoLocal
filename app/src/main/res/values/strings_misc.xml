@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lic_write_refused">Consultation seule : votre abonnement ne permet plus d\'enregistrer. Vos données restent consultables ; sauvegarde et export disponibles.</string>
+    <string name="error_camion_stock_short">Stock insuffisant pour %1$s : disponible %2$s, demandé %3$s</string>
+    <string name="error_tournee_has_sales">Impossible de supprimer : des ventes sont liées à cette tournée</string>
+    <string name="error_already_scanned">Ce produit a déjà été scanné dans cette session</string>
+    <string name="error_item_not_found">Élément introuvable</string>
+    <string name="error_type_exists">Ce type existe déjà</string>
+    <string name="error_choose_type">Choisissez un type</string>
+    <string name="error_subtype_exists">Ce sous-type existe déjà</string>
+    <plurals name="settings_clients_added">
+        <item quantity="one">%1$d client ajouté</item>
+        <item quantity="other">%1$d clients ajoutés</item>
+    </plurals>
+    <plurals name="settings_clients_moved">
+        <item quantity="one">%1$d déplacé</item>
+        <item quantity="other">%1$d déplacés</item>
+    </plurals>
+    <string name="receipt_sent">Reçu envoyé à l\'imprimante</string>
+    <string name="receipt_preview">Aperçu du reçu</string>
+    <string name="receipt_preparing">Préparation…</string>
+    <string name="receipt_printing">Impression…</string>
+    <string name="receipt_print">Imprimer le reçu</string>
+    <string name="receipt_choose_printer">Choisissez une imprimante dans Paramètres › Reçus et impression, ou partagez le reçu en PDF.</string>
+    <string name="receipt_share_pdf">Partager en PDF</string>
+    <string name="receipt_target_a4">Format A4 — via l\'impression Android</string>
+    <string name="receipt_target_none">Aucune imprimante — Paramètres › Reçus et impression</string>
+    <string name="receipt_share">Partager le reçu</string>
+    <string name="receipt_share_whatsapp">Envoyer directement au client</string>
+    <string name="receipt_export_pdf">Exporter en PDF</string>
+    <string name="receipt_export_pdf_sub">Enregistrer ou envoyer le fichier</string>
+    <string name="receipt_copy_text">Copier en texte</string>
+    <string name="receipt_copy_text_sub">Coller où vous voulez</string>
+    <string name="receipt_share_via">Partager via</string>
+    <string name="receipt_no_whatsapp">WhatsApp non installé</string>
+    <string name="receipt_share_the_pdf">Partager le PDF</string>
+    <string name="receipt_copied">Reçu copié dans le presse-papiers</string>
+    <string name="products_form_pack_example">Ex: 6</string>
+</resources>

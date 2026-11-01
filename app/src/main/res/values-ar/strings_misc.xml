@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lic_write_refused">عرض فقط: اشتراكك لم يعد يسمح بالتسجيل. تبقى بياناتك قابلة للعرض؛ النسخ الاحتياطي والتصدير متاحان.</string>
+    <string name="error_camion_stock_short">مخزون غير كافٍ لـ %1$s: المتوفر %2$s، المطلوب %3$s</string>
+    <string name="error_tournee_has_sales">لا يمكن الحذف: توجد مبيعات مرتبطة بهذه الجولة</string>
+    <string name="error_already_scanned">مُسح هذا المنتج من قبل في هذه الجلسة</string>
+    <string name="error_item_not_found">العنصر غير موجود</string>
+    <string name="error_type_exists">هذا النوع موجود بالفعل</string>
+    <string name="error_choose_type">اختر نوعًا</string>
+    <string name="error_subtype_exists">هذا النوع الفرعي موجود بالفعل</string>
+    <plurals name="settings_clients_added">
+        <item quantity="zero">لم يُضف أي زبون</item>
+        <item quantity="one">أُضيف زبون واحد</item>
+        <item quantity="two">أُضيف زبونان</item>
+        <item quantity="few">أُضيف %1$d زبائن</item>
+        <item quantity="many">أُضيف %1$d زبونًا</item>
+        <item quantity="other">أُضيف %1$d زبون</item>
+    </plurals>
+    <plurals name="settings_clients_moved">
+        <item quantity="zero">لم يُنقل أي زبون</item>
+        <item quantity="one">نُقل زبون واحد</item>
+        <item quantity="two">نُقل زبونان</item>
+        <item quantity="few">نُقل %1$d زبائن</item>
+        <item quantity="many">نُقل %1$d زبونًا</item>
+        <item quantity="other">نُقل %1$d زبون</item>
+    </plurals>
+    <string name="receipt_sent">أُرسل الوصل إلى الطابعة</string>
+    <string name="receipt_preview">معاينة الوصل</string>
+    <string name="receipt_preparing">جارٍ التحضير…</string>
+    <string name="receipt_printing">جارٍ الطباعة…</string>
+    <string name="receipt_print">طباعة الوصل</string>
+    <string name="receipt_choose_printer">اختر طابعة في الإعدادات › الوصولات والطباعة، أو شارك الوصل بصيغة PDF.</string>
+    <string name="receipt_share_pdf">مشاركة بصيغة PDF</string>
+    <string name="receipt_target_a4">مقاس A4 — عبر طباعة Android</string>
+    <string name="receipt_target_none">لا توجد طابعة — الإعدادات › الوصولات والطباعة</string>
+    <string name="receipt_share">مشاركة الوصل</string>
+    <string name="receipt_share_whatsapp">الإرسال مباشرة إلى الزبون</string>
+    <string name="receipt_export_pdf">تصدير بصيغة PDF</string>
+    <string name="receipt_export_pdf_sub">حفظ الملف أو إرساله</string>
+    <string name="receipt_copy_text">نسخ كنص</string>
+    <string name="receipt_copy_text_sub">الصق أينما تريد</string>
+    <string name="receipt_share_via">المشاركة عبر</string>
+    <string name="receipt_no_whatsapp">WhatsApp غير مثبّت</string>
+    <string name="receipt_share_the_pdf">مشاركة ملف PDF</string>
+    <string name="receipt_copied">نُسخ الوصل إلى الحافظة</string>
+    <string name="products_form_pack_example">مثال: 6</string>
+</resources>

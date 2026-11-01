@@ -765,7 +765,7 @@ fun NavGraphBuilder.venteFormGraph(
             BackHandler { navController.popBackStack() }
 
             Step3Validation(
-                title               = if (venteId != null) (documentLabel("vente", venteId, session::documentLabel)?.let { "Modifier $it" } ?: "Modifier la vente") else "Vente dépôt",
+                title               = if (venteId != null) (documentLabel("vente", venteId, session::documentLabel)?.let { stringResource(R.string.ventes_edit_title_with_number, it) } ?: stringResource(R.string.ventes_edit_sale)) else stringResource(R.string.dashboard_sale_depot),
                 selectedClient      = formClient,
                 cartItems           = cartItems,
                 total               = total,

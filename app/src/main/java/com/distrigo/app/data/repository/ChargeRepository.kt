@@ -178,10 +178,10 @@ class ChargeRepository(
      */
     suspend fun createSubType(typeId: Int, name: String, hasFournisseur: Boolean): Pair<ChargeSubType?, String?> {
         val clean = name.trim().replace(Regex("\\s+"), " ")
-        if (clean.isEmpty()) return null to "Saisissez un nom"
-        chargeDao.getChargeTypeById(typeId) ?: return null to "Choisissez un type"
+        if (clean.isEmpty()) return null to com.distrigo.app.core.text.appText(R.string.lists_enter_name)
+        chargeDao.getChargeTypeById(typeId) ?: return null to com.distrigo.app.core.text.appText(R.string.error_choose_type)
         if (chargeDao.getSubTypesForType(typeId).any { it.name.equals(clean, ignoreCase = true) }) {
-            return null to "Ce sous-type existe déjà"
+            return null to com.distrigo.app.core.text.appText(R.string.error_subtype_exists)
         }
         val id = addSubType(typeId, clean, icon = "category", hasFournisseur = hasFournisseur).toInt()
         return chargeDao.getSubTypeById(id)?.toChargeSubType() to null

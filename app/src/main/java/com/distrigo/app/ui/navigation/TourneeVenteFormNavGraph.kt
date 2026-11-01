@@ -150,7 +150,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             BackHandler { onBack() }
 
             Step1Client(
-                title          = "Tournée #${parentEntry.arguments?.getInt("tourneeId") ?: 0}",
+                title          = stringResource(R.string.tournees_sale_title, parentEntry.arguments?.getInt("tourneeId") ?: 0),
                 selectedClient = formClient,
                 onChooseClient = { navController.navigate(clientPickerRoute) },
                 onNext         = { navController.navigate(productsRoute) },

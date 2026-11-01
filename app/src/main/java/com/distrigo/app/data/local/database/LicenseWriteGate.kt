@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.database
 
+import com.distrigo.app.R
 import android.database.sqlite.SQLiteConstraintException
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
@@ -48,8 +49,7 @@ object LicenseWriteGate {
     const val REFUSAL = "LICENSE_READ_ONLY"
 
     /** What a refused write tells the user (§2, « Consultation seule »). */
-    const val MESSAGE = "Consultation seule : votre abonnement ne permet plus d'enregistrer. " +
-        "Vos données restent consultables ; sauvegarde et export disponibles."
+    val MESSAGE: String get() = com.distrigo.app.data.license.licText(R.string.lic_write_refused)
 
     /** Every document, its lines, money and stock (§3), then the catalogue (decision 1). */
     val GATED_TABLES: List<String> = listOf(

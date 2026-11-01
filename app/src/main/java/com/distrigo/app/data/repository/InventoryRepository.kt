@@ -1,5 +1,6 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.R
 import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
@@ -116,7 +117,7 @@ class InventoryRepository(
     }
 
     suspend fun recordScan(sessionId: Int, productId: Int, qtePhysique: Double, userName: String? = null): Map<String, Any> {
-        if (qtePhysique < 0) return mapOf("error" to "Quantité invalide")
+        if (qtePhysique < 0) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.common_invalid_quantity))
         val counted = Quantity.normalize(qtePhysique)   // to the thousandth, as every quantity is written
 
         // The "already scanned" check, the stock it measures against and the insert are one
@@ -128,7 +129,7 @@ class InventoryRepository(
         // what the camion holds would leave the dépôt negative: strict stock refuses it.
         return depotGuard.guardOrError(listOf(productId)) {
             if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
-                return@guardOrError mapOf("error" to "Ce produit a déjà été scanné dans cette session")
+                return@guardOrError mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_already_scanned))
             }
             val product = productDao.getProductById(productId)
                 ?: return@guardOrError mapOf("error" to "Produit introuvable")
@@ -180,9 +181,9 @@ class InventoryRepository(
         }
     }
     suspend fun updateScan(itemId: Int, newQtePhysique: Double, userName: String? = null): Map<String, Any> {
-        if (newQtePhysique < 0) return mapOf("error" to "Quantité invalide")
+        if (newQtePhysique < 0) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.common_invalid_quantity))
         val counted = Quantity.normalize(newQtePhysique)   // to the thousandth, as every quantity is written
-        val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
+        val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_item_not_found))
         productDao.getProductById(item.product_id)?.let { p ->
             unitError(p.name, p.unit_type, counted)?.let { return mapOf("error" to it) }
         }
@@ -230,7 +231,7 @@ class InventoryRepository(
     }
 
     suspend fun deleteScan(itemId: Int): Map<String, Any> {
-        val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to "Élément introuvable")
+        val item = inventoryDao.getItemById(itemId) ?: return mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_item_not_found))
 
         // Removing a scan that raised the stock takes that back out of the dépôt.
         return depotGuard.guardOrError(listOf(item.product_id)) {

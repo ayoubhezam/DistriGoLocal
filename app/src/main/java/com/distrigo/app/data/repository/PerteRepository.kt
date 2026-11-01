@@ -99,9 +99,9 @@ class PerteRepository(
      */
     suspend fun createPerteType(name: String): Pair<PerteType?, String?> {
         val clean = name.trim().replace(Regex("\\s+"), " ")
-        if (clean.isEmpty()) return null to "Saisissez un nom"
+        if (clean.isEmpty()) return null to com.distrigo.app.core.text.appText(R.string.lists_enter_name)
         if (perteDao.getAllPerteTypes().any { it.name.equals(clean, ignoreCase = true) }) {
-            return null to "Ce type existe déjà"
+            return null to com.distrigo.app.core.text.appText(R.string.error_type_exists)
         }
         val id = addPerteType(clean, icon = "category", colorHex = "#98A2B3").toInt()
         return perteDao.getPerteTypeById(id)?.toPerteType() to null
@@ -188,7 +188,7 @@ class PerteRepository(
         val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
         unitError(product.name, product.unit_type, qty)?.let { return mapOf("error" to it) }
 
-        if (qty <= 0) return mapOf("error" to "Quantité invalide")
+        if (qty <= 0) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.common_invalid_quantity))
 
         if (source == "camion" && qty > product.camion_stock) {
             return mapOf("error" to "Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")
@@ -261,7 +261,7 @@ class PerteRepository(
     ): Map<String, Any> {
         val existing = perteDao.getPerteById(id) ?: return mapOf("error" to "Perte introuvable")
         val qty = Quantity.normalize(quantity)   // to the thousandth, as every quantity is written
-        if (qty <= 0) return mapOf("error" to "Quantité invalide")
+        if (qty <= 0) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.common_invalid_quantity))
 
         return try {
             // Only the perte's new product can lose dépôt stock: the old one gets its quantity back.

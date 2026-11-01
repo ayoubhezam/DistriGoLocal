@@ -109,7 +109,7 @@ class RetourClientRepository(
         items     : List<Map<String, Any?>>,
         userName  : String? = null
     ): Map<String, Any> {
-        if (items.isEmpty()) return mapOf("error" to "Ajoutez au moins un produit")
+        if (items.isEmpty()) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.retours_add_one))
         db.unitErrorIn(items)?.let { return mapOf("error" to it) }
 
         PerteRepository(db).seedDefaultPerteTypesIfNeeded()

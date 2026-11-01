@@ -91,7 +91,7 @@ fun ReceiptPreviewSheet(
     // between the rep and the next client.
     LaunchedEffect(printStatus) {
         if (printStatus == ReceiptPrintStatus.Sent) {
-            Toast.makeText(context, "Reçu envoyé à l'imprimante", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.receipt_sent), Toast.LENGTH_SHORT).show()
             printViewModel.clear()
         }
     }
@@ -108,7 +108,7 @@ fun ReceiptPreviewSheet(
                 .padding(bottom = 24.dp),
         ) {
             Text(
-                "APERÇU DU REÇU",
+                stringResource(R.string.receipt_preview).uppercase(),
                 fontSize   = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color      = DsColors.TextSecondary,
@@ -174,11 +174,11 @@ fun ReceiptPreviewSheet(
                             color       = Color.White,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(if (isA4) "Préparation…" else "Impression…", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(if (isA4) R.string.receipt_preparing else R.string.receipt_printing), fontWeight = FontWeight.SemiBold)
                     } else {
                         Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Imprimer le reçu", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.receipt_print), fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -210,8 +210,7 @@ fun ReceiptPreviewSheet(
             text  = {
                 Text(
                     if (failed.failure == PrintFailure.NOT_CONFIGURED)
-                        "Choisissez une imprimante dans Paramètres › Reçus et impression, " +
-                            "ou partagez le reçu en PDF."
+                        stringResource(R.string.receipt_choose_printer)
                     else message.detail
                 )
             },
@@ -228,7 +227,7 @@ fun ReceiptPreviewSheet(
                 TextButton(onClick = {
                     printViewModel.clear()
                     onShareRequested()
-                }) { Text("Partager en PDF") }
+                }) { Text(stringResource(R.string.receipt_share_pdf)) }
             },
         )
     }
@@ -236,10 +235,10 @@ fun ReceiptPreviewSheet(
 
 /** What the print button is about to do, in the words of the setting that decides it. */
 private fun printTargetLabel(settings: PrintSettings): String = when {
-    settings.effectivePaper == PaperSize.A4 -> "Format A4 — via l'impression Android"
+    settings.effectivePaper == PaperSize.A4 -> com.distrigo.app.core.text.appText(R.string.receipt_target_a4)
     settings.selectedPrinter != null ->
         "${settings.selectedPrinter!!.displayName} · ${settings.effectivePaper.label}"
-    else -> "Aucune imprimante — Paramètres › Reçus et impression"
+    else -> com.distrigo.app.core.text.appText(R.string.receipt_target_none)
 }
 
 /**

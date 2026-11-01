@@ -1245,9 +1245,7 @@ class ProductRepository(
                 ?: refuse(R.string.error_product_not_found, productId)
             requireFitsUnit(product.name, product.unit_type, quantity)
             if (quantity > product.camion_stock + AMOUNT_EPSILON) {
-                throw IllegalStateException(
-                    "Stock insuffisant pour ${product.name} : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(quantity)}"
-                )
+                refuse(R.string.error_camion_stock_short, product.name, Quantity.format(product.camion_stock), Quantity.format(quantity))
             }
         }
     }
@@ -2071,7 +2069,7 @@ class ProductRepository(
             db.tourneeDao().deleteTourneeById(id)
             false
         }
-        if (linked) return mapOf("error" to "Impossible de supprimer : des ventes sont liées à cette tournée")
+        if (linked) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_tournee_has_sales))
         return mapOf("message" to "Tournée supprimée avec succès")
     }
 
