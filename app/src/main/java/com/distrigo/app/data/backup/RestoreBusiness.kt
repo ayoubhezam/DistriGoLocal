@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.R
 import android.database.sqlite.SQLiteDatabase
 
 /**
@@ -15,8 +16,7 @@ data class RestoreBusiness(val businessId: String?, val name: String?) {
 
     /** The dialog's paragraph: what happens after the restore. */
     fun line(): String =
-        "Cette sauvegarde appartient à une autre entreprise" + (name?.let { " (« $it »)" } ?: "") + " que celle du compte connecté. " +
-            "Après la restauration, DistriGo vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter."
+        name?.let { backupText(R.string.backup_other_business_named, it) } ?: backupText(R.string.backup_other_business)
 
     companion object {
         /** Reads [prepared]'s database, already migrated to this app's version. Opened read-only. */

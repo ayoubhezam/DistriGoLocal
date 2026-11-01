@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.R
 import android.database.sqlite.SQLiteDatabase
 
 /**
@@ -34,27 +35,18 @@ data class RestoreStockRule(
 
     /** The dialog's paragraphs, in order. */
     fun lines(): List<String> = buildList {
-        add(
-            "Stock négatif : ${rule(backupAllowsNegative)} dans la sauvegarde, ${rule(currentAllowsNegative)} sur ce téléphone. " +
-                "La sauvegarde garde sa règle : après la restauration, le stock négatif sera ${rule(backupAllowsNegative)}."
-        )
+        add(backupText(R.string.backup_rule_line, rule(backupAllowsNegative), rule(currentAllowsNegative), rule(backupAllowsNegative)))
         if (resetByUpgrade) {
-            add(
-                "Cette sauvegarde date d'une version de l'application antérieure à ce réglage : " +
-                    "il y prend sa valeur par défaut, « autorisé »."
-            )
+            add(backupText(R.string.backup_rule_reset))
         }
         if (!backupAllowsNegative && negativeProducts > 0) {
             // The switch's own words, so the two say the same thing about the same products.
-            add(
-                "$negativeProducts produit(s) sont déjà en stock négatif au dépôt dans cette sauvegarde. Ils ne pourront plus être " +
-                    "vendus, chargés ni sortis du dépôt avant d'être réapprovisionnés."
-            )
+            add(backupCount(R.plurals.backup_rule_negative_products, negativeProducts))
         }
-        add("Vous pourrez changer cette règle ensuite dans Paramètres.")
+        add(backupText(R.string.backup_rule_change_later))
     }
 
-    private fun rule(allows: Boolean) = if (allows) "autorisé" else "interdit"
+    private fun rule(allows: Boolean) = backupText(if (allows) R.string.backup_rule_allowed else R.string.backup_rule_forbidden)
 
     companion object {
         /** The database version that added the setting (MIGRATION_56_57). */

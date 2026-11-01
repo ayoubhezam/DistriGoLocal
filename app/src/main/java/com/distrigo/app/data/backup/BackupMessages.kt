@@ -1,47 +1,48 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.R
+
 /**
  * What the user is told when a backup cannot be made or restored: what happened, and what to do next.
  * Technical detail stays in the logs.
  */
 object BackupMessages {
 
-    private const val UPDATE_APP =
-        "Cette sauvegarde a été créée par une version plus récente de DistriGo. Mettez l'application à jour, puis réessayez."
+    private val UPDATE_APP: String get() = backupText(R.string.backup_update_app)
 
     fun of(problem: BackupProblem): String = when (problem) {
         BackupProblem.CannotOpen ->
-            "Impossible d'ouvrir ce fichier. Vérifiez qu'il est toujours disponible, puis choisissez-le à nouveau."
+            backupText(R.string.backup_cannot_open)
         is BackupProblem.NotEnoughSpace ->
             if (problem.neededBytes > 0) {
-                "Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez au moins ${megabytes(problem.neededBytes)} Mo, puis réessayez."
+                backupText(R.string.backup_no_space_mb, megabytes(problem.neededBytes))
             } else {
-                "Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez de l'espace, puis réessayez."
+                backupText(R.string.backup_no_space)
             }
         BackupProblem.NotABackup ->
-            "Ce fichier n'est pas une sauvegarde DistriGo. Choisissez un fichier .distrigo."
+            backupText(R.string.backup_not_a_backup)
         is BackupProblem.NewerFormat -> UPDATE_APP
         is BackupProblem.NewerDatabase -> UPDATE_APP
         is BackupProblem.DatabaseTooOld ->
-            "Cette sauvegarde provient d'une version trop ancienne de DistriGo et ne peut pas être restaurée."
+            backupText(R.string.backup_too_old)
         is BackupProblem.Damaged ->
-            "Cette sauvegarde est endommagée ou incomplète et ne peut pas être restaurée. Essayez une autre copie."
+            backupText(R.string.backup_damaged)
     }
 
     /** A restore that did not go ahead because the current data could not be saved first. */
     fun safetyBackupFailed(reason: BackupFailedException.Reason): String = when (reason) {
         BackupFailedException.Reason.DATABASE_DAMAGED ->
-            "La restauration n'a pas été lancée : vos données actuelles n'ont pas passé la vérification, et aucune copie de sécurité n'a pu en être faite."
+            backupText(R.string.backup_safety_damaged)
         else ->
-            "La restauration n'a pas été lancée : impossible d'enregistrer d'abord une copie de sécurité de vos données actuelles. Vérifiez l'espace disponible, puis réessayez."
+            backupText(R.string.backup_safety_failed)
     }
 
     /** How the last restore ended, told once the app has restarted. */
     fun of(result: RestoreResult): String =
         if (result.installed) {
-            "Restauration terminée. Une copie de sécurité de vos données précédentes a été conservée."
+            backupText(R.string.backup_restore_done)
         } else {
-            "La restauration n'a pas pu être installée. Vos données n'ont pas changé."
+            backupText(R.string.backup_restore_not_installed)
         }
 
     /** Whole megabytes, rounded up: asking for too little space would fail again. */
@@ -49,10 +50,10 @@ object BackupMessages {
 
     fun of(reason: BackupFailedException.Reason): String = when (reason) {
         BackupFailedException.Reason.DATABASE_DAMAGED ->
-            "Les données de l'application n'ont pas passé la vérification : aucune sauvegarde n'a été créée."
+            backupText(R.string.backup_data_damaged)
         BackupFailedException.Reason.WRITE_FAILED ->
-            "Impossible d'enregistrer la sauvegarde à cet emplacement. Vérifiez l'espace disponible ou choisissez un autre emplacement."
+            backupText(R.string.backup_write_failed)
         BackupFailedException.Reason.NOT_VERIFIED ->
-            "La sauvegarde enregistrée ne se relit pas correctement : elle a été supprimée. Réessayez ou choisissez un autre emplacement."
+            backupText(R.string.backup_not_verified)
     }
 }

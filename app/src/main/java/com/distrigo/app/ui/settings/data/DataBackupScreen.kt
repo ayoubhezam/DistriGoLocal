@@ -59,7 +59,8 @@ import com.distrigo.app.data.backup.BackupJobResult
 import com.distrigo.app.data.backup.BackupJobState
 import com.distrigo.app.data.backup.RestoreResult
 import com.distrigo.app.data.backup.auto.AutoBackupRunner
-import com.distrigo.app.ui.common.formatRelativeFr
+import com.distrigo.app.ui.common.relativeTime
+import com.distrigo.app.ui.settings.settingsText
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -74,6 +75,7 @@ import com.distrigo.app.data.backup.RestoreStockRule
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Paramètres → Sauvegarde et restauration: save all the data to a file, and replace it with a file saved before.
@@ -164,7 +166,7 @@ fun DataBackupScreen(
                 .background(DsColors.SurfaceMuted)
         ) {
             DsTopAppBar(
-                title = "Sauvegarde et restauration",
+                title = stringResource(R.string.settings_backup),
                 leading = DsTopBarLeading.Back { if (state !is DataBackupState.Working) onBack() }
             )
 
@@ -236,47 +238,47 @@ fun DataBackupScreen(
 // full on the screen is behind each title's ⓘ. Only what needs acting on now — a failed night, notifications off —
 // stays on the card.
 
-private val INFO_MANUAL = DsInfo(
-    title = "Sauvegarde manuelle",
+private val INFO_MANUAL: DsInfo get() = DsInfo(
+    title = settingsText(R.string.backup_manual),
     icon = Icons.Default.CloudUpload,
     tint = DsColors.Primary,
-    summary = "Une copie complète de vos données et de vos photos, dans un fichier .distrigo.",
+    summary = settingsText(R.string.backup_manual_summary),
     toKnow = listOf(
-        "Gardez-le hors du téléphone : Google Drive, ordinateur, WhatsApp.",
-        "Pour tout récupérer : « Restauration ».",
+        settingsText(R.string.backup_manual_know_1),
+        settingsText(R.string.backup_manual_know_2),
     ),
 )
 
-private val INFO_AUTO = DsInfo(
-    title = "Sauvegarde automatique",
+private val INFO_AUTO: DsInfo get() = DsInfo(
+    title = settingsText(R.string.backup_auto),
     icon = Icons.Default.History,
     tint = DsColors.AccentViolet,
-    summary = "Chaque nuit vers 3 h, une sauvegarde complète dans le dossier choisi, si les données ont changé.",
+    summary = settingsText(R.string.backup_auto_summary),
     toKnow = listOf(
-        "Les ${AutoBackupRunner.KEEP} dernières sont gardées.",
-        "Copiez-en une hors du téléphone de temps en temps.",
+        settingsText(R.string.backup_auto_know_1, AutoBackupRunner.KEEP),
+        settingsText(R.string.backup_auto_know_2),
     ),
 )
 
-private val INFO_RESTORE = DsInfo(
-    title = "Restauration",
+private val INFO_RESTORE: DsInfo get() = DsInfo(
+    title = settingsText(R.string.backup_restore),
     icon = Icons.Default.SettingsBackupRestore,
     tint = DsColors.AccentTeal,
-    summary = "Remplace toutes les données de ce téléphone par celles d'une sauvegarde .distrigo.",
+    summary = settingsText(R.string.backup_restore_summary),
     toKnow = listOf(
-        "Une copie de sécurité de vos données actuelles est faite d'abord.",
-        "L'application redémarre ensuite.",
+        settingsText(R.string.backup_restore_know_1),
+        settingsText(R.string.backup_restore_know_2),
     ),
 )
 
-private val INFO_SAFETY = DsInfo(
-    title = "Copies de sécurité",
+private val INFO_SAFETY: DsInfo get() = DsInfo(
+    title = settingsText(R.string.backup_safety),
     icon = Icons.Default.Storage,
     tint = DsColors.AccentViolet,
-    summary = "Faites avant chaque restauration et chaque import, pour pouvoir les annuler.",
+    summary = settingsText(R.string.backup_safety_summary),
     toKnow = listOf(
-        "Celles d'un import n'ont pas les photos.",
-        "Supprimées si l'application est désinstallée.",
+        settingsText(R.string.backup_safety_know_1),
+        settingsText(R.string.backup_safety_know_2),
     ),
 )
 
@@ -329,13 +331,13 @@ private fun ManualBackupCard(
     onInfo: (DsInfo) -> Unit,
     onCreate: () -> Unit,
 ) {
-    BackupCard(Icons.Default.CloudUpload, DsColors.Primary, "Sauvegarde manuelle", INFO_MANUAL, onInfo) {
+    BackupCard(Icons.Default.CloudUpload, DsColors.Primary, stringResource(R.string.backup_manual), INFO_MANUAL, onInfo) {
         Column(Modifier.padding(start = 52.dp + DsSpacing.md)) {
-            Text("Dernière sauvegarde", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.backup_last), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             if (lastBackup == null) {
-                Text("Aucune pour le moment", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Warning)
+                Text(stringResource(R.string.backup_none_yet), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Warning)
             } else {
-                val relative = formatRelativeFr(lastBackup.at.toString())
+                val relative = relativeTime(lastBackup.at.toString())?.let { com.distrigo.app.core.text.AppStrings.write(it) }
                 Text(
                     DataBackupFormatting.dateTime(lastBackup.at) + (relative?.let { " ($it)" } ?: ""),
                     fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
@@ -345,7 +347,7 @@ private fun ManualBackupCard(
                 Text(DataBackupFormatting.countsSummary(counts), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
-        failure?.let { Notice(Icons.Default.WarningAmber, DsColors.DangerLight, DsColors.Danger, "La dernière sauvegarde a échoué : $it") }
+        failure?.let { Notice(Icons.Default.WarningAmber, DsColors.DangerLight, DsColors.Danger, stringResource(R.string.backup_last_failed, it)) }
         if (running != null) {
             JobProgress(running.step)
         } else {
@@ -358,7 +360,7 @@ private fun ManualBackupCard(
             ) {
                 Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Créer une sauvegarde", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.backup_create), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -376,7 +378,7 @@ private fun JobProgress(step: String) {
         Spacer(Modifier.width(DsSpacing.md))
         Column(Modifier.weight(1f)) {
             Text(step, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
-            Text("Vous pouvez quitter cet écran : la sauvegarde continue.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.backup_can_leave), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
 }
@@ -396,10 +398,10 @@ private fun AutoBackupCard(
     val folder = status.folder
     val state = status.state
     val lost = folder.chosen && !folder.available
-    BackupCard(Icons.Default.History, DsColors.AccentViolet, "Sauvegarde automatique", INFO_AUTO, onInfo) {
+    BackupCard(Icons.Default.History, DsColors.AccentViolet, stringResource(R.string.backup_auto), INFO_AUTO, onInfo) {
         // The switch on its own line, under the title: beside it with the ⓘ, the title broke in two
         Row(Modifier.padding(start = 52.dp + DsSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text("Chaque nuit vers 3 h", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.backup_every_night), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
             Switch(
                 checked = state.enabled,
                 onCheckedChange = onToggle,
@@ -414,7 +416,7 @@ private fun AutoBackupCard(
                 .fillMaxWidth()
                 .clip(DsShapes.large)
                 .background(if (lost) DsColors.WarningLight else DsColors.SurfaceMuted)
-                .clickable(onClickLabel = if (folder.chosen) "Changer de dossier" else "Choisir le dossier", onClick = onChooseFolder)
+                .clickable(onClickLabel = stringResource(if (folder.chosen) R.string.backup_change_folder else R.string.backup_choose_the_folder), onClick = onChooseFolder)
                 .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -424,12 +426,12 @@ private fun AutoBackupCard(
             )
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("Dossier de sauvegarde", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.backup_folder), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                 Text(
                     when {
-                        !folder.chosen -> "Choisir un dossier"
-                        lost -> "Dossier inaccessible : choisissez-en un autre"
-                        else -> folder.name ?: "Dossier choisi"
+                        !folder.chosen -> stringResource(R.string.backup_choose_a_folder)
+                        lost -> stringResource(R.string.backup_folder_lost)
+                        else -> folder.name ?: stringResource(R.string.backup_folder_chosen)
                     },
                     fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
                     color = if (!folder.chosen) DsColors.Primary else DsColors.TextPrimary
@@ -441,11 +443,11 @@ private fun AutoBackupCard(
         // Where the nights stand, once they run
         if (state.enabled) {
             val last = state.lastAt?.takeIf { state.lastLocation == com.distrigo.app.data.backup.auto.BackupLocation.PICKED_FOLDER }
-                ?.let { DataBackupFormatting.dateTimeWithAge(it) } ?: "aucune pour le moment"
-            Text("Dernière : $last", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                ?.let { DataBackupFormatting.dateTimeWithAge(it) } ?: stringResource(R.string.backup_none_yet_lower)
+            Text(stringResource(R.string.backup_last_value, last), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
             // Only after a night with nothing new: why « Dernière » may be old
-            DataBackupFormatting.lastCheck(state)?.let { Text("Vérifiée : $it", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
-            status.nextRunAt?.let { Text("Prochaine : vers le ${DataBackupFormatting.dateTime(it)}", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
+            DataBackupFormatting.lastCheck(state)?.let { Text(stringResource(R.string.backup_checked_value, it), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
+            status.nextRunAt?.let { Text(stringResource(R.string.backup_next_value, DataBackupFormatting.dateTime(it)), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary) }
         }
         // What needs acting on, and only then
         state.lastProblem?.let { problem ->
@@ -457,19 +459,18 @@ private fun AutoBackupCard(
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
                 Text(
-                    "La sauvegarde de nuit n'a pas eu lieu depuis plus d'une journée. Android la retarde peut-être pour économiser la batterie : " +
-                        "dans les paramètres de DistriGo, réglez la batterie sur « Non restreinte ».",
+                    stringResource(R.string.backup_overdue),
                     fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary
                 )
                 TextButton(onClick = onOpenAppSettings, contentPadding = PaddingValues(0.dp)) {
-                    Text("Ouvrir les paramètres de DistriGo", color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.backup_open_app_settings), color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
         if (state.enabled && !status.notificationsAllowed) {
-            Text("Notifications désactivées : un échec ne sera signalé qu'ici.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.backup_notifications_off), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
-        failure?.let { Notice(Icons.Default.WarningAmber, DsColors.DangerLight, DsColors.Danger, "La dernière sauvegarde a échoué : $it") }
+        failure?.let { Notice(Icons.Default.WarningAmber, DsColors.DangerLight, DsColors.Danger, stringResource(R.string.backup_last_failed, it)) }
         if (running != null) {
             JobProgress(running.step)
         } else if (folder.chosen && folder.available) {
@@ -483,7 +484,7 @@ private fun AutoBackupCard(
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(DsSpacing.sm))
-                Text("Sauvegarder maintenant", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.backup_now), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -492,10 +493,10 @@ private fun AutoBackupCard(
 @Composable
 private fun RestoreCard(enabled: Boolean, onInfo: (DsInfo) -> Unit, onPick: () -> Unit) {
     BackupCard(
-        Icons.Default.SettingsBackupRestore, DsColors.AccentTeal, "Restauration", INFO_RESTORE, onInfo,
-        subtitle = "Récupérez vos données depuis une sauvegarde.",
+        Icons.Default.SettingsBackupRestore, DsColors.AccentTeal, stringResource(R.string.backup_restore), INFO_RESTORE, onInfo,
+        subtitle = stringResource(R.string.backup_restore_sub),
     ) {
-        if (!enabled) Text("Disponible à la fin de la sauvegarde en cours.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        if (!enabled) Text(stringResource(R.string.backup_available_after), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Button(
             onClick = onPick,
             enabled = enabled,
@@ -509,7 +510,7 @@ private fun RestoreCard(enabled: Boolean, onInfo: (DsInfo) -> Unit, onPick: () -
         ) {
             Icon(Icons.Default.RestorePage, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Restaurer une sauvegarde", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.backup_restore_one), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -517,8 +518,8 @@ private fun RestoreCard(enabled: Boolean, onInfo: (DsInfo) -> Unit, onPick: () -
 @Composable
 private fun SafetyBackupsCard(backups: List<SafetyBackup>, enabled: Boolean, onInfo: (DsInfo) -> Unit, onRestore: (SafetyBackup) -> Unit) {
     BackupCard(
-        Icons.Default.Storage, DsColors.AccentViolet, "Copies de sécurité", INFO_SAFETY, onInfo,
-        subtitle = "Faites avant chaque restauration et chaque import.",
+        Icons.Default.Storage, DsColors.AccentViolet, stringResource(R.string.backup_safety), INFO_SAFETY, onInfo,
+        subtitle = stringResource(R.string.backup_safety_sub),
     ) {
         Column(Modifier.fillMaxWidth().clip(DsShapes.large).border(1.dp, DsColors.Border, DsShapes.large)) {
             backups.forEachIndexed { index, backup ->
@@ -531,7 +532,7 @@ private fun SafetyBackupsCard(backups: List<SafetyBackup>, enabled: Boolean, onI
                     Spacer(Modifier.width(DsSpacing.md))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            if (com.distrigo.app.data.backup.RestoreCoordinator.isImportBackup(backup.file)) "Avant un import" else "Avant une restauration",
+                            stringResource(if (com.distrigo.app.data.backup.RestoreCoordinator.isImportBackup(backup.file)) R.string.backup_before_import else R.string.backup_before_restore),
                             fontSize = DsTextSize.caption, color = DsColors.TextSecondary
                         )
                         Text(DataBackupFormatting.dateTime(backup.at), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
@@ -570,7 +571,7 @@ private fun RestoreResultBanner(result: RestoreResult, onDismiss: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(BackupMessages.of(result), fontSize = DsTextSize.bodySmall, color = DsColors.TextPrimary)
             result.backupCreatedAt?.takeIf { result.installed }?.let {
-                Text("Sauvegarde du ${DataBackupFormatting.dateTime(it)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                Text(stringResource(R.string.backup_of_date, DataBackupFormatting.dateTime(it)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
             }
         }
         TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_ok), color = tint, fontWeight = FontWeight.SemiBold) }
@@ -590,7 +591,7 @@ private fun RestorePreviewScreen(
     val manifest = preview.manifest
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Restaurer cette sauvegarde ?", leading = DsTopBarLeading.Back(onCancel))
+        DsTopAppBar(title = stringResource(R.string.backup_restore_this), leading = DsTopBarLeading.Back(onCancel))
 
         Column(
             modifier = Modifier
@@ -605,27 +606,27 @@ private fun RestorePreviewScreen(
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
             ) {
                 Text(
-                    (if (isSafetyBackup) "Copie de sécurité du " else "Sauvegarde du ") + DataBackupFormatting.dateTime(manifest.createdAt),
+                    stringResource(if (isSafetyBackup) R.string.backup_safety_of_date else R.string.backup_of_date, DataBackupFormatting.dateTime(manifest.createdAt)),
                     fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary
                 )
-                DetailLine("Téléphone", manifest.deviceModel.ifEmpty { "Inconnu" } + if (preview.fromThisPhone) " (ce téléphone)" else "")
+                DetailLine(stringResource(R.string.backup_phone), manifest.deviceModel.ifEmpty { stringResource(R.string.backup_unknown) }.let { model -> if (preview.fromThisPhone) stringResource(R.string.backup_this_phone, model) else model })
                 if (!isSafetyBackup && preview.fileName.isNotEmpty()) {
-                    DetailLine("Fichier", listOfNotNull(preview.fileName, preview.fileSize?.let(DataBackupFormatting::size)).joinToString(" · "))
+                    DetailLine(stringResource(R.string.backup_file), listOfNotNull(preview.fileName, preview.fileSize?.let(DataBackupFormatting::size)).joinToString(" · "))
                 }
-                DetailLine("Photos", if (preview.photosIncluded) preview.photoCount.toString() else "Non incluses : les photos actuelles sont conservées")
-                if (manifest.appVersion.isNotEmpty()) DetailLine("Version", manifest.appVersion)
+                DetailLine(stringResource(R.string.backup_photos), if (preview.photosIncluded) preview.photoCount.toString() else stringResource(R.string.backup_photos_not_included))
+                if (manifest.appVersion.isNotEmpty()) DetailLine(stringResource(R.string.backup_version), manifest.appVersion)
             }
 
             if (!preview.sameDatabase) {
                 Notice(
                     Icons.Default.WarningAmber, DsColors.WarningLight, DsColors.Warning,
-                    "Cette sauvegarde ne provient pas des données actuelles de ce téléphone : elle contient les données d'une autre installation de DistriGo."
+                    stringResource(R.string.backup_other_install)
                 )
             }
             if (preview.needsUpgrade) {
                 Notice(
                     Icons.Default.Info, DsColors.PrimaryLight, DsColors.Primary,
-                    "Créée par une version antérieure de DistriGo : elle sera mise à jour pendant la restauration."
+                    stringResource(R.string.backup_needs_upgrade)
                 )
             }
 
@@ -640,8 +641,7 @@ private fun RestorePreviewScreen(
         ) {
             Notice(
                 Icons.Default.WarningAmber, DsColors.DangerLight, DsColors.Danger,
-                "Toutes les données actuelles de ce téléphone seront remplacées. " +
-                    "Une copie de sécurité en sera enregistrée d'abord, puis l'application redémarrera."
+                stringResource(R.string.backup_replace_warning)
             )
             Button(
                 onClick = { confirming = true },
@@ -670,8 +670,8 @@ private fun CountsTable(preview: BackupPreview) {
     Column(Modifier.fillMaxWidth().clip(DsShapes.large).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.large)) {
         Row(Modifier.fillMaxWidth().background(DsColors.SurfaceSunken).padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)) {
             Text("", Modifier.weight(1.4f))
-            Text("Sauvegarde", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
-            Text("Actuellement", Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
+            Text(stringResource(R.string.backup_column_backup), Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
+            Text(stringResource(R.string.backup_column_now), Modifier.weight(1f), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = layoutEnd())
         }
         preview.headline.forEach { (table, counts) ->
             val (inBackup, now) = counts
@@ -690,13 +690,14 @@ private fun CountsTable(preview: BackupPreview) {
 @Composable
 private fun TypedConfirmationDialog(onDismiss: () -> Unit, onConfirmed: () -> Unit) {
     var typed by remember { mutableStateOf("") }
-    val matches = typed.trim().equals(CONFIRMATION_WORD, ignoreCase = true)
+    val word = stringResource(R.string.backup_confirm_word)
+    val matches = typed.trim().equals(word, ignoreCase = true)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Confirmer la restauration") },
+        title = { Text(stringResource(R.string.backup_confirm_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                Text("Vos données actuelles seront remplacées. Tapez $CONFIRMATION_WORD pour confirmer.")
+                Text(stringResource(R.string.backup_confirm_body, word))
                 OutlinedTextField(
                     value = typed,
                     onValueChange = { typed = it },
@@ -720,7 +721,6 @@ private fun TypedConfirmationDialog(onDismiss: () -> Unit, onConfirmed: () -> Un
     )
 }
 
-private const val CONFIRMATION_WORD = "RESTAURER"
 
 // ── Progress, results, restart ──
 
@@ -741,7 +741,7 @@ private fun WorkingOverlay(label: String) {
         ) {
             CircularProgressIndicator(color = DsColors.Primary)
             Text(label, fontSize = DsTextSize.body, color = DsColors.TextPrimary, textAlign = TextAlign.Center)
-            Text("Ne quittez pas l'application.", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(stringResource(R.string.backup_do_not_leave), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
 }
@@ -757,22 +757,22 @@ private fun BackupSavedDialog(result: BackupJobResult.Saved, toFolder: Boolean, 
                 tint = if (result.inPrivateStorage) DsColors.Warning else DsColors.Success
             )
         },
-        title = { Text("Sauvegarde enregistrée") },
+        title = { Text(stringResource(R.string.backup_saved)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                val where = result.folderName?.let { " dans « $it »" } ?: ""
-                Text("${result.fileName} (${DataBackupFormatting.size(result.size)}) a été enregistrée et vérifiée$where.")
-                if (!toFolder) Text("${result.photos} photo(s) incluse(s).", fontSize = DsTextSize.bodySmall)
+                Text(result.folderName?.let { stringResource(R.string.backup_saved_in, result.fileName, DataBackupFormatting.size(result.size), it) }
+                    ?: stringResource(R.string.backup_saved_here, result.fileName, DataBackupFormatting.size(result.size)))
+                if (!toFolder) Text(pluralStringResource(R.plurals.backup_photos_included, result.photos, result.photos), fontSize = DsTextSize.bodySmall)
                 if (result.photosLeftOut > 0) {
-                    Text("${result.photosLeftOut} photo(s) introuvable(s) ou endommagée(s) sur le téléphone n'ont pas pu être incluses.",
+                    Text(pluralStringResource(R.plurals.backup_photos_left_out, result.photosLeftOut, result.photosLeftOut),
                         fontSize = DsTextSize.bodySmall, color = DsColors.Warning)
                 }
                 if (result.removed > 0) {
-                    Text("${result.removed} ancienne(s) sauvegarde(s) automatique(s) supprimée(s).", fontSize = DsTextSize.bodySmall)
+                    Text(pluralStringResource(R.plurals.backup_old_removed, result.removed, result.removed), fontSize = DsTextSize.bodySmall)
                 }
                 if (result.inPrivateStorage) {
                     Text(
-                        "Le dossier choisi n'est pas accessible : cette copie est restée dans l'application et sera perdue si l'application est désinstallée.",
+                        stringResource(R.string.backup_kept_private),
                         fontSize = DsTextSize.bodySmall, color = DsColors.Warning
                     )
                 }
@@ -795,7 +795,7 @@ private fun BackupSavedDialog(result: BackupJobResult.Saved, toFolder: Boolean, 
 private fun RestoreWarningDialog(rule: RestoreStockRule, otherBusiness: RestoreBusiness?, onCancel: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(if (otherBusiness != null) "Sauvegarde d'une autre entreprise" else "Règle de stock de la sauvegarde") },
+        title = { Text(stringResource(if (otherBusiness != null) R.string.backup_other_business_title else R.string.backup_rule_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 otherBusiness?.let { Text(it.line(), fontSize = DsTextSize.bodySmall) }
@@ -815,7 +815,7 @@ private fun FailedDialog(message: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = DsColors.Danger) },
-        title = { Text("Opération impossible") },
+        title = { Text(stringResource(R.string.backup_impossible)) },
         text = { Text(message) },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_action_ok), color = DsColors.Primary, fontWeight = FontWeight.SemiBold) } },
         containerColor = DsColors.Surface,
@@ -839,10 +839,10 @@ private fun RestartingScreen() {
     ) {
         CircularProgressIndicator(color = DsColors.Primary)
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("Redémarrage de DistriGo…", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.backup_restarting), fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
-            "La sauvegarde sera installée au démarrage. Si l'application ne se rouvre pas d'elle-même, ouvrez-la.",
+            stringResource(R.string.backup_restarting_body),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center
         )
     }

@@ -9,6 +9,11 @@ import java.time.ZoneId
 
 class DataBackupFormattingTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     @get:Rule
     val folder = TemporaryFolder()
 
@@ -32,7 +37,8 @@ class DataBackupFormattingTest {
 
     @Test
     fun `counts read as a sentence, singular for one`() {
-        assertEquals("153 produits · 1 client · 0 ventes · 19 bons d'achat",
+        // French puts 0 in the singular, as the phone's plurals do
+        assertEquals("153 produits · 1 client · 0 vente · 19 bons d'achat",
             DataBackupFormatting.countsSummary(mapOf("products" to 153L, "clients" to 1L, "purchase_orders" to 19L)))
     }
 

@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,7 +35,7 @@ class BackupNowWorker @AssistedInject constructor(
     private val toFolder get() = destination == null
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        step(if (toFolder) "Sauvegarde dans le dossier…" else "Copie des données…")
+        step(backupText(if (toFolder) R.string.backup_step_to_folder else R.string.backup_step_copying))
         val result = try {
             destination?.let(::toFile) ?: toFolder()
         } catch (e: BackupFailedException) {
@@ -51,16 +52,16 @@ class BackupNowWorker @AssistedInject constructor(
 
     /** Android 11 and older run an expedited job as a foreground service, which shows this. */
     override suspend fun getForegroundInfo(): ForegroundInfo =
-        ForegroundInfo(BackupJobNotifier.NOTIFICATION_ID, notifier.progressNotification("Sauvegarde en cours…", toFolder))
+        ForegroundInfo(BackupJobNotifier.NOTIFICATION_ID, notifier.progressNotification(backupText(R.string.backup_step_running), toFolder))
 
     private fun toFile(uri: Uri): BackupJobResult {
         val created = creator.create(uri) { step ->
             step(
                 when (step) {
-                    BackupCreator.Step.COPYING_DATABASE -> "Copie des données…"
-                    BackupCreator.Step.BUILDING_FILE -> "Préparation du fichier…"
-                    BackupCreator.Step.SAVING -> "Enregistrement…"
-                    BackupCreator.Step.VERIFYING -> "Vérification de la sauvegarde…"
+                    BackupCreator.Step.COPYING_DATABASE -> backupText(R.string.backup_step_copying)
+                    BackupCreator.Step.BUILDING_FILE -> backupText(R.string.backup_step_building)
+                    BackupCreator.Step.SAVING -> backupText(R.string.backup_step_saving)
+                    BackupCreator.Step.VERIFYING -> backupText(R.string.backup_step_verifying)
                 }
             )
         }

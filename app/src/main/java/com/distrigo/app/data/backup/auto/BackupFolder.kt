@@ -1,5 +1,7 @@
 package com.distrigo.app.data.backup.auto
 
+import com.distrigo.app.data.backup.backupText
+import com.distrigo.app.R
 import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
@@ -32,7 +34,7 @@ interface BackupFolder {
 }
 
 /** A folder in the app's own storage: always available while the app is installed, and gone when it is not. */
-class PrivateFolder(private val dir: File, override val displayName: String = "Stockage de l'application") : BackupFolder {
+class PrivateFolder(private val dir: File, override val displayName: String = backupText(R.string.backup_private_folder)) : BackupFolder {
 
     override fun isAvailable(): Boolean = dir.isDirectory || dir.mkdirs()
 
@@ -67,7 +69,7 @@ class PickedFolder(private val resolver: ContentResolver, val treeUri: Uri) : Ba
             }
         } catch (e: Exception) {
             null
-        } ?: treeUri.lastPathSegment?.substringAfterLast(':')?.ifEmpty { null } ?: "Dossier choisi"
+        } ?: treeUri.lastPathSegment?.substringAfterLast(':')?.ifEmpty { null } ?: backupText(R.string.backup_folder_chosen)
 
     override fun isAvailable(): Boolean {
         val permitted = resolver.persistedUriPermissions.any { it.uri == treeUri && it.isReadPermission && it.isWritePermission }

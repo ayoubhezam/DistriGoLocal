@@ -8,6 +8,11 @@ import org.junit.Test
 /** Whose data a backup brings, before it is restored (docs/license_l4_checkin.md §7). */
 class RestoreBusinessTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     @Test
     fun `only a backup bound to another business than the license's is worth a word`() {
         assertTrue(RestoreBusiness("b-2", "Épicerie Benali").isOther("b-1"))

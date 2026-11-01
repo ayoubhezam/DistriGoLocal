@@ -7,6 +7,11 @@ import org.junit.Test
 
 class BackupMessagesTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     private val problems = listOf(
         BackupProblem.CannotOpen,
         BackupProblem.NotABackup,

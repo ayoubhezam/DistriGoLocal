@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.distrigo.app.ui.settings.settingsText
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
@@ -46,6 +47,7 @@ import com.distrigo.app.data.backup.RestoreBusiness
 import com.distrigo.app.data.backup.RestoreStockRule
 import com.distrigo.app.data.license.LicenseManager
 import com.distrigo.app.data.license.heldLicense
+import com.distrigo.app.R
 
 /** The last backup made of this data, from `app_meta`. */
 data class LastBackup(val at: Instant, val size: Long?, val fileName: String)
@@ -231,7 +233,7 @@ class DataBackupViewModel @Inject constructor(
      * Makes [treeUri], just picked, the folder for automatic backups. Its permission is kept across restarts;
      * the previous folder's is given back, so the app does not keep access to folders it no longer uses.
      */
-    fun chooseAutoBackupFolder(treeUri: Uri) = run("Enregistrement du dossier…") {
+    fun chooseAutoBackupFolder(treeUri: Uri) = run(settingsText(R.string.backup_saving_folder)) {
         val resolver = context.contentResolver
         resolver.takePersistableUriPermission(treeUri, PickedFolder.PERMISSION_FLAGS)
         val previous = autoBackup.store.read().folderUri
@@ -252,7 +254,7 @@ class DataBackupViewModel @Inject constructor(
         if (!backupRunning) BackupJob.start(context, destination = null)
     }
 
-    fun inspect(uri: Uri, isSafetyBackup: Boolean = false) = run("Vérification du fichier…") {
+    fun inspect(uri: Uri, isSafetyBackup: Boolean = false) = run(settingsText(R.string.backup_checking_file)) {
         if (backupRunning) return@run DataBackupState.Failed(WAIT_FOR_BACKUP)
         when (val inspection = inspector.inspect(uri)) {
             is BackupInspection.Restorable -> DataBackupState.Previewing(inspection.preview, isSafetyBackup)
@@ -266,7 +268,7 @@ class DataBackupViewModel @Inject constructor(
      * Unpacks and checks [preview]'s backup, then restores it — unless restoring it changes the stock rule,
      * or brings another business's data than the license's, in which case the screen asks first ([DataBackupState.ConfirmingRestore]).
      */
-    fun restore(preview: BackupPreview) = run("Vérification de la sauvegarde…") {
+    fun restore(preview: BackupPreview) = run(settingsText(R.string.backup_step_verifying)) {
         val current = db.businessSettingsDao().allowNegativeStock() ?: true
         when (val preparation = coordinator.prepare(preview.uri, preview.manifest, current, ::showStep)) {
             is RestorePreparation.NotRestorable -> DataBackupState.Failed(BackupMessages.of(preparation.problem))
@@ -291,7 +293,7 @@ class DataBackupViewModel @Inject constructor(
             return
         }
         _state.value = DataBackupState.Idle
-        run("Copie de sécurité de vos données actuelles…") { commit(confirming.restore, confirming.preview) }
+        run(settingsText(R.string.backup_safety_copying)) { commit(confirming.restore, confirming.preview) }
     }
 
     /** The user turned the restore down at the stock rule: the unpacked backup goes, and nothing changed. */
@@ -305,9 +307,9 @@ class DataBackupViewModel @Inject constructor(
     private fun showStep(step: RestoreCoordinator.Step) {
         _state.value = DataBackupState.Working(
             when (step) {
-                RestoreCoordinator.Step.CHECKING_BACKUP -> "Vérification de la sauvegarde…"
-                RestoreCoordinator.Step.SAVING_CURRENT_DATA -> "Copie de sécurité de vos données actuelles…"
-                RestoreCoordinator.Step.SCHEDULING -> "Préparation du redémarrage…"
+                RestoreCoordinator.Step.CHECKING_BACKUP -> settingsText(R.string.backup_step_verifying)
+                RestoreCoordinator.Step.SAVING_CURRENT_DATA -> settingsText(R.string.backup_safety_copying)
+                RestoreCoordinator.Step.SCHEDULING -> settingsText(R.string.backup_preparing_restart)
             }
         )
     }
@@ -336,7 +338,7 @@ class DataBackupViewModel @Inject constructor(
     }
 
     private companion object {
-        const val WAIT_FOR_BACKUP = "Une sauvegarde est en cours : attendez qu'elle se termine pour restaurer."
+        val WAIT_FOR_BACKUP: String get() = settingsText(R.string.backup_wait_for_backup)
     }
 
     /** Runs [block] off the main thread, one operation at a time, showing [label] until it reports a step. */
@@ -348,7 +350,7 @@ class DataBackupViewModel @Inject constructor(
                 withContext(Dispatchers.IO) { block() }
             } catch (e: Exception) {
                 android.util.Log.e("DataBackupViewModel", "operation failed", e)
-                DataBackupState.Failed("Une erreur inattendue est survenue. Vos données n'ont pas changé.")
+                DataBackupState.Failed(settingsText(R.string.backup_unexpected))
             }
         }
     }

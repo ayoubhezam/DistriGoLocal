@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.R
 import android.content.Context
 import android.net.Uri
 import androidx.work.Data
@@ -43,14 +44,14 @@ object BackupJob {
         val toFolder = TAG_TO_FOLDER in info.tags
         return when (info.state) {
             WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED ->
-                BackupJobState.Running(info.id, toFolder, info.progress.getString(KEY_STEP) ?: "Préparation…")
+                BackupJobState.Running(info.id, toFolder, info.progress.getString(KEY_STEP) ?: backupText(R.string.backup_step_preparing))
             WorkInfo.State.SUCCEEDED -> BackupJobState.Done(info.id, toFolder, BackupJobResult.of(info.outputData))
             // The worker always reports success; this is WorkManager stopping it (the app killed, the job cancelled)
             WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> BackupJobState.Done(info.id, toFolder, BackupJobResult.Failed(STOPPED))
         }
     }
 
-    internal const val STOPPED = "La sauvegarde s'est arrêtée avant la fin. Recommencez."
+    internal val STOPPED: String get() = backupText(R.string.backup_stopped)
 }
 
 /** A backup job as the screen shows it; [toFolder] for « Sauvegarder maintenant », else a file the user picked. */

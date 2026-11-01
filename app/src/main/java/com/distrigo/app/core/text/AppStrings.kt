@@ -19,8 +19,17 @@ object AppStrings {
         app = context.applicationContext
     }
 
+    /** How a JVM unit test writes [UiText] without the app: its French resources (test FrenchStrings). Null in the app. */
+    @Volatile
+    private var withoutApp: ((UiText) -> String)? = null
+
+    @androidx.annotation.VisibleForTesting
+    fun installForTests(writer: ((UiText) -> String)?) {
+        withoutApp = writer
+    }
+
     /** [text] in the app's language now (AppLanguage.localized: below Android 13 the Application follows the phone). */
-    fun write(text: UiText): String = app?.let { text.resolve(AppLanguage.localized(it)) } ?: text.toString()
+    fun write(text: UiText): String = app?.let { text.resolve(AppLanguage.localized(it)) } ?: withoutApp?.invoke(text) ?: text.toString()
 }
 
 /** Refuses an operation in the app's words: the repositories' `throw IllegalStateException("…")`, translatable. */

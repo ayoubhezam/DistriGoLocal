@@ -1,5 +1,7 @@
 package com.distrigo.app.data.backup.auto
 
+import com.distrigo.app.data.backup.backupText
+import com.distrigo.app.R
 import com.distrigo.app.data.backup.BackupFailedException
 
 /**
@@ -17,12 +19,12 @@ enum class AutoBackupProblem {
     /** What the user is told, in the notification and on the screen. */
     val message: String
         get() = when (this) {
-            NO_FOLDER -> "Aucun dossier de sauvegarde n'est choisi : les sauvegardes restent dans l'application."
-            FOLDER_UNAVAILABLE -> "Le dossier de sauvegarde n'est plus accessible : les sauvegardes restent dans l'application."
-            DATABASE_DAMAGED -> "Les données de l'application n'ont pas passé la vérification : aucune sauvegarde n'a été faite."
-            WRITE_FAILED -> "Impossible d'enregistrer la sauvegarde dans le dossier. Vérifiez l'espace disponible."
-            NOT_VERIFIED -> "La sauvegarde enregistrée ne se relisait pas correctement et a été supprimée."
-            UNEXPECTED -> "Une erreur inattendue a empêché la sauvegarde."
+            NO_FOLDER -> backupText(R.string.backup_auto_no_folder)
+            FOLDER_UNAVAILABLE -> backupText(R.string.backup_auto_folder_unavailable)
+            DATABASE_DAMAGED -> backupText(R.string.backup_auto_data_damaged)
+            WRITE_FAILED -> backupText(R.string.backup_auto_write_failed)
+            NOT_VERIFIED -> backupText(R.string.backup_auto_not_verified)
+            UNEXPECTED -> backupText(R.string.backup_auto_unexpected)
         }
 
     companion object {

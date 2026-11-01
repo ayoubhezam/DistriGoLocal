@@ -3,10 +3,11 @@ package com.distrigo.app.ui.settings.data
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
+import com.distrigo.app.R
+import com.distrigo.app.ui.settings.settingsText
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.distrigo.app.R
 import com.distrigo.app.data.backup.BackupJobNotifier
 import com.distrigo.app.data.backup.BackupJobResult
 import com.distrigo.app.data.backup.auto.AutoBackupNotifications
@@ -21,7 +22,7 @@ class BackupJobNotifications(private val context: Context) : BackupJobNotifier {
     override fun progressNotification(step: String, toFolder: Boolean): Notification {
         AutoBackupNotifications.ensureChannel(context)
         return builder()
-            .setContentTitle(if (toFolder) "Sauvegarde dans le dossier" else "Sauvegarde en cours")
+            .setContentTitle(settingsText(if (toFolder) R.string.backup_notif_to_folder else R.string.backup_notif_running))
             .setContentText(step)
             .setProgress(0, 0, true)
             .setOngoing(true)
@@ -38,13 +39,13 @@ class BackupJobNotifications(private val context: Context) : BackupJobNotifier {
         val manager = NotificationManagerCompat.from(context)
         if (!AutoBackupNotifications.canNotify(context)) return
         val (title, text) = when (result) {
-            is BackupJobResult.Saved -> "Sauvegarde enregistrée" to listOfNotNull(
+            is BackupJobResult.Saved -> settingsText(R.string.backup_saved) to listOfNotNull(
                 result.fileName,
                 DataBackupFormatting.size(result.size),
-                result.folderName?.let { "dans « $it »" },
+                result.folderName?.let { settingsText(R.string.backup_notif_in_folder, it) },
             ).joinToString(" · ")
-            BackupJobResult.Unchanged -> "Sauvegarde à jour" to "Rien n'a changé depuis la dernière sauvegarde du dossier."
-            is BackupJobResult.Failed -> "Sauvegarde impossible" to result.message
+            BackupJobResult.Unchanged -> settingsText(R.string.backup_notif_up_to_date) to settingsText(R.string.backup_notif_nothing_changed)
+            is BackupJobResult.Failed -> settingsText(R.string.backup_notif_failed) to result.message
         }
         AutoBackupNotifications.ensureChannel(context)
         val notification = builder()

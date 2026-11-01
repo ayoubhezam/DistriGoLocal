@@ -8,6 +8,11 @@ import org.junit.Test
 /** When a restore stops to say what it does to "Autoriser le stock négatif", and what it says. */
 class RestoreStockRuleTest {
 
+    // The words the user reads, from the French resources (FrenchStrings), as the phone writes them in French
+    private val previousLocale = java.util.Locale.getDefault()
+    @org.junit.Before fun french() { com.distrigo.app.testing.FrenchStrings.install(); java.util.Locale.setDefault(java.util.Locale.FRENCH) }
+    @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
+
     private fun rule(backup: Boolean, current: Boolean, negative: Int = 0, reset: Boolean = false) =
         RestoreStockRule(backupAllowsNegative = backup, currentAllowsNegative = current, negativeProducts = negative, resetByUpgrade = reset)
 
@@ -30,7 +35,7 @@ class RestoreStockRuleTest {
         val r = rule(backup = false, current = false, negative = 3)
         assertTrue(r.worthTelling)
         assertTrue(r.lines().any {
-            it.startsWith("3 produit(s) sont déjà en stock négatif au dépôt dans cette sauvegarde.") &&
+            it.startsWith("3 produits sont déjà en stock négatif au dépôt dans cette sauvegarde.") &&
                 it.contains("vendus, chargés ni sortis du dépôt avant d'être réapprovisionnés")
         })
     }
@@ -43,7 +48,7 @@ class RestoreStockRuleTest {
                 "La sauvegarde garde sa règle : après la restauration, le stock négatif sera interdit.",
             lines.first()
         )
-        assertFalse("no products line without negative products", lines.any { "produit(s)" in it })
+        assertFalse("no products line without negative products", lines.any { "stock négatif au dépôt" in it })
     }
 
     @Test
@@ -52,6 +57,6 @@ class RestoreStockRuleTest {
         assertTrue(r.worthTelling)
         assertTrue(r.lines().any { "antérieure à ce réglage" in it && "« autorisé »" in it })
         // Negative products under the default, allowed rule: nothing to warn about.
-        assertFalse(rule(backup = true, current = false, negative = 5, reset = true).lines().any { "produit(s)" in it })
+        assertFalse(rule(backup = true, current = false, negative = 5, reset = true).lines().any { "stock négatif au dépôt" in it })
     }
 }

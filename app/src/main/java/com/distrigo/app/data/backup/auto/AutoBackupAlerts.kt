@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup.auto
 
+import com.distrigo.app.data.backup.backupText
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -47,10 +48,10 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
             PendingIntent.getActivity(context, 0, it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         }
-        val text = problem.message + " Ouvrez DistriGo, Paramètres, Sauvegarde et restauration."
+        val text = backupText(R.string.backup_alert_open, problem.message)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_backup)
-            .setContentTitle("Sauvegardes automatiques en échec")
+            .setContentTitle(backupText(R.string.backup_alert_title))
             .setContentText(problem.message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
@@ -78,8 +79,8 @@ class AutoBackupNotifications(private val context: Context) : AutoBackupAlerts {
             val manager = context.getSystemService(NotificationManager::class.java)
             // Created again each time: an existing channel then takes the description as it is now
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Sauvegardes", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "L'avancement et le résultat des sauvegardes, et quand les sauvegardes automatiques échouent"
+                NotificationChannel(CHANNEL_ID, backupText(R.string.backup_channel_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = backupText(R.string.backup_channel_description)
                 }
             )
         }
