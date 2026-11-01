@@ -46,6 +46,8 @@
         <item quantity="one">Le stock a été mis à jour · %1$d produit mis à zéro</item>
         <item quantity="other">Le stock a été mis à jour · %1$d produits mis à zéro</item>
     </plurals>
+    <!-- Follows inventory_updated_zeroed when some of the zeroed were below zero and went up to it -->
+    <string name="inventory_zeroed_raised">, dont %1$d en stock négatif</string>
     <string name="inventory_updated">Le stock a été mis à jour</string>
     <string name="inventory_back_to_history">Retour à l\'historique</string>
     <string name="inventory_confirm">Confirmer l\'inventaire</string>

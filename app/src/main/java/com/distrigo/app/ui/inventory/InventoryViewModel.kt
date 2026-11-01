@@ -112,16 +112,16 @@ class InventoryViewModel @Inject constructor(
     private val toCountQuery: Flow<ProductListQuery> =
         combine(debouncedSearch { productSearch }, snapshotFlow { productFilters }, _activeSession.filterNotNull()) { search, filters, session ->
             filters.toListQuery(search, priceColumn = PriceColumn.SELLING)
-                .copy(inStockOnly = true, notCountedInSession = session.id, sort = ProductSort.NAME_ASC)
+                .copy(inStockOnly = true, orShortAtDepot = true, notCountedInSession = session.id, sort = ProductSort.NAME_ASC)
         }
 
     /** The products still to count, a page at a time, and how many match the search and filters. */
     val productList = PagedProductList(scope = viewModelScope, repository = productRepository, query = toCountQuery)
 
-    /** Every product in stock this session has not counted, whatever the search: "Produits non inventoriés". */
+    /** Every product in stock or short at the dépôt this session has not counted, whatever the search: "Produits non inventoriés". */
     @OptIn(ExperimentalCoroutinesApi::class)
     val uncountedCount: StateFlow<Int?> = _activeSession.filterNotNull()
-        .flatMapLatest { productRepository.observeProductCount(ProductListQuery(inStockOnly = true, notCountedInSession = it.id)) }
+        .flatMapLatest { productRepository.observeProductCount(ProductListQuery(inStockOnly = true, orShortAtDepot = true, notCountedInSession = it.id)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The product a scanned code belongs to, or null. */
@@ -237,14 +237,15 @@ class InventoryViewModel @Inject constructor(
 
     /**
      * Closes the count — with [zeroUncounted], the products it did not count are found empty at the
-     * dépôt (see InventoryRepository.finishSession). [onSuccess] gets how many were zeroed.
+     * dépôt (see InventoryRepository.finishSession). [onSuccess] gets how many were zeroed, and how many of
+     * those were short (below zero) and went up to it.
      */
     fun finishSession(
         zeroUncounted : Boolean,
         /** The inventory's date, picked on the summary; recorded at the present time of that day. */
         date          : java.time.LocalDate = java.time.LocalDate.now(),
         userName      : String? = null,
-        onSuccess     : (zeroed: Int) -> Unit,
+        onSuccess     : (zeroed: Int, raised: Int) -> Unit,
         onError       : (String) -> Unit
     ) {
         val sessionId = _activeSession.value?.id ?: return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.inventory_no_session)))
@@ -256,7 +257,7 @@ class InventoryViewModel @Inject constructor(
             } else {
                 _summary.value = repository.getSessionSummary(sessionId)
                 _activeSession.value = null
-                onSuccess(result["zeroed"] as Int)
+                onSuccess(result["zeroed"] as Int, result["raised"] as Int)
             }
         }
     }

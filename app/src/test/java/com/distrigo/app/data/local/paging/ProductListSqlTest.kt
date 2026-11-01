@@ -39,6 +39,15 @@ class ProductListSqlTest {
     }
 
     @Test
+    fun `an inventory's list also finds the products short at the depot`() {
+        assertEquals(" WHERE p.deleted_at IS NULL AND p.stock > 0", whereOf(ProductListQuery(inStockOnly = true)).first)
+        assertEquals(
+            " WHERE p.deleted_at IS NULL AND (p.stock > 0 OR p.stock - p.camion_stock < -0.0005)",
+            whereOf(ProductListQuery(inStockOnly = true, orShortAtDepot = true)).first
+        )
+    }
+
+    @Test
     fun `stock bands read the column the list asks for`() {
         val low = whereOf(ProductListQuery(stockLevel = "low_stock")).first
         assertTrue(low, low.contains("(p.stock >= 5.0E-4 AND p.stock < p.min_stock + 5.0E-4)"))

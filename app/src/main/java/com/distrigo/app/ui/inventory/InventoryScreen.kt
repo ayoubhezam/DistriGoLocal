@@ -61,6 +61,8 @@ fun ColumnScope.InventorySummaryStep(
     isConfirmed     : Boolean,
     isConfirming    : Boolean,
     zeroed          : Int,
+    /** How many of the [zeroed] were short at the dépôt and went up to zero. */
+    raised          : Int,
     confirmError    : String,
     onBack          : () -> Unit,
     onConfirm       : () -> Unit,
@@ -134,7 +136,9 @@ fun ColumnScope.InventorySummaryStep(
                     Column {
                         Text(stringResource(R.string.inventory_completed), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Success)
                         Text(
-                            if (zeroed > 0) pluralStringResource(R.plurals.inventory_updated_zeroed, zeroed, zeroed) else stringResource(R.string.inventory_updated),
+                            if (zeroed > 0) pluralStringResource(R.plurals.inventory_updated_zeroed, zeroed, zeroed) +
+                                (if (raised > 0) stringResource(R.string.inventory_zeroed_raised, raised) else "")
+                            else stringResource(R.string.inventory_updated),
                             fontSize = DsTextSize.caption, color = DsColors.Success.copy(alpha = 0.8f)
                         )
                     }

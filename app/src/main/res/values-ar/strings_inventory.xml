@@ -62,6 +62,7 @@
         <item quantity="many">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتجًا</item>
         <item quantity="other">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتج</item>
     </plurals>
+    <string name="inventory_zeroed_raised">، منها \u2068%1$d\u2069 بمخزون سالب</string>
     <string name="inventory_updated">تم تحديث المخزون</string>
     <string name="inventory_back_to_history">العودة إلى السجل</string>
     <string name="inventory_confirm">تأكيد الجرد</string>

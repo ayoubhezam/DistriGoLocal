@@ -75,6 +75,31 @@ class InventoryFinishTest {
     }
 
     @Test
+    fun zeroingBringsAShortDepotUpToZero(): Unit = runBlocking {
+        // Product 3 sold 4 at the dépôt before its purchase was entered: −4 there.
+        db.stockMovementDao().insert(
+            StockMovementEntity(
+                product_id = 3, product_name = "P3", type = "vente", direction = "sortie", quantity = 4.0,
+                emplacement = "depot", source_label = "test", source_type = "vente", source_id = 0,
+                unit_price = 120.0, total_value = 480.0, user_name = null, note = null,
+                created_at = "2026-10-02T09:00:00Z"
+            )
+        )
+        assertEquals(-4.0 to 0.0, stockOf(3))
+        val session = repository.getOrCreateActiveSession()
+        repository.recordScan(session.id, 2, 4.0)
+
+        val result = repository.finishSession(session.id, zeroUncounted = true)
+
+        assertEquals(2, result["zeroed"])             // product 1 down from 7, product 3 up from −4
+        assertEquals(1, result["raised"])
+        assertEquals(0.0 to 0.0, stockOf(3))
+        val line = db.inventoryDao().getItemForSessionAndProduct(session.id, 3)!!
+        assertEquals(listOf(-4.0, 0.0, 4.0, 400.0), listOf(line.qte_systeme, line.qte_physique, line.ecart, line.valeur_ecart))
+        assertEquals(3.0 to 3.0, stockOf(1))
+    }
+
+    @Test
     fun keepingLeavesWhatWasNotCountedAsItWas(): Unit = runBlocking {
         val session = repository.getOrCreateActiveSession()
         repository.recordScan(session.id, 2, 4.0)

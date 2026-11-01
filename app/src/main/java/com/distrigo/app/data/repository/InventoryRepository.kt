@@ -48,9 +48,11 @@ class InventoryRepository(
     }
 
     /**
-     * Closes the count. With [zeroUncounted], every product it did not count that still holds stock at
-     * the dépôt is found empty there: a line is written for it — counted at what the camions still hold,
-     * since a dépôt count does not see them — with the adjustment that takes the dépôt to zero. Without
+     * Closes the count. With [zeroUncounted], every product it did not count whose dépôt stock is not zero
+     * is found empty there: a line is written for it — counted at what the camions still hold, since a dépôt
+     * count does not see them — with the adjustment that takes the dépôt to zero: a sortie from a stock, an
+     * entrée from a shortage (a dépôt below zero, as a sale not yet matched by its purchase leaves it).
+     * "raised" in the result is how many of the zeroed were short. Without
      * it, the products not counted keep their stock and get no line. One transaction: all or nothing.
      *
      * [at] is the inventory's date — the day it is closed under in the history, chosen on the summary —
@@ -65,6 +67,7 @@ class InventoryRepository(
         db.withTransaction {
             val session = inventoryDao.getSessionById(sessionId) ?: return@withTransaction mapOf("error" to "Session introuvable")
             var zeroed = 0
+            var raised = 0
             if (zeroUncounted) {
                 val now = at
                 val products = inventoryDao.uncountedWithDepotStock(sessionId)
@@ -85,7 +88,7 @@ class InventoryRepository(
                         product_id   = line.product_id,
                         product_name = line.product_name,
                         type         = "ajustement",
-                        direction    = "sortie",
+                        direction    = if (line.ecart > 0) "entree" else "sortie",
                         quantity     = abs(line.ecart),
                         emplacement  = "depot",
                         source_label = "Inventaire session #$sessionId",
@@ -99,11 +102,12 @@ class InventoryRepository(
                     )
                 })
                 zeroed = lines.size
+                raised = lines.count { it.ecart > 0 }
             }
             inventoryDao.updateSession(
                 session.copy(status = "completed", completed_at = at)
             )
-            mapOf("message" to "Inventaire terminé avec succès", "zeroed" to zeroed)
+            mapOf("message" to "Inventaire terminé avec succès", "zeroed" to zeroed, "raised" to raised)
         }
 
     // ── Items ──

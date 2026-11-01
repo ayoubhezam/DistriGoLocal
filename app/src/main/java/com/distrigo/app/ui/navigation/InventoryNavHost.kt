@@ -211,6 +211,7 @@ fun InventoryNavHost(
                 var isConfirmed  by remember { mutableStateOf(false) }
                 var isConfirming by remember { mutableStateOf(false) }
                 var zeroed       by remember { mutableStateOf(0) }
+                var raised       by remember { mutableStateOf(0) }
                 var confirmError by remember { mutableStateOf("") }
 
                 fun exitToHistory() {
@@ -231,6 +232,7 @@ fun InventoryNavHost(
                         isConfirmed     = isConfirmed,
                         isConfirming    = isConfirming,
                         zeroed          = zeroed,
+                        raised          = raised,
                         confirmError    = confirmError,
                         onBack          = { navController.popBackStack() },
                         onConfirm       = confirm@{
@@ -239,7 +241,7 @@ fun InventoryNavHost(
                             viewModel.finishSession(
                                 zeroUncounted = choice == UncountedChoice.ZERO,
                                 date          = date,
-                                onSuccess = { n -> isConfirming = false; isConfirmed = true; zeroed = n; confirmError = "" },
+                                onSuccess = { n, up -> isConfirming = false; isConfirmed = true; zeroed = n; raised = up; confirmError = "" },
                                 onError   = { msg -> isConfirming = false; confirmError = msg }
                             )
                         },

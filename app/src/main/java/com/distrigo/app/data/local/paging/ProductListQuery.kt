@@ -49,6 +49,11 @@ data class ProductListQuery(
     val inCamionOnly    : Boolean      = false,
     /** Only products with stock above zero: what an inventory expects to find on the shelves. */
     val inStockOnly     : Boolean      = false,
+    /**
+     * With [inStockOnly], also the products short at the dépôt (its share below zero): an inventory must find them
+     * too, or a count could never bring them back to what is on the shelves.
+     */
+    val orShortAtDepot  : Boolean      = false,
     /** Leaves out the products already counted in this inventory session: the count's "still to do". */
     val notCountedInSession: Int?      = null,
     /** Products to leave out — the ones a form's selection already holds (a new perte's cart). */
@@ -134,7 +139,7 @@ internal object ProductListSql {
             args.addAll(listOf(query.expiringFrom, query.expiringTo))
         }
         if (query.inCamionOnly) clauses += "p.camion_stock > 0"
-        if (query.inStockOnly) clauses += "p.stock > 0"
+        if (query.inStockOnly) clauses += if (query.orShortAtDepot) "(p.stock > 0 OR p.stock - p.camion_stock < -0.0005)" else "p.stock > 0"
         if (query.excludeIds.isNotEmpty()) {
             clauses += "p.id NOT IN (${query.excludeIds.joinToString(",") { "?" }})"
             args.addAll(query.excludeIds)
