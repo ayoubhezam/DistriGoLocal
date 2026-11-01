@@ -54,6 +54,7 @@ import com.distrigo.app.data.model.Amount
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import com.distrigo.app.ui.settings.settingsText
 
 /** شريحة تحرير محلية للـ UI فقط — تُحوَّل إلى PolicyTierEntity عند الحفظ */
 private data class TierDraft(
@@ -133,11 +134,11 @@ fun CommissionPolicyScreen(
                 .mapNotNull { draft -> draft.minThreshold.toDoubleOrNull()?.takeIf { it > 0 }?.let { it to draft } }
                 .sortedBy { it.first }
             when {
-                parsed.isEmpty() -> { saveError = "Ajoutez au moins un palier avec son seuil."; return }
+                parsed.isEmpty() -> { saveError = settingsText(R.string.settings_tier_needed); return }
                 parsed.any { (_, d) -> d.rewardRate.toDoubleOrNull() == null && d.fixedBonus.toDoubleOrNull() == null } -> {
-                    saveError = "Chaque palier a besoin d'un taux ou d'une prime fixe."; return
+                    saveError = settingsText(R.string.settings_tier_reward_needed); return
                 }
-                parsed.map { it.first }.distinct().size != parsed.size -> { saveError = "Deux paliers ont le même seuil."; return }
+                parsed.map { it.first }.distinct().size != parsed.size -> { saveError = settingsText(R.string.settings_tier_duplicate); return }
             }
             target = parsed.first().first
             tierEntities = parsed.mapIndexed { index, (min, draft) ->
@@ -152,7 +153,7 @@ fun CommissionPolicyScreen(
             }
         } else {
             target = targetValue.toDoubleOrNull()?.takeIf { it > 0 } ?: run {
-                saveError = "Veuillez saisir un objectif valide."
+                saveError = settingsText(R.string.settings_target_invalid)
                 return
             }
             tierEntities = emptyList()
@@ -185,7 +186,7 @@ fun CommissionPolicyScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title   = "Politique de commission",
+            title   = stringResource(R.string.settings_commission),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -197,46 +198,46 @@ fun CommissionPolicyScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = DsSpacing.lg)
         ) {
-            SectionLabel("Type de calcul")
+            SectionLabel(stringResource(R.string.settings_calc_type))
             SegmentedSelector(
                 options = IncentiveType.entries,
                 selected = incentiveType,
                 onSelected = { incentiveType = it },
                 labelFor = {
                     when (it) {
-                        IncentiveType.FIXED_RATE -> "Taux fixe"
-                        IncentiveType.PROGRESSIVE_TIERS -> "Paliers"
-                        IncentiveType.FIXED_BONUS -> "Forfaitaire"
-                        IncentiveType.FREE_GOODS -> "Gratuité"
+                        IncentiveType.FIXED_RATE -> settingsText(R.string.settings_type_fixed_rate)
+                        IncentiveType.PROGRESSIVE_TIERS -> settingsText(R.string.settings_type_tiers)
+                        IncentiveType.FIXED_BONUS -> settingsText(R.string.settings_type_fixed_bonus)
+                        IncentiveType.FREE_GOODS -> settingsText(R.string.settings_type_free_goods)
                     }
                 }
             )
 
             Spacer(Modifier.height(DsSpacing.lg))
-            SectionLabel("Période")
+            SectionLabel(stringResource(R.string.common_label_period))
             SegmentedSelector(
                 options = PeriodType.entries,
                 selected = periodType,
                 onSelected = { periodType = it },
                 labelFor = {
                     when (it) {
-                        PeriodType.MONTHLY -> "Mensuelle"
-                        PeriodType.QUARTERLY -> "Trimestrielle"
-                        PeriodType.YEARLY -> "Annuelle"
+                        PeriodType.MONTHLY -> settingsText(R.string.settings_period_monthly)
+                        PeriodType.QUARTERLY -> settingsText(R.string.settings_period_quarterly)
+                        PeriodType.YEARLY -> settingsText(R.string.settings_period_yearly)
                     }
                 }
             )
 
             Spacer(Modifier.height(DsSpacing.lg))
-            SectionLabel("Basé sur")
+            SectionLabel(stringResource(R.string.settings_based_on))
             SegmentedSelector(
                 options = CalculationSource.entries,
                 selected = calculationSource,
                 onSelected = { calculationSource = it },
                 labelFor = {
                     when (it) {
-                        CalculationSource.INVOICED_SALES -> "Ventes facturées"
-                        CalculationSource.COLLECTED_CASH -> "Recouvrement"
+                        CalculationSource.INVOICED_SALES -> settingsText(R.string.settings_source_invoiced)
+                        CalculationSource.COLLECTED_CASH -> settingsText(R.string.settings_source_collected)
                     }
                 }
             )
@@ -245,11 +246,11 @@ fun CommissionPolicyScreen(
             // In « Paliers » the objective is the first tier's threshold, so it has no field of its own
             if (incentiveType != IncentiveType.PROGRESSIVE_TIERS) {
                 DsFormField(
-                    label = "Objectif (DA) *",
+                    label = stringResource(R.string.settings_target_da),
                     value = targetValue,
                     onValueChange = { targetValue = it },
                     error = saveError,
-                    placeholder = "Ex: 500000",
+                    placeholder = stringResource(R.string.settings_example, "500000"),
                     keyboardType = KeyboardType.Decimal,
                     amount = true
                 )
@@ -261,26 +262,26 @@ fun CommissionPolicyScreen(
             when (incentiveType) {
                 IncentiveType.FIXED_RATE -> {
                     DsFormField(
-                        label = "Taux de commission (%)",
+                        label = stringResource(R.string.settings_commission_rate),
                         value = rewardRate,
                         onValueChange = { rewardRate = it },
-                        placeholder = "Ex: 2.5",
+                        placeholder = stringResource(R.string.settings_example, "2.5"),
                         keyboardType = KeyboardType.Decimal,
                         amount = true
                     )
                 }
                 IncentiveType.FIXED_BONUS -> {
                     DsFormField(
-                        label = "Prime forfaitaire (DA)",
+                        label = stringResource(R.string.settings_fixed_bonus_da),
                         value = fixedBonusAmount,
                         onValueChange = { fixedBonusAmount = it },
-                        placeholder = "Ex: 15000",
+                        placeholder = stringResource(R.string.settings_example, "15000"),
                         keyboardType = KeyboardType.Decimal,
                         amount = true
                     )
                 }
                 IncentiveType.FREE_GOODS -> {
-                    Text("Produit offert", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
+                    Text(stringResource(R.string.settings_free_product), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, modifier = Modifier.padding(bottom = DsSpacing.xs))
 
                     if (freeGoodProductId != null) {
                         Row(
@@ -312,7 +313,7 @@ fun CommissionPolicyScreen(
                         DsCompactSearchField(
                             value         = productSearchQuery,
                             onValueChange = { productSearchQuery = it },
-                            placeholder   = "Rechercher un produit",
+                            placeholder   = stringResource(R.string.common_search_product),
                             modifier      = Modifier
                         ) {
                             com.distrigo.app.ui.common.DsCompactSearchAction(
@@ -352,7 +353,7 @@ fun CommissionPolicyScreen(
                                 }
                                 if (filtered.isEmpty()) {
                                     Text(
-                                        "Aucun produit trouvé",
+                                        stringResource(R.string.settings_no_product_found),
                                         fontSize = DsTextSize.caption,
                                         color = DsColors.TextTertiary,
                                         modifier = Modifier.padding(DsSpacing.md)
@@ -364,10 +365,10 @@ fun CommissionPolicyScreen(
 
                     Spacer(Modifier.height(DsSpacing.md))
                     DsFormField(
-                        label = "Quantité offerte",
+                        label = stringResource(R.string.settings_free_quantity),
                         value = freeGoodQuantity,
                         onValueChange = { freeGoodQuantity = it.filter { c -> c.isDigit() } },
-                        placeholder = "Ex: 10",
+                        placeholder = stringResource(R.string.settings_example, "10"),
                         keyboardType = KeyboardType.Number
                     )
                 }
@@ -401,7 +402,7 @@ fun CommissionPolicyScreen(
             if (isSaving) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
             } else {
-                Text("Enregistrer la politique", fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
+                Text(stringResource(R.string.settings_save_policy), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         }
     }
@@ -423,9 +424,9 @@ private fun ShowRewardSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Uni
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = DsSpacing.md)) {
-            Text("Afficher la prime sur le tableau de bord", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+            Text(stringResource(R.string.settings_show_bonus), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             Text(
-                if (checked) "La prime gagnée s'affiche avec l'objectif." else "L'objectif s'affiche sans la prime.",
+                stringResource(if (checked) R.string.settings_show_bonus_on else R.string.settings_show_bonus_off),
                 fontSize = DsTextSize.caption,
                 color = DsColors.TextSecondary
             )
@@ -488,9 +489,9 @@ private fun TiersEditor(
     onTiersChange: (List<TierDraft>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-        SectionLabel("Paliers (à partir de plusieurs seuils)")
+        SectionLabel(stringResource(R.string.settings_tiers_title))
         Text(
-            "L'objectif est le seuil du premier palier.",
+            stringResource(R.string.settings_tiers_hint),
             fontSize = DsTextSize.caption,
             color = DsColors.TextSecondary
         )
@@ -506,7 +507,7 @@ private fun TiersEditor(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Palier ${index + 1}",
+                        stringResource(R.string.settings_tier_n, index + 1),
                         fontSize = DsTextSize.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = DsColors.TextPrimary,
@@ -519,36 +520,36 @@ private fun TiersEditor(
                     }
                 }
                 DsFormField(
-                    label = "Seuil minimum (DA)",
+                    label = stringResource(R.string.settings_min_threshold_da),
                     value = tier.minThreshold,
                     onValueChange = { newVal ->
                         onTiersChange(tiers.map { if (it.id == tier.id) it.copy(minThreshold = newVal) else it })
                     },
-                    placeholder = "Ex: 300000",
+                    placeholder = stringResource(R.string.settings_example, "300000"),
                     keyboardType = KeyboardType.Decimal,
                     amount = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     Box(modifier = Modifier.weight(1f)) {
                         DsFormField(
-                            label = "Taux (%)",
+                            label = stringResource(R.string.settings_rate_percent),
                             value = tier.rewardRate,
                             onValueChange = { newVal ->
                                 onTiersChange(tiers.map { if (it.id == tier.id) it.copy(rewardRate = newVal) else it })
                             },
-                            placeholder = "Ex: 3",
+                            placeholder = stringResource(R.string.settings_example, "3"),
                             keyboardType = KeyboardType.Decimal,
                             amount = true
                         )
                     }
                     Box(modifier = Modifier.weight(1f)) {
                         DsFormField(
-                            label = "Ou prime fixe (DA)",
+                            label = stringResource(R.string.settings_or_fixed_bonus_da),
                             value = tier.fixedBonus,
                             onValueChange = { newVal ->
                                 onTiersChange(tiers.map { if (it.id == tier.id) it.copy(fixedBonus = newVal) else it })
                             },
-                            placeholder = "Ex: 20000",
+                            placeholder = stringResource(R.string.settings_example, "20000"),
                             keyboardType = KeyboardType.Decimal,
                             amount = true
                         )
@@ -564,7 +565,7 @@ private fun TiersEditor(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Ajouter un palier", fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
+            Text(stringResource(R.string.settings_add_tier), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Primary)
         }
     }
 }

@@ -81,15 +81,15 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
 
     BackHandler { onBack() }
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Diagnostic", leading = DsTopBarLeading.Back(onBack)) {
+        DsTopAppBar(title = stringResource(R.string.settings_diagnostics), leading = DsTopBarLeading.Back(onBack)) {
             if (!reports.isNullOrEmpty()) {
                 IconButton(onClick = { confirmClear = true }) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Tout effacer", tint = DsColors.TextSecondary)
+                    Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.settings_clear_all), tint = DsColors.TextSecondary)
                 }
             }
         }
         Text(
-            "Les plantages, blocages (ANR) et arrêts anormaux de l'application, enregistrés sur ce téléphone.",
+            stringResource(R.string.settings_diagnostics_intro),
             fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
             modifier = Modifier.padding(horizontal = DsSpacing.lg),
         )
@@ -100,7 +100,7 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
         when {
             list == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
             list.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Aucun rapport", color = DsColors.TextSecondary)
+                Text(stringResource(R.string.settings_no_report), color = DsColors.TextSecondary)
             }
             else -> LazyColumn(
                 contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.sm),
@@ -114,12 +114,12 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
     if (confirmClear) {
         AlertDialog(
             onDismissRequest = { confirmClear = false },
-            title = { Text("Effacer tous les rapports ?") },
+            title = { Text(stringResource(R.string.settings_clear_reports_title)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmClear = false
                     scope.launch { val d = dir(); withContext(Dispatchers.IO) { DiagnosticReports.clear(d) }; reload() }
-                }) { Text("Effacer", color = DsColors.Danger) }
+                }) { Text(stringResource(R.string.settings_clear), color = DsColors.Danger) }
             },
             dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.common_action_cancel)) } },
         )
@@ -143,7 +143,7 @@ private fun ReportRow(report: DiagnosticReport, onClick: () -> Unit) {
             ) { Icon(Icons.Default.BugReport, contentDescription = null, tint = colorOf(report.kind), modifier = Modifier.size(20.dp)) }
             Spacer(Modifier.width(DsSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("${report.kind.label} · ${WHEN.format(report.at)}", fontSize = DsTextSize.caption, color = colorOf(report.kind), fontWeight = FontWeight.SemiBold)
+                Text("${kindLabel(report.kind)} · ${WHEN.format(report.at)}", fontSize = DsTextSize.caption, color = colorOf(report.kind), fontWeight = FontWeight.SemiBold)
                 Text(report.title, fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 2)
             }
         }
@@ -159,7 +159,7 @@ private fun ReportDetail(report: DiagnosticReport, onBack: () -> Unit, onShare: 
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = report.kind.label, leading = DsTopBarLeading.Back(onBack)) {
-            IconButton(onClick = onShare) { Icon(Icons.Default.Share, contentDescription = "Partager", tint = DsColors.Primary) }
+            IconButton(onClick = onShare) { Icon(Icons.Default.Share, contentDescription = stringResource(R.string.settings_share), tint = DsColors.Primary) }
             IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.common_action_delete), tint = DsColors.Danger) }
         }
         val text = lines
@@ -214,9 +214,20 @@ private fun share(context: Context, report: DiagnosticReport) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", report.file)
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, "DistriGo — ${report.kind.label} — ${report.title}")
+        putExtra(Intent.EXTRA_SUBJECT, "DistriGo — ${kindLabel(report.kind)} — ${report.title}")
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(send, "Partager le rapport"))
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.settings_share_report)))
 }
+
+/** A report's kind in the app's language. */
+private fun kindLabel(kind: ReportKind): String = com.distrigo.app.ui.settings.settingsText(
+    when (kind) {
+        ReportKind.CRASH       -> R.string.settings_kind_crash
+        ReportKind.ANR         -> R.string.settings_kind_anr
+        ReportKind.NATIVE      -> R.string.settings_kind_native
+        ReportKind.EXIT        -> R.string.settings_kind_exit
+        ReportKind.STRICT_MODE -> R.string.settings_kind_strict
+    }
+)

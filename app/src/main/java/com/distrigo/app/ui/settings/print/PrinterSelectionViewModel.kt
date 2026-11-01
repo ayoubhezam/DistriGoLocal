@@ -31,6 +31,8 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 /** What the printer list is doing and showing. */
 data class PrinterSelectionState(
@@ -265,7 +267,7 @@ class PrinterSelectionViewModel @Inject constructor(
                 PrintResult.Success -> _state.value.copy(
                     busy   = false,
                     link   = PrinterLink.Ready(target),
-                    notice = "Test envoyé. Vérifiez la bande imprimée.",
+                    notice = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.settings_test_sent)),
                 )
                 // Into the banner, not a dialog: it names the problem, carries the button that fixes
                 // it, and stays put while the user goes and switches the printer on.
@@ -312,7 +314,7 @@ class PrinterSelectionViewModel @Inject constructor(
                 link   = link,
                 // A reachable printer leaves nothing on screen to prove it, so that one is worth
                 // saying out loud. A blocked one is already in the banner.
-                notice = (link as? PrinterLink.Ready)?.let { "${target.displayName} répond." },
+                notice = (link as? PrinterLink.Ready)?.let { com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.settings_printer_answers, target.displayName)) },
             )
         }
     }
@@ -371,10 +373,11 @@ private fun RasterBenchmarkResult.summary(): String {
     fun rate(bps: Double) = String.format(java.util.Locale.FRENCH, "%.1f Ko/s", bps / 1024.0)
 
     return buildString {
-        appendLine("${ko(bytes)} en ${secs(elapsedMs)}")
-        appendLine("Lien : ${rate(linkBytesPerSecond)}")
-        appendLine("Cadencement interne : ${secs(pacingOverheadMs)}")
+        fun text(id: Int, vararg args: Any) = com.distrigo.app.core.text.AppStrings.write(UiText.Res(id, args.toList()))
+        appendLine(text(R.string.settings_bench_size_time, ko(bytes), secs(elapsedMs)))
+        appendLine(text(R.string.settings_bench_link, rate(linkBytesPerSecond)))
+        appendLine(text(R.string.settings_bench_pacing, secs(pacingOverheadMs)))
         appendLine()
-        append("Vérifiez la bande : des variations de densité d'une bande à l'autre indiquent des saccades.")
+        append(text(R.string.settings_bench_check))
     }
 }

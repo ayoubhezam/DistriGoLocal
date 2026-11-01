@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
 
 @HiltViewModel
 class IncentiveViewModel @Inject constructor(
@@ -52,7 +53,7 @@ class IncentiveViewModel @Inject constructor(
                 loadActivePolicy()
                 onSuccess()
             } catch (e: Exception) {
-                onError(userMessage(e, "Erreur inconnue"))
+                onError(userMessage(e, com.distrigo.app.ui.settings.settingsText(R.string.settings_unknown_error)))
             } finally {
                 _isSaving.value = false
             }

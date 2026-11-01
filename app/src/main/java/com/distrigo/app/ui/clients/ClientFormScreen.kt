@@ -59,6 +59,8 @@ import com.distrigo.app.ui.common.EntityImage
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.material3.LocalTextStyle
+import com.distrigo.app.ui.common.phoneTextStyle
 /**
  * A new client's form, or an existing one's. Opened from a quartier, [placement] fills the wilaya, commune, secteur and
  * quartier and locks them (owner's prototype v5, 2026-10-24), and a banner says so.
@@ -606,7 +608,11 @@ private fun DsFormField(
         OutlinedTextField(
             value           = value,
             onValueChange   = { onValueChange(numberFieldInput(it, keyboardType)) },
-            placeholder     = { Text(placeholder, fontSize = DsTextSize.body) },
+            placeholder     = {
+                if (keyboardType == KeyboardType.Phone) Text(placeholder, style = phoneTextStyle(), fontSize = DsTextSize.body, modifier = Modifier.fillMaxWidth())
+                else Text(placeholder, fontSize = DsTextSize.body)
+            },
+            textStyle       = if (keyboardType == KeyboardType.Phone) phoneTextStyle() else LocalTextStyle.current,
             singleLine      = minLines == 1 && maxLines == 1,
             minLines        = minLines,
             maxLines        = maxLines,

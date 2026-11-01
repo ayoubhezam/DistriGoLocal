@@ -42,6 +42,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Paramètres, in sections (the owner's design, 2026-10-21): the account, the business's own rules and lists, the
@@ -67,7 +68,7 @@ fun ParametresScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = "Paramètres",
+            title   = stringResource(R.string.settings_title),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -76,27 +77,27 @@ fun ParametresScreen(
             modifier            = Modifier.verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.xl)
         ) {
-            SettingsSection("Compte") {
-                SettingsRow(Icons.Outlined.Person, DsColors.Primary, "Compte et connexion", "Gérer votre profil", onClick = onAccount)
+            SettingsSection(stringResource(R.string.settings_section_account)) {
+                SettingsRow(Icons.Outlined.Person, DsColors.Primary, stringResource(R.string.settings_account), stringResource(R.string.settings_account_sub), onClick = onAccount)
             }
 
-            SettingsSection("Votre activité") {
+            SettingsSection(stringResource(R.string.settings_section_activity)) {
                 SettingsRow(
-                    Icons.Outlined.Folder, DsColors.AccentViolet, "Listes et catégories",
-                    "Catégories, marques, types de charges et de pertes, secteurs", onClick = onLists,
+                    Icons.Outlined.Folder, DsColors.AccentViolet, stringResource(R.string.settings_lists),
+                    stringResource(R.string.settings_lists_sub), onClick = onLists,
                 )
                 SettingsDivider()
                 SettingsRow(
-                    Icons.Outlined.Percent, DsColors.Primary, "Politique de commission",
-                    "Définir l'objectif et le mode de calcul des primes", onClick = onCommission,
+                    Icons.Outlined.Percent, DsColors.Primary, stringResource(R.string.settings_commission),
+                    stringResource(R.string.settings_commission_sub), onClick = onCommission,
                 )
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.Receipt, DsColors.Success, "Reçus et impression", "Logo, format du papier et imprimante", onClick = onReceipt)
+                SettingsRow(Icons.Outlined.Receipt, DsColors.Success, stringResource(R.string.settings_receipts), stringResource(R.string.settings_receipts_sub), onClick = onReceipt)
                 SettingsDivider()
                 NegativeStockRow()
             }
 
-            SettingsSection("Préférences") {
+            SettingsSection(stringResource(R.string.settings_section_preferences)) {
                 MoneyFormatRow()
                 // Offered in debug builds until the Arabic text is complete (docs/i18n_rtl_plan.md, Phase 5)
                 if (BuildConfig.DEBUG) {
@@ -104,31 +105,31 @@ fun ParametresScreen(
                     LanguageRow()
                 }
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.MonetizationOn, DsColors.Success, "Devise principale", enabled = false)
+                SettingsRow(Icons.Outlined.MonetizationOn, DsColors.Success, stringResource(R.string.settings_currency), enabled = false)
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.Contrast, DsColors.Warning, "Thème", enabled = false)
+                SettingsRow(Icons.Outlined.Contrast, DsColors.Warning, stringResource(R.string.settings_theme), enabled = false)
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.CalendarMonth, DsColors.Primary, "Format de date", enabled = false)
+                SettingsRow(Icons.Outlined.CalendarMonth, DsColors.Primary, stringResource(R.string.settings_date_format), enabled = false)
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.Notifications, DsColors.AccentViolet, "Notifications", enabled = false)
+                SettingsRow(Icons.Outlined.Notifications, DsColors.AccentViolet, stringResource(R.string.settings_notifications), enabled = false)
             }
 
-            SettingsSection("Gestion des données") {
-                SettingsRow(Icons.Outlined.FileUpload, DsColors.Primary, "Exporter les données", "Ventes, achats, clients, produits… en Excel ou CSV", onClick = onExport)
+            SettingsSection(stringResource(R.string.settings_section_data)) {
+                SettingsRow(Icons.Outlined.FileUpload, DsColors.Primary, stringResource(R.string.settings_export), stringResource(R.string.settings_export_sub), onClick = onExport)
                 SettingsDivider()
                 SettingsRow(
-                    Icons.Outlined.CloudUpload, DsColors.Warning, "Sauvegarde et restauration",
-                    "Sauvegarder vos données dans un fichier et les restaurer", onClick = onData,
+                    Icons.Outlined.CloudUpload, DsColors.Warning, stringResource(R.string.settings_backup),
+                    stringResource(R.string.settings_backup_sub), onClick = onData,
                 )
                 SettingsDivider()
                 SettingsRow(
-                    Icons.Outlined.DeleteOutline, DsColors.Danger, "Corbeille",
-                    "Restaurer les produits, clients et autres éléments supprimés", onClick = onTrash,
+                    Icons.Outlined.DeleteOutline, DsColors.Danger, stringResource(R.string.settings_trash),
+                    stringResource(R.string.settings_trash_sub), onClick = onTrash,
                 )
             }
 
-            SettingsSection("Assistance") {
-                SettingsRow(Icons.Outlined.BugReport, DsColors.TextSecondary, "Diagnostic", "Plantages et blocages enregistrés sur ce téléphone", onClick = onDiagnostics)
+            SettingsSection(stringResource(R.string.settings_section_support)) {
+                SettingsRow(Icons.Outlined.BugReport, DsColors.TextSecondary, stringResource(R.string.settings_diagnostics), stringResource(R.string.settings_diagnostics_sub), onClick = onDiagnostics)
             }
 
             // Absent from release builds: BuildConfig.DEBUG is a compile-time false there.
@@ -150,9 +151,8 @@ private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()
     SettingsRow(
         icon     = Icons.Outlined.Inventory2,
         tint     = DsColors.Primary,
-        title    = "Autoriser le stock négatif",
-        subtitle = if (allowNegative == false) "Désactivé : le stock du dépôt ne peut jamais passer sous zéro"
-                   else "Activé : le dépôt peut passer sous zéro, avec un avertissement",
+        title    = stringResource(R.string.settings_allow_negative),
+        subtitle = stringResource(if (allowNegative == false) R.string.settings_allow_negative_off else R.string.settings_allow_negative_on),
         trailing = {
             Switch(
                 checked         = allowNegative ?: true,
@@ -165,14 +165,13 @@ private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()
     pendingStrict?.let { count ->
         AlertDialog(
             onDismissRequest = { viewModel.cancelStrict() },
-            title = { Text("Désactiver le stock négatif ?") },
+            title = { Text(stringResource(R.string.settings_strict_title)) },
             text  = {
                 Text(
-                    "$count produit(s) sont déjà en stock négatif au dépôt. Ils ne pourront plus être " +
-                        "vendus, chargés ni sortis du dépôt avant d'être réapprovisionnés."
+                    pluralStringResource(R.plurals.settings_strict_body, count, count)
                 )
             },
-            confirmButton = { TextButton(onClick = { viewModel.confirmStrict() }) { Text("Désactiver") } },
+            confirmButton = { TextButton(onClick = { viewModel.confirmStrict() }) { Text(stringResource(R.string.settings_disable)) } },
             dismissButton = { TextButton(onClick = { viewModel.cancelStrict() }) { Text(stringResource(R.string.common_action_cancel)) } },
             containerColor    = DsColors.Surface,
             titleContentColor = DsColors.TextPrimary,
@@ -196,7 +195,7 @@ private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewMod
     SettingsRow(
         icon     = Icons.Outlined.Payments,
         tint     = DsColors.Primary,
-        title    = "Format des montants",
+        title    = stringResource(R.string.settings_money_format),
         subtitle = current?.let { MoneyFormatter.of(it).da(MONEY_FORMAT_SAMPLE) } ?: "",
         onClick  = { if (current != null) choosing = true },
     )
@@ -205,12 +204,11 @@ private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewMod
     if (choosing && selected != null) {
         AlertDialog(
             onDismissRequest = { choosing = false },
-            title = { Text("Format des montants") },
+            title = { Text(stringResource(R.string.settings_money_format)) },
             text  = {
                 Column {
                     Text(
-                        "Sur les écrans, les reçus et les PDF, pour tous les téléphones de l'entreprise. " +
-                            "Les exports Excel et CSV ne changent pas.",
+                        stringResource(R.string.settings_money_format_body),
                         fontSize = DsTextSize.caption,
                         color    = DsColors.TextSecondary
                     )

@@ -121,7 +121,7 @@ fun PrinterSelectionScreen(
         modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = "Imprimantes",
+            title   = stringResource(R.string.settings_printers),
             leading = DsTopBarLeading.Back(onBack),
         )
 
@@ -139,7 +139,7 @@ fun PrinterSelectionScreen(
             }
 
             if (state.saved.isNotEmpty()) {
-                ListHeader("Enregistrées")
+                ListHeader(stringResource(R.string.settings_printers_saved))
                 state.saved.forEach { printer ->
                     SavedPrinterRow(
                         printer    = printer,
@@ -159,7 +159,7 @@ fun PrinterSelectionScreen(
                 // The network's name is not needed to print — a printer is reached by address — but an
                 // unreachable printer's usual cause is the phone having drifted onto mobile data or the
                 // neighbour's router, and that is invisible unless it is said out loud.
-                ListHeader("Réseau")
+                ListHeader(stringResource(R.string.settings_printers_network))
                 NetworkNote(state.wifi)
 
                 Spacer(Modifier.height(DsSpacing.md))
@@ -170,14 +170,13 @@ fun PrinterSelectionScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(DsSpacing.sm))
-                    Text("Ajouter par adresse IP", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+                    Text(stringResource(R.string.settings_add_by_ip), fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
                 }
             } else {
-                ListHeader("Appareils jumelés")
+                ListHeader(stringResource(R.string.settings_paired_devices))
                 if (state.bonded.isEmpty()) {
                     EmptyNote(
-                        "Aucun appareil jumelé. Jumelez l'imprimante dans les réglages Bluetooth " +
-                            "du téléphone, ou lancez une recherche."
+                        stringResource(R.string.settings_no_paired)
                     )
                 } else {
                     state.bonded.forEach { device ->
@@ -189,7 +188,7 @@ fun PrinterSelectionScreen(
 
             Spacer(Modifier.height(DsSpacing.lg))
 
-            ListHeader("Recherche")
+            ListHeader(stringResource(R.string.settings_search))
             ScanButton(
                 wifi     = state.method == ConnectionMethod.WIFI,
                 scanning = state.scanning,
@@ -206,7 +205,7 @@ fun PrinterSelectionScreen(
             )
             if (state.method == ConnectionMethod.WIFI && !state.scanning && !viewModel.canScanNetwork()) {
                 Spacer(Modifier.height(DsSpacing.sm))
-                EmptyNote("Connectez le téléphone au Wi-Fi pour pouvoir chercher sur le réseau.")
+                EmptyNote(stringResource(R.string.settings_connect_wifi))
             }
 
             if (state.discovered.isNotEmpty()) {
@@ -218,9 +217,7 @@ fun PrinterSelectionScreen(
             } else if (state.scanning) {
                 Spacer(Modifier.height(DsSpacing.sm))
                 EmptyNote(
-                    if (state.method == ConnectionMethod.WIFI)
-                        "Recherche sur le réseau local… Assurez-vous que l'imprimante est allumée."
-                    else "Recherche en cours… Assurez-vous que l'imprimante est allumée."
+                    stringResource(if (state.method == ConnectionMethod.WIFI) R.string.settings_searching_network else R.string.settings_searching)
                 )
             }
 
@@ -273,7 +270,7 @@ fun PrinterSelectionScreen(
     state.notice?.let { text ->
         AlertDialog(
             onDismissRequest = viewModel::dismissNotice,
-            title   = { Text("Imprimante") },
+            title   = { Text(stringResource(R.string.settings_printer)) },
             text    = { Text(text) },
             confirmButton = { TextButton(onClick = viewModel::dismissNotice) { Text(stringResource(R.string.common_action_ok)) } },
         )
@@ -341,11 +338,11 @@ private fun SavedPrinterRow(
     // What this row can honestly claim. A printer nobody has connected to says nothing at all: the
     // gate has not looked at it, so a green dot would be a claim the app cannot make.
     val status: Pair<String, androidx.compose.ui.graphics.Color>? = when {
-        connecting        -> "Connexion en cours…" to DsColors.TextSecondary
-        failure != null   -> "Non connectée — appuyez pour réessayer" to DsColors.Danger
+        connecting        -> stringResource(R.string.settings_connecting) to DsColors.TextSecondary
+        failure != null   -> stringResource(R.string.settings_not_connected_retry) to DsColors.Danger
         !isSelected       -> null
-        link is PrinterLink.Ready   -> "Prête" to DsColors.Success
-        link is PrinterLink.Idle    -> "Jumelée" to DsColors.TextSecondary
+        link is PrinterLink.Ready   -> stringResource(R.string.settings_printer_ready) to DsColors.Success
+        link is PrinterLink.Idle    -> stringResource(R.string.settings_printer_paired) to DsColors.TextSecondary
         link is PrinterLink.Blocked -> link.reason.message().title to DsColors.Danger
         else -> null
     }
@@ -398,11 +395,11 @@ private fun SavedPrinterRow(
             }
         }
         if (isSelected) {
-            Icon(Icons.Default.Check, contentDescription = "Sélectionnée", tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.settings_cd_selected), tint = DsColors.Primary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
         }
         IconButton(onClick = onMenu, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.settings_cd_options), tint = DsColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -432,7 +429,7 @@ private fun DiscoveredRow(device: DiscoveredDevice, onAdd: () -> Unit) {
         }
         // Stated rather than acted on: it decides the order, and the user decides the rest.
         if (device.looksLikePrinter) {
-            Text("Imprimante ?", fontSize = DsTextSize.caption, color = DsColors.Primary)
+            Text(stringResource(R.string.settings_is_printer), fontSize = DsTextSize.caption, color = DsColors.Primary)
         }
     }
 }
@@ -447,12 +444,12 @@ private fun ScanButton(wifi: Boolean, scanning: Boolean, onScan: () -> Unit, onS
         if (scanning) {
             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DsColors.Primary)
             Spacer(Modifier.width(DsSpacing.sm))
-            Text("Arrêter la recherche", fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
+            Text(stringResource(R.string.settings_stop_search), fontSize = DsTextSize.bodySmall, color = DsColors.Primary)
         } else {
             Icon(Icons.Default.Refresh, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(DsSpacing.sm))
             Text(
-                if (wifi) "Chercher sur le réseau" else "Rechercher des imprimantes",
+                stringResource(if (wifi) R.string.settings_search_network else R.string.settings_search_printers),
                 fontSize = DsTextSize.bodySmall,
                 color    = DsColors.Primary,
             )
@@ -495,17 +492,17 @@ private fun PrinterActionsSheet(
         ) {
             Text(printer.displayName, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             Spacer(Modifier.height(DsSpacing.lg))
-            SheetAction("Imprimer un test", "Confirme la largeur, les accents et le langage", enabled = !busy, onClick = onTest)
+            SheetAction(stringResource(R.string.settings_print_test), stringResource(R.string.settings_print_test_sub), enabled = !busy, onClick = onTest)
             SheetAction(
-                "Test raster (~40 Ko)",
-                "Mesure la vitesse réelle et les saccades · ~${benchmarkPaperMm(printer)} cm de papier",
+                stringResource(R.string.settings_raster_test),
+                stringResource(R.string.settings_raster_test_sub, benchmarkPaperMm(printer).toString()),
                 enabled = !busy,
                 onClick = onBenchmark,
             )
-            SheetAction("Vérifier la connexion", "Se connecte sans rien imprimer", enabled = !busy, onClick = onProbe)
-            SheetAction("Format, langage, encodage", "${printer.paper.label} · ${printer.language.label} · ${printer.codePage.label}", onClick = onConfigure)
-            SheetAction("Renommer", null, onClick = onRename)
-            SheetAction("Supprimer", null, destructive = true, onClick = onRemove)
+            SheetAction(stringResource(R.string.settings_probe), stringResource(R.string.settings_probe_sub), enabled = !busy, onClick = onProbe)
+            SheetAction(stringResource(R.string.settings_format_language_encoding), "${printer.paper.label} · ${printer.language.label} · ${printer.codePage.label}", onClick = onConfigure)
+            SheetAction(stringResource(R.string.settings_rename), null, onClick = onRename)
+            SheetAction(stringResource(R.string.common_action_delete), null, destructive = true, onClick = onRemove)
         }
     }
 }
@@ -576,7 +573,7 @@ private fun PrinterConfigSheet(
         ) {
             Text(live.displayName, fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
             Text(
-                "À confirmer avec un test d'impression.",
+                stringResource(R.string.settings_confirm_with_test),
                 fontSize = DsTextSize.bodySmall,
                 color    = DsColors.TextSecondary,
             )
@@ -585,17 +582,17 @@ private fun PrinterConfigSheet(
             // A4 is absent on purpose. It is not a thermal width at all — it takes the PDF path and
             // Android's print dialog — so offering it for a Bluetooth receipt printer would be offering
             // a setting that cannot work.
-            ConfigGroup("Format du papier") {
+            ConfigGroup(stringResource(R.string.settings_paper_format)) {
                 PrinterChoiceRow(PaperSize.entries.filter { it.isThermal }, live.paper, { it.label }) {
                     viewModel.configure(live.id, paper = it)
                 }
             }
-            ConfigGroup("Langage") {
+            ConfigGroup(stringResource(R.string.settings_language)) {
                 PrinterChoiceRow(PrintLanguage.entries, live.language, { it.label }) {
                     viewModel.configure(live.id, language = it)
                 }
             }
-            ConfigGroup("Encodage") {
+            ConfigGroup(stringResource(R.string.settings_encoding)) {
                 PrinterChoiceRow(PrinterCodePage.entries, live.codePage, { it.storageCode.uppercase() }) {
                     viewModel.configure(live.id, codePage = it)
                 }
@@ -651,18 +648,18 @@ private fun <T> PrinterChoiceRow(
 @Composable
 private fun NetworkNote(wifi: WifiState?) {
     val (text, colour) = when (wifi) {
-        is WifiState.Connected    -> "Réseau : ${wifi.ssid}" to DsColors.TextPrimary
-        WifiState.Off             -> "Wi-Fi désactivé" to DsColors.Danger
-        WifiState.NotConnected    -> "Téléphone non connecté au Wi-Fi" to DsColors.Danger
+        is WifiState.Connected    -> stringResource(R.string.settings_network_name, wifi.ssid) to DsColors.TextPrimary
+        WifiState.Off             -> stringResource(R.string.settings_wifi_off) to DsColors.Danger
+        WifiState.NotConnected    -> stringResource(R.string.settings_wifi_not_connected) to DsColors.Danger
         // The SSID is gated behind the location permission because knowing the network is knowing
         // roughly where you are. Printing works without it, so this explains rather than demands.
         is WifiState.Unnamed -> when (wifi.reason) {
             WifiState.Unnamed.Reason.PERMISSION ->
-                "Connecté — nom du réseau masqué (autorisation de localisation)" to DsColors.TextSecondary
+                stringResource(R.string.settings_wifi_hidden_permission) to DsColors.TextSecondary
             WifiState.Unnamed.Reason.LOCATION_OFF ->
-                "Connecté — nom du réseau masqué (localisation désactivée)" to DsColors.TextSecondary
+                stringResource(R.string.settings_wifi_hidden_location) to DsColors.TextSecondary
             WifiState.Unnamed.Reason.UNAVAILABLE ->
-                "Connecté au Wi-Fi" to DsColors.TextPrimary
+                stringResource(R.string.settings_wifi_connected) to DsColors.TextPrimary
         }
         null -> return
     }
@@ -685,11 +682,11 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Imprimante réseau") },
+        title = { Text(stringResource(R.string.settings_network_printer)) },
         text  = {
             Column {
                 Text(
-                    "L'adresse est imprimée sur la page de test de l'imprimante.",
+                    stringResource(R.string.settings_ip_hint),
                     fontSize = DsTextSize.caption,
                     color    = DsColors.TextSecondary,
                 )
@@ -697,7 +694,7 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
                 OutlinedTextField(
                     value         = host,
                     onValueChange = { host = westernDigits(it) },
-                    label         = { Text("Adresse IP") },
+                    label         = { Text(stringResource(R.string.settings_ip_address)) },
                     placeholder   = { Text("192.168.1.50") },
                     singleLine    = true,
                     shape         = DsShapes.medium,
@@ -707,7 +704,7 @@ private fun NetworkAddressDialog(onConfirm: (String, Int) -> Unit, onDismiss: ()
                 OutlinedTextField(
                     value         = port,
                     onValueChange = { port = westernDigits(it).filter(Char::isDigit).take(5) },
-                    label         = { Text("Port") },
+                    label         = { Text(stringResource(R.string.settings_port)) },
                     singleLine    = true,
                     shape         = DsShapes.medium,
                     modifier      = Modifier.fillMaxWidth(),
@@ -728,7 +725,7 @@ private fun RenameDialog(initial: String, onConfirm: (String) -> Unit, onDismiss
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Renommer l'imprimante") },
+        title = { Text(stringResource(R.string.settings_rename_printer)) },
         text  = {
             OutlinedTextField(
                 value         = name,

@@ -34,9 +34,10 @@ import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** What a row not built yet says, in place of its subtitle (owner, 2026-10-21). */
-const val SOON = "Bientôt disponible"
 
 private val IconTile = 44.dp
 
@@ -98,7 +99,7 @@ fun SettingsRow(
         Spacer(Modifier.width(DsSpacing.md))
         Column(Modifier.weight(1f)) {
             Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, modifier = faded)
-            val text = if (enabled) subtitle else SOON
+            val text = if (enabled) subtitle else stringResource(R.string.settings_soon)
             if (text != null) {
                 Text(
                     text, fontSize = DsTextSize.caption,
@@ -114,3 +115,7 @@ fun SettingsRow(
         }
     }
 }
+
+/** A settings text from its resource outside composition: a validation message, a label a lambda builds. */
+internal fun settingsText(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id, args.toList()))

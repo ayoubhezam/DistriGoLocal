@@ -46,6 +46,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import androidx.compose.material3.LocalTextStyle
+import com.distrigo.app.ui.common.phoneTextStyle
+import com.distrigo.app.core.text.UiText
 
 /**
  * "Reçus et impression" — what the receipt says, and how it comes out.
@@ -103,7 +106,7 @@ fun ReceiptAndPrintSettingsScreen(
             // previous logo stays until the new one is stored, and stays if the new one cannot be read.
             scope.launch {
                 if (!businessViewModel.saveLogo(it)) {
-                    Toast.makeText(context, "Image illisible", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_image_unreadable), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -113,7 +116,7 @@ fun ReceiptAndPrintSettingsScreen(
         isSaving = true
         scope.launch {
             businessViewModel.saveIdentity(name, phone)
-            Toast.makeText(context, "Paramètres enregistrés", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             isSaving = false
             onBack()
         }
@@ -127,7 +130,7 @@ fun ReceiptAndPrintSettingsScreen(
             .background(DsColors.SurfaceMuted)
     ) {
         DsTopAppBar(
-            title   = "Reçus et impression",
+            title   = stringResource(R.string.settings_receipts),
             leading = DsTopBarLeading.Back(onBack)
         )
 
@@ -141,7 +144,7 @@ fun ReceiptAndPrintSettingsScreen(
         ) {
 
             // ══════════ CONTENU DU REÇU ══════════
-            SectionHeader("Contenu du reçu", "Ce qui est imprimé en haut de chaque reçu")
+            SectionHeader(stringResource(R.string.settings_receipt_content), stringResource(R.string.settings_receipt_content_sub))
 
             Box(
                 modifier = Modifier
@@ -172,7 +175,7 @@ fun ReceiptAndPrintSettingsScreen(
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(DsSpacing.xs))
-                        Text("Ajouter un logo", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
+                        Text(stringResource(R.string.settings_add_logo), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
                     }
                 }
             }
@@ -199,7 +202,7 @@ fun ReceiptAndPrintSettingsScreen(
                         onClick  = {
                             scope.launch {
                                 businessViewModel.removeLogo()
-                                Toast.makeText(context, "Logo supprimé", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.settings_logo_removed), Toast.LENGTH_SHORT).show()
                             }
                         },
                         modifier = Modifier.weight(1f).height(44.dp),
@@ -215,11 +218,11 @@ fun ReceiptAndPrintSettingsScreen(
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            FieldLabel("Nom du commerce")
+            FieldLabel(stringResource(R.string.settings_shop_name))
             OutlinedTextField(
                 value           = name,
                 onValueChange   = { name = it },
-                placeholder     = { Text("Ex: DISTRIGO", fontSize = DsTextSize.body) },
+                placeholder     = { Text(stringResource(R.string.settings_shop_name_example), fontSize = DsTextSize.body) },
                 singleLine      = true,
                 modifier        = Modifier.fillMaxWidth(),
                 shape           = DsShapes.medium,
@@ -234,11 +237,12 @@ fun ReceiptAndPrintSettingsScreen(
 
             // Printed under the business name. Optional: left empty the receipt omits the row rather
             // than printing an empty one.
-            FieldLabel("Téléphone")
+            FieldLabel(stringResource(R.string.settings_phone))
             OutlinedTextField(
                 value           = phone,
                 onValueChange   = { phone = westernDigits(it) },
-                placeholder     = { Text("Ex: 0555 12 34 56", fontSize = DsTextSize.body) },
+                placeholder     = { Text(stringResource(R.string.settings_phone_example), fontSize = DsTextSize.body) },
+                textStyle       = phoneTextStyle(),
                 singleLine      = true,
                 modifier        = Modifier.fillMaxWidth(),
                 shape           = DsShapes.medium,
@@ -255,9 +259,9 @@ fun ReceiptAndPrintSettingsScreen(
             //
             // Saved as they are tapped, not on the button below — these are this phone's settings, not
             // a form, and a method the user switched to should already be in force if they leave.
-            SectionHeader("Imprimante", "Propre à ce téléphone — non inclus dans les sauvegardes")
+            SectionHeader(stringResource(R.string.settings_printer), stringResource(R.string.settings_printer_sub))
 
-            FieldLabel("Méthode de connexion")
+            FieldLabel(stringResource(R.string.settings_connection_method))
             ChoiceRow(
                 options  = ConnectionMethod.entries,
                 selected = printSettings.method,
@@ -267,7 +271,7 @@ fun ReceiptAndPrintSettingsScreen(
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            FieldLabel("Imprimante")
+            FieldLabel(stringResource(R.string.settings_printer))
             PrinterRow(
                 selectedName = printSettings.selectedPrinter?.displayName,
                 onClick      = onPrinters,
@@ -275,7 +279,7 @@ fun ReceiptAndPrintSettingsScreen(
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            FieldLabel("Format du papier")
+            FieldLabel(stringResource(R.string.settings_paper_format))
             ChoiceRow(
                 options  = PaperSize.entries,
                 selected = printSettings.effectivePaper,
@@ -284,14 +288,14 @@ fun ReceiptAndPrintSettingsScreen(
             )
             Spacer(Modifier.height(DsSpacing.xs))
             Text(
-                settingScope(printSettings, printSettings.effectivePaper.kindLabel),
+                settingScope(printSettings, stringResource(if (printSettings.effectivePaper == PaperSize.A4) R.string.settings_paper_kind_normal else R.string.settings_paper_kind_thermal)),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextTertiary,
             )
 
             Spacer(Modifier.height(DsSpacing.md))
 
-            FieldLabel("Langage d'impression")
+            FieldLabel(stringResource(R.string.settings_print_language))
             ChoiceRow(
                 options  = PrintLanguage.entries,
                 selected = printSettings.effectiveLanguage,
@@ -300,7 +304,7 @@ fun ReceiptAndPrintSettingsScreen(
             )
             Spacer(Modifier.height(DsSpacing.xs))
             Text(
-                settingScope(printSettings, printSettings.effectiveLanguage.note),
+                settingScope(printSettings, stringResource(languageNote(printSettings.effectiveLanguage))),
                 fontSize = DsTextSize.caption,
                 color    = DsColors.TextTertiary,
             )
@@ -308,7 +312,7 @@ fun ReceiptAndPrintSettingsScreen(
             Spacer(Modifier.height(DsSpacing.xxl))
 
             // ══════════ APERÇU ══════════
-            SectionHeader("Aperçu", "Exemple de reçu — la largeur et la mise en page sont réelles")
+            SectionHeader(stringResource(R.string.settings_preview), stringResource(R.string.settings_preview_sub))
 
             Box(
                 modifier = Modifier
@@ -365,15 +369,24 @@ fun ReceiptAndPrintSettingsScreen(
  * Without this the per-printer model is invisible and surprising: two printers with different paper,
  * one screen, and no clue that the chips followed the selection rather than the app.
  */
+@Composable
 private fun settingScope(settings: PrintSettings, description: String): String =
     settings.selectedPrinter
-        ?.let { "$description · réglage de ${it.displayName}" }
-        ?: "$description · défaut pour les nouvelles imprimantes"
+        ?.let { stringResource(R.string.settings_scope_printer, description, it.displayName) }
+        ?: stringResource(R.string.settings_scope_default, description)
+
+/** What a print language is for, in the app's language. */
+@androidx.annotation.StringRes
+private fun languageNote(language: PrintLanguage): Int = when (language) {
+    PrintLanguage.ESC_POS -> R.string.settings_language_escpos
+    PrintLanguage.TSPL    -> R.string.settings_language_tspl
+    PrintLanguage.CPCL    -> R.string.settings_language_cpcl
+}
 
 /** The numbers the layout was built against, stated so a surprising preview can be checked against them. */
 private fun paperCaption(preview: PreviewState): String? {
     val paper = preview.paper ?: return null
-    return "${paper.charsPerLine} caractères par ligne · ${paper.dotsPerLine} points · ${paper.dpi} dpi"
+    return com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.settings_paper_caption, paper.charsPerLine, paper.dotsPerLine, paper.dpi))
 }
 
 /**
@@ -405,7 +418,7 @@ private fun PrinterRow(selectedName: String?, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(DsSpacing.sm))
         Text(
-            selectedName ?: "Aucune",
+            selectedName ?: stringResource(R.string.settings_no_printer),
             fontSize   = DsTextSize.bodySmall,
             fontWeight = if (hasPrinter) FontWeight.Medium else FontWeight.Normal,
             color      = if (hasPrinter) DsColors.TextPrimary else DsColors.TextTertiary,

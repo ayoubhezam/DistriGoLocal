@@ -34,6 +34,8 @@ import com.distrigo.app.data.print.PaperProfile
 import com.distrigo.app.data.print.lang.MonoRaster
 import com.distrigo.app.ui.designsystem.DsColors
 import java.nio.ByteBuffer
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The widest roll we lay out for. Narrower paper is drawn to scale against it. */
 private const val WIDEST_PAPER_MM = 80f
@@ -209,8 +211,7 @@ fun A4PreviewPlaceholder(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                "Le reçu A4 garde sa mise en page actuelle et passe par la boîte d'impression " +
-                    "d'Android, qui choisit le format du papier avec l'imprimante.",
+                stringResource(R.string.settings_a4_note),
                 fontSize = 12.sp,
                 color = DsColors.TextSecondary,
                 textAlign = TextAlign.Center,

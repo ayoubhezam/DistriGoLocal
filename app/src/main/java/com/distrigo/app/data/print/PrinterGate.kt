@@ -1,5 +1,6 @@
 package com.distrigo.app.data.print
 
+import com.distrigo.app.R
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -161,52 +162,55 @@ class PrinterGate(private val context: Context) {
 data class PrinterProblemMessage(val title: String, val detail: String, val action: String?)
 
 /**
- * The French wording for every failure, in one place.
+ * The wording for every failure, in one place, in the app's language.
  *
  * Kept out of the composables because the same failure is reported from the settings screen, from the
  * printer list and — in phase 3 — from the print button on a receipt, and three hand-written versions
  * of "l'imprimante ne répond pas" would eventually disagree about what the user should do next.
  */
+private fun text(@androidx.annotation.StringRes id: Int): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id))
+
 fun PrintFailure.message(): PrinterProblemMessage = when (this) {
     PrintFailure.NO_BLUETOOTH -> PrinterProblemMessage(
-        "Bluetooth indisponible",
-        "Ce téléphone n'a pas de Bluetooth. Utilisez le partage en PDF.",
+        text(R.string.print_fail_no_bluetooth_title),
+        text(R.string.print_fail_no_bluetooth_detail),
         null,
     )
     PrintFailure.PERMISSION_DENIED -> PrinterProblemMessage(
-        "Autorisation refusée",
-        "DistriGo a besoin d'accéder au Bluetooth pour parler à l'imprimante.",
-        "Autoriser",
+        text(R.string.print_fail_permission_denied_title),
+        text(R.string.print_fail_permission_denied_detail),
+        text(R.string.print_fail_permission_denied_action),
     )
     PrintFailure.ADAPTER_OFF -> PrinterProblemMessage(
-        "Bluetooth désactivé",
-        "Activez le Bluetooth pour utiliser l'imprimante.",
-        "Activer",
+        text(R.string.print_fail_adapter_off_title),
+        text(R.string.print_fail_adapter_off_detail),
+        text(R.string.print_fail_adapter_off_action),
     )
     PrintFailure.NOT_PAIRED -> PrinterProblemMessage(
-        "Imprimante non jumelée",
-        "Jumelez l'imprimante dans les réglages Bluetooth du téléphone, puis réessayez.",
-        "Ouvrir les réglages",
+        text(R.string.print_fail_not_paired_title),
+        text(R.string.print_fail_not_paired_detail),
+        text(R.string.print_fail_not_paired_action),
     )
     PrintFailure.UNREACHABLE -> PrinterProblemMessage(
-        "Imprimante injoignable",
-        "Vérifiez qu'elle est allumée, à portée, et qu'aucun autre appareil n'y est connecté.",
-        "Réessayer",
+        text(R.string.print_fail_unreachable_title),
+        text(R.string.print_fail_unreachable_detail),
+        text(R.string.print_fail_unreachable_action),
     )
     PrintFailure.NO_NETWORK -> PrinterProblemMessage(
-        "Aucun réseau",
-        "Connectez le téléphone au Wi-Fi de l'imprimante.",
-        "Réglages Wi-Fi",
+        text(R.string.print_fail_no_network_title),
+        text(R.string.print_fail_no_network_detail),
+        text(R.string.print_fail_no_network_action),
     )
     PrintFailure.INTERRUPTED -> PrinterProblemMessage(
-        "Impression interrompue",
-        "La connexion a été perdue pendant l'impression. Le reçu est incomplet.",
-        "Réimprimer",
+        text(R.string.print_fail_interrupted_title),
+        text(R.string.print_fail_interrupted_detail),
+        text(R.string.print_fail_interrupted_action),
     )
     PrintFailure.NOT_CONFIGURED -> PrinterProblemMessage(
-        "Aucune imprimante",
-        "Choisissez une imprimante pour pouvoir imprimer.",
-        "Choisir",
+        text(R.string.print_fail_not_configured_title),
+        text(R.string.print_fail_not_configured_detail),
+        text(R.string.print_fail_not_configured_action),
     )
 }
 
