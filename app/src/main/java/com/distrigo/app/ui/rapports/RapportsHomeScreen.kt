@@ -43,6 +43,8 @@ import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.DsTopBarSize
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** One report of the list. [onOpen] is null for a report not built yet, shown as "Bientôt". */
 private class ReportEntry(
@@ -60,18 +62,18 @@ private class ReportEntry(
 @Composable
 fun RapportsHomeScreen(onBack: () -> Unit, onOpenVentes: () -> Unit, onOpenDettes: () -> Unit, onOpenProduits: () -> Unit, onOpenStock: () -> Unit, onOpenTiers: () -> Unit, onOpenResultat: () -> Unit) {
     val entries = listOf(
-        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, "Ventes", "Chiffre d'affaires, marge, répartition des ventes", onOpenVentes),
-        ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, DsColors.AccentViolet, "Produits", "Meilleurs produits, catégories, analyse ABC", onOpenProduits),
-        ReportEntry(Icons.Default.People, DsColors.AccentTeal, "Clients et fournisseurs", "Meilleurs clients, achats par fournisseur", onOpenTiers),
-        ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, "Créances et dettes", "Qui doit quoi, depuis quand", onOpenDettes),
-        ReportEntry(Icons.Default.Inventory2, DsColors.TextSecondary, "Stock et pertes", "Valeur du stock, ruptures, pertes", onOpenStock),
-        ReportEntry(Icons.Default.PieChart, DsColors.Success, "Résultat", "Marge, charges et pertes : le bénéfice", onOpenResultat),
+        ReportEntry(Icons.Default.ShoppingCart, DsColors.Primary, stringResource(R.string.rapports_sales), stringResource(R.string.rapports_home_sales_sub), onOpenVentes),
+        ReportEntry(Icons.AutoMirrored.Filled.TrendingUp, DsColors.AccentViolet, stringResource(R.string.rapports_products), stringResource(R.string.rapports_home_products_sub), onOpenProduits),
+        ReportEntry(Icons.Default.People, DsColors.AccentTeal, stringResource(R.string.rapports_parties), stringResource(R.string.rapports_home_parties_sub), onOpenTiers),
+        ReportEntry(Icons.Default.AccountBalanceWallet, DsColors.Warning, stringResource(R.string.rapports_debts), stringResource(R.string.rapports_home_debts_sub), onOpenDettes),
+        ReportEntry(Icons.Default.Inventory2, DsColors.TextSecondary, stringResource(R.string.rapports_stock), stringResource(R.string.rapports_home_stock_sub), onOpenStock),
+        ReportEntry(Icons.Default.PieChart, DsColors.Success, stringResource(R.string.rapports_profit), stringResource(R.string.rapports_home_profit_sub), onOpenResultat),
     )
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "Rapports",
-            subtitle = "Statistiques et performances",
+            title = stringResource(R.string.rapports_title),
+            subtitle = stringResource(R.string.rapports_subtitle),
             leading = DsTopBarLeading.Back(onBack),
             size = DsTopBarSize.Large,
         )
@@ -111,7 +113,7 @@ private fun EntryRow(entry: ReportEntry) {
             Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(14.dp))
         } else {
             Text(
-                "Bientôt", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                stringResource(R.string.rapports_soon), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                 modifier = Modifier.clip(DsShapes.pill).background(DsColors.SurfaceSunken).padding(horizontal = DsSpacing.sm, vertical = 2.dp),
             )
         }

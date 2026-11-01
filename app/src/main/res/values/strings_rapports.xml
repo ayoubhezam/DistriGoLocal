@@ -5,4 +5,258 @@
     <string name="rapports_debtor_sort_name_za">Nom (Z-A)</string>
     <string name="rapports_rank_sales">Ventes</string>
     <string name="rapports_rank_bons">Bons</string>
+    <string name="rapports_cd_how_computed">Comment est calculé « %1$s »</string>
+    <string name="rapports_currency">DA</string>
+    <string name="rapports_change_period">Changer la période</string>
+    <string name="rapports_sales">Ventes</string>
+    <string name="rapports_home_sales_sub">Chiffre d\'affaires, marge, répartition des ventes</string>
+    <string name="rapports_products">Produits</string>
+    <string name="rapports_home_products_sub">Meilleurs produits, catégories, analyse ABC</string>
+    <string name="rapports_parties">Clients et fournisseurs</string>
+    <string name="rapports_home_parties_sub">Meilleurs clients, achats par fournisseur</string>
+    <string name="rapports_debts">Créances et dettes</string>
+    <string name="rapports_home_debts_sub">Qui doit quoi, depuis quand</string>
+    <string name="rapports_stock">Stock et pertes</string>
+    <string name="rapports_home_stock_sub">Valeur du stock, ruptures, pertes</string>
+    <string name="rapports_profit">Résultat</string>
+    <string name="rapports_home_profit_sub">Marge, charges et pertes : le bénéfice</string>
+    <string name="rapports_title">Rapports</string>
+    <string name="rapports_subtitle">Statistiques et performances</string>
+    <string name="rapports_soon">Bientôt</string>
+    <string name="rapports_sales_sub">Rapport des ventes</string>
+    <string name="rapports_no_sales">Aucune vente sur cette période.</string>
+    <string name="rapports_turnover">Chiffre d\'affaires</string>
+    <string name="rapports_info_turnover">Chiffre d\'affaires = somme des ventes, au prix de vente\nVentes nettes = Chiffre d\'affaires − Retours clients (avec « Tout »)</string>
+    <string name="rapports_client_returns_n">Retours clients (%1$d)</string>
+    <string name="rapports_net_sales">Ventes nettes</string>
+    <string name="rapports_sales_count">Nombre de ventes</string>
+    <string name="rapports_info_sales_count">Nombre de ventes de la période.</string>
+    <string name="rapports_avg_basket">Panier moyen</string>
+    <string name="rapports_info_avg_basket">Panier moyen = Chiffre d\'affaires ÷ Nombre de ventes</string>
+    <string name="rapports_gross_margin">Marge brute</string>
+    <string name="rapports_info_gross_margin">Marge brute = Chiffre d\'affaires − Coût des ventes</string>
+    <string name="rapports_margin_rate">Taux de marge</string>
+    <string name="rapports_info_margin_rate">Taux de marge = Marge brute ÷ Coût des ventes × 100</string>
+    <string name="rapports_depot_camion">Dépôt et camion</string>
+    <string name="rapports_info_depot_camion">Part = Ventes du dépôt (ou du camion) ÷ Chiffre d\'affaires × 100\nAvec « Tout » seulement.</string>
+    <string name="rapports_best">Meilleur · %1$s</string>
+    <string name="rapports_places_title">Répartition des ventes</string>
+    <string name="rapports_info_places">Chiffre d\'affaires de la période, selon le lieu du client : wilaya, commune, secteur, quartier.\nLe lieu est celui de la fiche client aujourd\'hui.\n« Sans … » : les clients sans ce renseignement.\n\nTouchez une part pour l\'ouvrir, le centre pour remonter.</string>
+    <string name="rapports_place_root">Wilayas</string>
+    <string name="rapports_no_wilaya">Sans wilaya</string>
+    <string name="rapports_no_commune">Sans commune</string>
+    <string name="rapports_no_secteur">Sans secteur</string>
+    <string name="rapports_no_quartier">Sans quartier</string>
+    <string name="rapports_others">Autres</string>
+    <plurals name="rapports_n_wilayas">
+        <item quantity="one">%d wilaya</item>
+        <item quantity="other">%d wilayas</item>
+    </plurals>
+    <plurals name="rapports_n_communes">
+        <item quantity="one">%d commune</item>
+        <item quantity="other">%d communes</item>
+    </plurals>
+    <plurals name="rapports_n_secteurs">
+        <item quantity="one">%d secteur</item>
+        <item quantity="other">%d secteurs</item>
+    </plurals>
+    <plurals name="rapports_n_quartiers">
+        <item quantity="one">%d quartier</item>
+        <item quantity="other">%d quartiers</item>
+    </plurals>
+    <string name="rapports_by_wilaya">Répartition par wilaya</string>
+    <string name="rapports_by_commune">Répartition par commune</string>
+    <string name="rapports_by_secteur">Répartition par secteur</string>
+    <string name="rapports_by_quartier">Répartition par quartier</string>
+    <string name="rapports_by_client">Répartition par client</string>
+    <string name="rapports_wilayas_of">Wilayas de</string>
+    <string name="rapports_communes_of">Communes de</string>
+    <string name="rapports_secteurs_of">Secteurs de</string>
+    <string name="rapports_quartiers_of">Quartiers de</string>
+    <string name="rapports_clients_of">Clients de</string>
+    <string name="rapports_all_wilayas">Toutes les wilayas</string>
+    <string name="rapports_all_communes">Toutes les communes</string>
+    <string name="rapports_all_secteurs">Tous les secteurs</string>
+    <string name="rapports_all_quartiers">Tous les quartiers</string>
+    <string name="rapports_all_clients">Tous les clients</string>
+    <string name="rapports_quartier_clients">Clients du quartier</string>
+    <string name="rapports_turnover_by_wilaya">Chiffre d\'affaires par wilaya</string>
+    <string name="rapports_sales_total">Total des ventes</string>
+    <string name="rapports_share_of">%1$s de %2$s</string>
+    <string name="rapports_top_clients_of">Top clients · %1$s</string>
+    <string name="rapports_share_of_quartier">%1$s du quartier</string>
+    <string name="rapports_see_all_clients_n">Voir tous les clients (%1$d)</string>
+    <string name="rapports_see_all_n">Voir tout (%1$d)</string>
+    <string name="rapports_others_range">de %1$s à %2$s · %3$s</string>
+    <string name="rapports_cd_places">Répartition des ventes : %1$s</string>
+    <string name="rapports_products_sales">Ventes des produits</string>
+    <string name="rapports_info_products_sales">Ventes = somme des lignes de vente, au prix de vente\nMarge brute = Ventes − Coût des ventes</string>
+    <string name="rapports_products_sold">Produits vendus</string>
+    <string name="rapports_info_products_sold">Produits vendus = produits différents vendus au moins une fois</string>
+    <string name="rapports_class_a">Classe A</string>
+    <string name="rapports_info_class_a" formatted="false">Classe A = produits qui font les premiers 80 % des ventes\n% = Produits A ÷ Produits vendus × 100</string>
+    <string name="rapports_dormant">Sans vente</string>
+    <string name="rapports_info_dormant">Sans vente = produits en stock non vendus sur la période\nMontant = Stock × Prix d\'achat actuel</string>
+    <string name="rapports_top_products">Meilleurs produits</string>
+    <string name="rapports_info_top_products">Classés par chiffre d\'affaires, marge brute ou quantité (dans l\'unité du produit).</string>
+    <string name="rapports_split">Répartition</string>
+    <string name="rapports_info_groups">Ventes par catégorie, marque ou fournisseur. Les 5 premiers, le reste dans « Autres ».</string>
+    <string name="rapports_abc">Analyse ABC</string>
+    <string name="rapports_info_abc" formatted="false">Produits classés par ventes :\nA : les premiers 80 % des ventes\nB : les 15 % suivants\nC : les 5 % restants</string>
+    <string name="rapports_no_category">Sans catégorie</string>
+    <string name="rapports_no_brand">Sans marque</string>
+    <string name="rapports_no_supplier">Sans fournisseur</string>
+    <string name="rapports_products_sub">Ce qui se vend, ce qui rapporte</string>
+    <string name="rapports_gross_margin_value">Marge brute %1$s</string>
+    <string name="rapports_abc_sub">Peu de produits font l\'essentiel des ventes</string>
+    <string name="rapports_share_of_products">%1$s des produits</string>
+    <string name="rapports_share_of_sales">%1$s des ventes</string>
+    <string name="rapports_no_result_for">Aucun résultat pour « %1$s »</string>
+    <string name="rapports_dormant_value">Stock immobilisé : %1$s</string>
+    <string name="rapports_all_sold">Tout le stock s\'est vendu sur cette période.</string>
+    <string name="rapports_stock_value">Stock : %1$s</string>
+    <string name="rapports_sales_to_clients">Ventes aux clients</string>
+    <string name="rapports_info_sales_to_clients">Ventes = somme des ventes, dépôt + camion</string>
+    <plurals name="rapports_active_clients_n">
+        <item quantity="one">%d client actif</item>
+        <item quantity="other">%d clients actifs</item>
+    </plurals>
+    <string name="rapports_active_clients">Clients actifs</string>
+    <string name="rapports_info_active_clients">Clients actifs = clients avec au moins un achat</string>
+    <string name="rapports_info_avg_basket_clients">Panier moyen = Ventes ÷ Nombre de ventes</string>
+    <string name="rapports_top_clients">Meilleurs clients</string>
+    <string name="rapports_info_top_clients">Classés par ventes, par marge brute (Ventes − Coût des ventes) ou par nombre de ventes.</string>
+    <string name="rapports_concentration">Concentration</string>
+    <string name="rapports_info_concentration_clients">Concentration = Ventes des 5 meilleurs clients ÷ Ventes × 100</string>
+    <string name="rapports_clients_of_period">Clients de la période</string>
+    <string name="rapports_purchases_from_suppliers">Achats aux fournisseurs</string>
+    <string name="rapports_info_purchases_from_suppliers">Achats = somme des bons d\'achat datés de la période, reçus ou non</string>
+    <string name="rapports_suppliers">Fournisseurs</string>
+    <string name="rapports_info_suppliers">Fournisseurs = fournisseurs avec au moins un bon</string>
+    <string name="rapports_avg_bon">Bon moyen</string>
+    <string name="rapports_info_avg_bon">Bon moyen = Achats ÷ Nombre de bons</string>
+    <string name="rapports_top_suppliers">Principaux fournisseurs</string>
+    <string name="rapports_info_top_suppliers">Classés par achats ou par nombre de bons.</string>
+    <string name="rapports_info_concentration_suppliers">Concentration = Achats aux 5 premiers fournisseurs ÷ Achats × 100</string>
+    <string name="rapports_suppliers_of_period">Fournisseurs de la période</string>
+    <string name="rapports_new_clients">Nouveaux clients</string>
+    <string name="rapports_info_new_clients">Nouveaux clients = clients dont le premier achat est dans la période</string>
+    <string name="rapports_inactive_clients">Clients inactifs</string>
+    <string name="rapports_info_inactive_clients">Clients inactifs = clients sans achat depuis le début de la période\nMontant = total de leurs achats</string>
+    <string name="rapports_parties_sub">Qui achète, chez qui vous achetez</string>
+    <string name="rapports_no_purchases">Aucun achat sur cette période.</string>
+    <string name="rapports_the_others">Les autres</string>
+    <string name="rapports_top_five_share">Les cinq premiers font %1$s du total</string>
+    <string name="rapports_nothing_in_period">Rien sur cette période.</string>
+    <string name="rapports_inactive_sub">Plus d\'achat depuis le début de la période</string>
+    <string name="rapports_all_bought">Tous vos clients ont acheté sur la période.</string>
+    <string name="rapports_last_purchase_on">Dernier achat le %1$s</string>
+    <string name="rapports_owed_clients">Reste à encaisser</string>
+    <string name="rapports_info_owed_clients">Reste à encaisser = somme des soldes clients, aujourd\'hui\n\nÂge = date des ventes impayées ; les versements règlent les plus récentes d\'abord.</string>
+    <string name="rapports_owed_suppliers">Reste à payer</string>
+    <string name="rapports_info_owed_suppliers">Reste à payer = somme des soldes fournisseurs, aujourd\'hui\n\nÂge = date des bons impayés ; les versements règlent les plus récents d\'abord.</string>
+    <string name="rapports_credit_clients">Crédit accordé</string>
+    <string name="rapports_info_credit_clients">Crédit accordé = Ventes − Payé à la vente</string>
+    <string name="rapports_credit_suppliers">Achats à crédit</string>
+    <string name="rapports_info_credit_suppliers">Achats à crédit = Bons d\'achat − Payé à la réception</string>
+    <string name="rapports_payments_clients">Versements reçus</string>
+    <string name="rapports_info_payments_clients">Versements reçus = somme des paiements des clients</string>
+    <string name="rapports_payments_suppliers">Versements payés</string>
+    <string name="rapports_info_payments_suppliers">Versements payés = somme des paiements aux fournisseurs</string>
+    <string name="rapports_returns_clients">Retours clients</string>
+    <string name="rapports_info_returns_clients">Retours clients = somme des retours, au prix de vente</string>
+    <string name="rapports_returns_suppliers">Retours fournisseurs</string>
+    <string name="rapports_info_returns_suppliers">Retours fournisseurs = somme des retours, au prix d\'achat</string>
+    <string name="rapports_ages">Ancienneté</string>
+    <string name="rapports_info_ages_clients">Dette d\'aujourd\'hui par âge des ventes impayées : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les ventes les plus récentes d\'abord.</string>
+    <string name="rapports_info_ages_suppliers">Dette d\'aujourd\'hui par âge des bons impayés : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les bons les plus récents d\'abord.</string>
+    <string name="rapports_balance_change">Évolution du solde</string>
+    <string name="rapports_info_change_clients">Évolution = Crédit accordé − Versements reçus − Retours clients\n\nEn baisse : les clients vous doivent moins qu\'au début de la période.</string>
+    <string name="rapports_info_change_suppliers">Évolution = Achats à crédit − Versements payés − Retours fournisseurs\n\nEn baisse : vous devez moins qu\'au début de la période.</string>
+    <plurals name="rapports_debtor_clients_n">
+        <item quantity="one">%d client débiteur</item>
+        <item quantity="other">%d clients débiteurs</item>
+    </plurals>
+    <plurals name="rapports_suppliers_to_pay_n">
+        <item quantity="one">%d fournisseur à payer</item>
+        <item quantity="other">%d fournisseurs à payer</item>
+    </plurals>
+    <plurals name="rapports_payments_n">
+        <item quantity="one">%d versement</item>
+        <item quantity="other">%d versements</item>
+    </plurals>
+    <plurals name="rapports_returns_n">
+        <item quantity="one">%d retour</item>
+        <item quantity="other">%d retours</item>
+    </plurals>
+    <string name="rapports_debtor_clients">Clients débiteurs</string>
+    <string name="rapports_suppliers_to_pay">Fournisseurs à payer</string>
+    <string name="rapports_no_payment">Aucun versement</string>
+    <string name="rapports_last_payment_on">Dernier versement le</string>
+    <string name="rapports_no_debt_clients">Aucun client ne vous doit d\'argent.</string>
+    <string name="rapports_no_debt_suppliers">Vous ne devez rien à vos fournisseurs.</string>
+    <string name="rapports_debts_sub">Ce qui reste à encaisser et à payer</string>
+    <string name="rapports_in_period">Sur la période</string>
+    <string name="rapports_count_on_day">%1$s\nau %2$s</string>
+    <string name="rapports_under_30_days">Moins de 30 jours</string>
+    <string name="rapports_over_90_days">Plus de 90 jours</string>
+    <string name="rapports_trend_up">En hausse</string>
+    <string name="rapports_trend_down">En baisse</string>
+    <string name="rapports_ages_sub">Depuis combien de temps l\'argent est dû</string>
+    <string name="rapports_total_owed_to_us">Total des créances</string>
+    <string name="rapports_total_to_pay">Total à payer</string>
+    <string name="rapports_stock_value_title">Valeur du stock</string>
+    <string name="rapports_info_stock_value">Valeur du stock = Stock × Prix d\'achat actuel, aujourd\'hui\nUn stock sous zéro compte pour 0.</string>
+    <string name="rapports_outages">Ruptures</string>
+    <string name="rapports_info_outages">Ruptures = produits suivis avec stock ≤ 0\nSuivis : avec un minimum, ou déjà en stock.</string>
+    <string name="rapports_low_stock">Stock bas</string>
+    <string name="rapports_info_low_stock">Stock bas = produits avec 0 &lt; stock &lt; stock minimum</string>
+    <string name="rapports_losses">Pertes</string>
+    <string name="rapports_info_losses">Pertes = Quantité perdue × Prix d\'achat</string>
+    <string name="rapports_loss_rate">Taux de perte</string>
+    <string name="rapports_info_loss_rate">Taux de perte = Pertes ÷ Coût des ventes × 100</string>
+    <string name="rapports_losses_by_type">Pertes par type</string>
+    <string name="rapports_info_losses_by_type">Pertes par type, selon leur coût. Les 5 premiers, le reste dans « Autres types ».</string>
+    <string name="rapports_most_lost">Produits les plus perdus</string>
+    <string name="rapports_info_most_lost">Classés par coût des pertes, avec la quantité perdue.</string>
+    <string name="rapports_restock">À réapprovisionner</string>
+    <string name="rapports_info_restock">Les ruptures, puis les produits sous leur stock minimum, des plus vides aux moins vides.</string>
+    <string name="rapports_stock_sub">Ce que vaut le stock, ce qui manque, ce qui se perd</string>
+    <string name="rapports_restock_n">À réapprovisionner (%1$d)</string>
+    <string name="rapports_nothing_to_restock_long">Rien à réapprovisionner : tout est au-dessus de son minimum.</string>
+    <plurals name="rapports_products_in_stock_n">
+        <item quantity="one">%d produit en stock</item>
+        <item quantity="other">%d produits en stock</item>
+    </plurals>
+    <string name="rapports_at_depot">Au dépôt</string>
+    <string name="rapports_on_truck">Au camion</string>
+    <string name="rapports_other_types">Autres types</string>
+    <string name="rapports_losses_total">Total des pertes</string>
+    <string name="rapports_lost_qty">Perdu : %1$s</string>
+    <string name="rapports_minimum">minimum %1$s</string>
+    <string name="rapports_no_minimum">pas de minimum</string>
+    <string name="rapports_outage_detail">Rupture · %1$s</string>
+    <string name="rapports_low_detail">Stock bas · %1$s</string>
+    <plurals name="rapports_outages_n">
+        <item quantity="one">%d rupture</item>
+        <item quantity="other">%d ruptures</item>
+    </plurals>
+    <string name="rapports_low_n">%1$d en stock bas</string>
+    <string name="rapports_nothing_to_restock">Rien à réapprovisionner.</string>
+    <string name="rapports_net_result">Résultat net</string>
+    <string name="rapports_info_net_result">Résultat net = Marge brute − Retours clients − Charges − Pertes</string>
+    <string name="rapports_charges">Charges</string>
+    <string name="rapports_info_charges">Charges = somme des dépenses de la période</string>
+    <string name="rapports_profitability">Rentabilité</string>
+    <string name="rapports_info_profitability" formatted="false">Rentabilité (%) = Résultat net ÷ Chiffre d\'affaires × 100</string>
+    <string name="rapports_statement">Compte de résultat</string>
+    <string name="rapports_info_statement">Marge brute = Chiffre d\'affaires − Coût des ventes\nRésultat net = Marge brute − Retours clients − Charges − Pertes\n\nCoût des ventes = Quantité vendue × Prix d\'achat au moment de la vente\nRetours clients = Remboursé − Coût des produits revenus</string>
+    <string name="rapports_charges_by_type">Charges par type</string>
+    <string name="rapports_info_charges_by_type">Part = Charges du type ÷ Charges × 100. Les 5 premiers, le reste dans « Autres types ».</string>
+    <string name="rapports_profit_sub">Ce qui reste une fois tout payé</string>
+    <string name="rapports_profit_in_period">Bénéfice sur la période</string>
+    <string name="rapports_loss_in_period">Perte sur la période</string>
+    <string name="rapports_taken_off">Retiré</string>
+    <string name="rapports_cost_of_sales">Coût des ventes</string>
+    <string name="rapports_charges_total">Total des charges</string>
 </resources>

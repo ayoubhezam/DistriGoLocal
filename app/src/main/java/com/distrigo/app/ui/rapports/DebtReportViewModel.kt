@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import com.distrigo.app.data.repository.DebtorLine
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** The Créances et dettes report as the screen shows it; [report] stays while the next one loads. */
 data class DebtReportState(
@@ -57,7 +58,7 @@ class DebtReportViewModel @Inject constructor(
                 emit(last.copy(filter = filter, side = side, report = kept, loading = true, error = null))
                 val next = runCatching { repository.debtReport(side, filter) }.fold(
                     onSuccess = { DebtReportState(filter, side, it, loading = false) },
-                    onFailure = { DebtReportState(filter, side, kept, loading = false, error = it.message ?: "Erreur de chargement") },
+                    onFailure = { DebtReportState(filter, side, kept, loading = false, error = it.message ?: reportText(R.string.common_load_error)) },
                 )
                 last = next
                 emit(next)

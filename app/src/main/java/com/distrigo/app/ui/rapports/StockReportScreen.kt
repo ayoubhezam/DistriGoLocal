@@ -60,6 +60,7 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.R
 
 /** How many lost products and products to restock the report itself lists. */
@@ -69,14 +70,14 @@ private const val TOP_RESTOCK = 5
 private val LossColors = listOf(DsColors.Danger, DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.TextTertiary)
 private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 
-private val INFO_VALUE = ReportInfo("Valeur du stock", "Valeur du stock = Stock × Prix d'achat actuel, aujourd'hui\nUn stock sous zéro compte pour 0.")
-private val INFO_OUT = ReportInfo("Ruptures", "Ruptures = produits suivis avec stock ≤ 0\nSuivis : avec un minimum, ou déjà en stock.")
-private val INFO_LOW = ReportInfo("Stock bas", "Stock bas = produits avec 0 < stock < stock minimum")
-private val INFO_LOSSES = ReportInfo("Pertes", "Pertes = Quantité perdue × Prix d'achat")
-private val INFO_RATE = ReportInfo("Taux de perte", "Taux de perte = Pertes ÷ Coût des ventes × 100")
-private val INFO_TYPES = ReportInfo("Pertes par type", "Pertes par type, selon leur coût. Les 5 premiers, le reste dans « Autres types ».")
-private val INFO_LOST = ReportInfo("Produits les plus perdus", "Classés par coût des pertes, avec la quantité perdue.")
-private val INFO_RESTOCK = ReportInfo("À réapprovisionner", "Les ruptures, puis les produits sous leur stock minimum, des plus vides aux moins vides.")
+private val INFO_VALUE: ReportInfo get() = ReportInfo(reportText(R.string.rapports_stock_value_title), reportText(R.string.rapports_info_stock_value))
+private val INFO_OUT: ReportInfo get() = ReportInfo(reportText(R.string.rapports_outages), reportText(R.string.rapports_info_outages))
+private val INFO_LOW: ReportInfo get() = ReportInfo(reportText(R.string.rapports_low_stock), reportText(R.string.rapports_info_low_stock))
+private val INFO_LOSSES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_losses), reportText(R.string.rapports_info_losses))
+private val INFO_RATE: ReportInfo get() = ReportInfo(reportText(R.string.rapports_loss_rate), reportText(R.string.rapports_info_loss_rate))
+private val INFO_TYPES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_losses_by_type), reportText(R.string.rapports_info_losses_by_type))
+private val INFO_LOST: ReportInfo get() = ReportInfo(reportText(R.string.rapports_most_lost), reportText(R.string.rapports_info_most_lost))
+private val INFO_RESTOCK: ReportInfo get() = ReportInfo(reportText(R.string.rapports_restock), reportText(R.string.rapports_info_restock))
 
 /**
  * Rapports › Stock et pertes: what the stock is worth and what is missing, today; what was lost, over
@@ -88,7 +89,7 @@ fun StockReportScreen(onBack: () -> Unit, onSeeRestock: () -> Unit, viewModel: S
     val drill = LocalDrillDown.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Stock et pertes", subtitle = "Ce que vaut le stock, ce qui manque, ce qui se perd", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_stock), subtitle = stringResource(R.string.rapports_stock_sub), leading = DsTopBarLeading.Back(onBack))
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
                 LinearProgressIndicator(Modifier.fillMaxSize(), color = DsColors.Primary, trackColor = Color.Transparent)
@@ -113,16 +114,16 @@ fun StockReportScreen(onBack: () -> Unit, onSeeRestock: () -> Unit, viewModel: S
                     item { Tiles(report) }
                     if (report.losses.isNotEmpty()) {
                         item { TypesCard(report) }
-                        item { TitleWithInfo("Produits les plus perdus", INFO_LOST) }
+                        item { TitleWithInfo(stringResource(R.string.rapports_most_lost), INFO_LOST) }
                         items(report.lostProducts.take(TOP_LOST), key = { "lost_${it.productId}" }) { p ->
                             LostLine(p) { drill(DrillTarget.Produit(p.productId)) }
                         }
                     }
                     item {
-                        TitleWithInfo("À réapprovisionner (${report.restock.size})", INFO_RESTOCK,
-                            action = if (report.restock.size > TOP_RESTOCK) "Voir tout" else null, onAction = onSeeRestock)
+                        TitleWithInfo(stringResource(R.string.rapports_restock_n, report.restock.size), INFO_RESTOCK,
+                            action = if (report.restock.size > TOP_RESTOCK) stringResource(R.string.common_action_see_all) else null, onAction = onSeeRestock)
                     }
-                    if (report.restock.isEmpty()) item { ReportMessage("Rien à réapprovisionner : tout est au-dessus de son minimum.") }
+                    if (report.restock.isEmpty()) item { ReportMessage(stringResource(R.string.rapports_nothing_to_restock_long)) }
                     items(report.restock.take(TOP_RESTOCK), key = { "restock_${it.productId}" }) { r ->
                         RestockRow(r) { drill(DrillTarget.Produit(r.productId)) }
                     }
@@ -136,13 +137,13 @@ fun StockReportScreen(onBack: () -> Unit, onSeeRestock: () -> Unit, viewModel: S
 private fun ValueCard(report: StockReport, source: ReportSource) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
-        title = "Valeur du stock",
+        title = stringResource(R.string.rapports_stock_value_title),
         amount = money.figure(report.stock.total),
-        caption = "${plural(report.stock.products, "produit en stock", "produits en stock")}\nau ${LocalDate.now().format(DAY)}",
+        caption = stringResource(R.string.rapports_count_on_day, plural(R.plurals.rapports_products_in_stock_n, report.stock.products), LocalDate.now().format(DAY)),
         info = INFO_VALUE,
         halves = if (source == ReportSource.TOUT) listOf(
-            HeroHalf("Au dépôt", money.figure(report.stock.depot)),
-            HeroHalf("Au camion", money.figure(report.stock.camion)),
+            HeroHalf(stringResource(R.string.rapports_at_depot), money.figure(report.stock.depot)),
+            HeroHalf(stringResource(R.string.rapports_on_truck), money.figure(report.stock.camion)),
         ) else emptyList(),
     )
 }
@@ -153,15 +154,15 @@ private fun Tiles(report: StockReport) {
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             // Red only when there is something to see to.
-            KpiTile("Ruptures", countFigure(report.outOfStock), if (report.outOfStock > 0) DsColors.Danger else DsColors.PrimaryDark,
+            KpiTile(stringResource(R.string.rapports_outages), countFigure(report.outOfStock), if (report.outOfStock > 0) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null, Icons.Default.RemoveShoppingCart, INFO_OUT, accent = DsColors.Danger)
-            KpiTile("Stock bas", countFigure(report.lowStock), DsColors.PrimaryDark, Modifier.weight(1f), null,
+            KpiTile(stringResource(R.string.rapports_low_stock), countFigure(report.lowStock), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Warning, INFO_LOW, accent = DsColors.Warning)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Pertes", money.figure(report.lossValue), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.lossCount, "perte", "pertes"), Icons.AutoMirrored.Filled.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
-            KpiTile("Taux de perte", rateFigure(report.lossRate), DsColors.PrimaryDark, Modifier.weight(1f), null,
+            KpiTile(stringResource(R.string.rapports_losses), money.figure(report.lossValue), DsColors.PrimaryDark, Modifier.weight(1f),
+                plural(R.plurals.pertes_count, report.lossCount), Icons.AutoMirrored.Filled.TrendingDown, INFO_LOSSES, accent = DsColors.Danger)
+            KpiTile(stringResource(R.string.rapports_loss_rate), rateFigure(report.lossRate), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Percent, INFO_RATE, accent = DsColors.Primary)
         }
     }
@@ -173,13 +174,13 @@ private fun TypesCard(report: StockReport) {
     val money = LocalMoneyFormatter.current
     val shown = report.losses.take(5)
     val rest = report.losses.drop(5)
-    val slices = shown.map { it.type to it.value } + (if (rest.isNotEmpty()) listOf("Autres types" to rest.sumOf { it.value }) else emptyList())
+    val slices = shown.map { BuiltInNames.perteType(it.type) to it.value } + (if (rest.isNotEmpty()) listOf(stringResource(R.string.rapports_other_types) to rest.sumOf { it.value }) else emptyList())
     val total = report.lossValue
     CardColumn {
-        CardTitle("Pertes par type", INFO_TYPES)
+        CardTitle(stringResource(R.string.rapports_losses_by_type), INFO_TYPES)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ShareRing(slices.mapIndexed { i, (_, v) -> v to LossColors[i % LossColors.size] }, total, "Total des pertes", Modifier.weight(1f))
+            ShareRing(slices.mapIndexed { i, (_, v) -> v to LossColors[i % LossColors.size] }, total, stringResource(R.string.rapports_losses_total), Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.lg))
             Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 slices.forEachIndexed { i, (name, amount) ->
@@ -227,18 +228,18 @@ private fun ProductRow(imageUri: String?, name: String, detail: String, detailCo
 @Composable
 private fun LostLine(p: LossByProduct, onClick: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    ProductRow(p.imageUri, p.name, "${formatQty(p.quantity)} ${p.unit} perdu(s)", DsColors.TextSecondary, money.da(p.value), onClick)
+    ProductRow(p.imageUri, p.name, stringResource(R.string.rapports_lost_qty, quantityWords(p.quantity, p.unit)), DsColors.TextSecondary, money.da(p.value), onClick)
 }
 
 /** A product to restock: its stock against its minimum; red when there is none left. */
 @Composable
 private fun RestockRow(r: RestockLine, onClick: () -> Unit) {
-    val detail = if (r.minStock > 0) "minimum ${formatQty(r.minStock)} ${r.unit}" else "pas de minimum"
+    val detail = if (r.minStock > 0) stringResource(R.string.rapports_minimum, quantityWords(r.minStock, r.unit)) else stringResource(R.string.rapports_no_minimum)
     ProductRow(
         r.imageUri, r.name,
-        if (r.isOut) "Rupture · $detail" else "Stock bas · $detail",
+        stringResource(if (r.isOut) R.string.rapports_outage_detail else R.string.rapports_low_detail, detail),
         if (r.isOut) DsColors.Danger else DsColors.Warning,
-        "${formatQty(r.stock)} ${r.unit}", onClick,
+        quantityWords(r.stock, r.unit), onClick,
     )
 }
 
@@ -267,12 +268,12 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = "À réapprovisionner",
-            subtitle = report?.let { "${plural(it.outOfStock, "rupture", "ruptures")} · ${it.lowStock} en stock bas" },
+            title = stringResource(R.string.rapports_restock),
+            subtitle = report?.let { plural(R.plurals.rapports_outages_n, it.outOfStock) + " · " + stringResource(R.string.rapports_low_n, it.lowStock) },
             leading = DsTopBarLeading.Back(onBack),
         )
         Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = stringResource(R.string.common_search_product),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
                     icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
@@ -282,12 +283,12 @@ fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
             if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
-            Text(if (query.isBlank()) plural(all.size, "produit", "produits") else "${shown.size} sur ${all.size}",
+            Text(if (query.isBlank()) plural(R.plurals.common_products_count, all.size) else stringResource(R.string.common_shown_of_total, shown.size, all.size),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
         }
         when {
             report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
-            shown.isEmpty() -> ReportMessage(if (query.isBlank()) "Rien à réapprovisionner." else "Aucun résultat pour « ${query.trim()} »")
+            shown.isEmpty() -> ReportMessage(if (query.isBlank()) stringResource(R.string.rapports_nothing_to_restock) else stringResource(R.string.rapports_no_result_for, query.trim()))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),

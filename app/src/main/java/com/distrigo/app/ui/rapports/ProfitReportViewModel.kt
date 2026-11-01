@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** The Résultat report as the screen shows it; [report] stays on screen while the next one loads. */
 data class ProfitReportState(
@@ -44,7 +45,7 @@ class ProfitReportViewModel @Inject constructor(
                 emit(last.copy(filter = filter, loading = true, error = null))
                 val next = runCatching { repository.profitReport(filter) }.fold(
                     onSuccess = { ProfitReportState(filter, it, loading = false) },
-                    onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: "Erreur de chargement") },
+                    onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: reportText(R.string.common_load_error)) },
                 )
                 last = next
                 emit(next)

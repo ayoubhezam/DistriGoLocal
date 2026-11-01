@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** The Stock et pertes report as the screen shows it; [report] stays on screen while the next one loads. */
 data class StockReportState(
@@ -48,7 +49,7 @@ class StockReportViewModel @Inject constructor(
                 emit(last.copy(filter = filter, loading = true, error = null))
                 val next = runCatching { repository.stockReport(filter) }.fold(
                     onSuccess = { StockReportState(filter, it, loading = false) },
-                    onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: "Erreur de chargement") },
+                    onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: reportText(R.string.common_load_error)) },
                 )
                 last = next
                 emit(next)
@@ -68,7 +69,7 @@ class StockReportViewModel @Inject constructor(
     fun scan(code: String, onDone: (String?) -> Unit) {
         viewModelScope.launch {
             val product = products.findLiveProductByBarcode(code)
-            if (product == null) onDone("Aucun produit trouvé pour ce code-barres")
+            if (product == null) onDone(reportText(R.string.common_barcode_not_found))
             else { query.value = product.name; onDone(null) }
         }
     }

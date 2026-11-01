@@ -32,7 +32,9 @@ sealed interface UiText {
     fun resolve(context: Context): String = when (this) {
         is Raw -> text
         is Joined -> parts.joinToString(separator) { it.resolve(context) }
-        is Res -> context.getString(id, *args.map { (it as? UiText)?.resolve(context) ?: it }.toTypedArray())
+        // Without arguments, read as it is: a text that holds a bare « % » (« 80 % des ventes ») is not a format.
+        is Res -> if (args.isEmpty()) context.getString(id)
+        else context.getString(id, *args.map { (it as? UiText)?.resolve(context) ?: it }.toTypedArray())
         is Plural -> context.resources.getQuantityString(id, count, *args.map { (it as? UiText)?.resolve(context) ?: it }.toTypedArray())
     }
 }

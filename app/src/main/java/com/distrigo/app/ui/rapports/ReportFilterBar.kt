@@ -83,7 +83,7 @@ fun ReportFilterBar(
     var sheet by remember { mutableStateOf(false) }
 
     Column(modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-        ReportSelectorField(Icons.Default.CalendarMonth, stringResource(filter.period.label), filter.daysText(), "Changer la période") { sheet = true }
+        ReportSelectorField(Icons.Default.CalendarMonth, stringResource(filter.period.label), filter.daysText(), stringResource(R.string.rapports_change_period)) { sheet = true }
 
         if (showSource) {
             SourceSelector(filter.source) { onChange(filter.copy(source = it)) }
@@ -244,8 +244,8 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 val days = draft.days(today)
                 Spacer(Modifier.height(DsSpacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                    DayField("Du", days.start, Modifier.weight(1f)) { picking = true }
-                    DayField("Au", days.endInclusive, Modifier.weight(1f)) { picking = false }
+                    DayField(stringResource(R.string.common_date_from), days.start, Modifier.weight(1f)) { picking = true }
+                    DayField(stringResource(R.string.common_date_to), days.endInclusive, Modifier.weight(1f)) { picking = false }
                 }
             }
 
@@ -255,7 +255,7 @@ private fun PeriodSheet(filter: ReportFilter, onApply: (ReportFilter) -> Unit, o
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = DsShapes.medium,
                 colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark),
-            ) { Text("Appliquer", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.common_action_apply), fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(DsSpacing.lg))
         }
     }

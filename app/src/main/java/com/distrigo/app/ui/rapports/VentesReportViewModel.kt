@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /**
  * Where « Répartition des ventes » is: [path], the keys of the places opened from the wilayas down (empty: the
@@ -88,7 +89,7 @@ class VentesReportViewModel @Inject constructor(
                     emit(last.copy(filter = filter, loading = true, error = null))
                     val next = runCatching { repository.salesReport(filter) }.fold(
                         onSuccess = { SalesPart(filter, it, salesBuckets(it.days), loading = false) },
-                        onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: "Erreur de chargement") },
+                        onFailure = { last.copy(filter = filter, loading = false, error = it.message ?: reportText(R.string.common_load_error)) },
                     )
                     last = next
                     emit(next)

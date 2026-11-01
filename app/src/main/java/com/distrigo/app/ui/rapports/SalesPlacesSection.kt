@@ -68,6 +68,10 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.distrigo.app.data.repository.NO_COMMUNE_NAME
+import com.distrigo.app.data.repository.NO_QUARTIER
+import com.distrigo.app.data.repository.NO_SECTEUR
+import com.distrigo.app.data.repository.NO_WILAYA
 import com.distrigo.app.data.repository.PlaceLevel
 import com.distrigo.app.data.repository.PlaceNode
 import com.distrigo.app.data.repository.PlaceSlice
@@ -102,12 +106,67 @@ private const val CLIENTS_SHOWN = 10
 
 private const val TAU = (2 * PI).toFloat()
 
-private val INFO_PLACES = ReportInfo(
-    "Répartition des ventes",
-    "Chiffre d'affaires de la période, selon le lieu du client : wilaya, commune, secteur, quartier.\n" +
-        "Le lieu est celui de la fiche client aujourd'hui.\n" +
-        "« Sans … » : les clients sans ce renseignement.\n\n" +
-        "Touchez une part pour l'ouvrir, le centre pour remonter.",
+private val INFO_PLACES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_places_title), reportText(R.string.rapports_info_places))
+
+/**
+ * A place's name as the report shows it: the names the tree gives its root and the clients without a place, in the
+ * app's language; a wilaya's, a commune's, a secteur's or a client's as written.
+ */
+internal fun placeName(name: String): String = when (name) {
+    "Wilayas"       -> reportText(R.string.rapports_place_root)
+    NO_WILAYA       -> reportText(R.string.rapports_no_wilaya)
+    NO_COMMUNE_NAME -> reportText(R.string.rapports_no_commune)
+    NO_SECTEUR      -> reportText(R.string.rapports_no_secteur)
+    NO_QUARTIER     -> reportText(R.string.rapports_no_quartier)
+    else            -> name
+}
+
+/** A slice's name: « Autres » for the parts gathered together, else its place's. */
+private fun sliceName(slice: PlaceSlice): String = if (slice.isOthers) reportText(R.string.rapports_others) else placeName(slice.name)
+
+/** A level's places counted: « 3 communes », « 3 بلديات ». */
+private fun PlaceLevel.counted(count: Int): String = plural(
+    when (this) {
+        PlaceLevel.ALL, PlaceLevel.WILAYA -> R.plurals.rapports_n_wilayas
+        PlaceLevel.COMMUNE                -> R.plurals.rapports_n_communes
+        PlaceLevel.SECTEUR                -> R.plurals.rapports_n_secteurs
+        PlaceLevel.QUARTIER               -> R.plurals.rapports_n_quartiers
+        PlaceLevel.CLIENT                 -> R.plurals.common_clients_count
+    },
+    count,
+)
+
+/** « Répartition par commune ». */
+private fun PlaceLevel.splitBy(): String = reportText(
+    when (this) {
+        PlaceLevel.ALL, PlaceLevel.WILAYA -> R.string.rapports_by_wilaya
+        PlaceLevel.COMMUNE                -> R.string.rapports_by_commune
+        PlaceLevel.SECTEUR                -> R.string.rapports_by_secteur
+        PlaceLevel.QUARTIER               -> R.string.rapports_by_quartier
+        PlaceLevel.CLIENT                 -> R.string.rapports_by_client
+    }
+)
+
+/** « Communes de », over the place's name. */
+private fun PlaceLevel.placesOf(): String = reportText(
+    when (this) {
+        PlaceLevel.ALL, PlaceLevel.WILAYA -> R.string.rapports_wilayas_of
+        PlaceLevel.COMMUNE                -> R.string.rapports_communes_of
+        PlaceLevel.SECTEUR                -> R.string.rapports_secteurs_of
+        PlaceLevel.QUARTIER               -> R.string.rapports_quartiers_of
+        PlaceLevel.CLIENT                 -> R.string.rapports_clients_of
+    }
+)
+
+/** « Toutes les communes », the sheet's title. */
+private fun PlaceLevel.all(): String = reportText(
+    when (this) {
+        PlaceLevel.ALL, PlaceLevel.WILAYA -> R.string.rapports_all_wilayas
+        PlaceLevel.COMMUNE                -> R.string.rapports_all_communes
+        PlaceLevel.SECTEUR                -> R.string.rapports_all_secteurs
+        PlaceLevel.QUARTIER               -> R.string.rapports_all_quartiers
+        PlaceLevel.CLIENT                 -> R.string.rapports_all_clients
+    }
 )
 
 private fun slicePercent(share: Double) = percentText(String.format(Locale.FRENCH, "%.0f", share * 100))
@@ -126,7 +185,7 @@ fun LazyListScope.salesPlacesItems(
     onClient: (Int) -> Unit,
 ) {
     val place = state.place ?: return
-    item(key = "places_title") { TitleWithInfo("Répartition des ventes", INFO_PLACES) }
+    item(key = "places_title") { TitleWithInfo(stringResource(R.string.rapports_places_title), INFO_PLACES) }
     item(key = "places_card") {
         PlacesCard(place, state.placeTrail, state.pickedQuartier, onOpen, onUp, onTo, onSeeAll, onClient)
     }
@@ -164,14 +223,14 @@ private fun PlacesCard(
         Column(Modifier.fillMaxWidth().padding(top = DsSpacing.xs), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 when {
-                    picked != null -> "Clients du quartier"
-                    place.level == PlaceLevel.ALL -> "Chiffre d'affaires par wilaya"
-                    else -> childLevel.many.replaceFirstChar { it.uppercase() } + " de"
+                    picked != null -> stringResource(R.string.rapports_quartier_clients)
+                    place.level == PlaceLevel.ALL -> stringResource(R.string.rapports_turnover_by_wilaya)
+                    else -> childLevel.placesOf()
                 },
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary,
             )
             Text(
-                (picked ?: place).name, fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark,
+                placeName((picked ?: place).name), fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
@@ -187,12 +246,12 @@ private fun PlacesCard(
                 color = DsColors.PrimaryDark, textAlign = TextAlign.Center, minScale = 0.45f,
             )
             Text(
-                if (picked != null) picked.name else "Total des ventes", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                if (picked != null) placeName(picked.name) else stringResource(R.string.rapports_sales_total), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             )
             Text(
-                if (picked != null) "${percentOf(picked.total, place.total) ?: "—"} de ${place.name}"
-                else plural(place.children.size, childLevel.one, childLevel.many),
+                if (picked != null) stringResource(R.string.rapports_share_of, percentOf(picked.total, place.total) ?: "—", placeName(place.name))
+                else childLevel.counted(place.children.size),
                 fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = DsColors.Primary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             )
@@ -200,31 +259,31 @@ private fun PlacesCard(
 
         HorizontalDivider(color = DsColors.Border, modifier = Modifier.padding(top = DsSpacing.sm))
         if (picked != null) {
-            ListHead("Top clients · ${picked.name}", "Retour", onUp)
+            ListHead(stringResource(R.string.rapports_top_clients_of, placeName(picked.name)), stringResource(R.string.common_action_back), onUp)
             picked.children.take(CLIENTS_SHOWN).forEachIndexed { i, client ->
                 PlaceRow(
                     color = SliceColors[i % SliceColors.size], mark = "${i + 1}", name = client.name,
-                    sub = "${percentOf(client.total, picked.total) ?: "—"} du quartier",
+                    sub = stringResource(R.string.rapports_share_of_quartier, percentOf(client.total, picked.total) ?: "—"),
                     amount = money.da(client.total),
                     onClick = client.clientId?.let { id -> { onClient(id) } },
                 )
             }
             if (picked.children.size > CLIENTS_SHOWN) {
-                SeeAllLink("Voir tous les clients (${picked.children.size})") { onSeeAll(picked) }
+                SeeAllLink(stringResource(R.string.rapports_see_all_clients_n, picked.children.size)) { onSeeAll(picked) }
             }
         } else {
             ListHead(
-                "Répartition par ${childLevel.one}",
-                if (place.children.size > RING_SLICES) "Voir tout (${place.children.size})" else null,
+                childLevel.splitBy(),
+                if (place.children.size > RING_SLICES) stringResource(R.string.rapports_see_all_n, place.children.size) else null,
             ) { onSeeAll(place) }
             slices.forEachIndexed { i, slice ->
                 PlaceRow(
                     color = if (slice.isOthers) OthersColor else SliceColors[i % SliceColors.size],
-                    mark = if (slice.isOthers) "…" else slice.name.take(1).uppercase(),
-                    name = slice.name,
+                    mark = if (slice.isOthers) "…" else sliceName(slice).take(1).uppercase(),
+                    name = sliceName(slice),
                     sub = if (slice.isOthers) {
                         val shares = slice.others.map { it.total / place.total }
-                        "de ${percent(shares.min())} à ${percent(shares.max())} · ${plural(slice.others.size, childLevel.one, childLevel.many)}"
+                        stringResource(R.string.rapports_others_range, percent(shares.min()), percent(shares.max()), childLevel.counted(slice.others.size))
                     } else percent(slice.share),
                     amount = money.da(slice.total),
                     onClick = { open(slice) },
@@ -242,14 +301,14 @@ private fun Breadcrumb(trail: List<PlaceNode>, picked: PlaceNode?, canUp: Boolea
     Row(Modifier.fillMaxWidth().heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(32.dp).clip(CircleShape)
-                .then(if (canUp) Modifier.border(1.dp, DsColors.Border, CircleShape).clickable(role = Role.Button, onClickLabel = "Retour", onClick = onUp) else Modifier),
+                .then(if (canUp) Modifier.border(1.dp, DsColors.Border, CircleShape).clickable(role = Role.Button, onClickLabel = stringResource(R.string.common_action_back), onClick = onUp) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (canUp) Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_action_back), tint = DsColors.PrimaryDark, modifier = Modifier.size(16.dp))
         }
         Spacer(Modifier.width(DsSpacing.xs))
         Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically) {
-            val names = trail.map { it.name } + listOfNotNull(picked?.name)
+            val names = (trail.map { it.name } + listOfNotNull(picked?.name)).map(::placeName)
             names.forEachIndexed { i, name ->
                 val current = i == names.lastIndex
                 if (i > 0) Text("›", fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
@@ -447,7 +506,7 @@ private fun PlaceRing(
         Box(Modifier.size(side), contentAlignment = Alignment.Center) {
             Canvas(
                 Modifier.fillMaxSize()
-                    .semantics { contentDescription = "Répartition des ventes : ${place.name}" }
+                    .semantics { contentDescription = reportText(R.string.rapports_cd_places, placeName(place.name)) }
                     .pointerInput(slices, canUp) {
                         detectTapGestures { tap ->
                             if (progress.isRunning) return@detectTapGestures
@@ -533,11 +592,11 @@ fun PlacesSheet(place: PlaceNode?, onDismiss: () -> Unit, onOpen: (PlaceNode) ->
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state, containerColor = DsColors.Surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg)) {
             Text(
-                if (level == PlaceLevel.CLIENT) "Tous les clients" else "Toutes les ${level.many}",
+                level.all(),
                 fontSize = DsTextSize.title, fontWeight = FontWeight.ExtraBold, color = DsColors.PrimaryDark,
             )
             Text(
-                "${place.name} · ${plural(place.children.size, level.one, level.many)} · ${money.da(place.total)}",
+                "${placeName(place.name)} · ${level.counted(place.children.size)} · ${money.da(place.total)}",
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
             )
             Spacer(Modifier.height(DsSpacing.sm))
@@ -555,7 +614,7 @@ fun PlacesSheet(place: PlaceNode?, onDismiss: () -> Unit, onOpen: (PlaceNode) ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(String.format(Locale.FRENCH, "%02d", i + 1), fontSize = DsTextSize.caption, color = DsColors.TextTertiary, modifier = Modifier.width(26.dp))
                         Text(
-                            node.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
+                            placeName(node.name), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
                             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                         )
                         Spacer(Modifier.width(DsSpacing.sm))

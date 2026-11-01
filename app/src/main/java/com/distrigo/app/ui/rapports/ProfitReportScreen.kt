@@ -44,16 +44,18 @@ import com.distrigo.app.ui.designsystem.DsTextSize
 import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.format.LocalMoneyFormatter
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 private val ChargeColors = listOf(DsColors.Warning, DsColors.Primary, DsColors.AccentTeal, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 
-private val INFO_NET = ReportInfo("Résultat net", "Résultat net = Marge brute − Retours clients − Charges − Pertes")
-private val INFO_GROSS = ReportInfo("Marge brute", "Marge brute = Chiffre d'affaires − Coût des ventes")
-private val INFO_CHARGES = ReportInfo("Charges", "Charges = somme des dépenses de la période")
-private val INFO_LOSSES = ReportInfo("Pertes", "Pertes = Quantité perdue × Prix d'achat")
-private val INFO_SHARE = ReportInfo("Rentabilité", "Rentabilité (%) = Résultat net ÷ Chiffre d'affaires × 100")
-private val INFO_STATEMENT = ReportInfo("Compte de résultat", "Marge brute = Chiffre d'affaires − Coût des ventes\nRésultat net = Marge brute − Retours clients − Charges − Pertes\n\nCoût des ventes = Quantité vendue × Prix d'achat au moment de la vente\nRetours clients = Remboursé − Coût des produits revenus")
-private val INFO_CHARGE_TYPES = ReportInfo("Charges par type", "Part = Charges du type ÷ Charges × 100. Les 5 premiers, le reste dans « Autres types ».")
+private val INFO_NET: ReportInfo get() = ReportInfo(reportText(R.string.rapports_net_result), reportText(R.string.rapports_info_net_result))
+private val INFO_GROSS: ReportInfo get() = ReportInfo(reportText(R.string.rapports_gross_margin), reportText(R.string.rapports_info_gross_margin))
+private val INFO_CHARGES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_charges), reportText(R.string.rapports_info_charges))
+private val INFO_LOSSES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_losses), reportText(R.string.rapports_info_losses))
+private val INFO_SHARE: ReportInfo get() = ReportInfo(reportText(R.string.rapports_profitability), reportText(R.string.rapports_info_profitability))
+private val INFO_STATEMENT: ReportInfo get() = ReportInfo(reportText(R.string.rapports_statement), reportText(R.string.rapports_info_statement))
+private val INFO_CHARGE_TYPES: ReportInfo get() = ReportInfo(reportText(R.string.rapports_charges_by_type), reportText(R.string.rapports_info_charges_by_type))
 
 /** Rapports › Résultat: from the chiffre d'affaires to what is left, over the shared period. */
 @Composable
@@ -61,7 +63,7 @@ fun ProfitReportScreen(onBack: () -> Unit, viewModel: ProfitReportViewModel) {
     val state by viewModel.state.collectAsState()
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Résultat", subtitle = "Ce qui reste une fois tout payé", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_profit), subtitle = stringResource(R.string.rapports_profit_sub), leading = DsTopBarLeading.Back(onBack))
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
                 LinearProgressIndicator(Modifier.fillMaxSize(), color = DsColors.Primary, trackColor = Color.Transparent)
@@ -96,13 +98,13 @@ fun ProfitReportScreen(onBack: () -> Unit, viewModel: ProfitReportViewModel) {
 private fun NetCard(report: ProfitReport) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
-        title = "Résultat net",
+        title = stringResource(R.string.rapports_net_result),
         amount = money.figure(report.net),
-        caption = if (report.net >= 0) "Bénéfice sur la période" else "Perte sur la période",
+        caption = stringResource(if (report.net >= 0) R.string.rapports_profit_in_period else R.string.rapports_loss_in_period),
         info = INFO_NET,
         halves = listOf(
-            HeroHalf("Marge brute", money.figure(report.grossMargin)),
-            HeroHalf("Retiré", money.figure(report.returnsMargin + report.chargesTotal + report.lossesTotal, prefix = "− ")),
+            HeroHalf(stringResource(R.string.rapports_gross_margin), money.figure(report.grossMargin)),
+            HeroHalf(stringResource(R.string.rapports_taken_off), money.figure(report.returnsMargin + report.chargesTotal + report.lossesTotal, prefix = "− ")),
         ),
     )
 }
@@ -114,19 +116,19 @@ private fun Tiles(report: ProfitReport) {
     val netLoss = report.net < 0
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Marge brute", money.figure(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.PrimaryDark,
+            KpiTile(stringResource(R.string.rapports_gross_margin), money.figure(report.grossMargin), if (grossLoss) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null,
                 if (grossLoss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_GROSS,
                 accent = if (grossLoss) DsColors.Danger else DsColors.Primary)
-            KpiTile("Rentabilité", rateFigure(report.netShare), if (netLoss) DsColors.Danger else DsColors.PrimaryDark,
+            KpiTile(stringResource(R.string.rapports_profitability), rateFigure(report.netShare), if (netLoss) DsColors.Danger else DsColors.PrimaryDark,
                 Modifier.weight(1f), null, Icons.Default.Percent, INFO_SHARE,
                 accent = if (netLoss) DsColors.Danger else DsColors.Success)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Charges", money.figure(report.chargesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.chargesCount, "charge", "charges"), Icons.Default.Payments, INFO_CHARGES, accent = DsColors.Warning)
-            KpiTile("Pertes", money.figure(report.lossesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.lossesCount, "perte", "pertes"), Icons.Default.RemoveShoppingCart, INFO_LOSSES, accent = DsColors.Danger)
+            KpiTile(stringResource(R.string.rapports_charges), money.figure(report.chargesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
+                plural(R.plurals.charges_count, report.chargesCount), Icons.Default.Payments, INFO_CHARGES, accent = DsColors.Warning)
+            KpiTile(stringResource(R.string.rapports_losses), money.figure(report.lossesTotal), DsColors.PrimaryDark, Modifier.weight(1f),
+                plural(R.plurals.pertes_count, report.lossesCount), Icons.Default.RemoveShoppingCart, INFO_LOSSES, accent = DsColors.Danger)
         }
     }
 }
@@ -151,20 +153,20 @@ private fun StatementLine(label: String, amount: Double, minus: Boolean = false,
 @Composable
 private fun Statement(report: ProfitReport) {
     CardColumn {
-        CardTitle("Compte de résultat", INFO_STATEMENT)
+        CardTitle(stringResource(R.string.rapports_statement), INFO_STATEMENT)
         Spacer(Modifier.height(DsSpacing.sm))
-        StatementLine("Chiffre d'affaires", report.sales)
-        StatementLine("Coût des ventes", report.cost, minus = true)
+        StatementLine(stringResource(R.string.rapports_turnover), report.sales)
+        StatementLine(stringResource(R.string.rapports_cost_of_sales), report.cost, minus = true)
         HorizontalDivider(color = DsColors.Border)
-        StatementLine("Marge brute", report.grossMargin, total = true, color = if (report.grossMargin < 0) DsColors.Danger else DsColors.PrimaryDark)
+        StatementLine(stringResource(R.string.rapports_gross_margin), report.grossMargin, total = true, color = if (report.grossMargin < 0) DsColors.Danger else DsColors.PrimaryDark)
         if (report.returnsCount > 0) {
-            StatementLine("Retours clients (${report.returnsCount})", report.returnsMargin, minus = true)
+            StatementLine(stringResource(R.string.rapports_client_returns_n, report.returnsCount), report.returnsMargin, minus = true)
         }
-        StatementLine("Charges", report.chargesTotal, minus = true)
-        StatementLine("Pertes", report.lossesTotal, minus = true)
+        StatementLine(stringResource(R.string.rapports_charges), report.chargesTotal, minus = true)
+        StatementLine(stringResource(R.string.rapports_losses), report.lossesTotal, minus = true)
         HorizontalDivider(color = DsColors.Border)
         // Colour is news here: green when the period earned, red when it lost.
-        StatementLine("Résultat net", report.net, total = true, color = if (report.net < 0) DsColors.Danger else DsColors.Success)
+        StatementLine(stringResource(R.string.rapports_net_result), report.net, total = true, color = if (report.net < 0) DsColors.Danger else DsColors.Success)
     }
 }
 
@@ -174,13 +176,13 @@ private fun ChargeTypes(report: ProfitReport) {
     val money = LocalMoneyFormatter.current
     val shown = report.charges.take(5)
     val rest = report.charges.drop(5)
-    val slices = shown.map { it.type to it.value } + (if (rest.isNotEmpty()) listOf("Autres types" to rest.sumOf { it.value }) else emptyList())
+    val slices = shown.map { com.distrigo.app.ui.common.BuiltInNames.chargeType(it.type) to it.value } + (if (rest.isNotEmpty()) listOf(stringResource(R.string.rapports_other_types) to rest.sumOf { it.value }) else emptyList())
     val total = report.chargesTotal
     CardColumn {
-        CardTitle("Charges par type", INFO_CHARGE_TYPES)
+        CardTitle(stringResource(R.string.rapports_charges_by_type), INFO_CHARGE_TYPES)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ShareRing(slices.mapIndexed { i, (_, v) -> v to ChargeColors[i % ChargeColors.size] }, total, "Total des charges", Modifier.weight(1f))
+            ShareRing(slices.mapIndexed { i, (_, v) -> v to ChargeColors[i % ChargeColors.size] }, total, stringResource(R.string.rapports_charges_total), Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.lg))
             Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 slices.forEachIndexed { i, (name, amount) ->

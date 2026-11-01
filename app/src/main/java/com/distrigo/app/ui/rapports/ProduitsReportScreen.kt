@@ -78,14 +78,22 @@ private val ProduitsColor = DsColors.AccentViolet
 private val GroupColors = listOf(DsColors.Primary, DsColors.AccentTeal, DsColors.Warning, DsColors.AccentRose, DsColors.AccentSky, DsColors.TextTertiary)
 private val AbcColors = listOf(DsColors.Success, DsColors.Warning, DsColors.TextTertiary)
 
-private val INFO_TOTAL = ReportInfo("Ventes des produits", "Ventes = somme des lignes de vente, au prix de vente\nMarge brute = Ventes − Coût des ventes")
-private val INFO_SOLD = ReportInfo("Produits vendus", "Produits vendus = produits différents vendus au moins une fois")
-private val INFO_RATE = ReportInfo("Taux de marge", "Taux de marge = Marge brute ÷ Coût des ventes × 100")
-private val INFO_A = ReportInfo("Classe A", "Classe A = produits qui font les premiers 80 % des ventes\n% = Produits A ÷ Produits vendus × 100")
-private val INFO_DORMANT = ReportInfo("Sans vente", "Sans vente = produits en stock non vendus sur la période\nMontant = Stock × Prix d'achat actuel")
-private val INFO_TOP = ReportInfo("Meilleurs produits", "Classés par chiffre d'affaires, marge brute ou quantité (dans l'unité du produit).")
-private val INFO_GROUPS = ReportInfo("Répartition", "Ventes par catégorie, marque ou fournisseur. Les 5 premiers, le reste dans « Autres ».")
-private val INFO_ABC = ReportInfo("Analyse ABC", "Produits classés par ventes :\nA : les premiers 80 % des ventes\nB : les 15 % suivants\nC : les 5 % restants")
+private val INFO_TOTAL: ReportInfo get() = ReportInfo(reportText(R.string.rapports_products_sales), reportText(R.string.rapports_info_products_sales))
+private val INFO_SOLD: ReportInfo get() = ReportInfo(reportText(R.string.rapports_products_sold), reportText(R.string.rapports_info_products_sold))
+private val INFO_RATE: ReportInfo get() = ReportInfo(reportText(R.string.rapports_margin_rate), reportText(R.string.rapports_info_margin_rate))
+private val INFO_A: ReportInfo get() = ReportInfo(reportText(R.string.rapports_class_a), reportText(R.string.rapports_info_class_a))
+private val INFO_DORMANT: ReportInfo get() = ReportInfo(reportText(R.string.rapports_dormant), reportText(R.string.rapports_info_dormant))
+private val INFO_TOP: ReportInfo get() = ReportInfo(reportText(R.string.rapports_top_products), reportText(R.string.rapports_info_top_products))
+private val INFO_GROUPS: ReportInfo get() = ReportInfo(reportText(R.string.rapports_split), reportText(R.string.rapports_info_groups))
+private val INFO_ABC: ReportInfo get() = ReportInfo(reportText(R.string.rapports_abc), reportText(R.string.rapports_info_abc))
+
+/** A group's name: the ones the report gives products without a category, a brand or a supplier, in the app's language. */
+private fun groupName(name: String): String = when (name) {
+    "Sans catégorie"   -> reportText(R.string.rapports_no_category)
+    "Sans marque"      -> reportText(R.string.rapports_no_brand)
+    "Sans fournisseur" -> reportText(R.string.rapports_no_supplier)
+    else               -> name
+}
 
 /**
  * Rapports › Produits: what sold, what earned, and what did not move — over the shared period and
@@ -99,7 +107,7 @@ fun ProduitsReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onSansVente: 
     val drill = LocalDrillDown.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Produits", subtitle = "Ce qui se vend, ce qui rapporte", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_products), subtitle = stringResource(R.string.rapports_products_sub), leading = DsTopBarLeading.Back(onBack))
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
                 LinearProgressIndicator(Modifier.fillMaxSize(), color = DsColors.Primary, trackColor = Color.Transparent)
@@ -123,9 +131,9 @@ fun ProduitsReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onSansVente: 
                     item { TotalCard(report) }
                     item { Tiles(report, onSansVente) }
                     if (report.lines.isEmpty()) {
-                        item { ReportMessage("Aucune vente sur cette période.") }
+                        item { ReportMessage(stringResource(R.string.rapports_no_sales)) }
                     } else {
-                        item { TitleWithInfo("Meilleurs produits", INFO_TOP, action = "Voir tout", onAction = onSeeAll) }
+                        item { TitleWithInfo(stringResource(R.string.rapports_top_products), INFO_TOP, action = stringResource(R.string.common_action_see_all), onAction = onSeeAll) }
                         item {
                             ReportSegmented(ProductRanking.entries, ranking, { stringResource(it.label) }, { viewModel.ranking.value = it },
                                 Modifier.padding(horizontal = DsSpacing.lg))
@@ -147,9 +155,9 @@ fun ProduitsReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onSansVente: 
 private fun TotalCard(report: ProductReport) {
     val money = LocalMoneyFormatter.current
     ReportHeroCard(
-        title = "Ventes des produits",
+        title = stringResource(R.string.rapports_products_sales),
         amount = money.figure(report.total),
-        caption = "Marge brute ${money.da(report.margin)}",
+        caption = stringResource(R.string.rapports_gross_margin_value, money.da(report.margin)),
         info = INFO_TOTAL,
     )
 }
@@ -161,20 +169,20 @@ private fun Tiles(report: ProductReport, onSansVente: () -> Unit) {
     val a = report.abc.first()
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Produits vendus", countFigure(report.lines.size), DsColors.PrimaryDark, Modifier.weight(1f), null,
+            KpiTile(stringResource(R.string.rapports_products_sold), countFigure(report.lines.size), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.ShoppingCart, INFO_SOLD, accent = ProduitsColor)
-            KpiTile("Taux de marge", rateFigure(report.marginRate),
+            KpiTile(stringResource(R.string.rapports_margin_rate), rateFigure(report.marginRate),
                 if (loss) DsColors.Danger else DsColors.PrimaryDark, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp, INFO_RATE,
                 accent = if (loss) DsColors.Danger else DsColors.Primary)
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Classe A", countFigure(a.products, "produit", "produits"), DsColors.PrimaryDark, Modifier.weight(1f),
+            KpiTile(stringResource(R.string.rapports_class_a), countFigure(a.products, R.plurals.common_products_count), DsColors.PrimaryDark, Modifier.weight(1f),
                 percentOf(a.products.toDouble(), report.lines.size.toDouble()), Icons.Default.Star, INFO_A, accent = AbcColors[0])
             // The stock that did not move, in money; the card opens the list.
-            KpiTile("Sans vente", money.figure(report.dormantValue), DsColors.PrimaryDark,
+            KpiTile(stringResource(R.string.rapports_dormant), money.figure(report.dormantValue), DsColors.PrimaryDark,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onSansVente),
-                plural(report.dormant.size, "produit", "produits"), Icons.Default.Warehouse, INFO_DORMANT, accent = DsColors.Warning)
+                plural(R.plurals.common_products_count, report.dormant.size), Icons.Default.Warehouse, INFO_DORMANT, accent = DsColors.Warning)
         }
     }
 }
@@ -226,14 +234,14 @@ fun ProductLine(rank: Int, p: ProductSales, by: ProductRanking, onClick: () -> U
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val rate = p.marginRate?.let { " · ${percent(it)}" } ?: ""
-                Text("${formatQty(p.quantity)} ${p.unit}$rate", fontSize = DsTextSize.caption,
+                Text(quantityWords(p.quantity, p.unit) + rate, fontSize = DsTextSize.caption,
                     color = if (p.margin < 0) DsColors.Danger else DsColors.TextSecondary, maxLines = 1,
                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
                 val figure = when (by) {
                     ProductRanking.CA -> money.da(p.total)
                     ProductRanking.MARGE -> money.da(p.margin)
-                    ProductRanking.QUANTITE -> "${formatQty(p.quantity)} ${p.unit}"
+                    ProductRanking.QUANTITE -> quantityWords(p.quantity, p.unit)
                 }
                 Text(figure, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold,
                     color = if (by == ProductRanking.MARGE && p.margin < 0) DsColors.Danger else DsColors.PrimaryDark,
@@ -266,14 +274,14 @@ private fun GroupsCard(report: ProductReport, by: ProductGrouping, onGrouping: (
     val groups = remember(report, by) { report.groups(by) }
     val shown = groups.take(TOP_GROUPS)
     val rest = groups.drop(TOP_GROUPS)
-    val slices = shown.map { it.name to it.total } + (if (rest.isNotEmpty()) listOf("Autres" to rest.sumOf { it.total }) else emptyList())
+    val slices = shown.map { groupName(it.name) to it.total } + (if (rest.isNotEmpty()) listOf(stringResource(R.string.rapports_others) to rest.sumOf { it.total }) else emptyList())
     CardColumn {
-        CardTitle("Répartition", INFO_GROUPS)
+        CardTitle(stringResource(R.string.rapports_split), INFO_GROUPS)
         Spacer(Modifier.height(DsSpacing.md))
         ReportSegmented(ProductGrouping.entries, by, { stringResource(it.label) }, onGrouping)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ShareRing(slices.mapIndexed { i, (_, v) -> v to GroupColors[i % GroupColors.size] }, report.total, "Total", Modifier.weight(1f))
+            ShareRing(slices.mapIndexed { i, (_, v) -> v to GroupColors[i % GroupColors.size] }, report.total, stringResource(R.string.common_label_total), Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.lg))
             Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 slices.forEachIndexed { i, (name, amount) ->
@@ -305,9 +313,9 @@ private fun AbcCard(report: ProductReport) {
     val total = report.total
     val count = report.lines.size
     CardColumn {
-        CardTitle("Analyse ABC", INFO_ABC)
+        CardTitle(stringResource(R.string.rapports_abc), INFO_ABC)
         Spacer(Modifier.height(2.dp))
-        Text("Peu de produits font l'essentiel des ventes", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Text(stringResource(R.string.rapports_abc_sub), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Spacer(Modifier.height(DsSpacing.md))
         // One bar: each class as wide as its share of the products, so a narrow A says "few products".
         Row(Modifier.fillMaxWidth().height(10.dp).clip(DsShapes.pill)) {
@@ -323,14 +331,14 @@ private fun AbcCard(report: ProductReport) {
                 }
                 Spacer(Modifier.width(DsSpacing.md))
                 Column(Modifier.weight(1f)) {
-                    Text(plural(c.products, "produit", "produits"), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
+                    Text(plural(R.plurals.common_products_count, c.products), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold,
                         color = DsColors.TextPrimary, maxLines = 1)
-                    Text("${percentOf(c.products.toDouble(), count.toDouble()) ?: percent(0.0)} des produits",
+                    Text(stringResource(R.string.rapports_share_of_products, percentOf(c.products.toDouble(), count.toDouble()) ?: percent(0.0)),
                         fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1)
                 }
                 Spacer(Modifier.width(DsSpacing.sm))
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${percentOf(c.total, total) ?: percent(0.0)} des ventes", fontSize = DsTextSize.bodySmall,
+                    Text(stringResource(R.string.rapports_share_of_sales, percentOf(c.total, total) ?: percent(0.0)), fontSize = DsTextSize.bodySmall,
                         fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1)
                     Text(money.da(c.total), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 1, softWrap = false)
                 }
@@ -368,9 +376,9 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
     }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Produits vendus", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_products_sold), leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = stringResource(R.string.common_search_product),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
                     icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
@@ -382,12 +390,12 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
             Spacer(Modifier.height(8.dp))
             ReportSegmented(ProductRanking.entries, ranking, { stringResource(it.label) }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(6.dp))
-            Text(if (query.isBlank()) plural(ranked.size, "produit", "produits") else "${shown.size} sur ${ranked.size}",
+            Text(if (query.isBlank()) plural(R.plurals.common_products_count, ranked.size) else stringResource(R.string.common_shown_of_total, shown.size, ranked.size),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
         }
         when {
             report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
-            shown.isEmpty() -> ReportMessage(if (query.isBlank()) "Aucune vente sur cette période." else "Aucun résultat pour « ${query.trim()} »")
+            shown.isEmpty() -> ReportMessage(if (query.isBlank()) stringResource(R.string.rapports_no_sales) else stringResource(R.string.rapports_no_result_for, query.trim()))
             else -> LazyColumn(
                 state = listState, modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
@@ -424,9 +432,9 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
     }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Sans vente", subtitle = report?.let { "Stock immobilisé : ${money.da(it.dormantValue)}" }, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_dormant), subtitle = report?.let { stringResource(R.string.rapports_dormant_value, money.da(it.dormantValue)) }, leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = "Rechercher un produit",
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it; scanError = "" }, placeholder = stringResource(R.string.common_search_product),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg)) {
                 com.distrigo.app.ui.common.DsCompactSearchAction(
                     icon = Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.common_cd_scan_barcode),
@@ -436,12 +444,12 @@ fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel
             if (scanError.isNotEmpty()) Text(scanError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger,
                 modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs))
             Spacer(Modifier.height(8.dp))
-            Text(if (query.isBlank()) plural(all.size, "produit", "produits") else "${shown.size} sur ${all.size}",
+            Text(if (query.isBlank()) plural(R.plurals.common_products_count, all.size) else stringResource(R.string.common_shown_of_total, shown.size, all.size),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
         }
         when {
             report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
-            shown.isEmpty() -> ReportMessage(if (query.isBlank()) "Tout le stock s'est vendu sur cette période." else "Aucun résultat pour « ${query.trim()} »")
+            shown.isEmpty() -> ReportMessage(if (query.isBlank()) stringResource(R.string.rapports_all_sold) else stringResource(R.string.rapports_no_result_for, query.trim()))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
@@ -467,7 +475,7 @@ private fun DormantLine(d: DormantProduct, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(d.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Stock : ${formatQty(d.stock)} ${d.unit}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                Text(stringResource(R.string.rapports_stock_value, quantityWords(d.stock, d.unit)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(money.da(d.value), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)

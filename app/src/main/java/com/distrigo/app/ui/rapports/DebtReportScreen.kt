@@ -61,6 +61,7 @@ import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** Each age band's colour: green while recent, to red past 90 days. */
 private val AgeColors = mapOf(
@@ -78,58 +79,59 @@ private const val TOP_DEBTORS = 5
 /** What each figure of the report is and how it is counted, for its ⓘ — in each side's words. */
 private fun debtInfo(side: DebtSide, figure: String): ReportInfo {
     val clients = side == DebtSide.CLIENTS
-    return when (figure) {
-        "owed" -> if (clients) ReportInfo("Reste à encaisser", "Reste à encaisser = somme des soldes clients, aujourd'hui\n\nÂge = date des ventes impayées ; les versements règlent les plus récentes d'abord.")
-        else ReportInfo("Reste à payer", "Reste à payer = somme des soldes fournisseurs, aujourd'hui\n\nÂge = date des bons impayés ; les versements règlent les plus récents d'abord.")
-        "credit" -> if (clients) ReportInfo("Crédit accordé", "Crédit accordé = Ventes − Payé à la vente")
-        else ReportInfo("Achats à crédit", "Achats à crédit = Bons d'achat − Payé à la réception")
-        "payments" -> if (clients) ReportInfo("Versements reçus", "Versements reçus = somme des paiements des clients")
-        else ReportInfo("Versements payés", "Versements payés = somme des paiements aux fournisseurs")
-        "returns" -> if (clients) ReportInfo("Retours clients", "Retours clients = somme des retours, au prix de vente")
-        else ReportInfo("Retours fournisseurs", "Retours fournisseurs = somme des retours, au prix d'achat")
-        "ages" -> if (clients) ReportInfo("Ancienneté", "Dette d'aujourd'hui par âge des ventes impayées : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les ventes les plus récentes d'abord.")
-        else ReportInfo("Ancienneté", "Dette d'aujourd'hui par âge des bons impayés : 0 – 30, 31 – 60, 61 – 90, + 90 jours.\nLes versements règlent les bons les plus récents d'abord.")
-        else -> if (clients) ReportInfo("Évolution du solde", "Évolution = Crédit accordé − Versements reçus − Retours clients\n\nEn baisse : les clients vous doivent moins qu'au début de la période.")
-        else ReportInfo("Évolution du solde", "Évolution = Achats à crédit − Versements payés − Retours fournisseurs\n\nEn baisse : vous devez moins qu'au début de la période.")
+    val (title, text) = when (figure) {
+        "owed" -> if (clients) R.string.rapports_owed_clients to R.string.rapports_info_owed_clients
+        else R.string.rapports_owed_suppliers to R.string.rapports_info_owed_suppliers
+        "credit" -> if (clients) R.string.rapports_credit_clients to R.string.rapports_info_credit_clients
+        else R.string.rapports_credit_suppliers to R.string.rapports_info_credit_suppliers
+        "payments" -> if (clients) R.string.rapports_payments_clients to R.string.rapports_info_payments_clients
+        else R.string.rapports_payments_suppliers to R.string.rapports_info_payments_suppliers
+        "returns" -> if (clients) R.string.rapports_returns_clients to R.string.rapports_info_returns_clients
+        else R.string.rapports_returns_suppliers to R.string.rapports_info_returns_suppliers
+        "ages" -> if (clients) R.string.rapports_ages to R.string.rapports_info_ages_clients
+        else R.string.rapports_ages to R.string.rapports_info_ages_suppliers
+        else -> if (clients) R.string.rapports_balance_change to R.string.rapports_info_change_clients
+        else R.string.rapports_balance_change to R.string.rapports_info_change_suppliers
     }
+    return ReportInfo(reportText(title), reportText(text))
 }
 
 /** The words that change with the side, so the layout is written once. */
 private class SideWords(
     val owed: String, val debtors: (Int) -> String, val credit: String,
-    val payments: String, val paymentUnit: Pair<String, String>, val returns: String, val listTitle: String,
+    val payments: String, @androidx.annotation.PluralsRes val paymentUnit: Int, val returns: String, val listTitle: String,
     val noPayment: String, val lastPayment: String, val noDebt: String,
     val searchHint: String, val count: (Int) -> String,
 )
 
 private fun wordsFor(side: DebtSide) = when (side) {
     DebtSide.CLIENTS -> SideWords(
-        owed = "Reste à encaisser",
-        debtors = { plural(it, "client débiteur", "clients débiteurs") },
-        credit = "Crédit accordé",
-        payments = "Versements reçus",
-        paymentUnit = "versement" to "versements",
-        returns = "Retours clients",
-        listTitle = "Clients débiteurs",
-        noPayment = "Aucun versement",
-        lastPayment = "Dernier versement le",
-        noDebt = "Aucun client ne vous doit d'argent.",
-        searchHint = "Rechercher un client",
-        count = { "$it client(s)" },
+        owed = reportText(R.string.rapports_owed_clients),
+        debtors = { plural(R.plurals.rapports_debtor_clients_n, it) },
+        credit = reportText(R.string.rapports_credit_clients),
+        payments = reportText(R.string.rapports_payments_clients),
+        paymentUnit = R.plurals.rapports_payments_n,
+        returns = reportText(R.string.rapports_returns_clients),
+        listTitle = reportText(R.string.rapports_debtor_clients),
+        noPayment = reportText(R.string.rapports_no_payment),
+        lastPayment = reportText(R.string.rapports_last_payment_on),
+        noDebt = reportText(R.string.rapports_no_debt_clients),
+        searchHint = reportText(R.string.common_search_client),
+        count = { plural(R.plurals.common_clients_count, it) },
     )
     DebtSide.FOURNISSEURS -> SideWords(
-        owed = "Reste à payer",
-        debtors = { plural(it, "fournisseur à payer", "fournisseurs à payer") },
-        credit = "Achats à crédit",
-        payments = "Versements payés",
-        paymentUnit = "versement" to "versements",
-        returns = "Retours fournisseurs",
-        listTitle = "Fournisseurs à payer",
-        noPayment = "Aucun versement",
-        lastPayment = "Dernier versement le",
-        noDebt = "Vous ne devez rien à vos fournisseurs.",
-        searchHint = "Rechercher un fournisseur",
-        count = { "$it fournisseur(s)" },
+        owed = reportText(R.string.rapports_owed_suppliers),
+        debtors = { plural(R.plurals.rapports_suppliers_to_pay_n, it) },
+        credit = reportText(R.string.rapports_credit_suppliers),
+        payments = reportText(R.string.rapports_payments_suppliers),
+        paymentUnit = R.plurals.rapports_payments_n,
+        returns = reportText(R.string.rapports_returns_suppliers),
+        listTitle = reportText(R.string.rapports_suppliers_to_pay),
+        noPayment = reportText(R.string.rapports_no_payment),
+        lastPayment = reportText(R.string.rapports_last_payment_on),
+        noDebt = reportText(R.string.rapports_no_debt_suppliers),
+        searchHint = reportText(R.string.purchases_search_supplier),
+        count = { plural(R.plurals.suppliers_count, it) },
     )
 }
 
@@ -145,7 +147,7 @@ fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtRe
     val open = openDebtor(state.side)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Créances et dettes", subtitle = "Ce qui reste à encaisser et à payer", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_debts), subtitle = stringResource(R.string.rapports_debts_sub), leading = DsTopBarLeading.Back(onBack))
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
                 LinearProgressIndicator(Modifier.fillMaxSize(), color = DsColors.Primary, trackColor = Color.Transparent)
@@ -175,14 +177,14 @@ fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtRe
                 }
                 else -> {
                     item { OwedCard(report, words) }
-                    item { SectionTitle("Sur la période") }
+                    item { SectionTitle(stringResource(R.string.rapports_in_period)) }
                     item { FlowTiles(report, words) }
                     if (report.debtors.isEmpty()) {
                         item { ReportMessage(words.noDebt) }
                     } else {
                         item { AgeCard(report) }
                         // The biggest few; the rest are a tap away, on a screen of their own.
-                        item { SectionTitle("${words.listTitle} (${report.debtors.size})", "Voir tout", onSeeAll) }
+                        item { SectionTitle("${words.listTitle} (${report.debtors.size})", stringResource(R.string.common_action_see_all), onSeeAll) }
                         items(report.debtors.take(TOP_DEBTORS), key = { it.id }) { DebtorRow(it, words) { open(it.id) } }
                     }
                 }
@@ -199,11 +201,11 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
         // The title stays one line beside its ⓘ; the day goes under the count, on a line of its own.
         title = words.owed,
         amount = money.figure(report.outstanding),
-        caption = "${words.debtors(report.debtors.size)}\nau ${report.today.format(DAY)}",
+        caption = stringResource(R.string.rapports_count_on_day, words.debtors(report.debtors.size), report.today.format(DAY)),
         info = debtInfo(report.side, "owed"),
         halves = if (report.outstanding > 0) listOf(
-            HeroHalf("Moins de 30 jours", money.figure(report.ages[AgeBand.RECENT.ordinal])),
-            HeroHalf("Plus de 90 jours", money.figure(report.ages[AgeBand.OLD.ordinal]), bold = true),
+            HeroHalf(stringResource(R.string.rapports_under_30_days), money.figure(report.ages[AgeBand.RECENT.ordinal])),
+            HeroHalf(stringResource(R.string.rapports_over_90_days), money.figure(report.ages[AgeBand.OLD.ordinal]), bold = true),
         ) else emptyList(),
     )
 }
@@ -212,7 +214,6 @@ private fun OwedCard(report: DebtReport, words: SideWords) {
 @Composable
 private fun FlowTiles(report: DebtReport, words: SideWords) {
     val money = LocalMoneyFormatter.current
-    val (one, many) = words.paymentUnit
     val change = report.change
     Column(Modifier.padding(horizontal = DsSpacing.lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -221,24 +222,24 @@ private fun FlowTiles(report: DebtReport, words: SideWords) {
                 debtInfo(report.side, "credit"), accent = DsColors.Warning)
             KpiTile(
                 words.payments, money.figure(report.payments.total), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.payments.count, one, many), Icons.Default.Payments, debtInfo(report.side, "payments"), accent = DsColors.Success
+                plural(words.paymentUnit, report.payments.count), Icons.Default.Payments, debtInfo(report.side, "payments"), accent = DsColors.Success
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
                 words.returns, money.figure(report.returns.total), DsColors.PrimaryDark, Modifier.weight(1f),
-                plural(report.returns.count, "retour", "retours"), Icons.AutoMirrored.Filled.AssignmentReturn, debtInfo(report.side, "returns"),
+                plural(R.plurals.rapports_returns_n, report.returns.count), Icons.AutoMirrored.Filled.AssignmentReturn, debtInfo(report.side, "returns"),
             )
             // More owed is bad news on either side: red when the balance grew, green when it shrank.
             val grew = change > 0.005
             val shrank = change < -0.005
             KpiTile(
-                "Évolution du solde",
+                stringResource(R.string.rapports_balance_change),
                 // Its sign follows the count: a balance that turns from growth to shrinkage crosses zero.
                 Figure(change) { v -> if (v > 0.005) "+ ${money.da(v)}" else if (v < -0.005) "− ${money.da(-v)}" else money.da(0.0) },
                 when { grew -> DsColors.Danger; shrank -> DsColors.Success; else -> DsColors.PrimaryDark },
                 Modifier.weight(1f),
-                when { grew -> "En hausse"; shrank -> "En baisse"; else -> "Stable" },
+                stringResource(when { grew -> R.string.rapports_trend_up; shrank -> R.string.rapports_trend_down; else -> R.string.products_price_stable }),
                 when { grew -> Icons.AutoMirrored.Filled.TrendingUp; shrank -> Icons.AutoMirrored.Filled.TrendingDown; else -> Icons.AutoMirrored.Filled.TrendingFlat },
                 debtInfo(report.side, "change"),
             )
@@ -264,17 +265,17 @@ private fun AgeCard(report: DebtReport) {
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Ancienneté", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.rapports_ages), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             InfoButton(debtInfo(report.side, "ages"), tint = DsColors.TextTertiary)
         }
         Spacer(Modifier.height(2.dp))
-        Text("Depuis combien de temps l'argent est dû", fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Text(stringResource(R.string.rapports_ages_sub), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ShareRing(
                 slices = AgeBand.entries.map { report.ages[it.ordinal] to AgeColors.getValue(it) },
                 total = total,
-                caption = if (report.side == DebtSide.CLIENTS) "Total des créances" else "Total à payer",
+                caption = stringResource(if (report.side == DebtSide.CLIENTS) R.string.rapports_total_owed_to_us else R.string.rapports_total_to_pay),
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(DsSpacing.lg))
@@ -395,7 +396,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                     ) {
                         list?.let { l ->
                             Text(
-                                if (l.query.isBlank()) words.count(l.lines.size) else "${l.lines.size} sur ${l.total}",
+                                if (l.query.isBlank()) words.count(l.lines.size) else stringResource(R.string.common_shown_of_total, l.lines.size, l.total),
                                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                             )
                         } ?: Spacer(Modifier.width(1.dp))
@@ -408,7 +409,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
                         CircularProgressIndicator(color = DsColors.Primary)
                     }
                 } else if (shown.lines.isEmpty()) {
-                    ReportMessage("Aucun résultat pour « ${shown.query.trim()} »")
+                    ReportMessage(stringResource(R.string.rapports_no_result_for, shown.query.trim()))
                 } else {
                     LazyColumn(
                         state = listState,

@@ -5,4 +5,302 @@
     <string name="rapports_debtor_sort_name_za">الاسم (ي-أ)</string>
     <string name="rapports_rank_sales">المبيعات</string>
     <string name="rapports_rank_bons">الوصولات</string>
+    <string name="rapports_cd_how_computed">كيف تُحسب « \u2068%1$s\u2069 »</string>
+    <string name="rapports_currency">DA</string>
+    <string name="rapports_change_period">تغيير الفترة</string>
+    <string name="rapports_sales">المبيعات</string>
+    <string name="rapports_home_sales_sub">رقم الأعمال، الهامش، توزيع المبيعات</string>
+    <string name="rapports_products">المنتجات</string>
+    <string name="rapports_home_products_sub">أفضل المنتجات، الفئات، تحليل ABC</string>
+    <string name="rapports_parties">الزبائن والموردون</string>
+    <string name="rapports_home_parties_sub">أفضل الزبائن، المشتريات حسب المورد</string>
+    <string name="rapports_debts">الديون لنا وعلينا</string>
+    <string name="rapports_home_debts_sub">من يدين بماذا، ومنذ متى</string>
+    <string name="rapports_stock">المخزون والخسائر</string>
+    <string name="rapports_home_stock_sub">قيمة المخزون، النفاد، الخسائر</string>
+    <string name="rapports_profit">النتيجة</string>
+    <string name="rapports_home_profit_sub">الهامش والمصاريف والخسائر: الربح</string>
+    <string name="rapports_title">التقارير</string>
+    <string name="rapports_subtitle">الإحصائيات والأداء</string>
+    <string name="rapports_soon">قريبًا</string>
+    <string name="rapports_sales_sub">تقرير المبيعات</string>
+    <string name="rapports_no_sales">لا توجد مبيعات في هذه الفترة.</string>
+    <string name="rapports_turnover">رقم الأعمال</string>
+    <string name="rapports_info_turnover">رقم الأعمال = مجموع المبيعات بسعر البيع\nصافي المبيعات = رقم الأعمال − مرتجعات الزبائن (مع « الكل »)</string>
+    <string name="rapports_client_returns_n">مرتجعات الزبائن (\u2068%1$d\u2069)</string>
+    <string name="rapports_net_sales">صافي المبيعات</string>
+    <string name="rapports_sales_count">عدد المبيعات</string>
+    <string name="rapports_info_sales_count">عدد المبيعات خلال الفترة.</string>
+    <string name="rapports_avg_basket">متوسط قيمة البيع</string>
+    <string name="rapports_info_avg_basket">متوسط قيمة البيع = رقم الأعمال ÷ عدد المبيعات</string>
+    <string name="rapports_gross_margin">الهامش الإجمالي</string>
+    <string name="rapports_info_gross_margin">الهامش الإجمالي = رقم الأعمال − تكلفة المبيعات</string>
+    <string name="rapports_margin_rate">نسبة الهامش</string>
+    <string name="rapports_info_margin_rate">نسبة الهامش = الهامش الإجمالي ÷ تكلفة المبيعات × 100</string>
+    <string name="rapports_depot_camion">المستودع والشاحنة</string>
+    <string name="rapports_info_depot_camion">الحصة = مبيعات المستودع (أو الشاحنة) ÷ رقم الأعمال × 100\nمع « الكل » فقط.</string>
+    <string name="rapports_best">الأفضل · \u2068%1$s\u2069</string>
+    <string name="rapports_places_title">توزيع المبيعات</string>
+    <string name="rapports_info_places">رقم أعمال الفترة حسب مكان الزبون: الولاية، البلدية، القطاع، الحي.\nالمكان هو المسجّل في بطاقة الزبون اليوم.\n« بدون … »: الزبائن الذين ينقصهم هذا البيان.\n\nالمس جزءًا لفتحه، والمركز للرجوع.</string>
+    <string name="rapports_place_root">الولايات</string>
+    <string name="rapports_no_wilaya">بدون ولاية</string>
+    <string name="rapports_no_commune">بدون بلدية</string>
+    <string name="rapports_no_secteur">بدون قطاع</string>
+    <string name="rapports_no_quartier">بدون حي</string>
+    <string name="rapports_others">أخرى</string>
+    <plurals name="rapports_n_wilayas">
+        <item quantity="zero">%d ولاية</item>
+        <item quantity="one">ولاية واحدة</item>
+        <item quantity="two">ولايتان</item>
+        <item quantity="few">%d ولايات</item>
+        <item quantity="many">%d ولاية</item>
+        <item quantity="other">%d ولاية</item>
+    </plurals>
+    <plurals name="rapports_n_communes">
+        <item quantity="zero">%d بلدية</item>
+        <item quantity="one">بلدية واحدة</item>
+        <item quantity="two">بلديتان</item>
+        <item quantity="few">%d بلديات</item>
+        <item quantity="many">%d بلدية</item>
+        <item quantity="other">%d بلدية</item>
+    </plurals>
+    <plurals name="rapports_n_secteurs">
+        <item quantity="zero">%d قطاع</item>
+        <item quantity="one">قطاع واحد</item>
+        <item quantity="two">قطاعان</item>
+        <item quantity="few">%d قطاعات</item>
+        <item quantity="many">%d قطاعًا</item>
+        <item quantity="other">%d قطاع</item>
+    </plurals>
+    <plurals name="rapports_n_quartiers">
+        <item quantity="zero">%d حي</item>
+        <item quantity="one">حي واحد</item>
+        <item quantity="two">حيّان</item>
+        <item quantity="few">%d أحياء</item>
+        <item quantity="many">%d حيًّا</item>
+        <item quantity="other">%d حي</item>
+    </plurals>
+    <string name="rapports_by_wilaya">التوزيع حسب الولاية</string>
+    <string name="rapports_by_commune">التوزيع حسب البلدية</string>
+    <string name="rapports_by_secteur">التوزيع حسب القطاع</string>
+    <string name="rapports_by_quartier">التوزيع حسب الحي</string>
+    <string name="rapports_by_client">التوزيع حسب الزبون</string>
+    <string name="rapports_wilayas_of">ولايات</string>
+    <string name="rapports_communes_of">بلديات</string>
+    <string name="rapports_secteurs_of">قطاعات</string>
+    <string name="rapports_quartiers_of">أحياء</string>
+    <string name="rapports_clients_of">زبائن</string>
+    <string name="rapports_all_wilayas">كل الولايات</string>
+    <string name="rapports_all_communes">كل البلديات</string>
+    <string name="rapports_all_secteurs">كل القطاعات</string>
+    <string name="rapports_all_quartiers">كل الأحياء</string>
+    <string name="rapports_all_clients">كل الزبائن</string>
+    <string name="rapports_quartier_clients">زبائن الحي</string>
+    <string name="rapports_turnover_by_wilaya">رقم الأعمال حسب الولاية</string>
+    <string name="rapports_sales_total">مجموع المبيعات</string>
+    <string name="rapports_share_of">\u2068%1$s\u2069 من \u2068%2$s\u2069</string>
+    <string name="rapports_top_clients_of">أفضل الزبائن · \u2068%1$s\u2069</string>
+    <string name="rapports_share_of_quartier">\u2068%1$s\u2069 من الحي</string>
+    <string name="rapports_see_all_clients_n">عرض كل الزبائن (\u2068%1$d\u2069)</string>
+    <string name="rapports_see_all_n">عرض الكل (\u2068%1$d\u2069)</string>
+    <string name="rapports_others_range">من \u2068%1$s\u2069 إلى \u2068%2$s\u2069 · \u2068%3$s\u2069</string>
+    <string name="rapports_cd_places">توزيع المبيعات: \u2068%1$s\u2069</string>
+    <string name="rapports_products_sales">مبيعات المنتجات</string>
+    <string name="rapports_info_products_sales">المبيعات = مجموع أسطر البيع بسعر البيع\nالهامش الإجمالي = المبيعات − تكلفة المبيعات</string>
+    <string name="rapports_products_sold">المنتجات المبيعة</string>
+    <string name="rapports_info_products_sold">المنتجات المبيعة = المنتجات المختلفة التي بيعت مرة واحدة على الأقل</string>
+    <string name="rapports_class_a">الفئة A</string>
+    <string name="rapports_info_class_a" formatted="false">الفئة A = المنتجات التي تصنع أول 80 % من المبيعات\n% = منتجات A ÷ المنتجات المبيعة × 100</string>
+    <string name="rapports_dormant">بدون مبيعات</string>
+    <string name="rapports_info_dormant">بدون مبيعات = منتجات في المخزون لم تُبع خلال الفترة\nالمبلغ = المخزون × سعر الشراء الحالي</string>
+    <string name="rapports_top_products">أفضل المنتجات</string>
+    <string name="rapports_info_top_products">مرتبة حسب رقم الأعمال أو الهامش الإجمالي أو الكمية (بوحدة المنتج).</string>
+    <string name="rapports_split">التوزيع</string>
+    <string name="rapports_info_groups">المبيعات حسب الفئة أو العلامة التجارية أو المورد. أول 5، والباقي في « أخرى ».</string>
+    <string name="rapports_abc">تحليل ABC</string>
+    <string name="rapports_info_abc" formatted="false">المنتجات مرتبة حسب المبيعات:\nA: أول 80 % من المبيعات\nB: الـ 15 % التالية\nC: الـ 5 % المتبقية</string>
+    <string name="rapports_no_category">بدون فئة</string>
+    <string name="rapports_no_brand">بدون علامة تجارية</string>
+    <string name="rapports_no_supplier">بدون مورد</string>
+    <string name="rapports_products_sub">ما يُباع وما يُربح</string>
+    <string name="rapports_gross_margin_value">الهامش الإجمالي \u2068%1$s\u2069</string>
+    <string name="rapports_abc_sub">قلة من المنتجات تصنع معظم المبيعات</string>
+    <string name="rapports_share_of_products">\u2068%1$s\u2069 من المنتجات</string>
+    <string name="rapports_share_of_sales">\u2068%1$s\u2069 من المبيعات</string>
+    <string name="rapports_no_result_for">لا توجد نتائج لـ « \u2068%1$s\u2069 »</string>
+    <string name="rapports_dormant_value">المخزون الراكد: \u2068%1$s\u2069</string>
+    <string name="rapports_all_sold">بيع كل المخزون خلال هذه الفترة.</string>
+    <string name="rapports_stock_value">المخزون: \u2068%1$s\u2069</string>
+    <string name="rapports_sales_to_clients">المبيعات للزبائن</string>
+    <string name="rapports_info_sales_to_clients">المبيعات = مجموع المبيعات، المستودع + الشاحنة</string>
+    <plurals name="rapports_active_clients_n">
+        <item quantity="zero">%d زبون نشط</item>
+        <item quantity="one">زبون نشط واحد</item>
+        <item quantity="two">زبونان نشطان</item>
+        <item quantity="few">%d زبائن نشطين</item>
+        <item quantity="many">%d زبونًا نشطًا</item>
+        <item quantity="other">%d زبون نشط</item>
+    </plurals>
+    <string name="rapports_active_clients">الزبائن النشطون</string>
+    <string name="rapports_info_active_clients">الزبائن النشطون = زبائن لهم عملية شراء واحدة على الأقل</string>
+    <string name="rapports_info_avg_basket_clients">متوسط قيمة البيع = المبيعات ÷ عدد المبيعات</string>
+    <string name="rapports_top_clients">أفضل الزبائن</string>
+    <string name="rapports_info_top_clients">مرتبون حسب المبيعات أو الهامش الإجمالي (المبيعات − تكلفة المبيعات) أو عدد المبيعات.</string>
+    <string name="rapports_concentration">التركّز</string>
+    <string name="rapports_info_concentration_clients">التركّز = مبيعات أفضل 5 زبائن ÷ المبيعات × 100</string>
+    <string name="rapports_clients_of_period">زبائن الفترة</string>
+    <string name="rapports_purchases_from_suppliers">المشتريات من الموردين</string>
+    <string name="rapports_info_purchases_from_suppliers">المشتريات = مجموع وصولات الشراء المؤرخة في الفترة، مستلمة أو لا</string>
+    <string name="rapports_suppliers">الموردون</string>
+    <string name="rapports_info_suppliers">الموردون = موردون لهم وصل واحد على الأقل</string>
+    <string name="rapports_avg_bon">متوسط الوصل</string>
+    <string name="rapports_info_avg_bon">متوسط الوصل = المشتريات ÷ عدد الوصولات</string>
+    <string name="rapports_top_suppliers">أهم الموردين</string>
+    <string name="rapports_info_top_suppliers">مرتبون حسب المشتريات أو عدد الوصولات.</string>
+    <string name="rapports_info_concentration_suppliers">التركّز = المشتريات من أول 5 موردين ÷ المشتريات × 100</string>
+    <string name="rapports_suppliers_of_period">موردو الفترة</string>
+    <string name="rapports_new_clients">زبائن جدد</string>
+    <string name="rapports_info_new_clients">الزبائن الجدد = زبائن كانت أول عملية شراء لهم خلال الفترة</string>
+    <string name="rapports_inactive_clients">زبائن غير نشطين</string>
+    <string name="rapports_info_inactive_clients">الزبائن غير النشطين = زبائن لم يشتروا منذ بداية الفترة\nالمبلغ = مجموع مشترياتهم</string>
+    <string name="rapports_parties_sub">من يشتري، وممن تشتري</string>
+    <string name="rapports_no_purchases">لا توجد مشتريات في هذه الفترة.</string>
+    <string name="rapports_the_others">الباقون</string>
+    <string name="rapports_top_five_share">الخمسة الأوائل يمثلون \u2068%1$s\u2069 من المجموع</string>
+    <string name="rapports_nothing_in_period">لا شيء في هذه الفترة.</string>
+    <string name="rapports_inactive_sub">لا شراء منذ بداية الفترة</string>
+    <string name="rapports_all_bought">اشترى كل زبائنك خلال الفترة.</string>
+    <string name="rapports_last_purchase_on">آخر شراء في \u2068%1$s\u2069</string>
+    <string name="rapports_owed_clients">الباقي للتحصيل</string>
+    <string name="rapports_info_owed_clients">الباقي للتحصيل = مجموع أرصدة الزبائن اليوم\n\nالعمر = تاريخ المبيعات غير المدفوعة؛ الدفعات تسدّد الأحدث أولًا.</string>
+    <string name="rapports_owed_suppliers">الباقي للدفع</string>
+    <string name="rapports_info_owed_suppliers">الباقي للدفع = مجموع أرصدة الموردين اليوم\n\nالعمر = تاريخ الوصولات غير المدفوعة؛ الدفعات تسدّد الأحدث أولًا.</string>
+    <string name="rapports_credit_clients">الدين الممنوح</string>
+    <string name="rapports_info_credit_clients">الدين الممنوح = المبيعات − المدفوع عند البيع</string>
+    <string name="rapports_credit_suppliers">المشتريات بالدين</string>
+    <string name="rapports_info_credit_suppliers">المشتريات بالدين = وصولات الشراء − المدفوع عند الاستلام</string>
+    <string name="rapports_payments_clients">الدفعات المستلمة</string>
+    <string name="rapports_info_payments_clients">الدفعات المستلمة = مجموع مدفوعات الزبائن</string>
+    <string name="rapports_payments_suppliers">الدفعات المدفوعة</string>
+    <string name="rapports_info_payments_suppliers">الدفعات المدفوعة = مجموع المدفوعات للموردين</string>
+    <string name="rapports_returns_clients">مرتجعات الزبائن</string>
+    <string name="rapports_info_returns_clients">مرتجعات الزبائن = مجموع المرتجعات بسعر البيع</string>
+    <string name="rapports_returns_suppliers">المرتجعات إلى الموردين</string>
+    <string name="rapports_info_returns_suppliers">المرتجعات إلى الموردين = مجموع المرتجعات بسعر الشراء</string>
+    <string name="rapports_ages">الأقدمية</string>
+    <string name="rapports_info_ages_clients">دين اليوم حسب عمر المبيعات غير المدفوعة: 0 – 30، 31 – 60، 61 – 90، + 90 يومًا.\nالدفعات تسدّد المبيعات الأحدث أولًا.</string>
+    <string name="rapports_info_ages_suppliers">دين اليوم حسب عمر الوصولات غير المدفوعة: 0 – 30، 31 – 60، 61 – 90، + 90 يومًا.\nالدفعات تسدّد الوصولات الأحدث أولًا.</string>
+    <string name="rapports_balance_change">تطور الرصيد</string>
+    <string name="rapports_info_change_clients">التطور = الدين الممنوح − الدفعات المستلمة − مرتجعات الزبائن\n\nفي انخفاض: الزبائن مدينون لك بأقل مما كانوا في بداية الفترة.</string>
+    <string name="rapports_info_change_suppliers">التطور = المشتريات بالدين − الدفعات المدفوعة − المرتجعات إلى الموردين\n\nفي انخفاض: أنت مدين بأقل مما كنت في بداية الفترة.</string>
+    <plurals name="rapports_debtor_clients_n">
+        <item quantity="zero">%d زبون مدين</item>
+        <item quantity="one">زبون مدين واحد</item>
+        <item quantity="two">زبونان مدينان</item>
+        <item quantity="few">%d زبائن مدينين</item>
+        <item quantity="many">%d زبونًا مدينًا</item>
+        <item quantity="other">%d زبون مدين</item>
+    </plurals>
+    <plurals name="rapports_suppliers_to_pay_n">
+        <item quantity="zero">%d مورد للدفع</item>
+        <item quantity="one">مورد واحد للدفع</item>
+        <item quantity="two">موردان للدفع</item>
+        <item quantity="few">%d موردين للدفع</item>
+        <item quantity="many">%d موردًا للدفع</item>
+        <item quantity="other">%d مورد للدفع</item>
+    </plurals>
+    <plurals name="rapports_payments_n">
+        <item quantity="zero">%d دفعة</item>
+        <item quantity="one">دفعة واحدة</item>
+        <item quantity="two">دفعتان</item>
+        <item quantity="few">%d دفعات</item>
+        <item quantity="many">%d دفعة</item>
+        <item quantity="other">%d دفعة</item>
+    </plurals>
+    <plurals name="rapports_returns_n">
+        <item quantity="zero">%d مرتجع</item>
+        <item quantity="one">مرتجع واحد</item>
+        <item quantity="two">مرتجعان</item>
+        <item quantity="few">%d مرتجعات</item>
+        <item quantity="many">%d مرتجعًا</item>
+        <item quantity="other">%d مرتجع</item>
+    </plurals>
+    <string name="rapports_debtor_clients">الزبائن المدينون</string>
+    <string name="rapports_suppliers_to_pay">موردون للدفع</string>
+    <string name="rapports_no_payment">لا توجد دفعات</string>
+    <string name="rapports_last_payment_on">آخر دفعة في</string>
+    <string name="rapports_no_debt_clients">لا يوجد زبون مدين لك.</string>
+    <string name="rapports_no_debt_suppliers">لست مدينًا لأي مورد.</string>
+    <string name="rapports_debts_sub">ما بقي للتحصيل وللدفع</string>
+    <string name="rapports_in_period">خلال الفترة</string>
+    <string name="rapports_count_on_day">\u2068%1$s\u2069\nفي \u2068%2$s\u2069</string>
+    <string name="rapports_under_30_days">أقل من 30 يومًا</string>
+    <string name="rapports_over_90_days">أكثر من 90 يومًا</string>
+    <string name="rapports_trend_up">في ارتفاع</string>
+    <string name="rapports_trend_down">في انخفاض</string>
+    <string name="rapports_ages_sub">منذ متى المال مستحق</string>
+    <string name="rapports_total_owed_to_us">مجموع الديون لنا</string>
+    <string name="rapports_total_to_pay">المجموع للدفع</string>
+    <string name="rapports_stock_value_title">قيمة المخزون</string>
+    <string name="rapports_info_stock_value">قيمة المخزون = المخزون × سعر الشراء الحالي، اليوم\nالمخزون السالب يُحسب 0.</string>
+    <string name="rapports_outages">نفاد المخزون</string>
+    <string name="rapports_info_outages">نفاد المخزون = منتجات متابَعة مخزونها ≤ 0\nالمتابَعة: لها حد أدنى، أو كانت في المخزون.</string>
+    <string name="rapports_low_stock">مخزون منخفض</string>
+    <string name="rapports_info_low_stock">مخزون منخفض = منتجات مخزونها بين 0 والحد الأدنى</string>
+    <string name="rapports_losses">الخسائر</string>
+    <string name="rapports_info_losses">الخسائر = الكمية المفقودة × سعر الشراء</string>
+    <string name="rapports_loss_rate">نسبة الخسارة</string>
+    <string name="rapports_info_loss_rate">نسبة الخسارة = الخسائر ÷ تكلفة المبيعات × 100</string>
+    <string name="rapports_losses_by_type">الخسائر حسب النوع</string>
+    <string name="rapports_info_losses_by_type">الخسائر حسب النوع وفق تكلفتها. أول 5، والباقي في « أنواع أخرى ».</string>
+    <string name="rapports_most_lost">المنتجات الأكثر خسارة</string>
+    <string name="rapports_info_most_lost">مرتبة حسب تكلفة الخسائر، مع الكمية المفقودة.</string>
+    <string name="rapports_restock">للتموين</string>
+    <string name="rapports_info_restock">المنتجات النافدة، ثم المنتجات تحت حدها الأدنى، من الأكثر نقصًا إلى الأقل.</string>
+    <string name="rapports_stock_sub">قيمة المخزون، وما ينقص، وما يضيع</string>
+    <string name="rapports_restock_n">للتموين (\u2068%1$d\u2069)</string>
+    <string name="rapports_nothing_to_restock_long">لا شيء للتموين: كل المنتجات فوق حدها الأدنى.</string>
+    <plurals name="rapports_products_in_stock_n">
+        <item quantity="zero">%d منتج في المخزون</item>
+        <item quantity="one">منتج واحد في المخزون</item>
+        <item quantity="two">منتجان في المخزون</item>
+        <item quantity="few">%d منتجات في المخزون</item>
+        <item quantity="many">%d منتجًا في المخزون</item>
+        <item quantity="other">%d منتج في المخزون</item>
+    </plurals>
+    <string name="rapports_at_depot">في المستودع</string>
+    <string name="rapports_on_truck">في الشاحنة</string>
+    <string name="rapports_other_types">أنواع أخرى</string>
+    <string name="rapports_losses_total">مجموع الخسائر</string>
+    <string name="rapports_lost_qty">المفقود: \u2068%1$s\u2069</string>
+    <string name="rapports_minimum">الحد الأدنى \u2068%1$s\u2069</string>
+    <string name="rapports_no_minimum">بدون حد أدنى</string>
+    <string name="rapports_outage_detail">نفاد · \u2068%1$s\u2069</string>
+    <string name="rapports_low_detail">مخزون منخفض · \u2068%1$s\u2069</string>
+    <plurals name="rapports_outages_n">
+        <item quantity="zero">%d منتج نافد</item>
+        <item quantity="one">منتج نافد واحد</item>
+        <item quantity="two">منتجان نافدان</item>
+        <item quantity="few">%d منتجات نافدة</item>
+        <item quantity="many">%d منتجًا نافدًا</item>
+        <item quantity="other">%d منتج نافد</item>
+    </plurals>
+    <string name="rapports_low_n">\u2068%1$d\u2069 بمخزون منخفض</string>
+    <string name="rapports_nothing_to_restock">لا شيء للتموين.</string>
+    <string name="rapports_net_result">صافي النتيجة</string>
+    <string name="rapports_info_net_result">صافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر</string>
+    <string name="rapports_charges">المصاريف</string>
+    <string name="rapports_info_charges">المصاريف = مجموع مصاريف الفترة</string>
+    <string name="rapports_profitability">المردودية</string>
+    <string name="rapports_info_profitability" formatted="false">المردودية (%) = صافي النتيجة ÷ رقم الأعمال × 100</string>
+    <string name="rapports_statement">حساب النتيجة</string>
+    <string name="rapports_info_statement">الهامش الإجمالي = رقم الأعمال − تكلفة المبيعات\nصافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر\n\nتكلفة المبيعات = الكمية المبيعة × سعر الشراء وقت البيع\nمرتجعات الزبائن = المبلغ المُعاد − تكلفة المنتجات المرتجعة</string>
+    <string name="rapports_charges_by_type">المصاريف حسب النوع</string>
+    <string name="rapports_info_charges_by_type">الحصة = مصاريف النوع ÷ المصاريف × 100. أول 5، والباقي في « أنواع أخرى ».</string>
+    <string name="rapports_profit_sub">ما يبقى بعد دفع كل شيء</string>
+    <string name="rapports_profit_in_period">ربح خلال الفترة</string>
+    <string name="rapports_loss_in_period">خسارة خلال الفترة</string>
+    <string name="rapports_taken_off">المخصوم</string>
+    <string name="rapports_cost_of_sales">تكلفة المبيعات</string>
+    <string name="rapports_charges_total">مجموع المصاريف</string>
 </resources>

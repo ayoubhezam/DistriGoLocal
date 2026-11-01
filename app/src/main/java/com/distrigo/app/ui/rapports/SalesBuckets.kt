@@ -26,9 +26,9 @@ const val MAX_DAILY_BUCKETS = 62
 
 private val FR = Locale.FRENCH
 private val DAY_LABEL: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
-private val DAY_TITLE = DateTimeFormatter.ofPattern("EEE dd/MM/yyyy", FR)
-private val MONTH_LABEL = DateTimeFormatter.ofPattern("MMM", FR)
-private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", FR)
+private val DAY_TITLE: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("EEE dd/MM/yyyy")
+private val MONTH_LABEL: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("MMM")
+private val MONTH_TITLE: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("MMMM yyyy")
 
 /** The report's [days] as bars: one a day up to [MAX_DAILY_BUCKETS] days, one a month beyond. Oldest first. */
 fun salesBuckets(days: List<SalesDay>): List<SalesBucket> =

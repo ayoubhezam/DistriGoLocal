@@ -81,39 +81,39 @@ private class PartyWords(
 )
 
 private fun wordsFor(side: DebtSide) = if (side == DebtSide.CLIENTS) PartyWords(
-    total = "Ventes aux clients",
-    totalInfo = ReportInfo("Ventes aux clients", "Ventes = somme des ventes, dépôt + camion"),
-    people = { plural(it, "client actif", "clients actifs") },
-    documents = { plural(it, "vente", "ventes") },
-    active = "Clients actifs",
-    activeInfo = ReportInfo("Clients actifs", "Clients actifs = clients avec au moins un achat"),
-    average = "Panier moyen",
-    averageInfo = ReportInfo("Panier moyen", "Panier moyen = Ventes ÷ Nombre de ventes"),
-    topTitle = "Meilleurs clients",
-    topInfo = ReportInfo("Meilleurs clients", "Classés par ventes, par marge brute (Ventes − Coût des ventes) ou par nombre de ventes."),
-    shareInfo = ReportInfo("Concentration", "Concentration = Ventes des 5 meilleurs clients ÷ Ventes × 100"),
-    listTitle = "Clients de la période",
+    total = reportText(R.string.rapports_sales_to_clients),
+    totalInfo = ReportInfo(reportText(R.string.rapports_sales_to_clients), reportText(R.string.rapports_info_sales_to_clients)),
+    people = { plural(R.plurals.rapports_active_clients_n, it) },
+    documents = { plural(R.plurals.ventes_count, it) },
+    active = reportText(R.string.rapports_active_clients),
+    activeInfo = ReportInfo(reportText(R.string.rapports_active_clients), reportText(R.string.rapports_info_active_clients)),
+    average = reportText(R.string.rapports_avg_basket),
+    averageInfo = ReportInfo(reportText(R.string.rapports_avg_basket), reportText(R.string.rapports_info_avg_basket_clients)),
+    topTitle = reportText(R.string.rapports_top_clients),
+    topInfo = ReportInfo(reportText(R.string.rapports_top_clients), reportText(R.string.rapports_info_top_clients)),
+    shareInfo = ReportInfo(reportText(R.string.rapports_concentration), reportText(R.string.rapports_info_concentration_clients)),
+    listTitle = reportText(R.string.rapports_clients_of_period),
     rankings = PartyRanking.entries,
     rankingLabel = { if (it == PartyRanking.DOCUMENTS) R.string.rapports_rank_sales else it.label },
 ) else PartyWords(
-    total = "Achats aux fournisseurs",
-    totalInfo = ReportInfo("Achats aux fournisseurs", "Achats = somme des bons d'achat datés de la période, reçus ou non"),
-    people = { plural(it, "fournisseur", "fournisseurs") },
-    documents = { plural(it, "bon", "bons") },
-    active = "Fournisseurs",
-    activeInfo = ReportInfo("Fournisseurs", "Fournisseurs = fournisseurs avec au moins un bon"),
-    average = "Bon moyen",
-    averageInfo = ReportInfo("Bon moyen", "Bon moyen = Achats ÷ Nombre de bons"),
-    topTitle = "Principaux fournisseurs",
-    topInfo = ReportInfo("Principaux fournisseurs", "Classés par achats ou par nombre de bons."),
-    shareInfo = ReportInfo("Concentration", "Concentration = Achats aux 5 premiers fournisseurs ÷ Achats × 100"),
-    listTitle = "Fournisseurs de la période",
+    total = reportText(R.string.rapports_purchases_from_suppliers),
+    totalInfo = ReportInfo(reportText(R.string.rapports_purchases_from_suppliers), reportText(R.string.rapports_info_purchases_from_suppliers)),
+    people = { plural(R.plurals.suppliers_count, it) },
+    documents = { plural(R.plurals.tournees_bons_count, it) },
+    active = reportText(R.string.rapports_suppliers),
+    activeInfo = ReportInfo(reportText(R.string.rapports_suppliers), reportText(R.string.rapports_info_suppliers)),
+    average = reportText(R.string.rapports_avg_bon),
+    averageInfo = ReportInfo(reportText(R.string.rapports_avg_bon), reportText(R.string.rapports_info_avg_bon)),
+    topTitle = reportText(R.string.rapports_top_suppliers),
+    topInfo = ReportInfo(reportText(R.string.rapports_top_suppliers), reportText(R.string.rapports_info_top_suppliers)),
+    shareInfo = ReportInfo(reportText(R.string.rapports_concentration), reportText(R.string.rapports_info_concentration_suppliers)),
+    listTitle = reportText(R.string.rapports_suppliers_of_period),
     rankings = listOf(PartyRanking.MONTANT, PartyRanking.DOCUMENTS),
     rankingLabel = { if (it == PartyRanking.DOCUMENTS) R.string.rapports_rank_bons else it.label },
 )
 
-private val INFO_NEW = ReportInfo("Nouveaux clients", "Nouveaux clients = clients dont le premier achat est dans la période")
-private val INFO_INACTIVE = ReportInfo("Clients inactifs", "Clients inactifs = clients sans achat depuis le début de la période\nMontant = total de leurs achats")
+private val INFO_NEW: ReportInfo get() = ReportInfo(reportText(R.string.rapports_new_clients), reportText(R.string.rapports_info_new_clients))
+private val INFO_INACTIVE: ReportInfo get() = ReportInfo(reportText(R.string.rapports_inactive_clients), reportText(R.string.rapports_info_inactive_clients))
 
 /** Opens a party's own page through the app's drill-down. */
 @Composable
@@ -131,7 +131,7 @@ fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -
     val open = openParty(state.side)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Clients et fournisseurs", subtitle = "Qui achète, chez qui vous achetez", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_parties), subtitle = stringResource(R.string.rapports_parties_sub), leading = DsTopBarLeading.Back(onBack))
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
                 LinearProgressIndicator(Modifier.fillMaxSize(), color = DsColors.Primary, trackColor = Color.Transparent)
@@ -158,7 +158,7 @@ fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -
                     item { TotalCard(report, words) }
                     item { Tiles(report, words, onInactive) }
                     if (report.parties.isNotEmpty()) {
-                        item { TitleWithInfo(words.topTitle, words.topInfo, action = "Voir tout", onAction = onSeeAll) }
+                        item { TitleWithInfo(words.topTitle, words.topInfo, action = stringResource(R.string.common_action_see_all), onAction = onSeeAll) }
                         item {
                             ReportSegmented(words.rankings, ranking, { stringResource(words.rankingLabel(it)) }, { viewModel.ranking.value = it },
                                 Modifier.padding(horizontal = DsSpacing.lg))
@@ -168,7 +168,7 @@ fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -
                         }
                         item { ShareCard(report, words) }
                     } else {
-                        item { ReportMessage(if (report.side == DebtSide.CLIENTS) "Aucune vente sur cette période." else "Aucun achat sur cette période.") }
+                        item { ReportMessage(stringResource(if (report.side == DebtSide.CLIENTS) R.string.rapports_no_sales else R.string.rapports_no_purchases)) }
                     }
                 }
             }
@@ -199,9 +199,9 @@ private fun Tiles(report: PartyReport, words: PartyWords, onInactive: () -> Unit
                 if (clients) Icons.Default.ShoppingBasket else Icons.Default.Receipt, words.averageInfo, accent = DsColors.AccentTeal)
         }
         if (clients) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-            KpiTile("Nouveaux clients", countFigure(report.newCount), DsColors.PrimaryDark, Modifier.weight(1f), null,
+            KpiTile(stringResource(R.string.rapports_new_clients), countFigure(report.newCount), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.PersonAdd, INFO_NEW, accent = DsColors.Success)
-            KpiTile("Clients inactifs", countFigure(report.inactive.size), DsColors.PrimaryDark,
+            KpiTile(stringResource(R.string.rapports_inactive_clients), countFigure(report.inactive.size), DsColors.PrimaryDark,
                 Modifier.weight(1f).clip(DsShapes.large).clickable(role = Role.Button, onClick = onInactive), null,
                 Icons.Default.Bedtime, INFO_INACTIVE, accent = DsColors.Warning)
         }
@@ -245,15 +245,15 @@ private fun ShareCard(report: PartyReport, words: PartyWords) {
     val money = LocalMoneyFormatter.current
     val top = report.ranked(PartyRanking.MONTANT).take(TOP_SHARE)
     val rest = report.total - top.sumOf { it.total }
-    val slices = top.map { it.name to it.total } + (if (rest > 0.005) listOf("Les autres" to rest) else emptyList())
+    val slices = top.map { it.name to it.total } + (if (rest > 0.005) listOf(stringResource(R.string.rapports_the_others) to rest) else emptyList())
     CardColumn {
-        CardTitle("Concentration", words.shareInfo)
+        CardTitle(stringResource(R.string.rapports_concentration), words.shareInfo)
         Spacer(Modifier.height(2.dp))
-        Text("Les cinq premiers font ${report.topShare(TOP_SHARE)?.let { percent(it) } ?: percent(0.0)} du total",
+        Text(stringResource(R.string.rapports_top_five_share, report.topShare(TOP_SHARE)?.let { percent(it) } ?: percent(0.0)),
             fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         Spacer(Modifier.height(DsSpacing.lg))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ShareRing(slices.mapIndexed { i, (_, v) -> v to ShareColors[i % ShareColors.size] }, report.total, "Total", Modifier.weight(1f))
+            ShareRing(slices.mapIndexed { i, (_, v) -> v to ShareColors[i % ShareColors.size] }, report.total, stringResource(R.string.common_label_total), Modifier.weight(1f))
             Spacer(Modifier.width(DsSpacing.lg))
             Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                 slices.forEachIndexed { i, (name, amount) ->
@@ -299,17 +299,17 @@ fun PartiesScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
         DsTopAppBar(title = words.listTitle, leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
             DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it },
-                placeholder = if (state.side == DebtSide.CLIENTS) "Rechercher un client" else "Rechercher un fournisseur",
+                placeholder = stringResource(if (state.side == DebtSide.CLIENTS) R.string.common_search_client else R.string.purchases_search_supplier),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(8.dp))
             ReportSegmented(words.rankings, ranking, { stringResource(words.rankingLabel(it)) }, { viewModel.ranking.value = it }, Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(6.dp))
-            Text(if (query.isBlank()) words.people(ranked.size) else "${shown.size} sur ${ranked.size}",
+            Text(if (query.isBlank()) words.people(ranked.size) else stringResource(R.string.common_shown_of_total, shown.size, ranked.size),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
         }
         when {
             report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
-            shown.isEmpty() -> ReportMessage(if (query.isBlank()) "Rien sur cette période." else "Aucun résultat pour « ${query.trim()} »")
+            shown.isEmpty() -> ReportMessage(if (query.isBlank()) stringResource(R.string.rapports_nothing_in_period) else stringResource(R.string.rapports_no_result_for, query.trim()))
             else -> LazyColumn(
                 state = listState, modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
@@ -331,17 +331,17 @@ fun InactiveClientsScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
     val shown = remember(all, query) { val tokens = searchTokens(query); all.filter { matchesAllTokens(tokens, it.name) } }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Clients inactifs", subtitle = "Plus d'achat depuis le début de la période", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_inactive_clients), subtitle = stringResource(R.string.rapports_inactive_sub), leading = DsTopBarLeading.Back(onBack))
         Column(Modifier.fillMaxWidth().background(DsColors.SurfaceMuted).padding(bottom = DsSpacing.sm)) {
-            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = "Rechercher un client",
+            DsCompactSearchField(value = query, onValueChange = { viewModel.query.value = it }, placeholder = stringResource(R.string.common_search_client),
                 modifier = Modifier.padding(horizontal = DsSpacing.lg))
             Spacer(Modifier.height(8.dp))
-            Text(if (query.isBlank()) plural(all.size, "client", "clients") else "${shown.size} sur ${all.size}",
+            Text(if (query.isBlank()) plural(R.plurals.common_clients_count, all.size) else stringResource(R.string.common_shown_of_total, shown.size, all.size),
                 fontSize = DsTextSize.caption, color = DsColors.TextSecondary, modifier = Modifier.padding(horizontal = DsSpacing.lg))
         }
         when {
             state.report == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsColors.Primary) }
-            shown.isEmpty() -> ReportMessage(if (query.isBlank()) "Tous vos clients ont acheté sur la période." else "Aucun résultat pour « ${query.trim()} »")
+            shown.isEmpty() -> ReportMessage(if (query.isBlank()) stringResource(R.string.rapports_all_bought) else stringResource(R.string.rapports_no_result_for, query.trim()))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = DsSpacing.sm, bottom = DsSpacing.xxxl),
@@ -366,7 +366,7 @@ private fun InactiveLine(c: InactiveClient, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(c.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Dernier achat le ${c.lastSale.format(DAY)}", fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                Text(stringResource(R.string.rapports_last_purchase_on, c.lastSale.format(DAY)), fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(DsSpacing.sm))
                 Text(money.da(c.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, maxLines = 1, softWrap = false)

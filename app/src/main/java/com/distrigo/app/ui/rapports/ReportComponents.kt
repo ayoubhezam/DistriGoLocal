@@ -52,6 +52,7 @@ import java.util.Locale
 import androidx.compose.foundation.border
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import com.distrigo.app.core.text.UiText
 
 // The pieces every report screen is built from, so they all read alike: the blue summary card, the
 // figure tiles, the section titles, the empty message, and how counts and shares are written.
@@ -68,7 +69,7 @@ fun InfoButton(info: ReportInfo, tint: Color, modifier: Modifier = Modifier, ico
         modifier.size(iconSize + 10.dp).clip(DsShapes.pill).clickable(role = Role.Button) { open = true },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Outlined.Info, contentDescription = "Comment est calculé « ${info.title} »", tint = tint, modifier = Modifier.size(iconSize))
+        Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.rapports_cd_how_computed, info.title), tint = tint, modifier = Modifier.size(iconSize))
     }
     if (open) AlertDialog(
         onDismissRequest = { open = false },
@@ -230,7 +231,7 @@ fun ShareRing(slices: List<Pair<Double, Color>>, total: Double, caption: String,
                 Figure(total) { money.amount(it) }, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
                 color = DsColors.PrimaryDark, textAlign = TextAlign.Center, minScale = 0.35f,
             )
-            Text("DA", fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.rapports_currency), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             FitText(caption, fontSize = DsTextSize.caption, color = DsColors.TextSecondary, textAlign = TextAlign.Center, minScale = 0.7f)
         }
     }
@@ -277,6 +278,18 @@ fun ReportMessage(text: String) {
 
 /** `1 vente`, `0 vente`, `3 ventes`: French puts 0 and 1 in the singular. */
 fun plural(count: Int, one: String, many: String) = "$count ${if (count <= 1) one else many}"
+
+/** A count with its noun in the app's language — « 3 ventes », « 3 مبيعات » — from [id]'s plurals, outside composition too. */
+fun plural(@androidx.annotation.PluralsRes id: Int, count: Int): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Plural(id, count))
+
+/** A quantity with its unit, as the app's language writes it: « 3 cartons », « 3 علب ». */
+internal fun quantityWords(quantity: Double, unit: String?): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.ui.common.quantityText(quantity, unit))
+
+/** A report's text from its resource outside composition: a [ReportInfo] kept in a file-level value, a view model's message. */
+internal fun reportText(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+    com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Res(id, args.toList()))
 
 /** A rate as a French percentage with one decimal: `16,7 %`. */
 fun percent(rate: Double): String = percentText(String.format(Locale.FRENCH, "%.1f", rate * 100))

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import com.distrigo.app.R
 
 /** The Clients et fournisseurs report as the screen shows it; [report] stays on screen while the next one loads. */
 data class PartyReportState(
@@ -50,7 +51,7 @@ class PartyReportViewModel @Inject constructor(
                 emit(if (last.side == s) last.copy(filter = f, loading = true, error = null) else PartyReportState(s, f))
                 val next = runCatching { repository.partyReport(s, f) }.fold(
                     onSuccess = { PartyReportState(s, f, it, loading = false) },
-                    onFailure = { PartyReportState(s, f, null, loading = false, error = it.message ?: "Erreur de chargement") },
+                    onFailure = { PartyReportState(s, f, null, loading = false, error = it.message ?: reportText(R.string.common_load_error)) },
                 )
                 last = next
                 emit(next)

@@ -68,6 +68,8 @@ import com.distrigo.app.ui.navigation.LocalDrillDown
 import java.util.Locale
 import kotlin.math.max
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.stringResource
+import com.distrigo.app.R
 
 /** The camion's colour wherever the report splits dépôt (the primary colour) from camion. */
 private val CamionColor = DsColors.AccentTeal
@@ -87,7 +89,7 @@ fun VentesReportScreen(
     var allOf by remember { mutableStateOf<PlaceNode?>(null) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Ventes", subtitle = "Rapport des ventes", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.rapports_sales), subtitle = stringResource(R.string.rapports_sales_sub), leading = DsTopBarLeading.Back(onBack))
         // A thin line while a newer report loads over the one on screen.
         Box(Modifier.fillMaxWidth().height(2.dp)) {
             if (state.loading && state.report != null) {
@@ -115,7 +117,7 @@ fun VentesReportScreen(
                     // A period without a sale shows its summary — returns may still be there — and says so,
                     // instead of a page of zeros.
                     if (report.all.count == 0) {
-                        item { ReportMessage("Aucune vente sur cette période.") }
+                        item { ReportMessage(stringResource(R.string.rapports_no_sales)) }
                     } else {
                         item { KpiGrid(report) }
                         if (state.filter.source == ReportSource.TOUT) item { SourceSplit(report) }
@@ -139,13 +141,13 @@ private fun SummaryCard(report: SalesReport) {
     val money = LocalMoneyFormatter.current
     val returns = report.returns
     ReportHeroCard(
-        title = "Chiffre d'affaires",
+        title = stringResource(R.string.rapports_turnover),
         amount = money.figure(report.all.total),
         caption = null,
-        info = ReportInfo("Chiffre d'affaires", "Chiffre d'affaires = somme des ventes, au prix de vente\nVentes nettes = Chiffre d'affaires − Retours clients (avec « Tout »)"),
+        info = ReportInfo(stringResource(R.string.rapports_turnover), stringResource(R.string.rapports_info_turnover)),
         halves = if (returns != null && returns.count > 0) listOf(
-            HeroHalf("Retours clients (${returns.count})", money.figure(returns.total, prefix = "− ")),
-            HeroHalf("Ventes nettes", money.figure(report.netTotal ?: report.all.total), bold = true),
+            HeroHalf(stringResource(R.string.rapports_client_returns_n, returns.count), money.figure(returns.total, prefix = "− ")),
+            HeroHalf(stringResource(R.string.rapports_net_sales), money.figure(report.netTotal ?: report.all.total), bold = true),
         ) else emptyList(),
     )
 }
@@ -161,30 +163,30 @@ private fun KpiGrid(report: SalesReport) {
         // Each row as tall as its taller tile, so the pairs line up.
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Nombre de ventes", countFigure(sales), DsColors.PrimaryDark, Modifier.weight(1f), null,
+                stringResource(R.string.rapports_sales_count), countFigure(sales), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.Receipt,
-                info = ReportInfo("Nombre de ventes", "Nombre de ventes de la période."),
+                info = ReportInfo(stringResource(R.string.rapports_sales_count), stringResource(R.string.rapports_info_sales_count)),
                 accent = DsColors.Primary,
             )
             KpiTile(
-                "Panier moyen", if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.PrimaryDark, Modifier.weight(1f), null,
+                stringResource(R.string.rapports_avg_basket), if (sales > 0) money.figure(report.all.total / sales) else Figure.text("—"), DsColors.PrimaryDark, Modifier.weight(1f), null,
                 Icons.Default.ShoppingBasket,
-                info = ReportInfo("Panier moyen", "Panier moyen = Chiffre d'affaires ÷ Nombre de ventes"),
+                info = ReportInfo(stringResource(R.string.rapports_avg_basket), stringResource(R.string.rapports_info_avg_basket)),
                 accent = DsColors.AccentTeal,
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
             KpiTile(
-                "Marge brute", money.figure(report.grossMargin), marginColor, Modifier.weight(1f), null,
+                stringResource(R.string.rapports_gross_margin), money.figure(report.grossMargin), marginColor, Modifier.weight(1f), null,
                 if (loss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
-                info = ReportInfo("Marge brute", "Marge brute = Chiffre d'affaires − Coût des ventes"),
+                info = ReportInfo(stringResource(R.string.rapports_gross_margin), stringResource(R.string.rapports_info_gross_margin)),
                 accent = if (loss) DsColors.Danger else DsColors.Primary,
             )
             // The rate on the purchase price, as the Direction du Commerce counts it.
             KpiTile(
-                "Taux de marge", rateFigure(report.marginRate), marginColor, Modifier.weight(1f), null,
+                stringResource(R.string.rapports_margin_rate), rateFigure(report.marginRate), marginColor, Modifier.weight(1f), null,
                 Icons.Default.Percent,
-                info = ReportInfo("Taux de marge", "Taux de marge = Marge brute ÷ Coût des ventes × 100"),
+                info = ReportInfo(stringResource(R.string.rapports_margin_rate), stringResource(R.string.rapports_info_margin_rate)),
                 accent = if (loss) DsColors.Danger else DsColors.Success,
             )
         }
@@ -210,9 +212,9 @@ private fun SourceSplit(report: SalesReport) {
             .padding(DsSpacing.lg)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Dépôt et camion", fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(stringResource(R.string.rapports_depot_camion), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
             InfoButton(
-                ReportInfo("Dépôt et camion", "Part = Ventes du dépôt (ou du camion) ÷ Chiffre d'affaires × 100\nAvec « Tout » seulement."),
+                ReportInfo(stringResource(R.string.rapports_depot_camion), stringResource(R.string.rapports_info_depot_camion)),
                 tint = DsColors.TextTertiary,
             )
         }
@@ -220,14 +222,14 @@ private fun SourceSplit(report: SalesReport) {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
             ShareRing(
                 slices = listOf(report.depot.total to DsColors.Primary, report.camion.total to CamionColor),
-                total = total, caption = "Total", modifier = Modifier.weight(1f),
+                total = total, caption = stringResource(R.string.common_label_total), modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(DsSpacing.lg))
             Box(Modifier.fillMaxHeight(0.8f).width(1.dp).background(DsColors.Border))
             Spacer(Modifier.width(DsSpacing.lg))
             Column(Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.xl)) {
-                SourceLine("Dépôt", DsColors.Primary, report.depot, total)
-                SourceLine("Camion", CamionColor, report.camion, total)
+                SourceLine(stringResource(R.string.common_source_depot), DsColors.Primary, report.depot, total)
+                SourceLine(stringResource(R.string.common_source_truck), CamionColor, report.camion, total)
             }
         }
     }
@@ -249,7 +251,7 @@ private fun SourceLine(label: String, color: Color, figures: SalesFigures, total
                 )
             }
             AnimatedFigure(money.figure(figures.total), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
-            AnimatedFigure(countFigure(figures.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            AnimatedFigure(countFigure(figures.count, R.plurals.ventes_count), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
     }
 }
@@ -297,14 +299,14 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
         if (shown != null) {
             val b = buckets[shown]
             Text(
-                (if (selected == null) "Meilleur · " else "") + b.title,
+                if (selected == null) stringResource(R.string.rapports_best, b.title) else b.title,
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
             )
             FitText(
                 money.da(b.all.total), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold,
                 color = DsColors.PrimaryDark, textAlign = TextAlign.Center,
             )
-            Text(plural(b.all.count, "vente", "ventes"), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(plural(R.plurals.ventes_count, b.all.count), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
         }
         Spacer(Modifier.height(DsSpacing.md))
 
@@ -360,8 +362,8 @@ private fun ChartCard(buckets: List<SalesBucket>, splitBySource: Boolean) {
             val b = buckets[shown]
             Spacer(Modifier.height(DsSpacing.md))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
-                Legend("Dépôt", DsColors.Primary, money.da(b.depot.total), Modifier.weight(1f))
-                Legend("Camion", CamionColor, money.da(b.camion.total), Modifier.weight(1f))
+                Legend(stringResource(R.string.common_source_depot), DsColors.Primary, money.da(b.depot.total), Modifier.weight(1f))
+                Legend(stringResource(R.string.common_source_truck), CamionColor, money.da(b.camion.total), Modifier.weight(1f))
             }
         }
     }

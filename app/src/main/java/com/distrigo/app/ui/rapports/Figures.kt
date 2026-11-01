@@ -44,8 +44,8 @@ fun MoneyFormatter.figure(amount: Double, prefix: String = "") = Figure(amount) 
 /** A count, whole at every step. */
 fun countFigure(count: Int) = Figure(count.toDouble()) { it.roundToLong().toString() }
 
-/** A count of things, "1 produit", "12 produits", whole at every step. */
-fun countFigure(count: Int, one: String, many: String) = Figure(count.toDouble()) { plural(it.roundToInt(), one, many) }
+/** A count of things, "1 produit", "12 produits", whole at every step, from [id]'s plurals. */
+fun countFigure(count: Int, @androidx.annotation.PluralsRes id: Int) = Figure(count.toDouble()) { plural(id, it.roundToInt()) }
 
 /** A share as a percentage, or "—" when there is none. */
 fun rateFigure(rate: Double?) = if (rate == null) Figure.text("—") else Figure(rate) { percent(it) }

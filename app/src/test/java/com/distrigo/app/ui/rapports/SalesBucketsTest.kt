@@ -2,12 +2,20 @@ package com.distrigo.app.ui.rapports
 
 import com.distrigo.app.data.repository.SalesDay
 import com.distrigo.app.data.repository.SalesFigures
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Locale
 
 /** A bar a day up to 62 days, a bar a month beyond, every sale in exactly one bar. */
 class SalesBucketsTest {
+
+    // The day and month names follow the app's language (AppDates); these checks read them in French.
+    private val previous = Locale.getDefault()
+    @Before fun french() = Locale.setDefault(Locale.FRENCH)
+    @After fun restore() = Locale.setDefault(previous)
 
     private fun days(from: String, count: Long) = (0 until count).map {
         val day = LocalDate.parse(from).plusDays(it)
