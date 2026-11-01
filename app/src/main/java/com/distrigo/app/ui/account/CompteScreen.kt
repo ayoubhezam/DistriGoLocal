@@ -201,7 +201,6 @@ private fun ColumnScope.SignedInCards(
         // The account's business by its name, once the profile read is this license's
         accountName = state.profile?.takeIf { it.businessId == state.license.heldLicense?.businessId }?.name,
         onActivate  = viewModel::activate,
-        onEnterCode = { viewModel.ask(AccountDialog.EnterCode()) },
         onOpenAppSettings = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
         },
@@ -410,7 +409,6 @@ private fun SubscriptionCard(
     dataName: String?,
     accountName: String?,
     onActivate: () -> Unit,
-    onEnterCode: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onKeepData: () -> Unit,
     onSignOut: () -> Unit,
@@ -476,15 +474,10 @@ private fun SubscriptionCard(
                 BrandWideButton(licText(R.string.acc_sign_out), Icons.AutoMirrored.Outlined.Logout, filled = false, enabled = work == null, busy = work == AccountWork.SIGNING_OUT, onClick = onSignOut)
             }
             if (license.holdsLicense) {
-                // A code pays for more time: the thing to do once the subscription is ending. Not while suspended:
-                // the days would be added, but only DistriGo lifts a suspension; nor before the data's business is settled
-                val ending = license is LicenseState.RenewSoon || ended
-                if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
-                    BrandWideButton(licText(R.string.acc_enter_code), Icons.Outlined.Key, filled = ending, enabled = work == null, onClick = onEnterCode)
-                }
                 // « Abonnement » (docs/license_l5_enforcement.md §8.2): the code, the state and DistriGo's contacts, for any
-                // license held, active included
-                BrandWideButton(licText(R.string.acc_sub_and_help), Icons.Outlined.WorkspacePremium, filled = false, enabled = work == null, onClick = onOpenSubscription)
+                // license held, active included. A code is entered there; the button stands out once the subscription is ending
+                val ending = license is LicenseState.RenewSoon || ended
+                BrandWideButton(licText(R.string.acc_sub_and_help), Icons.Outlined.WorkspacePremium, filled = ending, enabled = work == null, onClick = onOpenSubscription)
                 held?.let { CheckedLine(it.issuedAt) }
             } else {
                 BrandWideButton(licText(R.string.acc_activate_device), Icons.Outlined.VerifiedUser, filled = true, enabled = work == null, busy = work == AccountWork.ACTIVATING, onClick = onActivate)
