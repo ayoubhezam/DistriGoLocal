@@ -57,7 +57,7 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
     BackHandler { onBack() }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Corbeille", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.settings_trash), leading = DsTopBarLeading.Back(onBack))
 
         when {
             state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -73,13 +73,13 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
                         FilterChip(
                             selected = state.kind == kind,
                             onClick = { viewModel.choose(kind) },
-                            label = { Text("${kind.label} (${state.counts[kind] ?: 0})") },
+                            label = { Text("${stringResource(com.distrigo.app.data.lists.ListWords.labelRes(kind))} (${state.counts[kind] ?: 0})") },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DsColors.PrimaryLight, selectedLabelColor = DsColors.Primary)
                         )
                     }
                 }
                 Text(
-                    "Restaurer remet l'élément à sa place. La suppression définitive n'est possible que pour un élément qu'aucune vente, aucun achat ni aucun mouvement n'utilise.",
+                    stringResource(R.string.trash_intro),
                     fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
                     modifier = Modifier.padding(horizontal = DsSpacing.lg)
                 )
@@ -100,8 +100,8 @@ fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel())
         is TrashPrompt.ConfirmDelete -> AlertDialog(
             onDismissRequest = viewModel::dismissPrompt,
             icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = DsColors.Danger) },
-            title = { Text("Supprimer définitivement ?") },
-            text = { Text("« ${prompt.item.name} » sera supprimé pour de bon. Cette action est irréversible.") },
+            title = { Text(stringResource(R.string.trash_delete_title)) },
+            text = { Text(stringResource(R.string.trash_delete_body, prompt.item.name)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.deleteForGood(prompt.item) }) {
                     Text(stringResource(R.string.common_action_delete), color = DsColors.Danger, fontWeight = FontWeight.SemiBold)
@@ -135,7 +135,7 @@ private fun TrashRow(item: TrashItem, onRestore: () -> Unit, onDelete: () -> Uni
         Column(Modifier.weight(1f)) {
             Text(item.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
             item.detail?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
-            Text("Supprimé le " + DELETED.format(item.deletedAt.atZone(ZoneId.systemDefault())), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+            Text(item.deletedAt.atZone(ZoneId.systemDefault()).let { at -> stringResource(R.string.trash_deleted_on, stringResource(R.string.pertes_day_at_time, DELETED_DAY.format(at), DELETED_TIME.format(at))) }, fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
         }
         TextButton(onClick = onRestore) {
             Icon(Icons.Default.Restore, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
@@ -144,11 +144,11 @@ private fun TrashRow(item: TrashItem, onRestore: () -> Unit, onDelete: () -> Uni
         }
         Box {
             IconButton(onClick = { menu = true }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Plus d'actions", tint = DsColors.TextSecondary)
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.trash_cd_more), tint = DsColors.TextSecondary)
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
-                    text = { Text("Supprimer définitivement", color = DsColors.Danger) },
+                    text = { Text(stringResource(R.string.trash_delete_for_good), color = DsColors.Danger) },
                     leadingIcon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = DsColors.Danger) },
                     onClick = { menu = false; onDelete() }
                 )
@@ -166,13 +166,14 @@ private fun EmptyTrash() {
     ) {
         Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(DsSpacing.lg))
-        Text("La corbeille est vide", fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+        Text(stringResource(R.string.trash_empty_title), fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.sm))
         Text(
-            "Les produits, clients, fournisseurs, catégories, marques et types que vous supprimez arrivent ici, et peuvent être restaurés.",
+            stringResource(R.string.trash_empty_body),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center
         )
     }
 }
 
-private val DELETED = DateTimeFormatter.ofPattern("d MMMM yyyy 'à' HH:mm", Locale.FRENCH)
+private val DELETED_DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMMM yyyy")
+private val DELETED_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

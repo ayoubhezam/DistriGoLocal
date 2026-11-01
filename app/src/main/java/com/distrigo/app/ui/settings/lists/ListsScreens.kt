@@ -84,25 +84,19 @@ import com.distrigo.app.ui.settings.SettingsRow
 import com.distrigo.app.ui.settings.SettingsSection
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.res.stringResource
+import com.distrigo.app.data.lists.ListWords
+import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.R
 
-/** « 1 catégorie », « 12 catégories ». */
-private fun count(n: Int, singular: String, plural: String) = "$n ${if (n == 1) singular else plural}"
+/** An entry's name as shown: a built-in charge or perte type still under its seeded name, in the app's language. */
+private fun shownName(kind: ListKind, entry: ListEntry): String = when (kind) {
+    ListKind.CHARGE_TYPES, ListKind.CHARGE_SUBTYPES -> BuiltInNames.chargeType(entry.name)
+    ListKind.PERTE_TYPES -> BuiltInNames.perteType(entry.name)
+    else -> entry.name
+}
 
-/** The words for an entry or a list of [kind], in the plural. */
-private val ListKind.plural: String
-    get() = when (this) {
-        ListKind.CATEGORIES -> "catégories"
-        ListKind.SOUS_CATEGORIES -> "sous-catégories"
-        ListKind.MARQUES -> "marques"
-        ListKind.CHARGE_TYPES -> "types"
-        ListKind.CHARGE_SUBTYPES -> "sous-types"
-        ListKind.PERTE_TYPES -> "types"
-        ListKind.SECTEURS -> "secteurs"
-    }
-
-/** « une catégorie », « un secteur ». */
-private val ListKind.indefinite: String get() = (if (feminine) "une " else "un ") + singular
+/** « 1 catégorie », « 12 catégories », in the app's language. */
+private fun count(kind: ListKind, n: Int): String = ListWords.count(ListWords.countRes(kind), n)
 
 // ── « Listes et catégories » ──
 
@@ -120,42 +114,42 @@ fun ListsHomeScreen(
     LaunchedEffect(Unit) { viewModel.refresh() }
     val counts by viewModel.counts.collectAsState()
     fun n(kind: ListKind) = counts?.get(kind) ?: 0
-    fun of(kind: ListKind, singular: String) = counts?.let { count(n(kind), singular, kind.plural) }
+    fun of(kind: ListKind) = counts?.let { count(kind, n(kind)) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = "Listes et catégories", leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.settings_lists), leading = DsTopBarLeading.Back(onBack))
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.xl),
         ) {
             Text(
-                "Renommez ou supprimez ce qui ne sert plus. Vous pouvez toujours ajouter depuis les formulaires, ou ici.",
+                stringResource(R.string.lists_intro),
                 fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary,
             )
-            SettingsSection("Produits") {
+            SettingsSection(stringResource(R.string.lists_label_products)) {
                 SettingsRow(
-                    Icons.Outlined.Category, DsColors.AccentViolet, "Catégories",
-                    listOfNotNull(of(ListKind.CATEGORIES, "catégorie"), of(ListKind.SOUS_CATEGORIES, "sous-catégorie")).joinToString(" · "),
+                    Icons.Outlined.Category, DsColors.AccentViolet, stringResource(R.string.lists_label_categories),
+                    listOfNotNull(of(ListKind.CATEGORIES), of(ListKind.SOUS_CATEGORIES)).joinToString(" · "),
                     onClick = { onOpen(ListKind.CATEGORIES) },
                 )
                 SettingsDivider()
-                SettingsRow(Icons.Outlined.Sell, DsColors.Primary, "Marques", of(ListKind.MARQUES, "marque"), onClick = { onOpen(ListKind.MARQUES) })
+                SettingsRow(Icons.Outlined.Sell, DsColors.Primary, stringResource(R.string.lists_label_brands), of(ListKind.MARQUES), onClick = { onOpen(ListKind.MARQUES) })
             }
-            SettingsSection("Charges") {
+            SettingsSection(stringResource(R.string.lists_section_charges)) {
                 SettingsRow(
-                    Icons.AutoMirrored.Outlined.ReceiptLong, DsColors.Warning, "Types de charges",
-                    listOfNotNull(of(ListKind.CHARGE_TYPES, "type"), of(ListKind.CHARGE_SUBTYPES, "sous-type")).joinToString(" · "),
+                    Icons.AutoMirrored.Outlined.ReceiptLong, DsColors.Warning, stringResource(R.string.lists_label_charge_types),
+                    listOfNotNull(of(ListKind.CHARGE_TYPES), of(ListKind.CHARGE_SUBTYPES)).joinToString(" · "),
                     onClick = { onOpen(ListKind.CHARGE_TYPES) },
                 )
             }
-            SettingsSection("Pertes") {
+            SettingsSection(stringResource(R.string.lists_section_pertes)) {
                 SettingsRow(
-                    Icons.Outlined.RemoveShoppingCart, DsColors.Danger, "Types de pertes", of(ListKind.PERTE_TYPES, "type"),
+                    Icons.Outlined.RemoveShoppingCart, DsColors.Danger, stringResource(R.string.lists_label_perte_types), of(ListKind.PERTE_TYPES),
                     onClick = { onOpen(ListKind.PERTE_TYPES) },
                 )
             }
-            SettingsSection("Clients") {
-                SettingsRow(Icons.Outlined.Place, DsColors.Success, "Secteurs", of(ListKind.SECTEURS, "secteur"), onClick = { onOpen(ListKind.SECTEURS) })
+            SettingsSection(stringResource(R.string.lists_label_clients)) {
+                SettingsRow(Icons.Outlined.Place, DsColors.Success, stringResource(R.string.lists_label_secteurs), of(ListKind.SECTEURS), onClick = { onOpen(ListKind.SECTEURS) })
             }
         }
     }
@@ -187,11 +181,11 @@ fun ListEditorScreen(
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title    = kind.label,
+            title    = stringResource(ListWords.labelRes(kind)),
             subtitle = viewModel.parentName,
             leading  = DsTopBarLeading.Back(onBack),
         ) {
-            DsTopBarAddButton(contentDescription = "Ajouter ${kind.indefinite}", onClick = { license.runOrExplain { adding = true } })
+            DsTopBarAddButton(contentDescription = stringResource(ListWords.addRes(kind)), onClick = { license.runOrExplain { adding = true } })
         }
 
         val entries = state.entries
@@ -206,7 +200,7 @@ fun ListEditorScreen(
                 // A search only once a list is long enough to need one
                 if (entries.size > SEARCH_FROM) {
                     DsCompactSearchField(
-                        value = state.query, onValueChange = viewModel::search, placeholder = "Rechercher",
+                        value = state.query, onValueChange = viewModel::search, placeholder = stringResource(R.string.lists_search),
                         modifier = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.md),
                     )
                 }
@@ -216,7 +210,7 @@ fun ListEditorScreen(
                 ) {
                     items(shown, key = { it.id }) { entry -> EntryRow(kind, entry) { acting = entry } }
                     if (shown.isEmpty()) item(key = "none") {
-                        Text("Aucun résultat.", fontSize = DsTextSize.body, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
+                        Text(stringResource(R.string.lists_no_result), fontSize = DsTextSize.body, color = DsColors.TextSecondary, textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth().padding(DsSpacing.lg))
                     }
                 }
@@ -236,9 +230,9 @@ fun ListEditorScreen(
     }
     if (adding) {
         NameDialog(
-            title   = (if (kind.feminine) "Nouvelle " else "Nouveau ") + kind.singular,
+            title   = stringResource(ListWords.newRes(kind)),
             initial = "",
-            confirm = "Ajouter",
+            confirm = stringResource(R.string.common_action_add),
             kind    = kind,
             asks    = true,
             onSave  = { name, commune, wilaya, hasFournisseur, done -> viewModel.add(name, commune, wilaya, hasFournisseur, done) },
@@ -247,9 +241,9 @@ fun ListEditorScreen(
     }
     renaming?.let { entry ->
         NameDialog(
-            title   = "Renommer",
+            title   = stringResource(R.string.settings_rename),
             initial = entry.name,
-            confirm = "Enregistrer",
+            confirm = stringResource(R.string.common_action_save),
             kind    = kind,
             asks    = false,
             note    = renameNote(kind, entry),
@@ -268,10 +262,10 @@ private const val SEARCH_FROM = 8
 @Composable
 private fun EmptyList(kind: ListKind) {
     Column(Modifier.fillMaxWidth().padding(DsSpacing.xxl), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Aucun${if (kind.feminine) "e" else ""} ${kind.singular} pour le moment.", fontSize = DsTextSize.body,
+        Text(stringResource(ListWords.emptyRes(kind)), fontSize = DsTextSize.body,
             fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center)
         Spacer(Modifier.height(DsSpacing.xs))
-        Text("Ajoutez-en avec le bouton +.", fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.lists_add_with_plus), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center)
     }
 }
 
@@ -279,8 +273,8 @@ private fun EmptyList(kind: ListKind) {
 private fun uses(kind: ListKind, entry: ListEntry): String {
     val parts = buildList {
         entry.detail?.let { add(it) }
-        if (entry.usages.isEmpty()) add("Aucune utilisation") else add(entry.usages.joinToString(" · "))
-        kind.children?.let { child -> if (entry.children > 0) add(count(entry.children, child.singular, child.plural)) }
+        if (entry.usages.isEmpty()) add(ListWords.text(R.string.lists_no_use)) else add(entry.usages.joinToString(" · "))
+        kind.children?.let { child -> if (entry.children > 0) add(count(child, entry.children)) }
     }
     return parts.joinToString(" · ")
 }
@@ -290,12 +284,12 @@ private fun EntryRow(kind: ListKind, entry: ListEntry, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(DsShapes.large).background(DsColors.Surface)
             .border(1.dp, DsColors.Border, DsShapes.large)
-            .clickable(role = Role.Button, onClickLabel = entry.name, onClick = onClick)
+            .clickable(role = Role.Button, onClickLabel = shownName(kind, entry), onClick = onClick)
             .padding(horizontal = DsSpacing.lg, vertical = DsSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(entry.name, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
+            Text(shownName(kind, entry), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(uses(kind, entry), fontSize = DsTextSize.caption, color = DsColors.TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
@@ -317,7 +311,7 @@ private fun BuiltInPill() {
     ) {
         Icon(Icons.Outlined.Lock, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(12.dp))
         Spacer(Modifier.width(4.dp))
-        Text("Par défaut", fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
+        Text(stringResource(R.string.lists_default), fontSize = DsTextSize.caption, fontWeight = FontWeight.SemiBold, color = DsColors.TextSecondary)
     }
 }
 
@@ -339,25 +333,25 @@ private fun EntryActions(
     ) {
         Column(Modifier.padding(bottom = DsSpacing.xxxl)) {
             Column(Modifier.padding(horizontal = DsSpacing.lg)) {
-                Text(entry.name, fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
+                Text(shownName(kind, entry), fontSize = DsTextSize.headline, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(uses(kind, entry), fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary)
             }
             Spacer(Modifier.height(DsSpacing.md))
             val child = kind.children
             if (onChildren != null && child != null) {
-                ActionRow(Icons.Outlined.SubdirectoryArrowRight, DsColors.Primary, child.label, count(entry.children, child.singular, child.plural), mirrored = true, onClick = onChildren)
+                ActionRow(Icons.Outlined.SubdirectoryArrowRight, DsColors.Primary, stringResource(ListWords.labelRes(child)), count(child, entry.children), mirrored = true, onClick = onChildren)
             }
-            ActionRow(Icons.Outlined.Edit, DsColors.Primary, "Renommer", "Partout où ${if (kind.feminine) "elle" else "il"} est utilisé${if (kind.feminine) "e" else ""}", onClick = onRename)
+            ActionRow(Icons.Outlined.Edit, DsColors.Primary, stringResource(R.string.settings_rename), stringResource(if (kind.feminine) R.string.lists_rename_sub_f else R.string.lists_rename_sub_m), onClick = onRename)
             val blocked = when {
-                entry.isDefault -> "Type de l'application : il ne peut pas être supprimé"
-                entry.usages.isNotEmpty() -> "Utilisé${if (kind.feminine) "e" else ""} par ${entry.usages.joinToString(" et ")}"
+                entry.isDefault -> stringResource(R.string.lists_built_in_row)
+                entry.usages.isNotEmpty() -> stringResource(if (kind.feminine) R.string.lists_used_by_f else R.string.lists_used_by_m, ListWords.and(entry.usages.map { it.toString() }))
                 else -> null
             }
             ActionRow(
-                Icons.Outlined.DeleteOutline, DsColors.Danger, "Supprimer",
-                blocked ?: if (kind.softDeleted) "Vous pourrez ${if (kind.feminine) "la" else "le"} restaurer depuis la Corbeille"
-                else "Définitivement",
+                Icons.Outlined.DeleteOutline, DsColors.Danger, stringResource(R.string.common_action_delete),
+                blocked ?: if (kind.softDeleted) stringResource(if (kind.feminine) R.string.lists_restore_later_f else R.string.lists_restore_later_m)
+                else stringResource(R.string.lists_for_good),
                 enabled = blocked == null, danger = true, onClick = onDelete,
             )
             Spacer(Modifier.height(DsSpacing.md))
@@ -408,7 +402,7 @@ private fun ActionRow(
 private fun renameNote(kind: ListKind, entry: ListEntry): String? {
     val n = entry.usages.sumOf { it.count }
     if (n == 0L) return null
-    return "Le nouveau nom s'affichera aussi sur ${entry.usages.joinToString(" et ")}."
+    return ListWords.text(R.string.lists_rename_note, ListWords.and(entry.usages.map { it.toString() }))
 }
 
 /**
@@ -445,20 +439,20 @@ private fun NameDialog(
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it; error = null },
-                    label = { Text("Nom") }, singleLine = true, isError = error != null,
+                    label = { Text(stringResource(R.string.lists_name)) }, singleLine = true, isError = error != null,
                     supportingText = error?.let { { Text(it, color = DsColors.Danger) } },
                     shape = DsShapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (asks && kind == ListKind.CHARGE_SUBTYPES) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Nécessite un fournisseur / une station", fontSize = DsTextSize.body, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.charges_needs_supplier), fontSize = DsTextSize.body, color = DsColors.TextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = hasFournisseur, onCheckedChange = { hasFournisseur = it })
                     }
                 }
                 if (needsPlace) {
-                    PlaceField("Wilaya", wilaya?.let { "${it.wilayaCode}-${it.shownName()}" }) { choosingWilaya = true }
-                    PlaceField("Commune", commune, enabled = wilaya != null) { choosingCommune = true }
+                    PlaceField(stringResource(R.string.lists_wilaya), wilaya?.let { "${it.wilayaCode}-${it.shownName()}" }, stringResource(R.string.lists_cd_choose_wilaya)) { choosingWilaya = true }
+                    PlaceField(stringResource(R.string.lists_commune), commune, stringResource(R.string.lists_cd_choose_commune), enabled = wilaya != null) { choosingCommune = true }
                 }
                 note?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
             }
@@ -483,7 +477,7 @@ private fun NameDialog(
 
     if (choosingWilaya) {
         SearchableSelectSheet(
-            title     = "Sélectionner une wilaya",
+            title     = stringResource(R.string.common_select_wilaya),
             items     = GeoRepository.getWilayas(),
             itemLabel = { "${it.wilayaCode}-${it.shownName()}" },
             onDismiss = { choosingWilaya = false },
@@ -494,7 +488,7 @@ private fun NameDialog(
     if (choosingCommune && chosen != null) {
         val communes = remember(chosen) { GeoRepository.getCommunes(chosen.wilayaCode).sortedBy { it.id } }
         SearchableSelectSheet(
-            title     = "Sélectionner une commune",
+            title     = stringResource(R.string.common_select_commune),
             items     = communes,
             itemLabel = { it.shownName() },
             onDismiss = { choosingCommune = false },
@@ -505,14 +499,14 @@ private fun NameDialog(
 
 /** A field that opens a picker: its label, and what was picked or « Choisir ». */
 @Composable
-private fun PlaceField(label: String, value: String?, enabled: Boolean = true, onClick: () -> Unit) {
+private fun PlaceField(label: String, value: String?, chooseLabel: String, enabled: Boolean = true, onClick: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(DsShapes.medium).border(1.dp, DsColors.Border, DsShapes.medium)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Choisir la ${label.lowercase()}", onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = chooseLabel, onClick = onClick)
             .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
     ) {
         Text(label, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-        Text(value ?: "Choisir", fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
+        Text(value ?: stringResource(R.string.pertes_choose), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold,
             color = when { value != null -> DsColors.TextPrimary; enabled -> DsColors.Primary; else -> DsColors.TextTertiary })
     }
 }
@@ -522,17 +516,15 @@ private fun PlaceField(label: String, value: String?, enabled: Boolean = true, o
 private fun DeleteDialog(kind: ListKind, entry: ListEntry, onDelete: (done: (String?) -> Unit) -> Unit, onDismiss: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
-    val pronoun = if (kind.feminine) "la" else "le"
     val body = buildString {
-        if (kind.softDeleted) append("${if (kind.feminine) "Elle" else "Il"} ira dans la Corbeille, d'où vous pourrez $pronoun restaurer.")
-        else append("Le secteur sera supprimé définitivement.")
+        append(ListWords.text(if (!kind.softDeleted) R.string.lists_secteur_deleted_for_good else if (kind.feminine) R.string.lists_delete_to_trash_f else R.string.lists_delete_to_trash_m))
         kind.children?.let { child ->
-            if (entry.children > 0) append(" ${if (entry.children == 1) "Son" else "Ses"} ${count(entry.children, child.singular, child.plural)} aussi.")
+            if (entry.children > 0) append(" " + ListWords.count(if (child == ListKind.SOUS_CATEGORIES) R.plurals.lists_children_also_subcategories else R.plurals.lists_children_also_subtypes, entry.children))
         }
     }
     AlertDialog(
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = { Text("Supprimer « ${entry.name} » ?", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.lists_delete_title, shownName(kind, entry)), fontWeight = FontWeight.Bold) },
         text  = {
             Column {
                 Text(body)

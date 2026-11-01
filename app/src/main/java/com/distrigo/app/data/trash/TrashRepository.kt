@@ -1,5 +1,7 @@
 package com.distrigo.app.data.trash
 
+import com.distrigo.app.R
+import com.distrigo.app.data.lists.ListWords
 import java.io.File
 import com.distrigo.app.data.image.ImageReferences
 import android.database.Cursor
@@ -33,7 +35,10 @@ data class TrashItem(
 
 /** One way an item is still used, and how many times: `1 vente`, `12 lignes de vente`. */
 data class Usage(val singular: String, val plural: String, val count: Long) {
-    override fun toString() = "$count ${if (count == 1L) singular else plural}"
+    /** In the app's language (ListWords); a word it has no plurals for, in French as it is named. */
+    override fun toString() = com.distrigo.app.data.lists.ListWords.usageRes(singular)
+        ?.let { com.distrigo.app.data.lists.ListWords.count(it, count.toInt()) }
+        ?: "$count ${if (count == 1L) singular else plural}"
 }
 
 sealed class TrashOutcome {
@@ -85,10 +90,10 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
                 { c: Cursor -> c.textOrNull(3) }
             TrashKind.SOUS_CATEGORIES ->
                 "SELECT t.id, t.name, t.deleted_at, p.name AS a FROM sous_categories t LEFT JOIN categories p ON p.id = t.category_id" to
-                    { c: Cursor -> c.textOrNull(3)?.let { "Catégorie : $it" } }
+                    { c: Cursor -> c.textOrNull(3)?.let { ListWords.text(R.string.trash_parent_category, it) } }
             TrashKind.CHARGE_SUBTYPES ->
                 "SELECT t.id, t.name, t.deleted_at, p.name AS a FROM charge_subtypes t LEFT JOIN charge_types p ON p.id = t.type_id" to
-                    { c: Cursor -> c.textOrNull(3)?.let { "Type : $it" } }
+                    { c: Cursor -> c.textOrNull(3)?.let { ListWords.text(R.string.trash_parent_type, it) } }
             else -> "SELECT t.id, t.name, t.deleted_at FROM ${kind.table} t" to { _: Cursor -> null }
         }
         return sql.query("$select WHERE t.deleted_at IS NOT NULL ORDER BY t.deleted_at DESC, t.id DESC").use { cursor ->
@@ -102,7 +107,7 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
 
     /** Puts [id] of [kind] back, unless a rule of the forms forbids it. */
     fun restore(kind: TrashKind, id: Long): TrashOutcome = inTransaction {
-        val row = row(kind, id) ?: return@inTransaction TrashOutcome.Refused("Cet élément n'est plus dans la corbeille.")
+        val row = row(kind, id) ?: return@inTransaction TrashOutcome.Refused(ListWords.text(R.string.trash_gone))
         restoreConflict(kind, id, row)?.let { return@inTransaction TrashOutcome.Refused(it) }
         sql.execSQL("UPDATE ${kind.table} SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL", arrayOf<Any>(id))
         TrashOutcome.Done
@@ -122,10 +127,10 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
     fun deletePermanently(kind: TrashKind, id: Long): TrashOutcome {
         val photos = mutableSetOf<String>()
         val outcome = inTransaction {
-            if (row(kind, id) == null) return@inTransaction TrashOutcome.Refused("Cet élément n'est plus dans la corbeille.")
+            if (row(kind, id) == null) return@inTransaction TrashOutcome.Refused(ListWords.text(R.string.trash_gone))
             val usages = usages(kind, id)
             if (usages.isNotEmpty()) {
-                return@inTransaction TrashOutcome.Refused("Impossible de le supprimer définitivement : il est utilisé par " + words(usages) + ".")
+                return@inTransaction TrashOutcome.Refused(ListWords.text(R.string.trash_in_use, words(usages)))
             }
             if (kind == TrashKind.PRODUCTS) {
                 photos += photoHashesOf(id)
@@ -192,22 +197,30 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
                         )
                 }
                 when {
-                    activeWithName("products") -> "Un produit actif s'appelle déjà « $name ». Renommez-le avant de restaurer celui-ci."
-                    taken != null -> "Le code-barres $taken est déjà utilisé par un produit actif."
+                    activeWithName("products") -> ListWords.text(R.string.trash_product_name_taken, name)
+                    taken != null -> ListWords.text(R.string.trash_barcode_taken, taken)
                     else -> null
                 }
             }
             TrashKind.CATEGORIES, TrashKind.MARQUES, TrashKind.CHARGE_TYPES, TrashKind.PERTE_TYPES ->
-                if (activeWithName(kind.table)) "${singular(kind)} « $name » existe déjà." else null
+                if (activeWithName(kind.table)) ListWords.text(
+                    when (kind) {
+                        TrashKind.CATEGORIES -> R.string.trash_exists_category
+                        TrashKind.MARQUES -> R.string.trash_exists_brand
+                        TrashKind.CHARGE_TYPES -> R.string.trash_exists_charge_type
+                        else -> R.string.trash_exists_perte_type
+                    },
+                    name,
+                ) else null
             TrashKind.SOUS_CATEGORIES, TrashKind.CHARGE_SUBTYPES -> {
                 val parentTable = if (kind == TrashKind.SOUS_CATEGORIES) "categories" else "charge_types"
                 val parentColumn = if (kind == TrashKind.SOUS_CATEGORIES) "category_id" else "type_id"
                 val parent = row["parent"]
                 when {
                     parent != null && exists("SELECT 1 FROM $parentTable WHERE id = ? AND deleted_at IS NOT NULL", parent) ->
-                        "${if (kind == TrashKind.SOUS_CATEGORIES) "Sa catégorie" else "Son type de charge"} est aussi dans la corbeille : restaurez-${if (kind == TrashKind.SOUS_CATEGORIES) "la" else "le"} d'abord."
+                        ListWords.text(if (kind == TrashKind.SOUS_CATEGORIES) R.string.trash_parent_category_in_trash else R.string.trash_parent_type_in_trash)
                     parent != null && activeWithName(kind.table, " AND $parentColumn = ?", parent) ->
-                        "${singular(kind)} « $name » existe déjà au même endroit."
+                        ListWords.text(if (kind == TrashKind.SOUS_CATEGORIES) R.string.trash_exists_here_subcategory else R.string.trash_exists_here_subtype, name)
                     else -> null
                 }
             }
@@ -286,23 +299,7 @@ class TrashRepository(private val db: AppDatabase, private val imagesDir: File? 
     private fun join(vararg parts: String?): String? = parts.filterNotNull().joinToString(" · ").ifEmpty { null }
 
     companion object {
-        fun singular(kind: TrashKind): String = when (kind) {
-            TrashKind.PRODUCTS -> "Le produit"
-            TrashKind.CLIENTS -> "Le client"
-            TrashKind.SUPPLIERS -> "Le fournisseur"
-            TrashKind.CATEGORIES -> "La catégorie"
-            TrashKind.SOUS_CATEGORIES -> "La sous-catégorie"
-            TrashKind.MARQUES -> "La marque"
-            TrashKind.CHARGE_TYPES -> "Le type de charge"
-            TrashKind.CHARGE_SUBTYPES -> "Le sous-type"
-            TrashKind.PERTE_TYPES -> "Le type de perte"
-        }
-
         /** `12 lignes de vente et 3 mouvements de stock`. */
-        fun words(usages: List<Usage>): String = when (usages.size) {
-            0 -> ""
-            1 -> usages.single().toString()
-            else -> usages.dropLast(1).joinToString(", ") + " et " + usages.last()
-        }
+        fun words(usages: List<Usage>): String = ListWords.and(usages.map { it.toString() })
     }
 }

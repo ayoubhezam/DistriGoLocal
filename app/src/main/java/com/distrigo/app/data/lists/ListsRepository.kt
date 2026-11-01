@@ -1,5 +1,6 @@
 package com.distrigo.app.data.lists
 
+import com.distrigo.app.R
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import androidx.sqlite.db.SimpleSQLiteQuery
@@ -98,7 +99,7 @@ data class SecteurDetail(
             quartiers.takeIf { it > 0 }?.let { Usage("quartier", "quartiers", it.toLong()) },
             clients.takeIf { it > 0 }?.let { Usage("client", "clients", it.toLong()) },
             tournees.takeIf { it > 0 }?.let { Usage("tournée", "tournées", it.toLong()) },
-        ).takeIf { it.isNotEmpty() }?.joinToString(" et ")
+        ).takeIf { it.isNotEmpty() }?.let { used -> ListWords.and(used.map { it.toString() }) }
 }
 
 /** A quartier as its secteur lists it: its name and how many live clients it has. */
@@ -247,9 +248,9 @@ class ListsRepository(private val db: AppDatabase) {
         description: String? = null,
     ): ListOutcome = inTransaction {
         val clean = clean(name)
-        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused("Saisissez un nom.")
-        if (kind.parentColumn != null && parentId == null) return@inTransaction ListOutcome.Refused("Choisissez d'abord où l'ajouter.")
-        if (kind == ListKind.SECTEURS && commune.isNullOrBlank()) return@inTransaction ListOutcome.Refused("Choisissez la commune du secteur.")
+        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_enter_name))
+        if (kind.parentColumn != null && parentId == null) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_choose_parent))
+        if (kind == ListKind.SECTEURS && commune.isNullOrBlank()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_choose_secteur_commune))
         taken(kind, clean, exceptId = null, parentId = parentId, commune = commune)?.let { return@inTransaction ListOutcome.Refused(it) }
 
         val now = java.time.Instant.now()
@@ -356,7 +357,7 @@ class ListsRepository(private val db: AppDatabase) {
      */
     fun addQuartier(secteurId: Long, name: String): ListOutcome = inTransaction {
         val clean = clean(name)
-        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused("Saisissez le nom du quartier.")
+        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_enter_quartier_name))
         val secteur = secteur(secteurId) ?: return@inTransaction ListOutcome.Refused(gone(ListKind.SECTEURS))
         quartierTaken(secteurId, clean, exceptId = null, secteur.name)?.let { return@inTransaction ListOutcome.Refused(it) }
         val now = java.time.Instant.now()
@@ -374,8 +375,8 @@ class ListsRepository(private val db: AppDatabase) {
     /** Renames quartier [id], and the copy of its name on its clients (as a secteur's, see the class). */
     fun renameQuartier(id: Long, name: String): ListOutcome = inTransaction {
         val clean = clean(name)
-        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused("Saisissez le nom du quartier.")
-        val current = quartier(id) ?: return@inTransaction ListOutcome.Refused("Le quartier n'existe plus : il a peut-être été supprimé.")
+        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_enter_quartier_name))
+        val current = quartier(id) ?: return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_quartier_gone))
         if (current.name == clean) return@inTransaction ListOutcome.Done
         quartierTaken(current.secteurId, clean, exceptId = id, current.secteurName)?.let { return@inTransaction ListOutcome.Refused(it) }
         sql.execSQL("UPDATE quartiers SET nom = ? WHERE id = ?", arrayOf<Any>(clean, id))
@@ -389,7 +390,7 @@ class ListsRepository(private val db: AppDatabase) {
      * in another quartier is moved out of it.
      */
     fun assignClientsToQuartier(quartierId: Long, ids: Collection<Int>): AssignOutcome = db.runInTransaction<AssignOutcome> {
-        val quartier = quartier(quartierId) ?: return@runInTransaction AssignOutcome.Refused("Le quartier n'existe plus : il a peut-être été supprimé.")
+        val quartier = quartier(quartierId) ?: return@runInTransaction AssignOutcome.Refused(ListWords.text(R.string.lists_quartier_gone))
         val secteur = secteur(quartier.secteurId) ?: return@runInTransaction AssignOutcome.Refused(gone(ListKind.SECTEURS))
         var added = 0
         var moved = 0
@@ -410,10 +411,10 @@ class ListsRepository(private val db: AppDatabase) {
 
     /** Deletes quartier [id] for good, unless a live client is in it. */
     fun deleteQuartier(id: Long): ListOutcome = inTransaction {
-        val current = quartier(id) ?: return@inTransaction ListOutcome.Refused("Le quartier n'existe plus : il a peut-être été supprimé.")
+        val current = quartier(id) ?: return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_quartier_gone))
         if (current.clients > 0) {
             return@inTransaction ListOutcome.Refused(
-                "Impossible de supprimer le quartier « ${current.name} » : il est utilisé par ${Usage("client", "clients", current.clients.toLong())}."
+                ListWords.text(R.string.lists_quartier_in_use, current.name, Usage("client", "clients", current.clients.toLong()).toString())
             )
         }
         sql.execSQL("DELETE FROM quartiers WHERE id = ?", arrayOf<Any>(id))
@@ -425,7 +426,7 @@ class ListsRepository(private val db: AppDatabase) {
         val exists = sql.query(
             SimpleSQLiteQuery("SELECT 1 FROM quartiers WHERE secteur_id = ? AND LOWER(TRIM(nom)) = LOWER(?)$except", arrayOf<Any>(secteurId, name))
         ).use { it.moveToFirst() }
-        return if (exists) "Ce quartier existe déjà dans le secteur « $secteurName »." else null
+        return if (exists) ListWords.text(R.string.lists_quartier_exists, secteurName) else null
     }
 
     /**
@@ -434,12 +435,12 @@ class ListsRepository(private val db: AppDatabase) {
      */
     fun updateSecteur(id: Long, name: String, commune: String, wilaya: String?, description: String): ListOutcome = inTransaction {
         val clean = clean(name)
-        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused("Saisissez le nom du secteur.")
-        if (commune.isBlank()) return@inTransaction ListOutcome.Refused("Sélectionnez une commune.")
+        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_enter_secteur_name))
+        if (commune.isBlank()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_choose_commune))
         val current = secteur(id) ?: return@inTransaction ListOutcome.Refused(gone(ListKind.SECTEURS))
         val moved = !current.commune.trim().equals(commune.trim(), ignoreCase = true) ||
             !current.wilaya.orEmpty().trim().equals(wilaya.orEmpty().trim(), ignoreCase = true)
-        if (moved) current.usedBy?.let { return@inTransaction ListOutcome.Refused("La commune ne peut pas être modifiée : le secteur est utilisé par $it.") }
+        if (moved) current.usedBy?.let { return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_commune_locked, it)) }
         taken(ListKind.SECTEURS, clean, exceptId = id, parentId = null, commune = commune)?.let { return@inTransaction ListOutcome.Refused(it) }
 
         sql.execSQL(
@@ -457,7 +458,7 @@ class ListsRepository(private val db: AppDatabase) {
     /** Renames [id] of [kind] to [name], and every copy of its name with it (see the class). */
     fun rename(kind: ListKind, id: Long, name: String): ListOutcome = inTransaction {
         val clean = clean(name)
-        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused("Saisissez un nom.")
+        if (clean.isEmpty()) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_enter_name))
         val (current, parentId, commune) = row(kind, id) ?: return@inTransaction ListOutcome.Refused(gone(kind))
         if (current == clean) return@inTransaction ListOutcome.Done
         taken(kind, clean, exceptId = id, parentId = parentId, commune = commune)?.let { return@inTransaction ListOutcome.Refused(it) }
@@ -473,7 +474,7 @@ class ListsRepository(private val db: AppDatabase) {
     fun delete(kind: ListKind, id: Long): ListOutcome = inTransaction {
         row(kind, id) ?: return@inTransaction ListOutcome.Refused(gone(kind))
         val entry = entries(kind).firstOrNull { it.id == id } ?: return@inTransaction ListOutcome.Refused(gone(kind))
-        if (entry.isDefault) return@inTransaction ListOutcome.Refused(BUILT_IN)
+        if (entry.isDefault) return@inTransaction ListOutcome.Refused(ListWords.text(R.string.lists_built_in))
         if (entry.usages.isNotEmpty()) return@inTransaction ListOutcome.Refused(inUse(kind, entry))
 
         if (kind.softDeleted) {
@@ -501,13 +502,7 @@ class ListsRepository(private val db: AppDatabase) {
         val args = listOfNotNull<Any>(name, if (kind == ListKind.SECTEURS) commune.orEmpty() else null).toTypedArray()
         val exists = sql.query(SimpleSQLiteQuery("SELECT 1 FROM ${kind.table} WHERE ${conditions.joinToString(" AND ")}", args)).use { it.moveToFirst() }
         if (!exists) return null
-        val place = when (kind) {
-            ListKind.SOUS_CATEGORIES -> " dans cette catégorie"
-            ListKind.CHARGE_SUBTYPES -> " dans ce type"
-            ListKind.SECTEURS -> " dans cette commune"
-            else -> ""
-        }
-        return "${article(kind)} « $name » existe déjà$place."
+        return ListWords.exists(kind, name)
     }
 
     /** The current name of [id], its parent and its commune; null when it is not a live entry. */
@@ -551,12 +546,9 @@ class ListsRepository(private val db: AppDatabase) {
         }
     }
 
-    private fun inUse(kind: ListKind, entry: ListEntry): String =
-        "Impossible de supprimer ${article(kind).lowercase()} « ${entry.name} » : ${if (kind.feminine) "elle" else "il"} est " +
-            "${if (kind.feminine) "utilisée" else "utilisé"} par ${entry.usages.joinToString(" et ")}."
+    private fun inUse(kind: ListKind, entry: ListEntry): String = ListWords.inUse(kind, entry.name, entry.usages)
 
-    private fun gone(kind: ListKind): String =
-        "${article(kind)} n'existe plus : ${if (kind.feminine) "elle a" else "il a"} peut-être été ${if (kind.feminine) "supprimée" else "supprimé"}."
+    private fun gone(kind: ListKind): String = ListWords.gone(kind)
 
     // ── Helpers ──
 
@@ -572,12 +564,7 @@ class ListsRepository(private val db: AppDatabase) {
     private fun nowMillis(): Long = System.currentTimeMillis()
 
     companion object {
-        const val BUILT_IN = "Les types de l'application ne peuvent pas être supprimés. Vous pouvez les renommer."
-
         /** One space between words, none around. */
         fun clean(name: String): String = name.trim().replace(Regex("\\s+"), " ")
-
-        /** « La catégorie », « Le type de perte », « Le secteur ». */
-        fun article(kind: ListKind): String = (if (kind.feminine) "La " else "Le ") + kind.singular
     }
 }

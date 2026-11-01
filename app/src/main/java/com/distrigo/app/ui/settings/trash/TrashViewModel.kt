@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.distrigo.app.R
+import com.distrigo.app.data.lists.ListWords
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -60,8 +62,8 @@ class TrashViewModel @Inject constructor(private val trash: TrashRepository) : V
 
     fun restore(item: TrashItem) = viewModelScope.launch {
         when (val outcome = withContext(Dispatchers.IO) { trash.restore(item.kind, item.id) }) {
-            TrashOutcome.Done -> _state.update { it.copy(message = "« ${item.name} » a été restauré.") }
-            is TrashOutcome.Refused -> _state.update { it.copy(prompt = TrashPrompt.Refused("Restauration impossible", outcome.reason)) }
+            TrashOutcome.Done -> _state.update { it.copy(message = ListWords.text(R.string.trash_restored, item.name)) }
+            is TrashOutcome.Refused -> _state.update { it.copy(prompt = TrashPrompt.Refused(ListWords.text(R.string.trash_restore_impossible), outcome.reason)) }
         }
         refresh()
     }
@@ -75,9 +77,8 @@ class TrashViewModel @Inject constructor(private val trash: TrashRepository) : V
                     TrashPrompt.ConfirmDelete(item)
                 } else {
                     TrashPrompt.Refused(
-                        "Suppression impossible",
-                        "« ${item.name} » est encore utilisé par ${TrashRepository.words(usages)}. " +
-                            "Il reste dans la corbeille ; vous pouvez le restaurer à tout moment."
+                        ListWords.text(R.string.trash_delete_impossible),
+                        ListWords.text(R.string.trash_still_used, item.name, TrashRepository.words(usages))
                     )
                 }
             )
@@ -87,8 +88,8 @@ class TrashViewModel @Inject constructor(private val trash: TrashRepository) : V
     fun deleteForGood(item: TrashItem) = viewModelScope.launch {
         _state.update { it.copy(prompt = null) }
         when (val outcome = withContext(Dispatchers.IO) { trash.deletePermanently(item.kind, item.id) }) {
-            TrashOutcome.Done -> _state.update { it.copy(message = "« ${item.name} » a été supprimé définitivement.") }
-            is TrashOutcome.Refused -> _state.update { it.copy(prompt = TrashPrompt.Refused("Suppression impossible", outcome.reason)) }
+            TrashOutcome.Done -> _state.update { it.copy(message = ListWords.text(R.string.trash_deleted_for_good, item.name)) }
+            is TrashOutcome.Refused -> _state.update { it.copy(prompt = TrashPrompt.Refused(ListWords.text(R.string.trash_delete_impossible), outcome.reason)) }
         }
         refresh()
     }

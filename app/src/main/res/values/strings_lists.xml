@@ -1,0 +1,203 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <plurals name="lists_n_categories">
+        <item quantity="one">%d catégorie</item>
+        <item quantity="other">%d catégories</item>
+    </plurals>
+    <plurals name="lists_n_subcategories">
+        <item quantity="one">%d sous-catégorie</item>
+        <item quantity="other">%d sous-catégories</item>
+    </plurals>
+    <plurals name="lists_n_brands">
+        <item quantity="one">%d marque</item>
+        <item quantity="other">%d marques</item>
+    </plurals>
+    <plurals name="lists_n_types">
+        <item quantity="one">%d type</item>
+        <item quantity="other">%d types</item>
+    </plurals>
+    <plurals name="lists_n_subtypes">
+        <item quantity="one">%d sous-type</item>
+        <item quantity="other">%d sous-types</item>
+    </plurals>
+    <plurals name="lists_n_secteurs">
+        <item quantity="one">%d secteur</item>
+        <item quantity="other">%d secteurs</item>
+    </plurals>
+    <plurals name="lists_n_payments">
+        <item quantity="one">%d paiement</item>
+        <item quantity="other">%d paiements</item>
+    </plurals>
+    <plurals name="lists_n_purchase_bons">
+        <item quantity="one">%d bon d\'achat</item>
+        <item quantity="other">%d bons d\'achat</item>
+    </plurals>
+    <plurals name="lists_n_sale_drafts">
+        <item quantity="one">%d brouillon de vente</item>
+        <item quantity="other">%d brouillons de vente</item>
+    </plurals>
+    <plurals name="lists_n_tournee_drafts">
+        <item quantity="one">%d brouillon de tournée</item>
+        <item quantity="other">%d brouillons de tournée</item>
+    </plurals>
+    <plurals name="lists_n_purchase_drafts">
+        <item quantity="one">%d brouillon d\'achat</item>
+        <item quantity="other">%d brouillons d\'achat</item>
+    </plurals>
+    <plurals name="lists_n_loading_drafts">
+        <item quantity="one">%d brouillon de chargement</item>
+        <item quantity="other">%d brouillons de chargement</item>
+    </plurals>
+    <plurals name="lists_n_purchase_lines">
+        <item quantity="one">%d ligne d\'achat</item>
+        <item quantity="other">%d lignes d\'achat</item>
+    </plurals>
+    <plurals name="lists_n_inventory_lines">
+        <item quantity="one">%d ligne d\'inventaire</item>
+        <item quantity="other">%d lignes d\'inventaire</item>
+    </plurals>
+    <plurals name="lists_n_loading_lines">
+        <item quantity="one">%d ligne de chargement</item>
+        <item quantity="other">%d lignes de chargement</item>
+    </plurals>
+    <plurals name="lists_n_sale_lines">
+        <item quantity="one">%d ligne de vente</item>
+        <item quantity="other">%d lignes de vente</item>
+    </plurals>
+    <plurals name="lists_n_stock_movements">
+        <item quantity="one">%d mouvement de stock</item>
+        <item quantity="other">%d mouvements de stock</item>
+    </plurals>
+    <plurals name="lists_n_client_returns">
+        <item quantity="one">%d retour client</item>
+        <item quantity="other">%d retours clients</item>
+    </plurals>
+    <plurals name="lists_n_supplier_returns">
+        <item quantity="one">%d retour fournisseur</item>
+        <item quantity="other">%d retours fournisseurs</item>
+    </plurals>
+    <string name="lists_and">%1$s et %2$s</string>
+    <string name="lists_label_categories">Catégories</string>
+    <string name="lists_label_subcategories">Sous-catégories</string>
+    <string name="lists_label_brands">Marques</string>
+    <string name="lists_label_charge_types">Types de charges</string>
+    <string name="lists_label_charge_subtypes">Sous-types de charges</string>
+    <string name="lists_label_perte_types">Types de pertes</string>
+    <string name="lists_label_secteurs">Secteurs</string>
+    <string name="lists_label_products">Produits</string>
+    <string name="lists_label_clients">Clients</string>
+    <string name="lists_label_suppliers">Fournisseurs</string>
+    <string name="lists_new_category">Nouvelle catégorie</string>
+    <string name="lists_new_subcategory">Nouvelle sous-catégorie</string>
+    <string name="lists_new_brand">Nouvelle marque</string>
+    <string name="lists_new_charge_type">Nouveau type de charge</string>
+    <string name="lists_new_charge_subtype">Nouveau sous-type</string>
+    <string name="lists_new_perte_type">Nouveau type de perte</string>
+    <string name="lists_new_secteur">Nouveau secteur</string>
+    <string name="lists_add_category">Ajouter une catégorie</string>
+    <string name="lists_add_subcategory">Ajouter une sous-catégorie</string>
+    <string name="lists_add_brand">Ajouter une marque</string>
+    <string name="lists_add_charge_type">Ajouter un type de charge</string>
+    <string name="lists_add_charge_subtype">Ajouter un sous-type</string>
+    <string name="lists_add_perte_type">Ajouter un type de perte</string>
+    <string name="lists_add_secteur">Ajouter un secteur</string>
+    <string name="lists_empty_category">Aucune catégorie pour le moment.</string>
+    <string name="lists_empty_subcategory">Aucune sous-catégorie pour le moment.</string>
+    <string name="lists_empty_brand">Aucune marque pour le moment.</string>
+    <string name="lists_empty_charge_type">Aucun type de charge pour le moment.</string>
+    <string name="lists_empty_charge_subtype">Aucun sous-type pour le moment.</string>
+    <string name="lists_empty_perte_type">Aucun type de perte pour le moment.</string>
+    <string name="lists_empty_secteur">Aucun secteur pour le moment.</string>
+    <string name="lists_exists_category">La catégorie « %1$s » existe déjà.</string>
+    <string name="lists_exists_subcategory">La sous-catégorie « %1$s » existe déjà dans cette catégorie.</string>
+    <string name="lists_exists_brand">La marque « %1$s » existe déjà.</string>
+    <string name="lists_exists_charge_type">Le type de charge « %1$s » existe déjà.</string>
+    <string name="lists_exists_charge_subtype">Le sous-type « %1$s » existe déjà dans ce type.</string>
+    <string name="lists_exists_perte_type">Le type de perte « %1$s » existe déjà.</string>
+    <string name="lists_exists_secteur">Le secteur « %1$s » existe déjà dans cette commune.</string>
+    <string name="lists_in_use_category">Impossible de supprimer la catégorie « %1$s » : elle est utilisée par %2$s.</string>
+    <string name="lists_in_use_subcategory">Impossible de supprimer la sous-catégorie « %1$s » : elle est utilisée par %2$s.</string>
+    <string name="lists_in_use_brand">Impossible de supprimer la marque « %1$s » : elle est utilisée par %2$s.</string>
+    <string name="lists_in_use_charge_type">Impossible de supprimer le type de charge « %1$s » : il est utilisé par %2$s.</string>
+    <string name="lists_in_use_charge_subtype">Impossible de supprimer le sous-type « %1$s » : il est utilisé par %2$s.</string>
+    <string name="lists_in_use_perte_type">Impossible de supprimer le type de perte « %1$s » : il est utilisé par %2$s.</string>
+    <string name="lists_in_use_secteur">Impossible de supprimer le secteur « %1$s » : il est utilisé par %2$s.</string>
+    <string name="lists_gone_category">La catégorie n\'existe plus : elle a peut-être été supprimée.</string>
+    <string name="lists_gone_subcategory">La sous-catégorie n\'existe plus : elle a peut-être été supprimée.</string>
+    <string name="lists_gone_brand">La marque n\'existe plus : elle a peut-être été supprimée.</string>
+    <string name="lists_gone_charge_type">Le type de charge n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="lists_gone_charge_subtype">Le sous-type n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="lists_gone_perte_type">Le type de perte n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="lists_gone_secteur">Le secteur n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="lists_rename_sub_f">Partout où elle est utilisée</string>
+    <string name="lists_rename_sub_m">Partout où il est utilisé</string>
+    <string name="lists_used_by_f">Utilisée par %1$s</string>
+    <string name="lists_used_by_m">Utilisé par %1$s</string>
+    <string name="lists_restore_later_f">Vous pourrez la restaurer depuis la Corbeille</string>
+    <string name="lists_restore_later_m">Vous pourrez le restaurer depuis la Corbeille</string>
+    <string name="lists_delete_to_trash_f">Elle ira dans la Corbeille, d\'où vous pourrez la restaurer.</string>
+    <string name="lists_delete_to_trash_m">Il ira dans la Corbeille, d\'où vous pourrez le restaurer.</string>
+    <plurals name="lists_children_also_subcategories">
+        <item quantity="one">Sa sous-catégorie aussi.</item>
+        <item quantity="other">Ses %d sous-catégories aussi.</item>
+    </plurals>
+    <plurals name="lists_children_also_subtypes">
+        <item quantity="one">Son sous-type aussi.</item>
+        <item quantity="other">Ses %d sous-types aussi.</item>
+    </plurals>
+    <string name="lists_secteur_deleted_for_good">Le secteur sera supprimé définitivement.</string>
+    <string name="lists_delete_title">Supprimer « %1$s » ?</string>
+    <string name="lists_built_in_row">Type de l\'application : il ne peut pas être supprimé</string>
+    <string name="lists_built_in">Les types de l\'application ne peuvent pas être supprimés. Vous pouvez les renommer.</string>
+    <string name="lists_for_good">Définitivement</string>
+    <string name="lists_no_use">Aucune utilisation</string>
+    <string name="lists_rename_note">Le nouveau nom s\'affichera aussi sur %1$s.</string>
+    <string name="lists_intro">Renommez ou supprimez ce qui ne sert plus. Vous pouvez toujours ajouter depuis les formulaires, ou ici.</string>
+    <string name="lists_section_charges">Charges</string>
+    <string name="lists_section_pertes">Pertes</string>
+    <string name="lists_search">Rechercher</string>
+    <string name="lists_no_result">Aucun résultat.</string>
+    <string name="lists_add_with_plus">Ajoutez-en avec le bouton +.</string>
+    <string name="lists_default">Par défaut</string>
+    <string name="lists_name">Nom</string>
+    <string name="lists_wilaya">Wilaya</string>
+    <string name="lists_commune">Commune</string>
+    <string name="lists_cd_choose_wilaya">Choisir la wilaya</string>
+    <string name="lists_cd_choose_commune">Choisir la commune</string>
+    <string name="lists_enter_name">Saisissez un nom.</string>
+    <string name="lists_choose_parent">Choisissez d\'abord où l\'ajouter.</string>
+    <string name="lists_choose_secteur_commune">Choisissez la commune du secteur.</string>
+    <string name="lists_enter_quartier_name">Saisissez le nom du quartier.</string>
+    <string name="lists_quartier_gone">Le quartier n\'existe plus : il a peut-être été supprimé.</string>
+    <string name="lists_quartier_in_use">Impossible de supprimer le quartier « %1$s » : il est utilisé par %2$s.</string>
+    <string name="lists_quartier_exists">Ce quartier existe déjà dans le secteur « %1$s ».</string>
+    <string name="lists_enter_secteur_name">Saisissez le nom du secteur.</string>
+    <string name="lists_choose_commune">Sélectionnez une commune.</string>
+    <string name="lists_commune_locked">La commune ne peut pas être modifiée : le secteur est utilisé par %1$s.</string>
+    <string name="trash_parent_category">Catégorie : %1$s</string>
+    <string name="trash_parent_type">Type : %1$s</string>
+    <string name="trash_gone">Cet élément n\'est plus dans la corbeille.</string>
+    <string name="trash_in_use">Impossible de le supprimer définitivement : il est utilisé par %1$s.</string>
+    <string name="trash_product_name_taken">Un produit actif s\'appelle déjà « %1$s ». Renommez-le avant de restaurer celui-ci.</string>
+    <string name="trash_barcode_taken">Le code-barres %1$s est déjà utilisé par un produit actif.</string>
+    <string name="trash_exists_category">La catégorie « %1$s » existe déjà.</string>
+    <string name="trash_exists_brand">La marque « %1$s » existe déjà.</string>
+    <string name="trash_exists_charge_type">Le type de charge « %1$s » existe déjà.</string>
+    <string name="trash_exists_perte_type">Le type de perte « %1$s » existe déjà.</string>
+    <string name="trash_exists_here_subcategory">La sous-catégorie « %1$s » existe déjà au même endroit.</string>
+    <string name="trash_exists_here_subtype">Le sous-type « %1$s » existe déjà au même endroit.</string>
+    <string name="trash_parent_category_in_trash">Sa catégorie est aussi dans la corbeille : restaurez-la d\'abord.</string>
+    <string name="trash_parent_type_in_trash">Son type de charge est aussi dans la corbeille : restaurez-le d\'abord.</string>
+    <string name="trash_intro">Restaurer remet l\'élément à sa place. La suppression définitive n\'est possible que pour un élément qu\'aucune vente, aucun achat ni aucun mouvement n\'utilise.</string>
+    <string name="trash_delete_title">Supprimer définitivement ?</string>
+    <string name="trash_delete_body">« %1$s » sera supprimé pour de bon. Cette action est irréversible.</string>
+    <string name="trash_deleted_on">Supprimé le %1$s</string>
+    <string name="trash_cd_more">Plus d\'actions</string>
+    <string name="trash_delete_for_good">Supprimer définitivement</string>
+    <string name="trash_empty_title">La corbeille est vide</string>
+    <string name="trash_empty_body">Les produits, clients, fournisseurs, catégories, marques et types que vous supprimez arrivent ici, et peuvent être restaurés.</string>
+    <string name="trash_restored">« %1$s » a été restauré.</string>
+    <string name="trash_restore_impossible">Restauration impossible</string>
+    <string name="trash_delete_impossible">Suppression impossible</string>
+    <string name="trash_still_used">« %1$s » est encore utilisé par %2$s. Il reste dans la corbeille ; vous pouvez le restaurer à tout moment.</string>
+    <string name="trash_deleted_for_good">« %1$s » a été supprimé définitivement.</string>
+</resources>
