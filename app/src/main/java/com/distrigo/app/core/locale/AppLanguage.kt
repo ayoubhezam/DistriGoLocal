@@ -31,14 +31,21 @@ enum class AppLanguage(val tag: String, val endonym: String) {
         /** The language a stored or system locale names; anything else is the default. */
         fun of(locale: Locale?): AppLanguage = entries.firstOrNull { it.locale.language == locale?.language } ?: DEFAULT
 
-        /** The language in effect on this phone. */
-        fun current(context: Context): AppLanguage =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val chosen = context.getSystemService(LocaleManager::class.java).applicationLocales
-                if (chosen.isEmpty) DEFAULT else of(chosen[0])
-            } else {
-                of(stored(context)?.let(Locale::forLanguageTag))
-            }
+        /**
+         * The language in effect on this phone: from Android 13 the one Android holds for DistriGo; when it holds
+         * none (cleared in the phone's settings, or never set), and before 13, the one stored here, French when
+         * none was (D1: never the phone's language by itself).
+         */
+        fun current(context: Context): AppLanguage = systemChoice(context)?.let(::of) ?: storedLanguage(context)
+
+        /** From Android 13, the app language Android holds for DistriGo, if any. */
+        private fun systemChoice(context: Context): Locale? {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
+            val chosen = context.getSystemService(LocaleManager::class.java).applicationLocales
+            return if (chosen.isEmpty) null else chosen[0]
+        }
+
+        private fun storedLanguage(context: Context): AppLanguage = of(stored(context)?.let(Locale::forLanguageTag))
 
         /**
          * Pins French on a phone where nothing was chosen yet (D1), once: from Android 13 the system would otherwise
@@ -66,19 +73,20 @@ enum class AppLanguage(val tag: String, val endonym: String) {
         }
 
         /**
-         * The locales an activity is built with, over [base]: before Android 13 the chosen language (French when none
-         * was), from 13 those the system already gives. MainActivity applies them, with Latin digits.
+         * The locales an activity is built with, over [base]: from Android 13, those the system gives when it holds an
+         * app language for DistriGo; otherwise ([current]) the stored one, French when none was. Without that, a
+         * cleared app language left the texts in French (DistriGo has no English) but the dates in the phone's
+         * language. MainActivity applies them, with Latin digits.
          */
         fun localesFor(context: Context, base: Configuration): LocaleList =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) base.locales
-            else LocaleList(of(stored(context)?.let(Locale::forLanguageTag)).locale)
+            if (systemChoice(context) != null) base.locales else LocaleList(current(context).locale)
 
         /**
-         * [context] in the app's language, for what is written outside an activity before Android 13 (a notification,
-         * a Toast from the Application): the application's own resources there follow the phone, not the app.
+         * [context] in the app's language, for what is written outside an activity (a notification, a Toast from the
+         * Application): there the application's own resources follow the phone, unless Android holds an app language.
          */
         fun localized(context: Context): Context {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return context
+            if (systemChoice(context) != null) return context
             val config = Configuration(context.resources.configuration).apply { setLocale(current(context).locale) }
             return context.createConfigurationContext(config)
         }
