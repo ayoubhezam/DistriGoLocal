@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.BuildConfig
 import com.distrigo.app.R
 import com.distrigo.app.core.locale.AppLanguage
+import com.distrigo.app.ui.account.findActivity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.core.format.MoneyFormat
@@ -99,11 +100,8 @@ fun ParametresScreen(
 
             SettingsSection(stringResource(R.string.settings_section_preferences)) {
                 MoneyFormatRow()
-                // Offered in debug builds until the Arabic text is complete (docs/i18n_rtl_plan.md, Phase 5)
-                if (BuildConfig.DEBUG) {
-                    SettingsDivider()
-                    LanguageRow()
-                }
+                SettingsDivider()
+                LanguageRow()
                 SettingsDivider()
                 SettingsRow(Icons.Outlined.MonetizationOn, DsColors.Success, stringResource(R.string.settings_currency), enabled = false)
                 SettingsDivider()
@@ -278,7 +276,7 @@ private fun LanguageRow() {
                                 .clip(DsShapes.medium)
                                 .clickable {
                                     choosing = false
-                                    if (language != current) (context as? android.app.Activity)?.let { AppLanguage.set(it, language) }
+                                    if (language != current) context.findActivity()?.let { AppLanguage.set(it, language) }
                                 }
                                 .padding(vertical = DsSpacing.xs),
                             verticalAlignment = Alignment.CenterVertically

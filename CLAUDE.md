@@ -3,7 +3,7 @@
 Offline-first Android app for a distributor: dépôt stock, tournées (camion), ventes, achats, clients,
 suppliers, inventaire, pertes, retours, rapports. Kotlin, Jetpack Compose, Hilt, Room (KSP, schemas
 exported to `app/schemas`). All data is local; sync is out of scope until DistriGo Solo ships.
-UI text is French.
+The app runs in French or Arabic (right to left); see "Text and languages" below.
 
 Code lives in `app/src/main/java/com/distrigo/app/`: `data/` (Room entities, DAOs, repositories,
 backup, import, print) and `ui/` (one package per section, plus `common/`, `designsystem/`,
@@ -64,6 +64,22 @@ RetoursClient, RetoursFournisseur, Produit.
 - Bump the version *before* compiling an entity change (the schema export would overwrite the
   previous version's JSON). New `ALTER TABLE` columns go last in the entity. Drop triggers
   (`ChangeTracking.kt`) before rebuilding a table.
+
+## Text and languages
+
+French is the base language; Arabic (`ar-DZ`) is chosen per phone (Paramètres › Préférences › Langue, or the
+welcome screen), never automatically (`core/locale/AppLanguage.kt`). Plan and decisions: `docs/i18n_rtl_plan.md`.
+- **No user-facing text in code.** French goes in `res/values/strings_<section>.xml`, Arabic in the same file under
+  `values-ar`, written together; quantities use `<plurals>` (Arabic has all six forms, French also `many`).
+  `HardcodedTextGuardTest` is a ratchet: its baseline may only go down. Outside Compose, use `UiText`,
+  `UserFacingException` / `refuse(R.string.…)` or `appText()`.
+- **Arabic wording follows `docs/i18n_glossary.md`.** Changes go through the review page and `tools/i18n`
+  (`catalog.py` snapshot, `apply.py` writes approved wording: dry run first, `--write` only on the owner's word).
+- **Stays French:** receipts, PDFs, WhatsApp text, exports and import templates (D3, D6), and Administration (D10).
+  Stored values never change with the language: show built-in types and motifs by key (`BuiltInNames`), wilaya and
+  commune names through `PlaceNames`.
+- **Right to left:** use Start/End (never Left/Right), `Icons.AutoMirrored`, `layoutEnd()`, and `ltrIsolate()` for
+  numbers, codes and phones inside Arabic sentences. Digits are always 0–9. Check a changed screen in both languages.
 
 ## Conventions
 

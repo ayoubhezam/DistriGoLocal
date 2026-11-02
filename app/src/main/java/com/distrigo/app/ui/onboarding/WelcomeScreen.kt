@@ -21,6 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import com.distrigo.app.core.locale.AppLanguage
+import com.distrigo.app.ui.account.findActivity
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -117,6 +124,7 @@ private fun HeroPhoto(modifier: Modifier) {
                 .height(BottomFadeHeight)
                 .background(Brush.verticalGradient(listOf(Color.Transparent, DsBrand.Navy)))
         )
+        LanguageChip(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = DsSpacing.sm, end = DsSpacing.md))
         Column(
             modifier            = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = LogoTopPadding),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -138,6 +146,30 @@ private fun HeroPhoto(modifier: Modifier) {
                 color         = Color.White.copy(alpha = 0.9f)
             )
         }
+    }
+}
+
+/**
+ * The language switch before any account exists (docs/i18n_rtl_plan.md §4.6): it names the other language in itself
+ * (« العربية » in French, « Français » in Arabic) and switches to it; the screens are rebuilt in it, on this page.
+ * Paramètres › Préférences › Langue offers the same choice later. Kept narrow so it never reaches the logo.
+ */
+@Composable
+private fun LanguageChip(modifier: Modifier) {
+    val context = LocalContext.current
+    val current = remember { AppLanguage.current(context) }
+    val other = AppLanguage.entries.first { it != current }
+    Row(
+        modifier = modifier
+            .clip(DsShapes.pill)
+            .background(Color.Black.copy(alpha = 0.28f))
+            .clickable { context.findActivity()?.let { AppLanguage.set(it, other) } }
+            .padding(horizontal = DsSpacing.sm, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Language, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(DsSpacing.xs))
+        Text(other.endonym, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color.White, maxLines = 1)
     }
 }
 
