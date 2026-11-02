@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -41,11 +42,14 @@ class BusinessSettingsRepository(
     private val dao = db.businessSettingsDao()
     private val importLock = Mutex()
 
-    /** The settings, and every change to them. Creates the row, importing the old settings, if there is none. */
+    /**
+     * The settings, and every change to them. Creates the row, importing the old settings, if there is none. Off the
+     * main thread: the import reads old files, and each update checks that the logo's file is there.
+     */
     fun observe(): Flow<BusinessSettings> = flow {
         importLegacyIfNeeded()
         emitAll(dao.observe().map { it.toModel() })
-    }
+    }.flowOn(kotlinx.coroutines.Dispatchers.IO)
 
     suspend fun get(): BusinessSettings {
         importLegacyIfNeeded()

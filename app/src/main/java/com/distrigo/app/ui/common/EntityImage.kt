@@ -68,15 +68,17 @@ fun EntityImage(
 
     // Coil takes a File for a stored reference and the raw bytes for a legacy payload; both are
     // sized and cached the same way from there. A null model leaves the painter Empty, which falls
-    // through to the placeholder below.
+    // through to the placeholder below. A stored file that has gone missing is not checked for here,
+    // on the main thread for every row of a list: Coil's load fails off it, and Error shows the placeholder.
     val model = remember(ref) {
         when {
-            ImageStore.isStoredRef(ref) -> ImageStore.fileFor(context, ref)?.takeIf { it.isFile }
+            ImageStore.isStoredRef(ref) -> ImageStore.fileFor(context, ref)
             ImageStore.isLegacyDataUri(ref) -> ImageStore.legacyBytes(ref)?.let(ByteBuffer::wrap)
             else -> null
         }
     }
 
+    // Keyed by its path alone, without reading the file's date: StoredImageKeyer, in the app's image loader
     ModelImage(model, contentDescription, modifier, contentScale, placeholder)
 }
 
@@ -96,8 +98,8 @@ fun FileImage(
     contentScale: ContentScale = ContentScale.Crop,
     placeholder: @Composable () -> Unit
 ) {
-    val model = remember(file) { file?.takeIf { it.isFile } }
-    ModelImage(model, contentDescription, modifier, contentScale, placeholder)
+    // No isFile here, on the main thread: a missing logo fails Coil's load, which shows the placeholder
+    ModelImage(file, contentDescription, modifier, contentScale, placeholder)
 }
 
 @Composable
@@ -106,7 +108,7 @@ private fun ModelImage(
     contentDescription: String?,
     modifier: Modifier,
     contentScale: ContentScale,
-    placeholder: @Composable () -> Unit
+    placeholder: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
 

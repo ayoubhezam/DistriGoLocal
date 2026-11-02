@@ -69,6 +69,16 @@ object DebugStrictMode {
             "_MembersInjector" in simple || "_HiltModules" in simple || "_Provide" in simple
     }
 
+    /**
+     * Samsung's Toast.show() checks a system file (isSpeg) on every toast; Android creates an app folder
+     * (filesDir, noBackupFilesDir, cacheDir, the database's) the first time one is asked for; ML Kit reads its own
+     * version when a scanner is made. Each is under a millisecond, once, and not the app's to change.
+     */
+    private fun isFrameworkOwnRead(frame: StackTraceElement): Boolean =
+        (frame.className == "android.widget.Toast" && frame.methodName == "isSpeg") ||
+            (frame.className == "android.app.ContextImpl" && frame.methodName == "ensurePrivateDirExists") ||
+            frame.className.startsWith("com.google.android.gms.common.internal.LibraryVersion")
+
     @RequiresApi(Build.VERSION_CODES.P)
     private fun record(dir: File, policy: String, violation: Violation) {
         try {
@@ -82,6 +92,9 @@ object DebugStrictMode {
             // Android's own Application.onCreate between the violation and the app's frame: the framework's
             // work, done inside the app's super.onCreate() call (Samsung loads its fonts there).
             if (stack.take(at).any { it.className == "android.app.Application" && it.methodName == "onCreate" }) return
+            // Reads the framework or a library makes for its own sake, under a call of the app's: nothing the app's
+            // code can move off the main thread (Diagnostic, 2026-11-02: 17 of 27 reports were these).
+            if (stack.take(at).any(::isFrameworkOwnRead)) return
             val frame = stack[at]
             val signature = "${violation.javaClass.simpleName}@${frame.className}.${frame.methodName}:${frame.lineNumber}"
             val seenFile = File(dir, SEEN_FILE)

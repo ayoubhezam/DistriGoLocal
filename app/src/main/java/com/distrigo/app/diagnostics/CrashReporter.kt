@@ -21,6 +21,10 @@ import java.time.Instant
 object CrashReporter {
 
     @Volatile private var reserve: ByteArray? = null
+
+    /** A crash is being recorded and handed to Android: the main thread's wait is not a freeze (MainThreadWatchdog). */
+    @Volatile var crashing: Boolean = false
+        private set
     @Volatile private var dir: File? = null
     private lateinit var header: String
 
@@ -33,6 +37,7 @@ object CrashReporter {
         Thread({ dir = DiagnosticReports.dir(app) }, "crash-reports-dir").start()
         val android = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            crashing = true
             reserve = null
             try {
                 val into = dir ?: DiagnosticReports.dir(app)

@@ -57,7 +57,9 @@ object MainThreadWatchdog {
                 while (!answered.get()) {
                     Thread.sleep(POLL_MS)
                     val blocked = SystemClock.uptimeMillis() - sent
-                    if (report == null && blocked >= THRESHOLD_MS && !Debug.isDebuggerConnected()) {
+                    // Not while a crash is handed to Android: it holds the main thread to end the app, and that wait
+                    // read as a frozen screen, a second report for the crash already written (Diagnostic, 2026-10-29)
+                    if (report == null && blocked >= THRESHOLD_MS && !Debug.isDebuggerConnected() && !CrashReporter.crashing) {
                         report = write(dir, blocked)
                     }
                 }

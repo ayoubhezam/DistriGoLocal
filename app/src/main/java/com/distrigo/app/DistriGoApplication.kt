@@ -25,7 +25,15 @@ import com.distrigo.app.diagnostics.MainThreadWatchdog
 import javax.inject.Inject
 
 @HiltAndroidApp
-class DistriGoApplication : Application(), Configuration.Provider {
+class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoaderFactory {
+
+    /**
+     * Coil's image loader, as its default but for one keyer: a stored photo is cached under its path without its file's
+     * date being read on the main thread (StoredImageKeyer). Built on the first image drawn.
+     */
+    override fun newImageLoader(): coil.ImageLoader = coil.ImageLoader.Builder(this)
+        .components { add(com.distrigo.app.data.image.StoredImageKeyer(com.distrigo.app.data.image.ImageStore.imagesDir(this@DistriGoApplication))) }
+        .build()
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
