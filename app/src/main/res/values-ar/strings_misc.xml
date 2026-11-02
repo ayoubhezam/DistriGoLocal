@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="lic_write_refused">عرض فقط: اشتراكك لم يعد يسمح بالتسجيل. تبقى بياناتك قابلة للعرض؛ النسخ الاحتياطي والتصدير متاحان.</string>
+    <string name="lic_write_refused">للعرض فقط: اشتراكك لم يعد يسمح بالتسجيل. تبقى بياناتك قابلة للعرض؛ النسخ الاحتياطي والتصدير متاحان.</string>
     <string name="error_camion_stock_short">مخزون غير كافٍ لـ %1$s: المتوفر %2$s، المطلوب %3$s</string>
     <string name="error_tournee_has_sales">لا يمكن الحذف: توجد مبيعات مرتبطة بهذه الجولة</string>
     <string name="error_already_scanned">مُسح هذا المنتج من قبل في هذه الجلسة</string>

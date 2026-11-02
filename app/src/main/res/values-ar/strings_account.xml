@@ -125,7 +125,7 @@
     <string name="acc_look_grace">فترة سماح</string>
     <string name="acc_look_grace_text">انتهى الاشتراك: أدخل رمزًا لمواصلة التسجيل.</string>
     <string name="acc_look_expired">منتهٍ</string>
-    <string name="acc_look_expired_text">عرض فقط: أدخل رمزًا للاستئناف. يبقى النسخ الاحتياطي والتصدير متاحين.</string>
+    <string name="acc_look_expired_text">للعرض فقط: أدخل رمزًا للاستئناف. يبقى النسخ الاحتياطي والتصدير متاحين.</string>
     <string name="acc_look_clock">تاريخ غير صحيح</string>
     <string name="acc_look_clock_text">تاريخ الهاتف متأخر. فعّل « التاريخ والوقت التلقائيان ».</string>
     <string name="acc_look_not_yet">غير صالح بعد</string>

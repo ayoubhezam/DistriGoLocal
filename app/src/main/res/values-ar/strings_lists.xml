@@ -262,7 +262,7 @@
     <string name="trash_gone">هذا العنصر لم يعد في سلة المحذوفات.</string>
     <string name="trash_in_use">تعذّر حذفه نهائيًا: إنه مستعمل في \u2068%1$s\u2069.</string>
     <string name="trash_product_name_taken">يوجد منتج نشط باسم « \u2068%1$s\u2069 ». أعد تسميته قبل استعادة هذا المنتج.</string>
-    <string name="trash_barcode_taken">الباركود \u2068%1$s\u2069 مستعمل من منتج نشط.</string>
+    <string name="trash_barcode_taken">الكودبار \u2068%1$s\u2069 مستعمل من منتج نشط.</string>
     <string name="trash_exists_category">الفئة « \u2068%1$s\u2069 » موجودة بالفعل.</string>
     <string name="trash_exists_brand">العلامة التجارية « \u2068%1$s\u2069 » موجودة بالفعل.</string>
     <string name="trash_exists_charge_type">نوع المصروف « \u2068%1$s\u2069 » موجود بالفعل.</string>

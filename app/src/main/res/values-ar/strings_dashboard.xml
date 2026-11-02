@@ -1,11 +1,11 @@
 <resources>
     <string name="dashboard_tournee_title">جولة اليوم</string>
-    <string name="dashboard_tournee_info">بشراء: عملية بيع في الجولة\nدون شراء: زيارة دون بيع\nفي الانتظار: للزيارة</string>
+    <string name="dashboard_tournee_info">بشراء: عملية بيع في الجولة\nدون شراء: زيارة دون بيع\nقيد الانتظار: للزيارة</string>
     <string name="dashboard_tournee_visited">زيارة \u2068%1$d\u2069 من \u2068%2$d\u2069 زبائن</string>
     <string name="dashboard_tournee_visited_cd">زيارة \u2068%1$d\u2069 زبائن من \u2068%2$d\u2069</string>
     <string name="dashboard_visit_with_sale">بشراء</string>
     <string name="dashboard_visit_without_sale">دون شراء</string>
-    <string name="dashboard_visit_pending">في الانتظار</string>
+    <string name="dashboard_visit_pending">قيد الانتظار</string>
     <string name="dashboard_clients_of_day">زبائن اليوم</string>
     <string name="dashboard_recent_activity">النشاط الأخير</string>
     <string name="dashboard_activity_empty_all">لا توجد مبيعات حاليًا.</string>
@@ -28,10 +28,10 @@
     <string name="dashboard_paid_at_sale">المدفوع عند البيع</string>
     <string name="dashboard_credit">الدَّين</string>
     <string name="dashboard_goal_month">هدف الشهر</string>
-    <string name="dashboard_goal_quarter">هدف الفصل</string>
+    <string name="dashboard_goal_quarter">هدف الثلاثي</string>
     <string name="dashboard_goal_year">هدف السنة</string>
-    <string name="dashboard_goal_tier">المرحلة \u2068%1$s\u2069</string>
-    <string name="dashboard_cd_goal_tier">\u2068%1$s\u2069 من المرحلة \u2068%2$s\u2069</string>
+    <string name="dashboard_goal_tier">الشريحة \u2068%1$s\u2069</string>
+    <string name="dashboard_cd_goal_tier">\u2068%1$s\u2069 من الشريحة \u2068%2$s\u2069</string>
     <string name="dashboard_cd_goal">\u2068%1$s\u2069 من الهدف</string>
     <string name="dashboard_month_sales">مبيعات الشهر</string>
     <string name="dashboard_set_goal">حدّد هدفًا</string>
@@ -42,7 +42,7 @@
     <string name="dashboard_alert_out_sub">المخزون صفر</string>
     <string name="dashboard_alert_low">مخزون منخفض</string>
     <string name="dashboard_alert_low_sub">تحت الحد الأدنى</string>
-    <string name="dashboard_alert_debts">الديون</string>
+    <string name="dashboard_alert_debts">المستحقات</string>
     <string name="dashboard_alert_debts_sub">لأكثر من 90 يومًا</string>
     <string name="dashboard_collect_choose">اختر الزبون الذي يدفع</string>
     <string name="dashboard_collect_nobody_owes">لا يوجد زبون مدين.</string>

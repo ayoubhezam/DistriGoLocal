@@ -78,7 +78,7 @@
     <string name="ventes_delete_payment">الدفع: ستُمحى \u2068%1$s\u2069 المحصَّلة مع هذه العملية.</string>
     <string name="ventes_edit_sale">تعديل عملية البيع</string>
     <string name="ventes_filter_delivery_status">حالة الوصل</string>
-    <string name="ventes_status_pending">في الانتظار</string>
+    <string name="ventes_status_pending">قيد الانتظار</string>
     <string name="ventes_status_delivered">مُسلَّم</string>
     <string name="ventes_filter_payment_status">حالة الدفع</string>
     <string name="ventes_title">البيع من المستودع</string>
@@ -99,7 +99,7 @@
     <string name="ventes_mark_delivered">تعليم كمُسلَّم</string>
     <string name="ventes_delivered_saved">عملية البيع مُسلَّمة ومسجَّلة</string>
     <string name="ventes_ribbon_delivered">مُسلَّم</string>
-    <string name="ventes_ribbon_pending">في الانتظار</string>
+    <string name="ventes_ribbon_pending">قيد الانتظار</string>
     <string name="ventes_choose_client_hint">اختر الزبون قبل إضافة المنتجات</string>
     <string name="ventes_banner_missing_product">لم يعد أحد منتجات هذه العملية في الكتالوج. أزل سطره من الاختيار لتتمكن من الحفظ.</string>
     <string name="ventes_banner_over_stock">مخزون المستودع غير كافٍ لـ« \u2068%1$s\u2069 ». قلّل كميته في الاختيار لتتمكن من الحفظ.</string>

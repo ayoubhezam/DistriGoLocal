@@ -14,7 +14,7 @@
     <string name="rapports_home_products_sub">أفضل المنتجات، الفئات، تحليل ABC</string>
     <string name="rapports_parties">الزبائن والموردون</string>
     <string name="rapports_home_parties_sub">أفضل الزبائن، المشتريات حسب المورد</string>
-    <string name="rapports_debts">الديون لنا وعلينا</string>
+    <string name="rapports_debts">المستحقات والديون</string>
     <string name="rapports_home_debts_sub">من يدين بماذا، ومنذ متى</string>
     <string name="rapports_stock">المخزون والخسائر</string>
     <string name="rapports_home_stock_sub">قيمة المخزون، النفاد، الخسائر</string>
@@ -239,7 +239,7 @@
     <string name="rapports_trend_up">في ارتفاع</string>
     <string name="rapports_trend_down">في انخفاض</string>
     <string name="rapports_ages_sub">منذ متى المال مستحق</string>
-    <string name="rapports_total_owed_to_us">مجموع الديون لنا</string>
+    <string name="rapports_total_owed_to_us">مجموع المستحقات</string>
     <string name="rapports_total_to_pay">المجموع للدفع</string>
     <string name="rapports_stock_value_title">قيمة المخزون</string>
     <string name="rapports_info_stock_value">قيمة المخزون = المخزون × سعر الشراء الحالي، اليوم\nالمخزون السالب يُحسب 0.</string>

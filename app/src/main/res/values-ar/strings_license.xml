@@ -23,7 +23,7 @@
     <string name="lic_server">الخدمة لا تستجيب كما ينبغي. أعد المحاولة لاحقًا.</string>
     <string name="lic_check_failed">فشل التحقق على هذا الهاتف (%1$s).</string>
     <string name="lic_clock_banner">يبدو أن تاريخ الهاتف متأخر. تحقّق من « التاريخ والوقت التلقائيان ».</string>
-    <string name="lic_expired_banner">انتهى الاشتراك — عرض فقط. يبقى النسخ الاحتياطي والتصدير متاحين.</string>
+    <string name="lic_expired_banner">انتهى الاشتراك — للعرض فقط. يبقى النسخ الاحتياطي والتصدير متاحين.</string>
     <string name="lic_expired_by_clock_banner">الاشتراك منتهٍ حسب تاريخ الهاتف: تحقّق من التاريخ أو اتصل بالإنترنت.</string>
     <string name="lic_expired_by_clock">تاريخ الهاتف يشير إلى انتهاء الاشتراك. تحقّق منه، أو اتصل بالإنترنت.</string>
     <string name="lic_check_needed_banner">يلزم التحقق من الاشتراك: اتصل بالإنترنت.</string>

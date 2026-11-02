@@ -130,7 +130,7 @@
     <string name="settings_type_fixed_bonus">جزافية</string>
     <string name="settings_type_free_goods">منتجات مجانية</string>
     <string name="settings_period_monthly">شهرية</string>
-    <string name="settings_period_quarterly">فصلية</string>
+    <string name="settings_period_quarterly">ثلاثية</string>
     <string name="settings_period_yearly">سنوية</string>
     <string name="settings_based_on">على أساس</string>
     <string name="settings_source_invoiced">المبيعات المفوترة</string>

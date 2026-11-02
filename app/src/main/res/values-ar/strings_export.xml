@@ -15,8 +15,8 @@
     <string name="export_from">من \u2068%1$s\u2069</string>
     <string name="export_to">إلى \u2068%1$s\u2069</string>
     <string name="export_period_sentence">يصدّر البيانات \u2068%1$s\u2069.</string>
-    <string name="export_xlsx_note">ملف Excel بورقة لكل نوع بيانات. المبالغ أرقام، والتواريخ تواريخ، والباركودات والهواتف تحتفظ بالصفر في بدايتها، على أي حاسوب.</string>
-    <string name="export_csv_note">ملف لكل نوع بيانات، للبرامج التي تقرأ CSV. في Excel: النص الذي يبدأ بـ = أو + أو - أو @ يظهر مسبوقًا بفاصلة عليا (حماية من الصيغ)، ويُحذف الصفر في بداية الباركودات والهواتف. للاحتفاظ به، استورد الملف من Excel (Données › À partir d\'un fichier texte/CSV) واضبط هذه الأعمدة على « Texte ».</string>
+    <string name="export_xlsx_note">ملف Excel بورقة لكل نوع بيانات. المبالغ أرقام، والتواريخ تواريخ، والكودبارات والهواتف تحتفظ بالصفر في بدايتها، على أي حاسوب.</string>
+    <string name="export_csv_note">ملف لكل نوع بيانات، للبرامج التي تقرأ CSV. في Excel: النص الذي يبدأ بـ = أو + أو - أو @ يظهر مسبوقًا بفاصلة عليا (حماية من الصيغ)، ويُحذف الصفر في بداية الكودبارات والهواتف. للاحتفاظ به، استورد الملف من Excel (Données › À partir d\'un fichier texte/CSV) واضبط هذه الأعمدة على « Texte ».</string>
     <string name="export_choose_one">اختر نوع بيانات واحدًا على الأقل.</string>
     <string name="export_running">جارٍ التصدير…</string>
     <string name="export_saved">حُفظ الملف المُصدَّر</string>

@@ -3,12 +3,12 @@
     <string name="import_no_sheet">لا يحتوي الملف على ورقة « Produits » ولا « Clients ». صدّر البيانات أولًا للحصول على النموذج.</string>
     <string name="import_note_stock">لا يغيّر الاستيراد مخزون منتج موجود: صحّحه بجرد أو بتسوية.</string>
     <string name="import_name_required">الاسم إلزامي.</string>
-    <string name="import_barcode_shared">عدة منتجات تحمل الباركود \u2068%1$s\u2069.</string>
-    <string name="import_barcodes_several">هذه الباركودات تعود لعدة منتجات (\u2068%1$s\u2069).</string>
-    <string name="import_name_shared_products">عدة منتجات تحمل الاسم « \u2068%1$s\u2069 »: حدّد الباركود.</string>
-    <string name="import_name_taken">اسم المنتج هذا مسجّل بالفعل (الباركود \u2068%1$s\u2069).</string>
+    <string name="import_barcode_shared">عدة منتجات تحمل الكودبار \u2068%1$s\u2069.</string>
+    <string name="import_barcodes_several">هذه الكودبارات تعود لعدة منتجات (\u2068%1$s\u2069).</string>
+    <string name="import_name_shared_products">عدة منتجات تحمل الاسم « \u2068%1$s\u2069 »: حدّد الكودبار.</string>
+    <string name="import_name_taken">اسم المنتج هذا مسجّل بالفعل (الكودبار \u2068%1$s\u2069).</string>
     <string name="import_already_above">« \u2068%1$s\u2069 » موجود بالفعل في سطر أعلى.</string>
-    <string name="import_barcode_above">الباركود \u2068%1$s\u2069 موجود بالفعل في سطر أعلى.</string>
+    <string name="import_barcode_above">الكودبار \u2068%1$s\u2069 موجود بالفعل في سطر أعلى.</string>
     <string name="import_unknown_unit">الوحدة « \u2068%1$s\u2069 » غير موجودة: carton أو pièce أو kg.</string>
     <string name="import_pack_negative">لا يمكن أن تكون الوحدات في الطرد سالبة.</string>
     <string name="import_purchase_negative">لا يمكن أن يكون سعر الشراء سالبًا.</string>
@@ -41,7 +41,7 @@
     <string name="import_yes">نعم</string>
     <string name="import_no">لا</string>
     <string name="import_col_name">الاسم</string>
-    <string name="import_col_barcode">الباركود</string>
+    <string name="import_col_barcode">الكودبار</string>
     <string name="import_col_category">الفئة</string>
     <string name="import_col_subcategory">الفئة الفرعية</string>
     <string name="import_col_brand">العلامة التجارية</string>
@@ -63,7 +63,7 @@
     <string name="import_title_clients">استيراد الزبائن</string>
     <string name="import_intro_products">يضيف المنتجات أو يحدّثها من ملف Excel (‎.xlsx‎)، الورقة « Produits ».</string>
     <string name="import_intro_clients">يضيف الزبائن أو يحدّثهم من ملف Excel (‎.xlsx‎)، الورقة « Clients ».</string>
-    <string name="import_how_products">ابدأ من النموذج الفارغ أدناه، أو صدّر المنتجات لتعديل ما لديك. السطر الذي يوجد اسمه (أو باركوده) يحدّث البطاقة؛ والأسطر الأخرى تنشئ بطاقات جديدة. الخلية الفارغة لا تغيّر شيئًا، لذا يكفي ملف يحتوي فقط على الأعمدة المراد تعديلها.</string>
+    <string name="import_how_products">ابدأ من النموذج الفارغ أدناه، أو صدّر المنتجات لتعديل ما لديك. السطر الذي يوجد اسمه (أو كودباره) يحدّث البطاقة؛ والأسطر الأخرى تنشئ بطاقات جديدة. الخلية الفارغة لا تغيّر شيئًا، لذا يكفي ملف يحتوي فقط على الأعمدة المراد تعديلها.</string>
     <string name="import_how_clients">ابدأ من النموذج الفارغ أدناه، أو صدّر الزبائن لتعديل من لديك. السطر الذي يوجد اسمه يحدّث البطاقة؛ والأسطر الأخرى تنشئ بطاقات جديدة. الخلية الفارغة لا تغيّر شيئًا، لذا يكفي ملف يحتوي فقط على الأعمدة المراد تعديلها.</string>
     <string name="import_preview_first">سترى كل ما سيفعله الاستيراد قبل التأكيد، وتُنشأ نسخة أمان من بياناتك قبله مباشرة.</string>
     <string name="import_does_not">ما لا يفعله الاستيراد</string>

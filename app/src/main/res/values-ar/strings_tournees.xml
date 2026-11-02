@@ -29,7 +29,7 @@
     <string name="tournees_edit_info">تعديل المعلومات</string>
     <string name="tournees_close_tournee">إغلاق الجولة</string>
     <string name="tournees_delete_tournee">حذف الجولة</string>
-    <string name="tournees_license_unload_only">للاطلاع فقط: لا يزال بإمكانك إغلاق الجولة (القائمة ⋮) وتفريغ الشاحنة.</string>
+    <string name="tournees_license_unload_only">للعرض فقط: لا يزال بإمكانك إغلاق الجولة (القائمة ⋮) وتفريغ الشاحنة.</string>
     <string name="tournees_search">البحث عن زبون أو وصل</string>
     <plurals name="tournees_bons_count">
         <item quantity="zero">\u2068%1$d\u2069 وصل</item>

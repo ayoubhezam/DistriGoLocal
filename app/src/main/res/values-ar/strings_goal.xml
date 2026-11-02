@@ -1,10 +1,10 @@
 <resources>
-    <string name="goal_quarter_n">الفصل \u2068%1$d\u2069</string>
+    <string name="goal_quarter_n">الثلاثي \u2068%1$d\u2069</string>
     <string name="goal_this_month">هذا الشهر</string>
-    <string name="goal_this_quarter">هذا الفصل</string>
+    <string name="goal_this_quarter">هذا الثلاثي</string>
     <string name="goal_this_year">هذه السنة</string>
     <string name="goal_end_month">نهاية الشهر</string>
-    <string name="goal_end_quarter">نهاية الفصل</string>
+    <string name="goal_end_quarter">نهاية الثلاثي</string>
     <string name="goal_end_year">نهاية السنة</string>
     <string name="goal_of_invoiced">من مبيعاتك المفوترة</string>
     <string name="goal_of_collected">من تحصيلك</string>
@@ -56,7 +56,7 @@
     <string name="goal_of_aim_tier">من الشريحة \u2068%1$d\u2069</string>
     <string name="goal_of_aim">من الهدف</string>
     <string name="goal_achieved_in">المحقَّق في \u2068%1$s\u2069</string>
-    <string name="goal_achieved_quarter">المحقَّق هذا الفصل</string>
+    <string name="goal_achieved_quarter">المحقَّق هذا الثلاثي</string>
     <string name="goal_keep_going_tier">بلغت أعلى شريحة. واصل على هذا النحو.</string>
     <string name="goal_keep_going">تم بلوغ الهدف. واصل على هذا النحو.</string>
     <string name="goal_pace_ahead">أنت متقدّم: بهذا الإيقاع ستتجاوز \u2068%1$s\u2069.</string>
@@ -130,7 +130,7 @@
     <string name="goal_trajectory_sub">المعالم الأساسية لبلوغ هدفك</string>
     <string name="goal_rhythm_weekly">الإيقاع الأسبوعي</string>
     <string name="goal_rhythm_monthly">الإيقاع الشهري</string>
-    <string name="goal_rhythm_quarterly">الإيقاع الفصلي</string>
+    <string name="goal_rhythm_quarterly">الإيقاع الثلاثي</string>
     <string name="goal_progress_vs_plan">التقدّم مقارنة بالمسار المتوقع</string>
     <string name="goal_cd_ahead">متقدّم بـ \u2068%1$s\u2069 عن المسار المتوقع</string>
     <string name="goal_cd_behind">متأخر بـ \u2068%1$s\u2069 عن المسار المتوقع</string>

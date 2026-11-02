@@ -96,7 +96,7 @@ alternatives after it. Change any line by giving its number and your choice.
 | 60 | Colis | طرد | ★ or « علبة » / « رزمة »: the pack a pièce product is bought in |
 | 61 | Unités/colis | وحدة/طرد | follows 60 |
 | 62 | Nombre de colis | عدد الطرود | follows 60 |
-| 63 | Code-barres | الباركود | ★ or « الرمز الشريطي » (formal) |
+| 63 | Code-barres | كودبار (الكودبار, كودبارات) | owner, 2026-11-02 (was الباركود) |
 | 64 | Scanner un code-barres | مسح الباركود | follows 63 |
 | 65 | Catégorie / Sous-catégorie | الفئة / الفئة الفرعية | |
 | 66 | Marque | العلامة التجارية | |
@@ -122,7 +122,7 @@ alternatives after it. Change any line by giving its number and your choice.
 | 81 | Impayé | غير مدفوع | status |
 | 82 | À crédit | بالدين | ★ or « بالآجل » (more formal) |
 | 83 | Crédit (what clients owe from sales) | الدين | |
-| 84 | Créances (owed to us) | الديون المستحقة لنا | |
+| 84 | Créances (owed to us) | المستحقات | owner, 2026-11-02 (was الديون المستحقة لنا) |
 | 85 | Dettes (we owe) | الديون علينا | |
 | 86 | Solde | الرصيد | |
 | 87 | Solde initial | الرصيد الافتتاحي | |
