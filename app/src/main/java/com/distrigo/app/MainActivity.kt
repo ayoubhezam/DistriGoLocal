@@ -140,8 +140,22 @@ class MainActivity : ComponentActivity() {
      * date picker's header). fontScale 0 leaves the phone's text size alone, which an override configuration would
      * otherwise reset on older Android versions.
      */
+    /** The app language this activity was built in (AppLanguage), to tell a language change from any other. */
+    private var builtIn: com.distrigo.app.core.locale.AppLanguage? = null
+
+    /**
+     * The manifest keeps a language change from rebuilding this activity by itself (configChanges="locale|
+     * layoutDirection"): Android then removes the window before the new one has drawn, a black flash the length of
+     * the first frame, because an app-only change gets no screen snapshot to cover it. Rebuilt here instead.
+     */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (com.distrigo.app.core.locale.AppLanguage.current(this) != builtIn) recreate()
+    }
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase)
+        builtIn = com.distrigo.app.core.locale.AppLanguage.current(newBase)
         val locales = com.distrigo.app.core.locale.AppLanguage.localesFor(newBase, newBase.resources.configuration)
         java.util.Locale.setDefault(com.distrigo.app.core.format.WesternDigits.latin(locales[0]))
         applyOverrideConfiguration(android.content.res.Configuration().apply {

@@ -66,13 +66,21 @@ val LocalArabicFonts = staticCompositionLocalOf<ArabicFonts?> { null }
 /** [content] drawn in the display face, for a main header that does not take a font family (an animated amount). */
 @Composable
 fun ArabicDisplay(content: @Composable () -> Unit) {
-    if (LocalArabicFonts.current == null) return content()
-    CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = ArabicFonts.display), content = content)
+    val style = LocalTextStyle.current
+    // One shape in both languages, only the value differs: see ProvideArabicFonts
+    CompositionLocalProvider(
+        LocalTextStyle provides if (LocalArabicFonts.current == null) style else style.copy(fontFamily = ArabicFonts.display),
+        content = content
+    )
 }
 
-/** The whole app's content, given [LocalArabicFonts] in Arabic (DistriGoTheme). In French, [content] as is. */
+/**
+ * The whole app's content, given [LocalArabicFonts]: [ArabicFonts] in Arabic, null in French (DistriGoTheme).
+ * Always through the same provider, never `content()` in one language and a provider in the other: the saved
+ * state of every screen (the open screen, its scroll, a typed search) is keyed by its place in this tree, and a
+ * tree shaped by the language lost it all on a language change, which reopened the app on the Dashboard.
+ */
 @Composable
 fun ProvideArabicFonts(content: @Composable () -> Unit) {
-    if (!ArabicFonts.active()) return content()
-    CompositionLocalProvider(LocalArabicFonts provides ArabicFonts, content = content)
+    CompositionLocalProvider(LocalArabicFonts provides (if (ArabicFonts.active()) ArabicFonts else null), content = content)
 }
