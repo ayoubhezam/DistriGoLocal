@@ -1,6 +1,6 @@
 <resources>
     <plurals name="lists_n_categories">
-        <item quantity="zero">%d فئة</item>
+        <item quantity="zero">لا فئات</item>
         <item quantity="one">فئة واحدة</item>
         <item quantity="two">فئتان</item>
         <item quantity="few">%d فئات</item>
@@ -8,7 +8,7 @@
         <item quantity="other">%d فئة</item>
     </plurals>
     <plurals name="lists_n_subcategories">
-        <item quantity="zero">%d فئة فرعية</item>
+        <item quantity="zero">لا فئات فرعية</item>
         <item quantity="one">فئة فرعية واحدة</item>
         <item quantity="two">فئتان فرعيتان</item>
         <item quantity="few">%d فئات فرعية</item>
@@ -16,7 +16,7 @@
         <item quantity="other">%d فئة فرعية</item>
     </plurals>
     <plurals name="lists_n_brands">
-        <item quantity="zero">%d علامة</item>
+        <item quantity="zero">لا علامات</item>
         <item quantity="one">علامة واحدة</item>
         <item quantity="two">علامتان</item>
         <item quantity="few">%d علامات</item>
@@ -24,7 +24,7 @@
         <item quantity="other">%d علامة</item>
     </plurals>
     <plurals name="lists_n_types">
-        <item quantity="zero">%d نوع</item>
+        <item quantity="zero">لا أنواع</item>
         <item quantity="one">نوع واحد</item>
         <item quantity="two">نوعان</item>
         <item quantity="few">%d أنواع</item>
@@ -32,7 +32,7 @@
         <item quantity="other">%d نوع</item>
     </plurals>
     <plurals name="lists_n_subtypes">
-        <item quantity="zero">%d نوع فرعي</item>
+        <item quantity="zero">لا أنواع فرعية</item>
         <item quantity="one">نوع فرعي واحد</item>
         <item quantity="two">نوعان فرعيان</item>
         <item quantity="few">%d أنواع فرعية</item>
@@ -40,7 +40,7 @@
         <item quantity="other">%d نوع فرعي</item>
     </plurals>
     <plurals name="lists_n_secteurs">
-        <item quantity="zero">%d قطاع</item>
+        <item quantity="zero">لا قطاعات</item>
         <item quantity="one">قطاع واحد</item>
         <item quantity="two">قطاعان</item>
         <item quantity="few">%d قطاعات</item>
@@ -48,7 +48,7 @@
         <item quantity="other">%d قطاع</item>
     </plurals>
     <plurals name="lists_n_payments">
-        <item quantity="zero">%d دفعة</item>
+        <item quantity="zero">لا دفعات</item>
         <item quantity="one">دفعة واحدة</item>
         <item quantity="two">دفعتان</item>
         <item quantity="few">%d دفعات</item>
@@ -56,7 +56,7 @@
         <item quantity="other">%d دفعة</item>
     </plurals>
     <plurals name="lists_n_purchase_bons">
-        <item quantity="zero">%d وصل شراء</item>
+        <item quantity="zero">لا وصولات شراء</item>
         <item quantity="one">وصل شراء واحد</item>
         <item quantity="two">وصلا شراء</item>
         <item quantity="few">%d وصولات شراء</item>
@@ -64,7 +64,7 @@
         <item quantity="other">%d وصل شراء</item>
     </plurals>
     <plurals name="lists_n_sale_drafts">
-        <item quantity="zero">%d مسودة بيع</item>
+        <item quantity="zero">لا مسودات بيع</item>
         <item quantity="one">مسودة بيع واحدة</item>
         <item quantity="two">مسودتا بيع</item>
         <item quantity="few">%d مسودات بيع</item>
@@ -72,7 +72,7 @@
         <item quantity="other">%d مسودة بيع</item>
     </plurals>
     <plurals name="lists_n_tournee_drafts">
-        <item quantity="zero">%d مسودة جولة</item>
+        <item quantity="zero">لا مسودات جولة</item>
         <item quantity="one">مسودة جولة واحدة</item>
         <item quantity="two">مسودتا جولة</item>
         <item quantity="few">%d مسودات جولة</item>
@@ -80,7 +80,7 @@
         <item quantity="other">%d مسودة جولة</item>
     </plurals>
     <plurals name="lists_n_purchase_drafts">
-        <item quantity="zero">%d مسودة شراء</item>
+        <item quantity="zero">لا مسودات شراء</item>
         <item quantity="one">مسودة شراء واحدة</item>
         <item quantity="two">مسودتا شراء</item>
         <item quantity="few">%d مسودات شراء</item>
@@ -88,7 +88,7 @@
         <item quantity="other">%d مسودة شراء</item>
     </plurals>
     <plurals name="lists_n_loading_drafts">
-        <item quantity="zero">%d مسودة تحميل</item>
+        <item quantity="zero">لا مسودات تحميل</item>
         <item quantity="one">مسودة تحميل واحدة</item>
         <item quantity="two">مسودتا تحميل</item>
         <item quantity="few">%d مسودات تحميل</item>
@@ -96,7 +96,7 @@
         <item quantity="other">%d مسودة تحميل</item>
     </plurals>
     <plurals name="lists_n_purchase_lines">
-        <item quantity="zero">%d سطر شراء</item>
+        <item quantity="zero">لا أسطر شراء</item>
         <item quantity="one">سطر شراء واحد</item>
         <item quantity="two">سطرا شراء</item>
         <item quantity="few">%d أسطر شراء</item>
@@ -104,7 +104,7 @@
         <item quantity="other">%d سطر شراء</item>
     </plurals>
     <plurals name="lists_n_inventory_lines">
-        <item quantity="zero">%d سطر جرد</item>
+        <item quantity="zero">لا أسطر جرد</item>
         <item quantity="one">سطر جرد واحد</item>
         <item quantity="two">سطرا جرد</item>
         <item quantity="few">%d أسطر جرد</item>
@@ -112,7 +112,7 @@
         <item quantity="other">%d سطر جرد</item>
     </plurals>
     <plurals name="lists_n_loading_lines">
-        <item quantity="zero">%d سطر تحميل</item>
+        <item quantity="zero">لا أسطر تحميل</item>
         <item quantity="one">سطر تحميل واحد</item>
         <item quantity="two">سطرا تحميل</item>
         <item quantity="few">%d أسطر تحميل</item>
@@ -120,7 +120,7 @@
         <item quantity="other">%d سطر تحميل</item>
     </plurals>
     <plurals name="lists_n_sale_lines">
-        <item quantity="zero">%d سطر بيع</item>
+        <item quantity="zero">لا أسطر بيع</item>
         <item quantity="one">سطر بيع واحد</item>
         <item quantity="two">سطرا بيع</item>
         <item quantity="few">%d أسطر بيع</item>
@@ -128,7 +128,7 @@
         <item quantity="other">%d سطر بيع</item>
     </plurals>
     <plurals name="lists_n_stock_movements">
-        <item quantity="zero">%d حركة مخزون</item>
+        <item quantity="zero">لا حركات مخزون</item>
         <item quantity="one">حركة مخزون واحدة</item>
         <item quantity="two">حركتا مخزون</item>
         <item quantity="few">%d حركات مخزون</item>
@@ -136,7 +136,7 @@
         <item quantity="other">%d حركة مخزون</item>
     </plurals>
     <plurals name="lists_n_client_returns">
-        <item quantity="zero">%d مرتجع زبون</item>
+        <item quantity="zero">لا مرتجعات زبائن</item>
         <item quantity="one">مرتجع زبون واحد</item>
         <item quantity="two">مرتجعا زبون</item>
         <item quantity="few">%d مرتجعات زبائن</item>
@@ -144,7 +144,7 @@
         <item quantity="other">%d مرتجع زبون</item>
     </plurals>
     <plurals name="lists_n_supplier_returns">
-        <item quantity="zero">%d مرتجع إلى المورد</item>
+        <item quantity="zero">لا مرتجعات إلى الموردين</item>
         <item quantity="one">مرتجع واحد إلى المورد</item>
         <item quantity="two">مرتجعان إلى المورد</item>
         <item quantity="few">%d مرتجعات إلى المورد</item>
@@ -213,7 +213,7 @@
     <string name="lists_delete_to_trash_f">ستُنقل إلى سلة المحذوفات، ويمكنك استعادتها منها.</string>
     <string name="lists_delete_to_trash_m">سيُنقل إلى سلة المحذوفات، ويمكنك استعادته منها.</string>
     <plurals name="lists_children_also_subcategories">
-        <item quantity="zero">و%d فئة فرعية تابعة لها أيضًا.</item>
+        <item quantity="zero">دون فئات فرعية.</item>
         <item quantity="one">وفئتها الفرعية أيضًا.</item>
         <item quantity="two">وفئتاها الفرعيتان أيضًا.</item>
         <item quantity="few">و%d فئات فرعية تابعة لها أيضًا.</item>
@@ -221,7 +221,7 @@
         <item quantity="other">و%d فئة فرعية تابعة لها أيضًا.</item>
     </plurals>
     <plurals name="lists_children_also_subtypes">
-        <item quantity="zero">و%d نوع فرعي تابع له أيضًا.</item>
+        <item quantity="zero">دون أنواع فرعية.</item>
         <item quantity="one">ونوعه الفرعي أيضًا.</item>
         <item quantity="two">ونوعاه الفرعيان أيضًا.</item>
         <item quantity="few">و%d أنواع فرعية تابعة له أيضًا.</item>

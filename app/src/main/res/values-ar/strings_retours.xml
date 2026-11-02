@@ -1,6 +1,6 @@
 <resources>
     <plurals name="retours_returnable_n">
-        <item quantity="zero">\u2068%1$d\u2069 منتج قابل للإرجاع</item>
+        <item quantity="zero">لا منتجات قابلة للإرجاع</item>
         <item quantity="one">منتج واحد قابل للإرجاع</item>
         <item quantity="two">منتجان قابلان للإرجاع</item>
         <item quantity="few">\u2068%1$d\u2069 منتجات قابلة للإرجاع</item>

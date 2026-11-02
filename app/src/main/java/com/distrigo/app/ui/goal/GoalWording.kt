@@ -189,10 +189,26 @@ object GoalWording {
     fun whole(value: Double, money: MoneyFormatter): String =
         money.da(Math.round(value).toDouble()).replace("${money.format.decimal}00", "")
 
-    /** A bar's label: `238K`, `1,2M`. */
+    /**
+     * A rhythm bar's name in the app's language: a month's week « S1 » / « أسبوع 1 », a year's quarter « T1 » / « فصل 1 »
+     * (owner, 2026-11-02), a quarter's month « Oct » / « أكتوبر ». The step holds the French name; this is display only.
+     */
+    fun stepLabel(step: com.distrigo.app.data.model.incentive.GoalStep): String {
+        val code = STEP_CODE.matchEntire(step.label)
+        return when (code?.groupValues?.get(1)) {
+            "S" -> t(R.string.goal_step_week, code.groupValues[2].toInt())
+            "T" -> t(R.string.goal_step_quarter, code.groupValues[2].toInt())
+            else -> step.start.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
+                .trimEnd('.').replaceFirstChar { it.uppercase() }
+        }
+    }
+
+    private val STEP_CODE = Regex("([ST])(\\d)")
+
+    /** A bar's label: `238K`, `1,2M`; in Arabic « 238 ألف », « 1,2 مليون » (owner, 2026-11-02). */
     fun compact(value: Double): String = when {
-        value >= 1_000_000 -> String.format(FR, "%.1fM", value / 1_000_000).replace('.', ',').replace(",0M", "M")
-        value >= 1_000 -> "${Math.round(value / 1_000)}K"
+        value >= 1_000_000 -> t(R.string.goal_amount_millions, String.format(FR, "%.1f", value / 1_000_000).replace('.', ',').removeSuffix(",0"))
+        value >= 1_000 -> t(R.string.goal_amount_thousands, "${Math.round(value / 1_000)}")
         else -> "${Math.round(value)}"
     }
 

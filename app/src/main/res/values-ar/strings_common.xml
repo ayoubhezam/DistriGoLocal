@@ -67,7 +67,7 @@
     <string name="common_action_delete_all">حذف الكل</string>
     <string name="common_drafts_delete_all_title">حذف كل المسودات؟</string>
     <plurals name="common_drafts_delete_title">
-        <item quantity="zero">حذف \u2068%1$d\u2069 مسودة؟</item>
+        <item quantity="zero">حذف المسودات؟</item>
         <item quantity="one">حذف مسودة واحدة؟</item>
         <item quantity="two">حذف مسودتين؟</item>
         <item quantity="few">حذف \u2068%1$d\u2069 مسودات؟</item>
@@ -95,7 +95,7 @@
     <string name="common_time_hours_ago">منذ \u2068%1$d\u2069 سا</string>
     <string name="common_time_yesterday">أمس</string>
     <plurals name="common_time_days_ago">
-        <item quantity="zero">منذ \u2068%1$d\u2069 يوم</item>
+        <item quantity="zero">اليوم</item>
         <item quantity="one">منذ يوم</item>
         <item quantity="two">منذ يومين</item>
         <item quantity="few">منذ \u2068%1$d\u2069 أيام</item>
@@ -103,7 +103,7 @@
         <item quantity="other">منذ \u2068%1$d\u2069 يوم</item>
     </plurals>
     <plurals name="common_products_count">
-        <item quantity="zero">\u2068%1$d\u2069 منتج</item>
+        <item quantity="zero">لا منتجات</item>
         <item quantity="one">منتج واحد</item>
         <item quantity="two">منتجان</item>
         <item quantity="few">\u2068%1$d\u2069 منتجات</item>
@@ -146,7 +146,7 @@
     <string name="common_search_quartier">البحث عن حي</string>
     <string name="common_no_quartier">بدون حي</string>
     <plurals name="common_clients_count">
-        <item quantity="zero">\u2068%1$d\u2069 زبون</item>
+        <item quantity="zero">لا زبائن</item>
         <item quantity="one">زبون واحد</item>
         <item quantity="two">زبونان</item>
         <item quantity="few">\u2068%1$d\u2069 زبائن</item>
@@ -265,7 +265,7 @@
         <item quantity="other">\u2068%1$s\u2069 كغ</item>
     </plurals>
     <plurals name="common_duration_days">
-        <item quantity="zero">\u2068%1$d\u2069 يوم</item>
+        <item quantity="zero">أقل من يوم</item>
         <item quantity="one">يوم واحد</item>
         <item quantity="two">يومان</item>
         <item quantity="few">\u2068%1$d\u2069 أيام</item>
@@ -273,7 +273,7 @@
         <item quantity="other">\u2068%1$d\u2069 يوم</item>
     </plurals>
     <plurals name="common_duration_months">
-        <item quantity="zero">\u2068%1$d\u2069 شهر</item>
+        <item quantity="zero">أقل من شهر</item>
         <item quantity="one">شهر واحد</item>
         <item quantity="two">شهران</item>
         <item quantity="few">\u2068%1$d\u2069 أشهر</item>
@@ -281,7 +281,7 @@
         <item quantity="other">\u2068%1$d\u2069 شهر</item>
     </plurals>
     <plurals name="common_duration_years">
-        <item quantity="zero">\u2068%1$d\u2069 سنة</item>
+        <item quantity="zero">أقل من سنة</item>
         <item quantity="one">سنة واحدة</item>
         <item quantity="two">سنتان</item>
         <item quantity="few">\u2068%1$d\u2069 سنوات</item>
@@ -328,7 +328,7 @@
     <string name="common_cd_added">أُضيف</string>
     <string name="common_my_selection">اختياراتي</string>
     <plurals name="common_selected_count">
-        <item quantity="zero">\u2068%1$d\u2069 محدَّد</item>
+        <item quantity="zero">لا شيء محدَّد</item>
         <item quantity="one">محدَّد واحد</item>
         <item quantity="two">محدَّدان</item>
         <item quantity="few">\u2068%1$d\u2069 محدَّدة</item>
@@ -339,7 +339,7 @@
     <string name="common_drafts">المسودات</string>
     <string name="common_drafts_none">لا توجد مسودات</string>
     <plurals name="common_drafts_n">
-        <item quantity="zero">\u2068%1$d\u2069 مسودة</item>
+        <item quantity="zero">لا مسودات</item>
         <item quantity="one">مسودة واحدة</item>
         <item quantity="two">مسودتان</item>
         <item quantity="few">\u2068%1$d\u2069 مسودات</item>
@@ -350,7 +350,7 @@
     <string name="common_drafts_no_match">لا توجد مسودة تطابق هذه التصفية.</string>
     <string name="common_reset_filters">إعادة تعيين التصفية</string>
     <plurals name="common_items_count">
-        <item quantity="zero">المنتجات (\u2068%1$d\u2069)</item>
+        <item quantity="zero">لا منتجات</item>
         <item quantity="one">منتج (\u2068%1$d\u2069)</item>
         <item quantity="two">المنتجات (\u2068%1$d\u2069)</item>
         <item quantity="few">المنتجات (\u2068%1$d\u2069)</item>
@@ -358,7 +358,7 @@
         <item quantity="other">المنتجات (\u2068%1$d\u2069)</item>
     </plurals>
     <plurals name="common_items_count_short">
-        <item quantity="zero">\u2068%1$d\u2069 منتج</item>
+        <item quantity="zero">لا منتجات</item>
         <item quantity="one">\u2068%1$d\u2069 منتج</item>
         <item quantity="two">\u2068%1$d\u2069 منتجان</item>
         <item quantity="few">\u2068%1$d\u2069 منتجات</item>
@@ -411,7 +411,7 @@
     <string name="common_date_to">إلى</string>
     <string name="common_pick_on_map">اختيار على الخريطة</string>
     <plurals name="common_results_count">
-        <item quantity="zero">\u2068%1$d\u2069 نتيجة</item>
+        <item quantity="zero">لا نتائج</item>
         <item quantity="one">نتيجة واحدة</item>
         <item quantity="two">نتيجتان</item>
         <item quantity="few">\u2068%1$d\u2069 نتائج</item>

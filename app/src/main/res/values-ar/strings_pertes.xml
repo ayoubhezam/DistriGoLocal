@@ -34,7 +34,7 @@
     <string name="pertes_history_title">سجل الخسائر</string>
     <string name="pertes_search">البحث عن خسارة</string>
     <plurals name="pertes_count">
-        <item quantity="zero">\u2068%1$d\u2069 خسارة</item>
+        <item quantity="zero">لا خسائر</item>
         <item quantity="one">خسارة واحدة</item>
         <item quantity="two">خسارتان</item>
         <item quantity="few">\u2068%1$d\u2069 خسائر</item>

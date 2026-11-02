@@ -30,7 +30,7 @@
     <string name="goal_units">وحدات</string>
     <string name="goal_named">\u200F« \u2068%1$s\u2069 »</string>
     <plurals name="goal_n_days">
-        <item quantity="zero">%d يوم</item>
+        <item quantity="zero">أقل من يوم</item>
         <item quantity="one">يوم واحد</item>
         <item quantity="two">يومان</item>
         <item quantity="few">%d أيام</item>
@@ -108,7 +108,7 @@
     <string name="goal_pace_advised">الإيقاع الموصى به</string>
     <string name="goal_per_day">\u2068%1$s\u2069 / اليوم</string>
     <plurals name="goal_during_days">
-        <item quantity="zero">خلال %d يوم</item>
+        <item quantity="zero">خلال اليوم</item>
         <item quantity="one">خلال يوم واحد</item>
         <item quantity="two">خلال يومين</item>
         <item quantity="few">خلال %d أيام</item>
@@ -117,7 +117,7 @@
     </plurals>
     <string name="goal_pace_current">الإيقاع الحالي</string>
     <plurals name="goal_days_left">
-        <item quantity="zero">%d يوم متبقٍّ</item>
+        <item quantity="zero">اليوم الأخير</item>
         <item quantity="one">يوم واحد متبقٍّ</item>
         <item quantity="two">يومان متبقيان</item>
         <item quantity="few">%d أيام متبقية</item>
@@ -150,4 +150,8 @@
     <string name="goal_measured_on">يُقاس على</string>
     <string name="goal_target_above_zero">أدخل هدفًا أكبر من الصفر.</string>
     <string name="goal_save">حفظ الهدف</string>
+    <string name="goal_step_week">أسبوع \u2068%1$d\u2069</string>
+    <string name="goal_step_quarter">فصل \u2068%1$d\u2069</string>
+    <string name="goal_amount_thousands">\u2068%1$s\u2069 ألف</string>
+    <string name="goal_amount_millions">\u2068%1$s\u2069 مليون</string>
 </resources>

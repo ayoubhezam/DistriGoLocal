@@ -24,7 +24,7 @@
     <string name="backup_rule_line">المخزون السالب: \u2068%1$s\u2069 في النسخة الاحتياطية، و\u2068%2$s\u2069 في هذا الهاتف. تحتفظ النسخة بقاعدتها: بعد الاستعادة سيكون المخزون السالب \u2068%3$s\u2069.</string>
     <string name="backup_rule_reset">هذه النسخة من إصدار للتطبيق سابق لهذا الإعداد: يأخذ فيها قيمته الافتراضية، « مسموح ».</string>
     <plurals name="backup_rule_negative_products">
-        <item quantity="zero">%d منتج في المخزون السالب بالمستودع في هذه النسخة. لن يمكن بيعه أو تحميله أو إخراجه قبل تموينه.</item>
+        <item quantity="zero">لا يوجد منتج في المخزون السالب بالمستودع في هذه النسخة.</item>
         <item quantity="one">منتج واحد في المخزون السالب بالمستودع في هذه النسخة. لن يمكن بيعه أو تحميله أو إخراجه قبل تموينه.</item>
         <item quantity="two">منتجان في المخزون السالب بالمستودع في هذه النسخة. لن يمكن بيعهما أو تحميلهما أو إخراجهما قبل تموينهما.</item>
         <item quantity="few">%d منتجات في المخزون السالب بالمستودع في هذه النسخة. لن يمكن بيعها أو تحميلها أو إخراجها قبل تموينها.</item>
@@ -124,7 +124,7 @@
     <string name="backup_saved_here">حُفظت \u2068%1$s\u2069 (\u2068%2$s\u2069) وتم التحقق منها.</string>
     <string name="backup_saved_in">حُفظت \u2068%1$s\u2069 (\u2068%2$s\u2069) وتم التحقق منها في « \u2068%3$s\u2069 ».</string>
     <plurals name="backup_photos_included">
-        <item quantity="zero">%d صورة مُضمّنة.</item>
+        <item quantity="zero">لا صور مُضمّنة.</item>
         <item quantity="one">صورة واحدة مُضمّنة.</item>
         <item quantity="two">صورتان مُضمّنتان.</item>
         <item quantity="few">%d صور مُضمّنة.</item>
@@ -132,7 +132,7 @@
         <item quantity="other">%d صورة مُضمّنة.</item>
     </plurals>
     <plurals name="backup_photos_left_out">
-        <item quantity="zero">تعذّر تضمين %d صورة مفقودة أو تالفة في الهاتف.</item>
+        <item quantity="zero">لا صور مفقودة أو تالفة في الهاتف.</item>
         <item quantity="one">تعذّر تضمين صورة واحدة مفقودة أو تالفة في الهاتف.</item>
         <item quantity="two">تعذّر تضمين صورتين مفقودتين أو تالفتين في الهاتف.</item>
         <item quantity="few">تعذّر تضمين %d صور مفقودة أو تالفة في الهاتف.</item>
@@ -140,7 +140,7 @@
         <item quantity="other">تعذّر تضمين %d صورة مفقودة أو تالفة في الهاتف.</item>
     </plurals>
     <plurals name="backup_old_removed">
-        <item quantity="zero">حُذفت %d نسخة تلقائية قديمة.</item>
+        <item quantity="zero">لم تُحذف أي نسخة تلقائية قديمة.</item>
         <item quantity="one">حُذفت نسخة تلقائية قديمة واحدة.</item>
         <item quantity="two">حُذفت نسختان تلقائيتان قديمتان.</item>
         <item quantity="few">حُذفت %d نسخ تلقائية قديمة.</item>

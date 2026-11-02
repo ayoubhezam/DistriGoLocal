@@ -1,6 +1,6 @@
 <resources>
     <plurals name="inventory_counted_n">
-        <item quantity="zero">\u2068%1$d\u2069 منتج مجرود</item>
+        <item quantity="zero">لا منتجات مجرودة</item>
         <item quantity="one">منتج واحد مجرود</item>
         <item quantity="two">منتجان مجرودان</item>
         <item quantity="few">\u2068%1$d\u2069 منتجات مجرودة</item>
@@ -26,7 +26,7 @@
     <string name="inventory_history_empty">لا يوجد جرد مكتمل حاليًا</string>
     <string name="inventory_status_done">مكتمل</string>
     <plurals name="inventory_gaps_n">
-        <item quantity="zero">\u2068%1$d\u2069 فرق</item>
+        <item quantity="zero">لا فروق</item>
         <item quantity="one">فرق واحد</item>
         <item quantity="two">فرقان</item>
         <item quantity="few">\u2068%1$d\u2069 فروق</item>
@@ -42,7 +42,7 @@
     <string name="inventory_stat_gaps_value">قيمة الفروق</string>
     <string name="inventory_uncounted">منتجات غير مجرودة</string>
     <plurals name="inventory_uncounted_body">
-        <item quantity="zero">\u2068%1$d\u2069 منتج في المخزون لم يُعَدّ. ماذا نفعل بمخزونها؟</item>
+        <item quantity="zero">لا منتجات في المخزون لم تُعَدّ.</item>
         <item quantity="one">منتج واحد في المخزون لم يُعَدّ. ماذا نفعل بمخزونه؟</item>
         <item quantity="two">منتجان في المخزون لم يُعَدّا. ماذا نفعل بمخزونهما؟</item>
         <item quantity="few">\u2068%1$d\u2069 منتجات في المخزون لم تُعَدّ. ماذا نفعل بمخزونها؟</item>
@@ -55,7 +55,7 @@
     <string name="inventory_keep_detail">لا يتغير مخزونها.</string>
     <string name="inventory_completed">اكتمل الجرد بنجاح</string>
     <plurals name="inventory_updated_zeroed">
-        <item quantity="zero">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتج</item>
+        <item quantity="zero">تم تحديث المخزون · لم يُصفَّر أي منتج</item>
         <item quantity="one">تم تحديث المخزون · تصفير منتج واحد</item>
         <item quantity="two">تم تحديث المخزون · تصفير منتجين</item>
         <item quantity="few">تم تحديث المخزون · تصفير \u2068%1$d\u2069 منتجات</item>

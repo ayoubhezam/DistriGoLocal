@@ -32,7 +32,7 @@
     <string name="mouvements_period_invalid">فترة غير صالحة</string>
     <string name="mouvements_show_all">عرض الحركات</string>
     <plurals name="mouvements_show_count">
-        <item quantity="zero">عرض %d حركة</item>
+        <item quantity="zero">لا حركات للعرض</item>
         <item quantity="one">عرض حركة واحدة</item>
         <item quantity="two">عرض حركتين</item>
         <item quantity="few">عرض %d حركات</item>

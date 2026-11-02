@@ -1,6 +1,6 @@
 <resources>
     <plurals name="chargements_draft_title">
-        <item quantity="zero">حركة · \u2068%1$d\u2069 منتج</item>
+        <item quantity="zero">حركة · دون منتجات</item>
         <item quantity="one">حركة · منتج واحد</item>
         <item quantity="two">حركة · منتجان</item>
         <item quantity="few">حركة · \u2068%1$d\u2069 منتجات</item>

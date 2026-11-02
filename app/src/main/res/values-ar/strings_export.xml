@@ -22,7 +22,7 @@
     <string name="export_saved">حُفظ الملف المُصدَّر</string>
     <string name="export_rows_of">\u200F\u2068%1$s\u2069: \u2068%2$s\u2069</string>
     <plurals name="export_n_rows">
-        <item quantity="zero">%d سطر</item>
+        <item quantity="zero">لا أسطر</item>
         <item quantity="one">سطر واحد</item>
         <item quantity="two">سطران</item>
         <item quantity="few">%d أسطر</item>

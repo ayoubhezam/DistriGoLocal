@@ -22,7 +22,7 @@
     <string name="charges_new">مصروف جديد</string>
     <string name="charges_search">البحث عن مصروف</string>
     <plurals name="charges_count">
-        <item quantity="zero">%d مصروف</item>
+        <item quantity="zero">لا مصاريف</item>
         <item quantity="one">مصروف واحد</item>
         <item quantity="two">مصروفان</item>
         <item quantity="few">%d مصاريف</item>

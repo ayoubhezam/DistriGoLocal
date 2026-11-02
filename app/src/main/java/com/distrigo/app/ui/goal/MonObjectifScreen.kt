@@ -553,10 +553,11 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
     val share = if (step.future || step.target <= 0) 0f else (step.value / step.target * 0.82).coerceIn(0.18, 1.0).toFloat()
     val height by animateFloatAsState(share, tween(600), label = "step")
     val tint = if (step.current) DsColors.Primary else DsColors.TextTertiary
+    val label = GoalWording.stepLabel(step)
     Column(
         modifier.clearAndSetSemantics {
-            contentDescription = if (step.future) settingsText(R.string.goal_cd_step_future, step.label)
-            else settingsText(R.string.goal_cd_step, step.label, GoalWording.whole(step.value, money), GoalWording.whole(step.target, money))
+            contentDescription = if (step.future) settingsText(R.string.goal_cd_step_future, label)
+            else settingsText(R.string.goal_cd_step, label, GoalWording.whole(step.value, money), GoalWording.whole(step.target, money))
         },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -571,7 +572,7 @@ private fun StepBar(step: GoalStep, modifier: Modifier) {
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text(step.label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = tint)
+        Text(label, fontSize = DsTextSize.caption, fontWeight = FontWeight.Bold, color = tint)
     }
 }
 

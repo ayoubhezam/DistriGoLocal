@@ -49,7 +49,7 @@
     <string name="rapports_no_quartier">بدون حي</string>
     <string name="rapports_others">أخرى</string>
     <plurals name="rapports_n_wilayas">
-        <item quantity="zero">%d ولاية</item>
+        <item quantity="zero">لا ولايات</item>
         <item quantity="one">ولاية واحدة</item>
         <item quantity="two">ولايتان</item>
         <item quantity="few">%d ولايات</item>
@@ -57,7 +57,7 @@
         <item quantity="other">%d ولاية</item>
     </plurals>
     <plurals name="rapports_n_communes">
-        <item quantity="zero">%d بلدية</item>
+        <item quantity="zero">لا بلديات</item>
         <item quantity="one">بلدية واحدة</item>
         <item quantity="two">بلديتان</item>
         <item quantity="few">%d بلديات</item>
@@ -65,7 +65,7 @@
         <item quantity="other">%d بلدية</item>
     </plurals>
     <plurals name="rapports_n_secteurs">
-        <item quantity="zero">%d قطاع</item>
+        <item quantity="zero">لا قطاعات</item>
         <item quantity="one">قطاع واحد</item>
         <item quantity="two">قطاعان</item>
         <item quantity="few">%d قطاعات</item>
@@ -73,7 +73,7 @@
         <item quantity="other">%d قطاع</item>
     </plurals>
     <plurals name="rapports_n_quartiers">
-        <item quantity="zero">%d حي</item>
+        <item quantity="zero">لا أحياء</item>
         <item quantity="one">حي واحد</item>
         <item quantity="two">حيّان</item>
         <item quantity="few">%d أحياء</item>
@@ -134,7 +134,7 @@
     <string name="rapports_sales_to_clients">المبيعات للزبائن</string>
     <string name="rapports_info_sales_to_clients">المبيعات = مجموع المبيعات، المستودع + الشاحنة</string>
     <plurals name="rapports_active_clients_n">
-        <item quantity="zero">%d زبون نشط</item>
+        <item quantity="zero">لا زبائن نشطون</item>
         <item quantity="one">زبون نشط واحد</item>
         <item quantity="two">زبونان نشطان</item>
         <item quantity="few">%d زبائن نشطين</item>
@@ -194,7 +194,7 @@
     <string name="rapports_info_change_clients">التطور = الدين الممنوح − الدفعات المستلمة − مرتجعات الزبائن\n\nفي انخفاض: الزبائن مدينون لك بأقل مما كانوا في بداية الفترة.</string>
     <string name="rapports_info_change_suppliers">التطور = المشتريات بالدين − الدفعات المدفوعة − المرتجعات إلى الموردين\n\nفي انخفاض: أنت مدين بأقل مما كنت في بداية الفترة.</string>
     <plurals name="rapports_debtor_clients_n">
-        <item quantity="zero">%d زبون مدين</item>
+        <item quantity="zero">لا زبائن مدينون</item>
         <item quantity="one">زبون مدين واحد</item>
         <item quantity="two">زبونان مدينان</item>
         <item quantity="few">%d زبائن مدينين</item>
@@ -202,7 +202,7 @@
         <item quantity="other">%d زبون مدين</item>
     </plurals>
     <plurals name="rapports_suppliers_to_pay_n">
-        <item quantity="zero">%d مورد للدفع</item>
+        <item quantity="zero">لا موردين للدفع</item>
         <item quantity="one">مورد واحد للدفع</item>
         <item quantity="two">موردان للدفع</item>
         <item quantity="few">%d موردين للدفع</item>
@@ -210,7 +210,7 @@
         <item quantity="other">%d مورد للدفع</item>
     </plurals>
     <plurals name="rapports_payments_n">
-        <item quantity="zero">%d دفعة</item>
+        <item quantity="zero">لا دفعات</item>
         <item quantity="one">دفعة واحدة</item>
         <item quantity="two">دفعتان</item>
         <item quantity="few">%d دفعات</item>
@@ -218,7 +218,7 @@
         <item quantity="other">%d دفعة</item>
     </plurals>
     <plurals name="rapports_returns_n">
-        <item quantity="zero">%d مرتجع</item>
+        <item quantity="zero">لا مرتجعات</item>
         <item quantity="one">مرتجع واحد</item>
         <item quantity="two">مرتجعان</item>
         <item quantity="few">%d مرتجعات</item>
@@ -261,7 +261,7 @@
     <string name="rapports_restock_n">للتموين (\u2068%1$d\u2069)</string>
     <string name="rapports_nothing_to_restock_long">لا شيء للتموين: كل المنتجات فوق حدها الأدنى.</string>
     <plurals name="rapports_products_in_stock_n">
-        <item quantity="zero">%d منتج في المخزون</item>
+        <item quantity="zero">لا منتجات في المخزون</item>
         <item quantity="one">منتج واحد في المخزون</item>
         <item quantity="two">منتجان في المخزون</item>
         <item quantity="few">%d منتجات في المخزون</item>
@@ -278,7 +278,7 @@
     <string name="rapports_outage_detail">نفاد · \u2068%1$s\u2069</string>
     <string name="rapports_low_detail">مخزون منخفض · \u2068%1$s\u2069</string>
     <plurals name="rapports_outages_n">
-        <item quantity="zero">%d منتج نافد</item>
+        <item quantity="zero">لا منتجات نافدة</item>
         <item quantity="one">منتج نافد واحد</item>
         <item quantity="two">منتجان نافدان</item>
         <item quantity="few">%d منتجات نافدة</item>

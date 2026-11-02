@@ -76,7 +76,7 @@
     <string name="import_filter_refused">مرفوضة</string>
     <string name="import_filter_unchanged">دون تغيير</string>
     <plurals name="import_n_new">
-        <item quantity="zero">%d بطاقة جديدة</item>
+        <item quantity="zero">لا بطاقات جديدة</item>
         <item quantity="one">بطاقة جديدة واحدة</item>
         <item quantity="two">بطاقتان جديدتان</item>
         <item quantity="few">%d بطاقات جديدة</item>
@@ -84,7 +84,7 @@
         <item quantity="other">%d بطاقة جديدة</item>
     </plurals>
     <plurals name="import_n_updated">
-        <item quantity="zero">%d بطاقة معدّلة</item>
+        <item quantity="zero">لا بطاقات معدّلة</item>
         <item quantity="one">بطاقة معدّلة واحدة</item>
         <item quantity="two">بطاقتان معدّلتان</item>
         <item quantity="few">%d بطاقات معدّلة</item>
@@ -92,7 +92,7 @@
         <item quantity="other">%d بطاقة معدّلة</item>
     </plurals>
     <plurals name="import_n_unchanged">
-        <item quantity="zero">%d بطاقة دون تغيير</item>
+        <item quantity="zero">لا بطاقات دون تغيير</item>
         <item quantity="one">بطاقة واحدة دون تغيير</item>
         <item quantity="two">بطاقتان دون تغيير</item>
         <item quantity="few">%d بطاقات دون تغيير</item>
@@ -100,7 +100,7 @@
         <item quantity="other">%d بطاقة دون تغيير</item>
     </plurals>
     <plurals name="import_n_refused">
-        <item quantity="zero">%d بطاقة مرفوضة</item>
+        <item quantity="zero">لا بطاقات مرفوضة</item>
         <item quantity="one">بطاقة مرفوضة واحدة</item>
         <item quantity="two">بطاقتان مرفوضتان</item>
         <item quantity="few">%d بطاقات مرفوضة</item>
@@ -119,7 +119,7 @@
     <string name="import_done">اكتمل الاستيراد</string>
     <string name="import_done_body">\u2068%1$s\u2069: \u2068%2$s\u2069، \u2068%3$s\u2069.</string>
     <plurals name="import_n_created">
-        <item quantity="zero">أُنشئت %d بطاقة</item>
+        <item quantity="zero">لم تُنشأ أي بطاقة</item>
         <item quantity="one">أُنشئت بطاقة واحدة</item>
         <item quantity="two">أُنشئت بطاقتان</item>
         <item quantity="few">أُنشئت %d بطاقات</item>
@@ -127,7 +127,7 @@
         <item quantity="other">أُنشئت %d بطاقة</item>
     </plurals>
     <plurals name="import_n_modified">
-        <item quantity="zero">عُدّلت %d بطاقة</item>
+        <item quantity="zero">لم تُعدَّل أي بطاقة</item>
         <item quantity="one">عُدّلت بطاقة واحدة</item>
         <item quantity="two">عُدّلت بطاقتان</item>
         <item quantity="few">عُدّلت %d بطاقات</item>

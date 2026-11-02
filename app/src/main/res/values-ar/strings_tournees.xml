@@ -3,7 +3,7 @@
     <string name="tournees_open_banner">\u2068%1$s\u2069 — جارية</string>
     <string name="tournees_tap_to_continue">اضغط للمتابعة</string>
     <plurals name="tournees_count">
-        <item quantity="zero">\u2068%1$d\u2069 جولة</item>
+        <item quantity="zero">لا جولات</item>
         <item quantity="one">جولة واحدة</item>
         <item quantity="two">جولتان</item>
         <item quantity="few">\u2068%1$d\u2069 جولات</item>
@@ -32,7 +32,7 @@
     <string name="tournees_license_unload_only">للعرض فقط: لا يزال بإمكانك إغلاق الجولة (القائمة ⋮) وتفريغ الشاحنة.</string>
     <string name="tournees_search">البحث عن زبون أو وصل</string>
     <plurals name="tournees_bons_count">
-        <item quantity="zero">\u2068%1$d\u2069 وصل</item>
+        <item quantity="zero">لا وصولات</item>
         <item quantity="one">وصل واحد</item>
         <item quantity="two">وصلان</item>
         <item quantity="few">\u2068%1$d\u2069 وصولات</item>
@@ -61,7 +61,7 @@
     <string name="tournees_remove_from_sub_sales">تبقى مبيعاته مسجّلة</string>
     <string name="tournees_remove_from_sub">إزالة هذا الزبون من القائمة</string>
     <plurals name="tournees_legend_with_sale">
-        <item quantity="zero">زيارة + بيع (\u2068%1$d\u2069 زبون)</item>
+        <item quantity="zero">زيارة + بيع (لا زبائن)</item>
         <item quantity="one">زيارة + بيع (زبون واحد)</item>
         <item quantity="two">زيارة + بيع (زبونان)</item>
         <item quantity="few">زيارة + بيع (\u2068%1$d\u2069 زبائن)</item>
@@ -69,7 +69,7 @@
         <item quantity="other">زيارة + بيع (\u2068%1$d\u2069 زبون)</item>
     </plurals>
     <plurals name="tournees_legend_without_sale">
-        <item quantity="zero">زيارة دون بيع (\u2068%1$d\u2069 زبون)</item>
+        <item quantity="zero">زيارة دون بيع (لا زبائن)</item>
         <item quantity="one">زيارة دون بيع (زبون واحد)</item>
         <item quantity="two">زيارة دون بيع (زبونان)</item>
         <item quantity="few">زيارة دون بيع (\u2068%1$d\u2069 زبائن)</item>
@@ -77,7 +77,7 @@
         <item quantity="other">زيارة دون بيع (\u2068%1$d\u2069 زبون)</item>
     </plurals>
     <plurals name="tournees_legend_not_yet">
-        <item quantity="zero">لم تتم زيارته بعد (\u2068%1$d\u2069 زبون)</item>
+        <item quantity="zero">لم تتم الزيارة بعد (لا زبائن)</item>
         <item quantity="one">لم تتم زيارته بعد (زبون واحد)</item>
         <item quantity="two">لم تتم زيارتهما بعد (زبونان)</item>
         <item quantity="few">لم تتم زيارتهم بعد (\u2068%1$d\u2069 زبائن)</item>
@@ -103,7 +103,7 @@
     <string name="tournees_visit_pill_without_sale">تمت الزيارة · دون شراء</string>
     <string name="tournees_visit_pending">للزيارة</string>
     <plurals name="tournees_map_unplaced">
-        <item quantity="zero">\u2068%1$d\u2069 زبون دون موقع</item>
+        <item quantity="zero">لا زبائن دون موقع</item>
         <item quantity="one">زبون واحد دون موقع</item>
         <item quantity="two">زبونان دون موقع</item>
         <item quantity="few">\u2068%1$d\u2069 زبائن دون موقع</item>
@@ -148,7 +148,7 @@
     <string name="tournees_search_client_zone">البحث عن زبون أو منطقة</string>
     <string name="tournees_select_clients">اختر الزبائن</string>
     <plurals name="tournees_add_n_clients">
-        <item quantity="zero">إضافة \u2068%1$d\u2069 زبون إلى الجولة</item>
+        <item quantity="zero">إضافة زبائن إلى الجولة</item>
         <item quantity="one">إضافة زبون واحد إلى الجولة</item>
         <item quantity="two">إضافة زبونين إلى الجولة</item>
         <item quantity="few">إضافة \u2068%1$d\u2069 زبائن إلى الجولة</item>

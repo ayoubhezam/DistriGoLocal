@@ -6,7 +6,7 @@
     <string name="clients_discard_continue">متابعة الإدخال</string>
     <string name="clients_to_quartier">إلى الحي « \u2068%1$s\u2069 » · \u2068%2$s\u2069</string>
     <plurals name="clients_debts_n">
-        <item quantity="zero">ديون جارية · \u2068%1$d\u2069 زبون</item>
+        <item quantity="zero">ديون جارية · لا زبائن</item>
         <item quantity="one">ديون جارية · زبون واحد</item>
         <item quantity="two">ديون جارية · زبونان</item>
         <item quantity="few">ديون جارية · \u2068%1$d\u2069 زبائن</item>
@@ -15,7 +15,7 @@
     </plurals>
     <string name="clients_without_quartier_n">بدون حي · \u2068%1$d\u2069</string>
     <plurals name="clients_add_n">
-        <item quantity="zero">إضافة \u2068%1$d\u2069 زبون</item>
+        <item quantity="zero">إضافة الزبائن</item>
         <item quantity="one">إضافة زبون واحد</item>
         <item quantity="two">إضافة زبونين</item>
         <item quantity="few">إضافة \u2068%1$d\u2069 زبائن</item>
@@ -75,7 +75,7 @@
     <string name="clients_form_preselected">القطاع والحي محدَّدان مسبقًا من « \u2068%1$s\u2069 ».</string>
     <string name="suppliers_total_debt">إجمالي الديون</string>
     <plurals name="suppliers_count">
-        <item quantity="zero">\u2068%1$d\u2069 مورد</item>
+        <item quantity="zero">لا موردين</item>
         <item quantity="one">مورد واحد</item>
         <item quantity="two">موردان</item>
         <item quantity="few">\u2068%1$d\u2069 موردين</item>
