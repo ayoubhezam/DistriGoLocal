@@ -432,10 +432,7 @@ fun SupplierDetailScreen(
                             }
                             if (!currentSupplier.commune_name.isNullOrBlank() || !currentSupplier.wilaya_name.isNullOrBlank()) {
                                 Spacer(Modifier.height(4.dp))
-                                val location = listOfNotNull(
-                                    currentSupplier.commune_name?.takeIf { it.isNotBlank() },
-                                    currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }
-                                ).joinToString(", ")
+                                val location = com.distrigo.app.ui.common.placeLine(currentSupplier.commune_name, currentSupplier.wilaya_name).orEmpty()
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
                                     Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
@@ -635,12 +632,12 @@ fun SupplierDetailScreen(
                                 SupplierInfoRow(
                                     icon = Icons.Default.LocationOn,
                                     label = stringResource(R.string.common_label_wilaya),
-                                    value = currentSupplier.wilaya_name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set_f)
+                                    value = com.distrigo.app.ui.common.wilayaShownName(currentSupplier.wilaya_name?.takeIf { it.isNotBlank() }) ?: stringResource(R.string.clients_not_set_f)
                                 )
                                 SupplierInfoRow(
                                     icon = Icons.Default.Map,
                                     label = stringResource(R.string.common_label_commune),
-                                    value = currentSupplier.commune_name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.clients_not_set_f)
+                                    value = com.distrigo.app.ui.common.communeShownName(currentSupplier.wilaya_name, currentSupplier.commune_name?.takeIf { it.isNotBlank() }) ?: stringResource(R.string.clients_not_set_f)
                                 )
                                 SupplierInfoRow(
                                     icon = Icons.Default.Home,

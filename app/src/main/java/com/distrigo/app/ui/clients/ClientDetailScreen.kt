@@ -460,10 +460,7 @@ fun ClientDetailScreen(
                             }
                             if (!currentClient.commune_name.isNullOrBlank() || !currentClient.wilaya_name.isNullOrBlank()) {
                                 Spacer(Modifier.height(4.dp))
-                                val location = listOfNotNull(
-                                    currentClient.commune_name?.takeIf { it.isNotBlank() },
-                                    currentClient.wilaya_name?.takeIf { it.isNotBlank() }
-                                ).joinToString(", ")
+                                val location = com.distrigo.app.ui.common.placeLine(currentClient.commune_name, currentClient.wilaya_name).orEmpty()
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
                                     Text(location, fontSize = DsTextSize.bodySmall, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
@@ -699,12 +696,12 @@ fun ClientDetailScreen(
                                 ClientInfoRow(
                                     icon = Icons.Default.LocationOn,
                                     label = stringResource(R.string.common_label_wilaya),
-                                    value = currentClient.wilaya_name?.takeIf { it.isNotBlank() }
+                                    value = com.distrigo.app.ui.common.wilayaShownName(currentClient.wilaya_name?.takeIf { it.isNotBlank() })
                                         ?: stringResource(R.string.clients_not_set_f))
                                 ClientInfoRow(
                                     icon = Icons.Default.Map,
                                     label = stringResource(R.string.common_label_commune),
-                                    value = currentClient.commune_name?.takeIf { it.isNotBlank() }
+                                    value = com.distrigo.app.ui.common.communeShownName(currentClient.wilaya_name, currentClient.commune_name?.takeIf { it.isNotBlank() })
                                         ?: stringResource(R.string.clients_not_set_f))
                                 ClientInfoRow(
                                     icon = Icons.Default.Place,

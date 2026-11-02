@@ -73,7 +73,7 @@ fun SecteurDetailScreen(
                 subtitleContent = secteur?.let {
                     {
                         EditableSubtitle(
-                            name = it.name, rest = it.commune, editLabel = sectText(R.string.sect_edit_secteur_named, it.name),
+                            name = it.name, rest = com.distrigo.app.ui.common.communeShownName(it.wilaya, it.commune) ?: it.commune, editLabel = sectText(R.string.sect_edit_secteur_named, it.name),
                             onEdit = { onEdit(it.id) }, onTap = { say(EDIT_HINT) },
                         )
                     }

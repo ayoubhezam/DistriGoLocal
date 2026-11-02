@@ -111,9 +111,15 @@ class PerteHistoryViewModel @Inject constructor(private val repository: PerteRep
         .flatMapLatest { (s, f) ->
             val range = f.period?.let { ReportFilter(it).resolve() }
             val tokens = com.distrigo.app.ui.common.searchTokens(s)
-            // Every word, in any order, in the product, the type or the motif.
+            // Every word, in any order, in the product, the type (as stored and as shown: a built-in type reads in the
+            // app's language) or the motif. Each distinct type name is translated once per update, not per row.
             repository.observeHistory(f.typeId, range?.start, range?.end, "").map { all ->
-                all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.product_name, it.type_name, it.motif) }
+                if (tokens.isEmpty()) return@map all
+                val shown = HashMap<String, String>()
+                all.filter {
+                    val type = shown.getOrPut(it.type_name) { BuiltInNames.perteType(it.type_name) }
+                    com.distrigo.app.ui.common.matchesAllTokens(tokens, it.product_name, it.type_name, type, it.motif)
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

@@ -61,9 +61,11 @@ class QuartierFormViewModel @Inject constructor(
             val loaded = withContext(Dispatchers.IO) {
                 runCatching {
                     quartierId?.let { lists.quartier(it) }?.let { q ->
-                        QuartierFormState(SecteurFormStatus.Ready, q.name, q.name, q.secteurName, q.commune, q.clients)
+                        QuartierFormState(SecteurFormStatus.Ready, q.name, q.name, q.secteurName,
+                            com.distrigo.app.ui.common.communeShownName(q.wilaya, q.commune) ?: q.commune, q.clients)
                     } ?: secteurId?.takeIf { quartierId == null }?.let { lists.secteur(it) }?.let { s ->
-                        QuartierFormState(SecteurFormStatus.Ready, secteurName = s.name, commune = s.commune)
+                        QuartierFormState(SecteurFormStatus.Ready, secteurName = s.name,
+                            commune = com.distrigo.app.ui.common.communeShownName(s.wilaya, s.commune) ?: s.commune)
                     }
                 }
             }

@@ -2,6 +2,8 @@ package com.distrigo.app.ui.secteurs
 
 import com.distrigo.app.R
 import com.distrigo.app.ui.common.shownName
+import com.distrigo.app.ui.common.communeShownName
+import com.distrigo.app.ui.common.wilayaShownName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -117,13 +119,14 @@ fun SecteurFormScreen(
                 ) {
                     Field(sectText(R.string.sect_name), required = true, error = state.nameError, help = sectText(R.string.sect_name_help)) {
                         TextInput(f.name, viewModel::setName, sectText(R.string.sect_name_example), isError = state.nameError != null)
-                        val commune = f.commune
-                        if (commune != null && f.name.isBlank()) Suggestion(commune, viewModel::useSuggestion)
+                        // The commune's name in the app's language, offered as the secteur's name
+                        val commune = f.commune?.let { communeShownName(f.wilaya, it) ?: it }
+                        if (commune != null && f.name.isBlank()) Suggestion(commune) { viewModel.useSuggestion(commune) }
                     }
                     val locked = state.lockedBy != null
                     Field(sectText(R.string.sect_wilaya), required = true, error = state.wilayaError) {
                         PickField(
-                            value = f.wilaya, placeholder = sectText(R.string.sect_select_wilaya), label = sectText(R.string.sect_choose_wilaya),
+                            value = wilayaShownName(f.wilaya), placeholder = sectText(R.string.sect_select_wilaya), label = sectText(R.string.sect_choose_wilaya),
                             locked = locked, isError = state.wilayaError != null, onClick = { choosingWilaya = true },
                         )
                     }
@@ -133,7 +136,7 @@ fun SecteurFormScreen(
                             ?: sectText(R.string.sect_wilaya_first).takeIf { f.wilaya == null },
                     ) {
                         PickField(
-                            value = f.commune?.let { place(it, f.wilaya) }, placeholder = sectText(R.string.sect_select_commune), label = sectText(R.string.sect_choose_commune),
+                            value = f.commune?.let { place(communeShownName(f.wilaya, it) ?: it, wilayaShownName(f.wilaya)) }, placeholder = sectText(R.string.sect_select_commune), label = sectText(R.string.sect_choose_commune),
                             locked = locked, enabled = f.wilaya != null, isError = state.communeError != null,
                             onClick = { choosingCommune = true },
                         )

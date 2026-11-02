@@ -114,7 +114,8 @@ class SecteurFormViewModel @Inject constructor(
     }
 
     /** « Suggestion : Sedrata »: the commune's name as the secteur's, editable after. */
-    fun useSuggestion() = _state.update { s -> s.fields.commune?.let { s.copy(fields = s.fields.copy(name = it), nameError = null) } ?: s }
+    /** The suggestion taken as the name: the commune's name as the form shows it (in Arabic, its Arabic name). */
+    fun useSuggestion(name: String) = _state.update { s -> s.copy(fields = s.fields.copy(name = name), nameError = null) }
 
     fun save() {
         val s = _state.value

@@ -38,6 +38,7 @@ import com.distrigo.app.ui.designsystem.DsTopAppBar
 import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 import com.distrigo.app.ui.designsystem.DsTopBarLeading
 import com.distrigo.app.ui.designsystem.LocalLicense
+import com.distrigo.app.ui.common.communeShownName
 
 /**
  * « Secteurs » (owner's prototype v5, 2026-10-24): a card per secteur — its name, its commune, how many quartiers
@@ -75,7 +76,8 @@ fun SecteursScreen(
             )
             is SecteursUiState.Success -> {
                 val tokens = searchTokens(query)
-                val shown = s.secteurs.filter { matchesAllTokens(tokens, it.name, it.commune) }
+                // The commune as stored and as shown (in Arabic, its Arabic name)
+                val shown = s.secteurs.filter { matchesAllTokens(tokens, it.name, it.commune, communeShownName(it.wilaya, it.commune)) }
                 DsCompactSearchField(
                     value = query, onValueChange = viewModel::search, placeholder = sectText(R.string.sect_search),
                     modifier = Modifier.padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.sm),
@@ -99,7 +101,7 @@ fun SecteursScreen(
 private fun SecteurCard(secteur: SecteurSummary, onClick: () -> Unit) {
     CardRow(secteur.name, onClick, leading = { Tile(Icons.Outlined.Place, DsColors.Success) }) {
         CardTitle(secteur.name)
-        CardLine(secteur.commune)
+        CardLine(communeShownName(secteur.wilaya, secteur.commune) ?: secteur.commune)
         Spacer(Modifier.height(DsSpacing.xs))
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
             Meta(Icons.Outlined.Home, DsColors.Primary,

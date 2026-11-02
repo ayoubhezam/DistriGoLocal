@@ -129,9 +129,17 @@ class ChargeHistoryViewModel @Inject constructor(private val repository: ChargeR
         .flatMapLatest { (s, f) ->
             val range = f.period?.let { ReportFilter(it).resolve() }
             val tokens = com.distrigo.app.ui.common.searchTokens(s)
-            // Every word, in any order, in the sub-type, the type, the supplier or the note.
+            // Every word, in any order, in the sub-type, the type (as stored and as shown: a built-in type reads in the
+            // app's language), the supplier or the note. Each distinct type name is translated once per update, not per row.
             repository.observeHistory(f.typeId, f.subtypeId, range?.start, range?.end, "").map { all ->
-                all.filter { com.distrigo.app.ui.common.matchesAllTokens(tokens, it.subtype_name, it.type_name, it.fournisseur, it.note) }
+                if (tokens.isEmpty()) return@map all
+                val translated = HashMap<String, String>()
+                fun shown(name: String) = translated.getOrPut(name) { BuiltInNames.chargeType(name) }
+                all.filter {
+                    com.distrigo.app.ui.common.matchesAllTokens(
+                        tokens, it.subtype_name, it.type_name, shown(it.subtype_name), shown(it.type_name), it.fournisseur, it.note
+                    )
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

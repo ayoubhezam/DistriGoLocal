@@ -331,7 +331,7 @@ fun ClientFormScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
                         label       = stringResource(R.string.common_label_wilaya),
-                        value       = wilayaName,
+                        value       = com.distrigo.app.ui.common.wilayaShownName(wilayaName).orEmpty(),
                         placeholder = stringResource(if (locked) R.string.clients_not_set_f else R.string.common_select_wilaya),
                         locked      = locked,
                         onClick     = { showWilayaSheet = true }
@@ -340,7 +340,7 @@ fun ClientFormScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     DsSelectorField(
                         label       = stringResource(R.string.common_label_commune),
-                        value       = communeName,
+                        value       = com.distrigo.app.ui.common.communeShownName(wilayaName, communeName).orEmpty(),
                         placeholder = stringResource(R.string.common_select_commune),
                         locked      = locked,
                         onClick     = { if (selectedWilayaCode != null) showCommuneSheet = true }

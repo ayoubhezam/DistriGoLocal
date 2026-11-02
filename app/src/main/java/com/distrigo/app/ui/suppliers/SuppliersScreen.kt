@@ -73,8 +73,8 @@ fun SuppliersScreen(
     }
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
         filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
-        filters.wilaya?.let { w -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_wilaya), w) to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
-        filters.commune?.let { c -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_commune), c) to { viewModel.listFilters = filters.copy(commune = null) }) }
+        filters.wilaya?.let { w -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_wilaya), com.distrigo.app.ui.common.wilayaShownName(w).orEmpty()) to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
+        filters.commune?.let { c -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_commune), com.distrigo.app.ui.common.communeShownName(filters.wilaya, c).orEmpty()) to { viewModel.listFilters = filters.copy(commune = null) }) }
     }
 
     if (showFilterSheet) {

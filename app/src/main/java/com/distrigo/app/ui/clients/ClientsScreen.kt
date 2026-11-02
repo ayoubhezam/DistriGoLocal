@@ -199,8 +199,8 @@ fun ClientsScreen(
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
         filters.type?.let { t -> add((typeNames.toMap()[t] ?: t) to { viewModel.listFilters = filters.copy(type = null) }) }
         filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
-        filters.wilaya?.let { w -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_wilaya), w) to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
-        filters.commune?.let { c -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_commune), c) to { viewModel.listFilters = filters.copy(commune = null) }) }
+        filters.wilaya?.let { w -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_wilaya), com.distrigo.app.ui.common.wilayaShownName(w).orEmpty()) to { viewModel.listFilters = filters.copy(wilaya = null, commune = null) }) }
+        filters.commune?.let { c -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_commune), com.distrigo.app.ui.common.communeShownName(filters.wilaya, c).orEmpty()) to { viewModel.listFilters = filters.copy(commune = null) }) }
         filters.secteur?.let { s -> add(stringResource(R.string.common_chip_value, stringResource(R.string.common_label_secteur), s) to { viewModel.listFilters = filters.copy(secteur = null) }) }
     }
 
@@ -481,10 +481,7 @@ private fun ClientCard(
                 maxLines   = 1
             )
             val subtitle = client.phone?.takeIf { it.isNotBlank() }
-                ?: listOfNotNull(
-                    client.commune_name?.takeIf { it.isNotBlank() },
-                    client.wilaya_name?.takeIf { it.isNotBlank() }
-                ).joinToString(", ").ifEmpty { null }
+                ?: com.distrigo.app.ui.common.placeLine(client.commune_name, client.wilaya_name)
 
             subtitle?.let {
                 Text(it, fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, maxLines = 1)

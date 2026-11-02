@@ -113,6 +113,8 @@ data class QuartierDetail(
     val secteurName: String,
     val commune: String,
     val clients: Int,
+    /** The secteur's wilaya: it tells which commune [commune] is, to show its name in the app's language. */
+    val wilaya: String? = null,
 )
 
 /** Where a client created from quartier [quartierId] goes: the quartier, its secteur, the secteur's wilaya and commune. */
@@ -330,13 +332,14 @@ class ListsRepository(private val db: AppDatabase) {
     fun quartier(id: Long): QuartierDetail? = sql.query(
         SimpleSQLiteQuery(
             "SELECT q.nom, q.secteur_id, s.nom, s.commune_name, " +
-                "(SELECT COUNT(*) FROM clients c WHERE c.quartier_id = q.id AND c.deleted_at IS NULL) " +
+                "(SELECT COUNT(*) FROM clients c WHERE c.quartier_id = q.id AND c.deleted_at IS NULL), s.wilaya_name " +
                 "FROM quartiers q JOIN secteurs s ON s.id = q.secteur_id WHERE q.id = ?",
             arrayOf<Any>(id),
         )
     ).use { c ->
         if (!c.moveToFirst()) null
-        else QuartierDetail(id, c.getString(0).orEmpty(), c.getLong(1), c.getString(2).orEmpty(), c.getString(3).orEmpty(), c.getInt(4))
+        else QuartierDetail(id, c.getString(0).orEmpty(), c.getLong(1), c.getString(2).orEmpty(), c.getString(3).orEmpty(), c.getInt(4),
+            if (c.isNull(5)) null else c.getString(5))
     }
 
     /** The live clients of quartier [quartierId], by name. Blocks: off the main thread. */

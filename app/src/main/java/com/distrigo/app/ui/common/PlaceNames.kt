@@ -27,3 +27,10 @@ fun communeShownName(wilaya: String?, stored: String?): String? {
     val code = GeoRepository.findWilayaByFrName(wilaya?.trim())?.wilayaCode ?: return stored
     return GeoRepository.findCommuneByFrName(code, stored.trim())?.nameAr ?: stored
 }
+
+/** « Sedrata, Souk Ahras » from a stored commune and wilaya, in the app's language (« سدراتة، سوق أهراس »); null when both are blank. */
+fun placeLine(commune: String?, wilaya: String?): String? =
+    listOfNotNull(
+        communeShownName(wilaya, commune?.takeIf { it.isNotBlank() }),
+        wilayaShownName(wilaya?.takeIf { it.isNotBlank() }),
+    ).joinToString(if (arabic()) "، " else ", ").ifEmpty { null }

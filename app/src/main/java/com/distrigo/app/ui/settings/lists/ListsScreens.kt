@@ -196,7 +196,8 @@ fun ListEditorScreen(
             entries.isEmpty() -> EmptyList(kind)
             else -> {
                 val tokens = searchTokens(state.query)
-                val shown = entries.filter { matchesAllTokens(tokens, it.name, it.detail) }
+                // As stored and as shown: a built-in type reads in the app's language
+                val shown = entries.filter { matchesAllTokens(tokens, it.name, shownName(kind, it), it.detail) }
                 // A search only once a list is long enough to need one
                 if (entries.size > SEARCH_FROM) {
                     DsCompactSearchField(
@@ -452,7 +453,8 @@ private fun NameDialog(
                 }
                 if (needsPlace) {
                     PlaceField(stringResource(R.string.lists_wilaya), wilaya?.let { "${it.wilayaCode}-${it.shownName()}" }, stringResource(R.string.lists_cd_choose_wilaya)) { choosingWilaya = true }
-                    PlaceField(stringResource(R.string.lists_commune), commune, stringResource(R.string.lists_cd_choose_commune), enabled = wilaya != null) { choosingCommune = true }
+                    PlaceField(stringResource(R.string.lists_commune), com.distrigo.app.ui.common.communeShownName(wilaya?.nameFr, commune),
+                        stringResource(R.string.lists_cd_choose_commune), enabled = wilaya != null) { choosingCommune = true }
                 }
                 note?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
             }

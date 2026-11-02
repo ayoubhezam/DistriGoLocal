@@ -17,6 +17,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -349,10 +350,13 @@ fun MovementDetailView(
             leading = DsTopBarLeading.Back(onBack)
         )
 
-        Spacer(Modifier.height(DsSpacing.md))
-
+        // Scrolls: in landscape, or at a large font, the details and the document button run past the screen
         Column(
-            modifier            = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg),
+            modifier            = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.md, bottom = DsSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
             // ── Type + badge ──
