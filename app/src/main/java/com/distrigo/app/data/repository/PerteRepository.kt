@@ -4,6 +4,7 @@ import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.model.Quantity
 import androidx.room.withTransaction
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.local.database.LicenseWriteGate
 import com.distrigo.app.data.model.DefaultPerteType
 import com.distrigo.app.data.local.entity.PerteEntity
 import com.distrigo.app.data.local.entity.PerteTypeEntity
@@ -51,8 +52,12 @@ class PerteRepository(
         SeedType(DefaultPerteType.AUTRE, "category", "#98A2B3", "Autres pertes")
     )
 
-    suspend fun seedDefaultPerteTypesIfNeeded() {
-        if (perteDao.getAllPerteTypes().isNotEmpty()) return
+    /**
+     * Seeds once, in one transaction so two first callers cannot both seed. The license's read-only gate lets
+     * it through (Allowance.DEFAULT_TYPES): these are the app's defaults, and Pertes needs them to open.
+     */
+    suspend fun seedDefaultPerteTypesIfNeeded() = LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.DEFAULT_TYPES) {
+        if (perteDao.getAllPerteTypes().isNotEmpty()) return@allowing
         val now = java.time.Instant.now().toString()
         DEFAULT_PERTE_TYPES.forEach { seed ->
             perteDao.insertPerteType(

@@ -100,6 +100,12 @@ object LicenseWriteGate {
 
         /** Recording what an ended commission period achieved: figures already recorded, frozen. */
         COMMISSION_FREEZE,
+
+        /**
+         * The built-in charge and perte types, created the first time Charges or Pertes opens: the app's own
+         * defaults, not a change the user made. Refused, they left those screens without types and crashed them.
+         */
+        DEFAULT_TYPES,
     }
 
     /**

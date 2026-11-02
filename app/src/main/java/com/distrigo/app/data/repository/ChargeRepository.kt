@@ -2,6 +2,7 @@ package com.distrigo.app.data.repository
 
 import com.distrigo.app.core.text.refuse
 import com.distrigo.app.data.local.database.AppDatabase
+import com.distrigo.app.data.local.database.LicenseWriteGate
 import androidx.room.withTransaction
 import com.distrigo.app.data.model.defaultChargeSubTypeUuid
 import com.distrigo.app.data.model.defaultChargeTypeUuid
@@ -86,9 +87,12 @@ class ChargeRepository(
         )
     }
 
-    /** Seeds once; the check and the inserts are one transaction, so two first callers cannot both seed. */
-    suspend fun seedDefaultChargeTypesIfNeeded() = db.withTransaction {
-        if (chargeDao.getAllChargeTypes().isNotEmpty()) return@withTransaction
+    /**
+     * Seeds once; the check and the inserts are one transaction, so two first callers cannot both seed. The
+     * license's read-only gate lets it through (Allowance.DEFAULT_TYPES): these are the app's defaults.
+     */
+    suspend fun seedDefaultChargeTypesIfNeeded() = LicenseWriteGate.allowing(db, LicenseWriteGate.Allowance.DEFAULT_TYPES) {
+        if (chargeDao.getAllChargeTypes().isNotEmpty()) return@allowing
         val now = java.time.Instant.now().toString()
         for (seedType in DEFAULT_CHARGE_TYPES) {
             val typeId = chargeDao.insertChargeType(
