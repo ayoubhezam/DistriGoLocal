@@ -928,13 +928,15 @@ private fun RowScope.BottomNavItem(
     ) {
         Icon(icon, contentDescription = label, tint = contentColor, modifier = Modifier.size(24.dp))
         Spacer(Modifier.height(2.dp))
-        // Shrinks a little rather than be cut, a fifth of the bar wide
+        // Shrinks rather than be cut, a fifth of the bar wide less a small gap each side, so two long neighbours
+        // (« بيع المستودع », « لوحة القيادة » at a large font scale) never run into one another or the screen's edge
         com.distrigo.app.ui.common.FitText(
             label,
+            modifier   = Modifier.padding(horizontal = 3.dp),
             color      = contentColor,
             fontSize   = DsTextSize.caption,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            minScale   = 0.8f
+            minScale   = 0.7f
         )
     }
 }

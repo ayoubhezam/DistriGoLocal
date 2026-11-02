@@ -69,6 +69,8 @@ private const val LOGO_ASPECT = 722f / 852f
 
 private val LogoTopPadding    = DsSpacing.lg
 private val LogoWidth         = 150.dp
+// The smallest the logo gets on a short screen, as a share of LogoWidth
+private const val MIN_LOGO_SCALE = 0.6f
 private val TaglineGap        = DsSpacing.sm
 private val TaglineLineHeight = 16.sp
 private val TopScrimHeight    = 220.dp
@@ -96,8 +98,17 @@ private fun HeroPhoto(modifier: Modifier) {
         // The truck goes midway between the logo block and the top of the text panel, so the
         // panel's height (screen size, font scale) never pushes either one over it.
         val density = LocalDensity.current
-        val logoBottom = WindowInsets.statusBars.getTop(density) + with(density) {
-            (LogoTopPadding + LogoWidth * LOGO_ASPECT + TaglineGap + TaglineLineHeight.toDp()).roundToPx()
+        // On a short screen or at a large font scale the panel takes more of the height: the logo shrinks to the
+        // room left above it (keeping a gap over the title), and the tagline goes only when even that can't hold it.
+        val statusTop = WindowInsets.statusBars.getTop(density)
+        val taglineHeight = with(density) { TaglineLineHeight.toDp() }
+        val room = maxHeight - PanelOverlap - with(density) { statusTop.toDp() } - LogoTopPadding - DsSpacing.lg
+        val fullBlock = LogoWidth * LOGO_ASPECT + TaglineGap + taglineHeight
+        val logoScale = (room / fullBlock).coerceIn(MIN_LOGO_SCALE, 1f)
+        val logoWidth = LogoWidth * logoScale
+        val showTagline = logoWidth * LOGO_ASPECT + TaglineGap + taglineHeight <= room
+        val logoBottom = statusTop + with(density) {
+            (LogoTopPadding + logoWidth * LOGO_ASPECT + if (showTagline) TaglineGap + taglineHeight else 0.dp).roundToPx()
         }
         val panelTop = with(density) { (maxHeight - PanelOverlap).roundToPx() }
         val truckAlignment = remember(logoBottom, panelTop) { FocusAlignment(TRUCK_FOCUS_Y, (logoBottom + panelTop) / 2) }
@@ -132,19 +143,21 @@ private fun HeroPhoto(modifier: Modifier) {
             Image(
                 painter            = painterResource(R.drawable.brand_logo_on_dark),
                 contentDescription = "DistriGo",
-                modifier           = Modifier.width(LogoWidth)
+                modifier           = Modifier.width(logoWidth)
             )
-            Spacer(Modifier.height(TaglineGap))
-            Text(
-                BRAND_TAGLINE,
-                fontFamily    = DsBrand.Font,
-                fontWeight    = FontWeight.Bold,
-                fontSize      = 11.sp,
-                lineHeight    = TaglineLineHeight,
-                letterSpacing = 1.8.sp,
-                maxLines      = 1,
-                color         = Color.White.copy(alpha = 0.9f)
-            )
+            if (showTagline) {
+                Spacer(Modifier.height(TaglineGap))
+                Text(
+                    BRAND_TAGLINE,
+                    fontFamily    = DsBrand.Font,
+                    fontWeight    = FontWeight.Bold,
+                    fontSize      = 11.sp,
+                    lineHeight    = TaglineLineHeight,
+                    letterSpacing = 1.8.sp,
+                    maxLines      = 1,
+                    color         = Color.White.copy(alpha = 0.9f)
+                )
+            }
         }
     }
 }
