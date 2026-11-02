@@ -32,6 +32,7 @@
     <plurals name="goal_n_days">
         <item quantity="one">%d jour</item>
         <item quantity="other">%d jours</item>
+        <item quantity="many">%d jours</item>
     </plurals>
     <string name="goal_max_tier">Palier max atteint</string>
     <string name="goal_reached">Objectif atteint</string>
@@ -106,11 +107,13 @@
     <plurals name="goal_during_days">
         <item quantity="one">Pendant %d jour</item>
         <item quantity="other">Pendant %d jours</item>
+        <item quantity="many">Pendant %d jours</item>
     </plurals>
     <string name="goal_pace_current">Rythme actuel</string>
     <plurals name="goal_days_left">
         <item quantity="one">%d jour restant</item>
         <item quantity="other">%d jours restants</item>
+        <item quantity="many">%d jours restants</item>
     </plurals>
     <string name="goal_projection">Projection</string>
     <string name="goal_estimated_commission">Commission estimée</string>

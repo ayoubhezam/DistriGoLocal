@@ -36,6 +36,7 @@
     <plurals name="pertes_count">
         <item quantity="one">%1$d perte</item>
         <item quantity="other">%1$d pertes</item>
+        <item quantity="many">%1$d pertes</item>
     </plurals>
     <string name="pertes_history_empty">Aucune perte enregistrée. « + » pour en ajouter une.</string>
     <string name="pertes_no_match">Aucune perte ne correspond.</string>

@@ -17,22 +17,27 @@
     <plurals name="ventes_effect_added">
         <item quantity="one">« %1$s » ajouté : %2$s sortira du %3$s.</item>
         <item quantity="other">« %1$s » ajouté : %2$s sortiront du %3$s.</item>
+        <item quantity="many">« %1$s » ajouté : %2$s sortiront du %3$s.</item>
     </plurals>
     <plurals name="ventes_effect_removed">
         <item quantity="one">« %1$s » retiré : %2$s sera remis dans le %3$s.</item>
         <item quantity="other">« %1$s » retiré : %2$s seront remis dans le %3$s.</item>
+        <item quantity="many">« %1$s » retiré : %2$s seront remis dans le %3$s.</item>
     </plurals>
     <plurals name="ventes_effect_more">
         <item quantity="one">« %1$s » : %4$s → %5$s, %2$s de plus sortira du %3$s.</item>
         <item quantity="other">« %1$s » : %4$s → %5$s, %2$s de plus sortiront du %3$s.</item>
+        <item quantity="many">« %1$s » : %4$s → %5$s, %2$s de plus sortiront du %3$s.</item>
     </plurals>
     <plurals name="ventes_effect_less">
         <item quantity="one">« %1$s » : %4$s → %5$s, %2$s sera remis dans le %3$s.</item>
         <item quantity="other">« %1$s » : %4$s → %5$s, %2$s seront remis dans le %3$s.</item>
+        <item quantity="many">« %1$s » : %4$s → %5$s, %2$s seront remis dans le %3$s.</item>
     </plurals>
     <plurals name="ventes_effect_others">
         <item quantity="one">… et %1$d autre produit modifié.</item>
         <item quantity="other">… et %1$d autres produits modifiés.</item>
+        <item quantity="many">… et %1$d autres produits modifiés.</item>
     </plurals>
     <string name="ventes_effect_total">Total : %1$s → %2$s.</string>
     <string name="ventes_effect_payment_lowered">Paiement : %1$s → %2$s — %3$s encaissés seront effacés.</string>
@@ -47,6 +52,7 @@
     <plurals name="ventes_delete_stock">
         <item quantity="one">Stock : le produit vendu sera remis dans le %2$s.</item>
         <item quantity="other">Stock : les %1$d produits vendus seront remis dans le %2$s.</item>
+        <item quantity="many">Stock : les %1$d produits vendus seront remis dans le %2$s.</item>
     </plurals>
     <string name="ventes_delete_balance_down">Solde : ce que doit le client « %1$s » baissera de %2$s (le reste à payer de cette vente).</string>
     <string name="ventes_delete_balance_up">Solde : ce que doit le client « %1$s » augmentera de %2$s (l\'avance payée avec cette vente).</string>
@@ -62,6 +68,7 @@
     <plurals name="ventes_count">
         <item quantity="one">%1$d vente</item>
         <item quantity="other">%1$d ventes</item>
+        <item quantity="many">%1$d ventes</item>
     </plurals>
     <string name="ventes_count_loading">… ventes</string>
     <string name="ventes_empty">Aucune vente</string>
@@ -84,9 +91,11 @@
     <plurals name="ventes_detail_items">
         <item quantity="one">ARTICLES (%1$d)</item>
         <item quantity="other">ARTICLES (%1$d)</item>
+        <item quantity="many">ARTICLES (%1$d)</item>
     </plurals>
     <plurals name="ventes_card_items_time">
         <item quantity="one">%1$d article · %2$s</item>
         <item quantity="other">%1$d articles · %2$s</item>
+        <item quantity="many">%1$d articles · %2$s</item>
     </plurals>
 </resources>

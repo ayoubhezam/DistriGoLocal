@@ -2,6 +2,7 @@
     <plurals name="retours_returnable_n">
         <item quantity="one">%1$d produit retournable</item>
         <item quantity="other">%1$d produits retournables</item>
+        <item quantity="many">%1$d produits retournables</item>
     </plurals>
     <string name="retours_none_to_return">Aucun produit à retourner : rien n\'a été livré par ici, ou tout a déjà été retourné.</string>
     <string name="retours_all_in_selection">Tous les produits retournables sont dans la sélection.</string>

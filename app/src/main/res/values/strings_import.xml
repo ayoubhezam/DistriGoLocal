@@ -78,18 +78,22 @@
     <plurals name="import_n_new">
         <item quantity="one">%d nouveau</item>
         <item quantity="other">%d nouveaux</item>
+        <item quantity="many">%d nouveaux</item>
     </plurals>
     <plurals name="import_n_updated">
         <item quantity="one">%d modifié</item>
         <item quantity="other">%d modifiés</item>
+        <item quantity="many">%d modifiés</item>
     </plurals>
     <plurals name="import_n_unchanged">
         <item quantity="one">%d inchangé</item>
         <item quantity="other">%d inchangés</item>
+        <item quantity="many">%d inchangés</item>
     </plurals>
     <plurals name="import_n_refused">
         <item quantity="one">%d refusé</item>
         <item quantity="other">%d refusés</item>
+        <item quantity="many">%d refusés</item>
     </plurals>
     <string name="import_nothing">Rien à importer : aucune ligne ne crée ni ne modifie de fiche.</string>
     <string name="import_go">Importer (%1$d)</string>
@@ -105,10 +109,12 @@
     <plurals name="import_n_created">
         <item quantity="one">%d fiche créée</item>
         <item quantity="other">%d fiches créées</item>
+        <item quantity="many">%d fiches créées</item>
     </plurals>
     <plurals name="import_n_modified">
         <item quantity="one">%d fiche modifiée</item>
         <item quantity="other">%d fiches modifiées</item>
+        <item quantity="many">%d fiches modifiées</item>
     </plurals>
     <string name="import_safety_kept">Une copie de sécurité de vos données d\'avant l\'import a été gardée : Paramètres › Sauvegarde et restauration › Copies de sécurité. Restaurez-la pour annuler l\'import.</string>
     <string name="import_finish">Terminer</string>

@@ -5,6 +5,7 @@
     <plurals name="tournees_count">
         <item quantity="one">%1$d tournée</item>
         <item quantity="other">%1$d tournées</item>
+        <item quantity="many">%1$d tournées</item>
     </plurals>
     <string name="tournees_empty">Aucune tournée</string>
     <string name="tournees_new">Nouvelle tournée</string>
@@ -30,6 +31,7 @@
     <plurals name="tournees_bons_count">
         <item quantity="one">%1$d bon</item>
         <item quantity="other">%1$d bons</item>
+        <item quantity="many">%1$d bons</item>
     </plurals>
     <string name="tournees_truck_empty">Camion vide</string>
     <string name="tournees_truck_empty_body">Aucun stock disponible dans le camion. Rendez-vous au chargement avant de créer une vente.</string>
@@ -55,14 +57,17 @@
     <plurals name="tournees_legend_with_sale">
         <item quantity="one">Visité + vente (%1$d client)</item>
         <item quantity="other">Visité + vente (%1$d clients)</item>
+        <item quantity="many">Visité + vente (%1$d clients)</item>
     </plurals>
     <plurals name="tournees_legend_without_sale">
         <item quantity="one">Visité, sans vente (%1$d client)</item>
         <item quantity="other">Visité, sans vente (%1$d clients)</item>
+        <item quantity="many">Visité, sans vente (%1$d clients)</item>
     </plurals>
     <plurals name="tournees_legend_not_yet">
         <item quantity="one">Pas encore visité (%1$d client)</item>
         <item quantity="other">Pas encore visité (%1$d clients)</item>
+        <item quantity="many">Pas encore visité (%1$d clients)</item>
     </plurals>
     <string name="tournees_status_in_progress">En cours</string>
     <string name="tournees_status_open">Ouverte</string>
@@ -70,6 +75,7 @@
     <plurals name="tournees_visited_suffix">
         <item quantity="one">client visité</item>
         <item quantity="other">clients visités</item>
+        <item quantity="many">clients visités</item>
     </plurals>
     <string name="tournees_cd_visited_percent">%1$s des clients visités</string>
     <string name="tournees_added_after_close">Ajouté après clôture</string>
@@ -81,6 +87,7 @@
     <plurals name="tournees_map_unplaced">
         <item quantity="one">%1$d client sans position</item>
         <item quantity="other">%1$d clients sans position</item>
+        <item quantity="many">%1$d clients sans position</item>
     </plurals>
     <string name="tournees_map_standard">Vue standard</string>
     <string name="tournees_map_satellite">Vue satellite</string>
@@ -122,5 +129,6 @@
     <plurals name="tournees_add_n_clients">
         <item quantity="one">Ajouter %1$d client à la tournée</item>
         <item quantity="other">Ajouter %1$d clients à la tournée</item>
+        <item quantity="many">Ajouter %1$d clients à la tournée</item>
     </plurals>
 </resources>

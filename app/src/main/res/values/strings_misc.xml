@@ -11,10 +11,12 @@
     <plurals name="settings_clients_added">
         <item quantity="one">%1$d client ajouté</item>
         <item quantity="other">%1$d clients ajoutés</item>
+        <item quantity="many">%1$d clients ajoutés</item>
     </plurals>
     <plurals name="settings_clients_moved">
         <item quantity="one">%1$d déplacé</item>
         <item quantity="other">%1$d déplacés</item>
+        <item quantity="many">%1$d déplacés</item>
     </plurals>
     <string name="receipt_sent">Reçu envoyé à l\'imprimante</string>
     <string name="receipt_preview">Aperçu du reçu</string>

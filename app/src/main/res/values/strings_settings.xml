@@ -38,6 +38,7 @@
     <plurals name="settings_strict_body">
         <item quantity="one">%d produit est déjà en stock négatif au dépôt. Il ne pourra plus être vendu, chargé ni sorti du dépôt avant d\'être réapprovisionné.</item>
         <item quantity="other">%d produits sont déjà en stock négatif au dépôt. Ils ne pourront plus être vendus, chargés ni sortis du dépôt avant d\'être réapprovisionnés.</item>
+        <item quantity="many">%d produits sont déjà en stock négatif au dépôt. Ils ne pourront plus être vendus, chargés ni sortis du dépôt avant d\'être réapprovisionnés.</item>
     </plurals>
     <string name="settings_disable">Désactiver</string>
     <string name="settings_money_format">Format des montants</string>

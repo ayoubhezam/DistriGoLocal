@@ -2,6 +2,7 @@
     <plurals name="chargements_draft_title">
         <item quantity="one">Mouvement · %1$d produit</item>
         <item quantity="other">Mouvement · %1$d produits</item>
+        <item quantity="many">Mouvement · %1$d produits</item>
     </plurals>
     <string name="chargements_drafts_sheet_subtitle">Reprenez un brouillon ou commencez un nouveau mouvement.</string>
     <string name="chargements_drafts_sheet_start_new">Commencer un nouveau mouvement</string>
@@ -15,10 +16,12 @@
     <plurals name="chargements_units_to_truck">
         <item quantity="one">%1$s unité envoyée vers le camion</item>
         <item quantity="other">%1$s unités envoyées vers le camion</item>
+        <item quantity="many">%1$s unités envoyées vers le camion</item>
     </plurals>
     <plurals name="chargements_units_to_depot">
         <item quantity="one">%1$s unité ramenée au dépôt</item>
         <item quantity="other">%1$s unités ramenées au dépôt</item>
+        <item quantity="many">%1$s unités ramenées au dépôt</item>
     </plurals>
     <string name="chargements_movement_title">Mouvement de stock</string>
     <string name="chargements_save_movement">Enregistrer le mouvement</string>

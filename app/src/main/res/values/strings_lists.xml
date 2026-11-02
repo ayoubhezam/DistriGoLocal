@@ -2,78 +2,97 @@
     <plurals name="lists_n_categories">
         <item quantity="one">%d catégorie</item>
         <item quantity="other">%d catégories</item>
+        <item quantity="many">%d catégories</item>
     </plurals>
     <plurals name="lists_n_subcategories">
         <item quantity="one">%d sous-catégorie</item>
         <item quantity="other">%d sous-catégories</item>
+        <item quantity="many">%d sous-catégories</item>
     </plurals>
     <plurals name="lists_n_brands">
         <item quantity="one">%d marque</item>
         <item quantity="other">%d marques</item>
+        <item quantity="many">%d marques</item>
     </plurals>
     <plurals name="lists_n_types">
         <item quantity="one">%d type</item>
         <item quantity="other">%d types</item>
+        <item quantity="many">%d types</item>
     </plurals>
     <plurals name="lists_n_subtypes">
         <item quantity="one">%d sous-type</item>
         <item quantity="other">%d sous-types</item>
+        <item quantity="many">%d sous-types</item>
     </plurals>
     <plurals name="lists_n_secteurs">
         <item quantity="one">%d secteur</item>
         <item quantity="other">%d secteurs</item>
+        <item quantity="many">%d secteurs</item>
     </plurals>
     <plurals name="lists_n_payments">
         <item quantity="one">%d paiement</item>
         <item quantity="other">%d paiements</item>
+        <item quantity="many">%d paiements</item>
     </plurals>
     <plurals name="lists_n_purchase_bons">
         <item quantity="one">%d bon d\'achat</item>
         <item quantity="other">%d bons d\'achat</item>
+        <item quantity="many">%d bons d\'achat</item>
     </plurals>
     <plurals name="lists_n_sale_drafts">
         <item quantity="one">%d brouillon de vente</item>
         <item quantity="other">%d brouillons de vente</item>
+        <item quantity="many">%d brouillons de vente</item>
     </plurals>
     <plurals name="lists_n_tournee_drafts">
         <item quantity="one">%d brouillon de tournée</item>
         <item quantity="other">%d brouillons de tournée</item>
+        <item quantity="many">%d brouillons de tournée</item>
     </plurals>
     <plurals name="lists_n_purchase_drafts">
         <item quantity="one">%d brouillon d\'achat</item>
         <item quantity="other">%d brouillons d\'achat</item>
+        <item quantity="many">%d brouillons d\'achat</item>
     </plurals>
     <plurals name="lists_n_loading_drafts">
         <item quantity="one">%d brouillon de chargement</item>
         <item quantity="other">%d brouillons de chargement</item>
+        <item quantity="many">%d brouillons de chargement</item>
     </plurals>
     <plurals name="lists_n_purchase_lines">
         <item quantity="one">%d ligne d\'achat</item>
         <item quantity="other">%d lignes d\'achat</item>
+        <item quantity="many">%d lignes d\'achat</item>
     </plurals>
     <plurals name="lists_n_inventory_lines">
         <item quantity="one">%d ligne d\'inventaire</item>
         <item quantity="other">%d lignes d\'inventaire</item>
+        <item quantity="many">%d lignes d\'inventaire</item>
     </plurals>
     <plurals name="lists_n_loading_lines">
         <item quantity="one">%d ligne de chargement</item>
         <item quantity="other">%d lignes de chargement</item>
+        <item quantity="many">%d lignes de chargement</item>
     </plurals>
     <plurals name="lists_n_sale_lines">
         <item quantity="one">%d ligne de vente</item>
         <item quantity="other">%d lignes de vente</item>
+        <item quantity="many">%d lignes de vente</item>
     </plurals>
     <plurals name="lists_n_stock_movements">
         <item quantity="one">%d mouvement de stock</item>
         <item quantity="other">%d mouvements de stock</item>
+        <item quantity="many">%d mouvements de stock</item>
     </plurals>
     <plurals name="lists_n_client_returns">
         <item quantity="one">%d retour client</item>
         <item quantity="other">%d retours clients</item>
+        <item quantity="many">%d retours clients</item>
     </plurals>
     <plurals name="lists_n_supplier_returns">
         <item quantity="one">%d retour fournisseur</item>
         <item quantity="other">%d retours fournisseurs</item>
+        <item quantity="many">%d retours fournisseurs</item>
     </plurals>
     <string name="lists_and">%1$s et %2$s</string>
     <string name="lists_label_categories">Catégories</string>
@@ -139,10 +158,12 @@
     <plurals name="lists_children_also_subcategories">
         <item quantity="one">Sa sous-catégorie aussi.</item>
         <item quantity="other">Ses %d sous-catégories aussi.</item>
+        <item quantity="many">Ses %d sous-catégories aussi.</item>
     </plurals>
     <plurals name="lists_children_also_subtypes">
         <item quantity="one">Son sous-type aussi.</item>
         <item quantity="other">Ses %d sous-types aussi.</item>
+        <item quantity="many">Ses %d sous-types aussi.</item>
     </plurals>
     <string name="lists_secteur_deleted_for_good">Le secteur sera supprimé définitivement.</string>
     <string name="lists_delete_title">Supprimer « %1$s » ?</string>

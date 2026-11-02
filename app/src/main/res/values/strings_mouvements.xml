@@ -34,5 +34,6 @@
     <plurals name="mouvements_show_count">
         <item quantity="one">Afficher %d mouvement</item>
         <item quantity="other">Afficher %d mouvements</item>
+        <item quantity="many">Afficher %d mouvements</item>
     </plurals>
 </resources>

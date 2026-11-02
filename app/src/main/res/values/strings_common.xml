@@ -70,14 +70,17 @@
     <plurals name="common_drafts_delete_title">
         <item quantity="one">Supprimer %1$d brouillon ?</item>
         <item quantity="other">Supprimer %1$d brouillons ?</item>
+        <item quantity="many">Supprimer %1$d brouillons ?</item>
     </plurals>
     <plurals name="common_drafts_delete_all_body">
         <item quantity="one">Le brouillon de cette liste sera définitivement perdu, y compris le travail non terminé qu\'il contient. Cette action est irréversible.</item>
         <item quantity="other">Les %1$d brouillons de cette liste seront définitivement perdus, y compris le travail non terminé qu\'ils contiennent. Cette action est irréversible.</item>
+        <item quantity="many">Les %1$d brouillons de cette liste seront définitivement perdus, y compris le travail non terminé qu\'ils contiennent. Cette action est irréversible.</item>
     </plurals>
     <plurals name="common_drafts_delete_body">
         <item quantity="one">Ce brouillon sera définitivement perdu. Cette action est irréversible.</item>
         <item quantity="other">Ces %1$d brouillons seront définitivement perdus. Cette action est irréversible.</item>
+        <item quantity="many">Ces %1$d brouillons seront définitivement perdus. Cette action est irréversible.</item>
     </plurals>
     <string name="common_time_just_now">à l\'instant</string>
     <string name="common_time_minutes_ago">il y a %1$d min</string>
@@ -86,10 +89,12 @@
     <plurals name="common_time_days_ago">
         <item quantity="one">il y a %1$d jour</item>
         <item quantity="other">il y a %1$d jours</item>
+        <item quantity="many">il y a %1$d jours</item>
     </plurals>
     <plurals name="common_products_count">
         <item quantity="one">%1$d produit</item>
         <item quantity="other">%1$d produits</item>
+        <item quantity="many">%1$d produits</item>
     </plurals>
     <string name="common_draft">Brouillon</string>
     <string name="common_drafts_sheet_title_one">Brouillon en cours</string>
@@ -129,6 +134,7 @@
     <plurals name="common_clients_count">
         <item quantity="one">%1$d client</item>
         <item quantity="other">%1$d clients</item>
+        <item quantity="many">%1$d clients</item>
     </plurals>
     <string name="common_secteur_no_quartier">Ce secteur n\'a pas encore de quartier.</string>
     <string name="common_no_quartier_matches">Aucun quartier ne correspond à « %1$s ».</string>
@@ -220,26 +226,32 @@
     <plurals name="common_qty_carton">
         <item quantity="one">%1$s carton</item>
         <item quantity="other">%1$s cartons</item>
+        <item quantity="many">%1$s cartons</item>
     </plurals>
     <plurals name="common_qty_piece">
         <item quantity="one">%1$s pièce</item>
         <item quantity="other">%1$s pièces</item>
+        <item quantity="many">%1$s pièces</item>
     </plurals>
     <plurals name="common_qty_kg">
         <item quantity="one">%1$s kg</item>
         <item quantity="other">%1$s kg</item>
+        <item quantity="many">%1$s kg</item>
     </plurals>
     <plurals name="common_duration_days">
         <item quantity="one">%1$d jour</item>
         <item quantity="other">%1$d jours</item>
+        <item quantity="many">%1$d jours</item>
     </plurals>
     <plurals name="common_duration_months">
         <item quantity="one">%1$d mois</item>
         <item quantity="other">%1$d mois</item>
+        <item quantity="many">%1$d mois</item>
     </plurals>
     <plurals name="common_duration_years">
         <item quantity="one">%1$d an</item>
         <item quantity="other">%1$d ans</item>
+        <item quantity="many">%1$d ans</item>
     </plurals>
     <string name="common_yes">Oui</string>
     <string name="common_no">Non</string>
@@ -283,6 +295,7 @@
     <plurals name="common_selected_count">
         <item quantity="one">%1$d sélectionné</item>
         <item quantity="other">%1$d sélectionnés</item>
+        <item quantity="many">%1$d sélectionnés</item>
     </plurals>
     <string name="common_of_total">sur %1$d</string>
     <string name="common_drafts">Brouillons</string>
@@ -290,6 +303,7 @@
     <plurals name="common_drafts_n">
         <item quantity="one">%1$d brouillon</item>
         <item quantity="other">%1$d brouillons</item>
+        <item quantity="many">%1$d brouillons</item>
     </plurals>
     <string name="common_draft_delete_one_body">« %1$s » sera définitivement perdu. Cette action est irréversible.</string>
     <string name="common_drafts_no_match">Aucun brouillon ne correspond à ces filtres.</string>
@@ -297,10 +311,12 @@
     <plurals name="common_items_count">
         <item quantity="one">Articles (%1$d)</item>
         <item quantity="other">Articles (%1$d)</item>
+        <item quantity="many">Articles (%1$d)</item>
     </plurals>
     <plurals name="common_items_count_short">
         <item quantity="one">%1$d article</item>
         <item quantity="other">%1$d articles</item>
+        <item quantity="many">%1$d articles</item>
     </plurals>
     <string name="common_action_continue">Continuer</string>
     <string name="common_client_type_retail">Détail</string>
@@ -322,14 +338,17 @@
     <plurals name="common_unit_word_carton">
         <item quantity="one">carton</item>
         <item quantity="other">cartons</item>
+        <item quantity="many">cartons</item>
     </plurals>
     <plurals name="common_unit_word_piece">
         <item quantity="one">pièce</item>
         <item quantity="other">pièces</item>
+        <item quantity="many">pièces</item>
     </plurals>
     <plurals name="common_unit_word_kg">
         <item quantity="one">kg</item>
         <item quantity="other">kg</item>
+        <item quantity="many">kg</item>
     </plurals>
     <string name="common_kind_loading">Chargement</string>
     <string name="common_date_from">Du</string>
@@ -338,6 +357,7 @@
     <plurals name="common_results_count">
         <item quantity="one">%1$d résultat</item>
         <item quantity="other">%1$d résultats</item>
+        <item quantity="many">%1$d résultats</item>
     </plurals>
     <string name="common_invalid_quantity">Quantité invalide</string>
     <string name="common_barcode_not_found">Aucun produit trouvé pour ce code-barres</string>

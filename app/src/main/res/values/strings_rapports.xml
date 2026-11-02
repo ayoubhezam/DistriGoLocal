@@ -51,18 +51,22 @@
     <plurals name="rapports_n_wilayas">
         <item quantity="one">%d wilaya</item>
         <item quantity="other">%d wilayas</item>
+        <item quantity="many">%d wilayas</item>
     </plurals>
     <plurals name="rapports_n_communes">
         <item quantity="one">%d commune</item>
         <item quantity="other">%d communes</item>
+        <item quantity="many">%d communes</item>
     </plurals>
     <plurals name="rapports_n_secteurs">
         <item quantity="one">%d secteur</item>
         <item quantity="other">%d secteurs</item>
+        <item quantity="many">%d secteurs</item>
     </plurals>
     <plurals name="rapports_n_quartiers">
         <item quantity="one">%d quartier</item>
         <item quantity="other">%d quartiers</item>
+        <item quantity="many">%d quartiers</item>
     </plurals>
     <string name="rapports_by_wilaya">Répartition par wilaya</string>
     <string name="rapports_by_commune">Répartition par commune</string>
@@ -120,6 +124,7 @@
     <plurals name="rapports_active_clients_n">
         <item quantity="one">%d client actif</item>
         <item quantity="other">%d clients actifs</item>
+        <item quantity="many">%d clients actifs</item>
     </plurals>
     <string name="rapports_active_clients">Clients actifs</string>
     <string name="rapports_info_active_clients">Clients actifs = clients avec au moins un achat</string>
@@ -176,18 +181,22 @@
     <plurals name="rapports_debtor_clients_n">
         <item quantity="one">%d client débiteur</item>
         <item quantity="other">%d clients débiteurs</item>
+        <item quantity="many">%d clients débiteurs</item>
     </plurals>
     <plurals name="rapports_suppliers_to_pay_n">
         <item quantity="one">%d fournisseur à payer</item>
         <item quantity="other">%d fournisseurs à payer</item>
+        <item quantity="many">%d fournisseurs à payer</item>
     </plurals>
     <plurals name="rapports_payments_n">
         <item quantity="one">%d versement</item>
         <item quantity="other">%d versements</item>
+        <item quantity="many">%d versements</item>
     </plurals>
     <plurals name="rapports_returns_n">
         <item quantity="one">%d retour</item>
         <item quantity="other">%d retours</item>
+        <item quantity="many">%d retours</item>
     </plurals>
     <string name="rapports_debtor_clients">Clients débiteurs</string>
     <string name="rapports_suppliers_to_pay">Fournisseurs à payer</string>
@@ -227,6 +236,7 @@
     <plurals name="rapports_products_in_stock_n">
         <item quantity="one">%d produit en stock</item>
         <item quantity="other">%d produits en stock</item>
+        <item quantity="many">%d produits en stock</item>
     </plurals>
     <string name="rapports_at_depot">Au dépôt</string>
     <string name="rapports_on_truck">Au camion</string>
@@ -240,6 +250,7 @@
     <plurals name="rapports_outages_n">
         <item quantity="one">%d rupture</item>
         <item quantity="other">%d ruptures</item>
+        <item quantity="many">%d ruptures</item>
     </plurals>
     <string name="rapports_low_n">%1$d en stock bas</string>
     <string name="rapports_nothing_to_restock">Rien à réapprovisionner.</string>

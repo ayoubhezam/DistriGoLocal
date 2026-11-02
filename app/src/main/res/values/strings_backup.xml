@@ -26,6 +26,7 @@
     <plurals name="backup_rule_negative_products">
         <item quantity="one">%d produit est déjà en stock négatif au dépôt dans cette sauvegarde. Il ne pourra plus être vendu, chargé ni sorti du dépôt avant d\'être réapprovisionné.</item>
         <item quantity="other">%d produits sont déjà en stock négatif au dépôt dans cette sauvegarde. Ils ne pourront plus être vendus, chargés ni sortis du dépôt avant d\'être réapprovisionnés.</item>
+        <item quantity="many">%d produits sont déjà en stock négatif au dépôt dans cette sauvegarde. Ils ne pourront plus être vendus, chargés ni sortis du dépôt avant d\'être réapprovisionnés.</item>
     </plurals>
     <string name="backup_rule_change_later">Vous pourrez changer cette règle ensuite dans Paramètres.</string>
     <string name="backup_other_business_named">Cette sauvegarde appartient à une autre entreprise (« %1$s ») que celle du compte connecté. Après la restauration, DistriGo vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.</string>
@@ -122,14 +123,17 @@
     <plurals name="backup_photos_included">
         <item quantity="one">%d photo incluse.</item>
         <item quantity="other">%d photos incluses.</item>
+        <item quantity="many">%d photos incluses.</item>
     </plurals>
     <plurals name="backup_photos_left_out">
         <item quantity="one">%d photo introuvable ou endommagée sur le téléphone n\'a pas pu être incluse.</item>
         <item quantity="other">%d photos introuvables ou endommagées sur le téléphone n\'ont pas pu être incluses.</item>
+        <item quantity="many">%d photos introuvables ou endommagées sur le téléphone n\'ont pas pu être incluses.</item>
     </plurals>
     <plurals name="backup_old_removed">
         <item quantity="one">%d ancienne sauvegarde automatique supprimée.</item>
         <item quantity="other">%d anciennes sauvegardes automatiques supprimées.</item>
+        <item quantity="many">%d anciennes sauvegardes automatiques supprimées.</item>
     </plurals>
     <string name="backup_kept_private">Le dossier choisi n\'est pas accessible : cette copie est restée dans l\'application et sera perdue si l\'application est désinstallée.</string>
     <string name="backup_other_business_title">Sauvegarde d\'une autre entreprise</string>

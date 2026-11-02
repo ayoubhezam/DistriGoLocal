@@ -122,6 +122,7 @@
     <plurals name="products_price_movements_count">
         <item quantity="one">%1$d mouvement</item>
         <item quantity="other">%1$d mouvements</item>
+        <item quantity="many">%1$d mouvements</item>
     </plurals>
     <string name="products_count_of">%1$d sur %2$d</string>
     <string name="products_price_no_match">Aucun mouvement ne correspond à « %1$s ».</string>
@@ -141,6 +142,7 @@
     <plurals name="products_barcodes_cd_see">
         <item quantity="one">Voir l\'autre code-barres</item>
         <item quantity="other">Voir les %1$d autres codes-barres</item>
+        <item quantity="many">Voir les %1$d autres codes-barres</item>
     </plurals>
     <string name="products_barcodes_added">« %1$s » ajouté.</string>
     <string name="products_barcodes_title">Codes-barres du produit</string>

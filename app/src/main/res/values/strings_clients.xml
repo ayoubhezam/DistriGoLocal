@@ -8,11 +8,13 @@
     <plurals name="clients_debts_n">
         <item quantity="one">Dettes en cours · %1$d client</item>
         <item quantity="other">Dettes en cours · %1$d clients</item>
+        <item quantity="many">Dettes en cours · %1$d clients</item>
     </plurals>
     <string name="clients_without_quartier_n">Sans quartier · %1$d</string>
     <plurals name="clients_add_n">
         <item quantity="one">Ajouter %1$d client</item>
         <item quantity="other">Ajouter %1$d clients</item>
+        <item quantity="many">Ajouter %1$d clients</item>
     </plurals>
     <string name="clients_phone_not_set">Téléphone non renseigné</string>
     <string name="clients_moved_from">Sera déplacé depuis « %1$s »</string>
@@ -69,6 +71,7 @@
     <plurals name="suppliers_count">
         <item quantity="one">%1$d fournisseur</item>
         <item quantity="other">%1$d fournisseurs</item>
+        <item quantity="many">%1$d fournisseurs</item>
     </plurals>
     <string name="suppliers_owed">Doit</string>
     <string name="suppliers_settled">Réglé</string>
