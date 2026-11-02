@@ -48,7 +48,7 @@
     <string name="common_label_total_paid">إجمالي المدفوع</string>
     <string name="common_label_balance">الرصيد</string>
     <string name="common_label_in_advance">(مُسبَّق)</string>
-    <string name="common_label_initial_balance">الرصيد الأولي</string>
+    <string name="common_label_initial_balance">الرصيد الافتتاحي</string>
     <string name="common_label_returns">المرتجعات</string>
     <string name="common_cd_selected">محدَّد</string>
     <string name="common_action_see_all_count">عرض الكل (\u2068%1$d\u2069) ←</string>
