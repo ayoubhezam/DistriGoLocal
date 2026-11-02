@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from html import escape
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -24,8 +25,11 @@ QUANTITIES = ["zero", "one", "two", "few", "many", "other"]
 
 
 def android(text):
-    """Plain text -> Android resource text: XML-escaped, with \\ ' " and new lines escaped."""
+    """Plain text -> Android resource text: XML-escaped, with \\ ' " and new lines escaped, and invisible
+    formatting characters (the bidi isolates \\u2068 \\u2069, marks \\u200E \\u200F…) written as \\uXXXX, as the
+    resource files already do, so they stay visible in a review of the file."""
     t = text.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n")
+    t = "".join("\\u%04X" % ord(ch) if unicodedata.category(ch) == "Cf" else ch for ch in t)
     if t.startswith("@") or t.startswith("?"):
         t = "\\" + t
     return escape(t, quote=False)
