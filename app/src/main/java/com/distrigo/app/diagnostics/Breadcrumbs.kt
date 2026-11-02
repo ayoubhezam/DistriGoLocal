@@ -1,10 +1,16 @@
 package com.distrigo.app.diagnostics
 
+import android.content.Context
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.ComposeNavigator
+import androidx.navigation.compose.DialogNavigator
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -30,10 +36,32 @@ object Breadcrumbs {
     fun snapshot(): List<String> = synchronized(recent) { recent.toList() }
 }
 
-/** [rememberNavController], with each screen it shows recorded in [Breadcrumbs]. */
+/**
+ * A NavHost's controller that never pops its first screen. Back actions call a bare popBackStack() (and a screen's own
+ * BackHandler too); a second one while the screen slides away — a double tap on the back arrow, Back pressed twice —
+ * popped the host's start destination and left the tab blank under its bottom bar. Nothing pops a host empty on purpose
+ * (switchToTab and the drill-down loops stop at the first screen), so refusing it here guards every host at once.
+ */
+private class FirstScreenKeepingNavController(context: Context) : NavHostController(context) {
+    override fun popBackStack(): Boolean = previousBackStackEntry != null && super.popBackStack()
+}
+
+private fun createNavController(context: Context) = FirstScreenKeepingNavController(context).apply {
+    navigatorProvider.addNavigator(ComposeNavigator())
+    navigatorProvider.addNavigator(DialogNavigator())
+}
+
+/** As navigation-compose's rememberNavController (2.8): kept across a rebuild, and through a saved instance state. */
+private fun navControllerSaver(context: Context) = Saver<FirstScreenKeepingNavController, Bundle>(
+    save    = { it.saveState() },
+    restore = { createNavController(context).apply { restoreState(it) } },
+)
+
+/** navigation-compose's rememberNavController with a [FirstScreenKeepingNavController], each screen it shows recorded in [Breadcrumbs]. */
 @Composable
 fun rememberTrackedNavController(): NavHostController {
-    val navController = rememberNavController()
+    val context = LocalContext.current
+    val navController = rememberSaveable(saver = navControllerSaver(context)) { createNavController(context) }
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { _, destination, arguments ->
             val args = arguments?.keySet()?.filter { it != "android-support-nav:controller:deepLinkIntent" }
