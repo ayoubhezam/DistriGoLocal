@@ -183,6 +183,9 @@ dependencies {
     implementation("androidx.credentials:credentials:1.5.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    // Google Drive backup (docs/cloud_backup_drive_plan.md §4): the Authorization API for the drive.appdata scope.
+    // Named at the version credentials-play-services-auth already resolves, so the build does not change.
+    implementation("com.google.android.gms:play-services-auth:21.1.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.maps.android:maps-compose:6.5.3")
