@@ -179,15 +179,40 @@ class MainActivity : ComponentActivity() {
             setContent { DistriGoTheme { RestoringScreen() } }
             lifecycleScope.launch {
                 withContext(Dispatchers.IO) { RestoreStartup.await() }
-                showApp()
+                showApp(holdFirstFrame = false)
             }
         } else {
-            showApp()
+            // A cold start only: a recreated activity (language, rotation) already knows where it is.
+            showApp(holdFirstFrame = savedInstanceState == null)
+        }
+    }
+
+    /** Whether the launch knows its first screen (EntryPolicy): until then the first frame is held. Main thread. */
+    private var entryDecided = false
+
+    /**
+     * Keeps the launch screen — the system splash from Android 12, the window's white before — until EntryPolicy has
+     * said whether the onboarding opens. Drawn at once, the Dashboard showed for a moment on a fresh install before
+     * the onboarding covered it. Never more than [ENTRY_HOLD_MS], so a slow or failed answer cannot keep the app hidden.
+     */
+    private fun holdFirstFrameUntilEntryDecided() {
+        val content = findViewById<android.view.View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (!entryDecided) return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(ENTRY_HOLD_MS)
+            entryDecided = true
         }
     }
 
     /** Builds the app's UI, and starts what runs beside it. Only once the database may be opened. */
-    private fun showApp() {
+    private fun showApp(holdFirstFrame: Boolean) {
+        if (holdFirstFrame) holdFirstFrameUntilEntryDecided() else entryDecided = true
         setContent {
             // Every amount on every screen follows the business's "Format des montants" (see
             // LocalMoneyFormatter). Saveable, so a rotation or a recreated activity keeps the format
@@ -225,17 +250,22 @@ class MainActivity : ComponentActivity() {
             // the first time, Connexion after (EntryPolicy). A phone that has its data (an update, a restore, a
             // sign-out) opens on it, and Compte invites it to sign in.
             LaunchedEffect(Unit) {
-                val entry = withContext(Dispatchers.IO) {
-                    com.distrigo.app.ui.onboarding.EntryPolicy.atLaunch(
-                        account      = authRepository.get().state.first { it != com.distrigo.app.data.auth.AccountState.Loading },
-                        holdsLicense = { licenseManager.get().evaluate().holdsLicense },
-                        hasData      = { database.get().appMetaDao().hasBusinessData() },
-                        introSeen    = { com.distrigo.app.ui.onboarding.OnboardingIntro.seen(this@MainActivity) },
-                    )
-                }
-                if (entry is com.distrigo.app.ui.onboarding.Entry.Onboarding && onboarding == null) {
-                    onboardingRequired = entry.required
-                    openOnboarding(entry.start)
+                try {
+                    val entry = withContext(Dispatchers.IO) {
+                        com.distrigo.app.ui.onboarding.EntryPolicy.atLaunch(
+                            account      = authRepository.get().state.first { it != com.distrigo.app.data.auth.AccountState.Loading },
+                            holdsLicense = { licenseManager.get().evaluate().holdsLicense },
+                            hasData      = { database.get().appMetaDao().hasBusinessData() },
+                            introSeen    = { com.distrigo.app.ui.onboarding.OnboardingIntro.seen(this@MainActivity) },
+                        )
+                    }
+                    if (entry is com.distrigo.app.ui.onboarding.Entry.Onboarding && onboarding == null) {
+                        onboardingRequired = entry.required
+                        openOnboarding(entry.start)
+                    }
+                } finally {
+                    // The first frame drawn is then the onboarding or the app, never one and then the other
+                    entryDecided = true
                 }
             }
             DistriGoTheme { ProvideMoneyFormat(moneyFormat) { androidx.compose.runtime.CompositionLocalProvider(
@@ -794,6 +824,11 @@ class MainActivity : ComponentActivity() {
 
         decorView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateExclusionRects() }
         decorView.post { updateExclusionRects() }
+    }
+
+    private companion object {
+        /** The longest the launch screen waits for EntryPolicy before the app draws anyway. */
+        const val ENTRY_HOLD_MS = 3_000L
     }
 }
 
