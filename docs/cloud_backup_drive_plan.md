@@ -1,7 +1,7 @@
 # DistriGo: cloud backup to Google Drive — plan
 
-Status: **plan only, not implemented, awaiting the owner's decisions (§9)**. Written 2026-11-03 from the review of the
-project. Supersedes the earlier Supabase Storage proposal (§1.3).
+Status: **decisions taken 2026-11-03 (§9); Google Cloud setup with the owner (§4.3); implementation starts at
+Phase 1**. Written 2026-11-03 from the review of the project. Supersedes the earlier Supabase Storage proposal (§1.3).
 
 ---
 
@@ -187,6 +187,32 @@ Also offered right after sign-in on an empty phone.
 - No new runtime permission (INTERNET is already there) — consistent with the Play Store plan (avoid permissions that
   need Google declarations).
 
+### 4.3 Google Cloud checklist (owner)
+
+Use the same Google Cloud project as the Supabase Google sign-in (the one that holds `GOOGLE_WEB_CLIENT_ID`).
+
+1. **Enable the Drive API.** console.cloud.google.com → pick the project → « APIs & Services » → « Library » →
+   search « Google Drive API » → « Enable ».
+2. **Add the scope.** « Google Auth Platform » (or « OAuth consent screen ») → « Data access » → « Add or remove
+   scopes » → tick `.../auth/drive.appdata` (« See, create, and delete its own configuration data in your Google
+   Drive ») → « Update » → « Save ». It is listed as non-sensitive.
+3. **Branding.** « Branding »: app name « DistriGo », logo (120×120 PNG), support email, **app home page**, **privacy
+   policy URL** and **authorised domain** (the domain of those two pages). The privacy policy must mention Drive
+   (Phase 8 gives the text).
+4. **Android clients.** « Clients »: check there is an **Android** client with package `com.distrigo.app` for each
+   SHA-1:
+   - debug: `keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`
+   - release: the same command on the release keystore;
+   - Play app signing: Play Console → the app → « Test and release » → « App integrity » → « App signing key
+     certificate » → SHA-1.
+   Missing ones: « Create client » → Android → package + SHA-1. (Google sign-in already working on the phone means
+   the debug/release ones probably exist.)
+5. **Test users while testing.** While « Publishing status » is « Testing », only the Google accounts listed under
+   « Audience » → « Test users » can grant Drive access: add the test phone's account and the emulator's.
+6. **Publish when releasing.** « Audience » → « Publish app » → « In production », then submit the brand verification
+   if asked (a few days). Do this before the Play release, not before testing.
+7. **Tell Claude** when steps 1, 2, 4 and 5 are done: that is all Phases 1–7 need. Steps 3 and 6 can wait for Phase 8.
+
 ---
 
 ## 5. Losing the Google account
@@ -233,6 +259,7 @@ Paramètres › Sauvegarde › **« Sauvegarde Google Drive »**
 |---|---|---|
 | 0 | Owner's decisions (§9); Google Cloud setup (§4.1); check `drive.appdata` classification | Owner + S |
 | 1 | Encryption core: segmented AES-GCM `.dgenc`, key ring (PBKDF2 password + recovery code wrapping), Keystore cache; tests (wrong password, damaged segment, truncated file) | M |
+| | **Done 2026-11-03** (not committed): `data/backup/cloud/` — `EncryptedBackupFile` (header `DGEN` v1 + key id + segment size + 8-byte nonce prefix; nonce = prefix ‖ index; AAD = header ‖ index ‖ last), `BackupKey`, `BackupPassword` (NFC, ≥ 8 code points), `RecoveryCode` (24 Crockford base-32 = 120 bits, forgiving input incl. Arabic digits), own `Pbkdf2` on `Mac` (UTF-8, same on every phone), `BackupKeyRing` (password 600 000 it., code 10 000 it., slots bound to business + key id), `BackupKeyStore` (`no_backup/cloud_backup/`, Keystore alias `distrigo_cloud_backup_v1`). 37 tests; full suite 726 green. | |
 | 2 | `CloudBackupProvider` + Drive implementation on OkHttp: authorization, list, resumable upload, download from a byte, delete, `appProperties`, error mapping (401, 403 quota, 404, 429/5xx); fake provider for tests | M |
 | 3 | Engine + WorkManager: daily and « maintenant » jobs, constraints, skip if unchanged and still on Drive, persisted upload sessions, MD5 check, retention, alerts | M–L |
 | 4 | Photos by content (keyed-hash names), photo cleanup, « Inclure les photos » | S–M |
@@ -256,14 +283,17 @@ Paramètres › Sauvegarde › **« Sauvegarde Google Drive »**
 
 ---
 
-## 9. Decisions needed from the owner
+## 9. Owner's decisions (2026-11-03)
 
-1. **Key model**: password + recovery code as planned? Minimum password length (suggested 8)?
-2. **Retention**: 7 daily + 4 weekly? When Drive is full: trim weekly backups first, or alert only?
-3. **Photos**: included by content as in §3.5, toggle on by default?
-4. **Mobile data**: Wi-Fi only by default, with « Autoriser les données mobiles »?
-5. **Plans**: cloud backup for all plans, or paid plans only?
-6. **Google Cloud**: will the owner do Phase 0, or should a step-by-step checklist be written?
+1. **Key model**: password + recovery code, as in §3.3. Password at least **8 characters**.
+2. **Retention**: **7 daily + 4 weekly**. When Drive is full: **alert only**, the app never deletes backups to make
+   room.
+3. **Photos**: included **by content** (§3.5), « Inclure les photos » **on** by default.
+4. **Mobile data**: **Wi-Fi only** by default, with « Autoriser les données mobiles » (plan default, not contested).
+5. **Plans**: **all plans, the trial included**.
+6. **Google Cloud**: the owner does it, from the checklist in §4.3.
+7. **Scope classification checked**: Google's Drive scopes page lists `drive.appdata` under « Non-sensitive scopes »
+   (checked 2026-11-03). No sensitive-scope review and no demo video; brand verification of the consent screen only.
 
 ---
 
