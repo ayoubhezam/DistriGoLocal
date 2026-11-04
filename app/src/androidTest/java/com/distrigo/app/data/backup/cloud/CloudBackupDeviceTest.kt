@@ -27,6 +27,8 @@ import com.distrigo.app.data.local.database.withDeviceIdentity
 import com.distrigo.app.data.local.database.withMigrationPolicy
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import com.distrigo.app.data.backup.BackupFormat
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -97,10 +99,19 @@ class CloudBackupDeviceTest {
             ring = bytes
         }
 
-        override suspend fun listBlobs(businessId: String) = emptyList<CloudBlob>()
-        override suspend fun putBlob(businessId: String, name: String, file: File) = error("not in Phase 3")
-        override suspend fun openBlob(blob: CloudBlob) = error("not in Phase 3")
-        override suspend fun deleteBlob(blob: CloudBlob) = Unit
+        val blobs = LinkedHashMap<String, Pair<CloudBlob, ByteArray>>()
+
+        override suspend fun listBlobs(businessId: String) = blobs.values.map { it.first }
+        override suspend fun putBlob(businessId: String, name: String, file: File): CloudBlob {
+            val blob = CloudBlob("p${next++}", name, file.length())
+            blobs[blob.id] = blob to file.readBytes()
+            return blob
+        }
+
+        override suspend fun openBlob(blob: CloudBlob): InputStream = ByteArrayInputStream(blobs.getValue(blob.id).second)
+        override suspend fun deleteBlob(blob: CloudBlob) {
+            blobs.remove(blob.id)
+        }
     }
 
     private val business = object : DataBusiness {
@@ -127,7 +138,8 @@ class CloudBackupDeviceTest {
         store = CloudBackupStore(File(root, "state"))
         keys = BackupKeyStore(File(root, "keys"), KeystoreSessionCipher(ALIAS))
         engine = CloudBackupEngine(
-            store, keys, { cloud }, AppCloudBackupSource(db, creator, business), File(root, "staging"), "9.9 (99)",
+            store, keys, { cloud }, AppCloudBackupSource(db, creator, business, File(root, "images")), File(root, "staging"), "9.9 (99)",
+            CloudPhotoIndex(File(root, "index")),
         )
         // As CloudBackupLink leaves a phone after linking (its key derivation is timed in BackupKeyStoreDeviceTest).
         val key = BackupKey.generate()
@@ -144,11 +156,41 @@ class CloudBackupDeviceTest {
         KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(ALIAS)
     }
 
-    private fun product(name: String) = sql.execSQL(
+    private fun product(name: String, image: String? = null) = sql.execSQL(
         "INSERT INTO products (name, selling_price, purchase_price, stock, min_stock, unit_type, packages, pack_size, " +
-            "has_expiry, camion_stock, uuid) VALUES (?, 120.0, 100.0, 0, 0, 'piece', 0, 1, 0, 0, ?)",
-        arrayOf(name, UUID.randomUUID().toString()),
+            "has_expiry, camion_stock, image_uri, uuid) VALUES (?, 120.0, 100.0, 0, 0, 'piece', 0, 1, 0, 0, ?, ?)",
+        arrayOf(name, image, UUID.randomUUID().toString()),
     )
+
+    /** A photo stored the way ImageStore stores one: named for the SHA-256 of its bytes. */
+    private fun photo(seed: Int): String {
+        val bytes = ByteArray(150_000) { (it * seed % 251).toByte() }
+        val hash = BackupFormat.sha256(bytes.inputStream())
+        File(root, "images").apply { mkdirs() }.resolve("$hash.jpg").writeBytes(bytes)
+        return hash
+    }
+
+    @Test
+    fun aProductPhotoGoesUpOnceSealedAndTheBackupLeavesItOut() = runBlocking {
+        val hash = photo(3)
+        product("Lait Candia 1L", "img:$hash")
+        product("Lait Candia 1L (pack)", "img:$hash")
+        val saved = engine.run() as CloudBackupOutcome.Saved
+
+        val key = keys.loadKey("biz-device-test")!!
+        val (blob, sealed) = cloud.blobs.values.single()
+        assertEquals(PhotoNames.name(PhotoNames.nameKey(key), hash), blob.name)
+        val original = File(root, "images/$hash.jpg").readBytes()
+        assertArrayEquals(original, EncryptedBackupFile.reader(ByteArrayInputStream(sealed), key).use { it.readBytes() })
+
+        val plain = EncryptedBackupFile.reader(ByteArrayInputStream(cloud.backups.getValue(saved.entry.id).second), key).use { it.readBytes() }
+        val manifest = (BackupArchive.verify(ByteArrayInputStream(plain)) as Verification.Verified).manifest
+        assertTrue("the photo is not inside the backup file", manifest.entries.none { it.name.contains(hash) })
+
+        product("Yaourt Soummam")
+        engine.run()
+        assertEquals("sent once", 1, cloud.blobs.size)
+    }
 
     private fun worker(manual: Boolean, attempt: Int = 0): CloudBackupWorker =
         TestListenableWorkerBuilder<CloudBackupWorker>(context)

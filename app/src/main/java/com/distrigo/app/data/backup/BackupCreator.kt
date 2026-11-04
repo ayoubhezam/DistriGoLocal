@@ -30,6 +30,11 @@ data class CreatedBackup(
     val damagedPhotos: Int,
     /** [DataFingerprint] of the data as the file holds it — of the copy, not of the live database after it. */
     val fingerprint: String,
+    /**
+     * The photos the data refers to that are on the phone (`<sha256>.jpg`), whether or not they are in the file: the
+     * cloud backup leaves them out and sends each once on its own (docs/cloud_backup_drive_plan.md §3.5).
+     */
+    val photoHashes: List<String> = emptyList(),
 )
 
 class BackupFailedException(val reason: Reason, message: String, cause: Throwable? = null) : Exception(message, cause) {
@@ -140,6 +145,7 @@ class BackupCreator(
                 missingPhotos = if (includePhotos) snapshot.missingImages else 0,
                 damagedPhotos = damagedPhotos,
                 fingerprint = fingerprint,
+                photoHashes = snapshot.imageHashes,
             )
             if (record) db.appMetaDao().putAll(
                 listOf(

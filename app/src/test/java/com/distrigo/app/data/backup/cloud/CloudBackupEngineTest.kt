@@ -44,15 +44,32 @@ class CloudBackupEngineTest {
         var failWith: BackupFailedException? = null
         var created = 0
 
+        /** The photos the data refers to, by content hash. */
+        var photos = listOf<String>()
+
         override fun businessId() = business
         override fun fingerprint() = fingerprint
         override fun create(file: File): PlainBackup {
             failWith?.let { throw it }
             created++
             file.writeBytes(plainBytes(fingerprint))
-            return PlainBackup(fingerprint, 64, "phone-A", now)
+            return PlainBackup(fingerprint, 64, "phone-A", now, photos)
         }
+
+        override fun photoFile(sha256: String) = File(imagesDir, "$sha256.jpg")
     }
+
+    private val imagesDir by lazy { File(folder.root, "images").apply { mkdirs() } }
+
+    /** A photo on the phone, stored as the app stores it: named by the SHA-256 of its bytes. */
+    private fun photo(seed: Int, size: Int = 3_000): String {
+        val bytes = ByteArray(size) { (it * seed + 11).toByte() }
+        val hash = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        File(imagesDir, "$hash.jpg").writeBytes(bytes)
+        return hash
+    }
+
+    private val photoIndex by lazy { CloudPhotoIndex(File(folder.root, "index")) }
 
     private val data = Data()
 
@@ -64,7 +81,7 @@ class CloudBackupEngineTest {
         keys = BackupKeyStore(File(folder.root, "keys"), SoftwareSessionCipher())
         staging = File(folder.root, "staging")
         engine = CloudBackupEngine(
-            store, keys, { provider }, data, staging, "1.4.0 (140)",
+            store, keys, { provider }, data, staging, "1.4.0 (140)", photoIndex,
             clock = { now }, zone = { zone }, segmentSize = 1024, warn = { message, _ -> warnings += message },
         )
         keys.saveKey("biz-1", key)
@@ -281,6 +298,115 @@ class CloudBackupEngineTest {
         val good = engine.record(CloudBackupOutcome.Unchanged, scheduled = true)
         assertEquals(0, good.problemStreak)
         assertNull(good.lastProblem)
+    }
+
+    // ---- photos (Phase 4) ----
+
+    private fun blobs() = runBlocking { cloud.listBlobs("biz-1") }
+
+    @Test
+    fun photosGoOnceEachSealedUnderNamesThatRevealNothing() = runBlocking {
+        val first = photo(3)
+        val second = photo(5)
+        data.photos = listOf(first, second)
+        run()
+        val stored = blobs()
+        val nameKey = PhotoNames.nameKey(key)
+        assertEquals(setOf(PhotoNames.name(nameKey, first), PhotoNames.name(nameKey, second)), stored.map { it.name }.toSet())
+        assertTrue("no content hash in a name", stored.none { it.name.contains(first) || it.name.contains(second) })
+        val blob = stored.single { it.name == PhotoNames.name(nameKey, first) }
+        val sealed = cloud.openBlob(blob).use { it.readBytes() }
+        val original = File(imagesDir, "$first.jpg").readBytes()
+        assertFalse(sealed.contentEquals(original))
+        assertArrayEquals(original, EncryptedBackupFile.reader(sealed.inputStream(), key).use { it.readBytes() })
+
+        // The next backup uses the same photos: nothing is sent again.
+        nextDay()
+        run()
+        assertEquals(stored.map { it.id }.toSet(), blobs().map { it.id }.toSet())
+    }
+
+    @Test
+    fun aPhotoGoneOrDamagedIsLeftOutAndTheBackupStillGoes() {
+        val kept = photo(3)
+        val gone = photo(5).also { File(imagesDir, "$it.jpg").delete() }
+        val damaged = photo(7).also { File(imagesDir, "$it.jpg").writeBytes(ByteArray(10)) }
+        data.photos = listOf(kept, gone, damaged)
+        assertTrue(run() is CloudBackupOutcome.Saved)
+        assertEquals(listOf(PhotoNames.name(PhotoNames.nameKey(key), kept)), blobs().map { it.name })
+        assertTrue(warnings.any { "no longer on the phone" in it })
+        assertTrue(warnings.any { "no longer matches" in it })
+    }
+
+    @Test
+    fun withPhotosOffNoneAreSent() {
+        store.update { it.copy(includePhotos = false) }
+        data.photos = listOf(photo(3))
+        assertTrue(run() is CloudBackupOutcome.Saved)
+        assertTrue(blobs().isEmpty())
+    }
+
+    @Test
+    fun aPhotoNoBackupNeedsAnyMoreIsRemoved() = runBlocking {
+        val old = photo(3)
+        val current = photo(5)
+        data.photos = listOf(old, current)
+        run()
+        assertEquals(2, blobs().size)
+        // The photo was removed from the data; a new backup the same day replaces the first one.
+        data.photos = listOf(current)
+        data.fingerprint = "fp-2"
+        val saved = run() as CloudBackupOutcome.Saved
+        assertEquals(1, saved.removed)
+        assertEquals(listOf(PhotoNames.name(PhotoNames.nameKey(key), current)), blobs().map { it.name })
+    }
+
+    @Test
+    fun photoCleanupWaitsWhileABackupItDoesNotKnowRemains() = runBlocking {
+        val old = photo(3)
+        data.photos = listOf(old)
+        run()
+        // Another phone's backup of the same business (dated ahead, so retention keeps it): its photos are unknown here.
+        val other = File(folder.root, "other.dgenc").apply { writeBytes(ByteArray(10)) }
+        cloud.uploadBackup(other, CloudBackupMeta("biz-1", "phone-B", now.plus(Duration.ofDays(1)).toEpochMilli(), 64, "1.4.0", 10, key.idText))
+        data.photos = emptyList()
+        data.fingerprint = "fp-2"
+        run()
+        assertEquals("kept: the other phone's backup may need it", 1, blobs().size)
+        assertTrue(warnings.any { "photo cleanup waits" in it })
+    }
+
+    @Test
+    fun photosGoBeforeTheBackupAndAResumeDoesNotSendThemAgain() = runBlocking {
+        val first = photo(3)
+        data.photos = listOf(first)
+        val cutting = CuttingProvider(Problem.NETWORK)
+        provider = cutting
+        assertTrue(run() is CloudBackupOutcome.Failed)
+        assertEquals("the photo is up before the backup", 1, blobs().size)
+        assertTrue(cloud.listBackups("biz-1").isEmpty())
+        assertEquals(listOf(first), store.read().pending!!.photos)
+
+        val before = blobs().map { it.id }
+        assertTrue((run() as CloudBackupOutcome.Saved).resumed)
+        assertEquals(before, blobs().map { it.id })
+        val entry = cloud.listBackups("biz-1").single()
+        assertEquals(setOf(PhotoNames.name(PhotoNames.nameKey(key), first)), photoIndex.read(key.idText)[entry.id])
+    }
+
+    @Test
+    fun aFailedPhotoKeepsTheBackupBack() = runBlocking {
+        data.photos = listOf(photo(3))
+        cloud.failNext = null
+        val failing = object : CloudBackupProvider by cloud {
+            override suspend fun putBlob(businessId: String, name: String, file: File): CloudBlob =
+                throw CloudBackupException(Problem.NETWORK, "cut")
+        }
+        provider = failing
+        val failed = run() as CloudBackupOutcome.Failed
+        assertTrue(failed.retryable)
+        assertTrue("no backup without its photos", cloud.listBackups("biz-1").isEmpty())
+        assertNotNull(store.read().pending)
     }
 
     @Test

@@ -56,6 +56,8 @@ class CloudBackupWorker @AssistedInject constructor(
     private fun progressData(progress: CloudBackupProgress) = when (progress) {
         CloudBackupProgress.Preparing -> workDataOf(KEY_STEP to STEP_PREPARING)
         CloudBackupProgress.Encrypting -> workDataOf(KEY_STEP to STEP_ENCRYPTING)
+        is CloudBackupProgress.Photos ->
+            workDataOf(KEY_STEP to STEP_PHOTOS, KEY_SENT to progress.done.toLong(), KEY_TOTAL to progress.total.toLong())
         is CloudBackupProgress.Uploading ->
             workDataOf(KEY_STEP to STEP_UPLOADING, KEY_SENT to progress.sent, KEY_TOTAL to progress.total)
     }
@@ -70,6 +72,9 @@ class CloudBackupWorker @AssistedInject constructor(
         const val STEP_PREPARING = "preparing"
         const val STEP_ENCRYPTING = "encrypting"
         const val STEP_UPLOADING = "uploading"
+
+        /** [KEY_SENT] photos checked of [KEY_TOTAL]. */
+        const val STEP_PHOTOS = "photos"
 
         /** The first run and four retries (30 min, 1 h, 2 h, 4 h): a whole night's worth. */
         const val MAX_ATTEMPTS = 5

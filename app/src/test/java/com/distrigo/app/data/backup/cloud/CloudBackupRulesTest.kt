@@ -87,7 +87,7 @@ class CloudBackupRulesTest {
     @Test
     fun stateSurvivesTheFile() {
         val store = CloudBackupStore(File(folder.root, "state"))
-        val pending = PendingUpload("backup-1.dgenc", "fp", 123, 64, "phone-A", 999, "key", "https://upload/s1")
+        val pending = PendingUpload("backup-1.dgenc", "fp", 123, 64, "phone-A", 999, "key", "https://upload/s1", listOf("aa11", "bb22"))
         val written = store.update {
             it.copy(
                 linked = true, providerId = "gdrive", account = "owner@gmail.com", businessId = "biz-1",
@@ -115,6 +115,28 @@ class CloudBackupRulesTest {
         val dir = File(folder.root, "bad").apply { mkdirs() }
         File(dir, "state.json").writeText("{ not json")
         assertEquals(CloudBackupState(), CloudBackupStore(dir).read())
+    }
+
+    // ---- photo names and index ----
+
+    @Test
+    fun photoNamesAreStablePerKeyAndDifferAcrossKeys() {
+        val one = BackupKey.generate()
+        val two = BackupKey.generate()
+        val hash = "a".repeat(64)
+        assertEquals(PhotoNames.name(PhotoNames.nameKey(one), hash), PhotoNames.name(PhotoNames.nameKey(one), hash.uppercase()))
+        assertFalse(PhotoNames.name(PhotoNames.nameKey(one), hash) == PhotoNames.name(PhotoNames.nameKey(two), hash))
+        assertEquals(43, PhotoNames.name(PhotoNames.nameKey(one), hash).length)
+    }
+
+    @Test
+    fun photoIndexBelongsToItsKey() {
+        val index = CloudPhotoIndex(File(folder.root, "index"))
+        index.update("key-1") { it + ("b1" to setOf("n1", "n2")) }
+        assertEquals(mapOf("b1" to setOf("n1", "n2")), CloudPhotoIndex(File(folder.root, "index")).read("key-1"))
+        assertTrue("a new key starts empty", index.read("key-2").isEmpty())
+        index.update("key-2") { it + ("b9" to emptySet()) }
+        assertTrue(index.read("key-1").isEmpty())
     }
 
     // ---- alerts ----

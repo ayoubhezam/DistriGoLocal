@@ -20,6 +20,8 @@ data class PendingUpload(
     val keyId: String,
     /** The provider's upload session, once one is open. */
     val session: String? = null,
+    /** The photos this backup needs, by content hash: sent before it (plan §3.5). */
+    val photos: List<String> = emptyList(),
 )
 
 /** This phone's cloud backup: the link, the settings, and what the last runs did. */
@@ -127,6 +129,7 @@ class CloudBackupStore(private val dir: File) {
         addProperty("plain_size", p.plainSize.toString())
         addProperty("key_id", p.keyId)
         addProperty("session", p.session)
+        add("photos", com.google.gson.JsonArray().apply { p.photos.forEach(::add) })
     }
 
     private fun pendingFrom(json: JsonObject): PendingUpload? {
@@ -139,6 +142,7 @@ class CloudBackupStore(private val dir: File) {
             plainSize = json.text("plain_size")?.toLongOrNull() ?: return null,
             keyId = json.text("key_id") ?: return null,
             session = json.text("session"),
+            photos = (json.get("photos") as? com.google.gson.JsonArray)?.map { it.asString }.orEmpty(),
         )
     }
 

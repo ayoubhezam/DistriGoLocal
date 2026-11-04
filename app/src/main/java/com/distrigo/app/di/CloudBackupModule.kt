@@ -13,6 +13,8 @@ import com.distrigo.app.data.backup.cloud.CloudBackupNotifications
 import com.distrigo.app.data.backup.cloud.CloudBackupProvider
 import com.distrigo.app.data.backup.cloud.CloudBackupScheduler
 import com.distrigo.app.data.backup.cloud.CloudBackupStore
+import com.distrigo.app.data.backup.cloud.CloudPhotoIndex
+import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.backup.cloud.DriveAuthorizer
 import com.distrigo.app.data.backup.cloud.DriveClient
 import com.distrigo.app.data.backup.cloud.GoogleDriveProvider
@@ -74,9 +76,10 @@ object CloudBackupModule {
             store = store,
             keys = keys,
             providerFor = providers::forAccount,
-            source = AppCloudBackupSource(db, creator, AppMetaDataBusiness { db }),
+            source = AppCloudBackupSource(db, creator, AppMetaDataBusiness { db }, ImageStore.imagesDir(app)),
             stagingDir = File(app.noBackupFilesDir, "cloud_backup/staging"),
             appVersion = "${info.versionName} (${PackageInfoCompat.getLongVersionCode(info)})",
+            photoIndex = CloudPhotoIndex(File(app.noBackupFilesDir, "cloud_backup")),
         )
     }
 

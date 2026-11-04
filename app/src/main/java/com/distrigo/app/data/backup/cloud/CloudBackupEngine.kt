@@ -9,6 +9,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.security.DigestInputStream
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
 import java.time.ZoneId
@@ -21,8 +23,11 @@ interface CloudBackupSource {
     /** [com.distrigo.app.data.backup.DataFingerprint] of the live data, to skip a day without changes. */
     fun fingerprint(): String
 
-    /** Writes a `.distrigo` of the data into [file]. Throws [BackupFailedException] like `BackupCreator`. */
+    /** Writes a `.distrigo` of the data into [file], photos left out. Throws [BackupFailedException] like `BackupCreator`. */
     fun create(file: File): PlainBackup
+
+    /** Where the phone keeps the photo whose content hash is [sha256]. */
+    fun photoFile(sha256: String): File
 }
 
 /** What [CloudBackupSource.create] wrote. */
@@ -32,6 +37,8 @@ data class PlainBackup(
     val schemaVersion: Int,
     val deviceId: String,
     val createdAt: Instant,
+    /** The photos the data refers to that are on the phone, by content hash: sent on their own (plan §3.5). */
+    val photoHashes: List<String> = emptyList(),
 )
 
 sealed class CloudBackupOutcome {
@@ -52,6 +59,9 @@ sealed class CloudBackupOutcome {
 sealed class CloudBackupProgress {
     data object Preparing : CloudBackupProgress()
     data object Encrypting : CloudBackupProgress()
+
+    /** Photos checked so far, of [total]; only the ones the cloud does not hold yet are sent. */
+    data class Photos(val done: Int, val total: Int) : CloudBackupProgress()
     data class Uploading(val sent: Long, val total: Long) : CloudBackupProgress()
 }
 
@@ -62,8 +72,11 @@ sealed class CloudBackupProgress {
  *    the app's hidden data in Drive);
  * 3. otherwise the data is backed up, sealed with the business's key, and sent; the sealed file and the provider's
  *    session are kept until the provider holds it whole, so a cut connection or a killed app resumes;
- * 4. after a confirmed upload only: the key ring is put back if it is missing, and old backups beyond the retention
- *    rule are deleted. Neither can undo the backup just made: their failures wait for the next run.
+ *    its photos go first, each sealed on its own under a keyed name, and only those the cloud lacks (plan §3.5): a
+ *    backup is never in the cloud before the photos it needs;
+ * 4. after a confirmed upload only: the key ring is put back if it is missing, old backups beyond the retention
+ *    rule are deleted, then photos no remaining backup uses ([CloudPhotoIndex]). None of this can undo the backup
+ *    just made: failures wait for the next run.
  *
  * Nothing here reads a clock or a zone of its own, so tests drive days and weeks.
  */
@@ -74,6 +87,7 @@ class CloudBackupEngine(
     private val source: CloudBackupSource,
     private val stagingDir: File,
     private val appVersion: String,
+    private val photoIndex: CloudPhotoIndex,
     private val clock: () -> Instant = Instant::now,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
     private val random: SecureRandom = SecureRandom(),
@@ -132,14 +146,14 @@ class CloudBackupEngine(
 
         state.pending?.let { pending ->
             val sealed = File(stagingDir, pending.fileName)
-            if (pending.keyId == key.idText && sealed.isFile) return upload(provider, businessId, pending, sealed, resumed = true, onProgress)
+            if (pending.keyId == key.idText && sealed.isFile) return upload(provider, businessId, key, pending, sealed, resumed = true, onProgress)
             store.update { it.copy(pending = null) }
         }
 
         val fingerprint = source.fingerprint()
         if (!force && fingerprint == state.lastFingerprint && state.lastEntryId != null) {
             if (provider.listBackups(businessId).any { it.id == state.lastEntryId }) {
-                afterUpload(provider, businessId, justSent = null)
+                afterUpload(provider, businessId, key, justSent = null)
                 return CloudBackupOutcome.Unchanged
             }
             warn("the last cloud backup is gone: backing up again", null)
@@ -172,19 +186,22 @@ class CloudBackupEngine(
             deviceId = created.deviceId,
             plainSize = plainSize,
             keyId = key.idText,
+            photos = if (state.includePhotos) created.photoHashes.distinct() else emptyList(),
         )
         store.update { it.copy(pending = pending) }
-        return upload(provider, businessId, pending, sealed, resumed = false, onProgress)
+        return upload(provider, businessId, key, pending, sealed, resumed = false, onProgress)
     }
 
     private suspend fun upload(
         provider: CloudBackupProvider,
         businessId: String,
+        key: BackupKey,
         pending: PendingUpload,
         sealed: File,
         resumed: Boolean,
         onProgress: (CloudBackupProgress) -> Unit,
     ): CloudBackupOutcome {
+        val photoNames = sendPhotos(provider, businessId, key, pending.photos, onProgress)
         val meta = CloudBackupMeta(
             businessId = businessId,
             deviceId = pending.deviceId,
@@ -212,11 +229,65 @@ class CloudBackupEngine(
             )
         }
         sealed.delete()
-        return CloudBackupOutcome.Saved(entry, resumed, afterUpload(provider, businessId, justSent = entry.id))
+        photoIndex.update(key.idText) { it + (entry.id to photoNames) }
+        return CloudBackupOutcome.Saved(entry, resumed, afterUpload(provider, businessId, key, justSent = entry.id))
     }
 
-    /** Puts the key ring back if it is missing, then applies retention. Failures wait for the next run. */
-    private suspend fun afterUpload(provider: CloudBackupProvider, businessId: String, justSent: String?): Int {
+    /**
+     * Sends the photos in [hashes] the cloud does not hold yet, each sealed on its own; returns the cloud names of all
+     * of them that are there now. A photo gone from the phone, or whose file no longer matches its hash, is left out
+     * (as a local backup leaves it out): the backup still goes, without it.
+     */
+    private suspend fun sendPhotos(
+        provider: CloudBackupProvider,
+        businessId: String,
+        key: BackupKey,
+        hashes: List<String>,
+        onProgress: (CloudBackupProgress) -> Unit,
+    ): Set<String> {
+        if (hashes.isEmpty()) return emptySet()
+        val nameKey = PhotoNames.nameKey(key)
+        val inCloud = provider.listBlobs(businessId).mapTo(HashSet()) { it.name }
+        val names = LinkedHashSet<String>()
+        stagingDir.mkdirs()
+        hashes.forEachIndexed { index, hash ->
+            onProgress(CloudBackupProgress.Photos(index, hashes.size))
+            val name = PhotoNames.name(nameKey, hash)
+            if (name in inCloud) {
+                names += name
+                return@forEachIndexed
+            }
+            val photo = source.photoFile(hash)
+            if (!photo.isFile) {
+                warn("a photo is no longer on the phone: left out", null)
+                return@forEachIndexed
+            }
+            val sealed = File(stagingDir, "photo.${EncryptedBackupFile.EXTENSION}")
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                DigestInputStream(photo.inputStream(), digest).use { input ->
+                    EncryptedBackupFile.writer(sealed.outputStream(), key, PHOTO_SEGMENT_SIZE, random).use { input.copyTo(it, 64 * 1024) }
+                }
+                if (!digest.digest().joinToString("") { "%02x".format(it) }.equals(hash, ignoreCase = true)) {
+                    warn("a photo no longer matches its name: left out", null)
+                    return@forEachIndexed
+                }
+                provider.putBlob(businessId, name, sealed)
+                inCloud += name
+                names += name
+            } finally {
+                sealed.delete()
+            }
+        }
+        onProgress(CloudBackupProgress.Photos(hashes.size, hashes.size))
+        return names
+    }
+
+    /**
+     * Puts the key ring back if it is missing; after an upload ([justSent]), applies retention and then removes the
+     * photos no remaining backup uses. Failures wait for the next run.
+     */
+    private suspend fun afterUpload(provider: CloudBackupProvider, businessId: String, key: BackupKey, justSent: String?): Int {
         try {
             if (provider.readKeyRing(businessId) == null) {
                 keys.loadKeyRing(businessId)?.let { provider.writeKeyRing(businessId, it.toJson().toByteArray(Charsets.UTF_8)) }
@@ -225,7 +296,7 @@ class CloudBackupEngine(
             warn("could not check the key ring", e)
         }
         if (justSent == null) return 0
-        return try {
+        val removed = try {
             val old = CloudRetention.toDelete(provider.listBackups(businessId), clock(), zone(), justSent)
             old.count { entry ->
                 try {
@@ -240,12 +311,43 @@ class CloudBackupEngine(
             warn("could not apply retention", e)
             0
         }
+        cleanPhotos(provider, businessId, key)
+        return removed
+    }
+
+    /**
+     * Deletes the cloud photos no remaining backup uses. Only when this phone knows the photos of every remaining
+     * backup: one it does not know (another phone's, or older than its index) might need any of them.
+     */
+    private suspend fun cleanPhotos(provider: CloudBackupProvider, businessId: String, key: BackupKey) {
+        try {
+            val remaining = provider.listBackups(businessId).mapTo(HashSet()) { it.id }
+            photoIndex.update(key.idText) { index -> index.filterKeys { it in remaining } }
+            val index = photoIndex.read(key.idText)
+            if (!index.keys.containsAll(remaining)) {
+                warn("photo cleanup waits: some backups' photos are not known on this phone", null)
+                return
+            }
+            val used = index.values.flatten().toHashSet()
+            provider.listBlobs(businessId).filter { it.name !in used }.forEach { blob ->
+                try {
+                    provider.deleteBlob(blob)
+                } catch (e: CloudBackupException) {
+                    warn("could not delete an unused cloud photo", e)
+                }
+            }
+        } catch (e: CloudBackupException) {
+            warn("could not clean the cloud photos", e)
+        }
     }
 
     private fun failed(problem: CloudBackupProblem, detail: String) = CloudBackupOutcome.Failed(problem, false, detail)
 
     private companion object {
         const val TAG = "CloudBackupEngine"
+
+        /** A photo is 100–200 KB: one small segment, not an 8 MB buffer per photo. */
+        const val PHOTO_SEGMENT_SIZE = 256 * 1024
 
         /** One run at a time, « maintenant » and the daily job alike. */
         val LOCK = Mutex()
