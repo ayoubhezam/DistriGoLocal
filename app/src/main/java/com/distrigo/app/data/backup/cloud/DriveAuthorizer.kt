@@ -108,24 +108,28 @@ class DriveAuthorizer(context: Context) {
         is Outcome.Failed -> "failed: ${outcome.message} (code ${outcome.statusCode}, ${outcome.problem})"
     }
 
-    /** Silent tokens for [account], for the worker: anything needing a screen becomes [Problem.NEEDS_CONSENT]. */
-    fun tokens(account: String): DriveTokens = object : DriveTokens {
-        override suspend fun accessToken(): String = when (val outcome = authorize(account)) {
-            is Outcome.Granted -> outcome.accessToken
-            is Outcome.NeedsConsent -> throw CloudBackupException(Problem.NEEDS_CONSENT, "Drive access must be granted again")
-            Outcome.Unavailable -> throw CloudBackupException(Problem.UNAVAILABLE, "No Google Play services")
-            Outcome.Cancelled -> throw CloudBackupException(Problem.NEEDS_CONSENT, "Drive access must be granted again")
-            is Outcome.Failed -> throw CloudBackupException(outcome.problem, outcome.message)
-        }
-
-        override suspend fun refresh(rejected: String): String {
+    /**
+     * Silent tokens for [account], for the worker and the screens: anything needing a screen becomes
+     * [Problem.NEEDS_CONSENT]. One token for the whole run ([CachedTokens]); a provider is made per run, so is this.
+     */
+    fun tokens(account: String): DriveTokens = CachedTokens(
+        fetch = {
+            when (val outcome = authorize(account)) {
+                is Outcome.Granted -> outcome.accessToken
+                is Outcome.NeedsConsent -> throw CloudBackupException(Problem.NEEDS_CONSENT, "Drive access must be granted again")
+                Outcome.Unavailable -> throw CloudBackupException(Problem.UNAVAILABLE, "No Google Play services")
+                Outcome.Cancelled -> throw CloudBackupException(Problem.NEEDS_CONSENT, "Drive access must be granted again")
+                is Outcome.Failed -> throw CloudBackupException(outcome.problem, outcome.message)
+            }
+        },
+        forget = { rejected ->
+            Log.i(TAG, "Drive rejected the token: clearing it before asking for a fresh one")
             withContext(Dispatchers.IO) {
                 // Play services caches tokens: a rejected one would come back unless it is cleared.
                 runCatching { GoogleAuthUtil.clearToken(context, rejected) }
             }
-            return accessToken()
-        }
-    }
+        },
+    )
 
     private fun outcomeOf(result: AuthorizationResult): Outcome {
         if (result.hasResolution()) {

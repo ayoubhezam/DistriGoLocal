@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Paramètres › Sauvegarde › Sauvegarde Google Drive (docs/cloud_backup_drive_plan.md §6). To review (docs/i18n_glossary.md). -->
 <resources>
-    <string name="cloud_title">النسخ الاحتياطي على ⁨Google Drive⁩</string>
+    <string name="cloud_title">نسخ احتياطي على ⁨Google Drive⁩</string>
     <string name="cloud_card_off">نسخة مشفّرة في ⁨Google Drive⁩ الخاص بك</string>
     <string name="cloud_card_on">مرتبط بـ ⁨%1$s⁩</string>
     <string name="cloud_card_open">فتح</string>
