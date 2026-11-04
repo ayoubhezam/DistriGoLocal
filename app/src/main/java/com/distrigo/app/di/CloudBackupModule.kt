@@ -14,6 +14,7 @@ import com.distrigo.app.data.backup.cloud.CloudBackupProvider
 import com.distrigo.app.data.backup.cloud.CloudBackupScheduler
 import com.distrigo.app.data.backup.cloud.CloudBackupStore
 import com.distrigo.app.data.backup.cloud.CloudPhotoIndex
+import com.distrigo.app.data.backup.cloud.CloudRestore
 import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.backup.cloud.DriveAuthorizer
 import com.distrigo.app.data.backup.cloud.DriveClient
@@ -87,6 +88,14 @@ object CloudBackupModule {
     @Singleton
     fun provideCloudBackupLink(store: CloudBackupStore, keys: BackupKeyStore, providers: CloudBackupProviders): CloudBackupLink =
         CloudBackupLink(store, keys, providers::forAccount)
+
+    @Provides
+    @Singleton
+    fun provideCloudRestore(@ApplicationContext context: Context, providers: CloudBackupProviders): CloudRestore = CloudRestore(
+        providers::forAccount,
+        File(context.applicationContext.noBackupFilesDir, "cloud_backup/restore"),
+        ImageStore.imagesDir(context.applicationContext),
+    )
 
     @Provides
     @Singleton
