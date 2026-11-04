@@ -386,7 +386,8 @@ class DriveClient(
                 code == 408 || code >= 500 -> Problem.SERVER
                 else -> Problem.REJECTED
             }
-            return CloudBackupException(problem, "Drive $code ${reason.orEmpty()}".trim())
+            val detail = "HTTP $code ${reason.orEmpty()}".trim()
+            return CloudBackupException(problem, "Drive $detail", detail = detail)
         }
     }
 }

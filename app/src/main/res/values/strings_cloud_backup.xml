@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paramètres › Sauvegarde › Sauvegarde Google Drive (docs/cloud_backup_drive_plan.md §6). Arabic in values-ar. -->
+<resources>
+    <string name="cloud_title">Sauvegarde Google Drive</string>
+    <string name="cloud_card_off">Une copie chiffrée dans votre Google Drive</string>
+    <string name="cloud_card_on">Liée à %1$s</string>
+    <string name="cloud_card_open">Ouvrir</string>
+
+    <string name="cloud_unavailable">Google Drive n\'est pas disponible sur ce téléphone (pas de services Google Play). La sauvegarde sur le téléphone continue.</string>
+    <string name="cloud_intro">Chaque nuit, une copie chiffrée de vos données dans votre propre Google Drive. Seuls votre mot de passe ou votre code de récupération peuvent l\'ouvrir.</string>
+    <string name="cloud_link">Lier Google Drive</string>
+    <string name="cloud_optional">Facultatif — la sauvegarde sur le téléphone continue sans Google.</string>
+    <string name="cloud_restore_from">Restaurer depuis Google Drive</string>
+
+    <string name="cloud_account">Compte lié</string>
+    <string name="cloud_last">Dernière sauvegarde</string>
+    <string name="cloud_last_value">%1$s · %2$s</string>
+    <string name="cloud_none_yet">Pas encore</string>
+    <string name="cloud_backup_now">Sauvegarder maintenant</string>
+    <string name="cloud_settings">Réglages</string>
+    <string name="cloud_auto">Sauvegarde automatique</string>
+    <string name="cloud_auto_sub">Chaque nuit, si les données ont changé</string>
+    <string name="cloud_mobile">Autoriser les données mobiles</string>
+    <string name="cloud_mobile_sub">Sinon, seulement en Wi-Fi</string>
+    <string name="cloud_photos">Inclure les photos</string>
+    <string name="cloud_photos_sub">Chaque photo n\'est envoyée qu\'une fois</string>
+    <string name="cloud_manage">Gérer</string>
+    <string name="cloud_restore">Restaurer</string>
+    <string name="cloud_change_password">Changer le mot de passe</string>
+    <string name="cloud_change_account">Changer de compte</string>
+    <string name="cloud_unlink">Délier</string>
+    <string name="cloud_reconnect">Reconnecter Google Drive</string>
+    <string name="cloud_enter_password">Entrer le mot de passe</string>
+    <string name="cloud_quota_hint">Libérez de l\'espace dans votre Google Drive, puis touchez « Sauvegarder maintenant ».</string>
+
+    <string name="cloud_step_preparing">Préparation de la sauvegarde…</string>
+    <string name="cloud_step_encrypting">Chiffrement…</string>
+    <string name="cloud_step_photos">Photos : %1$d sur %2$d</string>
+    <string name="cloud_step_uploading">Envoi : %1$d %%</string>
+    <string name="cloud_step_waiting_wifi">En attente du Wi-Fi…</string>
+    <string name="cloud_step_waiting_network">En attente du réseau…</string>
+    <string name="cloud_can_leave">Vous pouvez quitter cet écran.</string>
+
+    <string name="cloud_create_title">Créer le mot de passe de sauvegarde</string>
+    <string name="cloud_create_text">Vos sauvegardes seront dans le Google Drive de %1$s. Pour restaurer sur un nouveau téléphone, il faudra ce compte ET ce mot de passe (ou le code de récupération).</string>
+    <string name="cloud_password">Mot de passe</string>
+    <string name="cloud_password_again">Confirmer le mot de passe</string>
+    <string name="cloud_password_hint">Au moins %1$d caractères</string>
+    <string name="cloud_password_short">Au moins %1$d caractères.</string>
+    <string name="cloud_password_mismatch">Les deux mots de passe ne sont pas identiques.</string>
+    <string name="cloud_create">Créer</string>
+
+    <string name="cloud_code_title">Votre code de récupération</string>
+    <string name="cloud_code_text">Si vous oubliez le mot de passe, ce code ouvre vos sauvegardes. Notez-le sur papier et gardez-le en lieu sûr : il ne sera plus affiché.</string>
+    <string name="cloud_code_share">Partager</string>
+    <string name="cloud_code_noted">J\'ai noté le code</string>
+    <string name="cloud_continue">Continuer</string>
+
+    <string name="cloud_join_title">Ouvrir les sauvegardes de ce compte</string>
+    <string name="cloud_join_text">Ce compte Google contient déjà des sauvegardes de votre entreprise. Entrez le mot de passe de sauvegarde ou le code de récupération.</string>
+    <string name="cloud_relock_title">Entrer le mot de passe de sauvegarde</string>
+    <string name="cloud_relock_text">Ce téléphone a perdu sa copie de la clé. Entrez le mot de passe ou le code de récupération pour reprendre la sauvegarde en ligne.</string>
+    <string name="cloud_secret">Mot de passe ou code de récupération</string>
+    <string name="cloud_secret_wrong">Mot de passe ou code incorrect.</string>
+    <string name="cloud_open">Ouvrir</string>
+
+    <string name="cloud_change_text">Les sauvegardes déjà faites restent lisibles, et le code de récupération ne change pas.</string>
+    <string name="cloud_current_password">Mot de passe actuel</string>
+    <string name="cloud_new_password">Nouveau mot de passe</string>
+    <string name="cloud_current_wrong">Mot de passe actuel incorrect.</string>
+    <string name="cloud_save">Enregistrer</string>
+    <string name="cloud_password_changed">Mot de passe changé.</string>
+
+    <string name="cloud_unlink_title">Délier Google Drive ?</string>
+    <string name="cloud_unlink_text">Les sauvegardes restent dans le Google Drive de %1$s : vous pourrez les restaurer plus tard avec le mot de passe ou le code. Ce téléphone n\'en enverra plus.</string>
+    <string name="cloud_unlinked">Google Drive délié.</string>
+    <string name="cloud_change_account_title">Changer de compte Google ?</string>
+    <string name="cloud_change_account_text">Les anciennes sauvegardes restent dans le Google Drive de %1$s. Le nouveau compte recevra une sauvegarde complète tout de suite.</string>
+    <string name="cloud_linked_done">Google Drive lié. Première sauvegarde en cours.</string>
+    <string name="cloud_reconnected">Google Drive reconnecté.</string>
+    <string name="cloud_backup_started">Sauvegarde lancée.</string>
+
+    <string name="cloud_choose_title">Choisir une sauvegarde</string>
+    <string name="cloud_choose_text">La sauvegarde choisie remplacera les données de ce téléphone, après confirmation.</string>
+    <string name="cloud_this_phone">Ce téléphone</string>
+    <string name="cloud_other_phone">Autre téléphone</string>
+    <string name="cloud_old_key">Ancienne clé : ne peut pas être ouverte</string>
+    <string name="cloud_no_backups">Aucune sauvegarde de votre entreprise dans ce Google Drive.</string>
+    <string name="cloud_restoring_title">Restauration depuis Google Drive</string>
+    <string name="cloud_downloading">Téléchargement : %1$d %%</string>
+    <string name="cloud_decrypting">Déchiffrement…</string>
+
+    <string name="cloud_error_no_account">le compte Google n\'a pas pu être lu. Réessayez.</string>
+
+    <!-- What failed (%1$s is one of the cloud_reason_* below). Never the backup's « n'a pas pu être envoyée » -->
+    <string name="cloud_link_failed">Google Drive n\'a pas pu être lié : %1$s</string>
+    <string name="cloud_restore_failed">La restauration depuis Google Drive n\'a pas pu se faire : %1$s</string>
+    <string name="cloud_reconnect_failed">Google Drive n\'a pas pu être reconnecté : %1$s</string>
+    <string name="cloud_action_failed">L\'opération n\'a pas abouti : %1$s</string>
+    <string name="cloud_reason_refused">Google a refusé l\'accès (code %1$d).</string>
+    <string name="cloud_reason_network">pas de connexion, ou Google ne répond pas. Réessayez.</string>
+    <string name="cloud_reason_drive">Google Drive a refusé la demande (%1$s).</string>
+    <string name="cloud_reason_full">votre Google Drive est plein.</string>
+    <string name="cloud_error_newer">Cette sauvegarde a été faite par une version plus récente de DistriGo. Mettez l\'application à jour, puis réessayez.</string>
+    <string name="cloud_error_damaged">Cette sauvegarde est endommagée. Réessayez, ou choisissez-en une autre.</string>
+    <string name="cloud_error_other_key">Cette sauvegarde a été faite avec une ancienne clé et ne peut pas être ouverte.</string>
+</resources>

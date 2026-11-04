@@ -65,6 +65,7 @@ sealed class Screen(val route: String) {
     data object SettingsPrinters     : Screen("settings_printers")
     data object SettingsCommission : Screen("settings_commission")
     data object SettingsData       : Screen("settings_data")
+    data object SettingsCloudBackup : Screen("settings_cloud_backup")
     data object SettingsExport     : Screen("settings_data_export")
     data object SettingsTrash      : Screen("settings_trash")
     data object SettingsDiagnostics : Screen("settings_diagnostics")

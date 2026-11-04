@@ -102,7 +102,12 @@ class DataBackupViewModel @Inject constructor(
     private val installer: RestoreInstaller,
     private val scheduler: AutoBackupScheduler,
     private val license: LicenseManager,
+    private val cloudStore: com.distrigo.app.data.backup.cloud.CloudBackupStore,
 ) : ViewModel() {
+
+    private val _cloudAccount = MutableStateFlow<String?>(null)
+    /** The Google account the cloud backup is linked to, for its card; null when not linked. */
+    val cloudAccount: StateFlow<String?> = _cloudAccount.asStateFlow()
 
     val lastBackup: StateFlow<LastBackup?> =
         db.appMetaDao().observe(listOf(BackupCreator.KEY_LAST_AT, BackupCreator.KEY_LAST_SIZE, BackupCreator.KEY_LAST_NAME))
@@ -177,6 +182,7 @@ class DataBackupViewModel @Inject constructor(
                 }
                 _lastRestore.value = installer.lastResult()
                 _autoStatus.value = readAutoStatus()
+                _cloudAccount.value = cloudStore.read().takeIf { it.linked }?.account
             }
         }
     }

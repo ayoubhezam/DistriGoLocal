@@ -84,7 +84,13 @@ data class CloudBackupEntry(
 data class CloudBlob(val id: String, val name: String, val size: Long)
 
 /** Why a cloud call failed, in the terms the engine and the screens act on. */
-class CloudBackupException(val problem: Problem, message: String, cause: Throwable? = null) : IOException(message, cause) {
+class CloudBackupException(
+    val problem: Problem,
+    message: String,
+    cause: Throwable? = null,
+    /** The provider's answer when there was one: « HTTP 403 accessNotConfigured ». Shown in link errors and logged. */
+    val detail: String? = null,
+) : IOException(message, cause) {
     enum class Problem(val retryable: Boolean) {
         /** No Google Play services on this phone: the cloud backup cannot be offered. */
         UNAVAILABLE(false),

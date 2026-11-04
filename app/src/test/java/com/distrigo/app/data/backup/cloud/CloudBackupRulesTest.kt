@@ -52,6 +52,24 @@ class CloudBackupRulesTest {
     }
 
     @Test
+    fun aLostPhonesLastBackupSurvivesANewPhoneOnTheSameDay() {
+        // The old phone's real backup this morning; the new phone, linked at noon, backs up its empty data.
+        val oldPhone = CloudBackupEntry("old", 10, null, CloudBackupMeta("biz-1", "phone-A", at("2026-11-03T03:30").toEpochMilli(), 64, "1.4.0", 10, "k"))
+        val newPhone = CloudBackupEntry("new", 10, null, CloudBackupMeta("biz-1", "phone-B", at("2026-11-03T12:00").toEpochMilli(), 64, "1.4.0", 10, "k"))
+        assertTrue(CloudRetention.toDelete(listOf(oldPhone, newPhone), at("2026-11-03T12:01"), zone, justSent = "new").isEmpty())
+        // Months later, still kept: it is that phone's newest.
+        val later = CloudBackupEntry("later", 10, null, CloudBackupMeta("biz-1", "phone-B", at("2027-03-01T03:30").toEpochMilli(), 64, "1.4.0", 10, "k"))
+        assertTrue(CloudRetention.toDelete(listOf(oldPhone, newPhone, later), at("2027-03-01T04:00"), zone, justSent = "later").none { it.id == "old" })
+    }
+
+    @Test
+    fun aPhonesOlderBackupsStillAgeOut() {
+        val older = CloudBackupEntry("older", 10, null, CloudBackupMeta("biz-1", "phone-A", at("2026-09-01T03:30").toEpochMilli(), 64, "1.4.0", 10, "k"))
+        val newest = CloudBackupEntry("newest", 10, null, CloudBackupMeta("biz-1", "phone-A", at("2026-11-03T03:30").toEpochMilli(), 64, "1.4.0", 10, "k"))
+        assertEquals(listOf("older"), CloudRetention.toDelete(listOf(older, newest), at("2026-11-03T04:00"), zone).map { it.id })
+    }
+
+    @Test
     fun dayBoundariesFollowThePhonesZone() {
         // 23:30 UTC on 2 Nov is 00:30 on 3 Nov in Algiers: the same day as the morning backup.
         val lateUtc = entry("late", Instant.parse("2026-11-02T23:30:00Z"))

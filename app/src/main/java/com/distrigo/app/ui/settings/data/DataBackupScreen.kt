@@ -86,9 +86,21 @@ import androidx.compose.ui.res.pluralStringResource
 @Composable
 fun DataBackupScreen(
     onBack: () -> Unit,
+    /** Opens « Sauvegarde Google Drive ». */
+    onCloud: () -> Unit = {},
+    /** A backup the cloud screen downloaded, to restore here like a picked file; [onCloudRestoreTaken] once taken. */
+    cloudRestore: String? = null,
+    onCloudRestoreTaken: () -> Unit = {},
     viewModel: DataBackupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val cloudAccount by viewModel.cloudAccount.collectAsState()
+    LaunchedEffect(cloudRestore) {
+        cloudRestore?.let {
+            onCloudRestoreTaken()
+            viewModel.inspect(Uri.parse(it))
+        }
+    }
     val lastBackup by viewModel.lastBackup.collectAsState()
     val counts by viewModel.counts.collectAsState()
     val safetyBackups by viewModel.safetyBackups.collectAsState()
@@ -205,6 +217,8 @@ fun DataBackupScreen(
                         )
                     },
                 )
+
+                CloudCard(account = cloudAccount, enabled = running == null, onOpen = onCloud)
 
                 // No restore while a backup is being written
                 RestoreCard(enabled = running == null, onInfo = { info = it }, onPick = { openLauncher.launch(arrayOf("*/*")) })
@@ -487,6 +501,35 @@ private fun AutoBackupCard(
                 Text(stringResource(R.string.backup_now), fontWeight = FontWeight.SemiBold)
             }
         }
+    }
+}
+
+/** « Sauvegarde Google Drive »: whether it is linked, and the way in. Its own screen holds the rest. */
+@Composable
+private fun CloudCard(account: String?, enabled: Boolean, onOpen: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(DsShapes.large)
+            .background(DsColors.Surface)
+            .border(1.dp, DsColors.Border, DsShapes.large)
+            .clickable(enabled = enabled, onClickLabel = stringResource(R.string.cloud_card_open), onClick = onOpen)
+            .padding(DsSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(52.dp).clip(DsShapes.large).background(DsColors.Primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.CloudUpload, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(26.dp))
+        }
+        Spacer(Modifier.width(DsSpacing.md))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.cloud_title), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+            Text(
+                account?.let { stringResource(R.string.cloud_card_on, it) } ?: stringResource(R.string.cloud_card_off),
+                fontSize = DsTextSize.bodySmall,
+                color = if (account != null) DsColors.Success else DsColors.TextSecondary
+            )
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary)
     }
 }
 

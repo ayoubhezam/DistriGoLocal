@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paramètres › Sauvegarde › Sauvegarde Google Drive (docs/cloud_backup_drive_plan.md §6). To review (docs/i18n_glossary.md). -->
+<resources>
+    <string name="cloud_title">النسخ الاحتياطي على ⁨Google Drive⁩</string>
+    <string name="cloud_card_off">نسخة مشفّرة في ⁨Google Drive⁩ الخاص بك</string>
+    <string name="cloud_card_on">مرتبط بـ ⁨%1$s⁩</string>
+    <string name="cloud_card_open">فتح</string>
+
+    <string name="cloud_unavailable">⁨Google Drive⁩ غير متاح على هذا الهاتف (لا توجد خدمات ⁨Google Play⁩). يستمر النسخ الاحتياطي على الهاتف.</string>
+    <string name="cloud_intro">كل ليلة، نسخة مشفّرة من بياناتك في ⁨Google Drive⁩ الخاص بك. لا يفتحها إلا كلمة المرور أو رمز الاسترداد.</string>
+    <string name="cloud_link">ربط ⁨Google Drive⁩</string>
+    <string name="cloud_optional">اختياري — يستمر النسخ الاحتياطي على الهاتف دون ⁨Google⁩.</string>
+    <string name="cloud_restore_from">الاستعادة من ⁨Google Drive⁩</string>
+
+    <string name="cloud_account">الحساب المرتبط</string>
+    <string name="cloud_last">آخر نسخة احتياطية</string>
+    <string name="cloud_last_value">⁨%1$s⁩ · ⁨%2$s⁩</string>
+    <string name="cloud_none_yet">ليس بعد</string>
+    <string name="cloud_backup_now">النسخ الاحتياطي الآن</string>
+    <string name="cloud_settings">الإعدادات</string>
+    <string name="cloud_auto">النسخ الاحتياطي التلقائي</string>
+    <string name="cloud_auto_sub">كل ليلة، إذا تغيّرت البيانات</string>
+    <string name="cloud_mobile">السماح ببيانات الهاتف المحمول</string>
+    <string name="cloud_mobile_sub">وإلا، عبر ⁨Wi-Fi⁩ فقط</string>
+    <string name="cloud_photos">تضمين الصور</string>
+    <string name="cloud_photos_sub">تُرسل كل صورة مرة واحدة فقط</string>
+    <string name="cloud_manage">الإدارة</string>
+    <string name="cloud_restore">استعادة</string>
+    <string name="cloud_change_password">تغيير كلمة المرور</string>
+    <string name="cloud_change_account">تغيير الحساب</string>
+    <string name="cloud_unlink">إلغاء الربط</string>
+    <string name="cloud_reconnect">إعادة ربط ⁨Google Drive⁩</string>
+    <string name="cloud_enter_password">إدخال كلمة المرور</string>
+    <string name="cloud_quota_hint">حرّر مساحة في ⁨Google Drive⁩، ثم المس « النسخ الاحتياطي الآن ».</string>
+
+    <string name="cloud_step_preparing">تحضير النسخة الاحتياطية…</string>
+    <string name="cloud_step_encrypting">التشفير…</string>
+    <string name="cloud_step_photos">الصور: ⁨%1$d⁩ من ⁨%2$d⁩</string>
+    <string name="cloud_step_uploading">الإرسال: ⁨%1$d %%⁩</string>
+    <string name="cloud_step_waiting_wifi">في انتظار ⁨Wi-Fi⁩…</string>
+    <string name="cloud_step_waiting_network">في انتظار الشبكة…</string>
+    <string name="cloud_can_leave">يمكنك مغادرة هذه الشاشة.</string>
+
+    <string name="cloud_create_title">إنشاء كلمة مرور النسخ الاحتياطي</string>
+    <string name="cloud_create_text">ستكون نسخك الاحتياطية في ⁨Google Drive⁩ الخاص بـ ⁨%1$s⁩. للاستعادة على هاتف جديد، ستحتاج إلى هذا الحساب وإلى كلمة المرور هذه (أو رمز الاسترداد).</string>
+    <string name="cloud_password">كلمة المرور</string>
+    <string name="cloud_password_again">تأكيد كلمة المرور</string>
+    <string name="cloud_password_hint">⁨%1$d⁩ أحرف على الأقل</string>
+    <string name="cloud_password_short">⁨%1$d⁩ أحرف على الأقل.</string>
+    <string name="cloud_password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="cloud_create">إنشاء</string>
+
+    <string name="cloud_code_title">رمز الاسترداد الخاص بك</string>
+    <string name="cloud_code_text">إذا نسيت كلمة المرور، يفتح هذا الرمز نسخك الاحتياطية. اكتبه على ورقة واحفظه في مكان آمن: لن يُعرض مرة أخرى.</string>
+    <string name="cloud_code_share">مشاركة</string>
+    <string name="cloud_code_noted">كتبتُ الرمز</string>
+    <string name="cloud_continue">متابعة</string>
+
+    <string name="cloud_join_title">فتح النسخ الاحتياطية لهذا الحساب</string>
+    <string name="cloud_join_text">يحتوي حساب ⁨Google⁩ هذا على نسخ احتياطية لمؤسستك. أدخل كلمة مرور النسخ الاحتياطي أو رمز الاسترداد.</string>
+    <string name="cloud_relock_title">إدخال كلمة مرور النسخ الاحتياطي</string>
+    <string name="cloud_relock_text">فقد هذا الهاتف نسخته من المفتاح. أدخل كلمة المرور أو رمز الاسترداد لاستئناف النسخ الاحتياطي عبر الإنترنت.</string>
+    <string name="cloud_secret">كلمة المرور أو رمز الاسترداد</string>
+    <string name="cloud_secret_wrong">كلمة المرور أو الرمز غير صحيح.</string>
+    <string name="cloud_open">فتح</string>
+
+    <string name="cloud_change_text">تبقى النسخ الاحتياطية السابقة قابلة للقراءة، ولا يتغيّر رمز الاسترداد.</string>
+    <string name="cloud_current_password">كلمة المرور الحالية</string>
+    <string name="cloud_new_password">كلمة المرور الجديدة</string>
+    <string name="cloud_current_wrong">كلمة المرور الحالية غير صحيحة.</string>
+    <string name="cloud_save">حفظ</string>
+    <string name="cloud_password_changed">تم تغيير كلمة المرور.</string>
+
+    <string name="cloud_unlink_title">إلغاء ربط ⁨Google Drive⁩؟</string>
+    <string name="cloud_unlink_text">تبقى النسخ الاحتياطية في ⁨Google Drive⁩ الخاص بـ ⁨%1$s⁩: يمكنك استعادتها لاحقًا بكلمة المرور أو بالرمز. لن يرسل هذا الهاتف نسخًا بعد الآن.</string>
+    <string name="cloud_unlinked">تم إلغاء ربط ⁨Google Drive⁩.</string>
+    <string name="cloud_change_account_title">تغيير حساب ⁨Google⁩؟</string>
+    <string name="cloud_change_account_text">تبقى النسخ القديمة في ⁨Google Drive⁩ الخاص بـ ⁨%1$s⁩. سيتلقى الحساب الجديد نسخة كاملة فورًا.</string>
+    <string name="cloud_linked_done">تم ربط ⁨Google Drive⁩. أول نسخة احتياطية جارية.</string>
+    <string name="cloud_reconnected">تمت إعادة ربط ⁨Google Drive⁩.</string>
+    <string name="cloud_backup_started">بدأ النسخ الاحتياطي.</string>
+
+    <string name="cloud_choose_title">اختيار نسخة احتياطية</string>
+    <string name="cloud_choose_text">ستحلّ النسخة المختارة محلّ بيانات هذا الهاتف، بعد التأكيد.</string>
+    <string name="cloud_this_phone">هذا الهاتف</string>
+    <string name="cloud_other_phone">هاتف آخر</string>
+    <string name="cloud_old_key">مفتاح قديم: لا يمكن فتحها</string>
+    <string name="cloud_no_backups">لا توجد نسخ احتياطية لمؤسستك في ⁨Google Drive⁩ هذا.</string>
+    <string name="cloud_restoring_title">الاستعادة من ⁨Google Drive⁩</string>
+    <string name="cloud_downloading">التنزيل: ⁨%1$d %%⁩</string>
+    <string name="cloud_decrypting">فك التشفير…</string>
+
+    <string name="cloud_error_no_account">تعذّرت قراءة حساب ⁨Google⁩. أعد المحاولة.</string>
+
+    <!-- What failed (%1$s is one of the cloud_reason_* below). Never the backup's « n'a pas pu être envoyée » -->
+    <string name="cloud_link_failed">تعذّر ربط ⁨Google Drive⁩: %1$s</string>
+    <string name="cloud_restore_failed">تعذّرت الاستعادة من ⁨Google Drive⁩: %1$s</string>
+    <string name="cloud_reconnect_failed">تعذّرت إعادة ربط ⁨Google Drive⁩: %1$s</string>
+    <string name="cloud_action_failed">لم تكتمل العملية: %1$s</string>
+    <string name="cloud_reason_refused">رفضت ⁨Google⁩ الوصول (الرمز ⁨%1$d⁩).</string>
+    <string name="cloud_reason_network">لا يوجد اتصال، أو ⁨Google⁩ لا تستجيب. أعد المحاولة.</string>
+    <string name="cloud_reason_drive">رفض ⁨Google Drive⁩ الطلب (⁨%1$s⁩).</string>
+    <string name="cloud_reason_full">مساحة ⁨Google Drive⁩ الخاصة بك ممتلئة.</string>
+    <string name="cloud_error_newer">أُنشئت هذه النسخة بإصدار أحدث من ⁨DistriGo⁩. حدّث التطبيق ثم أعد المحاولة.</string>
+    <string name="cloud_error_damaged">هذه النسخة تالفة. أعد المحاولة أو اختر نسخة أخرى.</string>
+    <string name="cloud_error_other_key">أُنشئت هذه النسخة بمفتاح قديم ولا يمكن فتحها.</string>
+</resources>

@@ -16,8 +16,12 @@ import java.time.temporal.TemporalAdjusters
  * deleted, and the weeklies thin out. In a fixed week, the newest backup stays the newest for good.
  *
  * Never selected for deletion: [justSent] (the backup this run confirmed, even if another carries the same time), the
- * newest backup whatever its age, and anything dated in the future (a phone whose clock was wrong: better kept than
- * lost). Within a day or a week, [justSent] counts as the newest.
+ * newest backup whatever its age, **the newest backup of each phone** (by `deviceId`), and anything dated in the
+ * future (a phone whose clock was wrong: better kept than lost). Within a day or a week, [justSent] counts as the
+ * newest.
+ *
+ * Per phone, because a lost phone's last backup is the one that matters most: a new phone linked the same day backs up
+ * its still-empty data, and « the newest of the day » alone would delete the lost phone's real backup.
  */
 object CloudRetention {
     const val DAYS = 7
@@ -35,6 +39,7 @@ object CloudRetention {
         val keep = HashSet<String>()
         keep += newestFirst.first().id
         justSent?.let { keep += it }
+        newestFirst.distinctBy { it.meta.deviceId }.forEach { keep += it.id }
         val dailyKept = HashSet<LocalDate>()
         val weeklyKept = HashSet<LocalDate>()
         for (entry in newestFirst) {

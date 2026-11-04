@@ -32,8 +32,14 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 /** The account a cloud provider works for: Drive, with the linked Google account's silent tokens. */
-fun interface CloudBackupProviders {
+interface CloudBackupProviders {
     fun forAccount(account: String): CloudBackupProvider
+
+    /** The email of the account [token] was granted for, right after consent (Drive's `about`, no extra scope). */
+    suspend fun emailFor(token: String): String?
+
+    /** « Délier »: Google forgets the app's access. Failure is ignored (offline: the user can remove it in their account). */
+    suspend fun revoke(token: String)
 }
 
 /** The Google Drive backup (docs/cloud_backup_drive_plan.md). */
@@ -58,7 +64,19 @@ object CloudBackupModule {
     @Singleton
     fun provideCloudBackupProviders(http: OkHttpClient, authorizer: DriveAuthorizer): CloudBackupProviders {
         val drive = http.newBuilder().writeTimeout(2, TimeUnit.MINUTES).readTimeout(2, TimeUnit.MINUTES).build()
-        return CloudBackupProviders { account -> GoogleDriveProvider(DriveClient(drive, authorizer.tokens(account))) }
+        return object : CloudBackupProviders {
+            override fun forAccount(account: String): CloudBackupProvider = GoogleDriveProvider(DriveClient(drive, authorizer.tokens(account)))
+            override suspend fun emailFor(token: String): String? = DriveClient(drive, FixedToken(token)).accountEmail()
+            override suspend fun revoke(token: String) = DriveClient(drive, FixedToken(token)).revoke(token)
+        }
+    }
+
+    /** The token Google's consent just gave; refreshing it is the consent's business, not this call's. */
+    private class FixedToken(private val token: String) : com.distrigo.app.data.backup.cloud.DriveTokens {
+        override suspend fun accessToken() = token
+        override suspend fun refresh(rejected: String): String = throw com.distrigo.app.data.backup.cloud.CloudBackupException(
+            com.distrigo.app.data.backup.cloud.CloudBackupException.Problem.NEEDS_CONSENT, "consent token refused",
+        )
     }
 
     @Provides

@@ -7,7 +7,9 @@ import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import com.distrigo.app.ui.settings.data.CloudBackupScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.ui.clients.ClientFormScreen
 import com.distrigo.app.ui.clients.ClientPlacementUiState
@@ -41,6 +43,8 @@ import com.distrigo.app.ui.settings.print.ReceiptAndPrintSettingsScreen
 import com.distrigo.app.ui.settings.trash.TrashScreen
 import com.distrigo.app.ui.settings.diagnostics.DiagnosticsScreen
 
+/** A `.distrigo` downloaded from Google Drive, from the cloud screen to the Sauvegarde screen's restore. */
+private const val CLOUD_RESTORE_KEY = "cloud_restore_file"
 private const val RESULT_ADDED_IDS = "added_client_ids"
 private const val RESULT_ADDED_MESSAGE = "added_client_message"
 
@@ -244,8 +248,24 @@ fun SettingsNavHost(
         composable(Screen.SettingsCommission.route) {
             CommissionPolicyScreen(onBack = { navController.popBackStack() })
         }
-        composable(Screen.SettingsData.route) {
-            DataBackupScreen(onBack = { navController.popBackStack() })
+        composable(Screen.SettingsData.route) { entry ->
+            // A backup downloaded from Google Drive, handed back by the cloud screen for this screen's own restore
+            val cloudRestore by entry.savedStateHandle.getStateFlow<String?>(CLOUD_RESTORE_KEY, null).collectAsState()
+            DataBackupScreen(
+                onBack = { navController.popBackStack() },
+                onCloud = { navController.navigate(Screen.SettingsCloudBackup.route) },
+                cloudRestore = cloudRestore,
+                onCloudRestoreTaken = { entry.savedStateHandle[CLOUD_RESTORE_KEY] = null },
+            )
+        }
+        composable(Screen.SettingsCloudBackup.route) {
+            CloudBackupScreen(
+                onBack = { navController.popBackStack() },
+                onRestoreFile = { uri ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(CLOUD_RESTORE_KEY, uri.toString())
+                    navController.popBackStack()
+                },
+            )
         }
         composable(Screen.SettingsExport.route) {
             ExportScreen(onBack = { navController.popBackStack() })
