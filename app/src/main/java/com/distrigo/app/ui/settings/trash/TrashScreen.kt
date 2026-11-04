@@ -164,8 +164,12 @@ private fun EmptyTrash() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-        Spacer(Modifier.height(DsSpacing.lg))
+        androidx.compose.foundation.Image(
+            androidx.compose.ui.res.painterResource(R.drawable.empty_corbeille),
+            contentDescription = null,
+            modifier = Modifier.size(160.dp)
+        )
+        Spacer(Modifier.height(DsSpacing.sm))
         Text(stringResource(R.string.trash_empty_title), fontSize = DsTextSize.title, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
         Spacer(Modifier.height(DsSpacing.sm))
         Text(

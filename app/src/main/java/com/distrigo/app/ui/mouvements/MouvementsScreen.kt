@@ -169,11 +169,7 @@ fun MouvementsScreen(
             }
             pagedMovements.itemCount == 0 -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.SwapVert, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(56.dp))
-                        Spacer(Modifier.height(DsSpacing.md))
-                        Text(stringResource(R.string.mouvements_none), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                    }
+                    com.distrigo.app.ui.common.EmptyState(R.drawable.empty_mouvements_stock, stringResource(R.string.mouvements_none))
                 }
             }
             else -> {

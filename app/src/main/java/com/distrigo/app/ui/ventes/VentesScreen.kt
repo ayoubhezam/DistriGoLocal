@@ -565,18 +565,12 @@ fun VentesScreen(
                 }
             } else if (pagedVentes.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.PointOfSale,
-                            contentDescription = null,
-                            tint     = DsColors.TextTertiary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(DsSpacing.md))
-                        Text(stringResource(R.string.ventes_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(stringResource(R.string.common_tap_plus_to_create), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
-                    }
+                    // The hint only when there is really nothing yet, not when a search or filter found nothing
+                    com.distrigo.app.ui.common.EmptyState(
+                        illustration = R.drawable.empty_depot_vente,
+                        title        = stringResource(R.string.ventes_empty),
+                        hint         = stringResource(R.string.empty_hint_depot_vente).takeIf { viewModel.searchQuery.isBlank() && !hasActiveFilters },
+                    )
                 }
             } else {
                 val listState = rememberLazyListState()

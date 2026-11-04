@@ -142,11 +142,7 @@ fun RetourFournisseurListScreen(
 
                 if (filteredRetours.isEmpty()) {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Inbox, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                            Spacer(Modifier.height(DsSpacing.sm))
-                            Text(stringResource(R.string.clients_no_return), color = DsColors.TextSecondary)
-                        }
+                        com.distrigo.app.ui.common.EmptyState(R.drawable.empty_retours_fournisseurs, stringResource(R.string.clients_no_return))
                     }
                 } else {
                     LazyColumn(

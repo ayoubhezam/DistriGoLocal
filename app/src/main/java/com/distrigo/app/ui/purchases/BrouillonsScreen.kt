@@ -304,18 +304,12 @@ private fun EmptyBrouillons(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier.size(72.dp).clip(DsShapes.large).background(DsColors.PrimaryLight),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.Description,
-                contentDescription = null,
-                tint = DsColors.Primary,
-                modifier = Modifier.size(34.dp)
-            )
-        }
-        Spacer(Modifier.height(DsSpacing.lg))
+        androidx.compose.foundation.Image(
+            androidx.compose.ui.res.painterResource(R.drawable.empty_brouillons_achat),
+            contentDescription = null,
+            modifier = Modifier.size(160.dp)
+        )
+        Spacer(Modifier.height(DsSpacing.sm))
         Text(
             stringResource(R.string.common_drafts_none),
             fontSize   = DsTextSize.title,

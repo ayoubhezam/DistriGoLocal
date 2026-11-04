@@ -361,6 +361,20 @@ fun ClientsScreen(
                     )
                 }
             }
+            if (shown.isEmpty() && !isLoading) {
+                // Under the search and filters, so they stay at hand; the hint only when there are no clients at all.
+                // Not while loading: the list starts empty and would flash « Aucun client ».
+                item(key = "empty", contentType = "empty") {
+                    val noClients = clients.isEmpty()
+                    Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
+                        com.distrigo.app.ui.common.EmptyState(
+                            illustration = R.drawable.empty_clients,
+                            title        = stringResource(if (noClients) R.string.empty_clients_title else R.string.common_no_client_matches),
+                            hint         = stringResource(R.string.empty_hint_clients).takeIf { noClients },
+                        )
+                    }
+                }
+            }
         }
         if (selection != null) {
             val n = picked.selected.size

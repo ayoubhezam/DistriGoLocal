@@ -352,13 +352,12 @@ fun ChargementNavHost(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.ShoppingCart,
+                            androidx.compose.foundation.Image(
+                                androidx.compose.ui.res.painterResource(R.drawable.empty_selection),
                                 contentDescription = null,
-                                tint     = DsColors.TextTertiary,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(160.dp)
                             )
-                            Spacer(Modifier.height(DsSpacing.md))
+                            Spacer(Modifier.height(DsSpacing.sm))
                             Text(stringResource(R.string.common_cart_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(DsSpacing.sm))
                             Button(

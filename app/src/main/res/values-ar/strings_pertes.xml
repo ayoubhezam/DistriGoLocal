@@ -41,6 +41,5 @@
         <item quantity="many">\u2068%1$d\u2069 خسارةً</item>
         <item quantity="other">\u2068%1$d\u2069 خسارة</item>
     </plurals>
-    <string name="pertes_history_empty">لا توجد خسائر مسجّلة. اضغط « + » لإضافة واحدة.</string>
     <string name="pertes_no_match">لا توجد خسارة مطابقة.</string>
 </resources>

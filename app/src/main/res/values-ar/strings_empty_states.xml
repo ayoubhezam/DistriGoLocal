@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The hint under each list's empty-state illustration (EmptyState). To review (docs/i18n_glossary.md). -->
+<resources>
+    <string name="empty_hint_achats">اضغط على + لإنشاء أول وصل شراء.</string>
+    <string name="empty_hint_produits">أضف منتجاتك للبدء.</string>
+    <string name="empty_hint_stock_camion">حمّل شاحنتك لبدء جولة.</string>
+    <string name="empty_hint_depot_vente">اضغط على + لتسجيل عملية بيع.</string>
+    <string name="empty_hint_tournees">أنشئ جولة لتنظيم زياراتك.</string>
+    <string name="empty_clients_title">لا يوجد زبائن</string>
+    <string name="empty_hint_clients">اضغط على + لإضافة أول زبون.</string>
+    <string name="empty_suppliers_title">لا يوجد موردون</string>
+    <string name="empty_hint_suppliers">اضغط على + لإضافة أول مورد.</string>
+    <string name="empty_suppliers_no_match">لا يوجد مورد مطابق.</string>
+    <string name="empty_charges_title">لا توجد مصاريف</string>
+    <string name="empty_hint_charges">اضغط على + لإضافة مصروف.</string>
+    <string name="empty_pertes_title">لا توجد خسائر</string>
+    <string name="empty_hint_pertes">اضغط على + لإضافة خسارة.</string>
+</resources>

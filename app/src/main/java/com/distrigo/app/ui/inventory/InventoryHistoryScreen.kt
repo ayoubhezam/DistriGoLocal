@@ -95,11 +95,7 @@ fun InventoryHistoryScreen(
             }
             history.itemCount == 0 -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.History, contentDescription = null, tint = DsColors.TextTertiary, modifier = Modifier.size(48.dp))
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text(stringResource(R.string.inventory_history_empty), color = DsColors.TextSecondary)
-                    }
+                    com.distrigo.app.ui.common.EmptyState(R.drawable.empty_inventaire, stringResource(R.string.inventory_history_empty))
                 }
             }
             else -> {

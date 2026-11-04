@@ -170,16 +170,12 @@ fun TourneesScreen(
             }
             tournees.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.LocalShipping,
-                            contentDescription = null,
-                            tint     = DsColors.TextTertiary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(DsSpacing.sm))
-                        Text(stringResource(R.string.tournees_empty), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                    }
+                    // No search on this list: empty is always really empty
+                    com.distrigo.app.ui.common.EmptyState(
+                        illustration = R.drawable.empty_tournees,
+                        title        = stringResource(R.string.tournees_empty),
+                        hint         = stringResource(R.string.empty_hint_tournees),
+                    )
                 }
             }
             else -> {

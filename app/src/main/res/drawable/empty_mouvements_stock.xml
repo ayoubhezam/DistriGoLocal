@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Converted from empty-mouvements-stock.svg (empty-state illustration) by tools: SVG gradients and the dotted route are
+     rewritten for VectorDrawable. Not mirrored in right-to-left: it is a drawing, not a direction. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="240dp" android:height="240dp"
+    android:viewportWidth="240" android:viewportHeight="240">
+  <path
+      android:pathData="M36,124a84,84 0 1,0 168,0a84,84 0 1,0 -168,0Z"
+      android:fillColor="#FFEEF2FF"/>
+  <path
+      android:pathData="M30 176 C14 150 18 120 40 106 C48 132 46 156 30 176Z"
+      android:fillColor="#FFD6E0FF"/>
+  <path
+      android:pathData="M212 178 C228 152 224 122 202 108 C194 134 196 158 212 178Z"
+      android:fillColor="#FFD6E0FF"/>
+  <path
+      android:pathData="M48,190a72,8 0 1,0 144,0a72,8 0 1,0 -144,0Z"
+      android:fillColor="#1F1E3A8A"/>
+  <path
+      android:pathData="M84,114h70v66h-70Z">
+      <aapt:attr name="android:fillColor">
+        <gradient android:type="linear" android:startX="84" android:startY="114" android:endX="84" android:endY="180">
+          <item android:offset="0" android:color="#FFFFC170"/>
+          <item android:offset="1" android:color="#FFF08A2E"/>
+        </gradient>
+      </aapt:attr>
+  </path>
+  <path
+      android:pathData="M84 114 L100 100 H170 L154 114Z"
+      android:fillColor="#FFFFD79A"/>
+  <path
+      android:pathData="M154 114 L170 100 V166 L154 180Z"
+      android:fillColor="#FFD9731F"/>
+  <path
+      android:pathData="M114 114 L130 100 H140 L124 114Z"
+      android:fillColor="#FFFFE2B3"/>
+  <path
+      android:pathData="M114,114h10v66h-10Z"
+      android:fillColor="#B2FFE2B3"/>
+  <path
+      android:pathData="M56 160 V82"
+      android:fillColor="#FF000000"
+      android:strokeColor="#FF2346D6"
+      android:strokeWidth="10"
+      android:strokeLineCap="round"/>
+  <path
+      android:pathData="M40 98 L56 80 L72 98"
+      android:strokeColor="#FF2346D6"
+      android:strokeWidth="10"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"/>
+  <path
+      android:pathData="M192 62 V140"
+      android:fillColor="#FF000000"
+      android:strokeColor="#FF5B82FF"
+      android:strokeWidth="10"
+      android:strokeLineCap="round"/>
+  <path
+      android:pathData="M176 124 L192 142 L208 124"
+      android:strokeColor="#FF5B82FF"
+      android:strokeWidth="10"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"/>
+</vector>

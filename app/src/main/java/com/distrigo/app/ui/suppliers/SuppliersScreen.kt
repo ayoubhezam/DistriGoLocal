@@ -189,6 +189,20 @@ fun SuppliersScreen(
                     )
                 }
             }
+            if (filtered.isEmpty() && !isLoading) {
+                // Under the search and filters, so they stay at hand; the hint only when there are no suppliers at all.
+                // Not while loading: the list starts empty and would flash « Aucun fournisseur ».
+                item(key = "empty", contentType = "empty") {
+                    val noSuppliers = suppliers.isEmpty()
+                    Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
+                        com.distrigo.app.ui.common.EmptyState(
+                            illustration = R.drawable.empty_fournisseurs,
+                            title        = stringResource(if (noSuppliers) R.string.empty_suppliers_title else R.string.empty_suppliers_no_match),
+                            hint         = stringResource(R.string.empty_hint_suppliers).takeIf { noSuppliers },
+                        )
+                    }
+                }
+            }
         }
     }
 }

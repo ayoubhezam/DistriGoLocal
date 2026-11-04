@@ -234,9 +234,11 @@ private fun NoPolicy(onEditPolicy: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DsSpacing.md),
     ) {
-        Box(Modifier.size(64.dp).clip(DsShapes.large).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Flag, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(32.dp))
-        }
+        androidx.compose.foundation.Image(
+            androidx.compose.ui.res.painterResource(R.drawable.empty_objectif),
+            contentDescription = null,
+            modifier = Modifier.size(160.dp)
+        )
         Text(stringResource(R.string.goal_none), fontSize = DsTextSize.title, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark, textAlign = TextAlign.Center)
         Text(stringResource(R.string.goal_none_body),
             fontSize = DsTextSize.bodySmall, color = DsColors.TextSecondary, textAlign = TextAlign.Center)

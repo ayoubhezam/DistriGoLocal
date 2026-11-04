@@ -29,7 +29,6 @@
         <item quantity="many">%d مصروفًا</item>
         <item quantity="other">%d مصروف</item>
     </plurals>
-    <string name="charges_empty">لا توجد مصاريف مسجّلة. اضغط « + » لإضافة واحد.</string>
     <string name="charges_no_match">لا يوجد مصروف مطابق.</string>
     <string name="charges_subtype">النوع الفرعي</string>
 </resources>

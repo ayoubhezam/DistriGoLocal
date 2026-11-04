@@ -661,16 +661,12 @@ fun ProductsScreen(
                 }
             } else if (pagedProducts.itemCount == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            tint = DsColors.Primary.copy(alpha = 0.3f),
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(stringResource(R.string.common_no_product_found), color = DsColors.TextSecondary, fontWeight = FontWeight.Medium)
-                    }
+                    // The hint only when there is really nothing yet, not when a search or filter found nothing
+                    com.distrigo.app.ui.common.EmptyState(
+                        illustration = R.drawable.empty_produits,
+                        title        = stringResource(R.string.common_no_product_found),
+                        hint         = stringResource(R.string.empty_hint_produits).takeIf { viewModel.searchQuery.isBlank() && !hasActiveFilters },
+                    )
                 }
             } else {
                 // Remembered: itemKey makes a new function each call, and a new key function rebuilds the

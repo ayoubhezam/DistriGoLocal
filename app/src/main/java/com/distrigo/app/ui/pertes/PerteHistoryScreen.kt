@@ -187,11 +187,14 @@ fun PerteHistoryScreen(
         LaunchedEffect(newest) { if (newest != null) listState.scrollToItem(0) }
         when {
             list == null -> Unit
-            list.isEmpty() -> Text(
-                stringResource(if (search.isBlank() && !filters.isActive) R.string.pertes_history_empty else R.string.pertes_no_match),
-                fontSize = DsTextSize.body, color = DsColors.TextSecondary,
-                modifier = Modifier.fillMaxWidth().padding(DsSpacing.xl)
-            )
+            list.isEmpty() -> androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                val reallyEmpty = search.isBlank() && !filters.isActive
+                com.distrigo.app.ui.common.EmptyState(
+                    illustration = R.drawable.empty_pertes,
+                    title        = stringResource(if (reallyEmpty) R.string.empty_pertes_title else R.string.pertes_no_match),
+                    hint         = stringResource(R.string.empty_hint_pertes).takeIf { reallyEmpty },
+                )
+            }
             else -> LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(top = DsSpacing.xs, bottom = DsSpacing.xxxl),

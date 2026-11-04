@@ -26,7 +26,6 @@
         <item quantity="other">%d charges</item>
         <item quantity="many">%d charges</item>
     </plurals>
-    <string name="charges_empty">Aucune charge enregistrée. « + » pour en ajouter une.</string>
     <string name="charges_no_match">Aucune charge ne correspond.</string>
     <string name="charges_subtype">Sous-type</string>
 </resources>

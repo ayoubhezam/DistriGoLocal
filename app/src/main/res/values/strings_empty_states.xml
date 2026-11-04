@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The hint under each list's empty-state illustration (EmptyState). Arabic in values-ar. -->
+<resources>
+    <string name="empty_hint_achats">Appuyez sur + pour créer votre premier bon.</string>
+    <string name="empty_hint_produits">Ajoutez vos produits pour commencer.</string>
+    <string name="empty_hint_stock_camion">Chargez votre camion pour démarrer une tournée.</string>
+    <string name="empty_hint_depot_vente">Appuyez sur + pour enregistrer une vente.</string>
+    <string name="empty_hint_tournees">Créez une tournée pour organiser vos visites.</string>
+    <string name="empty_clients_title">Aucun client</string>
+    <string name="empty_hint_clients">Appuyez sur + pour ajouter votre premier client.</string>
+    <string name="empty_suppliers_title">Aucun fournisseur</string>
+    <string name="empty_hint_suppliers">Appuyez sur + pour ajouter votre premier fournisseur.</string>
+    <string name="empty_suppliers_no_match">Aucun fournisseur ne correspond.</string>
+    <string name="empty_charges_title">Aucune charge</string>
+    <string name="empty_hint_charges">Appuyez sur + pour en ajouter une.</string>
+    <string name="empty_pertes_title">Aucune perte</string>
+    <string name="empty_hint_pertes">Appuyez sur + pour en ajouter une.</string>
+</resources>

@@ -358,20 +358,13 @@ fun StockCamionScreen(
                 }
                 camionProducts.itemCount == 0 -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Inventory2,
-                                contentDescription = null,
-                                tint     = DsColors.TextTertiary,
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Spacer(Modifier.height(DsSpacing.sm))
-                            Text(
-                                // An empty camion and a search that found nothing in it are two answers.
-                                stringResource(if (search.isBlank() && !filters.isActive) R.string.tournees_truck_no_product else R.string.common_no_product_found),
-                                color = DsColors.TextSecondary, fontWeight = FontWeight.Medium
-                            )
-                        }
+                        // An empty camion and a search that found nothing in it are two answers.
+                        val reallyEmpty = search.isBlank() && !filters.isActive
+                        com.distrigo.app.ui.common.EmptyState(
+                            illustration = R.drawable.empty_stock_camion,
+                            title        = stringResource(if (reallyEmpty) R.string.tournees_truck_no_product else R.string.common_no_product_found),
+                            hint         = stringResource(R.string.empty_hint_stock_camion).takeIf { reallyEmpty },
+                        )
                     }
                 }
                 else -> {

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Converted from empty-clients.svg (empty-state illustration) by tools: SVG gradients and the dotted route are
+     rewritten for VectorDrawable. Not mirrored in right-to-left: it is a drawing, not a direction. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="240dp" android:height="240dp"
+    android:viewportWidth="240" android:viewportHeight="240">
+  <path
+      android:pathData="M36,124a84,84 0 1,0 168,0a84,84 0 1,0 -168,0Z"
+      android:fillColor="#FFEEF2FF"/>
+  <path
+      android:pathData="M40 176 C22 148 28 116 52 102 C60 130 56 156 40 176Z"
+      android:fillColor="#FFD6E0FF"/>
+  <path
+      android:pathData="M40 176 C42 150 46 126 52 102"
+      android:strokeColor="#FFBFCDFA"
+      android:strokeWidth="2"/>
+  <path
+      android:pathData="M200 178 C218 152 214 122 192 108 C184 134 186 158 200 178Z"
+      android:fillColor="#FFD6E0FF"/>
+  <path
+      android:pathData="M48,192a72,8 0 1,0 144,0a72,8 0 1,0 -144,0Z"
+      android:fillColor="#1F1E3A8A"/>
+  <group android:rotation="-8" android:pivotX="100" android:pivotY="84">
+    <path
+        android:pathData="M60,50H144A10,10 0 0,1 154,60V110A10,10 0 0,1 144,120H60A10,10 0 0,1 50,110V60A10,10 0 0,1 60,50Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFDDE5FF"
+        android:strokeWidth="2"/>
+    <path
+        android:pathData="M62,74a10,10 0 1,0 20,0a10,10 0 1,0 -20,0Z"
+        android:fillColor="#FFC9D6FF"/>
+    <path
+        android:pathData="M92.5,66H135.5A2.5,2.5 0 0,1 138,68.5V68.5A2.5,2.5 0 0,1 135.5,71H92.5A2.5,2.5 0 0,1 90,68.5V68.5A2.5,2.5 0 0,1 92.5,66Z"
+        android:fillColor="#FF5B82FF"/>
+    <path
+        android:pathData="M92,77H122A2,2 0 0,1 124,79V79A2,2 0 0,1 122,81H92A2,2 0 0,1 90,79V79A2,2 0 0,1 92,77Z"
+        android:fillColor="#FFC9D6FF"/>
+    <path
+        android:pathData="M64,96H136A2,2 0 0,1 138,98V98A2,2 0 0,1 136,100H64A2,2 0 0,1 62,98V98A2,2 0 0,1 64,96Z"
+        android:fillColor="#FFC9D6FF"/>
+    <path
+        android:pathData="M64,105H116A2,2 0 0,1 118,107V107A2,2 0 0,1 116,109H64A2,2 0 0,1 62,107V107A2,2 0 0,1 64,105Z"
+        android:fillColor="#FFC9D6FF"/>
+  </group>
+  <group>
+    <clip-path android:pathData="M0,0h240v190h-240Z"/>
+    <path
+        android:pathData="M135,124a17,17 0 1,0 34,0a17,17 0 1,0 -34,0Z"
+        android:fillColor="#FFAFC2FF"/>
+    <path
+        android:pathData="M122 192 C122 166 134 150 152 150 C170 150 182 166 182 192 Z"
+        android:fillColor="#FF9FB6FF"/>
+    <path
+        android:pathData="M85,118a21,21 0 1,0 42,0a21,21 0 1,0 -42,0Z"
+        android:fillColor="#FF7C9BFF"/>
+    <path
+        android:pathData="M70 192 C70 160 86 144 106 144 C126 144 142 160 142 192 Z">
+        <aapt:attr name="android:fillColor">
+          <gradient android:type="linear" android:startX="70" android:startY="144" android:endX="70" android:endY="192">
+            <item android:offset="0" android:color="#FF5B82FF"/>
+            <item android:offset="1" android:color="#FF2346D6"/>
+          </gradient>
+        </aapt:attr>
+    </path>
+  </group>
+  <path
+      android:pathData="M165,72a15,15 0 1,0 30,0a15,15 0 1,0 -30,0Z">
+      <aapt:attr name="android:fillColor">
+        <gradient android:type="linear" android:startX="165" android:startY="57" android:endX="165" android:endY="87">
+          <item android:offset="0" android:color="#FFFFC170"/>
+          <item android:offset="1" android:color="#FFF08A2E"/>
+        </gradient>
+      </aapt:attr>
+  </path>
+  <path
+      android:pathData="M180 80 C171 74 169 70 172 66.5 C175 63.5 178.5 65.5 180 68 C181.5 65.5 185 63.5 188 66.5 C191 70 189 74 180 80Z"
+      android:fillColor="#FFFFFFFF"/>
+</vector>
