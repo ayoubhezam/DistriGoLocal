@@ -172,8 +172,9 @@ class ListsRepositoryTest {
         exec("INSERT INTO perte_types (id, name, icon, color_hex, is_default, created_at, uuid) VALUES (2, 'Casse', 'broken_image', '#F04438', 1, '2026-10-01T00:00:00Z', ?)", uuid())
 
         assertTrue(lists.entries(ListKind.PERTE_TYPES).single().isDefault)
-        assertEquals(ListOutcome.Refused(ListsRepository.BUILT_IN), lists.delete(ListKind.PERTE_TYPES, 2))
-        assertEquals(ListOutcome.Refused(ListsRepository.BUILT_IN), lists.delete(ListKind.CHARGE_TYPES, 1))
+        val builtIn = ListWords.text(com.distrigo.app.R.string.lists_built_in)
+        assertEquals(ListOutcome.Refused(builtIn), lists.delete(ListKind.PERTE_TYPES, 2))
+        assertEquals(ListOutcome.Refused(builtIn), lists.delete(ListKind.CHARGE_TYPES, 1))
         assertEquals(ListOutcome.Done, lists.rename(ListKind.PERTE_TYPES, 2, "Casse / dommage"))
         assertNull(deletedAt("perte_types", 2))
     }

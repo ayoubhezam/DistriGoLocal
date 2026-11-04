@@ -153,4 +153,15 @@
     <string name="backup_notif_up_to_date">Sauvegarde à jour</string>
     <string name="backup_notif_nothing_changed">Rien n\'a changé depuis la dernière sauvegarde du dossier.</string>
     <string name="backup_notif_failed">Sauvegarde impossible</string>
+    <!-- Google Drive backup (docs/cloud_backup_drive_plan.md): alerts and the job's notification -->
+    <string name="cloud_backup_alert_title">Sauvegarde Google Drive</string>
+    <string name="cloud_backup_running">Sauvegarde vers Google Drive…</string>
+    <string name="cloud_backup_problem_no_business">Activez d\'abord votre compte : la sauvegarde en ligne en a besoin.</string>
+    <string name="cloud_backup_problem_other_business">Ces données appartiennent maintenant à une autre entreprise : liez Google Drive à nouveau.</string>
+    <string name="cloud_backup_problem_needs_password">Entrez à nouveau le mot de passe de sauvegarde pour reprendre la sauvegarde en ligne.</string>
+    <string name="cloud_backup_problem_needs_consent">Reconnectez Google Drive : l\'accès a été retiré ou doit être confirmé.</string>
+    <string name="cloud_backup_problem_quota">Google Drive est plein — la sauvegarde en ligne est suspendue.</string>
+    <string name="cloud_backup_problem_unavailable">Google Drive n\'est pas disponible sur ce téléphone.</string>
+    <string name="cloud_backup_problem_no_connection">La sauvegarde en ligne n\'a pas pu être envoyée : pas de connexion, ou Google Drive ne répond pas.</string>
+    <string name="cloud_backup_problem_no_space">Pas assez d\'espace sur le téléphone pour préparer la sauvegarde en ligne.</string>
 </resources>

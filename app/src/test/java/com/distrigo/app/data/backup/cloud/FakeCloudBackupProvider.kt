@@ -96,6 +96,11 @@ internal class FakeCloudBackupProvider(private val email: String = "owner@gmail.
         blobBytes.remove(blob.id)
     }
 
+    /** Test hook: the key ring alone deleted on Drive. */
+    fun deleteKeyRing(businessId: String) {
+        rings.remove(businessId)
+    }
+
     /** Test hook: what the user's « delete hidden app data » in Drive does. */
     fun wipe() {
         backups.clear()

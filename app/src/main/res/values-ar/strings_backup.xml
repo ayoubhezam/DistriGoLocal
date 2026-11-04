@@ -165,4 +165,15 @@
     <string name="backup_notif_up_to_date">النسخة الاحتياطية محدّثة</string>
     <string name="backup_notif_nothing_changed">لم يتغير شيء منذ آخر نسخة في المجلد.</string>
     <string name="backup_notif_failed">تعذّر النسخ الاحتياطي</string>
+    <!-- Google Drive backup (docs/cloud_backup_drive_plan.md): alerts and the job's notification -->
+    <string name="cloud_backup_alert_title">النسخ الاحتياطي على \u2068Google Drive\u2069</string>
+    <string name="cloud_backup_running">جارٍ النسخ الاحتياطي إلى \u2068Google Drive\u2069…</string>
+    <string name="cloud_backup_problem_no_business">فعّل حسابك أولًا: النسخ الاحتياطي عبر الإنترنت يحتاج إليه.</string>
+    <string name="cloud_backup_problem_other_business">هذه البيانات تخص الآن مؤسسة أخرى: اربط \u2068Google Drive\u2069 من جديد.</string>
+    <string name="cloud_backup_problem_needs_password">أدخل كلمة مرور النسخ الاحتياطي من جديد لاستئناف النسخ الاحتياطي عبر الإنترنت.</string>
+    <string name="cloud_backup_problem_needs_consent">أعد ربط \u2068Google Drive\u2069: سُحب الإذن أو يجب تأكيده.</string>
+    <string name="cloud_backup_problem_quota">\u2068Google Drive\u2069 ممتلئ — النسخ الاحتياطي عبر الإنترنت متوقف.</string>
+    <string name="cloud_backup_problem_unavailable">\u2068Google Drive\u2069 غير متاح على هذا الهاتف.</string>
+    <string name="cloud_backup_problem_no_connection">تعذّر إرسال النسخة الاحتياطية عبر الإنترنت: لا يوجد اتصال، أو \u2068Google Drive\u2069 لا يستجيب.</string>
+    <string name="cloud_backup_problem_no_space">لا توجد مساحة كافية على الهاتف لتحضير النسخة الاحتياطية عبر الإنترنت.</string>
 </resources>

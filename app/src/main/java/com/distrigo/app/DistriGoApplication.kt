@@ -42,6 +42,10 @@ class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoa
     @Inject
     lateinit var autoBackupScheduler: dagger.Lazy<AutoBackupScheduler>
 
+    // Lazy for the same reason: its state file is on disk.
+    @Inject
+    lateinit var cloudBackupScheduler: dagger.Lazy<com.distrigo.app.data.backup.cloud.CloudBackupScheduler>
+
     // Lazy, and read on their own thread: the session and the license are files and Keystore keys.
     @Inject
     lateinit var authRepository: dagger.Lazy<AuthRepository>
@@ -89,6 +93,12 @@ class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoa
             } catch (e: RuntimeException) {
                 // A scheduling problem must not take the app down at launch; the next launch tries again.
                 Log.w("DistriGoApplication", "could not schedule the daily backup", e)
+            }
+            try {
+                // Nothing to do (and WorkManager not started) until a cloud backup is linked.
+                cloudBackupScheduler.get().ensureScheduled()
+            } catch (e: RuntimeException) {
+                Log.w("DistriGoApplication", "could not schedule the cloud backup", e)
             }
         }, "auto-backup-schedule").start()
         // The signed-in account, and what the license allows (docs/license_architecture.md §2.4): the Compte screen and
