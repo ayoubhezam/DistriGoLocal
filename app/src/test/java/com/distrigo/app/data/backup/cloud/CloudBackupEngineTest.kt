@@ -295,9 +295,13 @@ class CloudBackupEngineTest {
         assertEquals(2, second.problemStreak)
         assertEquals(CloudBackupProblem.NO_CONNECTION, second.lastProblem)
         assertEquals(now, second.lastScheduledRunAt)
+        assertEquals("the manual run leaves the night's outcome", "failed:NO_CONNECTION", second.lastScheduledOutcome)
         val good = engine.record(CloudBackupOutcome.Unchanged, scheduled = true)
         assertEquals(0, good.problemStreak)
         assertNull(good.lastProblem)
+        assertEquals("unchanged", good.lastScheduledOutcome)
+        assertEquals("unchanged", engine.record(CloudBackupOutcome.NotLinked, scheduled = false).lastScheduledOutcome)
+        assertEquals("kept on disk", "unchanged", store.read().lastScheduledOutcome)
     }
 
     // ---- photos (Phase 4) ----

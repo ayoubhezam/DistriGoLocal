@@ -49,6 +49,8 @@ data class CloudBackupState(
     val lastAttemptAt: Instant? = null,
     /** When the daily job last ran, apart from « Sauvegarder maintenant ». */
     val lastScheduledRunAt: Instant? = null,
+    /** What that daily run did (« unchanged », « saved », « failed:… »): kept apart so « Sauvegarder maintenant » doesn't hide it. */
+    val lastScheduledOutcome: String? = null,
     /** Runs in a row that ended with a problem; 0 after a good run. */
     val problemStreak: Int = 0,
     val lastProblem: CloudBackupProblem? = null,
@@ -82,6 +84,7 @@ class CloudBackupStore(private val dir: File) {
                 lastSize = json.text("last_size")?.toLongOrNull(),
                 lastAttemptAt = json.instant("last_attempt_at"),
                 lastScheduledRunAt = json.instant("last_scheduled_run_at"),
+                lastScheduledOutcome = json.text("last_scheduled_outcome"),
                 problemStreak = json.text("problem_streak")?.toIntOrNull() ?: 0,
                 lastProblem = json.text("last_problem")?.let { runCatching { CloudBackupProblem.valueOf(it) }.getOrNull() },
                 pending = (json.get("pending") as? JsonObject)?.let(::pendingFrom),
@@ -109,6 +112,7 @@ class CloudBackupStore(private val dir: File) {
             addProperty("last_size", next.lastSize?.toString())
             addProperty("last_attempt_at", next.lastAttemptAt?.toString())
             addProperty("last_scheduled_run_at", next.lastScheduledRunAt?.toString())
+            addProperty("last_scheduled_outcome", next.lastScheduledOutcome)
             addProperty("problem_streak", next.problemStreak.toString())
             addProperty("last_problem", next.lastProblem?.name)
             add("pending", next.pending?.let(::pendingJson))

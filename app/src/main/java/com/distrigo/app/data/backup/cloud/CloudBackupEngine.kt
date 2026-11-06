@@ -53,6 +53,15 @@ sealed class CloudBackupOutcome {
 
     /** [retryable]: worth trying again soon (network); otherwise the next scheduled run, or the user, fixes it. */
     data class Failed(val problem: CloudBackupProblem, val retryable: Boolean, val detail: String) : CloudBackupOutcome()
+
+    /** The outcome's name in the worker's output and in [CloudBackupState.lastScheduledOutcome]. */
+    val logName: String
+        get() = when (this) {
+            NotLinked -> "not_linked"
+            Unchanged -> "unchanged"
+            is Saved -> "saved"
+            is Failed -> "failed:${problem.name}"
+        }
 }
 
 /** How far a run is, for « Sauvegarder maintenant »'s progress. */
@@ -132,6 +141,7 @@ class CloudBackupEngine(
             problemStreak = if (problem == null) 0 else it.problemStreak + 1,
             lastProblem = problem,
             lastScheduledRunAt = if (scheduled) clock() else it.lastScheduledRunAt,
+            lastScheduledOutcome = if (scheduled) outcome.logName else it.lastScheduledOutcome,
         )
     }
 

@@ -79,11 +79,6 @@ class CloudBackupWorker @AssistedInject constructor(
         /** The first run and four retries (30 min, 1 h, 2 h, 4 h): a whole night's worth. */
         const val MAX_ATTEMPTS = 5
 
-        fun outcomeName(outcome: CloudBackupOutcome): String = when (outcome) {
-            CloudBackupOutcome.NotLinked -> "not_linked"
-            CloudBackupOutcome.Unchanged -> "unchanged"
-            is CloudBackupOutcome.Saved -> "saved"
-            is CloudBackupOutcome.Failed -> "failed:${outcome.problem.name}"
-        }
+        fun outcomeName(outcome: CloudBackupOutcome): String = outcome.logName
     }
 }
